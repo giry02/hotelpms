@@ -131,7 +131,7 @@
             ).join('');
             return `
             <div class="nav-item" data-menu="${item.id}" onclick="location.href='${item.mainHref}'">
-                <span><i class="fa-solid ${item.icon}"></i> <span data-i18n-key="${item.label}">${item.label}</span></span>
+                <i class="fa-solid ${item.icon}"></i> <span style="flex:1" data-i18n-key="${item.label}">${item.label}</span>
                 <i class="fa-solid fa-chevron-down nav-chevron" onclick="event.stopPropagation(); PMS_Sidebar.toggleSubMenu(this)"></i>
             </div>
             <div class="nav-sub" data-submenu="${item.id}">${children}</div>`;

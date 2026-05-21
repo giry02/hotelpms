@@ -219,14 +219,22 @@ const COLORS = [
 ];
 
 const SYSTEM_ROLES = [
-    { id: 'sys_admin',       name: 'Admin',       desc: '모든 메뉴에 접근 가능한 최고 관리자', color: '#6D28D9', isSystem: true, perms: ALL_MENUS.map(m=>m.key) },
-    { id: 'sys_manager',     name: 'Manager',     desc: '설정·직원관리를 제외한 대부분 접근 가능', color: '#1D4ED8', isSystem: true, perms: ['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary'] },
-    { id: 'sys_housekeeper', name: 'Housekeeper', desc: '하우스키핑 전용 접근', color: '#065F46', isSystem: true, perms: ['dashboard','housekeeping','rooms'] },
+    { id: 'sys_admin',       name: 'Admin',       desc: '모든 메뉴에 접근 가능한 최고 관리자', color: '#6D28D9', isSystem: true, perms: ALL_MENUS.map(m=>m.key) }
+];
+
+const DEFAULT_CUSTOM_ROLES = [
+    { id: 'sys_manager',     name: 'Manager',     desc: '설정·직원관리를 제외한 대부분 접근 가능', color: '#1D4ED8', isSystem: false, perms: ['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary'] },
+    { id: 'sys_housekeeper', name: 'Housekeeper', desc: '하우스키핑 전용 접근', color: '#065F46', isSystem: false, perms: ['dashboard','housekeeping','rooms'] },
 ];
 
 function loadRoles() {
-    try { return JSON.parse(localStorage.getItem('pms_custom_roles') || '[]'); } 
-    catch { return []; }
+    try { 
+        const saved = localStorage.getItem('pms_custom_roles');
+        if (saved) return JSON.parse(saved);
+        saveRoles(DEFAULT_CUSTOM_ROLES);
+        return JSON.parse(JSON.stringify(DEFAULT_CUSTOM_ROLES));
+    } 
+    catch { return JSON.parse(JSON.stringify(DEFAULT_CUSTOM_ROLES)); }
 }
 function saveRoles(roles) { localStorage.setItem('pms_custom_roles', JSON.stringify(roles)); }
 
