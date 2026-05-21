@@ -131,6 +131,55 @@
         }
         .empty-state i { font-size: 3rem; margin-bottom: 12px; display: block; }
         .empty-state p { font-size: .9rem; }
+
+        /* ── 모달 오버레이 (dashboard.css에 없으므로 직접 정의) ── */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(3px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            width: 95vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0,0,0,.2);
+            animation: modalIn .2s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(.96) translateY(10px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .modal-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border2);
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .modal-title { font-size: 1rem; font-weight: 700; color: var(--txt); margin: 0; display: flex; align-items: center; }
+        .modal-close {
+            width: 32px; height: 32px; border: none; background: none;
+            color: var(--txt3); cursor: pointer; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 6px; transition: all .15s;
+        }
+        .modal-close:hover { background: var(--border2); color: var(--txt); }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .modal-footer {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border2);
+            display: flex; justify-content: flex-end; gap: 8px;
+            flex-shrink: 0;
+            background: #f8fafc;
+            border-radius: 0 0 var(--radius) var(--radius);
+        }
     </style>
 </head>
 <body>
@@ -379,36 +428,32 @@ function renderPermChecks(selectedPerms = []) {
     const grid = document.getElementById('permCheckGrid');
     grid.innerHTML = ALL_MENUS.map(m => {
         const checked = selectedPerms.includes(m.key);
-        return `<label class="perm-check-item${checked ? ' checked' : ''}" onclick="togglePerm(this, '${m.key}')">
-            <input type="checkbox" ${checked ? 'checked' : ''} data-key="${m.key}">
+        return `<div class="perm-check-item${checked ? ' checked' : ''}" data-key="${m.key}" onclick="togglePerm(this)">
             <div class="check-box">${checked ? '<i class="fa-solid fa-check"></i>' : ''}</div>
             <i class="fa-solid ${m.icon} check-icon"></i>
             <span class="check-label">${m.label}</span>
-        </label>`;
+        </div>`;
     }).join('');
 }
 
-function togglePerm(label, key) {
-    label.classList.toggle('checked');
-    const cb = label.querySelector('input[type="checkbox"]');
-    const box = label.querySelector('.check-box');
-    cb.checked = !cb.checked;
-    box.innerHTML = cb.checked ? '<i class="fa-solid fa-check"></i>' : '';
+function togglePerm(el) {
+    const wasChecked = el.classList.contains('checked');
+    el.classList.toggle('checked');
+    const box = el.querySelector('.check-box');
+    box.innerHTML = !wasChecked ? '<i class="fa-solid fa-check"></i>' : '';
 }
 
 function selectAllPerms(state) {
-    document.querySelectorAll('.perm-check-item').forEach(label => {
-        const cb = label.querySelector('input[type="checkbox"]');
-        const box = label.querySelector('.check-box');
-        cb.checked = state;
-        label.classList.toggle('checked', state);
+    document.querySelectorAll('.perm-check-item').forEach(el => {
+        el.classList.toggle('checked', state);
+        const box = el.querySelector('.check-box');
         box.innerHTML = state ? '<i class="fa-solid fa-check"></i>' : '';
     });
 }
 
 function getSelectedPerms() {
-    return [...document.querySelectorAll('.perm-check-item input[type="checkbox"]:checked')]
-        .map(cb => cb.getAttribute('data-key'));
+    return [...document.querySelectorAll('.perm-check-item.checked')]
+        .map(el => el.getAttribute('data-key'));
 }
 
 // ─── 색상 선택기 렌더링 ───────────────────────────────────────
@@ -417,19 +462,20 @@ function renderColorPicker(selectedColor) {
     picker.innerHTML = COLORS.map(c => `
         <div class="color-dot${c === selectedColor ? ' selected' : ''}"
              style="background:${c}"
-             onclick="selectColor('${c}', this)"
+             data-color="${c}"
+             onclick="selectColor(this)"
              title="${c}"></div>
     `).join('');
 }
 
-function selectColor(color, el) {
+function selectColor(el) {
     document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
     el.classList.add('selected');
 }
 
 function getSelectedColor() {
     const dot = document.querySelector('.color-dot.selected');
-    return dot ? dot.style.background : COLORS[0];
+    return dot ? dot.getAttribute('data-color') : COLORS[0];
 }
 
 // ─── 모달 열기/닫기 ──────────────────────────────────────────
