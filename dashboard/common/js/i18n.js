@@ -470,6 +470,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Added Missing Sidebar Vocabulary ---
 Object.assign(window.translations.ko, {
+    "Group & MICE": "그룹/행사 예약",
+    "Night Audit": "일일 마감",
+    "Reporting": "종합 리포트",
+    "Maintenance": "유지보수",
+    "POS": "F&B / 리테일",
+
     "Staff List": "직원 목록",
     "Role & Perms": "권한 설정",
     "Main": "메인",
@@ -517,6 +523,12 @@ Object.assign(window.translations.ko, {
     "Super Admin": "슈퍼 관리자",
 });
 Object.assign(window.translations.en, {
+    "Group & MICE": "Group & MICE",
+    "Night Audit": "Night Audit",
+    "Reporting": "Reporting",
+    "Maintenance": "Maintenance",
+    "POS": "POS",
+
     "Main": "Main",
     "Front Desk": "Front Desk",
     "Guest & CRM": "Guest & CRM",

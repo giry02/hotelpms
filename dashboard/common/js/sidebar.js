@@ -55,6 +55,7 @@
                 { icon: 'fa-calendar-days',    label: 'Reservations', href: BASE + 'frontdesk/reservation-timeline.html' },
                 { icon: 'fa-list-check',       label: 'Booking List',     href: BASE + 'frontdesk/reservation-list.html' },
                 { icon: 'fa-right-to-bracket', label: 'Check-in/out',   href: BASE + 'frontdesk/checkin.html' },
+                { icon: 'fa-users-rectangle', label: 'Group & MICE', href: BASE + 'frontdesk/groups.html' },
             ]
         },
         {
@@ -79,6 +80,7 @@
                 },
                 { icon: 'fa-tags',  label: 'Rates Calendar', href: BASE + 'operations/rates.html' },
                 { icon: 'fa-broom', label: 'Housekeeping',  href: BASE + 'operations/housekeeping.html', badge: '5' },
+                { icon: 'fa-wrench', label: 'Maintenance',  href: BASE + 'operations/maintenance.html' },
                 {
                     icon: 'fa-file-invoice-dollar', label: 'Folio & Billing', id: 'folio',
                     mainHref: BASE + 'operations/folio.html',
@@ -94,9 +96,12 @@
                         { label: 'Room Service', href: BASE + 'operations/room-service.html' },
                         { label: 'Golf',   href: BASE + 'operations/golf.html' },
                         { label: 'Rent-a-car',   href: BASE + 'operations/rentacar.html' },
+                        { label: 'POS',   href: BASE + 'operations/pos.html' },
                     ]
                 },
-            ]
+                            { icon: 'fa-moon', label: 'Night Audit', href: BASE + 'operations/night-audit.html' },
+                { icon: 'fa-chart-pie', label: 'Reporting', href: BASE + 'operations/reports.html' },
+]
         },
         {
             group: 'Settings',

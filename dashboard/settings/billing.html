@@ -109,6 +109,7 @@
         .modal-body { padding: 24px; }
         .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border2); display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; border-radius: 0 0 var(--radius) var(--radius); }
 </style>
+    <script src="../common/js/ui-components.js"></script>
 </head>
 <body>
 <div class="main">
@@ -383,7 +384,7 @@
 <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>Room 50개 제한</li>
 <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>기본 예약 관리</li>
 </ul>
-<button class="btn-outline" onclick="alert('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
+<button class="btn-outline" onclick="showToast('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
 </div>
 <!-- Standard -->
 <div style="border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px; text-align:center;">
@@ -394,7 +395,7 @@
 <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>하우스키핑 연동</li>
 <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>기본 정산 기능</li>
 </ul>
-<button class="btn-outline" onclick="alert('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
+<button class="btn-outline" onclick="showToast('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
 </div>
 <!-- Premium (current) -->
 <div style="border:2px solid var(--primary); border-radius:var(--radius-sm); padding:20px; text-align:center; background:#EFF6FF; position:relative;">
@@ -470,7 +471,7 @@ function submitAddCard() {
     const exp  = document.getElementById('inputCardExpiry').value;
     const cvc  = document.getElementById('inputCardCVC').value;
     if (num.length < 16 || !name || exp.length < 5 || cvc.length < 3) {
-        alert('모든 카드 정보를 올바르게 입력해주세요.'); return;
+        showToast('모든 카드 정보를 올바르게 입력해주세요.'); return;
     }
     const last4  = num.slice(-4);
     const isDefault = document.getElementById('setDefault').checked;
@@ -504,7 +505,7 @@ function submitAddCard() {
 
 /* 카드 삭제 기능 */
 function removeCard(id) {
-    if (!confirm('이 카드를 삭제하시겠습니까?')) return;
+    if (!await showConfirm('이 카드를 삭제하시겠습니까?')) return;
     const el = document.getElementById(id);
     el.style.transition = 'opacity .3s, transform .3s';
     el.style.opacity = '0'; el.style.transform = 'translateX(20px)';

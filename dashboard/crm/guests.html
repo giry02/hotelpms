@@ -62,18 +62,17 @@
 
 @media (max-width: 768px) {
     .guest-detail-panel {
-        position: fixed; bottom: 0; left: 0; right: 0;
-        height: 92vh; /* Fully expanded initially */
-        background: #fff; border-radius: 20px 20px 0 0;
+        position: fixed; top: 0; bottom: 0; left: 0; right: 0;
+        height: 100vh;
+        background: #fff; border-radius: 0;
         z-index: 10001; transform: translateY(100%);
         transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
         display: flex; flex-direction: column;
-        box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
     }
     .guest-detail-panel.active { transform: translateY(0); }
-    .gd-handle { width: 40px; height: 5px; border-radius: 3px; background: #cbd5e1; margin: 12px auto 4px; flex-shrink: 0; cursor: grab; }
-    .gd-header { padding: 0 20px 16px; border-bottom: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; }
-    .gd-body { overflow-y: auto; padding: 16px 20px; flex: 1; overscroll-behavior-y: contain; }
+    .gd-handle { display: none; }
+    .gd-header { padding: 16px 20px; border-bottom: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; background: var(--bg); }
+    .gd-body { overflow-y: auto; padding: 20px; flex: 1; overscroll-behavior-y: contain; }
 }
 
 .gd-title { font-size: 1.2rem; font-weight: 700; color: var(--txt); display: flex; align-items: center; }
@@ -104,6 +103,7 @@
 </style>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/ui-components.js"></script>
 </head>
 <body>
 
@@ -172,7 +172,7 @@
                 </button>
             </div>
             <div class="filter-right">
-                <button class="btn-outline"><i class="fa-solid fa-download"></i> Export</button>
+                <button class="btn-outline" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> Export</button>
                 <button class="btn-primary-sm" onclick="openModal('addGuestModal')"><i class="fa-solid fa-plus"></i> 신규 Add Guest</button>
             </div>
         </div>
@@ -239,24 +239,26 @@
 </div>
 
 <script>
-const guests = [
-    {name:'Nguyen Thi Lan',init:'NT',color:'#3B82F6',nation:'🇻🇳 Vietnam',tier:'gold',visits:12,last:'2026-05-10',spend:4482,email:'ntlan@email.com',phone:'+84 90 123 4567'},
-    {name:'John Smith',init:'JS',color:'#8B5CF6',nation:'🇺🇸 USA',tier:'platinum',visits:8,last:'2026-05-12',spend:6240,email:'jsmith@email.com',phone:'+1 212 555 0142'},
-    {name:'Tran Linh',init:'TL',color:'#F59E0B',nation:'🇻🇳 Vietnam',tier:'diamond',visits:24,last:'2026-05-12',spend:18900,email:'tlinh@email.com',phone:'+84 91 888 9999'},
-    {name:'Park Soo Jin',init:'PS',color:'#10B981',nation:'🇰🇷 Korea',tier:'gold',visits:6,last:'2026-05-12',spend:2970,email:'psj@email.com',phone:'+82 10 5678 1234'},
-    {name:'Garcia Miguel',init:'GM',color:'#EC4899',nation:'🇪🇸 Spain',tier:'diamond',visits:18,last:'2026-05-12',spend:14700,email:'garcia@email.com',phone:'+34 612 345 678'},
-    {name:'Tanaka Yuki',init:'TY',color:'#10B981',nation:'🇯🇵 Japan',tier:'platinum',visits:10,last:'2026-05-08',spend:7800,email:'tanaka@email.com',phone:'+81 80 1234 5678'},
-    {name:'Kim Da Eun',init:'KD',color:'#3B82F6',nation:'🇰🇷 Korea',tier:'gold',visits:5,last:'2026-05-12',spend:2375,email:'kde@email.com',phone:'+82 10 9876 5432'},
-    {name:'Al Rashid Omar',init:'AR',color:'#F59E0B',nation:'🇦🇪 UAE',tier:'diamond',visits:15,last:'2026-04-20',spend:22500,email:'alrashid@email.com',phone:'+971 50 123 4567'},
-    {name:'Lee Hana',init:'LH',color:'#8B5CF6',nation:'🇰🇷 Korea',tier:'platinum',visits:9,last:'2026-05-07',spend:5625,email:'leehana@email.com',phone:'+82 10 1111 2222'},
-    {name:'Pham Anh',init:'PA',color:'#10B981',nation:'🇻🇳 Vietnam',tier:'standard',visits:2,last:'2026-05-05',spend:570,email:'panh@email.com',phone:'+84 93 456 7890'},
-    {name:'Chen Wei',init:'CW',color:'#3B82F6',nation:'🇨🇳 China',tier:'gold',visits:7,last:'2026-05-06',spend:3640,email:'chenwei@email.com',phone:'+86 138 0000 1234'},
-    {name:'Mueller Klaus',init:'MK',color:'#EC4899',nation:'🇩🇪 Germany',tier:'standard',visits:3,last:'2026-04-28',spend:1560,email:'mueller@email.com',phone:'+49 170 123 4567'},
-    {name:'Wong Li',init:'WL',color:'#F59E0B',nation:'🇭🇰 Hong Kong',tier:'gold',visits:11,last:'2026-05-04',spend:5720,email:'wongli@email.com',phone:'+852 9123 4567'},
-    {name:'Sato Yuki',init:'SY',color:'#8B5CF6',nation:'🇯🇵 Japan',tier:'standard',visits:1,last:'2026-05-01',spend:520,email:'sato@email.com',phone:'+81 90 5555 6666'},
-    {name:'Bui Tien',init:'BT',color:'#10B981',nation:'🇻🇳 Vietnam',tier:'standard',visits:2,last:'2026-04-22',spend:540,email:'buitien@email.com',phone:'+84 97 111 2222'},
-    {name:'David Chen',init:'DC',color:'#3B82F6',nation:'🇹🇼 Taiwan',tier:'platinum',visits:14,last:'2026-05-03',spend:8400,email:'dchen@email.com',phone:'+886 912 345 678'},
-];
+let guests = [];
+fetch('../data/guests.json')
+    .then(res => res.json())
+    .then(data => {
+        guests = data.map(g => ({
+            name: g.name,
+            init: g.name.substring(0,2).toUpperCase(),
+            color: '#3B82F6',
+            nation: g.country,
+            tier: g.tier.toLowerCase(),
+            visits: g.visits,
+            last: g.lastStay,
+            spend: g.spend,
+            email: g.email,
+            phone: g.phone
+        }));
+        if(typeof renderGuests === 'function') renderGuests();
+    })
+    .catch(err => console.error(err));
+
 
 const tierCfg = {
     diamond:{label:'Diamond',icon:'fa-gem',color:'#60A5FA',bg:'rgba(96,165,250,.1)'},
@@ -435,7 +437,7 @@ function changeLang(l){currentLang=l;const d=translations[l]||translations.ko;do
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function saveGuest() {
-    alert('신규 Guest이 등록되었습니다.');
+    showToast('신규 Guest이 등록되었습니다.');
     closeModal('addGuestModal');
 }
 
@@ -524,10 +526,6 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         <div class="gd-profile-form" style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--border2);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:8px;">
                 <div style="font-size:0.95rem; font-weight:700; color:var(--txt); word-break:keep-all;"><i class="fa-solid fa-address-card"></i> 기본 인적 사항</div>
-                <button class="btn-primary-sm" style="height:28px; padding:0 12px; font-size:0.75rem; white-space:nowrap; flex-shrink:0; width:auto;" onclick="alert('저장되었습니다.')"><i class="fa-solid fa-check"></i> 정보 수정</button>
-            </div>
-            <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr !important;gap:12px;margin-bottom:12px;">
-                <div style="display:flex;flex-direction:column;gap:4px">
                     <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">First Name (이름) <span style="color:var(--danger)">*</span></label>
                     <input type="text" id="gdInputFirstName" style="height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;">
                 </div>

@@ -114,6 +114,7 @@
 </style>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/ui-components.js"></script>
 </head>
 <body>
 
@@ -380,7 +381,7 @@ function addBuilding() {
     if (name && name.trim()) {
         const trimmed = name.trim();
         if (allBuildings.includes(trimmed)) {
-            alert('이미 존재하는 건물/구역명입니다.');
+            showToast('이미 존재하는 건물/구역명입니다.');
         } else {
             allBuildings.push(trimmed);
             renderTabs();
@@ -393,7 +394,7 @@ function editBuilding(oldName) {
     if (newName && newName.trim() && newName.trim() !== oldName) {
         const trimmed = newName.trim();
         if (allBuildings.includes(trimmed)) {
-            alert('이미 존재하는 건물/구역명입니다.');
+            showToast('이미 존재하는 건물/구역명입니다.');
         } else {
             const idx = allBuildings.indexOf(oldName);
             if (idx > -1) allBuildings[idx] = trimmed;
@@ -415,7 +416,7 @@ function deleteBuilding(name) {
     if (roomsInBuilding > 0) {
         msg = `'${name}'에 속한 Room이 ${roomsInBuilding}개 있습니다.\\n정말 삭제하시겠습니까? (Room의 건물 정보가 '건물 미지정'으로 변경됩니다)`;
     }
-    if (confirm(msg)) {
+    if (await showConfirm(msg)) {
         allBuildings = allBuildings.filter(b => b !== name);
         allRooms.forEach(r => {
             if (r.building === name) r.building = null;
@@ -502,7 +503,7 @@ function saveRoom() {
     const building = document.getElementById('addRoomBuilding').value || null;
 
     if (!id) {
-        alert('Room 번호를 입력해주세요.');
+        showToast('Room 번호를 입력해주세요.');
         return;
     }
 
@@ -518,7 +519,7 @@ function saveRoom() {
 }
 
 function deleteRoom(idx) {
-    if (confirm('이 Room을 삭제하시겠습니까?')) {
+    if (await showConfirm('이 Room을 삭제하시겠습니까?')) {
         allRooms.splice(idx, 1);
         renderTabs();
         renderTable();
