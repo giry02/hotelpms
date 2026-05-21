@@ -14,124 +14,134 @@
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <style>
-        /* ── 역할 카드 그리드 ── */
-        .roles-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+        .split-layout {
+            display: flex; gap: 24px;
+            align-items: flex-start;
+            height: calc(100vh - 180px); /* 뷰포트에 맞춤 */
         }
-        .role-card {
+        
+        /* ── 좌측: 역할 목록 ── */
+        .roles-sidebar {
+            flex: 0 0 320px;
             background: var(--card);
-            border: 2px solid var(--border);
+            border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 20px;
-            transition: border-color .2s, box-shadow .2s;
+            display: flex; flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+        .roles-sidebar-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border2);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .roles-sidebar-header h2 { font-size: 1rem; margin: 0; color: var(--txt); }
+        .roles-list {
+            flex: 1; overflow-y: auto;
+            padding: 12px;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .role-list-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .role-list-item:hover { background: var(--bg-body); border-color: var(--border2); }
+        .role-list-item.active { background: var(--primary-lt); border-color: var(--primary); }
+        
+        .role-list-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; flex-shrink: 0;
+        }
+        .role-list-info { flex: 1; min-width: 0; }
+        .role-list-name { font-size: .9rem; font-weight: 700; color: var(--txt); margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+        .role-list-count { font-size: .75rem; color: var(--txt3); }
+        
+        .sys-badge {
+            font-size: .6rem; padding: 2px 6px; border-radius: 12px;
+            background: var(--txt3); color: #fff; font-weight: 700;
+        }
+
+        /* ── 우측: 편집 에리어 ── */
+        .role-editor {
+            flex: 1;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            height: 100%;
+            display: flex; flex-direction: column;
             position: relative;
         }
-        .role-card:hover { border-color: var(--primary); box-shadow: 0 4px 20px rgba(59,130,246,.1); }
-        .role-card.system-role { border-style: dashed; }
-        .role-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px;
+        .editor-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border2);
+            display: flex; align-items: center; justify-content: space-between;
         }
-        .role-icon-wrap {
-            width: 44px; height: 44px;
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem;
+        .editor-title { font-size: 1.1rem; font-weight: 700; color: var(--txt); }
+        .editor-body {
+            padding: 24px; flex: 1; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 24px;
         }
-        .role-name { font-size: 1rem; font-weight: 700; color: var(--txt); }
-        .role-desc { font-size: .78rem; color: var(--txt3); margin-top: 2px; }
-        .role-staff-count {
-            font-size: .72rem; font-weight: 700;
-            background: var(--border2); color: var(--txt3);
-            padding: 2px 8px; border-radius: 20px;
+        
+        /* 폼 요소 */
+        .form-row { display: flex; gap: 20px; }
+        .form-col { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+        
+        /* 색상 선택 */
+        .color-picker { display: flex; gap: 10px; flex-wrap: wrap; }
+        .color-dot {
+            width: 32px; height: 32px; border-radius: 50%;
+            cursor: pointer; border: 3px solid transparent;
+            transition: transform .15s, border-color .15s;
         }
-
-        /* ── 권한 체크 리스트 ── */
-        .perm-list { display: flex; flex-direction: column; gap: 4px; margin: 14px 0; }
-        .perm-item {
-            display: flex; align-items: center; gap: 8px;
-            font-size: .8rem; color: var(--txt2);
-        }
-        .perm-item i { width: 16px; text-align: center; color: var(--txt3); }
-        .perm-item.has-access { color: var(--txt); }
-        .perm-item.has-access i.fa-check { color: var(--success); }
-        .perm-item.no-access { opacity: .45; text-decoration: line-through; }
-
-        /* ── 카드 액션 버튼 ── */
-        .role-actions { display: flex; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border2); }
-        .btn-icon {
-            flex: 1; padding: 7px; border-radius: var(--radius-sm);
-            border: 1px solid var(--border); background: #fff;
-            font-size: .78rem; font-weight: 600; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 5px;
-            transition: all .2s; color: var(--txt2);
-        }
-        .btn-icon:hover { background: var(--border2); color: var(--txt); }
-        .btn-icon.danger:hover { background: #FEE2E2; color: #DC2626; border-color: #FECACA; }
-
-        /* ── 모달 체크박스 그리드 ── */
-        .perm-check-grid {
+        .color-dot:hover { transform: scale(1.1); }
+        .color-dot.selected { border-color: var(--txt); }
+        
+        /* 권한 체크박스 그리드 */
+        .perm-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
         }
         .perm-check-item {
             display: flex; align-items: center; gap: 10px;
-            padding: 10px 12px;
+            padding: 12px 14px;
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: all .15s;
-            user-select: none;
+            cursor: pointer; transition: all .15s; user-select: none;
+            background: #fff;
         }
-        .perm-check-item:hover { border-color: var(--primary); background: var(--primary-lt); }
-        .perm-check-item input[type="checkbox"] { display: none; }
-        .perm-check-item .check-box {
-            width: 18px; height: 18px;
-            border: 2px solid var(--border);
-            border-radius: 4px;
-            flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            font-size: .65rem; color: #fff;
-            transition: all .15s;
-        }
+        .perm-check-item:hover:not(.disabled) { border-color: var(--primary); }
         .perm-check-item.checked { border-color: var(--primary); background: var(--primary-lt); }
+        .perm-check-item.disabled { opacity: 0.6; cursor: not-allowed; background: var(--bg-body); }
+        
+        .perm-check-item .check-box {
+            width: 20px; height: 20px; border: 2px solid var(--border); border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .7rem; color: #fff; flex-shrink: 0;
+            transition: all .15s;
+        }
         .perm-check-item.checked .check-box { background: var(--primary); border-color: var(--primary); }
-        .perm-check-item .check-label { font-size: .82rem; font-weight: 500; color: var(--txt2); }
-        .perm-check-item .check-icon { font-size: .85rem; color: var(--txt3); width: 16px; text-align: center; }
-        .perm-check-item.checked .check-label { color: var(--primary); font-weight: 600; }
+        .perm-check-item .check-label { font-size: .85rem; font-weight: 600; color: var(--txt2); }
+        .perm-check-item.checked .check-label { color: var(--primary); }
+        .perm-check-item .check-icon { color: var(--txt3); width: 16px; text-align: center; }
         .perm-check-item.checked .check-icon { color: var(--primary); }
 
-        /* ── 색상 선택 ── */
-        .color-picker { display: flex; gap: 8px; flex-wrap: wrap; }
-        .color-dot {
-            width: 28px; height: 28px; border-radius: 50%;
-            cursor: pointer; border: 3px solid transparent;
-            transition: border-color .15s, transform .15s;
+        .editor-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border2);
+            background: #f8fafc; border-radius: 0 0 var(--radius) var(--radius);
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .color-dot:hover { transform: scale(1.15); }
-        .color-dot.selected { border-color: var(--txt); }
-
-        /* ── 시스템 배지 ── */
-        .system-badge {
-            position: absolute; top: -10px; right: 16px;
-            background: var(--txt3); color: #fff;
-            font-size: .65rem; font-weight: 700;
-            padding: 2px 8px; border-radius: 20px;
-            letter-spacing: .3px;
-        }
-
-        /* ── 빈 상태 ── */
+        
         .empty-state {
-            text-align: center; padding: 60px 20px;
-            color: var(--txt3);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; color: var(--txt3); gap: 12px;
         }
-        .empty-state i { font-size: 3rem; margin-bottom: 12px; display: block; }
-        .empty-state p { font-size: .9rem; }
     </style>
 </head>
 <body>
@@ -153,106 +163,40 @@
         </div>
     </header>
 
-    <div class="content">
-
-        <!-- 상단 헤더 + 새 역할 만들기 버튼 -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-            <div>
-                <div style="font-size:1.1rem;font-weight:700;color:var(--txt)">역할 및 접근 권한 관리</div>
-                <div style="font-size:.82rem;color:var(--txt3);margin-top:3px">역할을 만들고 메뉴별 접근 권한을 설정하세요. 직원 등록 시 역할을 선택해 권한이 자동 적용됩니다.</div>
-            </div>
-            <button class="btn-primary-sm" onclick="openCreateModal()">
-                <i class="fa-solid fa-plus"></i> 새 역할 만들기
-            </button>
+    <div class="content" style="padding-bottom: 20px;">
+        <div style="margin-bottom:20px">
+            <div style="font-size:1.1rem;font-weight:700;color:var(--txt)">역할 및 접근 권한 관리</div>
+            <div style="font-size:.82rem;color:var(--txt3);margin-top:3px">왼쪽에서 역할을 선택하여 우측에서 권한을 확인하거나 수정하세요.</div>
         </div>
 
-        <!-- 역할 카드 그리드 -->
-        <div class="roles-grid" id="rolesGrid"></div>
-
-    </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════
-     역할 생성 / 수정 모달
-══════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="roleModal" onclick="if(event.target===this)closeModal('roleModal')">
-    <div class="modal-card" style="max-width:600px;width:95vw">
-        <div class="modal-header">
-            <h3 class="modal-title" id="modalTitle">
-                <i class="fa-solid fa-shield-halved" style="color:var(--primary);margin-right:8px"></i>
-                새 역할 만들기
-            </h3>
-            <button class="modal-close" onclick="closeModal('roleModal')"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body" style="display:flex;flex-direction:column;gap:18px">
-
-            <!-- 역할 이름 -->
-            <div style="display:flex;flex-direction:column;gap:6px">
-                <label class="form-label">역할 이름 <span style="color:var(--danger)">*</span></label>
-                <input type="text" class="form-control" id="roleName" placeholder="예: 프론트 매니저, 야간 감독관">
-            </div>
-
-            <!-- 설명 -->
-            <div style="display:flex;flex-direction:column;gap:6px">
-                <label class="form-label">역할 설명</label>
-                <input type="text" class="form-control" id="roleDesc" placeholder="이 역할의 담당 업무를 간략히 설명하세요">
-            </div>
-
-            <!-- 색상 선택 -->
-            <div style="display:flex;flex-direction:column;gap:8px">
-                <label class="form-label">역할 색상</label>
-                <div class="color-picker" id="colorPicker"></div>
-            </div>
-
-            <!-- 메뉴 접근 권한 체크박스 -->
-            <div style="display:flex;flex-direction:column;gap:10px">
-                <label class="form-label">
-                    접근 가능 메뉴
-                    <span style="font-size:.72rem;font-weight:400;color:var(--txt3);margin-left:6px">체크된 메뉴만 이 역할로 접근할 수 있습니다</span>
-                </label>
-                <div style="display:flex;gap:8px;margin-bottom:4px">
-                    <button type="button" class="btn-outline" style="font-size:.75rem;padding:4px 10px" onclick="selectAllPerms(true)">전체 선택</button>
-                    <button type="button" class="btn-outline" style="font-size:.75rem;padding:4px 10px" onclick="selectAllPerms(false)">전체 해제</button>
+        <div class="split-layout">
+            <!-- 좌측: 역할 목록 -->
+            <div class="roles-sidebar">
+                <div class="roles-sidebar-header">
+                    <h2>역할 목록</h2>
+                    <button class="btn-primary-sm" style="padding:6px 12px;font-size:.75rem" onclick="initCreateMode()">
+                        <i class="fa-solid fa-plus"></i> 추가
+                    </button>
                 </div>
-                <div class="perm-check-grid" id="permCheckGrid"></div>
+                <div class="roles-list" id="rolesList">
+                    <!-- 목록 렌더링 -->
+                </div>
             </div>
 
+            <!-- 우측: 편집 에리어 -->
+            <div class="role-editor" id="roleEditor">
+                <div class="empty-state">
+                    <i class="fa-solid fa-hand-pointer" style="font-size:3rem"></i>
+                    <p style="font-size:.95rem">왼쪽에서 역할을 선택하거나 <strong>+ 추가</strong> 버튼을 누르세요.</p>
+                </div>
+            </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn-outline" onclick="closeModal('roleModal')">취소</button>
-            <button class="btn-primary-sm" id="saveRoleBtn" onclick="saveRole()">
-                <i class="fa-solid fa-floppy-disk"></i> 저장
-            </button>
-        </div>
-    </div>
-</div>
 
-<!-- 삭제 확인 모달 -->
-<div class="modal-overlay" id="deleteModal" onclick="if(event.target===this)closeModal('deleteModal')">
-    <div class="modal-card" style="max-width:380px;width:95vw">
-        <div class="modal-header">
-            <h3 class="modal-title" style="color:#DC2626">
-                <i class="fa-solid fa-triangle-exclamation" style="margin-right:8px"></i>역할 삭제
-            </h3>
-            <button class="modal-close" onclick="closeModal('deleteModal')"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-            <p style="font-size:.9rem;color:var(--txt2);line-height:1.6">
-                <strong id="deleteRoleName" style="color:var(--txt)"></strong> 역할을 삭제합니다.<br>
-                이 역할이 할당된 직원들은 <span style="color:#DC2626;font-weight:600">역할 없음</span> 상태로 변경됩니다.
-            </p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-outline" onclick="closeModal('deleteModal')">취소</button>
-            <button class="btn-primary-sm" style="background:#DC2626;border-color:#DC2626" onclick="confirmDelete()">
-                <i class="fa-solid fa-trash"></i> 삭제
-            </button>
-        </div>
     </div>
 </div>
 
 <script>
-// ─── 메뉴 항목 정의 ───────────────────────────────────────────
+// ─── 데이터 정의 ──────────────────────────────────────────────
 const ALL_MENUS = [
     { key:'dashboard',    icon:'fa-gauge-high',          label:'대시보드' },
     { key:'reservation',  icon:'fa-calendar-days',       label:'예약 관리' },
@@ -274,149 +218,154 @@ const COLORS = [
     '#7C3AED','#2563EB','#0E7490','#047857',
 ];
 
-// ─── 기본 시스템 역할 ─────────────────────────────────────────
 const SYSTEM_ROLES = [
-    {
-        id: 'sys_admin', name: 'Admin', desc: '모든 메뉴에 접근 가능한 최고 관리자',
-        color: '#6D28D9', isSystem: true,
-        perms: ALL_MENUS.map(m => m.key),
-    },
-    {
-        id: 'sys_manager', name: 'Manager', desc: '설정·직원관리를 제외한 대부분 접근 가능',
-        color: '#1D4ED8', isSystem: true,
-        perms: ['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary'],
-    },
-    {
-        id: 'sys_housekeeper', name: 'Housekeeper', desc: '하우스키핑 전용 접근',
-        color: '#065F46', isSystem: true,
-        perms: ['dashboard','housekeeping','rooms'],
-    },
+    { id: 'sys_admin',       name: 'Admin',       desc: '모든 메뉴에 접근 가능한 최고 관리자', color: '#6D28D9', isSystem: true, perms: ALL_MENUS.map(m=>m.key) },
+    { id: 'sys_manager',     name: 'Manager',     desc: '설정·직원관리를 제외한 대부분 접근 가능', color: '#1D4ED8', isSystem: true, perms: ['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary'] },
+    { id: 'sys_housekeeper', name: 'Housekeeper', desc: '하우스키핑 전용 접근', color: '#065F46', isSystem: true, perms: ['dashboard','housekeeping','rooms'] },
 ];
 
-// ─── 역할 데이터 (localStorage) ───────────────────────────────
 function loadRoles() {
-    try {
-        const saved = localStorage.getItem('pms_custom_roles');
-        return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
+    try { return JSON.parse(localStorage.getItem('pms_custom_roles') || '[]'); } 
+    catch { return []; }
 }
-function saveRoles(roles) {
-    localStorage.setItem('pms_custom_roles', JSON.stringify(roles));
-}
+function saveRoles(roles) { localStorage.setItem('pms_custom_roles', JSON.stringify(roles)); }
 
 let customRoles = loadRoles();
-let editingRoleId = null;
-let deletingRoleId = null;
+let currentRoleId = null;
+let isCreating = false;
 
-// ─── 역할 카드 렌더링 ─────────────────────────────────────────
-function renderRoles() {
-    const grid = document.getElementById('rolesGrid');
+// ─── 렌더링 로직 ──────────────────────────────────────────────
+
+function renderRolesList() {
+    const list = document.getElementById('rolesList');
     const allRoles = [...SYSTEM_ROLES, ...customRoles];
+    
+    list.innerHTML = allRoles.map(r => {
+        const activeCls = (currentRoleId === r.id) ? ' active' : '';
+        return `
+            <div class="role-list-item${activeCls}" onclick="selectRole('${r.id}')">
+                <div class="role-list-icon" style="background:${r.color}22;color:${r.color}">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <div class="role-list-info">
+                    <div class="role-list-name">
+                        ${r.name}
+                        ${r.isSystem ? '<span class="sys-badge">SYS</span>' : ''}
+                    </div>
+                    <div class="role-list-count">${r.perms.length}개 권한</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
 
-    if (allRoles.length === 0) {
-        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-            <i class="fa-solid fa-shield-halved"></i>
-            <p>역할이 없습니다. <strong>새 역할 만들기</strong> 버튼으로 첫 번째 역할을 만들어보세요.</p>
-        </div>`;
+function selectRole(id) {
+    currentRoleId = id;
+    isCreating = false;
+    renderRolesList();
+    renderEditor();
+}
+
+function initCreateMode() {
+    currentRoleId = null;
+    isCreating = true;
+    renderRolesList();
+    renderEditor();
+}
+
+function renderEditor() {
+    const editor = document.getElementById('roleEditor');
+    
+    if (isCreating) {
+        editor.innerHTML = buildEditorHtml(null);
+        renderColorPicker(COLORS[0]);
+        renderPermChecks([]);
         return;
     }
+    
+    if (!currentRoleId) {
+        editor.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-hand-pointer" style="font-size:3rem"></i>
+                <p style="font-size:.95rem">왼쪽에서 역할을 선택하거나 <strong>+ 추가</strong> 버튼을 누르세요.</p>
+            </div>`;
+        return;
+    }
+    
+    const role = [...SYSTEM_ROLES, ...customRoles].find(r => r.id === currentRoleId);
+    if (!role) return;
+    
+    editor.innerHTML = buildEditorHtml(role);
+    renderColorPicker(role.color, role.isSystem);
+    renderPermChecks(role.perms, role.isSystem);
+}
 
-    grid.innerHTML = allRoles.map(role => {
-        const iconBg = role.color + '22';
-        const accessMenus = ALL_MENUS.filter(m => role.perms.includes(m.key));
-        const blockedMenus = ALL_MENUS.filter(m => !role.perms.includes(m.key));
+function buildEditorHtml(role) {
+    const isSys = role && role.isSystem;
+    const title = isCreating ? '새 역할 만들기' : (isSys ? '시스템 역할 (읽기 전용)' : '역할 수정');
+    const icon  = isCreating ? 'fa-plus' : (isSys ? 'fa-lock' : 'fa-pen');
+    
+    const nameVal = role ? role.name : '';
+    const descVal = role ? role.desc : '';
+    
+    let footer = '';
+    if (isSys) {
+        footer = `<div style="color:var(--txt3);font-size:.85rem"><i class="fa-solid fa-circle-info"></i> 시스템 기본 역할은 수정하거나 삭제할 수 없습니다.</div>`;
+    } else {
+        const delBtn = !isCreating 
+            ? `<button class="btn-outline danger" style="color:#DC2626;border-color:#FECACA" onclick="deleteRole()"><i class="fa-solid fa-trash"></i> 삭제</button>` 
+            : `<div></div>`;
+        footer = `
+            ${delBtn}
+            <button class="btn-primary-sm" onclick="saveRole()"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
+        `;
+    }
 
-        // 상위 5개만 표시, 나머지는 +N개 표시
-        const showMenus = accessMenus.slice(0, 5);
-        const moreCount = accessMenus.length - showMenus.length;
-
-        const permHtml = [
-            ...showMenus.map(m => `
-                <div class="perm-item has-access">
-                    <i class="fa-solid fa-check" style="color:${role.color}"></i>
-                    <i class="fa-solid ${m.icon}"></i> ${m.label}
-                </div>`),
-            moreCount > 0 ? `<div class="perm-item" style="color:var(--txt3);font-style:italic">외 ${moreCount}개 메뉴 접근 가능</div>` : '',
-            blockedMenus.length > 0 && accessMenus.length < 3 ? blockedMenus.slice(0,2).map(m => `
-                <div class="perm-item no-access">
-                    <i class="fa-solid fa-xmark" style="color:#DC2626"></i>
-                    <i class="fa-solid ${m.icon}"></i> ${m.label}
-                </div>`).join('') : ''
-        ].join('');
-
-        const actionBtns = role.isSystem
-            ? `<div class="btn-icon" style="cursor:default;opacity:.5;flex:1" title="시스템 기본 역할은 수정할 수 없습니다">
-                <i class="fa-solid fa-lock"></i> 시스템 역할
-               </div>`
-            : `<button class="btn-icon" onclick="openEditModal('${role.id}')">
-                <i class="fa-solid fa-pen"></i> 수정
-               </button>
-               <button class="btn-icon danger" onclick="openDeleteModal('${role.id}')">
-                <i class="fa-solid fa-trash"></i> 삭제
-               </button>`;
-
-        return `<div class="role-card${role.isSystem ? ' system-role' : ''}">
-            ${role.isSystem ? '<span class="system-badge">SYSTEM</span>' : ''}
-            <div class="role-card-header">
-                <div style="display:flex;align-items:center;gap:12px">
-                    <div class="role-icon-wrap" style="background:${iconBg};color:${role.color}">
-                        <i class="fa-solid fa-user-shield"></i>
-                    </div>
-                    <div>
-                        <div class="role-name">${role.name}</div>
-                        <div class="role-desc">${role.desc || ''}</div>
-                    </div>
+    return `
+        <div class="editor-header">
+            <div class="editor-title"><i class="fa-solid ${icon}" style="color:var(--primary);margin-right:8px"></i>${title}</div>
+        </div>
+        <div class="editor-body">
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">역할 이름 <span style="color:var(--danger)">*</span></label>
+                    <input type="text" class="form-control" id="editName" value="${nameVal}" ${isSys ? 'disabled' : ''} placeholder="예: 프론트 데스크 관리자">
                 </div>
-                <span class="role-staff-count">${role.perms.length}개 권한</span>
+                <div class="form-col">
+                    <label class="form-label">역할 설명</label>
+                    <input type="text" class="form-control" id="editDesc" value="${descVal}" ${isSys ? 'disabled' : ''} placeholder="역할에 대한 간단한 설명">
+                </div>
             </div>
-            <div class="perm-list">${permHtml}</div>
-            <div class="role-actions">${actionBtns}</div>
-        </div>`;
-    }).join('');
+            
+            <div class="form-col">
+                <label class="form-label">역할 색상 지정</label>
+                <div class="color-picker" id="colorPicker"></div>
+            </div>
+            
+            <div class="form-col">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                    <label class="form-label" style="margin:0">메뉴 접근 권한</label>
+                    ${!isSys ? `
+                    <div style="display:flex;gap:6px">
+                        <button class="btn-outline" style="font-size:.7rem;padding:2px 8px" onclick="selectAll(true)">전체 선택</button>
+                        <button class="btn-outline" style="font-size:.7rem;padding:2px 8px" onclick="selectAll(false)">전체 해제</button>
+                    </div>` : ''}
+                </div>
+                <div class="perm-grid" id="permGrid"></div>
+            </div>
+        </div>
+        <div class="editor-footer">${footer}</div>
+    `;
 }
 
-// ─── 체크박스 그리드 렌더링 ───────────────────────────────────
-function renderPermChecks(selectedPerms = []) {
-    const grid = document.getElementById('permCheckGrid');
-    grid.innerHTML = ALL_MENUS.map(m => {
-        const checked = selectedPerms.includes(m.key);
-        return `<div class="perm-check-item${checked ? ' checked' : ''}" data-key="${m.key}" onclick="togglePerm(this)">
-            <div class="check-box">${checked ? '<i class="fa-solid fa-check"></i>' : ''}</div>
-            <i class="fa-solid ${m.icon} check-icon"></i>
-            <span class="check-label">${m.label}</span>
-        </div>`;
-    }).join('');
-}
-
-function togglePerm(el) {
-    const wasChecked = el.classList.contains('checked');
-    el.classList.toggle('checked');
-    const box = el.querySelector('.check-box');
-    box.innerHTML = !wasChecked ? '<i class="fa-solid fa-check"></i>' : '';
-}
-
-function selectAllPerms(state) {
-    document.querySelectorAll('.perm-check-item').forEach(el => {
-        el.classList.toggle('checked', state);
-        const box = el.querySelector('.check-box');
-        box.innerHTML = state ? '<i class="fa-solid fa-check"></i>' : '';
-    });
-}
-
-function getSelectedPerms() {
-    return [...document.querySelectorAll('.perm-check-item.checked')]
-        .map(el => el.getAttribute('data-key'));
-}
-
-// ─── 색상 선택기 렌더링 ───────────────────────────────────────
-function renderColorPicker(selectedColor) {
+// ─── 편집기 부속 요소 렌더링 ──────────────────────────────────
+function renderColorPicker(selectedColor, disabled=false) {
     const picker = document.getElementById('colorPicker');
     picker.innerHTML = COLORS.map(c => `
         <div class="color-dot${c === selectedColor ? ' selected' : ''}"
-             style="background:${c}"
+             style="background:${c};${disabled ? 'cursor:not-allowed;opacity:0.6' : ''}"
              data-color="${c}"
-             onclick="selectColor(this)"
-             title="${c}"></div>
+             onclick="${disabled ? '' : 'selectColor(this)'}"></div>
     `).join('');
 }
 
@@ -430,106 +379,104 @@ function getSelectedColor() {
     return dot ? dot.getAttribute('data-color') : COLORS[0];
 }
 
-// ─── 모달 열기/닫기 ──────────────────────────────────────────
-function openCreateModal() {
-    editingRoleId = null;
-    document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-shield-halved" style="color:var(--primary);margin-right:8px"></i>새 역할 만들기`;
-    document.getElementById('roleName').value = '';
-    document.getElementById('roleDesc').value = '';
-    renderColorPicker(COLORS[0]);
-    renderPermChecks([]);
-    openModal('roleModal');
+function renderPermChecks(selectedPerms, disabled=false) {
+    const grid = document.getElementById('permGrid');
+    grid.innerHTML = ALL_MENUS.map(m => {
+        const checked = selectedPerms.includes(m.key);
+        return `
+        <div class="perm-check-item${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}" 
+             data-key="${m.key}" 
+             onclick="${disabled ? '' : 'togglePerm(this)'}">
+            <div class="check-box">${checked ? '<i class="fa-solid fa-check"></i>' : ''}</div>
+            <i class="fa-solid ${m.icon} check-icon"></i>
+            <span class="check-label">${m.label}</span>
+        </div>`;
+    }).join('');
 }
 
-function openEditModal(id) {
-    const role = customRoles.find(r => r.id === id);
-    if (!role) return;
-    editingRoleId = id;
-    document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-pen" style="color:var(--primary);margin-right:8px"></i>역할 수정`;
-    document.getElementById('roleName').value = role.name;
-    document.getElementById('roleDesc').value = role.desc || '';
-    renderColorPicker(role.color);
-    renderPermChecks(role.perms);
-    openModal('roleModal');
+function togglePerm(el) {
+    const isChecked = el.classList.contains('checked');
+    el.classList.toggle('checked');
+    el.querySelector('.check-box').innerHTML = !isChecked ? '<i class="fa-solid fa-check"></i>' : '';
 }
 
-function openDeleteModal(id) {
-    const role = customRoles.find(r => r.id === id);
-    if (!role) return;
-    deletingRoleId = id;
-    document.getElementById('deleteRoleName').textContent = role.name;
-    openModal('deleteModal');
+function selectAll(state) {
+    document.querySelectorAll('.perm-check-item').forEach(el => {
+        el.classList.toggle('checked', state);
+        el.querySelector('.check-box').innerHTML = state ? '<i class="fa-solid fa-check"></i>' : '';
+    });
 }
 
-function openModal(id)  { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function getSelectedPerms() {
+    return [...document.querySelectorAll('.perm-check-item.checked')].map(el => el.getAttribute('data-key'));
+}
 
-// ─── 역할 저장 ───────────────────────────────────────────────
+// ─── 저장 & 삭제 로직 ─────────────────────────────────────────
 function saveRole() {
-    const name  = document.getElementById('roleName').value.trim();
-    const desc  = document.getElementById('roleDesc').value.trim();
+    const name = document.getElementById('editName').value.trim();
+    const desc = document.getElementById('editDesc').value.trim();
     const color = getSelectedColor();
     const perms = getSelectedPerms();
-
-    if (!name) { showToast('역할 이름을 입력해 주세요.', 'error'); return; }
-    if (perms.length === 0) { showToast('최소 1개 이상의 메뉴 접근 권한을 선택해 주세요.', 'error'); return; }
-
-    if (editingRoleId) {
-        // 수정
-        const idx = customRoles.findIndex(r => r.id === editingRoleId);
+    
+    if (!name) { showToast('역할 이름을 입력하세요.', 'error'); return; }
+    if (perms.length === 0) { showToast('최소 1개 이상의 권한을 선택하세요.', 'error'); return; }
+    
+    if (isCreating) {
+        const newId = 'role_' + Date.now();
+        customRoles.push({ id: newId, name, desc, color, perms, isSystem: false });
+        saveRoles(customRoles);
+        showToast('새 역할이 생성되었습니다.');
+        selectRole(newId);
+    } else {
+        const idx = customRoles.findIndex(r => r.id === currentRoleId);
         if (idx !== -1) {
             customRoles[idx] = { ...customRoles[idx], name, desc, color, perms };
-            showToast(`"${name}" 역할이 수정되었습니다.`, 'success');
+            saveRoles(customRoles);
+            showToast('역할이 수정되었습니다.');
+            renderRolesList();
         }
-    } else {
-        // 새로 만들기
-        customRoles.push({
-            id: 'role_' + Date.now(),
-            name, desc, color, perms,
-            isSystem: false
-        });
-        showToast(`"${name}" 역할이 만들어졌습니다.`, 'success');
     }
+}
 
+function deleteRole() {
+    if (!confirm('정말 이 역할을 삭제하시겠습니까?\n해당 역할이 지정된 직원들은 권한을 잃게 됩니다.')) return;
+    
+    customRoles = customRoles.filter(r => r.id !== currentRoleId);
     saveRoles(customRoles);
-    renderRoles();
-    closeModal('roleModal');
+    showToast('역할이 삭제되었습니다.', 'info');
+    
+    currentRoleId = null;
+    isCreating = false;
+    renderRolesList();
+    renderEditor();
 }
 
-// ─── 역할 삭제 ───────────────────────────────────────────────
-function confirmDelete() {
-    const idx = customRoles.findIndex(r => r.id === deletingRoleId);
-    if (idx !== -1) {
-        const name = customRoles[idx].name;
-        customRoles.splice(idx, 1);
-        saveRoles(customRoles);
-        renderRoles();
-        closeModal('deleteModal');
-        showToast(`"${name}" 역할이 삭제되었습니다.`, 'info');
-    }
-}
-
-// ─── 토스트 ──────────────────────────────────────────────────
+// ─── 알림 ──────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
-    const existing = document.getElementById('pms-toast');
-    if (existing) existing.remove();
+    const exist = document.getElementById('pms-toast');
+    if (exist) exist.remove();
+    
     const t = document.createElement('div');
     t.id = 'pms-toast';
-    const styles = {
-        success: '#065F46,#D1FAE5,fa-circle-check',
-        error:   '#991B1B,#FEE2E2,fa-circle-xmark',
-        info:    '#1E3A8A,#DBEAFE,fa-circle-info',
-    };
-    const [tc, bg, ico] = (styles[type] || styles.success).split(',');
-    t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${bg};color:${tc};padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:9999;transition:opacity .3s,transform .3s;display:flex;align-items:center;gap:8px`;
-    t.innerHTML = `<i class="fa-solid ${ico}"></i>${msg}`;
+    const bg = type === 'success' ? '#D1FAE5' : (type === 'error' ? '#FEE2E2' : '#DBEAFE');
+    const cl = type === 'success' ? '#065F46' : (type === 'error' ? '#991B1B' : '#1E3A8A');
+    const ic = type === 'success' ? 'fa-circle-check' : (type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info');
+    
+    t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${bg};color:${cl};padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:9999;display:flex;align-items:center;gap:8px;animation:toastIn .3s ease forwards`;
+    t.innerHTML = `<i class="fa-solid ${ic}"></i>${msg}`;
+    
+    const style = document.createElement('style');
+    style.innerHTML = `@keyframes toastIn { from {opacity:0;transform:translateY(15px)} to {opacity:1;transform:translateY(0)} }`;
+    document.head.appendChild(style);
     document.body.appendChild(t);
-    setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(12px)'; }, 2800);
+    
+    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(15px)'; t.style.transition='all .3s'; }, 2800);
     setTimeout(() => t.remove(), 3200);
 }
 
-// ─── 초기 실행 ───────────────────────────────────────────────
-renderRoles();
+// 초기화
+renderRolesList();
+renderEditor();
 </script>
 
 </body>
