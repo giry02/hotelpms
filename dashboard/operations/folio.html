@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Folio List — Hotel PMS</title>
+    <title>정산 목록 — Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -205,6 +205,144 @@ function renderFolios() {
         return `<tr>
             <td style="font-family:monospace;color:var(--txt2)">${f.id}</td>
             <td><strong>${f.room}</strong></td>
+            <td>${f.guest}</td>
+            <td>${f.out}</td>
+            <td>$${f.total.toFixed(2)}</td>
+            <td>$${f.paid.toFixed(2)}</td>
+            <td style="color:${balColor};font-weight:700">$${f.bal.toFixed(2)}</td>
+            <td><span class="status-badge ${s.badge}">${s.label}</span></td>
+            <td>
+                <div style="display:flex;gap:4px">
+                    <button class="btn-outline-sm" onclick="openModal('invoiceModal')">명세서</button>
+                    ${f.bal > 0 ? `<button class="btn-primary-sm" onclick="openPaymentModal('${f.id}', ${f.bal})">결제</button>` : ''}
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+
+    mobile.innerHTML = filtered.map(f => {
+        const s = stMap[f.status];
+        return `<div class="m-res-card">
+            <div class="m-res-top">
+                <div>
+                    <div style="font-size:0.7rem;color:var(--txt3);font-family:monospace">${f.id}</div>
+                    <div class="m-res-name" style="margin-top:2px">${f.room} · ${f.guest}</div>
+                </div>
+                <div style="text-align:right">
+                    <span class="status-badge ${s.badge}">${s.label}</span>
+                    <div class="m-res-amount" style="color:${f.bal > 0 ? 'var(--danger)' : 'var(--txt)'}">잔여 $${f.bal.toFixed(2)}</div>
+                </div>
+            </div>
+            <div class="m-res-details">
+                <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> Check-out: ${f.out}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-money-bill"></i> 총액 $${f.total.toFixed(2)} (기결제 $${f.paid.toFixed(2)})</div>
+            </div>
+            <div class="m-res-actions">
+                <button class="act-btn" onclick="openModal('invoiceModal')"><i class="fa-solid fa-file-invoice"></i> 명세서</button>
+                ${f.bal > 0 ? `<button class="act-btn" style="background:var(--primary);color:#fff" onclick="openPaymentModal('${f.id}', ${f.bal})"><i class="fa-solid fa-credit-card"></i> 결제</button>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function setStatus(btn, status) {
+    currentStatus = status;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    renderFolios();
+}
+
+renderFolios();
+
+// i18n
+let currentLang='ko';
+const translations={ko: {
+        "Main": "메인",
+        "Front Desk": "프론트 데스크",
+        "Guest & CRM": "투숙객 및 CRM",
+        "Operations": "운영 관리",
+        "Settings": "설정",
+        "Dashboard": "대시보드",
+        "Reservations": "예약 타임라인",
+        "Booking List": "예약 목록",
+        "Check-in/out": "체크인/아웃",
+        "Guest CRM": "투숙객 관리",
+        "VIP Members": "VIP 멤버십",
+        "Room Mgmt": "객실 관리",
+        "Room Types": "객실 유형",
+        "Rates Calendar": "요금 캘린더",
+        "Housekeeping": "하우스키핑",
+        "Folio & Billing": "통합 정산",
+        "Folio List": "정산 목록",
+        "Revenue Analytics": "매출 분석",
+        "Ancillary Svcs": "부가서비스",
+        "Room Service": "룸서비스",
+        "Golf": "골프",
+        "Rent-a-car": "렌터카",
+        "Hotel Settings": "호텔 설정",
+        "Staff Mgmt": "직원 관리",
+        "Billing & Payment": "요금 및 결제",
+        "Notices": "공지사항",
+        "Support": "고객지원",
+"Folio & Billing":"통합 정산","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Settled Today":"금일 정산 완료","Outstanding Bal":"미수금 잔액","Ancillary Rev":"부가서비스 매출","Card Payment %":"카드 결제 비율","All":"전체","Export Transactions":"결제 내역 다운로드","Room":"객실","Guest":"고객","Check-out":"체크아웃","Total":"총 금액","Paid (Deposit)":"결제액 (보증금)","Status":"상태","Actions":"관리"},en: {
+        "Main": "Main",
+        "Front Desk": "Front Desk",
+        "Guest & CRM": "Guest & CRM",
+        "Operations": "Operations",
+        "Settings": "Settings",
+        "Dashboard": "Dashboard",
+        "Reservations": "Reservations",
+        "Booking List": "Booking List",
+        "Check-in/out": "Check-in/out",
+        "Guest CRM": "Guest CRM",
+        "VIP Members": "VIP Members",
+        "Room Mgmt": "Room Mgmt",
+        "Room Types": "Room Types",
+        "Rates Calendar": "Rates Calendar",
+        "Housekeeping": "Housekeeping",
+        "Folio & Billing": "Folio & Billing",
+        "Folio List": "Folio List",
+        "Revenue Analytics": "Revenue Analytics",
+        "Ancillary Svcs": "Ancillary Svcs",
+        "Room Service": "Room Service",
+        "Golf": "Golf",
+        "Rent-a-car": "Rent-a-car",
+        "Hotel Settings": "Hotel Settings",
+        "Staff Mgmt": "Staff Mgmt",
+        "Billing & Payment": "Billing & Payment",
+        "Notices": "Notices",
+        "Support": "Support",
+"Folio & Billing":"Folio & Billing","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Settled Today":"Settled Today","Outstanding Bal":"Outstanding Bal","Ancillary Rev":"Ancillary Rev","Card Payment %":"Card Payment %","All":"All","Export Transactions":"Export Transactions","Room":"Room","Guest":"Guest","Check-out":"Check-out","Total":"Total","Paid (Deposit)":"Paid (Deposit)","Status":"Status","Actions":"Actions"}};
+function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
+function changeLang(l){
+    currentLang=l;
+    const d=translations[l]||translations.ko;
+    document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
+    document.getElementById('searchInput').placeholder=l==='en'?'Search room, guest, folio...':'Room번호, Guest명, Folio 번호 검색...';
+    stMap['paid'].label = l==='en'?'Paid':'정산 Completed';
+    stMap['unpaid'].label = l==='en'?'Unpaid Bal':'미수금 존재';
+    stMap['refund'].label = l==='en'?'Refunded':'환불 처리';
+    renderFolios();
+}
+// 모달 기능
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function openPaymentModal(folioId, bal) {
+    document.getElementById('paymentBalAmount').innerText = `미수금: $${bal.toFixed(2)}`;
+    document.getElementById('paymentInputAmount').value = bal.toFixed(2);
+    openModal('paymentModal');
+}
+
+function processPayment() {
+    alert('결제가 성공적으로 승인되었습니다.');
+    closeModal('paymentModal');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
+</script>
+
+<!-- 결제 모달 (PAYMENT MODAL) -->
 <div class="modal-overlay" id="paymentModal" onclick="if(event.target===this) closeModal('paymentModal')">
     <div class="modal-card" style="max-width:400px;width:95vw">
         <div class="modal-header">
@@ -212,7 +350,7 @@ function renderFolios() {
             <button class="modal-close" onclick="closeModal('paymentModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
-            <div style="background:var(--warning-lt);color:var(--warning);padding:12px;border-radius:4px;text-align:center;font-weight:700;font-size:1.1rem">
+            <div style="background:var(--warning-lt);color:var(--warning);padding:12px;border-radius:4px;text-align:center;font-weight:700;font-size:1.1rem" id="paymentBalAmount">
                 미수금: $1,150.00
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
@@ -225,7 +363,7 @@ function renderFolios() {
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">결제할 금액</label>
-                <input type="number" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" value="1150.00">
+                <input type="number" id="paymentInputAmount" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" value="1150.00">
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
