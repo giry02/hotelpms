@@ -388,14 +388,67 @@ function setupI18n() {
     });
 }
 
+// Page title map: English key → { ko, en }
+const PAGE_TITLE_MAP = {
+    'Dashboard': { ko: '대시보드', en: 'Dashboard' },
+    'Guest CRM': { ko: '고객 CRM', en: 'Guest CRM' },
+    'VIP Members': { ko: 'VIP 멤버십', en: 'VIP Members' },
+    'Tier Change History': { ko: '등급 변동 이력', en: 'Tier Change History' },
+    'Check-in/out': { ko: '체크인/아웃', en: 'Check-in/out' },
+    'Booking List': { ko: '예약 목록', en: 'Booking List' },
+    'Reservations': { ko: '예약 타임라인', en: 'Reservations' },
+    'Revenue Analytics': { ko: '매출 분석', en: 'Revenue Analytics' },
+    'Folio & Billing': { ko: '통합 정산', en: 'Folio & Billing' },
+    'Housekeeping': { ko: '하우스키핑', en: 'Housekeeping' },
+    'Rates Calendar': { ko: '요금 캘린더', en: 'Rates Calendar' },
+    'Room Mgmt': { ko: '객실 관리', en: 'Room Mgmt' },
+    'Hotel Settings': { ko: '호텔 설정', en: 'Hotel Settings' },
+    'Staff & Roles': { ko: '직원 및 권한 관리', en: 'Staff & Roles' },
+    '요금 및 결제': { ko: '요금 및 결제', en: 'Billing & Payment' },
+    '공지사항': { ko: '공지사항', en: 'Notices' },
+    'Guest 지원': { ko: '고객 지원', en: 'Customer Support' },
+};
+
 function changeLang(l) {
     window.currentLang = l;
     const d = window.translations[l] || window.translations.en;
+
+    // 1. data-i18n-key 속성이 있는 모든 요소 번역
     document.querySelectorAll('[data-i18n-key]').forEach(e => {
         const k = e.getAttribute('data-i18n-key');
         if(d[k]) e.textContent = d[k];
     });
-    
+
+    // 2. h1 태그 번역 (data-i18n-key 없는 것도 포함)
+    document.querySelectorAll('h1').forEach(h1 => {
+        const key = h1.getAttribute('data-i18n-key') || h1.textContent.trim();
+        if(PAGE_TITLE_MAP[key]) {
+            h1.textContent = PAGE_TITLE_MAP[key][l] || PAGE_TITLE_MAP[key]['en'];
+            h1.setAttribute('data-i18n-key', key);
+        } else if(d[key]) {
+            h1.textContent = d[key];
+            h1.setAttribute('data-i18n-key', key);
+        }
+    });
+
+    // 3. <title> 태그 번역
+    const titleEl = document.querySelector('title');
+    if(titleEl) {
+        const rawTitle = titleEl.getAttribute('data-i18n-title') || titleEl.textContent;
+        // data-i18n-title에 영어 키를 저장해두고 참조
+        if(!titleEl.getAttribute('data-i18n-title')) {
+            titleEl.setAttribute('data-i18n-title', rawTitle);
+        }
+        const baseTitle = titleEl.getAttribute('data-i18n-title');
+        // "Key — Hotel PMS" 형식에서 키 추출
+        const keyPart = baseTitle.replace(/\s*[—\-]\s*Hotel PMS.*$/i, '').replace(/\s*-\s*Hotel PMS.*$/i, '').trim();
+        if(PAGE_TITLE_MAP[keyPart]) {
+            const translated = PAGE_TITLE_MAP[keyPart][l] || keyPart;
+            titleEl.textContent = translated + ' — Hotel PMS';
+        }
+    }
+
+    // 4. 언어 선택 드롭다운 동기화
     const langSelects = document.querySelectorAll('#langSelect, .lang-select, select[onchange*="changeLang"]');
     langSelects.forEach(sel => {
         if(sel.value !== l) sel.value = l;
