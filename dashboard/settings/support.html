@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Guest吏··Hotel PMS</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<link href="../common/css/dashboard.css" rel="stylesheet"/>
+<style>
+        .support-layout { display: grid; grid-template-columns: 350px 1fr; gap: 20px; height: calc(100vh - 140px); }
+        .support-list { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+        .list-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .list-items { overflow-y: auto; flex: 1; }
+        .list-item { padding: 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s; }
+        .list-item:hover { background: #f8fafc; }
+        .list-item.active { background: var(--primary-lt); border-left: 3px solid var(--primary); }
+        .item-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; color: var(--txt); }
+        .item-meta { font-size: 0.75rem; color: var(--txt2); display: flex; justify-content: space-between; align-items: center; }
+        
+        .support-detail { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+        .detail-header { padding: 20px; border-bottom: 1px solid var(--border); }
+        .detail-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+        .detail-body { flex: 1; padding: 20px; overflow-y: auto; }
+        
+        /* New Ticket Form */
+        .new-ticket-form { display: block; padding: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; }
+        .form-input, .form-select, .form-textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 0.85rem; box-sizing: border-box; }
+        .form-textarea { height: 120px; resize: vertical; }
+        .file-upload-wrap { display:flex; align-items:center; gap:10px; margin-top:8px; }
+        .file-upload-btn { background:var(--bg-light); border:1px solid var(--border); border-radius:4px; padding:6px 12px; font-size:0.8rem; cursor:pointer; color:var(--txt); transition:0.2s; }
+        .file-upload-btn:hover { background:var(--border2); }
+        
+        @media(max-width: 1024px) {
+            .support-layout { grid-template-columns: 1fr; height: auto; }
+        }
+    </style>
+<script src="../common/js/sidebar.js"></script>
+<script src="../common/js/topbar.js"></script>
+<script src="../common/js/i18n.js"></script>
+</head>
+<body>
+<div class="main">
+<header class="topbar">
+<div class="topbar-left">
+<button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+<h1>Guest 지원</h1>
+        </div>
+</header>
+<div class="content">
+<div class="support-layout">
+<!-- LIST -->
+<div class="support-list">
+<div class="list-header">
+<h3 style="font-size:1rem;font-weight:600;">나의 문의 내역</h3>
+<button class="btn-primary" onclick="showNewTicketForm()" style="padding:6px 12px;font-size:0.8rem;"><i class="fa-solid fa-plus"></i> 문의하기</button>
+</div>
+<div class="list-items" id="ticketList">
+<div class="list-item active" onclick="showTicketDetail()">
+<div class="item-title">[TK-10023] 결제 모듈 연동 에러</div>
+<div class="item-meta">
+<span>2026-05-20</span>
+<span class="badge orange">처리중</span>
+                        </span></div>
+</div>
+<div class="list-item" onclick="showTicketDetail()">
+<div class="item-title">[TK-10020] 일간 리포트 다운로드 버그</div>
+<div class="item-meta">
+<span>2026-05-21</span>
+<span class="badge green">답변완료</span>
+</div>
+</div>
+</div>
+</div>
+<!-- DETAIL -->
+<div class="support-detail" id="ticketDetailView">
+<div class="detail-header">
+<div class="detail-title">결제 모듈 연동 에러</div>
+<div style="font-size:0.8rem;color:var(--txt2);">작성일: 2026-05-20 | 상태: <span class="badge orange">처리중</span></span></div>
+</div>
+<div class="detail-body">
+<div style="background:#f8fafc;padding:16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;line-height:1.6;">
+                        안녕하세요. 오늘 예약 결제창에서 PG사 연동 오류(Error 502)가 발생했습니다. 확인 부탁드립니다.
+                    </div>
+<h4 style="margin-bottom:12px;font-size:0.9rem;">답변 내역</h4>
+<div style="background:var(--primary-lt);border:1px solid rgba(59,130,246,0.2);padding:16px;border-radius:8px;font-size:0.9rem;line-height:1.6;">
+<strong>플랫폼 관리자 (Support Team)</strong><br/><br/>
+                        Guest님 이용에 불편을 드려 죄송합니다. 현재 결제 대행사(PG) 측의 일시적인 네트워크 지연이 발생한 것으로 파악되었습니다. 
+                        오후 3시 경 복구될 예정이며, 처리 후 다시 안내해드리겠습니다.
+                    </div>
+</div>
+</div>
+<!-- NEW TICKET FORM -->
+<div class="support-detail" id="newTicketView" style="display:none; flex-direction:column;">
+<div class="detail-header">
+<div class="detail-title">새 문의 작성하기</div>
+</div>
+<div class="new-ticket-form" style="flex:1; overflow-y:auto;">
+<div class="form-group">
+<label class="form-label">문의 유형</label>
+<select class="form-select">
+<option>버그/오류 신고</option>
+<option>기능 제안</option>
+<option>요금/결제 문의</option>
+<option data-i18n="room">Room</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">제목</label>
+<input class="form-input" placeholder="문의 제목을 입력하세요" type="text"/>
+</div>
+<div class="form-group">
+<label class="form-label">내용</label>
+<textarea class="form-textarea" placeholder="상세한 증상이나 문의 내용을 입력해주세요."></textarea>
+</div>
+<div class="form-group">
+<label class="form-label">파일 첨부</label>
+<div class="file-upload-wrap">
+<input id="ticketFile" multiple="" onchange="document.getElementById('fileName').textContent = this.files.length &gt; 0 ? Array.from(this.files).map(f=&gt;f.name).join(', ') : '선택된 파일 없음';" style="display:none;" type="file"/>
+<button class="file-upload-btn" onclick="document.getElementById('ticketFile').click()"><i class="fa-solid fa-paperclip"></i> 파일 선택</button>
+<span id="fileName" style="font-size:0.8rem;color:var(--txt3);">선택된 파일 없음</span>
+</div>
+</div>
+<div style="text-align:right; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
+<button class="btn-outline" onclick="showTicketDetail()" style="margin-right:8px;">Cancel</button>
+<button class="btn-primary" onclick="alert('접수되었습니다.');showTicketDetail();"><i class="fa-solid fa-paper-plane"></i> 제출하기</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+    function showNewTicketForm() {
+        document.getElementById('ticketDetailView').style.display = 'none';
+        document.getElementById('newTicketView').style.display = 'block';
+    }
+    function showTicketDetail() {
+        document.getElementById('ticketDetailView').style.display = 'flex';
+        document.getElementById('newTicketView').style.display = 'none';
+    }
+</script>
+</body>
+</html>

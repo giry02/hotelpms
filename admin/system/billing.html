@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>과금 Actions - Super Admin</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<link href="../common/css/admin-base.css" rel="stylesheet"/>
+<link href="../common/css/admin-pages.css" rel="stylesheet"/>
+<script src="../common/js/admin-admin-i18n.js"></script>
+<script src="../common/js/admin-sidebar.js"></script>
+<style>
+		.filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+		.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); font-size: 0.8rem; font-weight: 600; color: var(--txt2); cursor: pointer; transition: all 0.2s; }
+		.filter-tab.active, .filter-tab:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+		.action-btn { font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 4px; }
+		.btn-alert { background: var(--warning-lt); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+		.btn-promo { background: var(--purple-lt); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
+	</style>
+</head>
+<body>
+<div class="main">
+<header class="topbar">
+<div class="topbar-left">
+<button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+<h1>과금 현황 (Billing)</h1>
+</div>
+</header>
+<div class="content">
+<!-- KPI -->
+<div class="kpi-grid">
+<div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-money-bill-trend-up"></i></div><div class="kpi-body"><div class="kpi-value">$125,000</div><div class="kpi-label">This Month 결제 Completed</div></div></div>
+<div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-clock"></i></div><div class="kpi-body"><div class="kpi-value">$18,400</div><div class="kpi-label">미납 및 연체</div></div></div>
+<div class="kpi-card red"><div class="kpi-icon"><i class="fa-solid fa-user-slash"></i></div><div class="kpi-body"><div class="kpi-value">2</div><div class="kpi-label">정지된 테넌트 (이탈)</div></div></div>
+</div>
+<div class="card">
+<div class="card-header" style="flex-direction:column; align-items:flex-start; gap:16px;">
+<h2 style="font-size:1.1rem; font-weight:700;">All 결제 내역</h2>
+<div class="filter-tabs">
+<button class="filter-tab active" onclick="filterTable('all')">All (All)</button>
+<button class="filter-tab" onclick="filterTable('overdue')" style="color:var(--danger);border-color:var(--danger-lt);">미납/연체</button>
+<button class="filter-tab" onclick="filterTable('expiring')">만료 임박 (D-3)</button>
+<button class="filter-tab" onclick="filterTable('expired')">만료됨</button>
+</div>
+</div>
+<div class="card-body">
+<table class="data-table">
+<thead>
+<tr>
+<th>Tenant (Hotel)</th>
+<th>Plan</th>
+<th>Cycle</th>
+<th>Amount</th>
+<th>Renewal Date</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="billingTableBody">
+<!-- JS Inject -->
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- Promo Modal -->
+<div class="modal-overlay" id="promoModal">
+<div class="modal-card" style="max-width:400px">
+<div class="modal-header">
+<div class="modal-title"><i class="fa-solid fa-gift" style="color:var(--purple)"></i> 프로모션 메일 발송</div>
+<button class="modal-close" onclick="closeModal('promoModal')"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="modal-body">
+<p style="font-size:0.85rem;color:var(--txt2);margin-bottom:20px;">만료된 호텔(이탈 Guest)을 다시 유치하기 위해 특별 할인을 제안합니다.</p>
+<div class="form-group" style="margin-bottom:16px;">
+<label class="form-label">할인 금액 ($)</label>
+<div style="display:flex;align-items:center;gap:10px;">
+<span style="font-weight:600;color:var(--txt2)">- $</span>
+<input class="form-control" placeholder="예: 50" type="number" value="50"/>
+<span style="font-size:0.8rem;color:var(--txt3)">/ 월</span>
+</div>
+</div>
+<div class="form-group" style="margin-bottom:20px;">
+<label class="form-label">연장 기간</label>
+<select class="form-control">
+<option value="3">3개월</option>
+<option value="6">6개월</option>
+<option value="12">1년 연장 (추천)</option>
+</select>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn-outline" onclick="closeModal('promoModal')">Cancel</button>
+<button class="btn-primary" onclick="alert('프로모션 메일이 발송되었습니다!');closeModal('promoModal');" style="background:var(--purple);"><i class="fa-solid fa-paper-plane"></i> 메일 발송</button>
+</div>
+</div>
+</div>
+<!-- Alert Modal -->
+<div class="modal-overlay" id="alertModal">
+<div class="modal-card" style="max-width:400px">
+<div class="modal-header">
+<div class="modal-title"><i class="fa-solid fa-bell" style="color:var(--warning)"></i> 만료 임박 안내 발송</div>
+<button class="modal-close" onclick="closeModal('alertModal')"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="modal-body">
+<p style="font-size:0.85rem;color:var(--txt2);margin-bottom:10px;">만료가 3일 이내로 다가온 테넌트에게 카드 확인 및 갱신 안내 알림을 발송합니다.</p>
+<div style="background:var(--warning-lt);padding:12px;border-radius:8px;font-size:0.8rem;color:#92400e;margin-top:10px;">
+				발송 Channel : <strong>이메일 및 앱 푸시 알림</strong>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn-outline" onclick="closeModal('alertModal')">Cancel</button>
+<button class="btn-primary" onclick="alert('안내 알림이 발송되었습니다.');closeModal('alertModal');" style="background:var(--warning);color:#fff;"><i class="fa-solid fa-paper-plane"></i> 안내 발송</button>
+</div>
+</div>
+</div>
+<script>
+	let currentFilter = 'all';
+
+	function renderTable() {
+		const invoices = window.AdminData?.billing || [];
+		const tbody = document.getElementById('billingTableBody');
+		
+		const filtered = invoices.filter(i => {
+			if (currentFilter === 'all') return true;
+			return i.status === currentFilter;
+		});
+
+		tbody.innerHTML = filtered.map(i => {
+			let badgeColor = 'gray';
+			let statusLabel = i.status;
+			let actionBtn = '-';
+			
+			if (i.status === 'paid') { badgeColor = 'green'; statusLabel = '결제 Completed'; }
+			if (i.status === 'overdue') { badgeColor = 'red'; statusLabel = '연체'; }
+			if (i.status === 'expiring') { 
+				badgeColor = 'orange'; 
+				statusLabel = `만료 임박 (D-${i.dday})`; 
+				actionBtn = `<button class="action-btn btn-alert" onclick="openModal('alertModal')"><i class="fa-solid fa-bell"></i> 갱신 안내</button>`;
+			}
+			if (i.status === 'expired') { 
+				badgeColor = 'gray'; 
+				statusLabel = '만료됨'; 
+				actionBtn = `<button class="action-btn btn-promo" onclick="openModal('promoModal')"><i class="fa-solid fa-gift"></i> 프로모션</button>`;
+			}
+
+			return `
+			<tr>
+				<td><strong style="font-weight:600;">${i.hotel}</strong><br><span style="font-size:0.7rem;color:var(--txt3)">${i.id}</span></td>
+				<td><span class="badge ${i.plan === 'Premium' ? 'purple' : 'gray'}">${i.plan}</span></td>
+				<td>${i.cycle === 'Yearly' ? '<span class="badge indigo">연간</span>' : ''}</td>
+				<td style="font-weight:600;">$${i.amount.toLocaleString()}</td>
+				<td>${i.date}</td>
+				<td><span class="badge ${badgeColor}">${statusLabel}</span></td>
+				<td>${actionBtn}</td>
+			</tr>
+			`;
+		}).join('');
+	}
+
+	function filterTable(status) {
+		currentFilter = status;
+		document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+		event.currentTarget.classList.add('active');
+		renderTable();
+	}
+
+	function openModal(id) { document.getElementById(id).classList.add('active'); }
+	function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+	window.addEventListener('DataReady', renderTable);
+</script>
+</body>
+</html>

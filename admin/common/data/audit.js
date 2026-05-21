@@ -1,0 +1,8 @@
+window.AdminData = window.AdminData || {};
+window.AdminData.auditLogs = [
+    { id: 'AL-1090', time: '2026-05-21 16:20:10', adminId: 'ADM-001 (John Doe)', action: 'Device Registered', details: 'Added new trusted device: iPhone 15 Pro', ip: '211.55.102.8', risk: 'Low' },
+    { id: 'AL-1089', time: '2026-05-21 16:15:44', adminId: 'ADM-002 (Alice Smith)', action: 'Failed Login', details: 'Invalid password attempt', ip: '180.20.44.12', risk: 'Medium' },
+    { id: 'AL-1088', time: '2026-05-21 15:30:00', adminId: 'ADM-001 (John Doe)', action: 'Permission Change', details: 'Granted [SaaS Billing] access to ADM-002', ip: '112.168.45.12', risk: 'High' },
+    { id: 'AL-1087', time: '2026-05-20 09:12:33', adminId: 'SYSTEM', action: 'Device Revoked', details: 'Auto-revoked expired device DEV-003', ip: 'Internal', risk: 'Low' },
+    { id: 'AL-1086', time: '2026-05-19 22:45:11', adminId: 'Unknown', action: 'Blocked Access', details: 'Login attempt from untrusted Geo-IP (Russia)', ip: '85.12.33.190', risk: 'Critical' }
+];

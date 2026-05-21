@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title> α (Audit Logs)  Super Admin</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<link href="../common/css/admin-base.css" rel="stylesheet"/>
+<link href="../common/css/admin-pages.css" rel="stylesheet"/>
+<script src="../common/js/admin-admin-i18n.js"></script>
+<script src="../common/js/admin-sidebar.js"></script>
+</head>
+<body>
+<div class="main">
+<header class="topbar">
+<div class="topbar-left">
+<button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+<h1> α (Audit Logs)</h1>
+</div>
+<div class="topbar-right">
+<a class="btn-outline" download="" href="../common/downloads/global_audit_logs.csv" style="padding:6px 12px;font-size:0.8rem;text-decoration:none;"><i class="fa-solid fa-download"></i> CSV ٿε</a>
+</div>
+</header>
+<div class="content">
+<div class="card">
+<div class="card-header">
+<h2>ü  ̺Ʈ </h2>
+<div class="filter-tabs">
+<button class="filter-tab active">All</button>
+<button class="filter-tab">Logins</button>
+<button class="filter-tab">Devices</button>
+<button class="filter-tab" style="color:var(--danger);border-color:var(--danger-lt);">Critical</button>
+</div>
+</div>
+<div class="card-body">
+<div class="table-wrap">
+<table class="data-table">
+<thead>
+<tr>
+<th>Log ID</th>
+<th>Time</th>
+<th>Admin User</th>
+<th>Action Type</th>
+<th>Details</th>
+<th>Source IP</th>
+<th>Risk</th>
+</tr>
+</thead>
+<tbody id="auditTableBody">
+<!-- JS Inject -->
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+	window.addEventListener('DataReady', () => {
+		const logs = window.AdminData?.auditLogs || [];
+		const tbody = document.getElementById('auditTableBody');
+		
+		tbody.innerHTML = logs.map(l => {
+			let riskBadge = 'gray';
+			if (l.risk === 'Critical') riskBadge = 'red';
+			else if (l.risk === 'High') riskBadge = 'orange';
+			else if (l.risk === 'Medium') riskBadge = 'indigo';
+			
+			return `
+			<tr>
+				<td style="font-size:0.75rem;color:var(--txt3);">${l.id}</td>
+				<td style="font-size:0.8rem;">${l.time}</td>
+				<td style="font-weight:600;">${l.adminId}</td>
+				<td><span class="badge ${riskBadge === 'red' ? 'red' : 'gray'}">${l.action}</span></td>
+				<td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${l.details}">${l.details}</td>
+				<td style="font-family:monospace;">${l.ip}</td>
+				<td><span class="badge ${riskBadge}">${l.risk}</span></td>
+			</tr>
+			`;
+		}).join('');
+	});
+</script>
+</body>
+</html>

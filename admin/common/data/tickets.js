@@ -1,0 +1,7 @@
+window.AdminData = window.AdminData || {};
+window.AdminData.tickets = [
+    { id: 'TK-10023', hotel: 'The Grand Saigon', subject: '결제 모듈 연동 에러', priority: 'High', status: 'open', date: '2026-05-20', author: 'Mgmt Team' },
+    { id: 'TK-10022', hotel: 'Lakeside Villa', subject: '요금제 업그레이드 문의', priority: 'Medium', status: 'in-progress', date: '2026-05-19', author: 'Owner' },
+    { id: 'TK-10021', hotel: 'Ocean Tower', subject: '하우스키핑 권한 추가 요청', priority: 'Low', status: 'resolved', date: '2026-05-18', author: 'IT Support' },
+    { id: 'TK-10020', hotel: 'The Grand Saigon', subject: '월간 리포트 엑셀 다운로드 버그', priority: 'High', status: 'open', date: '2026-05-21', author: 'Mgmt Team' }
+];

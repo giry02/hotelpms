@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Mgmt — Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
+    <link rel="stylesheet" href="../common/css/settings.css">
+    <script src="../common/js/i18n.js"></script>
+<script src="../common/js/sidebar.js"></script>
+</head>
+<body>
+
+<div class="main">
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+            <h1>Staff & Roles</h1>
+            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 12일 (월)</span>
+        </div>
+        <div class="topbar-right">
+            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
+            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
+                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="content">
+        <!-- KPI -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="kpi-card blue">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-users-gear"></i></div></div>
+                <div class="kpi-value">42</div>
+                <div class="kpi-label">Total Staff</div>
+                <div class="kpi-sub">등록된 계정 수</div>
+            </div>
+            <div class="kpi-card green">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-briefcase"></i></div></div>
+                <div class="kpi-value">18</div>
+                <div class="kpi-label">On Duty</div>
+                <div class="kpi-sub">시스템 온라인 Status</div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-shield-halved"></i></div></div>
+                <div class="kpi-value">4</div>
+                <div class="kpi-label">System Admins</div>
+                <div class="kpi-sub">모든 권한(Super Admin)</div>
+            </div>
+        </div>
+
+        <!-- FILTER -->
+        <div class="filter-bar">
+            <div class="filter-left">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="이름, 이메일 검색..." oninput="renderStaff()">
+                </div>
+                <div class="filter-chips">
+                    <button class="chip active" onclick="setFilter(this,'all')">All</button>
+                    <button class="chip" onclick="setFilter(this,'front')">Front Desk</button>
+                    <button class="chip" onclick="setFilter(this,'hk')">Housekeeping</button>
+                    <button class="chip" onclick="setFilter(this,'mgmt')">Management</button>
+                </div>
+            </div>
+            <div class="filter-right">
+                <button class="btn-primary-sm" onclick="openModal('addStaffModal')"><i class="fa-solid fa-user-plus"></i> Add Staff</button>
+            </div>
+        </div>
+
+        <!-- TABLE (desktop) -->
+        <div class="card desktop-only" style="margin-top:16px">
+            <div class="card-body" style="padding:0">
+                <div class="table-wrap">
+                    <table><thead><tr>
+                        <th>Name</th><th>Role</th><th>Status</th><th>Contact</th><th>Last Login</th><th>Actions</th>
+                    </tr></thead>
+                    <tbody id="staffBody"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARDS (mobile) -->
+        <div class="mobile-cards mobile-only" id="staffMobile"></div>
+    </div>
+</div>
+
+<script>
+const staffData = [
+    { name:'Nguyen Kim', init:'NK', email:'nkim@grandsaigon.com', phone:'+84 90 123 4444', role:'mgmt', roleName:'Front Manager', status:'online', last:'방금 전', color:'#8B5CF6' },
+    { name:'Lee Min Ho', init:'LM', email:'lmh@grandsaigon.com', phone:'+84 91 222 3333', role:'front', roleName:'Receptionist', status:'online', last:'10분 전', color:'#3B82F6' },
+    { name:'Mai Thi', init:'MT', email:'mai@grandsaigon.com', phone:'+84 92 444 5555', role:'hk', roleName:'Housekeeper', status:'online', last:'1시간 전', color:'#10B981' },
+    { name:'Anna Kournikova', init:'AK', email:'anna@grandsaigon.com', phone:'+84 93 555 6666', role:'hk', roleName:'Housekeeper', status:'offline', last:'어제', color:'#F59E0B' },
+    { name:'Tran Van', init:'TV', email:'tranv@grandsaigon.com', phone:'+84 94 666 7777', role:'mgmt', roleName:'General Manager', status:'online', last:'20분 전', color:'#8B5CF6' },
+    { name:'Soo Jin Park', init:'SP', email:'sjp@grandsaigon.com', phone:'+84 95 777 8888', role:'front', roleName:'Night Auditor', status:'offline', last:'Today 06:00', color:'#3B82F6' },
+];
+
+const rMap = {
+    'mgmt': { label:'Management', bg:'var(--purple-lt)', color:'var(--purple)' },
+    'front': { label:'프론트', bg:'var(--primary-lt)', color:'var(--primary)' },
+    'hk': { label:'Housekeeping', bg:'var(--success-lt)', color:'var(--success)' }
+};
+
+let currentFilter = 'all';
+
+function renderStaff() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = staffData.filter(s => {
+        if (currentFilter !== 'all' && s.role !== currentFilter) return false;
+        if (search && !s.name.toLowerCase().includes(search) && !s.email.toLowerCase().includes(search)) return false;
+        return true;
+    });
+
+    const tbody = document.getElementById('staffBody');
+    const mobile = document.getElementById('staffMobile');
+
+    tbody.innerHTML = filtered.map(s => {
+        const rc = rMap[s.role];
+        const statusDot = s.status === 'online' ? `<span class="status-dot" style="background:var(--success)"></span> 근무 중` : `<span class="status-dot" style="background:var(--txt3)"></span> 휴무/오프라인`;
+        
+        return `<tr>
+            <td><div class="guest-cell"><div class="staff-avatar" style="background:${s.color}">${s.init}</div><div><strong>${s.name}</strong> <span style="font-size:.7rem;color:var(--txt3)">${s.email}</span></div></div></td>
+            <td><span class="role-badge" style="background:${rc.bg};color:${rc.color}">${s.roleName}</span></td>
+            <td>${statusDot}</td>
+            <td><span style="font-size:.75rem;color:var(--txt2)">${s.phone}</span></td>
+            <td>${s.last}</td>
+            <td><button class="btn-outline-sm"><i class="fa-solid fa-pen"></i> 편집</button></td>
+        </tr>`;
+    }).join('');
+
+    mobile.innerHTML = filtered.map(s => {
+        const rc = rMap[s.role];
+        const statusDot = s.status === 'online' ? `<span class="status-dot" style="background:var(--success)"></span> 근무 중` : `<span class="status-dot" style="background:var(--txt3)"></span> 휴무`;
+        
+        return `<div class="m-res-card">
+            <div class="m-res-top">
+                <div class="m-res-guest">
+                    <div class="staff-avatar" style="background:${s.color}">${s.init}</div>
+                    <div>
+                        <div class="m-res-name">${s.name}</div>
+                        <div class="m-res-sub">${s.email}</div>
+                    </div>
+                </div>
+                <div style="text-align:right">
+                    <span class="role-badge" style="background:${rc.bg};color:${rc.color}">${s.roleName}</span>
+                </div>
+            </div>
+            <div class="m-res-details">
+                <div class="m-res-detail"><i class="fa-solid fa-circle-dot"></i> Status: ${statusDot}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-phone"></i> ${s.phone}</div>
+            </div>
+            <div class="m-res-actions">
+                <button class="act-btn"><i class="fa-solid fa-pen"></i> 권한 편집</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function setFilter(btn, role) {
+    currentFilter = role;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    renderStaff();
+}
+
+renderStaff();
+
+// i18n
+let currentLang='ko';
+const translations={ko: {
+        "Main": "메인",
+        "Front Desk": "프론트 데스크",
+        "Guest & CRM": "투숙객 및 CRM",
+        "Operations": "운영 관리",
+        "Settings": "설정",
+        "Dashboard": "대시보드",
+        "Reservations": "예약 타임라인",
+        "Booking List": "예약 목록",
+        "Check-in/out": "체크인/아웃",
+        "Guest CRM": "투숙객 관리",
+        "VIP Members": "VIP 멤버십",
+        "Room Mgmt": "객실 관리",
+        "Room Types": "객실 유형",
+        "Rates Calendar": "요금 캘린더",
+        "Housekeeping": "하우스키핑",
+        "Folio & Billing": "통합 정산",
+        "Folio List": "정산 목록",
+        "Revenue Analytics": "매출 분석",
+        "Ancillary Svcs": "부가서비스",
+        "Room Service": "룸서비스",
+        "Golf": "골프",
+        "Rent-a-car": "렌터카",
+        "Hotel Settings": "호텔 설정",
+        "Staff Mgmt": "직원 관리",
+        "Billing & Payment": "요금 및 결제",
+        "Notices": "공지사항",
+        "Support": "고객지원",
+"Staff & Roles":"직원 및 권한 관리","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Total Staff":"전체 직원","On Duty":"현재 근무 중","System Admins":"시스템 관리자","All":"전체","Front Desk":"프론트 데스크","Management":"관리자","Add Staff":"직원 등록","Name":"직원명","Role":"소속/권한","Status":"상태","Contact":"연락처","Last Login":"최근 접속","Actions":"관리"},en: {
+        "Main": "Main",
+        "Front Desk": "Front Desk",
+        "Guest & CRM": "Guest & CRM",
+        "Operations": "Operations",
+        "Settings": "Settings",
+        "Dashboard": "Dashboard",
+        "Reservations": "Reservations",
+        "Booking List": "Booking List",
+        "Check-in/out": "Check-in/out",
+        "Guest CRM": "Guest CRM",
+        "VIP Members": "VIP Members",
+        "Room Mgmt": "Room Mgmt",
+        "Room Types": "Room Types",
+        "Rates Calendar": "Rates Calendar",
+        "Housekeeping": "Housekeeping",
+        "Folio & Billing": "Folio & Billing",
+        "Folio List": "Folio List",
+        "Revenue Analytics": "Revenue Analytics",
+        "Ancillary Svcs": "Ancillary Svcs",
+        "Room Service": "Room Service",
+        "Golf": "Golf",
+        "Rent-a-car": "Rent-a-car",
+        "Hotel Settings": "Hotel Settings",
+        "Staff Mgmt": "Staff Mgmt",
+        "Billing & Payment": "Billing & Payment",
+        "Notices": "Notices",
+        "Support": "Support",
+"Staff & Roles":"Staff & Roles","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Staff":"Total Staff","On Duty":"On Duty","System Admins":"System Admins","All":"All","Front Desk":"Front Desk","Management":"Management","Add Staff":"Add Staff","Name":"Name","Role":"Role","Status":"Status","Contact":"Contact","Last Login":"Last Login","Actions":"Actions"}};
+function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
+function changeLang(l){
+    currentLang=l;
+    const d=translations[l]||translations.ko;
+    document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
+    document.getElementById('searchInput').placeholder=l==='en'?'Search name, email...':'이름, 이메일 검색...';
+}
+
+// 모달
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function saveStaff() {
+    alert('새 직원이 시스템에 등록되었습니다.');
+    closeModal('addStaffModal');
+}
+
+document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
+</script>
+
+<!-- Add Staff Modal -->
+<div class="modal-overlay" id="addStaffModal" onclick="if(event.target===this) closeModal('addStaffModal')">
+    <div class="modal-card" style="max-width:500px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">Add Staff</h3>
+            <button class="modal-close" onclick="closeModal('addStaffModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">Name <span style="color:var(--danger)">*</span></label>
+                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: Hong Gildong">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">사번 / ID</label>
+                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="EMP-102">
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이메일 (로그인 ID) <span style="color:var(--danger)">*</span></label>
+                <input type="email" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">소속 부서 <span style="color:var(--danger)">*</span></label>
+                    <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option>Front Desk (Front Office)</option>
+                        <option>Housekeeping (Housekeeping)</option>
+                        <option>Actions부 (Management)</option>
+                        <option>F&B / 스파</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">시스템 권한</label>
+                    <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option>일반 직원 (View & Edit)</option>
+                        <option>매니저 (Approval Rights)</option>
+                        <option>최고 Management (Super Admin)</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">임시 비밀번호 <span style="color:var(--danger)">*</span></label>
+                <input type="password" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="초기 비밀번호를 입력하세요">
+            </div>
+        </div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+            <button class="btn-outline" onclick="closeModal('addStaffModal')">Cancel</button>
+            <button class="btn-primary-sm" onclick="saveStaff()"><i class="fa-solid fa-check"></i> 계정 생성</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

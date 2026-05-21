@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title> (Helpdesk)  Super Admin</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<link href="../common/css/admin-base.css" rel="stylesheet"/>
+<link href="../common/css/admin-pages.css" rel="stylesheet"/>
+<script src="../common/js/admin-admin-i18n.js"></script>
+<script src="../common/js/admin-sidebar.js"></script>
+<style>
+		.helpdesk-layout { display: grid; grid-template-columns: 350px 1fr; gap: 20px; height: calc(100vh - 140px); }
+		.ticket-list { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+		.ticket-list-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+		.ticket-items { overflow-y: auto; flex: 1; }
+		.ticket-item { padding: 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s; }
+		.ticket-item:hover { background: rgba(255,255,255,0.02); }
+		.ticket-item.active { background: rgba(99,102,241,0.1); border-left: 3px solid var(--primary); }
+		.tk-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; color: var(--txt); }
+		.tk-meta { font-size: 0.75rem; color: var(--txt2); display: flex; justify-content: space-between; align-items: center; }
+		
+		.ticket-detail { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+		.td-header { padding: 20px; border-bottom: 1px solid var(--border); }
+		.td-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+		.td-meta { display: flex; gap: 12px; font-size: 0.8rem; color: var(--txt2); }
+		.td-body { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+		
+		.chat-bubble { max-width: 80%; padding: 14px 16px; border-radius: 12px; font-size: 0.88rem; line-height: 1.5; }
+		.chat-tenant { background: rgba(255,255,255,0.05); align-self: flex-start; border-top-left-radius: 4px; }
+		.chat-admin { background: var(--primary-lt); border: 1px solid var(--primary); align-self: flex-end; border-top-right-radius: 4px; }
+		
+		.td-footer { padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+		.td-input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--txt); }
+		
+		@media(max-width: 1024px) {
+			.helpdesk-layout { grid-template-columns: 1fr; }
+			.ticket-detail { display: none; } /* On mobile, would normally toggle views */
+		}
+	</style>
+</head>
+<body>
+<div class="main">
+<header class="topbar">
+<div class="topbar-left">
+<button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+<h1>  (Helpdesk)</h1>
+</div>
+</header>
+<div class="content">
+<div class="helpdesk-layout">
+<!-- LIST -->
+<div class="ticket-list">
+<div class="ticket-list-header">
+<h3 style="font-size:1rem;font-weight:600;">Open Tickets</h3>
+<span class="badge red">2 Action Req.</span>
+</div>
+<div class="ticket-items" id="ticketList">
+<!-- Injected by JS -->
+</div>
+</div>
+<!-- DETAIL -->
+<div class="ticket-detail">
+<div class="td-header">
+<div class="td-title" id="dtlTitle"> </div>
+<div class="td-meta">
+<span id="dtlHotel"><i class="fa-solid fa-building"></i> The Grand Saigon</span>
+<span id="dtlAuthor"><i class="fa-solid fa-user"></i> Mgmt Team</span>
+<span class="badge orange" id="dtlStatus">Open</span>
+</div>
+</div>
+<div class="td-body" id="dtlBody">
+<div class="chat-bubble chat-tenant">
+<strong>Mgmt Team</strong> <span style="font-size:0.7rem;color:var(--txt3);margin-left:8px;">2026-05-20 14:30</span><br/>
+						ȳϼ.   â PG  (Error 502) ߻߽ϴ. Ȯ Ź帳ϴ.
+					</div>
+</div>
+<div class="td-footer">
+<input class="td-input" placeholder="亯 Էϼ..." type="text"/>
+<button class="btn-primary"><i class="fa-solid fa-paper-plane"></i> </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+	window.addEventListener('DataReady', () => {
+		const tickets = window.AdminData?.tickets || [];
+		const listEl = document.getElementById('ticketList');
+		
+		listEl.innerHTML = tickets.map((t, i) => `
+			<div class="ticket-item ${i===0 ? 'active':''}">
+				<div class="tk-title">[${t.id}] ${t.subject}</div>
+				<div class="tk-meta">
+					<span>${t.hotel}</span>
+					<span class="badge ${t.status === 'resolved' ? 'green' : (t.status === 'open' ? 'orange' : 'indigo')}">${t.status}</span>
+				</div>
+			</div>
+		`).join('');
+	});
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>	  Super Admin</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<link href="../common/css/admin-base.css" rel="stylesheet"/>
+<link href="../common/css/admin-pages.css" rel="stylesheet"/>
+<script src="../common/js/admin-admin-i18n.js"></script>
+<script src="../common/js/admin-sidebar.js"></script>
+<style>
+		.profile-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
+		.profile-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; text-align: center; }
+		.profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 2rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+		.profile-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+		.profile-role { font-size: 0.85rem; color: var(--txt2); margin-bottom: 20px; }
+		.profile-info { text-align: left; font-size: 0.85rem; border-top: 1px solid var(--border2); padding-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+		.pi-row { display: flex; justify-content: space-between; }
+		
+		.device-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; transition: border-color 0.2s; }
+		.device-card:hover { border-color: var(--primary-lt); }
+		.device-card.current { border-color: var(--primary); background: var(--primary-lt); }
+		.dev-info { display: flex; align-items: center; gap: 16px; }
+		.dev-icon { width: 40px; height: 40px; border-radius: 8px; background: var(--border2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--txt2); }
+		.device-card.current .dev-icon { background: var(--primary); color: #fff; }
+		.dev-details h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+		.dev-details p { font-size: 0.75rem; color: var(--txt3); margin-bottom: 2px; }
+		
+		@media(max-width: 900px) {
+			.profile-layout { grid-template-columns: 1fr; }
+		}
+	</style>
+</head>
+<body>
+<div class="main">
+<header class="topbar">
+<div class="topbar-left">
+<button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+<h1> </h1>
+</div>
+</header>
+<div class="content">
+<div class="profile-layout">
+<!-- PROFILE INFO -->
+<div>
+<div class="profile-card">
+<div class="profile-avatar">SA</div>
+<div class="profile-name">Super Admin</div>
+<div class="profile-role">Platform Owner</div>
+<button class="btn-outline" style="width:100%;margin-bottom:20px;">비밀번호 </button>
+<div class="profile-info">
+<div class="pi-row"><span style="color:var(--txt3)"> ID</span><strong>ADM-001</strong></div>
+<div class="pi-row"><span style="color:var(--txt3)"≯</span><strong>admin@platform.sys</strong></div>
+<div class="pi-row"><span style="color:var(--txt3)">2ܰ  (2FA)</span><strong style="color:var(--success)">Ȱȭ</strong></div>
+</div>
+</div>
+</div>
+<!-- TRUSTED DEVICES -->
+<div class="card">
+<div class="card-header">
+<h2><i class="fa-solid fa-laptop-medical"></i> ŷ  ִ  (Trusted Devices)</h2>
+</div>
+<div class="card-body">
+<p style="font-size:0.85rem;color:var(--txt2);margin-bottom:24px;line-height:1.5;">
+						ϵ ⿡ α  2ܰ  ˴ϴ. нǵǾų  ̻  ʴ  [ ]	ϼ.
+					</p>
+<div id="deviceList">
+<!-- JS inject -->
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+	window.addEventListener('DataReady', () => {
+		const devices = window.AdminData?.devices || [];
+		const listEl = document.getElementById('deviceList');
+		
+		listEl.innerHTML = devices.map(d => {
+			const icon = d.name.includes('iPhone') || d.name.includes('Galaxy') ? 'fa-mobile-screen' : 'fa-laptop';
+			const revokeBtn = d.current 
+				? `<span class="badge green"> </span>` 
+				: (d.status === 'active' 
+					? `<button class="btn-danger btn-sm" onclick="alert(' Ǿϴ. ش ⿡  α׾ƿ˴ϴ.');this.parentElement.innerHTML='<span class=\\'badge gray\\'></span>';"><i class="fa-solid fa-ban"></i>  </button>`
+					: `<span class="badge gray"></span>`);
+			
+			return `
+			<div class="device-card ${d.current ? 'current' : ''}">
+				<div class="dev-info">
+					<div class="dev-icon"><i class="fa-solid ${icon}"></i></div>
+					<div class="dev-details">
+						<h4>${d.name} ${d.current ? '<span class="badge indigo" style="font-size:0.6rem;padding:2px 4px;">This Device</span>' : ''}</h4>
+						<p>IP: ${d.ip}</p>
+						<p>ֱ : ${d.lastActive} | : ${d.addedAt}</p>
+					</div>
+				</div>
+				<div class="dev-action">
+					${revokeBtn}
+				</div>
+			</div>
+			`;
+		}).join('');
+	});
+</script>
+</body>
+</html>

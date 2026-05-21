@@ -1,0 +1,336 @@
+0: $299.00 결제하기
+1: $299.00 결제하기';
+        showToast('·寃곗젣媛 성공적으로완료되었습니다.');
+    }, 1800);
+}
+
+/* ??? 토스트??? */
+function showToast(msg) {
+    let t = document.getElementById('pmsToast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'pmsToast';
+        t.style.cssText = `position:fixed;bottom:28px;right:28px;background:#111827;color:#fff;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:9999;transition:all .3s;opacity:0;transform:translateY(12px)`;
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateY(0)'; });
+    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(12px)'; }, 3000);
+}
+2: ';
+}
+
+/* ??? 寃곗젣 ?쒖텧 ??? */
+function submitPayment() {
+    const btn = document.querySelector('#payModalOverlay .btn-danger');
+    btn.disabled = true;
+    btn.innerHTML = '
+3: + 새 카드로 결제
+4: / ·/span&gt;
+5: /* ?? ?섏씠吏 ?꾩슜 ?ㅽ··? */
+        .billing-warning {
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            border-left: 4px solid #EF4444;
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .billing-warning-icon {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #FEE2E2; color: #DC2626;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; flex-shrink: 0; margin-top: 2px;
+        }
+        .billing-warning-content h3 { color: #991B1B; margin: 0 0 6px; font-size: 1rem; font-weight: 700; }
+        .billing-warning-content p  { color: #7F1D1D; margin: 0 0 14px; font-size: .875rem; line-height: 1.6; }
+
+        /* ?? 플랜 移대뱶 ?? */
+        .plan-card {
+            border: 2px solid var(--primary);
+            border-radius: var(--radius);
+            padding: 24px;
+            position: relative;
+            background: linear-gradient(160deg,#EFF6FF 0%,#fff 100%);
+        }
+        .plan-badge {
+            position: absolute; top: -12px; right: 20px;
+            background: var(--primary); color: #fff;
+            padding: 4px 14px; border-radius: 20px;
+            font-size: .72rem; font-weight: 700; letter-spacing: .3px;
+        }
+        .plan-price { font-size: 2.6rem; font-weight: 800; color: var(--txt); margin: 16px 0 4px; letter-spacing: -1px; }
+        .plan-price span { font-size: 1rem; color: var(--txt3); font-weight: 500; }
+        .plan-features { padding-left: 0; list-style: none; margin-bottom: 20px; }
+        .plan-features li { font-size: .85rem; color: var(--txt2); line-height: 1.9; display: flex; align-items: center; gap: 8px; }
+        .plan-features li i { color: var(--primary); width: 14px; font-size: .8rem; }
+
+        /* ?? 결제 상태 諛곗? ?? */
+        .pay-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
+        .pay-badge.overdue  { background: #FEE2E2; color: #991B1B; }
+        .pay-badge.paid     { background: #D1FAE5; color: #065F46; }
+
+        /* ?? 寃곗젣 ?섎떒 移대뱶 ?? */
+        .payment-method-card {
+            display: flex; align-items: center; gap: 16px;
+            padding: 16px 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: #fff;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .payment-method-card:hover { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
+        .payment-method-card .card-brand-icon { font-size: 2.2rem; color: #1434CB; flex-shrink: 0; }
+        .payment-method-card .card-info-name { font-weight: 600; color: var(--txt); font-size: .9rem; }
+        .payment-method-card .card-info-exp  { font-size: .78rem; color: var(--txt3); margin-top: 2px; }
+        .payment-method-card .card-actions-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+        /* ?? 移대뱶 ?낅젰 誘몃━蹂닿린 ?? */
+        .card-preview {
+            background: linear-gradient(135deg, #1E3A8A, #3B82F6);
+            border-radius: 14px;
+            padding: 22px 24px;
+            color: #fff;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .card-preview::before {
+            content: '';
+            position: absolute; top: -30px; right: -30px;
+            width: 160px; height: 160px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.08);
+        }
+        .card-preview .cp-number { font-size: 1.1rem; letter-spacing: 3px; font-weight: 500; margin: 16px 0 8px; font-family: 'Courier New', monospace; }
+        .card-preview .cp-row    { display: flex; justify-content: space-between; font-size: .72rem; opacity: .75; }
+        .card-preview .cp-name   { font-size: .9rem; font-weight: 600; margin-top: 4px; }
+        .card-chip { width: 36px; height: 26px; background: linear-gradient(135deg,#FFD700,#FFA500); border-radius: 5px; opacity: .9; }
+
+        /* ?? 寃곗젣 紐⑤떖 ?? */
+        .pay-summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border2); font-size: .85rem; }
+        .pay-summary-row:last-child { border-bottom: none; }
+        .pay-summary-row.total { font-weight: 700; font-size: .95rem; color: var(--txt); }
+
+        /* ?? ?덉씠?꾩썐 & ?뚯씠釉?而⑦듃濡·? */
+        .billing-grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; margin-bottom: 24px; }
+        @media(max-width: 1024px) {
+            .billing-grid { grid-template-columns: 1fr; }
+        }
+        .filter-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .filter-group input[type="date"] { padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: .75rem; font-family: var(--font); color: var(--txt); outline: none; }
+        .filter-group input[type="date"]:focus { border-color: var(--primary); }
+        .pagination { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px; border-top: 1px solid var(--border2); }
+        .page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--txt2); font-size: .85rem; cursor: pointer; transition: all .2s; }
+        .page-btn:hover { background: var(--border2); color: var(--txt); }
+        .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+6: /* ??? 紐⑤떖 ?ы띁 ??? */
+function openModal(id)  { document.getElementById(id).classList.add('active'); document.body.style.overflow='hidden'; }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); document.body.style.overflow=''; }
+function handleOverlayClick(e, id) { if (e.target.id === id) closeModal(id); }
+
+function openAddCardModal() { resetCardForm(); openModal('addCardModalOverlay'); }
+function openPayModal()     { openModal('payModalOverlay'); }
+function openPlanModal()    { openModal('planModalOverlay'); }
+
+/* ??? 카드 번호 ?щ㎎ ??? */
+function formatCardNumber(el) {
+    let v = el.value.replace(/\D/g,'').substring(0,16);
+    el.value = v.match(/.{1,4}/g)?.join(' ') || v;
+}
+function formatExpiry(el) {
+    let v = el.value.replace(/\D/g,'').substring(0,4);
+    if (v.length >= 3) v = v.substring(0,2) + '/' + v.substring(2);
+    el.value = v;
+}
+
+/* ??? ?ㅼ떆媛?카드 미리보기 ??? */
+function updatePreview() {
+    const num  = document.getElementById('inputCardNumber').value || '?™™™·™™™·™™™·™™™?;
+    const name = document.getElementById('inputCardName').value  || '이름 입력';
+    const exp  = document.getElementById('inputCardExpiry').value || 'MM/YY';
+    document.getElementById('previewNumber').textContent = num.padEnd(19,'·).replace(/(.{4})/g,'$1 ').trim();
+    document.getElementById('previewName').textContent   = name.toUpperCase();
+    document.getElementById('previewExpiry').textContent = exp;
+
+    // 브랜드 감지
+    const raw = num.replace(/\s/g,'');
+    const icon = document.querySelector('#cardPreview .fa-brands');
+    if (raw.startsWith('4'))      { icon.className='fa-brands fa-cc-visa'; }
+    else if (/^5[1-5]/.test(raw)) { icon.className='fa-brands fa-cc-mastercard'; }
+    else if (raw.startsWith('3')) { icon.className='fa-brands fa-cc-amex'; }
+    else                           { icon.className='fa-brands fa-credit-card'; }
+}
+
+function resetCardForm() {
+    ['inputCardNumber','inputCardName','inputCardExpiry','inputCardCVC'].forEach(id => document.getElementById(id).value='');
+    document.getElementById('setDefault').checked = false;
+    updatePreview();
+}
+
+/* ??? 카드 등록 ?쒖텧 ??? */
+let cardCount = 1;
+function submitAddCard() {
+    const num  = document.getElementById('inputCardNumber').value.replace(/\s/g,'');
+    const name = document.getElementById('inputCardName').value.trim();
+    const exp  = document.getElementById('inputCardExpiry').value;
+    const cvc  = document.getElementById('inputCardCVC').value;
+    if (num.length
+7: /·/span&gt;
+8: 2025년 11월
+9: 2025년 12월
+10: 2026-05-15 (기한 경과)
+11: 2026·5·25?쇨퉴吏
+12: 2026·5·泥?뎄·寃곗젣媛 ?곗껜?섏뿀?듬땲·
+13: 2026년 1월
+14: 2026년 2월
+15: 2026년 3월
+16: 2026년 4월
+17: 2026년 5월
+18: 2026년 5월 25일 (월) 02:00 ~ 06:00 (UTC 기준)
+19: 24?쒓컙 ?곗꽑 湲곗닠 吏·/li&gt;
+20: 24?쒓컙 ?곗꽑 吏·/li&gt;
+21: ?·吏·
+22: ?™™? maxlength=
+23: ?™™™·™™™·™™™·™™™?/div&gt;
+24: ?꾨━誘몄뾼 愿묎퀬 ?寃잜똿
+25: ?꾨━誘몄뾼 愿묎퀬 ?ㅽ듃?뚰겕 ?몄텧 媛以묒튂
+26: ?꾩껜 湲濡쒕쾶 ?듯빀 ?쒖뒪·/li&gt;
+27: ?덈뀞?섏꽭· ?ㅻ뒛 ?덉빟 寃곗젣李쎌뿉·PG·?곕룞 ?ㅻ쪟(Error 502)媛 諛쒖깮?덉뒿?덈떎. ?뺤씤 遺?곷뱶由쎈땲·
+28: ?덈뀞?섏꽭· Hotel PMS 蹂몄궗 ?뚮옯·?댁쁺??낅땲·
+29: ?듯빀 ?뺤궛 諛·몃? ?·?섏닔猷?愿由?/li&gt;
+30: ?뚮옯·愿由ъ옄 (Support Team)
+31: ?먭? ?쒓컙 ?숈븞?먮뒗 ?쒖뒪·?묒냽 諛?湲곕뒫 ?ъ슜·以묐떒?섏삤· ?명뀛 ?낅Т·李⑥쭏·?놁쑝?쒕룄濡?誘몃━ ?뺤씤 遺?곷뱶由쎈땲·
+32: ?뺤콉 蹂寃?/option&gt;
+33: ?뺤콉 蹂寃?/span&gt;
+34: Guest· 내용·遺덊렪·?쒕젮 二꾩넚?⑸땲· ?꾩옱 寃곗젣 ??됱궗(PG) 痢≪쓽 ?쇱떆?곸씤 ?ㅽ듃?뚰겕 吏?곗씠 諛쒖깮·寃껋쑝濡·뚯븙?섏뿀?듬땲· 
+                        오후 3시 경 복구될 예정이며, 처리 후 다시 안내해드리겠습니다.
+35: Guest吏·/h1&gt;
+36: Guest吏··Hotel PMS
+37: PMS 濡쒓렇·遺덇?, ?덉빟 ?곕룞 吏· 泥댄겕·?꾩썐 泥섎━ 遺덇?
+38: Premium 플랜
+39: Premium 플랜 ?꾩슜?쇰줈 '怨좉툒 愿묎퀬 ?寃잜똿 遺꾩꽍 李⑦듃' 湲곕뒫·異붽·섏뿀?듬땲· 요금 및 결제 硫붾돱?먯꽌 ?먯꽭·?쒗깮·?뺤씤?섏꽭·
+40: Premium 플랜 신규 기능 업데이트 안내 (v2.4)
+41: Room 200개 제한
+42: Room 50개 제한
+43: Room 및 예약 무제한
+44: Room 및 예약 무제한 등록
+45: Visa **** 4242 (기본 결제수단)
+46: [TK-10020] 일간 리포트 다운로드 버그
+47: [TK-10023] 결제 모듈 연동 에러
+48: `;
+    document.getElementById('cardListBody').insertAdjacentHTML('beforeend', html);
+    // 寃곗젣 紐⑤떖 select?먮룄 異붽?
+    const opt = document.createElement('option');
+    opt.value = last4; opt.textContent = `${brandName} **** ${last4}`;
+    document.getElementById('payCardSelect').insertBefore(opt, document.getElementById('payCardSelect').lastElementChild);
+    closeModal('addCardModalOverlay');
+    showToast('移대뱶媛 성공적으로?깅줉?섏뿀?듬땲·');
+}
+
+/* ??? 移대뱶 ·젣 ??? */
+function removeCard(id) {
+    if (!confirm('이 카드를 삭제하시겠습니까?')) return;
+    const el = document.getElementById(id);
+    el.style.transition = 'opacity .3s, transform .3s';
+    el.style.opacity = '0'; el.style.transform = 'translateX(20px)';
+    setTimeout(() => el.remove(), 310);
+}
+
+/* ??? 기본 결제수단 ?ㅼ젙 ??? */
+function setDefaultCard(id) {
+    document.querySelectorAll('.card-actions-right').forEach(r => {
+        const star = r.querySelector('.badge-success');
+        if (star) star.outerHTML = `
+49: 愿由?/th&gt;
+50: 湲곕낯 ?덉빟 愿由?/li&gt;
+51: 踰좏듃·?뺣··몃쾿 媛쒖젙·?곕씪 踰좏듃·吏··?명뀛·??곸쑝濡·꾩옄?멸툑怨꾩궛·?곕룞 媛?대뱶?쇱씤·?쇰? 蹂寃쎈릺?덉뒿?덈떎.
+                                ?곸꽭 내용? 泥⑤·?留ㅻ돱?쇱쓣 李몄“·二쇱떆湲?諛붾엻?덈떎.
+52: 踰좏듃·吏·?·?꾩옄?멸툑怨꾩궛·?곕룞 媛?대뱶 蹂寃·덈궡
+53: 감사합니다.
+54: 결제 금액
+55: 결제 모듈 연동 에러
+56: 결제 상태
+57: 결제 수단 선택
+58: 결제 완료
+59: 결제 정보는 SSL 암호화로 안전하게 전송됩니다.
+60: 결제 처리 중...';
+    setTimeout(() => {
+        closeModal('payModalOverlay');
+        document.getElementById('warningBanner').style.display = 'none';
+        // 테이블 첫줄 상태 업데이트
+        const row = document.querySelector('tbody tr:first-child');
+        row.querySelector('td:nth-child(4)').innerHTML = '
+61: 결제일 / 기한
+62: 결제하기
+63: 공지사항
+64: 금액 (USD)
+65: 기능 제안
+66: 기본 결제수단
+67: 기본 결제수단으로 설정
+68: 기본 정산 기능
+69: 기본으로 설정
+70: 나의 문의 내역
+71: 내용
+72: 다음 청구일: 2026-06-01
+73: 닫기
+74: 답변 내역
+75: 답변완료
+76: 등록된 결제 수단
+77: 만료: ${exp}
+78: 만료: 12/28
+79: 문의 유형
+80: 문의 제목을 입력하세요
+81: 문의하기
+82: 미납 (Overdue)
+83: 미납 요금 결제
+84: 미납 요금을 결제하지 않으시면
+85: 버그/오류 신고
+86: 본사(Super Admin) 시스템 공지
+87: 상세한 증상이나 문의 내용을 입력해주세요.
+88: 새 문의 작성하기
+89: 새 카드 등록
+90: 서비스 이용 제한 경고: 요금 미납
+91: 선택
+92: 선택된 파일 없음
+93: 시스템 공지사항 - Hotel PMS
+94: 시스템 점검
+95: 시스템 정기 점검 안내 (5/25 02:00~06:00 UTC)
+96: 안정적인 서비스 제공을 위해 아래 일정과 같이 시스템 정기 점검이 진행될 예정입니다.
+97: 업데이트
+98: 영수증
+99: 영향 범위:
+100: 예약 생성, 체크인 처리 등 핵심 기능 사용이 제한될 수 있습니다.
+101: 요금 및 결제
+102: 요금 및 결제 - Hotel PMS
+103: 요금/결제 문의
+104: 유효기간
+105: 이름 입력
+106: 작성일: 2026-05-20 | 상태:
+107: 전체 카테고리
+108: 점검 일시:
+109: 제목
+110: 제출하기
+111: 조회
+112: 처리중
+113: 청구 및 결제 이력
+114: 청구 번호
+115: 청구일
+116: 총 합계 다운로드
+117: 카드 등록
+118: 카드 번호
+119: 카드 소유자
+120: 카드 소유자 이름
+121: 카드 추가
+122: 파일 선택
+123: 파일 첨부
+124: 플랜
+125: 플랜 蹂寃?/h2&gt;
+126: 플랜 蹂寃쏀븯湲?
+127: 하우스키핑 연동
+128: 현재 이용 중
+129: 현재 플랜
+130: 吏湲?미납 요금 결제?섍린 ($299.00)
