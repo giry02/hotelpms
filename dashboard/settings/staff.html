@@ -14,43 +14,25 @@
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <style>
-        /* ── 권한 매트릭스 ── */
-        .perm-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-        .perm-table th { background: var(--primary); color: #fff; padding: 10px 14px; text-align: center; font-weight: 600; white-space: nowrap; }
-        .perm-table th:first-child { text-align: left; background: #1E3A8A; border-radius: 6px 0 0 0; }
-        .perm-table th:last-child { border-radius: 0 6px 0 0; }
-        .perm-table td { padding: 10px 14px; border-bottom: 1px solid var(--border2); text-align: center; color: var(--txt2); }
-        .perm-table td:first-child { text-align: left; font-weight: 600; color: var(--txt); display: flex; align-items: center; gap: 8px; }
-        .perm-table tr:last-child td { border-bottom: none; }
-        .perm-table tr:hover td { background: var(--border2); }
-        .perm-select {
-            padding: 4px 8px; border: 1px solid var(--border);
-            border-radius: 6px; font-size: .78rem; font-family: var(--font);
-            background: #fff; color: var(--txt); cursor: pointer;
-            transition: border-color .2s;
+        .staff-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+        .role-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
+
+        /* 역할 선택 카드 */
+        .role-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+        .role-pick-card {
+            border: 2px solid var(--border); border-radius: var(--radius);
+            padding: 14px 10px; text-align: center; cursor: pointer;
+            transition: all .2s;
         }
-        .perm-select:focus { outline: none; border-color: var(--primary); }
-        .perm-select.full  { border-color: var(--success); color: var(--success); background: var(--success-lt); }
-        .perm-select.edit  { border-color: var(--primary); color: var(--primary); background: var(--primary-lt); }
-        .perm-select.view  { border-color: var(--warning); color: #B45309; background: #FEF3C7; }
-        .perm-select.none  { border-color: var(--border); color: var(--txt3); background: #f8f8f8; }
+        .role-pick-card:hover { border-color: var(--primary); background: var(--primary-lt); }
+        .role-pick-card.selected { border-color: var(--primary); background: var(--primary-lt); }
+        .role-pick-card .rpc-icon { font-size: 1.4rem; margin-bottom: 6px; }
+        .role-pick-card .rpc-name { font-size: .82rem; font-weight: 700; color: var(--txt); }
+        .role-pick-card .rpc-desc { font-size: .7rem; color: var(--txt3); margin-top: 2px; }
 
-        /* ── 역할 배지 ── */
-        .role-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
-        .role-pill.admin      { background: #EDE9FE; color: #6D28D9; }
-        .role-pill.manager    { background: #DBEAFE; color: #1D4ED8; }
-        .role-pill.housekeeper{ background: #D1FAE5; color: #065F46; }
-
-        /* ── 직원 아바타 ── */
-        .staff-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; color: #fff; flex-shrink: 0; }
-
-        /* ── 섹션 헤더 ── */
-        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-        .section-title  { font-size: 1rem; font-weight: 700; color: var(--txt); display: flex; align-items: center; gap: 8px; }
-        .section-title i { color: var(--primary); }
-
-        /* ── 권한 저장 버튼 영역 ── */
-        .perm-footer { display: flex; justify-content: flex-end; padding: 14px 16px; border-top: 1px solid var(--border2); background: #f8fafc; border-radius: 0 0 var(--radius) var(--radius); gap: 10px; }
+        /* 권한 미리보기 */
+        .perm-preview-wrap { background: var(--border2); border-radius: var(--radius-sm); padding: 12px 14px; }
+        .perm-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: .72rem; font-weight: 600; background: #fff; border: 1px solid var(--border); color: var(--txt2); margin: 3px; }
     </style>
 </head>
 <body>
@@ -59,11 +41,13 @@
     <header class="topbar">
         <div class="topbar-left">
             <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1>Staff &amp; Roles</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 22일 (목)</span>
+            <h1 data-i18n-key="Staff & Roles">Staff & Roles</h1>
+            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 22일</span>
         </div>
         <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px">
+                <i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon
+            </div>
             <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
                 <option value="ko">🇰🇷 한국어</option>
                 <option value="en">🇺🇸 English</option>
@@ -74,128 +58,108 @@
     <div class="content">
 
         <!-- KPI -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
             <div class="kpi-card blue">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-users-gear"></i></div></div>
-                <div class="kpi-value">42</div>
-                <div class="kpi-label" data-i18n-key="Total Staff">Total Staff</div>
-                <div class="kpi-sub">등록된 계정 수</div>
+                <div class="kpi-value" id="kpiTotal">0</div>
+                <div class="kpi-label">전체 직원</div>
             </div>
             <div class="kpi-card green">
-                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-briefcase"></i></div></div>
-                <div class="kpi-value">18</div>
-                <div class="kpi-label" data-i18n-key="On Duty">On Duty</div>
-                <div class="kpi-sub">시스템 온라인 Status</div>
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-circle-dot"></i></div></div>
+                <div class="kpi-value" id="kpiOnline">0</div>
+                <div class="kpi-label">근무 중</div>
             </div>
             <div class="kpi-card purple">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-shield-halved"></i></div></div>
-                <div class="kpi-value">4</div>
-                <div class="kpi-label" data-i18n-key="System Admins">System Admins</div>
-                <div class="kpi-sub">모든 권한 (Admin)</div>
+                <div class="kpi-value" id="kpiRoles">0</div>
+                <div class="kpi-label">정의된 역할 수</div>
+            </div>
+            <div class="kpi-card orange" style="background:linear-gradient(135deg,#FEF3C7,#fff)">
+                <div class="kpi-top"><div class="kpi-icon" style="background:#FDE68A;color:#B45309"><i class="fa-solid fa-user-slash"></i></div></div>
+                <div class="kpi-value" id="kpiOffline">0</div>
+                <div class="kpi-label">오프라인</div>
             </div>
         </div>
 
-        <!-- ── 역할별 권한 매트릭스 ── -->
-        <div class="card" style="margin-top:24px">
-            <div class="card-body" style="padding:20px">
-                <div class="section-header">
-                    <div class="section-title">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        역할별 메뉴 접근 권한 설정
-                    </div>
-                    <span style="font-size:.78rem;color:var(--txt3)">변경 후 저장 버튼을 눌러야 적용됩니다</span>
-                </div>
-                <div style="overflow-x:auto">
-                    <table class="perm-table" id="permMatrix">
-                        <thead>
-                            <tr>
-                                <th style="min-width:140px">메뉴 / 기능</th>
-                                <th><i class="fa-solid fa-crown" style="margin-right:4px"></i>Admin</th>
-                                <th><i class="fa-solid fa-user-tie" style="margin-right:4px"></i>Manager</th>
-                                <th><i class="fa-solid fa-broom" style="margin-right:4px"></i>Housekeeper</th>
-                            </tr>
-                        </thead>
-                        <tbody id="permBody"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="perm-footer">
-                <button class="btn-outline" onclick="resetPerms()"><i class="fa-solid fa-rotate-left"></i> 기본값 복원</button>
-                <button class="btn-primary-sm" onclick="savePerms()"><i class="fa-solid fa-floppy-disk"></i> 권한 저장</button>
-            </div>
-        </div>
-
-        <!-- ── 직원 목록 ── -->
+        <!-- 직원 목록 카드 -->
         <div class="card" style="margin-top:24px">
             <div class="card-body" style="padding:20px 20px 0">
-                <div class="section-header">
-                    <div class="section-title">
-                        <i class="fa-solid fa-users"></i>
-                        직원 목록
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                    <div style="font-size:1rem;font-weight:700;color:var(--txt);display:flex;align-items:center;gap:8px">
+                        <i class="fa-solid fa-users" style="color:var(--primary)"></i> 직원 목록
                     </div>
-                    <button class="btn-primary-sm" onclick="openModal('addStaffModal')">
-                        <i class="fa-solid fa-user-plus"></i> 직원 등록
-                    </button>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <a href="roles.html" class="btn-outline" style="font-size:.8rem;padding:6px 12px;text-decoration:none">
+                            <i class="fa-solid fa-shield-halved"></i> 권한 설정
+                        </a>
+                        <button class="btn-primary-sm" onclick="openModal('addStaffModal')">
+                            <i class="fa-solid fa-user-plus"></i> 직원 등록
+                        </button>
+                    </div>
                 </div>
-                <!-- Filter -->
-                <div class="filter-bar" style="padding:0 0 16px">
-                    <div class="filter-left">
-                        <div class="search-box">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <input type="text" id="searchInput" placeholder="이름, 이메일 검색..." oninput="renderStaff()">
-                        </div>
-                        <div class="filter-chips">
-                            <button class="chip active" onclick="setFilter(this,'all')">전체</button>
-                            <button class="chip" onclick="setFilter(this,'admin')"><i class="fa-solid fa-crown"></i> Admin</button>
-                            <button class="chip" onclick="setFilter(this,'manager')"><i class="fa-solid fa-user-tie"></i> Manager</button>
-                            <button class="chip" onclick="setFilter(this,'housekeeper')"><i class="fa-solid fa-broom"></i> Housekeeper</button>
-                        </div>
+                <!-- 필터 -->
+                <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+                    <div class="search-box" style="flex:1;min-width:200px">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" placeholder="이름, 이메일 검색..." oninput="renderStaff()">
                     </div>
+                    <select class="hotel-select" id="roleFilter" onchange="renderStaff()" style="min-width:140px">
+                        <option value="all">전체 역할</option>
+                    </select>
+                    <select class="hotel-select" id="statusFilter" onchange="renderStaff()" style="min-width:120px">
+                        <option value="all">전체 상태</option>
+                        <option value="online">근무 중</option>
+                        <option value="offline">오프라인</option>
+                    </select>
                 </div>
             </div>
-            <!-- Table -->
-            <div class="table-wrap" style="padding:0 20px 20px">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>직원명</th>
-                            <th>역할 / 권한</th>
-                            <th>상태</th>
-                            <th>연락처</th>
-                            <th>최근 접속</th>
-                            <th>관리</th>
-                        </tr>
-                    </thead>
-                    <tbody id="staffBody"></tbody>
-                </table>
+            <!-- 테이블 -->
+            <div style="padding:0 20px 20px">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>직원</th>
+                                <th>역할</th>
+                                <th>접근 권한 수</th>
+                                <th>상태</th>
+                                <th>최근 접속</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffBody"></tbody>
+                    </table>
+                </div>
+                <div id="emptyState" style="display:none;text-align:center;padding:40px;color:var(--txt3)">
+                    <i class="fa-solid fa-users" style="font-size:2rem;margin-bottom:8px;display:block"></i>
+                    검색 결과가 없습니다.
+                </div>
             </div>
         </div>
 
-    </div><!-- /content -->
-</div><!-- /main -->
+    </div>
+</div>
 
 <!-- ── 직원 등록 모달 ── -->
 <div class="modal-overlay" id="addStaffModal" onclick="if(event.target===this) closeModal('addStaffModal')">
-    <div class="modal-card" style="max-width:560px;width:95vw">
+    <div class="modal-card" style="max-width:580px;width:95vw">
         <div class="modal-header">
             <h3 class="modal-title"><i class="fa-solid fa-user-plus" style="color:var(--primary);margin-right:8px"></i>신규 직원 등록</h3>
             <button class="modal-close" onclick="closeModal('addStaffModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
 
-            <!-- 이름 + 사번 -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">이름 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" class="form-control" id="newName" placeholder="예: Hong Gildong">
+                    <input type="text" class="form-control" id="newName" placeholder="예: 홍길동">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">사번 / ID</label>
-                    <input type="text" class="form-control" id="newEmpId" placeholder="EMP-102">
+                    <input type="text" class="form-control" id="newEmpId" placeholder="EMP-001">
                 </div>
             </div>
 
-            <!-- 이메일 -->
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label class="form-label">이메일 (로그인 ID) <span style="color:var(--danger)">*</span></label>
                 <input type="email" class="form-control" id="newEmail" placeholder="user@hotel.com">
@@ -203,41 +167,26 @@
 
             <!-- 역할 선택 -->
             <div style="display:flex;flex-direction:column;gap:8px">
-                <label class="form-label">시스템 역할 선택 <span style="color:var(--danger)">*</span></label>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="roleCards">
-                    <!-- Admin -->
-                    <label class="role-card" for="roleAdmin" style="cursor:pointer;border:2px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center;transition:all .2s;display:block">
-                        <input type="radio" name="newRole" id="roleAdmin" value="admin" style="display:none" onchange="onRoleChange()">
-                        <div style="font-size:1.5rem;color:#6D28D9;margin-bottom:6px"><i class="fa-solid fa-crown"></i></div>
-                        <div style="font-weight:700;font-size:.85rem;color:var(--txt)">Admin</div>
-                        <div style="font-size:.72rem;color:var(--txt3);margin-top:3px">전체 접근 권한</div>
-                    </label>
-                    <!-- Manager -->
-                    <label class="role-card" for="roleManager" style="cursor:pointer;border:2px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center;transition:all .2s;display:block">
-                        <input type="radio" name="newRole" id="roleManager" value="manager" style="display:none" onchange="onRoleChange()">
-                        <div style="font-size:1.5rem;color:#1D4ED8;margin-bottom:6px"><i class="fa-solid fa-user-tie"></i></div>
-                        <div style="font-weight:700;font-size:.85rem;color:var(--txt)">Manager</div>
-                        <div style="font-size:.72rem;color:var(--txt3);margin-top:3px">프론트 + 운영 관리</div>
-                    </label>
-                    <!-- Housekeeper -->
-                    <label class="role-card" for="roleHousekeeper" style="cursor:pointer;border:2px solid var(--border);border-radius:var(--radius);padding:14px 12px;text-align:center;transition:all .2s;display:block">
-                        <input type="radio" name="newRole" id="roleHousekeeper" value="housekeeper" style="display:none" onchange="onRoleChange()">
-                        <div style="font-size:1.5rem;color:#065F46;margin-bottom:6px"><i class="fa-solid fa-broom"></i></div>
-                        <div style="font-weight:700;font-size:.85rem;color:var(--txt)">Housekeeper</div>
-                        <div style="font-size:.72rem;color:var(--txt3);margin-top:3px">하우스키핑 전용</div>
-                    </label>
-                </div>
+                <label class="form-label">
+                    역할 선택 <span style="color:var(--danger)">*</span>
+                    <a href="roles.html" style="font-size:.72rem;color:var(--primary);margin-left:8px">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> 역할 관리
+                    </a>
+                </label>
+                <div class="role-pick-grid" id="rolePickGrid"></div>
             </div>
 
             <!-- 선택된 역할의 권한 미리보기 -->
-            <div id="rolePermPreview" style="display:none;background:var(--border2);border-radius:var(--radius-sm);padding:12px 14px">
-                <div style="font-size:.78rem;font-weight:700;color:var(--txt);margin-bottom:8px">
-                    <i class="fa-solid fa-eye" style="color:var(--primary);margin-right:4px"></i> 이 역할의 접근 가능 메뉴
+            <div id="permPreview" style="display:none">
+                <div class="perm-preview-wrap">
+                    <div style="font-size:.78rem;font-weight:700;color:var(--txt);margin-bottom:8px">
+                        <i class="fa-solid fa-eye" style="color:var(--primary);margin-right:4px"></i>
+                        이 역할로 접근 가능한 메뉴
+                    </div>
+                    <div id="permPreviewTags"></div>
                 </div>
-                <div id="rolePermList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
             </div>
 
-            <!-- 임시 비밀번호 -->
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label class="form-label">임시 비밀번호 <span style="color:var(--danger)">*</span></label>
                 <input type="password" class="form-control" id="newPw" placeholder="초기 비밀번호를 입력하세요">
@@ -251,7 +200,7 @@
     </div>
 </div>
 
-<!-- ── 직원 편집 모달 ── -->
+<!-- ── 편집 모달 ── -->
 <div class="modal-overlay" id="editStaffModal" onclick="if(event.target===this) closeModal('editStaffModal')">
     <div class="modal-card" style="max-width:480px;width:95vw">
         <div class="modal-header">
@@ -265,14 +214,20 @@
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label class="form-label">역할 변경</label>
-                <select class="form-control" id="editRole">
-                    <option value="admin">Admin — 전체 접근</option>
-                    <option value="manager">Manager — 프론트 + 운영</option>
-                    <option value="housekeeper">Housekeeper — 하우스키핑 전용</option>
+                <select class="form-control" id="editRole"></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label class="form-label">상태</label>
+                <select class="form-control" id="editStatus">
+                    <option value="online">근무 중</option>
+                    <option value="offline">오프라인</option>
                 </select>
             </div>
         </div>
         <div class="modal-footer">
+            <button class="btn-outline danger" onclick="deleteStaff()" style="color:#DC2626;border-color:#FECACA">
+                <i class="fa-solid fa-trash"></i> 삭제
+            </button>
             <button class="btn-outline" onclick="closeModal('editStaffModal')">취소</button>
             <button class="btn-primary-sm" onclick="saveEdit()"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
         </div>
@@ -280,243 +235,269 @@
 </div>
 
 <script>
-// ─── 메뉴 항목 정의 ───────────────────────────────────────
-const MENUS = [
-    { key:'dashboard',    icon:'fa-gauge-high',          label:'대시보드' },
-    { key:'reservation',  icon:'fa-calendar-days',       label:'예약 관리' },
-    { key:'checkin',      icon:'fa-right-to-bracket',    label:'체크인/아웃' },
-    { key:'crm',          icon:'fa-users',               label:'고객 CRM' },
-    { key:'rooms',        icon:'fa-bed',                 label:'객실 관리' },
-    { key:'housekeeping', icon:'fa-broom',               label:'하우스키핑' },
-    { key:'folio',        icon:'fa-file-invoice-dollar', label:'정산/청구' },
-    { key:'ancillary',    icon:'fa-concierge-bell',      label:'부가서비스' },
-    { key:'settings',     icon:'fa-gear',                label:'설정 관리' },
-    { key:'staff',        icon:'fa-users-gear',          label:'직원 관리' },
+// ─── 시스템 기본 역할 (roles.html 과 동일) ─────────────────────
+const SYSTEM_ROLES = [
+    { id:'sys_admin',       name:'Admin',       color:'#6D28D9', desc:'전체 접근',          perms:['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary','settings','staff','billing'] },
+    { id:'sys_manager',     name:'Manager',     color:'#1D4ED8', desc:'프론트+운영 관리',   perms:['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary'] },
+    { id:'sys_housekeeper', name:'Housekeeper', color:'#065F46', desc:'하우스키핑 전용',    perms:['dashboard','housekeeping','rooms'] },
 ];
 
-const PERM_LEVELS = [
-    { value:'full', label:'전체 접근' },
-    { value:'edit', label:'편집 가능' },
-    { value:'view', label:'읽기 전용' },
-    { value:'none', label:'접근 불가' },
-];
-
-// ─── 기본 권한 설정 ────────────────────────────────────────
-const DEFAULT_PERMS = {
-    admin:       { dashboard:'full', reservation:'full', checkin:'full', crm:'full', rooms:'full', housekeeping:'full', folio:'full', ancillary:'full', settings:'full', staff:'full' },
-    manager:     { dashboard:'full', reservation:'full', checkin:'full', crm:'edit', rooms:'edit', housekeeping:'view', folio:'edit', ancillary:'edit', settings:'view', staff:'none' },
-    housekeeper: { dashboard:'view', reservation:'none', checkin:'none', crm:'none', rooms:'view', housekeeping:'full', folio:'none', ancillary:'none', settings:'none', staff:'none' },
+const MENU_LABEL = {
+    dashboard:'대시보드', reservation:'예약 관리', checkin:'체크인/아웃',
+    crm:'고객 CRM', rooms:'객실 관리', rates:'요금 캘린더',
+    housekeeping:'하우스키핑', folio:'정산/청구', ancillary:'부가서비스',
+    settings:'호텔 설정', staff:'직원 관리', billing:'요금 및 결제',
 };
 
-// ─── localStorage에서 권한 로드 ────────────────────────────
-function loadPerms() {
-    try {
-        const saved = localStorage.getItem('pms_role_perms');
-        return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_PERMS));
-    } catch { return JSON.parse(JSON.stringify(DEFAULT_PERMS)); }
+function loadCustomRoles() {
+    try { return JSON.parse(localStorage.getItem('pms_custom_roles') || '[]'); } catch { return []; }
 }
 
-let currentPerms = loadPerms();
-
-// ─── 권한 매트릭스 렌더링 ──────────────────────────────────
-function renderPermMatrix() {
-    const tbody = document.getElementById('permBody');
-    tbody.innerHTML = MENUS.map(m => `
-        <tr>
-            <td><i class="fa-solid ${m.icon}" style="color:var(--primary);width:16px"></i>${m.label}</td>
-            ${['admin','manager','housekeeper'].map(role => {
-                const val = currentPerms[role][m.key] || 'none';
-                return `<td>
-                    <select class="perm-select ${val}" data-role="${role}" data-menu="${m.key}" onchange="onPermChange(this)">
-                        ${PERM_LEVELS.map(p => `<option value="${p.value}" ${val===p.value?'selected':''}>${p.label}</option>`).join('')}
-                    </select>
-                </td>`;
-            }).join('')}
-        </tr>
-    `).join('');
+function getAllRoles() {
+    return [...SYSTEM_ROLES, ...loadCustomRoles()];
 }
 
-function onPermChange(sel) {
-    const role = sel.dataset.role;
-    const menu = sel.dataset.menu;
-    const val  = sel.value;
-    currentPerms[role][menu] = val;
-    sel.className = 'perm-select ' + val;
+function getRoleById(id) {
+    return getAllRoles().find(r => r.id === id);
 }
 
-function savePerms() {
-    localStorage.setItem('pms_role_perms', JSON.stringify(currentPerms));
-    showToast('권한이 저장되었습니다!', 'success');
-}
-
-function resetPerms() {
-    currentPerms = JSON.parse(JSON.stringify(DEFAULT_PERMS));
-    renderPermMatrix();
-    showToast('기본값으로 복원되었습니다.', 'info');
-}
-
-// ─── 직원 데이터 ───────────────────────────────────────────
-const staffData = [
-    { name:'Nguyen Kim',     init:'NK', email:'nkim@grandsaigon.com',  phone:'+84 90 123 4444', role:'admin',       status:'online',  last:'방금 전',    color:'#8B5CF6' },
-    { name:'Lee Min Ho',     init:'LM', email:'lmh@grandsaigon.com',   phone:'+84 91 222 3333', role:'manager',     status:'online',  last:'10분 전',   color:'#3B82F6' },
-    { name:'Mai Thi',        init:'MT', email:'mai@grandsaigon.com',   phone:'+84 92 444 5555', role:'housekeeper', status:'online',  last:'1시간 전',  color:'#10B981' },
-    { name:'Anna Kournikova',init:'AK', email:'anna@grandsaigon.com',  phone:'+84 93 555 6666', role:'housekeeper', status:'offline', last:'어제',       color:'#F59E0B' },
-    { name:'Tran Van',       init:'TV', email:'tranv@grandsaigon.com', phone:'+84 94 666 7777', role:'admin',       status:'online',  last:'20분 전',   color:'#8B5CF6' },
-    { name:'Soo Jin Park',   init:'SP', email:'sjp@grandsaigon.com',   phone:'+84 95 777 8888', role:'manager',     status:'offline', last:'오늘 06:00', color:'#3B82F6' },
+// ─── 직원 데이터 (localStorage) ────────────────────────────────
+const DEFAULT_STAFF = [
+    { id:'s1', name:'Nguyen Kim',     init:'NK', email:'nkim@grandsaigon.com',  phone:'+84 90 123 4444', roleId:'sys_admin',       status:'online',  last:'방금 전',    color:'#8B5CF6' },
+    { id:'s2', name:'Lee Min Ho',     init:'LM', email:'lmh@grandsaigon.com',   phone:'+84 91 222 3333', roleId:'sys_manager',     status:'online',  last:'10분 전',   color:'#3B82F6' },
+    { id:'s3', name:'Mai Thi',        init:'MT', email:'mai@grandsaigon.com',   phone:'+84 92 444 5555', roleId:'sys_housekeeper', status:'online',  last:'1시간 전',  color:'#10B981' },
+    { id:'s4', name:'Anna Kournikova',init:'AK', email:'anna@grandsaigon.com',  phone:'+84 93 555 6666', roleId:'sys_housekeeper', status:'offline', last:'어제',       color:'#F59E0B' },
+    { id:'s5', name:'Tran Van',       init:'TV', email:'tranv@grandsaigon.com', phone:'+84 94 666 7777', roleId:'sys_admin',       status:'online',  last:'20분 전',   color:'#8B5CF6' },
+    { id:'s6', name:'Soo Jin Park',   init:'SP', email:'sjp@grandsaigon.com',   phone:'+84 95 777 8888', roleId:'sys_manager',     status:'offline', last:'오늘 06:00', color:'#3B82F6' },
 ];
 
-const ROLE_META = {
-    admin:       { label:'Admin',       bg:'#EDE9FE', color:'#6D28D9' },
-    manager:     { label:'Manager',     bg:'#DBEAFE', color:'#1D4ED8' },
-    housekeeper: { label:'Housekeeper', bg:'#D1FAE5', color:'#065F46' },
-};
+function loadStaff() {
+    try { return JSON.parse(localStorage.getItem('pms_staff') || 'null') || DEFAULT_STAFF; } catch { return DEFAULT_STAFF; }
+}
+function saveStaffData(data) { localStorage.setItem('pms_staff', JSON.stringify(data)); }
 
-let currentFilter = 'all';
-let editIndex = -1;
+let staffData = loadStaff();
+let editingId = null;
+let selectedRoleId = null;
 
+// ─── KPI 업데이트 ──────────────────────────────────────────────
+function updateKPI() {
+    document.getElementById('kpiTotal').textContent   = staffData.length;
+    document.getElementById('kpiOnline').textContent  = staffData.filter(s => s.status === 'online').length;
+    document.getElementById('kpiOffline').textContent = staffData.filter(s => s.status === 'offline').length;
+    document.getElementById('kpiRoles').textContent   = getAllRoles().length;
+}
+
+// ─── 역할 필터 드롭다운 ────────────────────────────────────────
+function buildRoleFilter() {
+    const sel = document.getElementById('roleFilter');
+    sel.innerHTML = '<option value="all">전체 역할</option>' +
+        getAllRoles().map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+}
+
+// ─── 직원 목록 렌더링 ──────────────────────────────────────────
 function renderStaff() {
-    const search   = document.getElementById('searchInput').value.toLowerCase();
+    const search     = document.getElementById('searchInput').value.toLowerCase();
+    const roleFilter = document.getElementById('roleFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+
     const filtered = staffData.filter(s => {
-        if (currentFilter !== 'all' && s.role !== currentFilter) return false;
+        if (roleFilter !== 'all' && s.roleId !== roleFilter) return false;
+        if (statusFilter !== 'all' && s.status !== statusFilter) return false;
         if (search && !s.name.toLowerCase().includes(search) && !s.email.toLowerCase().includes(search)) return false;
         return true;
     });
 
     const tbody = document.getElementById('staffBody');
-    tbody.innerHTML = filtered.map((s, idx) => {
-        const rm = ROLE_META[s.role];
+    const empty = document.getElementById('emptyState');
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+
+    tbody.innerHTML = filtered.map(s => {
+        const role = getRoleById(s.roleId);
+        const roleName  = role ? role.name  : '역할 없음';
+        const roleColor = role ? role.color : '#9CA3AF';
+        const permCount = role ? role.perms.length : 0;
         const dot = s.status === 'online'
             ? `<span class="status-dot" style="background:var(--success)"></span> 근무 중`
             : `<span class="status-dot" style="background:var(--txt3)"></span> 오프라인`;
         return `<tr>
-            <td><div class="guest-cell">
-                <div class="staff-avatar" style="background:${s.color}">${s.init}</div>
-                <div><strong>${s.name}</strong><br><span style="font-size:.72rem;color:var(--txt3)">${s.email}</span></div>
-            </div></td>
-            <td><span class="role-pill" style="background:${rm.bg};color:${rm.color}">
-                <i class="fa-solid ${s.role==='admin'?'fa-crown':s.role==='manager'?'fa-user-tie':'fa-broom'}"></i>${rm.label}
-            </span></td>
+            <td>
+                <div class="guest-cell">
+                    <div class="staff-avatar" style="background:${s.color || roleColor}">${s.init}</div>
+                    <div>
+                        <strong>${s.name}</strong><br>
+                        <span style="font-size:.72rem;color:var(--txt3)">${s.email}</span>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <span class="role-pill" style="background:${roleColor}22;color:${roleColor}">
+                    ${roleName}
+                </span>
+            </td>
+            <td>
+                <span style="font-size:.82rem;font-weight:600;color:var(--txt)">${permCount}</span>
+                <span style="font-size:.72rem;color:var(--txt3)"> 개</span>
+            </td>
             <td>${dot}</td>
-            <td style="font-size:.75rem;color:var(--txt2)">${s.phone}</td>
-            <td>${s.last}</td>
-            <td><button class="btn-outline-sm" onclick="openEdit(${staffData.indexOf(s)})"><i class="fa-solid fa-pen"></i> 편집</button></td>
+            <td style="font-size:.82rem;color:var(--txt2)">${s.last}</td>
+            <td>
+                <button class="btn-outline-sm" onclick="openEdit('${s.id}')">
+                    <i class="fa-solid fa-pen"></i> 편집
+                </button>
+            </td>
         </tr>`;
     }).join('');
 }
 
-function setFilter(btn, role) {
-    currentFilter = role;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    renderStaff();
+// ─── 역할 선택 카드 렌더링 ────────────────────────────────────
+function renderRolePickGrid() {
+    const grid = document.getElementById('rolePickGrid');
+    const roles = getAllRoles();
+    grid.innerHTML = roles.map(r => `
+        <div class="role-pick-card${selectedRoleId === r.id ? ' selected' : ''}"
+             onclick="selectRole('${r.id}', this)"
+             style="${selectedRoleId === r.id ? `border-color:${r.color};background:${r.color}11` : ''}">
+            <div class="rpc-icon" style="color:${r.color}"><i class="fa-solid fa-user-shield"></i></div>
+            <div class="rpc-name">${r.name}</div>
+            <div class="rpc-desc">${r.desc || r.perms.length + '개 권한'}</div>
+        </div>
+    `).join('');
+
+    // edit modal role options
+    const editSel = document.getElementById('editRole');
+    editSel.innerHTML = roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
 }
 
-// ─── 역할 카드 선택 UI ─────────────────────────────────────
-function onRoleChange() {
-    const selected = document.querySelector('input[name="newRole"]:checked');
-    // 카드 하이라이트
-    document.querySelectorAll('.role-card').forEach(card => {
-        card.style.borderColor = 'var(--border)';
-        card.style.background  = '#fff';
+function selectRole(id, el) {
+    selectedRoleId = id;
+    document.querySelectorAll('.role-pick-card').forEach(c => {
+        c.classList.remove('selected');
+        c.style.borderColor = '';
+        c.style.background  = '';
     });
-    if (selected) {
-        const card = selected.closest('label');
-        card.style.borderColor = 'var(--primary)';
-        card.style.background  = 'var(--primary-lt)';
-        // 권한 미리보기
-        showRolePreview(selected.value);
+    const role = getRoleById(id);
+    if (role) {
+        el.classList.add('selected');
+        el.style.borderColor = role.color;
+        el.style.background  = role.color + '11';
+        showPermPreview(role);
     }
 }
 
-function showRolePreview(role) {
-    const preview = document.getElementById('rolePermPreview');
-    const list    = document.getElementById('rolePermList');
-    const perms   = currentPerms[role];
-    preview.style.display = 'block';
-    list.innerHTML = MENUS
-        .filter(m => perms[m.key] !== 'none')
-        .map(m => {
-            const lvl = perms[m.key];
-            const colors = { full:'#065F46,#D1FAE5', edit:'#1D4ED8,#DBEAFE', view:'#B45309,#FEF3C7' };
-            const [tc, bc] = (colors[lvl] || '').split(',');
-            const levelLabel = { full:'전체', edit:'편집', view:'읽기' }[lvl];
-            return `<span style="background:${bc};color:${tc};padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:600">
-                <i class="fa-solid ${m.icon}" style="margin-right:3px"></i>${m.label} (${levelLabel})
-            </span>`;
-        }).join('');
+function showPermPreview(role) {
+    document.getElementById('permPreview').style.display = 'block';
+    document.getElementById('permPreviewTags').innerHTML = role.perms.map(k => `
+        <span class="perm-tag">${MENU_LABEL[k] || k}</span>
+    `).join('');
 }
 
-// ─── 직원 등록 ────────────────────────────────────────────
+// ─── 직원 등록 ────────────────────────────────────────────────
 function saveStaff() {
     const name  = document.getElementById('newName').value.trim();
     const email = document.getElementById('newEmail').value.trim();
-    const role  = document.querySelector('input[name="newRole"]:checked');
     const pw    = document.getElementById('newPw').value.trim();
 
-    if (!name)  { showToast('이름을 입력해 주세요.', 'error'); return; }
-    if (!email) { showToast('이메일을 입력해 주세요.', 'error'); return; }
-    if (!role)  { showToast('역할을 선택해 주세요.', 'error'); return; }
-    if (!pw)    { showToast('임시 비밀번호를 입력해 주세요.', 'error'); return; }
+    if (!name)           { showToast('이름을 입력해 주세요.', 'error'); return; }
+    if (!email)          { showToast('이메일을 입력해 주세요.', 'error'); return; }
+    if (!selectedRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
+    if (!pw)             { showToast('임시 비밀번호를 입력해 주세요.', 'error'); return; }
 
-    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
-    const colors   = { admin:'#8B5CF6', manager:'#3B82F6', housekeeper:'#10B981' };
-    staffData.push({ name, init:initials, email, phone:'-', role:role.value, status:'offline', last:'방금 전', color:colors[role.value] });
+    const role     = getRoleById(selectedRoleId);
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
+    staffData.push({
+        id: 'staff_' + Date.now(),
+        name, init: initials, email, phone: '-',
+        roleId: selectedRoleId, status: 'offline', last: '방금 등록',
+        color: role ? role.color : '#6B7280'
+    });
+
+    saveStaffData(staffData);
     renderStaff();
+    updateKPI();
     closeModal('addStaffModal');
-    // reset form
-    document.getElementById('newName').value = '';
-    document.getElementById('newEmail').value = '';
-    document.getElementById('newEmpId').value = '';
-    document.getElementById('newPw').value = '';
-    document.querySelectorAll('input[name="newRole"]').forEach(r => r.checked = false);
-    document.querySelectorAll('.role-card').forEach(c => { c.style.borderColor='var(--border)'; c.style.background='#fff'; });
-    document.getElementById('rolePermPreview').style.display = 'none';
-
+    resetAddForm();
     showToast(`${name} 직원이 등록되었습니다.`, 'success');
 }
 
-// ─── 직원 편집 ────────────────────────────────────────────
-function openEdit(idx) {
-    editIndex = idx;
-    const s = staffData[idx];
-    document.getElementById('editName').value = s.name;
-    document.getElementById('editRole').value = s.role;
+function resetAddForm() {
+    document.getElementById('newName').value  = '';
+    document.getElementById('newEmail').value = '';
+    document.getElementById('newEmpId').value = '';
+    document.getElementById('newPw').value    = '';
+    selectedRoleId = null;
+    document.getElementById('permPreview').style.display = 'none';
+    renderRolePickGrid();
+}
+
+// ─── 편집 ─────────────────────────────────────────────────────
+function openEdit(id) {
+    const s = staffData.find(x => x.id === id);
+    if (!s) return;
+    editingId = id;
+    document.getElementById('editName').value   = s.name;
+    document.getElementById('editRole').value   = s.roleId;
+    document.getElementById('editStatus').value = s.status;
     openModal('editStaffModal');
 }
 
 function saveEdit() {
-    if (editIndex < 0) return;
-    staffData[editIndex].name = document.getElementById('editName').value.trim();
-    staffData[editIndex].role = document.getElementById('editRole').value;
+    const s = staffData.find(x => x.id === editingId);
+    if (!s) return;
+    s.name   = document.getElementById('editName').value.trim();
+    s.roleId = document.getElementById('editRole').value;
+    s.status = document.getElementById('editStatus').value;
+    const role = getRoleById(s.roleId);
+    if (role) s.color = role.color;
+    saveStaffData(staffData);
     renderStaff();
     closeModal('editStaffModal');
     showToast('직원 정보가 수정되었습니다.', 'success');
 }
 
-// ─── 모달 ─────────────────────────────────────────────────
-function openModal(id)  { document.getElementById(id).classList.add('active'); }
+function deleteStaff() {
+    if (!confirm('이 직원을 삭제하시겠습니까?')) return;
+    staffData = staffData.filter(x => x.id !== editingId);
+    saveStaffData(staffData);
+    renderStaff();
+    updateKPI();
+    closeModal('editStaffModal');
+    showToast('직원이 삭제되었습니다.', 'info');
+}
+
+// ─── 모달 ─────────────────────────────────────────────────────
+function openModal(id) {
+    if (id === 'addStaffModal') renderRolePickGrid();
+    document.getElementById(id).classList.add('active');
+}
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-// ─── 토스트 ───────────────────────────────────────────────
+// ─── 토스트 ───────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
-    const existing = document.getElementById('pms-toast');
-    if (existing) existing.remove();
+    const old = document.getElementById('pms-toast');
+    if (old) old.remove();
     const t = document.createElement('div');
     t.id = 'pms-toast';
-    const colors = { success:'#065F46,#D1FAE5', error:'#991B1B,#FEE2E2', info:'#1E3A8A,#DBEAFE' };
-    const [tc, bg] = (colors[type] || colors.success).split(',');
-    t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${bg};color:${tc};padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:9999;transition:all .3s;display:flex;align-items:center;gap:8px`;
-    const icon = { success:'fa-circle-check', error:'fa-circle-xmark', info:'fa-circle-info' }[type];
-    t.innerHTML = `<i class="fa-solid ${icon}"></i>${msg}`;
+    const styles = { success:'#065F46,#D1FAE5,fa-circle-check', error:'#991B1B,#FEE2E2,fa-circle-xmark', info:'#1E3A8A,#DBEAFE,fa-circle-info' };
+    const [tc,bg,ico] = (styles[type] || styles.success).split(',');
+    t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${bg};color:${tc};padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:9999;display:flex;align-items:center;gap:8px;transition:opacity .3s,transform .3s`;
+    t.innerHTML = `<i class="fa-solid ${ico}"></i>${msg}`;
     document.body.appendChild(t);
     setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(12px)'; }, 2800);
     setTimeout(() => t.remove(), 3200);
 }
 
-// ─── 초기 렌더링 ──────────────────────────────────────────
-renderPermMatrix();
+// ─── 초기 실행 ────────────────────────────────────────────────
+buildRoleFilter();
 renderStaff();
+updateKPI();
 </script>
 
 </body>

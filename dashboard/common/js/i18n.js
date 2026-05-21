@@ -470,6 +470,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- Added Missing Sidebar Vocabulary ---
 Object.assign(window.translations.ko, {
+    "Staff List": "직원 목록",
+    "Role & Perms": "권한 설정",
     "Main": "메인",
     "Front Desk": "프론트 데스크",
     "Guest & CRM": "투숙객 및 CRM",

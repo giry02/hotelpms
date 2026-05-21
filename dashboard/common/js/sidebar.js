@@ -103,7 +103,14 @@
             roles: ['admin', 'manager'],
             items: [
                 { icon: 'fa-gear',        label: 'Hotel Settings', href: BASE + 'settings/settings.html' },
-                { icon: 'fa-user-shield', label: 'Staff Mgmt', href: BASE + 'settings/staff.html' },
+                {
+                    icon: 'fa-user-shield', label: 'Staff Mgmt', id: 'staff',
+                    mainHref: BASE + 'settings/staff.html',
+                    children: [
+                        { label: 'Staff List',    href: BASE + 'settings/staff.html' },
+                        { label: 'Role & Perms',  href: BASE + 'settings/roles.html' },
+                    ]
+                },
                 { icon: 'fa-credit-card', label: 'Billing & Payment', href: BASE + 'settings/billing.html' },
                 { icon: 'fa-bullhorn',    label: 'Notices',   href: BASE + 'settings/notices.html' },
                 { icon: 'fa-headset',     label: 'Support',   href: BASE + 'settings/support.html' }
