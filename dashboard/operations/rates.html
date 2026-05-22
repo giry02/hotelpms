@@ -29,26 +29,17 @@
         .weekend-text { color:var(--danger); }
         .saturday-text { color:var(--primary); }
     </style>
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Rates Calendar">요금 캘린더</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> <span id="currentMonthLabel">2026년 5월</span></span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
-            </select>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Rates Calendar">요금 캘린더</h1></header>
 
     <div class="content">
         <div class="filter-bar">
@@ -60,7 +51,8 @@
                 </select>
             </div>
             <div class="filter-right">
-                <button class="btn-outline-sm" onclick="openModal('vipDiscountModal')"><i class="fa-solid fa-crown"></i> VIP Discounts</button>
+                <button class="btn-outline-sm" onclick="openModal('batchEditModal')"><i class="fa-solid fa-pen-to-square"></i> 요금 일괄 수정</button>
+                <button class="btn-outline-sm" onclick="openModal('vipDiscountModal')"><i class="fa-solid fa-crown"></i> VIP 할인율 설정</button>
                 <button class="btn-outline-sm" onclick="resetToDefault()"><i class="fa-solid fa-rotate-left"></i> 기본 요금으로 초기화</button>
                 <button class="btn-primary-sm" onclick="saveRates()"><i class="fa-solid fa-check"></i> <span data-i18n-key="Save Rates">요금 저장</span></button>
             </div>
@@ -85,7 +77,7 @@
 <div class="modal-overlay" id="vipDiscountModal" onclick="if(event.target===this) closeModal('vipDiscountModal')">
     <div class="modal-card" style="max-width:400px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title">Auto VIP Discounts</h3>
+            <h3 class="modal-title">Auto VIP 할인율 설정</h3>
             <button class="modal-close" onclick="closeModal('vipDiscountModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
@@ -126,17 +118,74 @@
     </div>
 </div>
 
+<!-- Batch Edit Rates Modal -->
+<div class="modal-overlay" id="batchEditModal" onclick="if(event.target===this) closeModal('batchEditModal')">
+    <div class="modal-card" style="max-width:500px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">요금 일괄 수정</h3>
+            <button class="modal-close" onclick="closeModal('batchEditModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">시작일</label>
+                    <input type="date" id="batchStartDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">종료일</label>
+                    <input type="date" id="batchEndDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                </div>
+            </div>
+            
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">객실 유형</label>
+                <select id="batchRoomType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                    <option value="all">전체 (All Room Types)</option>
+                    <option value="Standard">Standard Double</option>
+                    <option value="Deluxe">Deluxe King</option>
+                    <option value="Premier">Premier Twin</option>
+                    <option value="Suite">Executive Suite</option>
+                    <option value="Penthouse">Penthouse</option>
+                </select>
+            </div>
+            
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">변경할 요금 ($)</label>
+                <input type="number" id="batchPrice" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 150">
+            </div>
+            
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">적용 요일 (선택)</label>
+                <div style="display:flex; gap:10px; flex-wrap:wrap">
+                    <label><input type="checkbox" name="batchDays" value="1" checked> 월</label>
+                    <label><input type="checkbox" name="batchDays" value="2" checked> 화</label>
+                    <label><input type="checkbox" name="batchDays" value="3" checked> 수</label>
+                    <label><input type="checkbox" name="batchDays" value="4" checked> 목</label>
+                    <label><input type="checkbox" name="batchDays" value="5" checked> 금</label>
+                    <label><input type="checkbox" name="batchDays" value="6" checked> 토</label>
+                    <label><input type="checkbox" name="batchDays" value="0" checked> 일</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+            <button class="btn-outline" onclick="closeModal('batchEditModal')">취소</button>
+            <button class="btn-primary-sm" onclick="applyBatchRates()"><i class="fa-solid fa-check"></i> 일괄 적용</button>
+        </div>
+    </div>
+</div>
+
 <!-- Toast Container -->
 <div id="toastContainer"></div>
 
 <script>
 // --- 객실 유형 및 기본 요금 설정 ---
-const DEFAULT_ROOM_TYPES = [
-    { id: 'Standard', name: 'Standard Double', basePrice: 120 },
-    { id: 'Deluxe', name: 'Deluxe King', basePrice: 180 },
-    { id: 'Premier', name: 'Premier Twin', basePrice: 220 },
-    { id: 'Suite', name: 'Executive Suite', basePrice: 350 },
-    { id: 'Penthouse', name: 'Penthouse', basePrice: 800 },
+localStorage.removeItem('pms_room_types_config');
+let DEFAULT_ROOM_TYPES = [
+    { id: 'Standard', name: 'Standard Double', basePrice: 100 },
+    { id: 'Deluxe', name: 'Deluxe King', basePrice: 150 },
+    { id: 'Premier', name: 'Premier Twin', basePrice: 180 },
+    { id: 'Suite', name: 'Executive Suite', basePrice: 300 },
+    { id: 'Penthouse', name: 'Penthouse', basePrice: 800 }
 ];
 
 function getRoomTypes() {
@@ -183,7 +232,7 @@ function saveRates() {
     showToast('요금이 성공적으로 저장되었습니다.');
 }
 
-function resetToDefault() {
+async function resetToDefault() {
     if(!await showConfirm('해당 월의 모든 요금을 객실유형의 기본 요금으로 초기화하시겠습니까?')) return;
     
     const [year, month] = currentYearMonth.split('-');
@@ -200,6 +249,41 @@ function resetToDefault() {
     
     renderCalendar();
     showToast('기본 요금으로 초기화되었습니다. 변경사항을 저장하려면 요금 저장을 누르세요.', 'info');
+}
+
+function applyBatchRates() {
+    const start = document.getElementById('batchStartDate').value;
+    const end = document.getElementById('batchEndDate').value;
+    const type = document.getElementById('batchRoomType').value;
+    const price = parseFloat(document.getElementById('batchPrice').value);
+    
+    if (!start || !end || isNaN(price)) {
+        showToast('필수 항목을 모두 입력해주세요.', 'error');
+        return;
+    }
+    
+    const days = Array.from(document.querySelectorAll('input[name="batchDays"]:checked')).map(cb => parseInt(cb.value));
+    
+    let current = new Date(start);
+    const endDate = new Date(end);
+    
+    while (current <= endDate) {
+        if (days.includes(current.getDay())) {
+            const dateStr = current.toISOString().split('T')[0];
+            if (!dailyRates[dateStr]) dailyRates[dateStr] = {};
+            
+            if (type === 'all') {
+                roomTypes.forEach(rt => dailyRates[dateStr][rt.id] = price);
+            } else {
+                dailyRates[dateStr][type] = price;
+            }
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    
+    renderCalendar();
+    closeModal('batchEditModal');
+    showToast('요금이 일괄 적용되었습니다. 변경사항을 저장하려면 요금 저장을 누르세요.');
 }
 
 // --- 달력 렌더링 ---
@@ -298,7 +382,7 @@ let currentLang='ko';
 const translations={ko: {"Save Rates":"요금 저장"}, en: {"Save Rates":"Save Rates"}};
 function changeLang(l){
     currentLang=l;
-    const d=translations[l]||translations.ko;
+    const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{
         const k=e.getAttribute('data-i18n-key');
         if(d[k])e.textContent=d[k];
@@ -309,6 +393,26 @@ document.addEventListener('DOMContentLoaded', () => {
     loadRates();
     renderCalendar();
 });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        roomTypes = getRoomTypes();
+        if (!Array.isArray(roomTypes) || roomTypes.length === 0) {
+            localStorage.removeItem('pms_room_types_config');
+            roomTypes = getRoomTypes();
+        }
+        renderCalendar();
+    } catch(e) { console.error(e); }
+});
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
 </script>
 </body>
 </html>

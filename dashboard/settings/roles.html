@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>역할 및 권한 — Hotel PMS</title>
+    <title>권한 설정 — Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="../common/css/settings.css">
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
     <style>
         .split-layout {
             display: flex; gap: 24px;
@@ -143,26 +145,11 @@
             height: 100%; color: var(--txt3); gap: 12px;
         }
     </style>
-    <script src="../common/js/ui-components.js"></script>
 </head>
 <body>
 
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Role & Perms">역할 및 권한</h1>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px">
-                <i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon
-            </div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option>
-                <option value="en">🇺🇸 English</option>
-            </select>
-        </div>
-    </header>
+    <header class="topbar"><h1 data-i18n-key="Role & Perms">권한 설정</h1></header>
 
     <div class="content" style="padding-bottom: 20px;">
         <div style="margin-bottom:20px">
@@ -447,8 +434,8 @@ function saveRole() {
     }
 }
 
-async function deleteRole() {
-    if (!await showConfirm('정말 이 역할을 삭제하시겠습니까?\n해당 역할이 지정된 직원들은 권한을 잃게 됩니다.')) return;
+function deleteRole() {
+    if (!confirm('정말 이 역할을 삭제하시겠습니까?\n해당 역할이 지정된 직원들은 권한을 잃게 됩니다.')) return;
     
     customRoles = customRoles.filter(r => r.id !== currentRoleId);
     saveRoles(customRoles);
@@ -488,5 +475,12 @@ renderRolesList();
 renderEditor();
 </script>
 
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
+</script>
 </body>
 </html>

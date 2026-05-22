@@ -9,9 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="common/css/dashboard.css">
+    <script src="common/js/api/api-core.js"></script>
+    <script src="common/js/api/api-dashboard.js"></script>
     <script src="common/js/i18n.js"></script>
 <script src="common/js/sidebar.js"></script>
     <script src="common/js/ui-components.js"></script>
+    <script src="common/js/topbar.js"></script>
 </head>
 <body>
 
@@ -19,97 +22,34 @@
 
 <!-- ===== MAIN ===== -->
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Dashboard">대시보드</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 12일 (월)</span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="margin-left:8px; width:110px">
-                <option value="ko">🇰🇷 한국어</option>
-                <option value="en">🇺🇸 English</option>
-            </select>
-            <div class="notif-wrap">
-                <button class="topbar-btn" onclick="toggleNotifications(event)"><i class="fa-regular fa-bell"></i><span class="notif-dot"></span></button>
-                <div class="notif-dropdown" id="notifDropdown">
-                    <div class="notif-header">
-                        <h3>호텔 알림</h3>
-                        <span>모두 읽음 처리</span>
-                    </div>
-                    <div class="notif-list">
-                        <div class="notif-item urgent">
-                            <div class="notif-icon"><i class="fa-solid fa-bell-concierge"></i></div>
-                            <div class="notif-content">
-                                <div class="n-title">VIP Check-in 예정</div>
-                                <div class="n-desc">PH01 Room Tran Linh Guest님이 30분 내 도착 예정입니다. 환영 준비를 확인해주세요.</div>
-                                <span class="n-time">방금 전</span>
-                            </div>
-                        </div>
-                        <div class="notif-item warning">
-                            <div class="notif-icon"><i class="fa-solid fa-broom"></i></div>
-                            <div class="notif-content">
-                                <div class="n-title">긴급 청소 요청</div>
-                                <div class="n-desc">0807 Room Guest이 수건 교체 및 미니바 정리를 요청했습니다.</div>
-                                <span class="n-time">12분 전</span>
-                            </div>
-                        </div>
-                        <div class="notif-item info">
-                            <div class="notif-icon"><i class="fa-solid fa-utensils"></i></div>
-                            <div class="notif-content">
-                                <div class="n-title">Room Service 주문 접수</div>
-                                <div class="n-desc">1205 Room에서 클럽 샌드위치 2세트가 주문되었습니다.</div>
-                                <span class="n-time">45분 전</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Dashboard">대시보드</h1></header>
 
     <div class="content">
         <!-- KPI CARDS -->
         <div class="kpi-grid">
             <a class="kpi-card blue" href="operations/rooms.html" title="객실 관리로 이동">
-                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-door-open"></i></div></div>
+                <div class="kpi-icon"><i class="fa-solid fa-door-open"></i></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">82.5%</div>
-                    <div class="kpi-label">Room 점유율 (OCC)</div>
-                    <div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> 4.2%</div>
+                    <div class="kpi-value">82.5%</div><div class="kpi-label">Room 점유율 (OCC)</div><div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> 4.2%</div>
                 </div>
             </a>
             <a class="kpi-card green" href="operations/rates.html" title="요금 캘린더로 이동">
-                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-dollar-sign"></i></div></div>
+                <div class="kpi-icon"><i class="fa-solid fa-dollar-sign"></i></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">$124.50</div>
-                    <div class="kpi-label">평균 Room 단가 (ADR)</div>
-                    <div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> 8.7%</div>
+                    <div class="kpi-value">$124.50</div><div class="kpi-label">평균 Room 단가 (ADR)</div><div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> 8.7%</div>
                 </div>
             </a>
-            <a class="kpi-card orange" href="operations/folio.html" title="통합 정산으로 이동">
-                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-chart-line"></i></div></div>
+            <a class="kpi-card orange" href="operations/folio.html" title="통합 정산로 이동">
+                <div class="kpi-icon"><i class="fa-solid fa-chart-line"></i></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">$102.71</div>
-                    <div class="kpi-label">Room당 수익 (RevPAR)</div>
-                    <div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> 12.3%</div>
+                    <div class="kpi-value">$102.71</div><div class="kpi-label">Room당 수익 (RevPAR)</div><div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> 12.3%</div>
                 </div>
             </a>
             <a class="kpi-card purple" href="frontdesk/checkin.html" title="체크인/아웃으로 이동">
-
-                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div></div>
-
+                <div class="kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
                 <div class="kpi-body">
-
-                    <div class="kpi-value">24 / 18</div>
-
-                    <div class="kpi-label">Today Check-in / Check-out</div>
-
-                    <div class="kpi-trend down"><i class="fa-solid fa-arrow-down"></i> 2.1%</div>
-
+                    <div class="kpi-value">24 / 18</div><div class="kpi-label">Today Check-in / Check-out</div><div class="kpi-trend down"><i class="fa-solid fa-arrow-down"></i> 2.1%</div>
                 </div>
-
             </a>
 
         </div>
@@ -287,25 +227,8 @@
 
 <script>
 // ===== 주간 데이터 (prev 포함) =====
-const weekData = [
-    {day:'Mon', label:'월', occ:102, prev:96},
-    {day:'Tue', label:'화', occ:94,  prev:88},
-    {day:'Wed', label:'수', occ:110, prev:101},
-    {day:'Thu', label:'목', occ:106, prev:99},
-    {day:'Fri', label:'금', occ:114, prev:105},
-    {day:'Sat', label:'토', occ:118, prev:112},
-    {day:'Sun', label:'일', occ:98,  prev:95}
-];
-const monthData = [
-    {day:'5/1',occ:88},{day:'5/2',occ:91},{day:'5/3',occ:95},{day:'5/4',occ:105},
-    {day:'5/5',occ:108},{day:'5/6',occ:112},{day:'5/7',occ:98},{day:'5/8',occ:90},
-    {day:'5/9',occ:93},{day:'5/10',occ:97},{day:'5/11',occ:102},{day:'5/12',occ:106},
-    {day:'5/13',occ:114},{day:'5/14',occ:118},{day:'5/15',occ:98},{day:'5/16',occ:85},
-    {day:'5/17',occ:89},{day:'5/18',occ:94},{day:'5/19',occ:100},{day:'5/20',occ:107},
-    {day:'5/21',occ:115},{day:'5/22',occ:119},{day:'5/23',occ:96},{day:'5/24',occ:88},
-    {day:'5/25',occ:92},{day:'5/26',occ:97},{day:'5/27',occ:103},{day:'5/28',occ:110},
-    {day:'5/29',occ:116},{day:'5/30',occ:120},{day:'5/31',occ:99}
-];
+let weekData = [];
+let monthData = [];
 
 function renderRoomChart(data, isMonthly) {
     const bc        = document.getElementById('barChart');
@@ -334,7 +257,9 @@ function renderRoomChart(data, isMonthly) {
         data.forEach(d => {
             const g = document.createElement('div');
             g.style.cssText = 'flex:1;min-width:28px;display:flex;flex-direction:column;align-items:center;height:100%';
-            g.innerHTML = `<div style="font-size:.56rem;font-weight:700;color:var(--txt);flex-shrink:0;margin-bottom:2px">${d.occ}</div><div style="flex:1;width:100%;display:flex;align-items:flex-end"><div style="height:${(d.occ/maxVal*100).toFixed(0)}%;width:100%;background:var(--primary);border-radius:3px 3px 0 0"></div></div><div style="font-size:.56rem;color:var(--txt2);margin-top:3px;flex-shrink:0">${d.day}</div>`;
+            g.style.cursor = 'pointer';
+            g.innerHTML = `<div style="font-size:.56rem;font-weight:700;color:var(--txt);flex-shrink:0;margin-bottom:2px">${d.occ}</div><div style="flex:1;width:100%;display:flex;align-items:flex-end"><div style="height:${(d.occ/maxVal*100).toFixed(0)}%;width:100%;background:var(--primary);border-radius:3px 3px 0 0;transition:opacity 0.2s" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"></div></div><div style="font-size:.56rem;color:var(--txt2);margin-top:3px;flex-shrink:0">${d.day}</div>`;
+            g.onclick = (e) => toggleChartDataLayer(e, `월간 객실 통계 - ${d.day}`, `<div style="display:flex;justify-content:space-between;gap:20px;"><span>점유 객실:</span> <strong style="color:var(--primary)">${d.occ}실</strong></div><div style="display:flex;justify-content:space-between;gap:20px;"><span>가동률:</span> <strong>${(d.occ/150*100).toFixed(1)}%</strong></div>`);
             inner.appendChild(g);
         });
         bc.appendChild(inner);
@@ -349,7 +274,9 @@ function renderRoomChart(data, isMonthly) {
         const diff = d.occ - d.prev, isUp = diff >= 0;
         const g = document.createElement('div');
         g.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;height:100%';
-        g.innerHTML = `<div style="flex:1;width:100%;display:flex;align-items:flex-end;gap:2px"><div style="flex:1;height:${oP}%;background:var(--primary);border-radius:3px 3px 0 0"></div><div style="flex:1;height:${prP}%;background:#D1D5DB;border-radius:3px 3px 0 0"></div></div><div style="font-size:.65rem;color:var(--txt2);margin-top:4px;flex-shrink:0">${d.label}</div><div style="font-size:.58rem;font-weight:600;color:${isUp?'var(--success)':'var(--danger)'};margin-top:1px;flex-shrink:0">${isUp?'+':''}${diff}</div>`;
+        g.style.cursor = 'pointer';
+        g.innerHTML = `<div style="flex:1;width:100%;display:flex;align-items:flex-end;gap:2px"><div style="flex:1;height:${oP}%;background:var(--primary);border-radius:3px 3px 0 0;transition:opacity 0.2s" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"></div><div style="flex:1;height:${prP}%;background:#D1D5DB;border-radius:3px 3px 0 0;transition:opacity 0.2s" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1"></div></div><div style="font-size:.65rem;color:var(--txt2);margin-top:4px;flex-shrink:0">${d.label}</div><div style="font-size:.58rem;font-weight:600;color:${isUp?'var(--success)':'var(--danger)'};margin-top:1px;flex-shrink:0">${isUp?'+':''}${diff}</div>`;
+        g.onclick = (e) => toggleChartDataLayer(e, `주간 객실 통계 - ${d.label}`, `<div style="display:flex;justify-content:space-between;gap:20px;"><span>금주 점유:</span> <strong style="color:var(--primary)">${d.occ}실</strong></div><div style="display:flex;justify-content:space-between;gap:20px;"><span>전주 점유:</span> <strong style="color:#D1D5DB">${d.prev}실</strong></div><div style="display:flex;justify-content:space-between;gap:20px;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.1)"><span>전주 대비:</span> <strong style="color:${isUp?'#10B981':'#EF4444'}">${isUp?'+':''}${diff}실</strong></div>`);
         bc.appendChild(g);
     });
 
@@ -395,7 +322,7 @@ function renderRoomChart(data, isMonthly) {
 /* currentLang 선언을 여기서 해서 renderRoomChart 사용 가능 */
 let currentLang = 'ko';
 
-renderRoomChart(weekData, false);
+/* renderRoomChart(weekData, false); */
 
 // 주간/월간 버튼 (인덱스로 판단 — 언어 무관)
 const roomBtns = document.querySelectorAll('#roomChartBtns button');
@@ -420,12 +347,17 @@ if(svcBk) {
     svcData.forEach(s => {
         const row = document.createElement('div');
         row.className = 'svc-row';
+        row.style.cursor = 'pointer';
+        row.style.transition = 'background 0.2s';
+        row.onmouseover = () => row.style.background = 'rgba(0,0,0,0.02)';
+        row.onmouseout = () => row.style.background = 'transparent';
         row.innerHTML = `
             <div class="svc-icon" style="background:${s.color}1A; color:${s.color}"><i class="fa-solid ${s.icon}"></i></div>
             <div class="svc-name">${s.name}</div>
             <div class="svc-bar-bg"><div class="svc-bar" style="width:0; background:${s.color}"></div></div>
             <div class="svc-val">$${s.val}</div>
         `;
+        row.onclick = (e) => toggleChartDataLayer(e, `부대시설 매출 - ${s.name}`, `<div style="display:flex;justify-content:space-between;gap:20px;"><span>매출액:</span> <strong style="color:${s.color}">$${s.val}</strong></div><div style="display:flex;justify-content:space-between;gap:20px;"><span>비중:</span> <strong>${s.pct}%</strong></div>`);
         svcBk.appendChild(row);
         
         // Animate bar
@@ -444,23 +376,6 @@ document.querySelectorAll('.card-actions').forEach(group => {
         });
     });
 });
-
-// ===== LIVE CLOCK =====
-// currentLang은 위에서 선언
-
-function updateDate() {
-    const now = new Date();
-    const opts = {year:'numeric',month:'long',day:'numeric',weekday:'short'};
-    const badge = document.querySelector('.date-badge');
-    if(badge) {
-        const locale = currentLang === 'en' ? 'en-US' : 'ko-KR';
-        const dateStr = now.toLocaleDateString(locale, opts);
-        const timeStr = now.toLocaleTimeString(locale, {hour:'2-digit',minute:'2-digit'});
-        badge.innerHTML = `<i class="fa-regular fa-calendar"></i> ${dateStr} ${timeStr}`;
-    }
-}
-updateDate();
-setInterval(updateDate, 60000);
 
 // ===== MOBILE MENU TOGGLE =====
 function toggleMenu() {
@@ -515,6 +430,21 @@ const translations = {
         "Notices": "공지사항",
         "Support": "고객지원",
 
+        /* Dashboard missing keys */
+        "Room 점유율 (OCC)": "Room 점유율 (OCC)",
+        "평균 Room 단가 (ADR)": "평균 Room 단가 (ADR)",
+        "Room당 수익 (RevPAR)": "Room당 수익 (RevPAR)",
+        "Today Check-in / Check-out": "Today Check-in / Check-out",
+        "주간 객실 현황": "주간 객실 현황",
+        "Day별 현황": "Day별 현황",
+        "Today의 Check-in 예정": "Today의 Check-in 예정",
+        "실시간 활동": "실시간 활동",
+        "Today의 Ancillary Svcs 주문": "Today의 Ancillary Svcs 주문",
+        "Housekeeping 현황": "Housekeeping 현황",
+        "주간": "주간",
+        "월간": "월간",
+        "All보기 →": "All보기 →",
+        
         "Dashboard": "대시보드",
         "Reservations": "예약 타임라인",
         "Booking List": "예약 목록",
@@ -529,47 +459,47 @@ const translations = {
         "Hotel Settings": "호텔 설정",
         "Staff Mgmt": "직원 관리",
         "객실 현황/목록": "객실 현황/목록",
-        "Room/Type 등록": "Room/Type 등록",
+        "Room/Type 등록": "객실/타입 등록",
         "Folio List": "정산 목록",
         "Revenue Analytics": "매출 분석",
         "골프장": "골프장",
         "렌트카": "렌트카",
         "호텔 알림": "호텔 알림",
         "모두 읽음 처리": "모두 읽음 처리",
-        "Room 점유율 (OCC)": "Room 점유율 (OCC)",
+        "Room 점유율 (OCC)": "객실 점유율 (OCC)",
         "총 120실 중 99실 판매": "총 120실 중 99실 판매",
-        "평균 Room 단가 (ADR)": "평균 Room 단가 (ADR)",
+        "평균 Room 단가 (ADR)": "평균 객실 단가 (ADR)",
         "전주 대비 +$10.00": "전주 대비 +$10.00",
-        "Room당 수익 (RevPAR)": "Room당 수익 (RevPAR)",
-        "Today Check-in / Check-out": "Today Check-in / Check-out",
-        "Pending 3건 · No-show 1건": "Pending 3건 · No-show 1건",
+        "Room당 수익 (RevPAR)": "객실당 수익 (RevPAR)",
+        "Today Check-in / Check-out": "금일 체크인 / 체크아웃",
+        "Pending 3건 · No-show 1건": "대기 3건 · 노쇼 1건",
         "주간 객실 현황": "주간 객실 현황",
         "주간": "주간",
         "월간": "월간",
-        "예약 Channel 비율": "예약 Channel 비율",
+        "예약 Channel 비율": "예약 채널 비율",
         "총 예약": "총 예약",
-        "Today의 Check-in 예정": "Today의 Check-in 예정",
-        "All보기 →": "All보기 →",
+        "Today의 Check-in 예정": "금일 체크인 예정",
+        "All보기 →": "전체보기 →",
         "Guest": "고객",
         "Room": "객실",
         "Type": "유형",
-        "기간": "기간",
+        "기간": "숙박 기간",
         "Status": "상태",
-        "Housekeeping 현황": "Housekeeping 현황",
-        "실시간 활동": "실시간 활동",
-        "Today의 Ancillary Svcs 주문": "Today의 Ancillary Svcs 주문",
-        "Ancillary Rev": "부가서비스 매출",
+        "Housekeeping 현황": "하우스키핑 현황",
+        "실시간 활동": "실시간 활동 내역",
+        "Today의 Ancillary Svcs 주문": "금일 부대시설 주문",
+        "Ancillary Rev": "부대시설 매출",
         "Today": "오늘",
         "시간": "시간",
         "서비스": "서비스",
         "항목": "항목",
-        "Amount(USD)": "금액(USD)",
+        "Amount(USD)": "총 금액(USD)",
         "처리": "처리",
-        "Today 총 Ancillary Rev": "Today 총 Ancillary Rev",
+        "Today 총 Ancillary Rev": "금일 총 부대시설 매출",
         "Completed": "처리 완료",
         "진행 중": "진행 중",
         "수거 중": "수거 중",
-        "예약Confirmed": "예약Confirmed",
+        "예약Confirmed": "예약 확정",
         "스파": "스파",
         "외부 대행": "외부 대행",
         "Room Service": "룸서비스",
@@ -581,53 +511,53 @@ const translations = {
         "Operations": "운영 관리",
         "Settings": "설정",
         /* Housekeeping Status */
-        "Clean": "청소 Completed",
+        "Clean": "청소 완료",
         "Dirty": "미청소",
         "Cleaning": "청소 중",
-        "Inspected": "점검 Completed",
+        "Inspected": "점검 완료",
         "OOS": "Out of Order(OOS)",
 
         /* Housekeeping Status */
         "Clean": "Clean",
-        "Dirty": "Dirty",
-        "Cleaning": "Cleaning",
+        "Dirty": "미청소",
+        "Cleaning": "청소 중",
         "Inspected": "Inspected",
         "OOS": "점검 중 (OOS)",
 
         /* Housekeeping Status */
-        "Clean": "청소 Completed",
+        "Clean": "청소 완료",
         "Dirty": "미청소",
         "Cleaning": "청소 중",
-        "Inspected": "점검 Completed",
+        "Inspected": "점검 완료",
         "OOS": "Out of Order(OOS)",
 
         
         /* 알림 내역 */
-        "VIP Check-in 예정": "VIP Check-in 예정",
-        "PH01 Room Tran Linh Guest님이 30분 내 도착 예정입니다. 환영 준비를 확인해주세요.": "PH01 Room Tran Linh Guest님이 30분 내 도착 예정입니다. 환영 준비를 확인해주세요.",
+        "VIP Check-in 예정": "VIP 체크인 예정",
+        "PH01 Room Tran Linh Guest님이 30분 내 도착 예정입니다. 환영 준비를 확인해주세요.": "PH01호 Tran Linh 투숙객님이 30분 내 도착 예정입니다. 환영 준비를 확인해주세요.",
         "방금 전": "방금 전",
         "긴급 청소 요청": "긴급 청소 요청",
-        "0807 Room Guest이 수건 교체 및 미니바 정리를 요청했습니다.": "0807 Room Guest이 수건 교체 및 미니바 정리를 요청했습니다.",
+        "0807 Room Guest이 수건 교체 및 미니바 정리를 요청했습니다.": "0807호 투숙객이 수건 교체 및 미니바 정리를 요청했습니다.",
         "12분 전": "12분 전",
-        "Room Service 주문 접수": "Room Service 주문 접수",
-        "1205 Room에서 클럽 샌드위치 2세트가 주문되었습니다.": "1205 Room에서 클럽 샌드위치 2세트가 주문되었습니다.",
+        "Room Service 주문 접수": "룸서비스 주문 접수",
+        "1205 Room에서 클럽 샌드위치 2세트가 주문되었습니다.": "1205호에서 클럽 샌드위치 2세트가 주문되었습니다.",
         "45분 전": "45분 전",
 
         /* 실시간 활동 내역 */
         "1205호": "1205호",
-        "Nguyen Thi Check-in Completed": "Nguyen Thi Check-in Completed",
+        "Nguyen Thi Check-in Completed": "Nguyen Thi 체크인 완료",
         "2분 전": "2분 전",
         "0904호": "0904호",
-        "청소 Completed → Inspected": "청소 Completed → Inspected",
+        "청소 Completed → Inspected": "청소 완료 → 점검 완료",
         "8분 전": "8분 전",
         "0612호": "0612호",
-        "Folio 정산 Completed ($485.00)": "Folio 정산 Completed ($485.00)",
+        "Folio 정산 Completed ($485.00)": "Folio 정산 완료 ($485.00)",
         "15분 전": "15분 전",
         "1401호": "1401호",
-        "Kim Jun Check-out": "Kim Jun Check-out",
+        "Kim Jun Check-out": "Kim Jun 체크아웃",
         "22분 전": "22분 전",
         "Tran Linh": "Tran Linh",
-        "VIP Upgrade Gold → VIP": "VIP Upgrade Gold → VIP",
+        "VIP Upgrade Gold → VIP": "VIP 업그레이드 (Gold → VIP)",
         "30분 전": "30분 전",
 
         /* Ancillary Svcs 내역 */
@@ -639,7 +569,7 @@ const translations = {
 
         /* 광고 배너 */
         "타겟 광고 배너 영역 · 지역: Vietnam / Ho Chi Minh · CPM: $2.50": "타겟 광고 배너 영역 · 지역: Vietnam / Ho Chi Minh · CPM: $2.50",
-        "광고 Actions →": "광고 Actions →"
+        "광고 Actions →": "광고 관리 →"
     },
     en: {
         "Main": "Main",
@@ -658,8 +588,8 @@ const translations = {
         "Rates Calendar": "Rates Calendar",
         "Housekeeping": "Housekeeping",
         "Folio & Billing": "Folio & Billing",
-        "Folio List": "Folio List",
-        "Revenue Analytics": "Revenue Analytics",
+        "Folio List": "정산 내역",
+        "Revenue Analytics": "매출 분석",
         "Ancillary Svcs": "Ancillary Svcs",
         "Room Service": "Room Service",
         "Golf": "Golf",
@@ -669,6 +599,21 @@ const translations = {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
+
+        /* Dashboard missing keys */
+        "Room 점유율 (OCC)": "Occupancy (OCC)",
+        "평균 Room 단가 (ADR)": "Average Daily Rate (ADR)",
+        "Room당 수익 (RevPAR)": "Rev. per Available Room",
+        "Today Check-in / Check-out": "Today Check-in / Check-out",
+        "주간 객실 현황": "Weekly Room Status",
+        "Day별 현황": "Daily Summary",
+        "Today의 Check-in 예정": "Today's Arrivals",
+        "실시간 활동": "Live Activity",
+        "Today의 Ancillary Svcs 주문": "Today's Ancillary Orders",
+        "Housekeeping 현황": "Housekeeping Status",
+        "주간": "Weekly",
+        "월간": "Monthly",
+        "All보기 →": "View All →",
 
         "Dashboard": "Dashboard",
         "Reservations": "Reservations",
@@ -685,8 +630,8 @@ const translations = {
         "Staff Mgmt": "Staff Mgmt",
         "객실 현황/목록": "Room List",
         "Room/Type 등록": "Room Setup",
-        "Folio List": "Folio List",
-        "Revenue Analytics": "Revenue Analytics",
+        "Folio List": "정산 내역",
+        "Revenue Analytics": "매출 분석",
         "골프장": "Golf",
         "렌트카": "Rent-a-Car",
         "호텔 알림": "Notifications",
@@ -705,11 +650,11 @@ const translations = {
         "총 예약": "Total Bookings",
         "Today의 Check-in 예정": "Today's Arrivals",
         "All보기 →": "View All →",
-        "Guest": "Guest",
-        "Room": "Room",
-        "Type": "Type",
+        "Guest": "투숙객",
+        "Room": "객실",
+        "Type": "객실 타입",
         "기간": "Duration",
-        "Status": "Status",
+        "Status": "상태",
         "Housekeeping 현황": "HK Status",
         "실시간 활동": "Live Activity",
         "Today의 Ancillary Svcs 주문": "Today's Ancillary Orders",
@@ -737,8 +682,8 @@ const translations = {
         "Settings": "Settings",
         /* Housekeeping Status */
         "Clean": "Clean",
-        "Dirty": "Dirty",
-        "Cleaning": "Cleaning",
+        "Dirty": "미청소",
+        "Cleaning": "청소 중",
         "Inspected": "Inspected",
         "OOS": "OOS",
 
@@ -767,7 +712,7 @@ const translations = {
         "Kim Jun Check-out": "Kim Jun Checked out",
         "22분 전": "22m ago",
         "Tran Linh": "Tran Linh",
-        "VIP Upgrade Gold → VIP": "VIP Upgrade Gold → VIP",
+        "VIP Upgrade Gold → VIP": "VIP 업그레이드 (Gold → VIP)",
         "30분 전": "30m ago",
 
         /* Ancillary Svcs 내역 */
@@ -813,7 +758,7 @@ function setupI18n() {
 
 window.changeLang = function(lang) {
     currentLang = lang;
-    const dict = translations[lang] || translations.ko;
+    const dict = Object.assign({}, window.translations ? window.translations[lang] : {}, translations[lang] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(el => {
         const key = el.getAttribute('data-i18n-key');
         if (dict[key]) el.textContent = dict[key];
@@ -826,12 +771,17 @@ window.changeLang = function(lang) {
             const name = dict[s.name] || s.name;
             const row = document.createElement('div');
             row.className = 'svc-row';
+            row.style.cursor = 'pointer';
+            row.style.transition = 'background 0.2s';
+            row.onmouseover = () => row.style.background = 'rgba(0,0,0,0.02)';
+            row.onmouseout = () => row.style.background = 'transparent';
             row.innerHTML = `
                 <div class="svc-icon" style="background:${s.color}1A; color:${s.color}"><i class="fa-solid ${s.icon}"></i></div>
                 <div class="svc-name">${name}</div>
                 <div class="svc-bar-bg"><div class="svc-bar" style="width:${s.pct}%; background:${s.color}"></div></div>
                 <div class="svc-val">$${s.val}</div>
             `;
+            row.onclick = (e) => toggleChartDataLayer(e, `부대시설 매출 - ${name}`, `<div style="display:flex;justify-content:space-between;gap:20px;"><span>매출액:</span> <strong style="color:${s.color}">$${s.val}</strong></div><div style="display:flex;justify-content:space-between;gap:20px;"><span>비중:</span> <strong>${s.pct}%</strong></div>`);
             document.getElementById('svcBreakdown').appendChild(row);
         });
     }
@@ -860,6 +810,69 @@ document.addEventListener('DOMContentLoaded', () => {
     changeLang(currentLang);
 });
 
+</script>
+
+<!-- Chart Data Layer Tooltip -->
+<div id="chartDataLayer" style="position:fixed; display:none; background:rgba(15,23,42,0.9); color:#fff; padding:12px 16px; border-radius:8px; font-size:0.85rem; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.3); pointer-events:none; backdrop-filter:blur(4px); transition:opacity 0.15s; opacity:0; transform:translate(-50%, -100%); margin-top:-15px;">
+    <div id="chartDataTitle" style="font-weight:700; margin-bottom:6px; color:#9CA3AF; font-size:0.75rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;"></div>
+    <div id="chartDataContent" style="line-height:1.5;"></div>
+</div>
+
+<script>
+const chartTooltip = document.getElementById('chartDataLayer');
+const chartTooltipTitle = document.getElementById('chartDataTitle');
+const chartTooltipContent = document.getElementById('chartDataContent');
+let activeChartData = null;
+
+function toggleChartDataLayer(e, title, content) {
+    e.stopPropagation();
+    if (activeChartData === title && chartTooltip.style.opacity === '1') {
+        hideChartDataLayer();
+        return;
+    }
+    chartTooltip.style.display = 'block';
+    // Force reflow
+    void chartTooltip.offsetWidth;
+    chartTooltip.style.opacity = '1';
+    chartTooltipTitle.innerHTML = title;
+    chartTooltipContent.innerHTML = content;
+    
+    // Position
+    let x = e.clientX;
+    let y = e.clientY;
+    
+    chartTooltip.style.left = x + 'px';
+    chartTooltip.style.top = y + 'px';
+    activeChartData = title;
+}
+
+function hideChartDataLayer() {
+    chartTooltip.style.opacity = '0';
+    activeChartData = null;
+    setTimeout(() => { 
+        if(chartTooltip.style.opacity === '0') chartTooltip.style.display = 'none'; 
+    }, 150);
+}
+
+document.addEventListener('click', hideChartDataLayer);
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        weekData = await PmsAPI.getWeekData();
+        monthData = await PmsAPI.getMonthData();
+        renderRoomChart(weekData, false);
+    } catch(e) { console.error(e); }
+});
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
 </script>
 </body>
 </html>

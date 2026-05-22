@@ -1,6 +1,7 @@
 /**
  * topbar.js — 공통 Topbar 우측 영역(알림, 언어 설정, 호텔 선택) 관리
  */
+document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.15rem !important; font-weight: 700 !important; margin: 0 !important; line-height: 1.2 !important; display: block !important; }</style>');
 (function() {
     // 상대 경로 계산
     const _pathParts = window.location.pathname.split('/').filter(Boolean);
@@ -20,7 +21,7 @@
     ];
 
     function buildTopbarRight() {
-        const notifListHtml = window.PMS_Notifications.slice(0, 3).map(n => {
+        return window.PMS_Notifications.slice(0, 3).map(n => {
             const cssClass = n.urgent ? 'urgent' : (n.type === 'housekeeping' ? 'warning' : '');
             return `
                 <div class="notif-item ${cssClass}">
@@ -33,47 +34,69 @@
                 </div>
             `;
         }).join('');
-
-        return `
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px">
-                <i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon
-            </div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="margin-left:8px; width:110px">
-                <option value="ko">🇰🇷 한국어</option>
-                <option value="en">🇺🇸 English</option>
-            </select>
-            <div class="notif-wrap" style="margin-left:8px">
-                <button class="topbar-btn" onclick="toggleNotifications(event)">
-                    <i class="fa-regular fa-bell"></i><span class="notif-dot"></span>
-                </button>
-                <div class="notif-dropdown" id="notifDropdown">
-                    <div class="notif-header">
-                        <h3 data-i18n-key="호텔 알림">호텔 알림</h3>
-                        <span data-i18n-key="모두 읽음 처리">모두 읽음 처리</span>
-                    </div>
-                    <div class="notif-list">
-                        ${notifListHtml}
-                    </div>
-                    <div class="notif-footer" style="text-align:center;padding:12px;border-top:1px solid var(--border2)">
-                        <a href="${BASE}notifications.html" style="font-size:0.8rem;font-weight:600;color:var(--primary);text-decoration:none" data-i18n-key="모든 알림 보기 →">모든 알림 보기 →</a>
-                    </div>
-                </div>
-            </div>
-        `;
     }
 
     function injectTopbar() {
-        const topbarRight = document.querySelector('.topbar-right');
-        if (topbarRight) {
-            topbarRight.innerHTML = buildTopbarRight();
+        const topbar = document.querySelector('.topbar');
+        if (topbar) {
+            const existingH1 = topbar.querySelector('h1');
+            const pageTitleKey = existingH1 ? (existingH1.getAttribute('data-i18n-key') || existingH1.textContent) : 'Dashboard';
+            const pageTitleText = existingH1 ? existingH1.textContent : '대시보드';
+
+            topbar.innerHTML = `
+                <div class="topbar-left">
+                    <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+                    <h1 data-i18n-key="${pageTitleKey}">${pageTitleText}</h1>
+                    <span class="date-badge"><i class="fa-regular fa-calendar"></i> <span class="live-clock"></span></span>
+                </div>
+                <div class="topbar-right">
+                    <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px">
+                        <i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon
+                    </div>
+                    <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="margin-left:8px; width:110px">
+                        <option value="ko">🇰🇷 한국어</option>
+                        <option value="en">🇺🇸 English</option>
+                    </select>
+                    <div class="notif-wrap" style="margin-left:8px">
+                        <button class="topbar-btn" onclick="toggleNotifications(event)">
+                            <i class="fa-regular fa-bell"></i><span class="notif-dot"></span>
+                        </button>
+                        <div class="notif-dropdown" id="notifDropdown">
+                            <div class="notif-header">
+                                <h3 data-i18n-key="호텔 알림">호텔 알림</h3>
+                                <span data-i18n-key="모두 읽음 처리">모두 읽음 처리</span>
+                            </div>
+                            <div class="notif-list">
+                                ${buildTopbarRight()}
+                            </div>
+                            <div class="notif-footer" style="text-align:center;padding:12px;border-top:1px solid var(--border2)">
+                                <a href="${BASE}notifications.html" style="font-size:0.8rem;font-weight:600;color:var(--primary);text-decoration:none" data-i18n-key="모든 알림 보기 →">모든 알림 보기 →</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
             
-            // 언어 설정 복원
+            // 언어 설정 복원 + 재번역 (inject 후 DOM이 새로 생성되므로 다시 적용)
             const langSelect = document.getElementById('langSelect');
-            if(langSelect && window.currentLang) {
-                langSelect.value = window.currentLang;
-            }
+            const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+            if (langSelect) langSelect.value = lang;
+            if (typeof window.changeLang === 'function') window.changeLang(lang);
+            updateClock();
         }
     }
+
+    function updateClock() {
+        const clockEl = document.querySelector('.date-badge .live-clock');
+        if(clockEl) {
+            const now = new Date();
+            const locale = window.currentLang === 'en' ? 'en-US' : 'ko-KR';
+            const dateStr = now.toLocaleDateString(locale, {year:'numeric',month:'long',day:'numeric',weekday:'short'});
+            const timeStr = now.toLocaleTimeString(locale, {hour:'2-digit',minute:'2-digit'});
+            clockEl.textContent = `${dateStr} ${timeStr}`;
+        }
+    }
+    setInterval(updateClock, 60000);
 
     // 알림창 토글 이벤트
     window.toggleNotifications = function(e) {

@@ -44,15 +44,15 @@
 .donut-leg-pct { font-size: .7rem; color: var(--txt3); min-width: 36px; text-align: right; }
 
 /* Department breakdown */
-.dept-list { display: flex; flex-direction: column; gap: 12px; }
+.dept-list { display: flex; flex-direction: column; gap: 32px; justify-content: center; padding: 10px 0; }
 .dept-row { display: flex; align-items: center; gap: 12px; }
-.dept-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0; }
+.dept-icon { width: 48px; height: 48px; font-size: 1.1rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0; }
 .dept-info { flex: 1; min-width: 0; }
-.dept-name { font-size: .82rem; font-weight: 600; color: var(--txt); }
-.dept-sub { font-size: .68rem; color: var(--txt3); margin-top: 2px; }
-.dept-bar-bg { height: 8px; background: var(--border2); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.dept-name { font-size: .95rem; font-weight: 600; color: var(--txt); }
+.dept-sub { font-size: .75rem; color: var(--txt3); margin-top: 2px; }
+.dept-bar-bg { height: 10px; margin-top: 10px; background: var(--border2); border-radius: 4px; overflow: hidden; margin-top: 6px; }
 .dept-bar { height: 100%; border-radius: 4px; transition: width .8s ease; }
-.dept-val { font-size: .88rem; font-weight: 800; color: var(--txt); text-align: right; min-width: 70px; flex-shrink: 0; }
+.dept-val { font-size: 1.1rem; font-weight: 800; color: var(--txt); text-align: right; min-width: 70px; flex-shrink: 0; }
 
 /* Trend table */
 .trend-table { width: 100%; border-collapse: collapse; }
@@ -78,25 +78,18 @@
     .trend-bar-cell { display: none; }
 }
 </style>
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
     <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Revenue Analytics">매출 분석</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 12일 (월)</span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
-            </select>
-        </div>
+        <h1 data-i18n-key="Revenue Analytics">매출 분석</h1>
     </header>
 
     <div class="content">
@@ -124,17 +117,15 @@
                     </select>
                 </div>
             </div>
-            <div class="filter-right">
-                <button class="btn-primary-sm"><i class="fa-solid fa-magnifying-glass"></i> 조회</button>
-            </div>
+            
         </div>
 
         <!-- KPI -->
         <div class="kpi-grid">
-            <div class="kpi-card green"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-chart-line"></i></div></div><div class="kpi-value" id="kpiTotal">$164,250</div><div class="kpi-label">주별 총 매출</div></div>
-            <div class="kpi-card blue"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div></div><div class="kpi-value" id="kpiRoom">$131,000</div><div class="kpi-label">Room 매출</div></div>
-            <div class="kpi-card purple"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div></div><div class="kpi-value" id="kpiAnc">$22,800</div><div class="kpi-label">Ancillary Rev</div></div>
-            <div class="kpi-card orange"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-arrow-trend-up"></i></div></div><div class="kpi-value" id="kpiDiff">+5.8%</div><div class="kpi-label">전주 대비</div></div>
+            <div class="kpi-card green"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-chart-line"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiTotal">$164,250</div><div class="kpi-label">주별 총 매출</div></div></div>
+            <div class="kpi-card blue"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiRoom">$131,000</div><div class="kpi-label">객실 매출</div></div></div>
+            <div class="kpi-card purple"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiAnc">$22,800</div><div class="kpi-label">부가서비스 매출</div></div></div>
+            <div class="kpi-card orange"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-arrow-trend-up"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiDiff">+5.8%</div><div class="kpi-label">전주 대비</div></div></div>
         </div>
 
         <!-- ROW 1: Main Chart (Dynamic based on period) -->
@@ -211,28 +202,45 @@
         <!-- ROW 3: Dept + Trend -->
         <div class="chart-grid-equal">
             <div class="card">
-                <div class="card-header"><div class="card-title"><i class="fa-solid fa-building"></i> 부서별 매출</div></div>
+                <div class="card-header"><div class="card-title"><i class="fa-solid fa-building"></i> 항목별 매출</div></div>
                 <div class="card-body"><div class="dept-list" id="deptList"></div></div>
             </div>
             <div class="card">
                 <div class="card-header"><div class="card-title"><i class="fa-solid fa-table-list"></i> 최근 7일 추이</div></div>
-                <div class="card-body" style="padding:0"><table class="trend-table"><thead><tr><th>Date</th><th>매출액</th><th>전일대비</th><th class="trend-bar-cell">비교</th></tr></thead><tbody id="trendBody"></tbody></table></div>
+                <div class="card-body"><table class="trend-table"><thead><tr><th>Date</th><th style="text-align:right">객실</th><th style="text-align:right">통합 POS</th><th style="text-align:right">골프장</th><th style="text-align:right">렌트카</th></tr></thead><tbody id="trendBody"></tbody></table></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-const dailyData=[{date:'5/6',room:15200,fnb:2100,spa:800,other:400},{date:'5/7',room:16800,fnb:2400,spa:1200,other:350},{date:'5/8',room:14500,fnb:1800,spa:600,other:500},{date:'5/9',room:18900,fnb:3200,spa:1500,other:600},{date:'5/10',room:21000,fnb:3800,spa:2000,other:700},{date:'5/11',room:17200,fnb:2600,spa:1100,other:450},{date:'5/12',room:18240,fnb:2170,spa:1280,other:280}];
+let dailyData = [];
 function renderBarChart(){const c=document.getElementById('barChart'),mx=Math.max(...dailyData.map(d=>d.room+d.fnb+d.spa+d.other));c.innerHTML=dailyData.map(d=>{const t=d.room+d.fnb+d.spa+d.other;return`<div class="rev-bar-group"><div class="rev-bar-val">$${(t/1000).toFixed(1)}k</div><div class="rev-bar-stack"><div class="rev-bar other" style="height:${d.other/mx*100}%"></div><div class="rev-bar spa" style="height:${d.spa/mx*100}%"></div><div class="rev-bar fnb" style="height:${d.fnb/mx*100}%"></div><div class="rev-bar room" style="height:${d.room/mx*100}%"></div></div><div class="rev-bar-label">${d.date}</div></div>`}).join('')}
-const monthlyData=[{m:'1월',v:580000},{m:'2월',v:520000},{m:'3월',v:640000},{m:'4월',v:710000},{m:'5월',v:690000},{m:'6월',v:0},{m:'7월',v:0},{m:'8월',v:0},{m:'9월',v:0},{m:'10월',v:0},{m:'11월',v:0},{m:'12월',v:0}];
+let monthlyData = [];
 function renderMonthly(){const c=document.getElementById('monthlyChart'),mx=Math.max(...monthlyData.map(d=>d.v))||1;c.innerHTML=monthlyData.map(d=>{const h=d.v>0?(d.v/mx*100).toFixed(0):0;return`<div class="rev-bar-group"><div class="rev-bar-val">${d.v>0?'$'+(d.v/1000).toFixed(0)+'k':''}</div><div class="rev-bar-stack" style="height:160px"><div class="rev-bar room" style="height:${h}%;opacity:${d.v>0?1:.12};border-radius:4px 4px 0 0"></div></div><div class="rev-bar-label" style="font-size:.65rem">${d.m}</div></div>`}).join('')}
-const yoyData=[{m:'1',ly:490000,ty:580000},{m:'2',ly:470000,ty:520000},{m:'3',ly:550000,ty:640000},{m:'4',ly:620000,ty:710000},{m:'5',ly:600000,ty:690000},{m:'6',ly:650000,ty:0},{m:'7',ly:700000,ty:0},{m:'8',ly:680000,ty:0},{m:'9',ly:590000,ty:0},{m:'10',ly:610000,ty:0},{m:'11',ly:570000,ty:0},{m:'12',ly:520000,ty:0}];
+let yoyData = [];
 function renderYoY(){const c=document.getElementById('yoyChart'),mx=Math.max(...yoyData.map(d=>Math.max(d.ly,d.ty)))||1;c.innerHTML=`<div style="display:flex;align-items:flex-end;gap:6px;height:100%">${yoyData.map(d=>{const lyH=(d.ly/mx*100).toFixed(0),tyH=d.ty>0?(d.ty/mx*100).toFixed(0):0;return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;align-items:flex-end;gap:2px;height:160px;width:100%"><div style="flex:1;height:${lyH}%;background:var(--border);border-radius:3px 3px 0 0;transition:height .6s"></div><div style="flex:1;height:${tyH}%;background:${d.ty>0?'var(--primary)':'var(--border2)'};border-radius:3px 3px 0 0;transition:height .6s;opacity:${d.ty>0?1:.15}"></div></div><div style="font-size:.6rem;color:var(--txt3);font-weight:600">${d.m}월</div></div>`}).join('')}</div>`}
-const depts=[{name:'Room',icon:'fa-bed',color:'var(--primary)',lt:'var(--primary-lt)',amt:18240,pct:79,sub:'99 Room · ADR $184'},{name:'식음료',icon:'fa-utensils',color:'var(--success)',lt:'var(--success-lt)',amt:2170,pct:9,sub:'Room Service 34건'},{name:'스파',icon:'fa-spa',color:'var(--purple)',lt:'var(--purple-lt)',amt:1280,pct:6,sub:'예약 8건'},{name:'Concierge',icon:'fa-bell-concierge',color:'var(--warning)',lt:'var(--warning-lt)',amt:780,pct:3,sub:'택시 5건'},{name:'미니바',icon:'fa-champagne-glasses',color:'var(--danger)',lt:'var(--danger-lt)',amt:500,pct:2,sub:'18 Room'}];
+let depts = [];
 function renderDepts(){document.getElementById('deptList').innerHTML=depts.map(d=>`<div class="dept-row"><div class="dept-icon" style="background:${d.lt};color:${d.color}"><i class="fa-solid ${d.icon}"></i></div><div class="dept-info"><div class="dept-name">${d.name}</div><div class="dept-sub">${d.sub}</div><div class="dept-bar-bg"><div class="dept-bar" style="width:${d.pct}%;background:${d.color}"></div></div></div><div class="dept-val">$${d.amt.toLocaleString()}</div></div>`).join('')}
-const trendData=[{date:'5/12 (월)',amount:22970,diff:12.4},{date:'5/11 (일)',amount:21350,diff:-2.8},{date:'5/10 (토)',amount:27500,diff:18.5},{date:'5/9 (금)',amount:24200,diff:10.2},{date:'5/8 (목)',amount:17400,diff:-5.1},{date:'5/7 (수)',amount:20750,diff:6.3},{date:'5/6 (화)',amount:18500,diff:0}];
-function renderTrend(){const mx=Math.max(...trendData.map(t=>t.amount));document.getElementById('trendBody').innerHTML=trendData.map(t=>{const d=t.diff>0?`<span class="trend-up"><i class="fa-solid fa-arrow-up"></i> +${t.diff}%</span>`:t.diff<0?`<span class="trend-down"><i class="fa-solid fa-arrow-down"></i> ${t.diff}%</span>`:`<span style="color:var(--txt3)">—</span>`;return`<tr><td style="font-weight:600">${t.date}</td><td style="font-weight:700">$${t.amount.toLocaleString()}</td><td>${d}</td><td class="trend-bar-cell"><div class="trend-bar-bg"><div class="trend-bar-fill" style="width:${(t.amount/mx*100).toFixed(0)}%"></div></div></td></tr>`}).join('')}
+let trendData = [];
+function renderTrend(){
+    document.getElementById('trendBody').innerHTML = trendData.map(t => {
+        const formatCell = (obj) => {
+            if(!obj) return '-';
+            const diffClass = obj.d > 0 ? 'trend-up' : (obj.d < 0 ? 'trend-down' : '');
+            const diffIcon = obj.d > 0 ? '<i class="fa-solid fa-arrow-up"></i>' : (obj.d < 0 ? '<i class="fa-solid fa-arrow-down"></i>' : '');
+            const diffStr = obj.d !== 0 ? `<span class="${diffClass}" style="margin-left:6px; font-size:0.72rem; white-space:nowrap;">${diffIcon} ${obj.d > 0 ? '+' : ''}${obj.d}%</span>` : `<span style="margin-left:6px; font-size:0.72rem; color:var(--txt3); white-space:nowrap;">-</span>`;
+            return `<span style="font-weight:700">${obj.v.toLocaleString()}</span> ${diffStr}`;
+        };
+        return `<tr>
+            <td style="font-weight:600">${t.date}</td>
+            <td style="text-align:right">${formatCell(t.room)}</td>
+            <td style="text-align:right">${formatCell(t.pos)}</td>
+            <td style="text-align:right">${formatCell(t.golf)}</td>
+            <td style="text-align:right">${formatCell(t.car)}</td>
+        </tr>`;
+    }).join('');
+}
 let currentLang='ko';
 const translations={ko: {
         "Main": "메인",
@@ -292,7 +300,7 @@ const translations={ko: {
         "Support": "Support",
 "Revenue Analytics":"Revenue Analytics","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Folio List":"Folio List"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){currentLang=l;const d=translations[l]||translations.ko;document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]})}
+function changeLang(l){currentLang=l;const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]})}
 const kpiData = {
     'week': { total:'$164,250', room:'$131,000', anc:'$22,800', diff:'+5.8%', label:'전주 대비', title:'주별 총 매출' },
     'month': { total:'$690,000', room:'$560,000', anc:'$95,000', diff:'+18.2%', label:'전월 대비', title:'월별 총 매출' },
@@ -320,6 +328,20 @@ function changeChartPeriod(btn, type) {
 
 renderBarChart();renderMonthly();renderYoY();renderDepts();renderTrend();
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        dailyData = await PmsAPI.getDailyData();
+        monthlyData = await PmsAPI.getMonthlyData();
+        yoyData = await PmsAPI.getYoyData();
+        depts = await PmsAPI.getDepts();
+        trendData = await PmsAPI.getTrendData();
+        renderBarChart(); renderMonthly(); renderYoY(); renderDepts();
+    renderTrend();
+    } catch(e) { console.error(e); }
+});
 </script>
 </body>
 </html>

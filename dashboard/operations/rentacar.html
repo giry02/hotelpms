@@ -11,67 +11,72 @@
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/operations.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Rent-a-car">렌터카</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 12일 (월)</span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
-            </select>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Rent-a-car">렌터카</h1></header>
 
     <div class="content">
         <!-- KPI -->
         <div class="kpi-grid">
             <div class="kpi-card orange">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-handshake"></i></div></div>
-                <div class="kpi-value">2</div>
-                <div class="kpi-label">제휴 업체 수</div>
-                <div class="kpi-sub">계약된 렌터카 업체</div>
+                <div class="kpi-body">
+                    <div class="kpi-value">2</div>
+                    <div class="kpi-label">제휴 업체 수</div>
+                    <div class="kpi-sub">계약된 렌터카 업체</div>
+                </div>
             </div>
             <div class="kpi-card blue">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div></div>
-                <div class="kpi-value">5</div>
-                <div class="kpi-label">금일 예약 건</div>
-                <div class="kpi-sub">대여 예정 및 Pending</div>
+                <div class="kpi-body">
+                    <div class="kpi-value">5</div>
+                    <div class="kpi-label">금일 예약 건</div>
+                    <div class="kpi-sub">대여 예정 및 Pending</div>
+                </div>
             </div>
             <div class="kpi-card green">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-car-on"></i></div></div>
-                <div class="kpi-value">8</div>
-                <div class="kpi-label">금일 대여 중/Completed</div>
-                <div class="kpi-sub">정산 대상</div>
+                <div class="kpi-body">
+                    <div class="kpi-value">8</div>
+                    <div class="kpi-label">금일 대여 중/Completed</div>
+                    <div class="kpi-sub">정산 대상</div>
+                </div>
             </div>
             <div class="kpi-card purple">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div></div>
-                <div class="kpi-value">₩150,000</div>
-                <div class="kpi-label">예상 수수료 수익</div>
-                <div class="kpi-sub">예약 수수료 (별도 통계)</div>
+                <div class="kpi-body">
+                    <div class="kpi-value">₩150,000</div>
+                    <div class="kpi-label">예상 수수료 수익</div>
+                    <div class="kpi-sub">예약 수수료 (별도 통계)</div>
+                </div>
             </div>
         </div>
 
         <!-- FILTER -->
-        <div class="filter-bar">
+        <div class="filter-bar" style="margin-bottom:20px">
             <div class="filter-left">
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="객실번호 검색..." oninput="renderOrders()">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" placeholder="객실번호 검색..." oninput="renderOrders()">
+                    </div>
+                    <button onclick="renderOrders()" class="btn-primary-sm"
+                        style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap">
+                        <i class="fa-solid fa-magnifying-glass"></i> 검색
+                    </button>
                 </div>
                 <div class="filter-chips">
-                    <button class="chip active" onclick="setFilter(this,'all')">All 예약</button>
-                    <button class="chip" onclick="setFilter(this,'lotte')"><i class="fa-solid fa-car" style="color:var(--txt2)"></i> 롯데렌터카</button>
-                    <button class="chip" onclick="setFilter(this,'sk')"><i class="fa-solid fa-car" style="color:var(--txt2)"></i> SK렌터카</button>
+                    <button class="chip active" onclick="setFilter(this,'all')" id="chip-all">All 예약</button>
+                    <button class="chip" onclick="setFilter(this,'lotte')" id="chip-lotte"><i class="fa-solid fa-car" style="color:var(--txt2)"></i> 롯데렌터카</button>
+                    <button class="chip" onclick="setFilter(this,'sk')" id="chip-sk"><i class="fa-solid fa-car" style="color:var(--txt2)"></i> SK렌터카</button>
                 </div>
             </div>
             <div class="filter-right">
@@ -81,22 +86,14 @@
         </div>
 
         <!-- ORDER LIST -->
-        <div class="card" style="margin-top:20px">
-            <div class="card-body" style="padding:0">
-                <div class="hk-task-list" id="orderList">
-                    <!-- Generated by JS -->
-                </div>
-            </div>
+        <div class="hk-task-list" id="orderList" style="margin-top:20px">
+            <!-- Generated by JS -->
         </div>
     </div>
 </div>
 
 <script>
-const orders = [
-    { id:'RNT-015', room:'1401', type:'lotte', guest:'Tran Linh', items:'현대 그랜저 24시간 대여', total:40000, status:'new', time:'14:02' },
-    { id:'RNT-014', room:'0807', type:'sk', guest:'John Smith', items:'기아 카니발 48시간 대여', total:80000, status:'prep', time:'13:50' },
-    { id:'RNT-013', room:'1205', type:'lotte', guest:'Park Soo', items:'아반떼 12시간 대여', total:20000, status:'done', time:'13:15' },
-];
+let orders = [];
 
 const tMap = {
     'lotte': { label:'롯데렌터카', icon:'fa-car', color:'var(--orange)' },
@@ -173,7 +170,7 @@ function setFilter(btn, filter) {
     renderOrders();
 }
 
-renderOrders();
+/* renderOrders(); */
 
 // i18n
 let currentLang='ko';
@@ -237,12 +234,12 @@ const translations={ko: {
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){
     currentLang=l;
-    const d=translations[l]||translations.ko;
+    const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room번호 검색...';
     if(tMap['lotte']) tMap['lotte'].label = l==='en'?'Lotte Rent-a-Car':'롯데렌터카';
     if(tMap['sk']) tMap['sk'].label = l==='en'?'SK Rent-a-Car':'SK렌터카';
-    renderOrders();
+    /* renderOrders(); */
 }
 
 // 모달 및 오더 등록 로직
@@ -313,7 +310,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                     <input type="text" id="rentPhone" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">차량 등급 (Car Type) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">차량 등급 (차종) <span style="color:var(--danger)">*</span></label>
                     <select id="rentCarType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
                         <option>Sedan (Standard)</option>
                         <option>SUV (Family)</option>
@@ -355,7 +352,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             </div>
 </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-            <button class="btn-outline" onclick="closeModal('addOrderModal')">Cancel</button>
+            <button class="btn-outline" onclick="closeModal('addOrderModal')">취소</button>
             <button class="btn-primary-sm" onclick="saveOrder()"><i class="fa-solid fa-check"></i> 예약 전송</button>
         </div>
     </div>
@@ -365,74 +362,42 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 <div class="modal-overlay" id="partnerModal" onclick="if(event.target===this) closeModal('partnerModal')">
     <div class="modal-card" style="max-width:600px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title">제휴 렌터카 업체 Actions</h3>
+            <h3 class="modal-title">렌터카 제휴 업체 목록</h3>
             <button class="modal-close" onclick="closeModal('partnerModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호실 선택 (Room) <span style="color:var(--danger)">*</span></label>
-                    <select id="rentRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="autoFillGuest('rent')">
-                        <option value="">선택...</option>
-                        <option value="1401">1401</option>
-                        <option value="0807">0807</option>
-                        <option value="1205">1205</option>
-                    </select>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">업체명 (Agency Name) <span style="color:var(--danger)">*</span></label>
+                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 롯데렌터카">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">고객명 (Guest) <span style="color:var(--danger)">*</span></label>
-                    <input type="text" id="rentGuest" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="자동 입력">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">담당자 연락처 (Contact)</label>
+                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: +84 28 3823 0000">
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">연락처 (Contact)</label>
-                    <input type="text" id="rentPhone" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">수수료율 (%)</label>
+                    <input type="number" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 15">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">차량 등급 (Car Type) <span style="color:var(--danger)">*</span></label>
-                    <select id="rentCarType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>Sedan (Standard)</option>
-                        <option>SUV (Family)</option>
-                        <option>Luxury Van</option>
-                    </select>
-                </div>
-            </div>
-            <hr style="border:none;border-top:1px solid var(--border2)">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">대여 일시 (Date/Time) <span style="color:var(--danger)">*</span></label>
-                    <input type="datetime-local" id="rentDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">대여 기간 (Duration) <span style="color:var(--danger)">*</span></label>
-                    <select id="rentDuration" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>4시간 (Half Day)</option>
-                        <option>8시간 (Full Day)</option>
-                        <option>24시간 (1 Day)</option>
-                        <option>공항 샌딩 (Airport Drop)</option>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">상태 (Status)</label>
+                    <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="active">활성 (Active)</option>
+                        <option value="pending">대기 (Pending)</option>
+                        <option value="inactive">비활성 (Inactive)</option>
                     </select>
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
-                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">픽업 / 반납 장소 (Location) <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="rentLocation" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 호텔 정문 픽업 -> 다낭 국제공항 반납">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">특이사항 (Notes)</label>
+                <textarea style="height:80px;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--font);width:100%;resize:vertical" placeholder="기타 메모..."></textarea>
             </div>
-        
-            <hr style="border:none;border-top:1px solid var(--border2)">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-                <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">총 요금 (Total Price) <span style="color:var(--danger)">*</span></label>
-                    <input type="number" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 80000">
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호텔 수익/수수료 (Hotel Commission) <span style="color:var(--danger)">*</span></label>
-                    <input type="number" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 15000">
-                </div>
-            </div>
-</div>
+        </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-            <button class="btn-primary-sm" onclick="closeModal('partnerModal')">확인</button>
+            <button class="btn-outline" onclick="closeModal('partnerModal')">취소</button>
+            <button class="btn-primary-sm" onclick="closeModal('partnerModal'); showToast('업체 정보가 저장되었습니다.')"><i class="fa-solid fa-check"></i> 저장</button>
         </div>
     </div>
 </div>
@@ -459,6 +424,29 @@ function autoFillGuest(type) {
         if(phoneEl) phoneEl.value = '';
     }
 }
+</script>
+
+<script>
+function updateFilterCounts() {
+    document.getElementById('chip-all').innerHTML = `All 예약 (${orders.length})`;
+    document.getElementById('chip-lotte').innerHTML = `<i class="fa-solid fa-car"></i> 롯데렌터카 (${orders.filter(o=>o.type==='lotte').length})`;
+    document.getElementById('chip-sk').innerHTML = `<i class="fa-solid fa-car"></i> SK렌터카 (${orders.filter(o=>o.type==='sk').length})`;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        orders = await PmsAPI.getRentacarOrders();
+        updateFilterCounts();
+        renderOrders();
+    } catch(e) { console.error(e); }
+});
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
 </script>
 </body>
 </html>

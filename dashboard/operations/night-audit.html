@@ -9,60 +9,237 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/operations.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
     <script src="../common/js/sidebar.js"></script>
+    <style>
+        .audit-section { background: #fff; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; }
+        .audit-header { padding: 16px 20px; border-bottom: 1px solid var(--border2); font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 10px; background: #fdfdfd; border-radius: 12px 12px 0 0; }
+        .audit-body { padding: 20px; }
+        
+        .check-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .check-item { background: #f8fafc; border: 1px solid var(--border2); border-radius: 8px; padding: 16px; display: flex; align-items: flex-start; gap: 12px; }
+        .check-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+        .check-info { flex: 1; }
+        .check-title { font-weight: 700; color: var(--txt); font-size: 0.95rem; margin-bottom: 4px; }
+        .check-desc { font-size: 0.8rem; color: var(--txt2); line-height: 1.4; margin-bottom: 8px; }
+        .check-val { font-size: 1.2rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; }
+        .val-danger { color: var(--danger); }
+        .val-success { color: var(--success); }
+
+        .rev-table { width: 100%; border-collapse: collapse; }
+        .rev-table td { padding: 16px 12px; border-bottom: 1px solid var(--border2); font-size: 0.95rem; font-weight: 500; }
+        .rev-table tr:last-child td { border-bottom: none; }
+        .rev-amount { text-align: right; font-size: 1.1rem; font-weight: 700; }
+        .rev-total { background: #f8fafc; }
+        .rev-total td { font-weight: 800; color: var(--primary); font-size: 1.2rem; border-top: 2px solid var(--border); }
+
+        .action-box { background: var(--bg); border: 1px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; }
+        
+        @media (max-width: 768px) {
+            .check-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Night Audit"><i class="fa-solid fa-moon"></i> 일일 마감</h1>
-        </div>
-        <div class="topbar-right">
-            <button class="btn-outline-sm" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> <span data-i18n-key="Export">Export</span></button>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Night Audit">일일 마감</h1></header>
     <div class="content">
-        
-<div class="card" style="margin-bottom: 20px;">
-    <div class="card-header">
-        <h3 class="card-title">Night Audit (일일 영업 마감)</h3>
-    </div>
-    <div class="card-body">
-        <p style="color:var(--txt2); margin-bottom: 20px;">현재 영업일: <strong>2026-05-12</strong> <i class="fa-solid fa-arrow-right" style="margin: 0 10px;"></i> 롤오버(Rollover) 후 영업일: <strong style="color:var(--primary)">2026-05-13</strong></p>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
-            <div style="border:1px solid var(--border);border-radius:4px;padding:16px;text-align:center">
-                <i class="fa-solid fa-bed" style="font-size:2rem;color:var(--orange);margin-bottom:10px"></i>
-                <div style="font-weight:700">객실 청구 처리 (Room/Tax)</div>
-                <div style="font-size:0.8rem;color:var(--txt2);margin-top:4px">투숙 중인 객실에 1일 숙박 요금과 세금을 자동 청구합니다.</div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <div>
+                <span style="color:var(--txt2);font-size:0.9rem">현재 영업일</span>
+                <div style="font-size:1.5rem;font-weight:800;color:var(--txt)" id="currentDate">YYYY-MM-DD</div>
             </div>
-            <div style="border:1px solid var(--border);border-radius:4px;padding:16px;text-align:center">
-                <i class="fa-solid fa-user-xmark" style="font-size:2rem;color:var(--danger);margin-bottom:10px"></i>
-                <div style="font-weight:700">노쇼 (No-Show) 처리</div>
-                <div style="font-size:0.8rem;color:var(--txt2);margin-top:4px">자정까지 도착하지 않은 예약건을 노쇼로 강제 전환합니다.</div>
-            </div>
-            <div style="border:1px solid var(--border);border-radius:4px;padding:16px;text-align:center">
-                <i class="fa-solid fa-calendar-check" style="font-size:2rem;color:var(--success);margin-bottom:10px"></i>
-                <div style="font-weight:700">영업일 롤오버 (Rollover)</div>
-                <div style="font-size:0.8rem;color:var(--txt2);margin-top:4px">PMS 시스템 시계를 다음 영업일로 전환합니다.</div>
+            <div style="text-align:right">
+                <span style="color:var(--txt2);font-size:0.9rem">롤오버 예정일</span>
+                <div style="font-size:1.5rem;font-weight:800;color:var(--primary)" id="nextDate">YYYY-MM-DD</div>
             </div>
         </div>
-        <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-            <button class="btn-primary-sm" onclick="showConfirm('일일 마감을 시작하시겠습니까? 되돌릴 수 없습니다.').then(res => {if(res) showToast('마감이 완료되었습니다.');})"><i class="fa-solid fa-play"></i> 마감 시작 (Run Night Audit)</button>
+
+        <!-- 1. Pre-Close Checklist -->
+        <div class="audit-section">
+            <div class="audit-header">
+                <i class="fa-solid fa-clipboard-check" style="color:var(--orange)"></i> 1. 마감 전 필수 체크 (Pre-Close Checklist)
+            </div>
+            <div class="audit-body">
+                <p style="font-size:0.85rem; color:var(--txt2); margin-bottom:16px;">미처리 항목이 있을 경우 정상적인 마감 및 롤오버가 제한될 수 있습니다.</p>
+                <div class="check-grid">
+                    <!-- Pending Departures -->
+                    <div class="check-item">
+                        <div class="check-icon" style="background:var(--danger-lt); color:var(--danger)"><i class="fa-solid fa-door-open"></i></div>
+                        <div class="check-info">
+                            <div class="check-title">미처리 체크아웃</div>
+                            <div class="check-desc">퇴실 예정이나 아직 시스템에서 체크아웃 처리되지 않은 객실입니다.</div>
+                            <div class="check-val" id="chkDep">-</div>
+                        </div>
+                    </div>
+                    <!-- Pending Arrivals -->
+                    <div class="check-item">
+                        <div class="check-icon" style="background:var(--warning-lt); color:var(--warning)"><i class="fa-solid fa-user-clock"></i></div>
+                        <div class="check-info">
+                            <div class="check-title">미도착 체크인</div>
+                            <div class="check-desc">마감 실행 시 자동으로 <strong>노쇼(No-Show)</strong> 처리되어 수수료가 청구됩니다.</div>
+                            <div class="check-val" id="chkArr">-</div>
+                        </div>
+                    </div>
+                    <!-- Open POS Orders -->
+                    <div class="check-item">
+                        <div class="check-icon" style="background:var(--blue-lt); color:var(--blue)"><i class="fa-solid fa-receipt"></i></div>
+                        <div class="check-info">
+                            <div class="check-title">미결제 오더 (POS)</div>
+                            <div class="check-desc">객실(Folio) 청구 전이거나 제공 완료되지 않은 룸서비스/부대시설 주문.</div>
+                            <div class="check-val" id="chkPos">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
+
+        <!-- 2. Revenue Verification -->
+        <div class="audit-section">
+            <div class="audit-header">
+                <i class="fa-solid fa-calculator" style="color:var(--success)"></i> 2. 금일 정산액 검증 (Revenue Verification)
+            </div>
+            <div class="audit-body" style="padding:0">
+                <table class="rev-table">
+                    <tbody>
+                        <tr>
+                            <td>
+                                <i class="fa-solid fa-bed" style="color:var(--txt3); margin-right:8px; width:16px"></i> 
+                                객실 수익 (Room Revenue)
+                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">총 <span id="revRoomCount">0</span> 객실 이용 요금 (Tax 포함)</div>
+                            </td>
+                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revRoomAmt">$0</span> <a href="folio.html?dept=room" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <i class="fa-solid fa-utensils" style="color:var(--txt3); margin-right:8px; width:16px"></i> 
+                                식음료 / 룸서비스 (F&B / Room Service)
+                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">POS 통합 오더 데이터 기준</div>
+                            </td>
+                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revFnbAmt">$0</span> <a href="folio.html?dept=pos" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <i class="fa-solid fa-spa" style="color:var(--txt3); margin-right:8px; width:16px"></i> 
+                                부가서비스 (Ancillary / Spa / Golf)
+                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">스파, 골프 예약, 렌터카 등</div>
+                            </td>
+                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revAncAmt">$0</span> <a href="folio.html?dept=golf" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
+                        </tr>
+                        <tr class="rev-total">
+                            <td>일일 총 영업 이익 (Total Revenue)</td>
+                            <td class="rev-amount" id="revTotalAmt" style="font-size:1.5rem">$0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. Action Area -->
+        <div class="action-box">
+            <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; margin-bottom:16px; font-size:0.95rem;">
+                <input type="checkbox" id="confirmCheck" style="width:18px;height:18px" onchange="document.getElementById('btnRunAudit').disabled = !this.checked">
+                위 정산 내역을 확인하였으며, <span id="confirmDate">YYYY-MM-DD</span> 영업일을 마감합니다.
+            </label>
+            <br>
+            <button class="btn-primary" id="btnRunAudit" disabled style="padding:12px 30px; font-size:1rem" onclick="runNightAudit()">
+                <i class="fa-solid fa-play"></i> 일일 영업 마감 실행
+            </button>
+        </div>
 
     </div>
 </div>
+
 <script>
+let totalRev = 0;
+
+async function loadAuditData() {
+    try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const nextDay = new Date();
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayStr = nextDay.toISOString().split('T')[0];
+
+        document.getElementById('currentDate').textContent = todayStr;
+        document.getElementById('nextDate').textContent = nextDayStr;
+        document.getElementById('confirmDate').textContent = todayStr;
+
+        const [dailyData, orders, golf, rentacar] = await Promise.all([
+            PmsAPI.getDailyData(),
+            PmsAPI.getOrders(),
+            PmsAPI.getGolfOrders(),
+            PmsAPI.getRentacarOrders()
+        ]);
+
+        // Mock Checklist Data
+        // 1. Pending Departures (Random small number for demo)
+        const pendingDep = 2;
+        const eDep = document.getElementById('chkDep');
+        eDep.innerHTML = pendingDep > 0 ? `<span class="val-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${pendingDep}건 남음</span>` : `<span class="val-success"><i class="fa-solid fa-check"></i> 완료</span>`;
+
+        // 2. Pending Arrivals (Random small number)
+        const pendingArr = 3;
+        const eArr = document.getElementById('chkArr');
+        eArr.innerHTML = pendingArr > 0 ? `<span style="color:var(--warning)"><i class="fa-solid fa-triangle-exclamation"></i> ${pendingArr}건 미도착</span>` : `<span class="val-success"><i class="fa-solid fa-check"></i> 완료</span>`;
+
+        // 3. Open POS Orders
+        const allOrders = [...orders, ...golf, ...rentacar];
+        let openOrders = 0;
+        allOrders.forEach(o => { if(o.status !== 'done') openOrders++; });
+        const ePos = document.getElementById('chkPos');
+        ePos.innerHTML = openOrders > 0 ? `<span class="val-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${openOrders}건 남음</span>` : `<span class="val-success"><i class="fa-solid fa-check"></i> 완료</span>`;
+
+        // Revenue Data (Using last item in dailyData as "today")
+        const todayData = dailyData[dailyData.length - 1] || { room:0, fnb:0, spa:0, other:0 };
+        document.getElementById('revRoomAmt').textContent = '$' + todayData.room.toLocaleString();
+        document.getElementById('revRoomCount').textContent = Math.round(todayData.room / 184); // Mock count
+        
+        document.getElementById('revFnbAmt').textContent = '$' + todayData.fnb.toLocaleString();
+        
+        const anc = todayData.spa + todayData.other;
+        document.getElementById('revAncAmt').textContent = '$' + anc.toLocaleString();
+
+        totalRev = todayData.room + todayData.fnb + anc;
+        document.getElementById('revTotalAmt').textContent = '$' + totalRev.toLocaleString();
+
+    } catch (e) {
+        console.error(e);
+        alert('데이터를 불러오는데 실패했습니다.');
+    }
+}
+
+function runNightAudit() {
+    if(!document.getElementById('confirmCheck').checked) return;
+
+    if(confirm('정말 마감을 실행하시겠습니까? (되돌릴 수 없습니다)')) {
+        const btn = document.getElementById('btnRunAudit');
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 마감 처리 중...';
+        btn.disabled = true;
+
+        setTimeout(() => {
+            alert('일일 마감이 성공적으로 완료되었습니다.\n다음 영업일로 전환됩니다.');
+            window.location.href = '../dashboard.html';
+        }, 2000);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    if(typeof setupI18n === 'function') setupI18n();
-    if(typeof changeLang === 'function' && typeof currentLang !== 'undefined') changeLang(currentLang);
+    loadAuditData();
 });
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
 </script>
 </body>
 </html>

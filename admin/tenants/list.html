@@ -25,11 +25,11 @@
 <div class="content">
 <div class="filter-bar">
 <div class="filter-left">
-<div class="filter-tabs">
-<button class="filter-tab active">All</button>
-<button class="filter-tab">운영 중</button>
-<button class="filter-tab">심사 중</button>
-<button class="filter-tab">정지됨</button>
+<div class="filter-chips">
+<button class="chip active" data-filter="All">All</button>
+<button class="chip" data-filter="운영 중">운영 중</button>
+<button class="chip" data-filter="심사 중">심사 중</button>
+<button class="chip" data-filter="정지됨">정지됨</button>
 </div>
 </div>
 <div class="filter-right">
@@ -61,10 +61,52 @@
 </div>
 </div>
 <script>
-document.querySelectorAll('.filter-tab').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.filter-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active')})});
+function updateFilterCounts() {
+    const rows = document.querySelectorAll('tbody tr');
+    document.querySelectorAll('.chip').forEach(chip => {
+        const filterText = chip.getAttribute('data-filter');
+        if (!filterText) return;
+        let count = 0;
+        rows.forEach(row => {
+            if (filterText === 'All') {
+                count++;
+            } else {
+                const tdStatus = row.cells[5];
+                if (tdStatus && tdStatus.textContent.trim().startsWith(filterText)) {
+                    count++;
+                }
+            }
+        });
+        chip.textContent = `${filterText} (${count})`;
+    });
+}
+
+document.querySelectorAll('.chip').forEach(b=>{
+    b.addEventListener('click',()=>{
+        document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        
+        const filterText = b.getAttribute('data-filter');
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            if (filterText === 'All') {
+                row.style.display = '';
+            } else {
+                const tdStatus = row.cells[5];
+                if (tdStatus && tdStatus.textContent.trim().startsWith(filterText)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+    })
+});
+
+document.addEventListener('DOMContentLoaded', updateFilterCounts);
 
 function approveTenant(btn) {
-	if(confirm('호텔을 승인하시겠습니까?')) {
+	if(confirm('승인하시겠습니까?')) {
 		const row = btn.closest('tr');
 		const badge = row.querySelector('.status-badge.pending');
 		if(badge) {
@@ -73,6 +115,7 @@ function approveTenant(btn) {
 		}
 		btn.parentElement.innerHTML = '<a href="detail.html" class="btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>';
 		alert('승인되었습니다.');
+        updateFilterCounts();
 	}
 }
 
@@ -89,6 +132,7 @@ function rejectTenant(btn) {
 		}
 		btn.parentElement.innerHTML = '<a href="detail.html" class="btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>';
 		alert('반려 처리되었습니다.');
+        updateFilterCounts();
 	}
 }
 </script>

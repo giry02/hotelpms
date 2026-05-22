@@ -3,75 +3,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>유지보수 — Hotel PMS</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>시설 보수 — Hotel PMS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/operations.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/i18n.js"></script>
-    <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
+    <style>
+        .priority-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; }
+        .priority-urgent { background:#FEE2E2; color:#DC2626; }
+        .priority-high   { background:#FEF3C7; color:#D97706; }
+        .priority-normal { background:#DBEAFE; color:#2563EB; }
+        .status-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; }
+        .status-open     { background:#FEF3C7; color:#D97706; }
+        .status-progress { background:#DBEAFE; color:#2563EB; }
+        .status-done     { background:#D1FAE5; color:#059669; }
+    </style>
 </head>
 <body>
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Maintenance"><i class="fa-solid fa-wrench"></i> 유지보수</h1>
-        </div>
-        <div class="topbar-right">
-            <button class="btn-outline-sm" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> <span data-i18n-key="Export">Export</span></button>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Maintenance">시설 보수</h1></header>
     <div class="content">
-        
-<div class="filter-bar">
-    <button class="btn-primary-sm" onclick="showToast('기능 준비중입니다.')"><i class="fa-solid fa-plus"></i> 티켓 생성 (New Ticket)</button>
-</div>
-<div class="card" style="margin-top: 20px;">
-    <div class="card-body" style="padding:0">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>상태</th>
-                    <th>호실</th>
-                    <th>이슈 내역 (Issue)</th>
-                    <th>우선순위</th>
-                    <th>담당자</th>
-                    <th>액션</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="role-badge" style="background:var(--danger-lt);color:var(--danger)">Open</span></td>
-                    <td>402</td>
-                    <td>에어컨 냉방 불량 (AC Broken)</td>
-                    <td>High</td>
-                    <td>Engineering Team</td>
-                    <td><button class="btn-outline-sm" onclick="showToast('완료 처리됨')">완료</button></td>
-                </tr>
-                <tr>
-                    <td><span class="role-badge" style="background:var(--success-lt);color:var(--success)">Resolved</span></td>
-                    <td>1205</td>
-                    <td>화장실 배관 누수</td>
-                    <td>Medium</td>
-                    <td>Plumber</td>
-                    <td><button class="btn-outline-sm" disabled>완료됨</button></td>
-                </tr>
-            </tbody>
-        </table>
+        <!-- KPI Cards -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px">
+            <div class="kpi-card orange">
+                <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="kpi-body"><div class="kpi-value">4</div><div class="kpi-label">신규 요청</div></div>
+            </div>
+            <div class="kpi-card blue">
+                <div class="kpi-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                <div class="kpi-body"><div class="kpi-value">3</div><div class="kpi-label">진행 중</div></div>
+            </div>
+            <div class="kpi-card green">
+                <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
+                <div class="kpi-body"><div class="kpi-value">18</div><div class="kpi-label">이번 달 완료</div></div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-left" style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="chip active" onclick="filterMt('all')">전체</button>
+                <button class="chip" onclick="filterMt('open')">신규 요청</button>
+                <button class="chip" onclick="filterMt('in-progress')">진행 중</button>
+                <button class="chip" onclick="filterMt('done')">완료</button>
+                <select class="form-input" style="height:36px;min-width:140px;margin-left:8px" id="priorityFilter" onchange="filterMt()">
+                    <option value="">전체 우선순위</option>
+                    <option value="urgent">긴급</option>
+                    <option value="high">높음</option>
+                    <option value="normal">일반</option>
+                </select>
+            </div>
+            <div class="filter-right">
+                <button class="btn-primary-sm" onclick="openModal('newRequestModal')"><i class="fa-solid fa-plus"></i> 티켓 생성</button>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-card">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>요청 번호</th>
+                        <th>객실</th>
+                        <th>유형</th>
+                        <th>상세 내용</th>
+                        <th>우선순위</th>
+                        <th>담당자</th>
+                        <th>상태</th>
+                        <th>등록일</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody id="mtTableBody">
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
+<!-- New Request Modal -->
+<div class="modal-overlay" id="newRequestModal" onclick="if(event.target===this)closeModal('newRequestModal')">
+    <div class="modal-card" style="max-width:520px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">시설 보수 요청 등록</h3>
+            <button class="modal-close" onclick="closeModal('newRequestModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">객실 번호 <span style="color:var(--danger)">*</span></label>
+                    <input type="text" class="form-input" style="width:100%" placeholder="예: 1205">
+                </div>
+                <div>
+                    <label class="form-label">유형 <span style="color:var(--danger)">*</span></label>
+                    <select class="form-input" style="width:100%">
+                        <option>전기/조명</option>
+                        <option>배관/수도</option>
+                        <option>에어컨/냉난방</option>
+                        <option>가구/비품</option>
+                        <option>도어/잠금장치</option>
+                        <option>기타</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">상세 내용</label>
+                <textarea class="form-input" style="width:100%;min-height:80px;resize:vertical" placeholder="증상 및 위치를 구체적으로 작성해주세요."></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">우선순위</label>
+                    <select class="form-input" style="width:100%">
+                        <option value="urgent">긴급 (즉시 처리)</option>
+                        <option value="high">높음</option>
+                        <option value="normal" selected>일반</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">담당자 배정</label>
+                    <select class="form-input" style="width:100%">
+                        <option>김철수 (시설팀장)</option>
+                        <option>이영호 (전기담당)</option>
+                        <option>박미래 (배관담당)</option>
+                        <option>미배정</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="closeModal('newRequestModal')">취소</button>
+            <button class="btn-primary-sm" onclick="showToast('요청이 등록되었습니다.'); closeModal('newRequestModal');"><i class="fa-solid fa-check"></i> 등록</button>
+        </div>
     </div>
 </div>
+
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    if(typeof setupI18n === 'function') setupI18n();
-    if(typeof changeLang === 'function' && typeof currentLang !== 'undefined') changeLang(currentLang);
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showToast(msg) {
+    let t = document.getElementById('toast');
+    if(!t) { t = document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:0.85rem;'; document.body.appendChild(t); }
+    t.textContent = msg; t.style.display='block';
+    setTimeout(()=>{ t.style.display='none'; }, 3000);
+}
+
+let requests = [];
+
+const priorityLabel = { urgent:'긴급', high:'높음', normal:'일반' };
+const priorityClass = { urgent:'priority-urgent', high:'priority-high', normal:'priority-normal' };
+const statusLabel = { open:'신규 요청', 'in-progress':'진행 중', done:'완료' };
+const statusClass = { open:'status-open', 'in-progress':'status-progress', done:'status-done' };
+
+let currentStatusFilter = 'all';
+
+function filterMt(status) {
+    if(status) currentStatusFilter = status;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.chip').forEach(c => {
+        if(c.getAttribute('onclick') && c.getAttribute('onclick').includes(`'${currentStatusFilter}'`)) c.classList.add('active');
+    });
+    const pf = document.getElementById('priorityFilter').value;
+    const filtered = requests.filter(r => {
+        const statusMatch = currentStatusFilter === 'all' || r.status === currentStatusFilter;
+        const priorityMatch = !pf || r.priority === pf;
+        return statusMatch && priorityMatch;
+    });
+    renderTable(filtered);
+}
+
+function renderTable(data) {
+    const tbody = document.getElementById('mtTableBody');
+    if(!data) data = requests;
+    tbody.innerHTML = data.map(r => `
+        <tr>
+            <td><strong>${r.id}</strong></td>
+            <td>${r.room}호</td>
+            <td>${r.type}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.desc}</td>
+            <td><span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span></td>
+            <td>${r.assignee}</td>
+            <td><span class="status-badge ${statusClass[r.status]}">${statusLabel[r.status]}</span></td>
+            <td>${r.date}</td>
+            <td>
+                <button class="btn-outline-sm" onclick="showToast('담당자 배정 창을 엽니다.')">배정</button>
+                <button class="btn-outline-sm" onclick="showToast('상태가 업데이트 되었습니다.')">상태 변경</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => { renderTable(); });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        requests = [
+            { id: 'MT-101', room: '1205', type: '에어컨/냉난방', desc: '온도 조절기 작동 불량', priority: 'high', assignee: '김철수', status: 'open', date: '2026-05-22' },
+            { id: 'MT-102', room: '0807', type: '배관/수도', desc: '세면대 배수구 막힘', priority: 'urgent', assignee: '박미래', status: 'in-progress', date: '2026-05-22' },
+            { id: 'MT-103', room: '1401', type: '전기/조명', desc: '거실 전등 깜빡임', priority: 'normal', assignee: '이영호', status: 'open', date: '2026-05-21' },
+            { id: 'MT-104', room: '0505', type: '가구/비품', desc: '옷장 문 경첩 파손', priority: 'normal', assignee: '미배정', status: 'done', date: '2026-05-20' }
+        ];
+        renderTable();
+    } catch(e) { console.error(e); }
 });
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
 </script>
 </body>
 </html>

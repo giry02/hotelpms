@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>객실유형 — Hotel PMS</title>
+    <title>객실 유형 — Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -115,23 +115,12 @@
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Room Types">객실유형</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 12일 (월)</span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
-            </select>
-        </div>
-    </header>
+    <header class="topbar"><h1 data-i18n-key="Room Types">객실 유형</h1></header>
 
     <div class="content">
         <div class="filter-bar" style="margin-bottom: 20px">
@@ -381,7 +370,7 @@ function addBuilding() {
     if (name && name.trim()) {
         const trimmed = name.trim();
         if (allBuildings.includes(trimmed)) {
-            showToast('이미 존재하는 건물/구역명입니다.');
+            alert('이미 존재하는 건물/구역명입니다.');
         } else {
             allBuildings.push(trimmed);
             renderTabs();
@@ -394,7 +383,7 @@ function editBuilding(oldName) {
     if (newName && newName.trim() && newName.trim() !== oldName) {
         const trimmed = newName.trim();
         if (allBuildings.includes(trimmed)) {
-            showToast('이미 존재하는 건물/구역명입니다.');
+            alert('이미 존재하는 건물/구역명입니다.');
         } else {
             const idx = allBuildings.indexOf(oldName);
             if (idx > -1) allBuildings[idx] = trimmed;
@@ -416,7 +405,7 @@ function deleteBuilding(name) {
     if (roomsInBuilding > 0) {
         msg = `'${name}'에 속한 Room이 ${roomsInBuilding}개 있습니다.\\n정말 삭제하시겠습니까? (Room의 건물 정보가 '건물 미지정'으로 변경됩니다)`;
     }
-    if (await showConfirm(msg)) {
+    if (confirm(msg)) {
         allBuildings = allBuildings.filter(b => b !== name);
         allRooms.forEach(r => {
             if (r.building === name) r.building = null;
@@ -503,7 +492,7 @@ function saveRoom() {
     const building = document.getElementById('addRoomBuilding').value || null;
 
     if (!id) {
-        showToast('Room 번호를 입력해주세요.');
+        alert('Room 번호를 입력해주세요.');
         return;
     }
 
@@ -519,7 +508,7 @@ function saveRoom() {
 }
 
 function deleteRoom(idx) {
-    if (await showConfirm('이 Room을 삭제하시겠습니까?')) {
+    if (confirm('이 Room을 삭제하시겠습니까?')) {
         allRooms.splice(idx, 1);
         renderTabs();
         renderTable();
@@ -532,5 +521,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
+</script>
 </body>
 </html>

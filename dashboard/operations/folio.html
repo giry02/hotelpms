@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>정산 목록 — Hotel PMS</title>
+    <title>통합 정산 — Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,23 +13,12 @@
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Folio List">정산 목록</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 12일 (월)</span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
-            </select>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Folio List">정산 목록</h1></header>
 
     <div class="content">
         <!-- PERIOD SELECTOR -->
@@ -65,37 +54,57 @@
         <!-- KPI -->
         <div style="font-weight:700; font-size:1.05rem; margin-bottom:12px;"><i class="fa-solid fa-chart-simple" style="color:var(--primary); margin-right:6px"></i>매출 요약</div>
         <div class="kpi-grid">
-            <div class="kpi-card green"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-chart-line"></i></div></div><div class="kpi-value" id="kpiTotal">$22,970</div><div class="kpi-label">총 매출</div></div>
-            <div class="kpi-card blue"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div></div><div class="kpi-value" id="kpiRoom">$18,240</div><div class="kpi-label">Room 매출</div></div>
-            <div class="kpi-card purple"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div></div><div class="kpi-value" id="kpiAnc">$3,450</div><div class="kpi-label">Ancillary Rev</div></div>
-            <div class="kpi-card orange"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-arrow-trend-up"></i></div></div><div class="kpi-value" id="kpiDiff">+12.4%</div><div class="kpi-label">전일 대비</div></div>
+            <div class="kpi-card green"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-chart-line"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiTotal">$22,970</div><div class="kpi-label">총 매출</div></div></div>
+            <div class="kpi-card blue"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiRoom">$18,240</div><div class="kpi-label">Room 매출</div></div></div>
+            <div class="kpi-card purple"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiAnc">$3,450</div><div class="kpi-label">Ancillary Rev</div></div></div>
+            <div class="kpi-card orange"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-arrow-trend-up"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiDiff">+12.4%</div><div class="kpi-label">전일 대비</div></div></div>
         </div>
 
         <!-- FILTER -->
-        <div class="filter-bar">
+        <div class="filter-bar" style="margin-bottom: 20px;">
             <div class="filter-left">
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="객실번호, 고객명, Folio 번호 검색..." oninput="renderFolios()">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" placeholder="객실번호, 고객명, Folio 검색..." onkeydown="if(event.key==='Enter') renderFolios()">
+                    </div>
+                    <button class="btn-primary-sm" style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap" onclick="renderFolios()">
+                        <i class="fa-solid fa-magnifying-glass"></i> 검색
+                    </button>
                 </div>
-                <div class="filter-chips">
-                    <button class="chip active" onclick="setStatus(this,'all')">All</button>
-                    <button class="chip" onclick="setStatus(this,'unpaid')">미수금 (Unpaid)</button>
-                    <button class="chip" onclick="setStatus(this,'paid')">정산 Completed (Paid)</button>
-                    <button class="chip" onclick="setStatus(this,'refund')">환불/Cancel</button>
+                <div class="filter-chips" style="display:flex; align-items:center; gap:8px">
+                    <button class="chip active" onclick="setDept(this,'all')">전체</button>
+                    <button class="chip" onclick="setDept(this,'room')">객실</button>
+                    <button class="chip" onclick="setDept(this,'pos')">통합 POS</button>
+                    <button class="chip" onclick="setDept(this,'golf')">골프장</button>
+                    <button class="chip" onclick="setDept(this,'car')">렌트카</button>
+                    
+                    <button class="chip" id="btnUnpaidToggle" style="margin-left:12px; border:1px solid var(--danger); color:var(--danger); background:transparent; display:flex; align-items:center; gap:6px;" onclick="
+    this.classList.toggle('active'); 
+    if(this.classList.contains('active')){
+        this.style.background='var(--danger)';
+        this.style.color='#fff';
+    }else{
+        this.style.background='transparent';
+        this.style.color='var(--danger)';
+    } 
+    document.getElementById('chkUnpaid').checked = this.classList.contains('active'); 
+    renderFolios();
+"><i class="fa-solid fa-exclamation-circle"></i> 미수금만 보기</button>
+<input type="checkbox" id="chkUnpaid" style="display:none;">
                 </div>
             </div>
             <div class="filter-right">
-                <button class="btn-outline" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> Export Transactions</button>
+                <button class="btn-outline" style="height:38px" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> 내역 다운로드</button>
             </div>
         </div>
 
         <!-- TABLE (desktop) -->
-        <div class="card desktop-only" style="margin-top:16px">
+        <div class="card desktop-only">
             <div class="card-body" style="padding:0">
                 <div class="table-wrap">
                     <table><thead><tr>
-                        <th>Folio 번호</th><th>Room</th><th>Guest</th><th>Check-out</th><th>Total</th><th>Paid (Deposit)</th><th>Outstanding Bal</th><th>Status</th><th>Actions</th>
+                        <th>정산 번호(Folio)</th><th>객실</th><th>고객명</th><th>체크아웃</th><th>총 금액</th><th>결제액</th><th>미수금 잔액</th><th>상태</th><th>관리</th>
                     </tr></thead>
                     <tbody id="folioBody"></tbody></table>
                 </div>
@@ -110,57 +119,91 @@
 <script>
 const foliosData = {
     'day': [
-        {id:'FOL-10482', room:'1401', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
-        {id:'FOL-10481', room:'0807', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
-        {id:'FOL-10479', room:'0505', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
-        {id:'FOL-10475', room:'0802', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'}
+        {id:'FOL-10482', room:'1401', dept:'room', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
+        {id:'FOL-10481', room:'0807', dept:'room', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
+        {id:'FOL-10479', room:'0505', dept:'pos', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
+        {id:'FOL-10475', room:'0802', dept:'golf', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'}
     ],
     'week': [
-        {id:'FOL-10482', room:'1401', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
-        {id:'FOL-10481', room:'0807', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
-        {id:'FOL-10480', room:'1205', guest:'Park Soo', out:'2026-05-13', total:1400.00, paid:100.00, bal:1300.00, status:'unpaid'},
-        {id:'FOL-10479', room:'0505', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
-        {id:'FOL-10478', room:'1201', guest:'Nguyen Thi', out:'2026-05-14', total:2100.00, paid:100.00, bal:2000.00, status:'unpaid'},
-        {id:'FOL-10475', room:'0802', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'},
-        {id:'FOL-10474', room:'0304', guest:'Lee Jin', out:'2026-05-10', total:620.00, paid:620.00, bal:0.00, status:'paid'}
+        {id:'FOL-10482', room:'1401', dept:'car', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
+        {id:'FOL-10481', room:'0807', dept:'room', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
+        {id:'FOL-10480', room:'1205', dept:'pos', guest:'Park Soo', out:'2026-05-13', total:1400.00, paid:100.00, bal:1300.00, status:'unpaid'},
+        {id:'FOL-10479', room:'0505', dept:'room', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
+        {id:'FOL-10478', room:'1201', dept:'room', guest:'Nguyen Thi', out:'2026-05-14', total:2100.00, paid:100.00, bal:2000.00, status:'unpaid'},
+        {id:'FOL-10475', room:'0802', dept:'pos', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'},
+        {id:'FOL-10474', room:'0304', dept:'golf', guest:'Lee Jin', out:'2026-05-10', total:620.00, paid:620.00, bal:0.00, status:'paid'}
     ],
     'month': [
-        {id:'FOL-10482', room:'1401', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
-        {id:'FOL-10481', room:'0807', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
-        {id:'FOL-10480', room:'1205', guest:'Park Soo', out:'2026-05-13', total:1400.00, paid:100.00, bal:1300.00, status:'unpaid'},
-        {id:'FOL-10479', room:'0505', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
-        {id:'FOL-10478', room:'1201', guest:'Nguyen Thi', out:'2026-05-14', total:2100.00, paid:100.00, bal:2000.00, status:'unpaid'},
-        {id:'FOL-10475', room:'0802', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'},
-        {id:'FOL-10474', room:'0304', guest:'Lee Jin', out:'2026-05-10', total:620.00, paid:620.00, bal:0.00, status:'paid'},
-        {id:'FOL-10460', room:'0901', guest:'Alex Wong', out:'2026-05-05', total:1800.00, paid:1800.00, bal:0.00, status:'paid'},
-        {id:'FOL-10452', room:'1102', guest:'Sarah Connor', out:'2026-05-02', total:920.00, paid:920.00, bal:0.00, status:'paid'},
-        {id:'FOL-10440', room:'0705', guest:'Tom Hanks', out:'2026-05-01', total:450.00, paid:450.00, bal:0.00, status:'paid'}
+        {id:'FOL-10482', room:'1401', dept:'car', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
+        {id:'FOL-10481', room:'0807', dept:'room', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
+        {id:'FOL-10480', room:'1205', dept:'pos', guest:'Park Soo', out:'2026-05-13', total:1400.00, paid:100.00, bal:1300.00, status:'unpaid'},
+        {id:'FOL-10479', room:'0505', dept:'room', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
+        {id:'FOL-10478', room:'1201', dept:'room', guest:'Nguyen Thi', out:'2026-05-14', total:2100.00, paid:100.00, bal:2000.00, status:'unpaid'},
+        {id:'FOL-10475', room:'0802', dept:'pos', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'},
+        {id:'FOL-10474', room:'0304', dept:'golf', guest:'Lee Jin', out:'2026-05-10', total:620.00, paid:620.00, bal:0.00, status:'paid'},
+        {id:'FOL-10460', room:'0901', dept:'car', guest:'Alex Wong', out:'2026-05-05', total:1800.00, paid:1800.00, bal:0.00, status:'paid'},
+        {id:'FOL-10452', room:'1102', dept:'room', guest:'Sarah Connor', out:'2026-05-02', total:920.00, paid:920.00, bal:0.00, status:'paid'},
+        {id:'FOL-10440', room:'0705', dept:'pos', guest:'Tom Hanks', out:'2026-05-01', total:450.00, paid:450.00, bal:0.00, status:'paid'}
     ],
     'year': [
-        {id:'FOL-10482', room:'1401', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
-        {id:'FOL-10481', room:'0807', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
-        {id:'FOL-10480', room:'1205', guest:'Park Soo', out:'2026-05-13', total:1400.00, paid:100.00, bal:1300.00, status:'unpaid'},
-        {id:'FOL-10479', room:'0505', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
-        {id:'FOL-10478', room:'1201', guest:'Nguyen Thi', out:'2026-05-14', total:2100.00, paid:100.00, bal:2000.00, status:'unpaid'},
-        {id:'FOL-10475', room:'0802', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'},
-        {id:'FOL-10474', room:'0304', guest:'Lee Jin', out:'2026-05-10', total:620.00, paid:620.00, bal:0.00, status:'paid'},
-        {id:'FOL-10460', room:'0901', guest:'Alex Wong', out:'2026-05-05', total:1800.00, paid:1800.00, bal:0.00, status:'paid'},
-        {id:'FOL-10452', room:'1102', guest:'Sarah Connor', out:'2026-05-02', total:920.00, paid:920.00, bal:0.00, status:'paid'},
-        {id:'FOL-10440', room:'0705', guest:'Tom Hanks', out:'2026-05-01', total:450.00, paid:450.00, bal:0.00, status:'paid'},
-        {id:'FOL-09820', room:'0502', guest:'Jane Doe', out:'2026-03-15', total:3200.00, paid:3200.00, bal:0.00, status:'paid'},
-        {id:'FOL-09510', room:'1204', guest:'Michael Bay', out:'2026-02-20', total:1500.00, paid:1500.00, bal:0.00, status:'paid'},
-        {id:'FOL-09100', room:'0808', guest:'Tony Stark', out:'2026-01-10', total:5400.00, paid:5400.00, bal:0.00, status:'paid'},
-        {id:'FOL-09050', room:'0601', guest:'Bruce Wayne', out:'2026-01-05', total:2100.00, paid:2100.00, bal:0.00, status:'paid'}
-    ]
+
+        {id:'FOL-10482', room:'1401', dept:'room', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
+        {id:'FOL-10481', room:'0807', dept:'room', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
+        {id:'FOL-10480', room:'1205', dept:'pos', guest:'Park Soo', out:'2026-05-13', total:1400.00, paid:100.00, bal:1300.00, status:'unpaid'},
+        {id:'FOL-10479', room:'0505', dept:'golf', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
+        {id:'FOL-10478', room:'1201', dept:'car', guest:'Nguyen Thi', out:'2026-05-14', total:2100.00, paid:100.00, bal:2000.00, status:'unpaid'},
+        {id:'FOL-10475', room:'0802', dept:'room', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'},
+        {id:'FOL-10474', room:'0304', dept:'pos', guest:'Lee Jin', out:'2026-05-10', total:620.00, paid:620.00, bal:0.00, status:'paid'},
+        {id:'FOL-10460', room:'0901', dept:'room', guest:'Alex Wong', out:'2026-05-05', total:1800.00, paid:1800.00, bal:0.00, status:'paid'},
+        {id:'FOL-10452', room:'1102', dept:'room', guest:'Sarah Connor', out:'2026-05-02', total:920.00, paid:920.00, bal:0.00, status:'paid'},
+        {id:'FOL-10440', room:'0705', dept:'pos', guest:'Tom Hanks', out:'2026-05-01', total:450.00, paid:450.00, bal:0.00, status:'paid'},
+        {id:'FOL-09820', room:'0502', dept:'golf', guest:'Jane Doe', out:'2026-03-15', total:3200.00, paid:3200.00, bal:0.00, status:'paid'},
+        {id:'FOL-09510', room:'1204', dept:'car', guest:'Michael Bay', out:'2026-02-20', total:1500.00, paid:1500.00, bal:0.00, status:'paid'},
+        {id:'FOL-09100', room:'0808', dept:'room', guest:'Tony Stark', out:'2026-01-10', total:5400.00, paid:5400.00, bal:0.00, status:'paid'},
+        {id:'FOL-09050', room:'0601', dept:'pos', guest:'Bruce Wayne', out:'2026-01-05', total:2100.00, paid:2100.00, bal:0.00, status:'paid'}
+    ,
+
+        {id:'FOL-20482', room:'1401', dept:'golf', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
+        {id:'FOL-20481', room:'0807', dept:'golf', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
+        {id:'FOL-20480', room:'1205', dept:'car', guest:'Park Soo', out:'2026-05-13', total:1400.00, paid:100.00, bal:1300.00, status:'unpaid'},
+        {id:'FOL-20479', room:'0505', dept:'golf', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
+        {id:'FOL-20478', room:'1201', dept:'car', guest:'Nguyen Thi', out:'2026-05-14', total:2100.00, paid:100.00, bal:2000.00, status:'unpaid'},
+        {id:'FOL-20475', room:'0802', dept:'golf', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'},
+        {id:'FOL-20474', room:'0304', dept:'car', guest:'Lee Jin', out:'2026-05-10', total:620.00, paid:620.00, bal:0.00, status:'paid'},
+        {id:'FOL-20460', room:'0901', dept:'golf', guest:'Alex Wong', out:'2026-05-05', total:1800.00, paid:1800.00, bal:0.00, status:'paid'},
+        {id:'FOL-20452', room:'1102', dept:'golf', guest:'Sarah Connor', out:'2026-05-02', total:920.00, paid:920.00, bal:0.00, status:'paid'},
+        {id:'FOL-20440', room:'0705', dept:'car', guest:'Tom Hanks', out:'2026-05-01', total:450.00, paid:450.00, bal:0.00, status:'paid'},
+        {id:'FOL-09820', room:'0502', dept:'golf', guest:'Jane Doe', out:'2026-03-15', total:3200.00, paid:3200.00, bal:0.00, status:'paid'},
+        {id:'FOL-09510', room:'1204', dept:'car', guest:'Michael Bay', out:'2026-02-20', total:1500.00, paid:1500.00, bal:0.00, status:'paid'},
+        {id:'FOL-09100', room:'0808', dept:'golf', guest:'Tony Stark', out:'2026-01-10', total:5400.00, paid:5400.00, bal:0.00, status:'paid'},
+        {id:'FOL-09050', room:'0601', dept:'car', guest:'Bruce Wayne', out:'2026-01-05', total:2100.00, paid:2100.00, bal:0.00, status:'paid'}
+    ,
+
+        {id:'FOL-30482', room:'1401', dept:'room', guest:'Tran Linh', out:'2026-05-12', total:1250.00, paid:100.00, bal:1150.00, status:'unpaid'},
+        {id:'FOL-30481', room:'0807', dept:'room', guest:'John Smith', out:'2026-05-12', total:840.50, paid:840.50, bal:0.00, status:'paid'},
+        {id:'FOL-30480', room:'1205', dept:'pos', guest:'Park Soo', out:'2026-05-13', total:1400.00, paid:100.00, bal:1300.00, status:'unpaid'},
+        {id:'FOL-30479', room:'0505', dept:'pos', guest:'Garcia Miguel', out:'2026-05-12', total:420.00, paid:420.00, bal:0.00, status:'paid'},
+        {id:'FOL-30478', room:'1201', dept:'room', guest:'Nguyen Thi', out:'2026-05-14', total:2100.00, paid:100.00, bal:2000.00, status:'unpaid'},
+        {id:'FOL-30475', room:'0802', dept:'room', guest:'Kim Da', out:'2026-05-12', total:350.00, paid:0.00, bal:0.00, status:'refund'},
+        {id:'FOL-30474', room:'0304', dept:'pos', guest:'Lee Jin', out:'2026-05-10', total:620.00, paid:620.00, bal:0.00, status:'paid'},
+        {id:'FOL-30460', room:'0901', dept:'room', guest:'Alex Wong', out:'2026-05-05', total:1800.00, paid:1800.00, bal:0.00, status:'paid'},
+        {id:'FOL-30452', room:'1102', dept:'room', guest:'Sarah Connor', out:'2026-05-02', total:920.00, paid:920.00, bal:0.00, status:'paid'},
+        {id:'FOL-30440', room:'0705', dept:'pos', guest:'Tom Hanks', out:'2026-05-01', total:450.00, paid:450.00, bal:0.00, status:'paid'},
+        {id:'FOL-09820', room:'0502', dept:'pos', guest:'Jane Doe', out:'2026-03-15', total:3200.00, paid:3200.00, bal:0.00, status:'paid'},
+        {id:'FOL-09510', room:'1204', dept:'room', guest:'Michael Bay', out:'2026-02-20', total:1500.00, paid:1500.00, bal:0.00, status:'paid'},
+        {id:'FOL-09100', room:'0808', dept:'room', guest:'Tony Stark', out:'2026-01-10', total:5400.00, paid:5400.00, bal:0.00, status:'paid'},
+        {id:'FOL-09050', room:'0601', dept:'pos', guest:'Bruce Wayne', out:'2026-01-05', total:2100.00, paid:2100.00, bal:0.00, status:'paid'}
+    
+]
 };
 
 const stMap = {
-    'paid': { label:'정산 Completed', badge:'success' },
+    'paid': { label:'정산 완료', badge:'success' },
     'unpaid': { label:'미수금 존재', badge:'warning' },
     'refund': { label:'환불 처리', badge:'danger' }
 };
 
-let currentStatus = 'all';
+let currentDept = 'all';
 let currentPeriod = 'day';
 
 const kpiData = {
@@ -192,7 +235,9 @@ function renderFolios() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const folios = foliosData[currentPeriod] || [];
     const filtered = folios.filter(f => {
-        if (currentStatus !== 'all' && f.status !== currentStatus) return false;
+        const showUnpaidOnly = document.getElementById('chkUnpaid') ? document.getElementById('chkUnpaid').checked : false;
+        if (typeof currentDept !== 'undefined' && currentDept !== 'all' && f.dept !== currentDept) return false;
+        if (showUnpaidOnly && f.bal <= 0) return false;
         if (search && !f.id.toLowerCase().includes(search) && !f.room.includes(search) && !f.guest.toLowerCase().includes(search)) return false;
         return true;
     });
@@ -204,7 +249,7 @@ function renderFolios() {
         const s = stMap[f.status];
         const balColor = f.bal > 0 ? 'var(--danger)' : 'var(--txt)';
         return `<tr>
-            <td style="font-family:monospace;color:var(--txt2)">${f.id}</td>
+            <td style="color:var(--txt2)">${f.id}</td>
             <td><strong>${f.room}</strong></td>
             <td>${f.guest}</td>
             <td>${f.out}</td>
@@ -246,14 +291,26 @@ function renderFolios() {
     }).join('');
 }
 
-function setStatus(btn, status) {
-    currentStatus = status;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+function setDept(btn, dept) {
+    currentDept = dept;
+    document.querySelectorAll('.filter-left .chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     renderFolios();
 }
 
+
 renderFolios();
+const urlParams = new URLSearchParams(window.location.search);
+const pDept = urlParams.get('dept');
+if (pDept) {
+    const btn = document.querySelector(`.filter-chips .chip[onclick*="'${pDept}'"]`);
+    if(btn) {
+        currentDept = pDept;
+        document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        renderFolios();
+    }
+}
 
 // i18n
 let currentLang='ko';
@@ -273,7 +330,7 @@ const translations={ko: {
         "Room Types": "객실 유형",
         "Rates Calendar": "요금 캘린더",
         "Housekeeping": "하우스키핑",
-        "Folio & Billing": "통합 정산",
+        "객실 정산서": "통합 정산",
         "Folio List": "정산 목록",
         "Revenue Analytics": "매출 분석",
         "Ancillary Svcs": "부가서비스",
@@ -285,7 +342,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"Folio & Billing":"통합 정산","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Settled Today":"금일 정산 완료","Outstanding Bal":"미수금 잔액","Ancillary Rev":"부가서비스 매출","Card Payment %":"카드 결제 비율","All":"전체","Export Transactions":"결제 내역 다운로드","Room":"객실","Guest":"고객","Check-out":"체크아웃","Total":"총 금액","Paid (Deposit)":"결제액 (보증금)","Status":"상태","Actions":"관리"},en: {
+"객실 정산서":"통합 정산","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","정산 완료 Today":"금일 정산 완료","Outstanding Bal":"미수금 잔액","Ancillary Rev":"부가서비스 매출","Card Payment %":"카드 결제 비율","All":"전체","Export Transactions":"결제 내역 다운로드","Room":"객실","Guest":"고객","Check-out":"체크아웃","Total":"총 금액","Paid (Deposit)":"결제액 (보증금)","Status":"상태","Actions":"관리"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -301,7 +358,7 @@ const translations={ko: {
         "Room Types": "Room Types",
         "Rates Calendar": "Rates Calendar",
         "Housekeeping": "Housekeeping",
-        "Folio & Billing": "Folio & Billing",
+        "객실 정산서": "객실 정산서",
         "Folio List": "Folio List",
         "Revenue Analytics": "Revenue Analytics",
         "Ancillary Svcs": "Ancillary Svcs",
@@ -313,11 +370,11 @@ const translations={ko: {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
-"Folio & Billing":"Folio & Billing","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Settled Today":"Settled Today","Outstanding Bal":"Outstanding Bal","Ancillary Rev":"Ancillary Rev","Card Payment %":"Card Payment %","All":"All","Export Transactions":"Export Transactions","Room":"Room","Guest":"Guest","Check-out":"Check-out","Total":"Total","Paid (Deposit)":"Paid (Deposit)","Status":"Status","Actions":"Actions"}};
+"객실 정산서":"객실 정산서","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","정산 완료 Today":"정산 완료 Today","Outstanding Bal":"Outstanding Bal","Ancillary Rev":"Ancillary Rev","Card Payment %":"Card Payment %","All":"All","Export Transactions":"Export Transactions","Room":"Room","Guest":"Guest","Check-out":"Check-out","Total":"Total","Paid (Deposit)":"Paid (Deposit)","Status":"Status","Actions":"Actions"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){
     currentLang=l;
-    const d=translations[l]||translations.ko;
+    const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room, guest, folio...':'Room번호, Guest명, Folio 번호 검색...';
     stMap['paid'].label = l==='en'?'Paid':'정산 Completed';
@@ -368,7 +425,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-            <button class="btn-outline" onclick="closeModal('paymentModal')">Cancel</button>
+            <button class="btn-outline" onclick="closeModal('paymentModal')">취소</button>
             <button class="btn-primary-sm" onclick="processPayment()"><i class="fa-solid fa-credit-card"></i> 승인 및 Completed</button>
         </div>
     </div>
@@ -395,11 +452,18 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <div style="display:flex;justify-content:space-between;color:var(--danger);font-weight:700;margin-top:8px"><span>BALANCE DUE</span><span>$1,150.00</span></div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-            <button class="btn-outline" onclick="closeModal('invoiceModal')">Close</button>
+            <button class="btn-outline" onclick="closeModal('invoiceModal')">닫기</button>
             <button class="btn-primary-sm" onclick="window.print()"><i class="fa-solid fa-print"></i> 명세서 인쇄</button>
         </div>
     </div>
 </div>
 
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
+</script>
 </body>
 </html>

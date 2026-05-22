@@ -74,6 +74,82 @@
 .building-section{margin-bottom:8px}
 .building-header{display:flex;align-items:center;gap:10px;padding:14px 0 8px;cursor:pointer;user-select:none}
 .building-header i.bldg-icon{font-size:1rem;color:var(--primary);width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--primary-lt);border-radius:6px}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>객실 관리 — Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
+    <link rel="stylesheet" href="../common/css/operations.css">
+<style>
+/* Mobile filter trigger */
+.m-filter-trigger{display:none;height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;font-size:.75rem;font-weight:600;color:var(--txt);cursor:pointer;font-family:var(--font);align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;width:140px}
+.m-filter-trigger i{font-size:.65rem;color:var(--txt3)}
+.m-filter-trigger span{flex:1;text-align:left}
+
+/* Bottom sheet */
+.bottom-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9998;opacity:0;pointer-events:none;transition:opacity .3s}
+.bottom-sheet-overlay.active{opacity:1;pointer-events:auto}
+.bottom-sheet{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#fff;border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:60vh;box-shadow:0 -4px 30px rgba(0,0,0,.15)}
+.bottom-sheet.active{transform:translateY(0)}
+.bottom-sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:10px auto 0}
+.bottom-sheet-title{padding:16px 20px 8px;font-size:.88rem;font-weight:700;color:var(--txt)}
+.bottom-sheet-options{padding:0 12px 20px}
+.bs-option{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:background .15s;border:none;background:none;width:100%;text-align:left;font-family:var(--font);font-size:.82rem;color:var(--txt)}
+.bs-option:hover,.bs-option:active{background:var(--border2)}
+.bs-option.selected{background:rgba(99,102,241,.06);color:var(--primary);font-weight:700}
+.bs-option-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
+.bs-option-check{margin-left:auto;font-size:.8rem;color:var(--primary);opacity:0}
+.bs-option.selected .bs-option-check{opacity:1}
+.bs-option-label{flex:1}
+.bs-option-desc{font-size:.68rem;color:var(--txt3);font-weight:400;margin-top:2px}
+
+@media(max-width:768px){
+    .m-filter-trigger{display:flex}
+    .filter-chips{display:none!important}
+    .filter-left{flex-direction:row!important;gap:8px!important;flex-wrap:nowrap!important;align-items:center!important}
+    .filter-left .search-box{flex:1;min-width:0;width:auto!important}
+    .kpi-grid{grid-template-columns:1fr 1fr!important;gap:12px!important}
+    .rfc-info{flex-direction:column;align-items:flex-start!important;gap:2px!important}
+    .rfc-val{font-size:1.4rem!important}
+    .rfc-label{font-size:.75rem!important}
+}
+@media(max-width:480px){
+    .kpi-grid{gap:8px!important}
+    .rfc-card{padding:12px 10px!important}
+    .rfc-left{gap:8px!important}
+    .rfc-icon{width:36px!important;height:36px!important;font-size:.9rem!important;border-radius:8px!important}
+    .rfc-val{font-size:1.1rem!important}
+    .rfc-label{font-size:.65rem!important}
+    .rfc-card .fa-chevron-right{font-size:.8rem!important}
+}
+
+/* Room Filter Card Classes */
+.rfc-card{background:#fff;border-radius:16px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border:1px solid var(--border2);box-shadow:0 2px 10px rgba(0,0,0,0.02);transition:all 0.2s}
+.rfc-left{display:flex;align-items:center;gap:14px}
+.rfc-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.rfc-info{display:flex;align-items:baseline;gap:8px}
+.rfc-val{font-size:1.6rem;font-weight:800;color:var(--txt);line-height:1}
+.rfc-label{font-size:.85rem;font-weight:600;color:var(--txt2)}
+
+/* Toggle switch */
+.toggle-switch{position:relative;width:44px;height:24px;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:12px;transition:background .3s}
+.toggle-slider::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .3s}
+.toggle-switch input:checked+.toggle-slider{background:var(--primary)}
+.toggle-switch input:checked+.toggle-slider::after{transform:translateX(20px)}
+
+/* Building section header (auto-rendered) */
+.building-section{margin-bottom:8px}
+.building-header{display:flex;align-items:center;gap:10px;padding:14px 0 8px;cursor:pointer;user-select:none}
+.building-header i.bldg-icon{font-size:1rem;color:var(--primary);width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--primary-lt);border-radius:6px}
 .building-header .bldg-name{font-size:1.05rem;font-weight:700;color:var(--txt)}
 .building-header .bldg-count{font-size:.78rem;color:var(--txt3);font-weight:500;margin-left:4px}
 .building-header .bldg-chevron{margin-left:auto;color:var(--txt3);font-size:.8rem;transition:transform .2s}
@@ -85,26 +161,18 @@
 .add-room-bldg-row{display:none}
 .add-room-bldg-row.show{display:flex}
 </style>
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/i18n.js"></script>
-<script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Room Mgmt">객실 관리</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 12일 (월)</span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
-            </select>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Room Mgmt">객실 관리</h1></header>
 
     <div class="content">
         <!-- KPI -->
@@ -162,11 +230,11 @@
                     <input type="text" id="searchInput" placeholder="객실 번호 검색..." oninput="renderRooms()">
                 </div>
                 <div class="filter-chips">
-                    <button class="chip active" onclick="setStatus(this,'all')">All</button>
-                    <button class="chip" onclick="setStatus(this,'occupied')"><span class="status-dot" style="background:var(--primary)"></span> Occupied</button>
-                    <button class="chip" onclick="setStatus(this,'vacant-clean')"><span class="status-dot" style="background:var(--success)"></span> Vacant Clean</button>
-                    <button class="chip" onclick="setStatus(this,'vacant-dirty')"><span class="status-dot" style="background:var(--warning)"></span> Vacant Dirty</button>
-                    <button class="chip" onclick="setStatus(this,'oos')"><span class="status-dot" style="background:var(--danger)"></span> OOS</button>
+                    <button class="chip active" onclick="setStatus(this,'all')" data-status="all">All</button>
+                    <button class="chip" onclick="setStatus(this,'occupied')" data-status="occupied"><span class="status-dot" style="background:var(--primary)"></span> Occupied</button>
+                    <button class="chip" onclick="setStatus(this,'vacant-clean')" data-status="vacant-clean"><span class="status-dot" style="background:var(--success)"></span> Vacant Clean</button>
+                    <button class="chip" onclick="setStatus(this,'vacant-dirty')" data-status="vacant-dirty"><span class="status-dot" style="background:var(--warning)"></span> Vacant Dirty</button>
+                    <button class="chip" onclick="setStatus(this,'oos')" data-status="oos"><span class="status-dot" style="background:var(--danger)"></span> OOS</button>
                 </div>
                 <button class="m-filter-trigger" onclick="openBottomSheet()">
                     <i class="fa-solid fa-filter"></i>
@@ -222,33 +290,7 @@
 
 <script>
 // Mock Room Data — building field is optional (null = no building)
-const allRooms = [
-    {id:'PH01', floor:20, type:'Penthouse', status:'occupied', guest:'Tran Linh', building:'Ocean Tower'},
-    {id:'PH02', floor:20, type:'Penthouse', status:'vacant-clean', guest:'', building:'Ocean Tower'},
-    
-    {id:'1401', floor:14, type:'Premier', status:'vacant-dirty', guest:'', building:'Ocean Tower'},
-    {id:'1402', floor:14, type:'Premier', status:'occupied', guest:'Lee Hana', building:'Ocean Tower'},
-    {id:'1403', floor:14, type:'Premier', status:'occupied', guest:'Smith J.', building:'Ocean Tower'},
-    {id:'1405', floor:14, type:'Premier', status:'oos', guest:'', building:'Ocean Tower'},
-    
-    {id:'1201', floor:12, type:'Deluxe', status:'occupied', guest:'Nguyen Thi', building:'Forest Tower'},
-    {id:'1202', floor:12, type:'Deluxe', status:'vacant-clean', guest:'', building:'Forest Tower'},
-    {id:'1203', floor:12, type:'Deluxe', status:'vacant-clean', guest:'', building:'Forest Tower'},
-    {id:'1205', floor:12, type:'Deluxe', status:'occupied', guest:'Park Soo', building:'Forest Tower'},
-    {id:'1206', floor:12, type:'Deluxe', status:'vacant-dirty', guest:'', building:'Forest Tower'},
-    
-    {id:'0801', floor:8, type:'Standard', status:'occupied', guest:'Chen Wei', building:'Forest Tower'},
-    {id:'0802', floor:8, type:'Standard', status:'occupied', guest:'Kim Da', building:'Forest Tower'},
-    {id:'0803', floor:8, type:'Standard', status:'oos', guest:'', building:'Forest Tower'},
-    {id:'0805', floor:8, type:'Standard', status:'vacant-clean', guest:'', building:'Forest Tower'},
-    {id:'0806', floor:8, type:'Standard', status:'occupied', guest:'Tanaka Y.', building:'Forest Tower'},
-    {id:'0807', floor:8, type:'Standard', status:'vacant-dirty', guest:'', building:'Forest Tower'},
-    
-    {id:'V-01', floor:1, type:'Pool Villa', status:'occupied', guest:'Garcia M.', building:'Lakeside Villa'},
-    {id:'V-02', floor:1, type:'Pool Villa', status:'vacant-clean', guest:'', building:'Lakeside Villa'},
-    {id:'V-03', floor:1, type:'Garden Villa', status:'occupied', guest:'Bui Tien', building:'Lakeside Villa'},
-    {id:'V-04', floor:1, type:'Garden Villa', status:'vacant-dirty', guest:'', building:'Lakeside Villa'},
-];
+let allRooms = [];
 
 const statusConfig = {
     'occupied': { label: 'Occupied' },
@@ -334,13 +376,6 @@ function renderRooms() {
     }
 }
 
-function setStatus(btn, status) {
-    currentStatus = status;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    renderRooms();
-}
-
 // Bottom sheet
 function openBottomSheet() {
     document.getElementById('bsOverlay').classList.add('active');
@@ -350,28 +385,88 @@ function closeBottomSheet() {
     document.getElementById('bsOverlay').classList.remove('active');
     document.getElementById('bsPanel').classList.remove('active');
 }
+
 function selectFilter(status, label) {
     currentStatus = status;
+    
     // Update bottom sheet selected state
-    document.querySelectorAll('.bs-option').forEach(o => o.classList.remove('selected'));
     document.querySelectorAll('.bs-option').forEach(o => {
-        if (o.getAttribute('onclick').includes(`'${status}'`)) o.classList.add('selected');
+        o.classList.remove('selected');
+        const oc = o.getAttribute('onclick');
+        if (oc && oc.includes(`'${status}'`)) {
+            o.classList.add('selected');
+        }
     });
+    
     // Update mobile trigger label
-    document.getElementById('mFilterLabel').textContent = label;
+    const mLabel = document.getElementById('mFilterLabel');
+    if (mLabel) mLabel.textContent = label || status;
+    
     // Sync desktop chips
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    const chips = document.querySelectorAll('.chip');
-    if (status === 'all') chips[0].classList.add('active');
-    else if (status === 'occupied') chips[1].classList.add('active');
-    else if (status === 'vacant-clean') chips[2].classList.add('active');
-    else if (status === 'vacant-dirty') chips[3].classList.add('active');
-    else if (status === 'oos') chips[4].classList.add('active');
-    // If 'vacant' is selected, no chip perfectly matches, so we leave them inactive
-    // to indicate a combined filter state, or we could select both vacant chips if we wanted.
+    document.querySelectorAll('.chip').forEach(chip => {
+        const oc = chip.getAttribute('onclick');
+        if (oc) {
+            if (status === 'vacant' && (oc.includes('vacant-clean') || oc.includes('vacant-dirty'))) {
+                chip.classList.add('active');
+            } else if (oc.includes(`'${status}'`)) {
+                chip.classList.add('active');
+            }
+        }
+    });
     
     closeBottomSheet();
-    renderRooms();
+    /* renderRooms(); */
+}
+
+function setStatus(btn, status) {
+    let label = '전체';
+    if(status === 'occupied') label = '투숙 중';
+    else if(status === 'vacant-clean') label = '청결 공실';
+    else if(status === 'vacant-dirty') label = '오염 공실';
+    else if(status === 'oos') label = '점검 중 (OOS)';
+    
+    selectFilter(status, label);
+}
+
+function updateFilterCounts() {
+    document.querySelectorAll('.chip').forEach(chip => {
+        const status = chip.getAttribute('data-status');
+        if (!status) return;
+        
+        let count = 0;
+        if (status === 'all') {
+            count = allRooms.length;
+        } else if (status === 'vacant') {
+            count = allRooms.filter(r => r.status === 'vacant-clean' || r.status === 'vacant-dirty').length;
+        } else {
+            count = allRooms.filter(r => r.status === status).length;
+        }
+
+        // find text node or text content and append/update count
+        let baseText = chip.getAttribute('data-base-text');
+        if (!baseText) {
+            // we have html inside some chips like <span class="status-dot"></span> Occupied
+            // extract the text part
+            const textNode = Array.from(chip.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim().length > 0);
+            if (textNode) {
+                baseText = textNode.textContent.trim().replace(/\s*\(\d+\)$/, '');
+                chip.setAttribute('data-base-text', baseText);
+                textNode.textContent = ` ${baseText} (${count})`;
+            } else {
+                baseText = chip.textContent.trim().replace(/\s*\(\d+\)$/, '');
+                chip.setAttribute('data-base-text', baseText);
+                chip.textContent = `${baseText} (${count})`;
+            }
+        } else {
+            const textNode = Array.from(chip.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.includes(baseText));
+            if (textNode) {
+                textNode.textContent = ` ${baseText} (${count})`;
+            } else if (!chip.querySelector('.status-dot')) {
+                chip.textContent = `${baseText} (${count})`;
+            }
+        }
+    });
 }
 
 function saveRoom() {
@@ -379,7 +474,8 @@ function saveRoom() {
     closeModal('addRoomModal');
 }
 
-renderRooms();
+/* renderRooms(); */
+updateFilterCounts();
 
 // i18n
 let currentLang='ko';
@@ -443,7 +539,7 @@ const translations={ko: {
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){
     currentLang=l;
-    const d=translations[l]||translations.ko;
+    const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room 번호 검색...';
     // Update JS rendered labels
@@ -451,14 +547,38 @@ function changeLang(l){
     statusConfig['vacant-clean'].label = l==='en'?'Vacant Clean':'청결 공실';
     statusConfig['vacant-dirty'].label = l==='en'?'Vacant Dirty':'오염 공실';
     statusConfig['oos'].label = l==='en'?'Out of Order':'점검/수리중';
-    renderRooms();
+    /* renderRooms(); */
 }
 
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
 </script>
-
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        let rawRooms = await PmsAPI.getAllRooms();
+        allRooms = rawRooms.map(r => {
+            if (!r.floor) {
+                let num = r.number || r.id || '101';
+                r.floor = Math.floor(parseInt(num.replace(/\D/g, '')) / 100) || 1;
+            }
+            if (r.status === 'clean') r.status = 'vacant-clean';
+            if (r.status === 'dirty') r.status = 'vacant-dirty';
+            if (r.status === 'inspect') r.status = 'vacant-dirty';
+            if (!r.building && r.bldgCode) r.building = r.bldgCode;
+            if (!r.id) r.id = r.number || r.display;
+            return r;
+        });
+        renderRooms();
+        updateFilterCounts();
+    } catch(e) { console.error(e); }
+});
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
+</script>
 </body>
 </html>

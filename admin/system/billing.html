@@ -3,19 +3,16 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>과금 Actions - Super Admin</title>
+<title>결제 관리 - Super Admin</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
 <link href="../common/css/admin-base.css" rel="stylesheet"/>
 <link href="../common/css/admin-pages.css" rel="stylesheet"/>
-<script src="../common/js/admin-admin-i18n.js"></script>
+<script src="../common/js/admin-i18n.js"></script>
 <script src="../common/js/admin-sidebar.js"></script>
 <style>
-		.filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-		.filter-tab { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); font-size: 0.8rem; font-weight: 600; color: var(--txt2); cursor: pointer; transition: all 0.2s; }
-		.filter-tab.active, .filter-tab:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
 		.action-btn { font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 4px; }
 		.btn-alert { background: var(--warning-lt); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
 		.btn-promo { background: var(--purple-lt); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
@@ -39,11 +36,11 @@
 <div class="card">
 <div class="card-header" style="flex-direction:column; align-items:flex-start; gap:16px;">
 <h2 style="font-size:1.1rem; font-weight:700;">All 결제 내역</h2>
-<div class="filter-tabs">
-<button class="filter-tab active" onclick="filterTable('all')">All (All)</button>
-<button class="filter-tab" onclick="filterTable('overdue')" style="color:var(--danger);border-color:var(--danger-lt);">미납/연체</button>
-<button class="filter-tab" onclick="filterTable('expiring')">만료 임박 (D-3)</button>
-<button class="filter-tab" onclick="filterTable('expired')">만료됨</button>
+<div class="filter-chips">
+<button class="chip active" onclick="filterTable('all')">All (All)</button>
+<button class="chip" onclick="filterTable('overdue')" style="color:var(--danger);border-color:var(--danger-lt);">미납/연체</button>
+<button class="chip" onclick="filterTable('expiring')">만료 임박 (D-3)</button>
+<button class="chip" onclick="filterTable('expired')">만료됨</button>
 </div>
 </div>
 <div class="card-body">
@@ -95,7 +92,7 @@
 </div>
 <div class="modal-footer">
 <button class="btn-outline" onclick="closeModal('promoModal')">Cancel</button>
-<button class="btn-primary" onclick="alert('프로모션 메일이 발송되었습니다!');closeModal('promoModal');" style="background:var(--purple);"><i class="fa-solid fa-paper-plane"></i> 메일 발송</button>
+<button class="btn-purple" onclick="alert('프로모션 메일이 발송되었습니다!');closeModal('promoModal');"><i class="fa-solid fa-paper-plane"></i> 메일 발송</button>
 </div>
 </div>
 </div>
@@ -114,7 +111,7 @@
 </div>
 <div class="modal-footer">
 <button class="btn-outline" onclick="closeModal('alertModal')">Cancel</button>
-<button class="btn-primary" onclick="alert('안내 알림이 발송되었습니다.');closeModal('alertModal');" style="background:var(--warning);color:#fff;"><i class="fa-solid fa-paper-plane"></i> 안내 발송</button>
+<button class="btn-warning" onclick="alert('안내 알림이 발송되었습니다.');closeModal('alertModal');"><i class="fa-solid fa-paper-plane"></i> 안내 발송</button>
 </div>
 </div>
 </div>
@@ -164,7 +161,7 @@
 
 	function filterTable(status) {
 		currentFilter = status;
-		document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+		document.querySelectorAll('.chip').forEach(t => t.classList.remove('active'));
 		event.currentTarget.classList.add('active');
 		renderTable();
 	}

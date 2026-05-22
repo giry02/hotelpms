@@ -41,25 +41,18 @@
     .filter-left .search-box{flex:1;min-width:0;width:auto!important}
 }
 </style>
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-crm.js"></script>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
     <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Tier Change History">Tier Change History</h1>
-            <a href="membership.html" style="font-size:.78rem;color:var(--primary);text-decoration:none;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-arrow-left"></i> 멤버십</a>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
-            </select>
-        </div>
+        <h1 data-i18n-key="Tier Change History">Tier Change History</h1>
     </header>
 
     <div class="content">
@@ -197,32 +190,7 @@ const tierCfg = {
     standard:{label:'Standard',icon:'fa-user',color:'#9CA3AF',bg:'rgba(156,163,175,.1)'}
 };
 
-const history = [
-    {date:'2026-05-13',name:'Kim Ji Yeon',init:'KJ',color:'#EC4899',dir:'up',from:'gold',to:'platinum',reason:'10회 투숙 달성 · 연 $5,800',by:'시스템 자동'},
-    {date:'2026-05-12',name:'Park Soo Jin',init:'PS',color:'#10B981',dir:'up',from:'standard',to:'gold',reason:'5회 투숙 달성 · 연 $2,970 적립',by:'시스템 자동'},
-    {date:'2026-05-11',name:'Robert Williams',init:'RW',color:'#3B82F6',dir:'up',from:'gold',to:'diamond',reason:'연 $12,400 돌파 · VIP 추천',by:'Nguyen Kim (Manager)'},
-    {date:'2026-05-10',name:'Nguyen Thi Lan',init:'NT',color:'#3B82F6',dir:'up',from:'standard',to:'gold',reason:'5회 투숙 달성',by:'시스템 자동'},
-    {date:'2026-05-08',name:'David Chen',init:'DC',color:'#3B82F6',dir:'up',from:'gold',to:'platinum',reason:'연 $5,000 돌파',by:'시스템 자동'},
-    {date:'2026-05-07',name:'Sofia Martinez',init:'SM',color:'#F59E0B',dir:'down',from:'platinum',to:'gold',reason:'12개월 미투숙 · 연 지출 미달',by:'시스템 자동'},
-    {date:'2026-05-05',name:'Garcia Miguel',init:'GM',color:'#EC4899',dir:'up',from:'platinum',to:'diamond',reason:'연 $10,000 돌파 · 18회 투숙',by:'시스템 자동'},
-    {date:'2026-05-03',name:'Lee Dong Hyun',init:'LD',color:'#10B981',dir:'up',from:'standard',to:'gold',reason:'VIP 수동 지정 · 기업 계약',by:'Admin'},
-    {date:'2026-05-02',name:'Wong Li',init:'WL',color:'#F59E0B',dir:'up',from:'standard',to:'gold',reason:'5회 투숙 달성',by:'시스템 자동'},
-    {date:'2026-05-01',name:'Yamamoto K.',init:'YK',color:'#8B5CF6',dir:'down',from:'gold',to:'standard',reason:'12개월 미투숙',by:'시스템 자동'},
-    {date:'2026-04-28',name:'Al Rashid Omar',init:'AR',color:'#F59E0B',dir:'up',from:'platinum',to:'diamond',reason:'20회 투숙 달성 · 연 $22,500',by:'시스템 자동'},
-    {date:'2026-04-25',name:'Lee Hana',init:'LH',color:'#8B5CF6',dir:'up',from:'gold',to:'platinum',reason:'10회 투숙 달성',by:'시스템 자동'},
-    {date:'2026-04-22',name:'Tanaka Yuki',init:'TY',color:'#10B981',dir:'up',from:'gold',to:'platinum',reason:'연 $5,000 돌파',by:'시스템 자동'},
-    {date:'2026-04-18',name:'Chen Wei',init:'CW',color:'#3B82F6',dir:'up',from:'standard',to:'gold',reason:'5회 투숙 달성',by:'시스템 자동'},
-    {date:'2026-04-15',name:'Nguyen Van B.',init:'NV',color:'#10B981',dir:'down',from:'platinum',to:'gold',reason:'12개월 미투숙 · 연 지출 미달',by:'시스템 자동'},
-    {date:'2026-04-10',name:'Kim Min Su',init:'KM',color:'#EC4899',dir:'up',from:'standard',to:'gold',reason:'VIP 수동 지정',by:'Nguyen Kim (Manager)'},
-    {date:'2026-03-28',name:'Sato Yuki',init:'SY',color:'#8B5CF6',dir:'up',from:'standard',to:'gold',reason:'5회 투숙 달성',by:'시스템 자동'},
-    {date:'2026-03-20',name:'Mueller Klaus',init:'MK',color:'#EC4899',dir:'down',from:'gold',to:'standard',reason:'12개월 미활동',by:'시스템 자동'},
-    {date:'2026-03-15',name:'Tran Linh',init:'TL',color:'#F59E0B',dir:'up',from:'gold',to:'diamond',reason:'연 $18,900 · 24회 투숙',by:'시스템 자동'},
-    {date:'2026-03-08',name:'John Smith',init:'JS',color:'#8B5CF6',dir:'up',from:'gold',to:'platinum',reason:'연 $6,240 돌파',by:'시스템 자동'},
-    {date:'2026-02-25',name:'Bui Tien',init:'BT',color:'#10B981',dir:'up',from:'standard',to:'gold',reason:'VIP 특별 Upgrade',by:'Admin'},
-    {date:'2026-02-18',name:'Pham Anh',init:'PA',color:'#10B981',dir:'down',from:'gold',to:'standard',reason:'12개월 미활동 · 연 지출 $570',by:'시스템 자동'},
-    {date:'2026-01-30',name:'Kim Da Eun',init:'KD',color:'#3B82F6',dir:'up',from:'standard',to:'gold',reason:'5회 투숙 달성',by:'시스템 자동'},
-    {date:'2026-01-15',name:'Honda Kenji',init:'HK',color:'#8B5CF6',dir:'up',from:'gold',to:'platinum',reason:'10회 투숙 · 연 $7,200',by:'시스템 자동'},
-];
+let history = [];
 
 let currentDir = 'all';
 let currentPage = 1;
@@ -306,15 +274,15 @@ function renderHistory() {
     document.getElementById('pageButtons').innerHTML = btns;
 }
 
-function goPage(p) { currentPage = p; renderHistory(); }
-function changePageSize() { pageSize = parseInt(document.getElementById('pageSizeSelect').value); currentPage = 1; renderHistory(); }
+function goPage(p) { currentPage = p; /* renderHistory(); */ }
+function changePageSize() { pageSize = parseInt(document.getElementById('pageSizeSelect').value); currentPage = 1; /* renderHistory(); */ }
 
 function setDir(btn, dir) {
     currentDir = dir;
     currentPage = 1;
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
-    renderHistory();
+    /* renderHistory(); */
 }
 
 function toggleMenu() {
@@ -346,10 +314,10 @@ function selectFilter(dir, label) {
     else if (dir === 'up') chips[1].classList.add('active');
     else chips[2].classList.add('active');
     closeBottomSheet();
-    renderHistory();
+    /* renderHistory(); */
 }
 
-renderHistory();
+/* renderHistory(); */
 
 // i18n
 let currentLang='ko';
@@ -411,9 +379,18 @@ const translations={ko: {
         "Support": "Support",
 "Tier Change History":"Tier Change History","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Upgrades (Month)":"Upgrades (Month)","Downgrades (Month)":"Downgrades (Month)","Retention Rate":"Retention Rate","New Diamond":"New Diamond","All":"All","Upgrade":"Upgrade","Downgrade":"Downgrade"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){currentLang=l;const d=translations[l]||translations.ko;document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});document.getElementById('searchInput').placeholder=l==='en'?'Search guest name...':'Guest명 검색...';renderHistory();}
+function changeLang(l){currentLang=l;const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});document.getElementById('searchInput').placeholder=l==='en'?'Search guest name...':'Guest명 검색...';/* renderHistory(); */}
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
 </script>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        history = await PmsAPI.getHistory();
+        renderHistory();
+    } catch(e) { console.error(e); }
+});
+</script>
 </body>
 </html>

@@ -47,88 +47,73 @@
         .rfc-card .fa-chevron-right{font-size:.8rem!important}
     }
     </style>
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Housekeeping">하우스키핑</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 12일 (월)</span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
-            </select>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Housekeeping">하우스키핑</h1></header>
 
     <div class="content">
         <!-- KPI -->
         <div class="kpi-grid">
-            <div class="rfc-card" onclick="setFilter(null,'all')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--primary)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
-                <div class="rfc-left">
-                    <div class="rfc-icon" style="background:var(--primary-lt);color:var(--primary)"><i class="fa-solid fa-clipboard-list"></i></div>
-                    <div class="rfc-info">
-                        <span class="rfc-val" id="kpi-total">24</span>
-                        <span class="rfc-label">Total Tasks</span>
-                    </div>
+            <div class="kpi-card blue" style="cursor:pointer" onclick="setFilter(null,'all')">
+                <div class="kpi-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpi-total">24</div>
+                    <div class="kpi-label">Total Tasks</div>
                 </div>
-                <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
             </div>
 
-            <div class="rfc-card" onclick="setFilter(null,'dirty')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--warning)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
-                <div class="rfc-left">
-                    <div class="rfc-icon" style="background:var(--warning-lt);color:var(--warning)"><i class="fa-solid fa-broom"></i></div>
-                    <div class="rfc-info">
-                        <span class="rfc-val" id="kpi-dirty">8</span>
-                        <span class="rfc-label">Pending Clean</span>
-                    </div>
+            <div class="kpi-card orange" style="cursor:pointer" onclick="setFilter(null,'dirty')">
+                <div class="kpi-icon"><i class="fa-solid fa-broom"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpi-dirty">8</div>
+                    <div class="kpi-label">Pending Clean</div>
                 </div>
-                <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
             </div>
 
-            <div class="rfc-card" onclick="setFilter(null,'inspect')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--purple)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
-                <div class="rfc-left">
-                    <div class="rfc-icon" style="background:var(--purple-lt);color:var(--purple)"><i class="fa-solid fa-magnifying-glass"></i></div>
-                    <div class="rfc-info">
-                        <span class="rfc-val" id="kpi-inspect">2</span>
-                        <span class="rfc-label">To Inspect</span>
-                    </div>
+            <div class="kpi-card purple" style="cursor:pointer" onclick="setFilter(null,'inspect')">
+                <div class="kpi-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpi-inspect">2</div>
+                    <div class="kpi-label">To Inspect</div>
                 </div>
-                <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
             </div>
 
-            <div class="rfc-card" onclick="setFilter(null,'clean')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--success)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
-                <div class="rfc-left">
-                    <div class="rfc-icon" style="background:var(--success-lt);color:var(--success)"><i class="fa-solid fa-check-double"></i></div>
-                    <div class="rfc-info">
-                        <span class="rfc-val" id="kpi-clean">14</span>
-                        <span class="rfc-label">Completed</span>
-                    </div>
+            <div class="kpi-card green" style="cursor:pointer" onclick="setFilter(null,'clean')">
+                <div class="kpi-icon"><i class="fa-solid fa-check-double"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpi-clean">14</div>
+                    <div class="kpi-label">Completed</div>
                 </div>
-                <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
             </div>
         </div>
 
         <!-- FILTER -->
         <div class="filter-bar">
             <div class="filter-left">
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="객실 번호 검색..." oninput="renderTasks()">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" placeholder="객실 번호 검색..." oninput="renderTasks()">
+                    </div>
+                    <button onclick="renderTasks()" class="btn-primary-sm"
+                        style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap">
+                        <i class="fa-solid fa-magnifying-glass"></i> 검색
+                    </button>
                 </div>
                 <div class="desktop-only" style="display:flex;">
                     <div class="filter-chips">
-                        <button class="chip active" onclick="setFilter(this,'all')">All</button>
-                        <button class="chip" onclick="setFilter(this,'dirty')"><span class="status-dot" style="background:var(--warning)"></span> Pending Clean</button>
-                        <button class="chip" onclick="setFilter(this,'inspect')"><span class="status-dot" style="background:var(--purple)"></span> To Inspect</button>
-                        <button class="chip" onclick="setFilter(this,'clean')"><span class="status-dot" style="background:var(--success)"></span> Completed</button>
+                        <button class="chip active" onclick="setFilter(this,'all')" data-status="all"><span data-i18n-key="All">All</span> <span class="chip-count"></span></button>
+                        <button class="chip" onclick="setFilter(this,'dirty')" data-status="dirty"><span class="status-dot" style="background:var(--warning)"></span> <span data-i18n-key="Pending Clean">Pending Clean</span> <span class="chip-count"></span></button>
+                        <button class="chip" onclick="setFilter(this,'inspect')" data-status="inspect"><span class="status-dot" style="background:var(--purple)"></span> <span data-i18n-key="To Inspect">To Inspect</span> <span class="chip-count"></span></button>
+                        <button class="chip" onclick="setFilter(this,'clean')" data-status="clean"><span class="status-dot" style="background:var(--success)"></span> <span data-i18n-key="Completed">Completed</span> <span class="chip-count"></span></button>
                     </div>
                 </div>
                 <button class="btn-outline mobile-filter-btn" onclick="openModal('mobileFilterModal')" id="mobileFilterBtn" style="display: none;">
@@ -136,7 +121,7 @@
                 </button>
             </div>
             <div class="filter-right">
-                <button class="btn-outline"><i class="fa-solid fa-print"></i> Print Task List</button>
+                <button class="btn-outline" onclick="window.print()"><i class="fa-solid fa-print"></i> <span data-i18n-key="Print Task List">Print Task List</span></button>
             </div>
         </div>
 
@@ -153,6 +138,38 @@
         <div class="modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
             <h3 style="font-size:1.1rem;font-weight:700">Status 필터</h3>
             <button class="modal-close" onclick="closeModal('mobileFilterModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" id="mobileFilterList" style="padding:16px 0;">
+            <div class="mobile-bldg-item active" onclick="setFilter(this,'all')">
+                All
+                <span class="check-mark"><i class="fa-solid fa-check"></i></span>
+            </div>
+            <div class="mobile-bldg-item" onclick="setFilter(this,'dirty')">
+                Pending Clean
+                <span class="check-mark"></span>
+            </div>
+            <div class="mobile-bldg-item" onclick="setFilter(this,'inspect')">
+                To Inspect
+                <span class="check-mark"></span>
+            </div>
+            <div class="mobile-bldg-item" onclick="setFilter(this,'clean')">
+                Completed
+                <span class="check-mark"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let tasks = [];
+let currentFilter = 'all';
+
+const typeMap = {
+    'checkout': { label:'Check-out 청소', icon:'fa-person-walking-luggage', color:'var(--danger)' },
+    'stayover': { label:'재실 청소', icon:'fa-bed', color:'var(--primary)' },
+    'deep': { label:'정밀 청소', icon:'fa-spray-can-sparkles', color:'var(--purple)' }
+};
+
 const statusMap = {
     'all': 'All',
     'dirty': 'Pending Clean',
@@ -160,11 +177,88 @@ const statusMap = {
     'clean': 'Completed'
 };
 
+function renderTasks() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const container = document.getElementById('taskList');
+    const filtered = tasks.filter(t => {
+        if(currentFilter !== 'all' && t.status !== currentFilter) return false;
+        if(search && !t.room.toLowerCase().includes(search)) return false;
+        return true;
+    });
+
+    if(filtered.length === 0) {
+        container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3)">해당하는 방이 없습니다.</div>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(t => {
+        const typeInfo = typeMap[t.type];
+        let statusHtml = '';
+        let actionHtml = '';
+
+        const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
+        let lblNeedsClean = isEn ? 'Needs Cleaning' : '청소 요망';
+        let lblToInspect = isEn ? 'To Inspect' : '점검 대기';
+        let lblClean = isEn ? 'Clean' : '청소 완료';
+        
+        let btnStartClean = isEn ? 'Start Clean' : '청소 시작';
+        let btnPassInspect = isEn ? 'Pass Inspect' : '점검 통과';
+        let btnCompleted = isEn ? 'Completed' : '완료됨';
+        let logText = isEn ? 'View Log' : 'Log 보기';
+
+        if(t.status === 'dirty') {
+            statusHtml = `<span style="color:var(--warning);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> ${lblNeedsClean}</span>`;
+            actionHtml = `<button class="btn-primary-sm" onclick="completeTask('${t.id}', 'inspect')"><i class="fa-solid fa-broom"></i> ${btnStartClean}</button>`;
+        } else if(t.status === 'inspect') {
+            statusHtml = `<span style="color:var(--purple);font-weight:700"><i class="fa-solid fa-eye"></i> ${lblToInspect}</span>`;
+            actionHtml = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)" onclick="completeTask('${t.id}', 'clean')"><i class="fa-solid fa-check"></i> ${btnPassInspect}</button>`;
+        } else {
+            statusHtml = `<span style="color:var(--success)"><i class="fa-solid fa-check-circle"></i> ${lblClean}</span>`;
+            actionHtml = `<button class="btn-outline-sm" disabled>${btnCompleted}</button>`;
+        }
+
+        return `
+        <div class="hk-task ${t.status}">
+            <div class="hk-task-left">
+                <div class="hk-task-room">${t.room}</div>
+                <div class="hk-task-info">
+                    <div class="hk-task-title">
+                        <i class="fa-solid ${typeInfo.icon}" style="color:${typeInfo.color}"></i> ${typeInfo.label}
+                    </div>
+                    <div class="hk-task-meta">
+                        ${statusHtml} <span style="margin:0 8px;color:var(--border)">|</span>
+                        <a href="#" style="color:var(--primary)" onclick="showHkLog('${t.room}');return false;">${logText}</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hk-task-right">
+                ${actionHtml}
+            </div>
+        </div>`;
+    }).join('');
+}
+
 function updateKpis() {
     document.getElementById('kpi-total').textContent = tasks.length;
     document.getElementById('kpi-dirty').textContent = tasks.filter(t => t.status === 'dirty').length;
     document.getElementById('kpi-inspect').textContent = tasks.filter(t => t.status === 'inspect').length;
     document.getElementById('kpi-clean').textContent = tasks.filter(t => t.status === 'clean').length;
+    updateFilterCounts();
+}
+
+function updateFilterCounts() {
+    document.querySelectorAll('.chip').forEach(chip => {
+        const status = chip.getAttribute('data-status');
+        if (!status) return;
+        const countSpan = chip.querySelector('.chip-count');
+        if (!countSpan) return;
+        
+        let count = 0;
+        if (status === 'all') count = tasks.length;
+        else count = tasks.filter(t => t.status === status).length;
+        
+        countSpan.textContent = `(${count})`;
+    });
 }
 
 function completeTask(id, nextStatus) {
@@ -201,16 +295,18 @@ function setFilter(btn, status) {
     
     // Update Mobile Button Text
     const mBtn = document.getElementById('mobileFilterBtn');
-    if (mBtn) mBtn.innerHTML = `<i class="fa-solid fa-filter" style="color:var(--txt3)"></i> ${statusMap[status]} <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; margin-left: 2px;"></i>`;
+    if (mBtn) mBtn.innerHTML = `<i class="fa-solid fa-filter" style="color:var(--txt3)"></i> ${statusMap[status] || statusMap['all']} <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; margin-left: 2px;"></i>`;
     
     closeModal('mobileFilterModal');
     renderTasks();
 }
 
+function showHkLog(roomNum) {
+    showToast(`${roomNum}호 작업 로그를 불러왔습니다.`);
+}
+
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-updateKpis();
-renderTasks();
 
 // i18n
 let currentLang='ko';
@@ -274,7 +370,7 @@ const translations={ko: {
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){
     currentLang=l;
-    const d=translations[l]||translations.ko;
+    const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room 번호 검색...';
     typeMap['checkout'].label = l==='en'?'C/O Clean':'Check-out 청소';
@@ -283,6 +379,24 @@ function changeLang(l){
     renderTasks();
 }
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        localStorage.removeItem('pms_tasks');
+        tasks = await PmsAPI.getTasks();
+        updateKpis();
+        renderTasks();
+    } catch(e) { console.error(e); }
+});
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
 </script>
 </body>
 </html>

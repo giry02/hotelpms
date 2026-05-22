@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>직원 목록 — Hotel PMS</title>
+    <title>직원 관리 — Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,23 +11,12 @@
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/settings.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-settings.js"></script>
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script>
-        const ALL_MENUS = [
-            { key:'dashboard',    icon:'fa-gauge-high',          label:'대시보드' },
-            { key:'reservation',  icon:'fa-calendar-days',       label:'예약 관리' },
-            { key:'checkin',      icon:'fa-right-to-bracket',    label:'체크인/아웃' },
-            { key:'crm',          icon:'fa-users',               label:'고객 CRM' },
-            { key:'rooms',        icon:'fa-bed',                 label:'객실 관리' },
-            { key:'rates',        icon:'fa-tags',                label:'요금 캘린더' },
-            { key:'housekeeping', icon:'fa-broom',               label:'하우스키핑' },
-            { key:'folio',        icon:'fa-file-invoice-dollar', label:'정산/청구' },
-            { key:'ancillary',    icon:'fa-concierge-bell',      label:'부가서비스' },
-            { key:'settings',     icon:'fa-gear',                label:'호텔 설정' },
-            { key:'staff',        icon:'fa-users-gear',          label:'직원 관리' },
-            { key:'billing',      icon:'fa-credit-card',         label:'요금 및 결제' },
-        ];
+        let ALL_MENUS = [];
     </script>
     <style>
         .staff-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; color: #fff; flex-shrink: 0; }
@@ -51,26 +40,12 @@
         .perm-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: .72rem; font-weight: 600; background: #fff; border: 1px solid var(--border); color: var(--txt2); margin: 3px; }
     </style>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Staff List">직원 목록</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 22일</span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px">
-                <i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon
-            </div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option>
-                <option value="en">🇺🇸 English</option>
-            </select>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Staff Mgmt">직원 관리</h1></header>
 
     <div class="content">
 
@@ -78,23 +53,19 @@
         <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
             <div class="kpi-card blue">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-users-gear"></i></div></div>
-                <div class="kpi-value" id="kpiTotal">0</div>
-                <div class="kpi-label">전체 직원</div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-label">전체 직원</div></div>
             </div>
             <div class="kpi-card green">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-circle-dot"></i></div></div>
-                <div class="kpi-value" id="kpiOnline">0</div>
-                <div class="kpi-label">근무 중</div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiOnline">0</div><div class="kpi-label">근무 중</div></div>
             </div>
             <div class="kpi-card purple">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-shield-halved"></i></div></div>
-                <div class="kpi-value" id="kpiRoles">0</div>
-                <div class="kpi-label">정의된 역할 수</div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiRoles">0</div><div class="kpi-label">정의된 역할 수</div></div>
             </div>
             <div class="kpi-card orange" style="background:linear-gradient(135deg,#FEF3C7,#fff)">
                 <div class="kpi-top"><div class="kpi-icon" style="background:#FDE68A;color:#B45309"><i class="fa-solid fa-user-slash"></i></div></div>
-                <div class="kpi-value" id="kpiOffline">0</div>
-                <div class="kpi-label">오프라인</div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiOffline">0</div><div class="kpi-label">오프라인</div></div>
             </div>
         </div>
 
@@ -225,42 +196,60 @@
             <button class="modal-close" onclick="closeModal('editStaffModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
-            <div style="display:flex;flex-direction:column;gap:6px">
-                <label class="form-label">이름</label>
-                <input type="text" class="form-control" id="editName">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">이름</label>
+                    <input type="text" class="form-control" id="editName">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">사번</label>
+                    <input type="text" class="form-control" id="editEmpId">
+                </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
-                <label class="form-label">역할 변경</label>
-                <select class="form-control" id="editRole"></select>
+                <label class="form-label">ID (이메일)</label>
+                <input type="email" class="form-control" id="editEmail" readonly style="background:#f1f5f9">
             </div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-                <label class="form-label">상태</label>
-                <select class="form-control" id="editStatus">
-                    <option value="online">근무 중</option>
-                    <option value="offline">오프라인</option>
-                </select>
+            
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">역할 변경</label>
+                    <select class="form-control" id="editRole"></select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">상태</label>
+                    <select class="form-control" id="editStatus">
+                        <option value="online">근무 중</option>
+                        <option value="offline">오프라인</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--border2)">
+                <label class="form-label">비밀번호 초기화</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" class="form-control" id="editResetPw" placeholder="새 비밀번호 입력 (또는 발송 클릭)" style="flex:1;">
+                    <button class="btn-outline" style="white-space:nowrap;" onclick="sendTempPw()"><i class="fa-solid fa-envelope"></i> 임시 비밀번호 발송(Reset Password)</button>
+                </div>
             </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="display:flex; justify-content:space-between;">
             <button class="btn-outline danger" onclick="deleteStaff()" style="color:#DC2626;border-color:#FECACA">
                 <i class="fa-solid fa-trash"></i> 삭제
             </button>
-            <button class="btn-outline" onclick="closeModal('editStaffModal')">취소</button>
-            <button class="btn-primary-sm" onclick="saveEdit()"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-outline" onclick="closeModal('editStaffModal')">취소</button>
+                <button class="btn-primary-sm" onclick="saveEdit()"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
 // ─── 시스템 기본 역할 ─────────────────────
-const SYSTEM_ROLES = [
-    { id:'sys_admin',       name:'Admin',       color:'#6D28D9', desc:'전체 접근',          perms:ALL_MENUS.map(m=>m.key) }
-];
+let SYSTEM_ROLES = [];
 
-const DEFAULT_CUSTOM_ROLES = [
-    { id:'sys_manager',     name:'Manager',     color:'#1D4ED8', desc:'프론트+운영 관리',   perms:['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary'] },
-    { id:'sys_housekeeper', name:'Housekeeper', color:'#065F46', desc:'하우스키핑 전용',    perms:['dashboard','housekeeping','rooms'] },
-];
+let DEFAULT_CUSTOM_ROLES = [];
 
 const MENU_LABEL = {
     dashboard:'대시보드', reservation:'예약 관리', checkin:'체크인/아웃',
@@ -286,14 +275,7 @@ function getRoleById(id) {
 }
 
 // ─── 직원 데이터 (localStorage) ────────────────────────────────
-const DEFAULT_STAFF = [
-    { id:'s1', name:'Nguyen Kim',     init:'NK', email:'nkim@grandsaigon.com',  phone:'+84 90 123 4444', roleId:'sys_admin',       status:'online',  last:'방금 전',    color:'#8B5CF6' },
-    { id:'s2', name:'Lee Min Ho',     init:'LM', email:'lmh@grandsaigon.com',   phone:'+84 91 222 3333', roleId:'sys_manager',     status:'online',  last:'10분 전',   color:'#3B82F6' },
-    { id:'s3', name:'Mai Thi',        init:'MT', email:'mai@grandsaigon.com',   phone:'+84 92 444 5555', roleId:'sys_housekeeper', status:'online',  last:'1시간 전',  color:'#10B981' },
-    { id:'s4', name:'Anna Kournikova',init:'AK', email:'anna@grandsaigon.com',  phone:'+84 93 555 6666', roleId:'sys_housekeeper', status:'offline', last:'어제',       color:'#F59E0B' },
-    { id:'s5', name:'Tran Van',       init:'TV', email:'tranv@grandsaigon.com', phone:'+84 94 666 7777', roleId:'sys_admin',       status:'online',  last:'20분 전',   color:'#8B5CF6' },
-    { id:'s6', name:'Soo Jin Park',   init:'SP', email:'sjp@grandsaigon.com',   phone:'+84 95 777 8888', roleId:'sys_manager',     status:'offline', last:'오늘 06:00', color:'#3B82F6' },
-];
+let DEFAULT_STAFF = [];
 
 function loadStaff() {
     try { return JSON.parse(localStorage.getItem('pms_staff') || 'null') || DEFAULT_STAFF; } catch { return DEFAULT_STAFF; }
@@ -444,7 +426,7 @@ function saveStaff() {
     });
 
     saveStaffData(staffData);
-    renderStaff();
+    /* renderStaff(); */
     updateKPI();
     closeModal('addStaffModal');
     resetAddForm();
@@ -467,8 +449,11 @@ function openEdit(id) {
     if (!s) return;
     editingId = id;
     document.getElementById('editName').value   = s.name;
+    document.getElementById('editEmpId').value  = s.empId || '';
+    document.getElementById('editEmail').value  = s.email;
     document.getElementById('editRole').value   = s.roleId;
     document.getElementById('editStatus').value = s.status;
+    document.getElementById('editResetPw').value = '';
     openModal('editStaffModal');
 }
 
@@ -476,21 +461,34 @@ function saveEdit() {
     const s = staffData.find(x => x.id === editingId);
     if (!s) return;
     s.name   = document.getElementById('editName').value.trim();
+    s.empId  = document.getElementById('editEmpId').value.trim();
     s.roleId = document.getElementById('editRole').value;
     s.status = document.getElementById('editStatus').value;
+    
+    const newPw = document.getElementById('editResetPw').value.trim();
+    if (newPw) {
+        showToast('비밀번호가 성공적으로 초기화되었습니다.', 'success');
+    }
+
     const role = getRoleById(s.roleId);
     if (role) s.color = role.color;
     saveStaffData(staffData);
-    renderStaff();
+    /* renderStaff(); */
     closeModal('editStaffModal');
     showToast('직원 정보가 수정되었습니다.', 'success');
+}
+
+function sendTempPw() {
+    const pw = Math.random().toString(36).slice(-8);
+    document.getElementById('editResetPw').value = pw;
+    showToast('임시 비밀번호가 발송되었습니다.', 'success');
 }
 
 async function deleteStaff() {
     if (!await showConfirm('이 직원을 삭제하시겠습니까?')) return;
     staffData = staffData.filter(x => x.id !== editingId);
     saveStaffData(staffData);
-    renderStaff();
+    /* renderStaff(); */
     updateKPI();
     closeModal('editStaffModal');
     showToast('직원이 삭제되었습니다.', 'info');
@@ -520,9 +518,28 @@ function showToast(msg, type = 'success') {
 
 // ─── 초기 실행 ────────────────────────────────────────────────
 buildRoleFilter();
-renderStaff();
+/* renderStaff(); */
 updateKPI();
 </script>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        ALL_MENUS = await PmsAPI.getALL_MENUS();
+        SYSTEM_ROLES = await PmsAPI.getSYSTEM_ROLES();
+        DEFAULT_CUSTOM_ROLES = await PmsAPI.getDEFAULT_CUSTOM_ROLES();
+        DEFAULT_STAFF = await PmsAPI.getDEFAULT_STAFF();
+        renderStaff();
+    } catch(e) { console.error(e); }
+});
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
+</script>
 </body>
 </html>

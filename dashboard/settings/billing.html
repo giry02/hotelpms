@@ -2,7 +2,20 @@
 
 <html lang="ko">
 <head>
-<meta charset="utf-8"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>요금 및 결제 — Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/settings.css">
+    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/sidebar.js"></script>
+    <style>
+        .billing-warning {
+            background: #FEF2F2; border: 1px solid #FECACA; border-radius: var(--radius);
             padding: 20px 24px;
             margin-bottom: 24px;
             display: flex;
@@ -109,18 +122,11 @@
         .modal-body { padding: 24px; }
         .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border2); display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; border-radius: 0 0 var(--radius) var(--radius); }
 </style>
-    <script src="../common/js/ui-components.js"></script>
 </head>
 <body>
 <div class="main">
 <!-- Topbar -->
-<header class="topbar">
-<div class="topbar-left">
-<button class="mobile-menu-btn" onclick="PMS_Sidebar.toggle()"><i class="fa-solid fa-bars"></i></button>
-<h1 data-i18n-key="Billing & Payment">요금 및 결제</h1>
-</div>
-<div class="topbar-right"></div>
-</header>
+<header class="topbar"><h1 data-i18n-key="Billing & Payment">요금 및 결제</h1></header>
 <div class="content">
 <!-- 연체 경고 배너 -->
 <div class="billing-warning" id="warningBanner">
@@ -384,7 +390,7 @@
 <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>Room 50개 제한</li>
 <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>기본 예약 관리</li>
 </ul>
-<button class="btn-outline" onclick="showToast('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
+<button class="btn-outline" onclick="alert('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
 </div>
 <!-- Standard -->
 <div style="border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px; text-align:center;">
@@ -395,7 +401,7 @@
 <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>하우스키핑 연동</li>
 <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>기본 정산 기능</li>
 </ul>
-<button class="btn-outline" onclick="showToast('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
+<button class="btn-outline" onclick="alert('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
 </div>
 <!-- Premium (current) -->
 <div style="border:2px solid var(--primary); border-radius:var(--radius-sm); padding:20px; text-align:center; background:#EFF6FF; position:relative;">
@@ -415,9 +421,8 @@
 </div>
 </div>
 </div>
-<script src="../common/js/i18n.js"></script>
-<script src="../common/js/sidebar.js"></script>
-<script src="../common/js/topbar.js"></script>
+<script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 <script>
 /* 모달 헬퍼 함수 */
 function openModal(id)  { document.getElementById(id).classList.add('active'); document.body.style.overflow='hidden'; }
@@ -431,6 +436,7 @@ function openPlanModal()    { openModal('planModalOverlay'); }
 /* ??? 카드 번호 ?щ㎎ ??? */
 function formatCardNumber(el) {
 /* 카드 번호 포맷팅 */
+    let v = el.value.replace(/\D/g,'').substring(0,16);
     el.value = v.match(/.{1,4}/g)?.join(' ') || v;
 }
 function formatExpiry(el) {
@@ -442,6 +448,7 @@ function formatExpiry(el) {
 /* ??? ?ㅼ떆媛?카드 미리보기 ??? */
 function updatePreview() {
 /* 실시간 카드 미리보기 */
+    const num  = document.getElementById('inputCardNumber').value.replace(/\s/g,'') || '';
     const name = document.getElementById('inputCardName').value  || '이름 입력';
     const exp  = document.getElementById('inputCardExpiry').value || 'MM/YY';
     document.getElementById('previewNumber').textContent = num.padEnd(19,' ').replace(/(.{4})/g,'$1 ').trim();
@@ -471,7 +478,7 @@ function submitAddCard() {
     const exp  = document.getElementById('inputCardExpiry').value;
     const cvc  = document.getElementById('inputCardCVC').value;
     if (num.length < 16 || !name || exp.length < 5 || cvc.length < 3) {
-        showToast('모든 카드 정보를 올바르게 입력해주세요.'); return;
+        alert('모든 카드 정보를 올바르게 입력해주세요.'); return;
     }
     const last4  = num.slice(-4);
     const isDefault = document.getElementById('setDefault').checked;
@@ -505,7 +512,7 @@ function submitAddCard() {
 
 /* 카드 삭제 기능 */
 function removeCard(id) {
-    if (!await showConfirm('이 카드를 삭제하시겠습니까?')) return;
+    if (!confirm('이 카드를 삭제하시겠습니까?')) return;
     const el = document.getElementById(id);
     el.style.transition = 'opacity .3s, transform .3s';
     el.style.opacity = '0'; el.style.transform = 'translateX(20px)';
@@ -525,7 +532,7 @@ function setDefaultCard(id) {
 
 /* ?€?€?€ 寃곗젣 ?쒖텧 ?€?€?€ */
 function submitPayment() {
-    const btn = document.querySelector('#payModalOverlay .btn-danger');
+    const btn = document.querySelector('#payModalOverlay .btn-danger-sm');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 결제 처리 중...';
     setTimeout(() => {
@@ -555,6 +562,13 @@ function showToast(msg) {
     requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateY(0)'; });
     setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(12px)'; }, 3000);
 }
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
 </script>
 </body>
 </html>

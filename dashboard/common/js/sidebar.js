@@ -12,34 +12,9 @@
     // ─── 사용자 역할 로드 (기본값 admin) ─────────
     window.currentUserRole = localStorage.getItem('currentUserRole') || 'admin';
 
-    // 동적 스크립트 로드 후 DataReady 이벤트 발생 (document.write 안티패턴 제거)
-    const scriptsToLoad = [
-        `${BASE}common/data/ancillaries.js`,
-        `${BASE}common/data/guests.js`,
-        `${BASE}common/data/rooms.js`,
-        `${BASE}common/data/reservations.js`,
-        `${BASE}common/data/orders.js`,
-        `${BASE}common/data/housekeeping.js`
-    ];
-    let loadedCount = 0;
-    scriptsToLoad.forEach(src => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = () => {
-            loadedCount++;
-            if(loadedCount === scriptsToLoad.length) {
-                window.dispatchEvent(new Event('DataReady'));
-            }
-        };
-        // 오류가 나도 다음 스크립트를 로드하기 위해
-        script.onerror = () => {
-            loadedCount++;
-            if(loadedCount === scriptsToLoad.length) window.dispatchEvent(new Event('DataReady'));
-        };
-        document.head.appendChild(script);
-    });
+    // DataReady 이벤트는 init() 완료 후 dispatch
 
-    // ─── 메뉴 정의 (dashboard/ 기준 상대경로) ────────────────────
+    // ─── 메뉴 정의 ────────────────────────────────────────────
     const MENU = [
         {
             group: 'Main',
@@ -52,18 +27,18 @@
             group: 'Front Desk',
             roles: ['admin', 'manager'],
             items: [
-                { icon: 'fa-calendar-days',    label: 'Reservations', href: BASE + 'frontdesk/reservation-timeline.html' },
-                { icon: 'fa-list-check',       label: 'Booking List',     href: BASE + 'frontdesk/reservation-list.html' },
-                { icon: 'fa-right-to-bracket', label: 'Check-in/out',   href: BASE + 'frontdesk/checkin.html' },
-                { icon: 'fa-users-rectangle', label: 'Group & MICE', href: BASE + 'frontdesk/groups.html' },
+                { icon: 'fa-calendar-days',    label: 'Reservations',  href: BASE + 'frontdesk/reservation-timeline.html' },
+                { icon: 'fa-list-check',       label: 'Booking List',  href: BASE + 'frontdesk/reservation-list.html' },
+                { icon: 'fa-right-to-bracket', label: 'Check-in/out',  href: BASE + 'frontdesk/checkin.html' },
+                { icon: 'fa-users',            label: 'Groups',        href: BASE + 'frontdesk/groups.html' },
             ]
         },
         {
             group: 'Guest & CRM',
             roles: ['admin', 'manager'],
             items: [
-                { icon: 'fa-users', label: 'Guest CRM', href: BASE + 'crm/guests.html' },
-                { icon: 'fa-crown', label: 'VIP Members',  href: BASE + 'crm/membership.html' },
+                { icon: 'fa-address-book', label: 'Guest CRM',   href: BASE + 'crm/guests.html' },
+                { icon: 'fa-crown',        label: 'VIP Members', href: BASE + 'crm/membership.html' },
             ]
         },
         {
@@ -74,34 +49,32 @@
                     icon: 'fa-bed', label: 'Room Mgmt', id: 'rooms',
                     mainHref: BASE + 'operations/rooms.html',
                     children: [
-                        { label: 'Room Mgmt', href: BASE + 'operations/rooms.html' },
-                        { label: 'Room Types', href: BASE + 'operations/room-setup.html' },
+                        { label: 'Room List',   href: BASE + 'operations/rooms.html' },
+                        { label: 'Room Types',  href: BASE + 'operations/room-setup.html' },
+                        { label: 'Rates Calendar', href: BASE + 'operations/rates.html' },
                     ]
                 },
-                { icon: 'fa-tags',  label: 'Rates Calendar', href: BASE + 'operations/rates.html' },
-                { icon: 'fa-broom', label: 'Housekeeping',  href: BASE + 'operations/housekeeping.html', badge: '5' },
-                { icon: 'fa-wrench', label: 'Maintenance',  href: BASE + 'operations/maintenance.html' },
+                { icon: 'fa-broom', label: 'Housekeeping', href: BASE + 'operations/housekeeping.html', badge: '5' },
+                { icon: 'fa-wrench', label: 'Maintenance', href: BASE + 'operations/maintenance.html' },
                 {
                     icon: 'fa-file-invoice-dollar', label: 'Folio & Billing', id: 'folio',
                     mainHref: BASE + 'operations/folio.html',
                     children: [
-                        { label: 'Folio List', href: BASE + 'operations/folio.html' },
-                        { label: 'Revenue Analytics', href: BASE + 'operations/folio-chart.html' },
+                        { label: 'Folio List',        href: BASE + 'operations/folio.html' },
+                        { label: 'Revenue Analytics', href: BASE + 'operations/reports.html' },
+                        { label: 'Night Audit',       href: BASE + 'operations/night-audit.html' },
                     ]
                 },
                 {
                     icon: 'fa-concierge-bell', label: 'Ancillary Svcs', id: 'ancillary',
-                    mainHref: BASE + 'operations/room-service.html',
+                    mainHref: BASE + 'operations/unified-pos.html',
                     children: [
-                        { label: 'Room Service', href: BASE + 'operations/room-service.html' },
-                        { label: 'Golf',   href: BASE + 'operations/golf.html' },
+                        { label: 'Unified POS', href: BASE + 'operations/unified-pos.html' },
+                        { label: 'Golf',         href: BASE + 'operations/golf.html' },
                         { label: 'Rent-a-car',   href: BASE + 'operations/rentacar.html' },
-                        { label: 'POS',   href: BASE + 'operations/pos.html' },
                     ]
                 },
-                            { icon: 'fa-moon', label: 'Night Audit', href: BASE + 'operations/night-audit.html' },
-                { icon: 'fa-chart-pie', label: 'Reporting', href: BASE + 'operations/reports.html' },
-]
+            ]
         },
         {
             group: 'Settings',
@@ -112,24 +85,19 @@
                     icon: 'fa-user-shield', label: 'Staff Mgmt', id: 'staff',
                     mainHref: BASE + 'settings/staff.html',
                     children: [
-                        { label: 'Staff List',    href: BASE + 'settings/staff.html' },
-                        { label: 'Role & Perms',  href: BASE + 'settings/roles.html' },
+                        { label: 'Staff List',   href: BASE + 'settings/staff.html' },
+                        { label: 'Role & Perms', href: BASE + 'settings/roles.html' },
                     ]
                 },
                 { icon: 'fa-credit-card', label: 'Billing & Payment', href: BASE + 'settings/billing.html' },
-                { icon: 'fa-bullhorn',    label: 'Notices',   href: BASE + 'settings/notices.html' },
-                { icon: 'fa-headset',     label: 'Support',   href: BASE + 'settings/support.html' }
+                { icon: 'fa-bullhorn',    label: 'Notices',           href: BASE + 'settings/notices.html' },
+                { icon: 'fa-headset',     label: 'Support',           href: BASE + 'settings/support.html' },
             ]
         },
     ];
 
     // ─── HTML 생성 ────────────────────────────────────────────
     function buildNavItem(item) {
-        if (item.disabled) {
-            const badge = item.badge ? ` <span class="badge-nav">${item.badge}</span>` : '';
-            return `<a class="nav-item" href="${item.href}"><i class="fa-solid ${item.icon}"></i> <span data-i18n-key="${item.label}">${item.label}</span>${badge}</a>`;
-        }
-
         if (item.children) {
             const children = item.children.map(c =>
                 `<a class="nav-sub-item" href="${c.href}"><span data-i18n-key="${c.label}">${c.label}</span></a>`
@@ -157,10 +125,10 @@
 <div class="sidebar-overlay" onclick="PMS_Sidebar.toggleMenu()"></div>
 <aside class="sidebar">
     <div class="sidebar-logo">
-        <div class="logo-icon">H</div>
+        <div class="logo-icon"><i class="fa-solid fa-hotel"></i></div>
         <div>
             <div class="logo-text">HOTEL PMS</div>
-            <div class="logo-sub">Management System</div>
+            <div class="logo-sub">Property Management</div>
         </div>
     </div>
     <nav class="sidebar-nav">${groups}</nav>
@@ -169,7 +137,7 @@
             <div class="user-avatar">NK</div>
             <div class="user-info">
                 <div class="user-name">Nguyen Kim</div>
-                <select class="user-role-select" onchange="window.switchRole(this.value)" style="margin-top:4px;font-size:0.75rem;padding:2px 4px;border-radius:4px;background:var(--card);color:var(--txt2);border:1px solid var(--border)">
+                <select class="user-role-select" onchange="window.switchRole(this.value)">
                     <option value="admin" ${window.currentUserRole==='admin'?'selected':''}>Admin</option>
                     <option value="manager" ${window.currentUserRole==='manager'?'selected':''}>Manager</option>
                     <option value="housekeeper" ${window.currentUserRole==='housekeeper'?'selected':''}>Housekeeper</option>
@@ -263,10 +231,20 @@
         },
 
         init() {
+            // 1. 사이드바 DOM inject
             inject();
+
+            // 2. 언어 번역 적용 (changeLang은 i18n.js가 먼저 로드되어야 함)
+            const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
             if (typeof window.changeLang === 'function') {
-                window.changeLang(window.currentLang || 'ko');
+                window.changeLang(lang);
             }
+
+            // 3. 헤더 langSelect 값 동기화
+            const langSel = document.getElementById('langSelect');
+            if (langSel) langSel.value = lang;
+
+            // 4. 이전에 펼쳐진 서브메뉴 복원
             document.querySelectorAll('.nav-item[data-menu]').forEach(item => {
                 const menuId = item.getAttribute('data-menu');
                 if (localStorage.getItem('menu_expanded_' + menuId) === 'true') {
@@ -276,8 +254,10 @@
                 }
             });
 
+            // 5. 현재 페이지에 해당하는 메뉴 active 처리
             updateActiveSidebarLinks();
 
+            // 6. 일반 nav-item 클릭 시 서브메뉴 닫기
             document.querySelectorAll('.sidebar-nav a.nav-item').forEach(link => {
                 link.addEventListener('click', () => {
                     document.querySelectorAll('.nav-item[data-menu]').forEach(item => {
@@ -288,6 +268,9 @@
             });
 
             window.addEventListener('hashchange', updateActiveSidebarLinks);
+
+            // 7. 데이터 로딩 완료 이벤트 dispatch
+            window.dispatchEvent(new Event('DataReady'));
         }
     };
 

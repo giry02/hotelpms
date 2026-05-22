@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>골프 — Hotel PMS</title>
+    <title>골프 예약 — Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,92 +11,88 @@
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/operations.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
 </head>
 <body>
 
 <div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1 data-i18n-key="Golf">골프</h1>
-            <span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026년 5월 12일 (월)</span>
-        </div>
-        <div class="topbar-right">
-            <div style="font-size:0.85rem;font-weight:700;color:var(--txt);margin-right:8px;display:flex;align-items:center;gap:4px"><i class="fa-solid fa-hotel" style="color:var(--primary)"></i> The Grand Saigon</div>
-            <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-                <option value="ko">🇰🇷 한국어</option><option value="en">🇺🇸 English</option>
-            </select>
-        </div>
-    </header>
+        <header class="topbar"><h1 data-i18n-key="Golf">골프 예약</h1></header>
 
     <div class="content">
         <!-- KPI -->
         <div class="kpi-grid">
             <div class="kpi-card orange">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-handshake"></i></div></div>
-                <div class="kpi-value">3</div>
-                <div class="kpi-label">제휴 업체 수</div>
-                <div class="kpi-sub">계약된 골프장</div>
+                <div class="kpi-body">
+                    <div class="kpi-value">3</div>
+                    <div class="kpi-label">제휴 업체 수</div>
+                    <div class="kpi-sub">계약된 골프장</div>
+                </div>
             </div>
             <div class="kpi-card blue">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div></div>
-                <div class="kpi-value">8</div>
-                <div class="kpi-label">금일 예약 건</div>
-                <div class="kpi-sub">진행 예정 Pending건</div>
+                <div class="kpi-body">
+                    <div class="kpi-value">8</div>
+                    <div class="kpi-label">금일 예약 건</div>
+                    <div class="kpi-sub">진행 예정 Pending건</div>
+                </div>
             </div>
             <div class="kpi-card green">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-check"></i></div></div>
-                <div class="kpi-value">12</div>
-                <div class="kpi-label">금일 라운딩 Completed</div>
-                <div class="kpi-sub">정산 Completed 대상</div>
+                <div class="kpi-body">
+                    <div class="kpi-value">12</div>
+                    <div class="kpi-label">금일 라운딩 Completed</div>
+                    <div class="kpi-sub">정산 Completed 대상</div>
+                </div>
             </div>
             <div class="kpi-card purple">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div></div>
-                <div class="kpi-value">₩240,000</div>
-                <div class="kpi-label">예상 수수료 수익</div>
-                <div class="kpi-sub">예약 수수료 (별도 통계)</div>
+                <div class="kpi-body">
+                    <div class="kpi-value">₩240,000</div>
+                    <div class="kpi-label">예상 수수료 수익</div>
+                    <div class="kpi-sub">예약 수수료 (별도 통계)</div>
+                </div>
             </div>
         </div>
 
         <!-- FILTER -->
-        <div class="filter-bar">
+        <div class="filter-bar" style="margin-bottom:20px">
             <div class="filter-left">
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="객실번호 검색..." oninput="renderOrders()">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" placeholder="객실번호, 고객명 검색..." oninput="renderOrders()">
+                    </div>
+                    <button onclick="renderOrders()" class="btn-primary-sm" style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap">
+                        <i class="fa-solid fa-magnifying-glass"></i> 검색
+                    </button>
                 </div>
                 <div class="filter-chips">
-                    <button class="chip active" onclick="setFilter(this,'all')">All 예약</button>
-                    <button class="chip" onclick="setFilter(this,'club_a')"><i class="fa-solid fa-golf-ball-tee" style="color:var(--txt2)"></i> 썬밸리 CC</button>
-                    <button class="chip" onclick="setFilter(this,'club_b')"><i class="fa-solid fa-golf-ball-tee" style="color:var(--txt2)"></i> 스카이72</button>
+                    <button class="chip active" onclick="setFilter(this,'all')" id="chip-all">All 예약</button>
+                    <button class="chip" onclick="setFilter(this,'club_a')" id="chip-club_a"><i class="fa-solid fa-golf-ball-tee" style="color:var(--txt2)"></i> 썬밸리 CC</button>
+                    <button class="chip" onclick="setFilter(this,'club_b')" id="chip-club_b"><i class="fa-solid fa-golf-ball-tee" style="color:var(--txt2)"></i> 스카이72</button>
                 </div>
             </div>
             <div class="filter-right">
-                <button class="btn-outline" onclick="openModal('partnerModal')"><i class="fa-solid fa-building"></i> 업체 Actions</button>
-                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> New Booking</button>
+                <button class="btn-outline" onclick="openModal('partnerModal')"><i class="fa-solid fa-building"></i> 업체 관리</button>
+                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> 신규 예약</button>
             </div>
         </div>
 
         <!-- ORDER LIST -->
-        <div class="card" style="margin-top:20px">
-            <div class="card-body" style="padding:0">
-                <div class="hk-task-list" id="orderList">
-                    <!-- Generated by JS -->
-                </div>
-            </div>
+        <div class="hk-task-list" id="orderList" style="margin-top:20px">
+            <!-- Generated by JS -->
         </div>
     </div>
 </div>
 
 <script>
-const orders = [
-    { id:'GLF-042', room:'1401', type:'club_a', guest:'Tran Linh', items:'18홀 라운딩 (오전 10:30, 4인)', total:120000, status:'new', time:'14:02' },
-    { id:'GLF-041', room:'0807', type:'club_b', guest:'John Smith', items:'9홀 라운딩 (오후 1:00, 2인)', total:60000, status:'prep', time:'13:50' },
-    { id:'GLF-040', room:'1205', type:'club_a', guest:'Park Soo', items:'18홀 라운딩 (오전 8:00, 3인)', total:90000, status:'done', time:'13:15' },
-];
+let orders = [];
 
 const tMap = {
     'club_a': { label:'썬밸리 CC', icon:'fa-golf-ball-tee', color:'var(--orange)' },
@@ -173,7 +169,7 @@ function setFilter(btn, filter) {
     renderOrders();
 }
 
-renderOrders();
+/* renderOrders(); */
 
 // i18n
 let currentLang='ko';
@@ -237,12 +233,12 @@ const translations={ko: {
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){
     currentLang=l;
-    const d=translations[l]||translations.ko;
+    const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room번호 검색...';
     if(tMap['club_a']) tMap['club_a'].label = l==='en'?'Sun Valley CC':'썬밸리 CC';
     if(tMap['club_b']) tMap['club_b'].label = l==='en'?'SKY72':'스카이72';
-    renderOrders();
+    /* renderOrders(); */
 }
 
 // 모달 및 오더 등록 로직
@@ -309,12 +305,12 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">국적 (Nationality)</label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">국적 (국적)</label>
                     <input type="text" id="golfNation" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">에이전시 (Agency)</label>
-                    <input type="text" id="golfAgency" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">에이전시 (에이전시)</label>
+                    <input type="text" id="golf에이전시" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
                 </div>
             </div>
             <hr style="border:none;border-top:1px solid var(--border2)">
@@ -324,20 +320,20 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                     <input type="date" id="golfDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">티타임 (Tee Time) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">티타임 (티 타임) <span style="color:var(--danger)">*</span></label>
                     <input type="time" id="golfTime" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (Course) <span style="color:var(--danger)">*</span></label>
-                    <select id="golfCourse" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
+                    <select id="golf코스" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
                         <option>썬밸리 CC (Sun Valley)</option>
                         <option>스카이72 (SKY72)</option>
                     </select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">인원 / 홀 (Pax / Holes) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">인원 / 홀 (인원 / 홀수) <span style="color:var(--danger)">*</span></label>
                     <div style="display:flex;gap:8px">
                         <input type="number" id="golfPax" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);" placeholder="인원(명)">
                         <select id="golfHoles" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
@@ -350,7 +346,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-            <button class="btn-outline" onclick="closeModal('addOrderModal')">Cancel</button>
+            <button class="btn-outline" onclick="closeModal('addOrderModal')">취소</button>
             <button class="btn-primary-sm" onclick="saveOrder()"><i class="fa-solid fa-check"></i> 예약 전송</button>
         </div>
     </div>
@@ -381,12 +377,12 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">국적 (Nationality)</label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">국적 (국적)</label>
                     <input type="text" id="golfNation" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">에이전시 (Agency)</label>
-                    <input type="text" id="golfAgency" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">에이전시 (에이전시)</label>
+                    <input type="text" id="golf에이전시" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
                 </div>
             </div>
             <hr style="border:none;border-top:1px solid var(--border2)">
@@ -396,20 +392,20 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                     <input type="date" id="golfDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">티타임 (Tee Time) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">티타임 (티 타임) <span style="color:var(--danger)">*</span></label>
                     <input type="time" id="golfTime" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (Course) <span style="color:var(--danger)">*</span></label>
-                    <select id="golfCourse" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
+                    <select id="golf코스" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
                         <option>썬밸리 CC (Sun Valley)</option>
                         <option>스카이72 (SKY72)</option>
                     </select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">인원 / 홀 (Pax / Holes) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">인원 / 홀 (인원 / 홀수) <span style="color:var(--danger)">*</span></label>
                     <div style="display:flex;gap:8px">
                         <input type="number" id="golfPax" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);" placeholder="인원(명)">
                         <select id="golfHoles" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
@@ -439,7 +435,7 @@ function autoFillGuest(type) {
     const roomEl = document.getElementById(type + 'Room');
     const guestEl = document.getElementById(type + 'Guest');
     const nationEl = document.getElementById(type + 'Nation');
-    const agencyEl = document.getElementById(type + 'Agency');
+    const agencyEl = document.getElementById(type + '에이전시');
     const phoneEl = document.getElementById(type + 'Phone');
     
     if(roomEl && roomEl.value && dummyGuests[roomEl.value]) {
@@ -455,6 +451,29 @@ function autoFillGuest(type) {
         if(phoneEl) phoneEl.value = '';
     }
 }
+</script>
+
+<script>
+function updateFilterCounts() {
+    document.getElementById('chip-all').innerHTML = `All 예약 (${orders.length})`;
+    document.getElementById('chip-club_a').innerHTML = `<i class="fa-solid fa-golf-ball-tee"></i> 썬밸리 CC (${orders.filter(o=>o.type==='club_a').length})`;
+    document.getElementById('chip-club_b').innerHTML = `<i class="fa-solid fa-golf-ball-tee"></i> 스카이72 (${orders.filter(o=>o.type==='club_b').length})`;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        orders = await PmsAPI.getGolfOrders();
+        updateFilterCounts();
+        renderOrders();
+    } catch(e) { console.error(e); }
+});
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
 </script>
 </body>
 </html>

@@ -53,6 +53,7 @@
         { group: 'System', items: [
             { icon: 'fa-users-gear',         label: 'Admin Accounts',   href: BASE + 'system/users.html' },
             { icon: 'fa-credit-card',        label: 'Subscription & Billing',   href: BASE + 'system/billing.html' },
+            { icon: 'fa-plug',               label: 'Integration Hub',  href: BASE + 'system/integrations.html' },
             { icon: 'fa-headset',            label: 'Customer Support',     href: BASE + 'system/helpdesk.html' },
             { icon: 'fa-bullhorn',           label: 'Notice Mgmt', href: BASE + 'system/notices.html' },
             { icon: 'fa-clock-rotate-left',  label: 'Audit Logs',     href: BASE + 'system/audit-logs.html' }
