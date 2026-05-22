@@ -223,27 +223,31 @@
         </div>
 
         <!-- FILTER -->
-        <div class="filter-bar">
-            <div class="filter-left">
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="객실 번호 검색..." oninput="renderRooms()">
-                </div>
-                <div class="filter-chips">
-                    <button class="chip active" onclick="setStatus(this,'all')" data-status="all">All</button>
-                    <button class="chip" onclick="setStatus(this,'occupied')" data-status="occupied"><span class="status-dot" style="background:var(--primary)"></span> Occupied</button>
-                    <button class="chip" onclick="setStatus(this,'vacant-clean')" data-status="vacant-clean"><span class="status-dot" style="background:var(--success)"></span> Vacant Clean</button>
-                    <button class="chip" onclick="setStatus(this,'vacant-dirty')" data-status="vacant-dirty"><span class="status-dot" style="background:var(--warning)"></span> Vacant Dirty</button>
-                    <button class="chip" onclick="setStatus(this,'oos')" data-status="oos"><span class="status-dot" style="background:var(--danger)"></span> OOS</button>
-                </div>
-                <button class="m-filter-trigger" onclick="openBottomSheet()">
-                    <i class="fa-solid fa-filter"></i>
-                    <span id="mFilterLabel">All</span>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </button>
+        <div class="filter-bar-mt">
+            <div class="search-box-mt">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="객실 번호 검색..." oninput="renderRooms()">
             </div>
-            <div class="filter-right">
-                <button class="btn-outline" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> Export</button>
+            <button class="btn-search" onclick="renderRooms()"><i class="fa-solid fa-magnifying-glass"></i> 검색</button>
+
+            <div style="width:1px; height:24px; background:var(--border); margin:0 4px;" class="desktop-only"></div>
+
+            <div class="filter-chips desktop-only">
+                <button class="chip active" onclick="setStatus(this,'all')" data-status="all">All <span class="chip-count">0</span></button>
+                <button class="chip" onclick="setStatus(this,'occupied')" data-status="occupied"><span class="status-dot" style="background:var(--primary)"></span> Occupied <span class="chip-count">0</span></button>
+                <button class="chip" onclick="setStatus(this,'vacant-clean')" data-status="vacant-clean"><span class="status-dot" style="background:var(--success)"></span> Vacant Clean <span class="chip-count">0</span></button>
+                <button class="chip" onclick="setStatus(this,'vacant-dirty')" data-status="vacant-dirty"><span class="status-dot" style="background:var(--warning)"></span> Vacant Dirty <span class="chip-count">0</span></button>
+                <button class="chip" onclick="setStatus(this,'oos')" data-status="oos"><span class="status-dot" style="background:var(--danger)"></span> OOS <span class="chip-count">0</span></button>
+            </div>
+            
+            <button class="m-filter-trigger" onclick="openBottomSheet()">
+                <i class="fa-solid fa-filter"></i>
+                <span id="mFilterLabel">All</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+
+            <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+                <button class="btn-outline" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> <span data-i18n-key="Export">Export</span></button>
             </div>
         </div>
 
@@ -435,37 +439,12 @@ function updateFilterCounts() {
         if (!status) return;
         
         let count = 0;
-        if (status === 'all') {
-            count = allRooms.length;
-        } else if (status === 'vacant') {
-            count = allRooms.filter(r => r.status === 'vacant-clean' || r.status === 'vacant-dirty').length;
-        } else {
-            count = allRooms.filter(r => r.status === status).length;
-        }
+        if (status === 'all') count = allRooms.length;
+        else if (status === 'vacant') count = allRooms.filter(r => r.status === 'vacant-clean' || r.status === 'vacant-dirty').length;
+        else count = allRooms.filter(r => r.status === status).length;
 
-        // find text node or text content and append/update count
-        let baseText = chip.getAttribute('data-base-text');
-        if (!baseText) {
-            // we have html inside some chips like <span class="status-dot"></span> Occupied
-            // extract the text part
-            const textNode = Array.from(chip.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim().length > 0);
-            if (textNode) {
-                baseText = textNode.textContent.trim().replace(/\s*\(\d+\)$/, '');
-                chip.setAttribute('data-base-text', baseText);
-                textNode.textContent = ` ${baseText} (${count})`;
-            } else {
-                baseText = chip.textContent.trim().replace(/\s*\(\d+\)$/, '');
-                chip.setAttribute('data-base-text', baseText);
-                chip.textContent = `${baseText} (${count})`;
-            }
-        } else {
-            const textNode = Array.from(chip.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.includes(baseText));
-            if (textNode) {
-                textNode.textContent = ` ${baseText} (${count})`;
-            } else if (!chip.querySelector('.status-dot')) {
-                chip.textContent = `${baseText} (${count})`;
-            }
-        }
+        const countSpan = chip.querySelector('.chip-count');
+        if(countSpan) countSpan.textContent = count;
     });
 }
 

@@ -151,28 +151,32 @@
         </div>
 
         <!-- FILTER -->
-        <div class="filter-bar">
-            <div class="filter-left">
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="이름, 이메일, 전화번호 검색..." oninput="renderGuests()">
-                </div>
-                <div class="filter-chips">
-                    <button class="chip active" onclick="setTier(this,'all')" data-tier="all">All <span class="chip-count"></span></button>
-                    <button class="chip" onclick="setTier(this,'diamond')" data-tier="diamond"><i class="fa-solid fa-gem" style="color:#60A5FA"></i> Diamond <span class="chip-count"></span></button>
-                    <button class="chip" onclick="setTier(this,'platinum')" data-tier="platinum"><i class="fa-solid fa-star" style="color:#A78BFA"></i> Platinum <span class="chip-count"></span></button>
-                    <button class="chip" onclick="setTier(this,'gold')" data-tier="gold"><i class="fa-solid fa-crown" style="color:#F59E0B"></i> Gold <span class="chip-count"></span></button>
-                    <button class="chip" onclick="setTier(this,'standard')" data-tier="standard">Standard <span class="chip-count"></span></button>
-                </div>
-                <button class="m-filter-trigger" onclick="openBottomSheet()">
-                    <i class="fa-solid fa-filter"></i>
-                    <span id="mFilterLabel">All</span>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </button>
+        <div class="filter-bar-mt">
+            <div class="search-box-mt">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="이름, 이메일, 전화번호 검색..." oninput="renderGuests()">
             </div>
-            <div class="filter-right">
-                <button class="btn-outline" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> Export</button>
-                <button class="btn-primary-sm" onclick="openModal('addGuestModal')"><i class="fa-solid fa-plus"></i> 신규 투숙객 등록</button>
+            <button class="btn-search" onclick="renderGuests()"><i class="fa-solid fa-magnifying-glass"></i> <span data-i18n-key="Search">검색</span></button>
+
+            <div style="width:1px; height:24px; background:var(--border); margin:0 4px;" class="desktop-only"></div>
+
+            <div class="filter-chips desktop-only">
+                <button class="chip active" onclick="setTier(this,'all')" data-tier="all">All <span class="chip-count"></span></button>
+                <button class="chip" onclick="setTier(this,'diamond')" data-tier="diamond"><i class="fa-solid fa-gem" style="color:#60A5FA"></i> Diamond <span class="chip-count"></span></button>
+                <button class="chip" onclick="setTier(this,'platinum')" data-tier="platinum"><i class="fa-solid fa-star" style="color:#A78BFA"></i> Platinum <span class="chip-count"></span></button>
+                <button class="chip" onclick="setTier(this,'gold')" data-tier="gold"><i class="fa-solid fa-crown" style="color:#F59E0B"></i> Gold <span class="chip-count"></span></button>
+                <button class="chip" onclick="setTier(this,'standard')" data-tier="standard">Standard <span class="chip-count"></span></button>
+            </div>
+            
+            <button class="m-filter-trigger" onclick="openBottomSheet()">
+                <i class="fa-solid fa-filter"></i>
+                <span id="mFilterLabel" data-i18n-key="All">All</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+
+            <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+                <button class="btn-outline" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> <span data-i18n-key="Export">Export</span></button>
+                <button class="btn-primary-sm" onclick="openModal('addGuestModal')"><i class="fa-solid fa-plus"></i> <span data-i18n-key="고객 등록">신규 투숙객 등록</span></button>
             </div>
         </div>
 
@@ -346,7 +350,7 @@ function updateFilterCounts() {
         if (tier === 'all') count = guests.length;
         else count = guests.filter(g => g.tier === tier).length;
         
-        countSpan.textContent = `(${count})`;
+        countSpan.textContent = count;
     });
 }
 
