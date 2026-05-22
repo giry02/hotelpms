@@ -121,6 +121,74 @@
         .modal-close:hover { color: var(--txt); background: var(--border2); }
         .modal-body { padding: 24px; }
         .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border2); display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; border-radius: 0 0 var(--radius) var(--radius); }
+
+        /* ── 버튼 공통 ── */
+        .btn-primary-sm {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+            font-family: var(--font); font-size: .82rem; font-weight: 600;
+            background: var(--primary); color: #fff;
+            transition: background .2s, transform .15s, box-shadow .2s;
+            box-shadow: 0 2px 8px rgba(59,130,246,.25);
+        }
+        .btn-primary-sm:hover { background: #1D4ED8; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(59,130,246,.35); }
+        .btn-primary-sm:active { transform: translateY(0); }
+        .btn-primary-sm:disabled { opacity: .5; cursor: default; transform: none; box-shadow: none; }
+
+        .btn-outline {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-family: var(--font); font-size: .82rem; font-weight: 600;
+            background: #fff; color: var(--txt);
+            border: 1.5px solid var(--border);
+            transition: border-color .2s, background .2s, transform .15s;
+        }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: #EFF6FF; transform: translateY(-1px); }
+        .btn-outline:active { transform: translateY(0); }
+
+        .btn-outline-sm {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 12px; border-radius: 6px; cursor: pointer;
+            font-family: var(--font); font-size: .78rem; font-weight: 600;
+            background: #fff; color: var(--txt2);
+            border: 1.5px solid var(--border);
+            transition: border-color .2s, color .2s, background .2s;
+            text-decoration: none;
+        }
+        .btn-outline-sm:hover { border-color: var(--primary); color: var(--primary); background: #EFF6FF; }
+
+        .btn-sm {
+            padding: 6px 14px; font-size: .8rem; border-radius: 6px;
+        }
+
+        .btn-danger-sm {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+            font-family: var(--font); font-size: .82rem; font-weight: 600;
+            background: #DC2626; color: #fff;
+            transition: background .2s, transform .15s, box-shadow .2s;
+            box-shadow: 0 2px 8px rgba(220,38,38,.25);
+        }
+        .btn-danger-sm:hover { background: #B91C1C; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(220,38,38,.35); }
+        .btn-danger-sm:active { transform: translateY(0); }
+        .btn-danger-sm:disabled { opacity: .5; cursor: default; transform: none; }
+
+        /* ── 뱃지 ── */
+        .badge-success {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 20px; font-size: .75rem; font-weight: 700;
+            background: #D1FAE5; color: #065F46;
+        }
+
+        /* ── 폼 ── */
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .form-label { font-size: .82rem; font-weight: 600; color: var(--txt2); }
+        .form-control {
+            padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+            font-family: var(--font); font-size: .88rem; color: var(--txt);
+            background: #fff; outline: none; transition: border-color .2s, box-shadow .2s;
+        }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
 </style>
 </head>
 <body>
@@ -287,57 +355,57 @@
 <!-- ---------------------- -->
 <div class="modal-overlay" id="addCardModalOverlay" onclick="handleOverlayClick(event,'addCardModalOverlay')">
 <div class="modal" style="max-width:480px;">
-<div class="modal-header">
-<h2 class="modal-title"><i class="fa-solid fa-credit-card" style="color:var(--primary);margin-right:8px;"></i>새 카드 등록</h2>
-<h2 class="modal-title"><i class="fa-solid fa-credit-card" style="color:var(--primary);margin-right:8px;"></i>새 카드 등록</h2>
-<button class="modal-close" onclick="closeModal('addCardModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
-</div>
-<!-- 카드 미리보기 -->
-<div class="card-preview" id="cardPreview">
-<div style="display:flex; justify-content:space-between; align-items:flex-start;">
-<div style="font-size:.8rem; font-weight:700; letter-spacing:1px; opacity:.85;">HOTEL PMS</div>
-<i class="fa-brands fa-cc-visa" style="font-size:2rem; opacity:.9;"></i>
-</div>
-<div class="card-chip" style="margin-top:12px;"></div>
-<div class="cp-number" id="previewNumber">**** **** **** ****</div>
+    <div class="modal-header">
+        <h2 class="modal-title"><i class="fa-solid fa-credit-card" style="color:var(--primary);margin-right:8px;"></i>새 카드 등록</h2>
+        <button class="modal-close" onclick="closeModal('addCardModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+        <!-- 카드 미리보기 -->
+        <div class="card-preview" id="cardPreview">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="font-size:.8rem; font-weight:700; letter-spacing:1px; opacity:.85;">HOTEL PMS</div>
+                <i class="fa-brands fa-cc-visa" style="font-size:2rem; opacity:.9;"></i>
+            </div>
+            <div class="card-chip" style="margin-top:12px;"></div>
+            <div class="cp-number" id="previewNumber">**** **** **** ****</div>
             <div class="cp-row">
-<div>
-<div style="opacity:.7; font-size:.65rem; margin-bottom:2px;">카드 소유자</div>
+                <div>
+                    <div style="opacity:.7; font-size:.65rem; margin-bottom:2px;">카드 소유자</div>
                     <div class="cp-name" id="previewName">이름 입력</div>
-</div>
-<div style="text-align:right;">
-<div style="opacity:.7; font-size:.65rem; margin-bottom:2px;">유효기간</div>
-<div class="cp-name" id="previewExpiry">MM/YY</div>
-</div>
-</div>
-</div>
-<!-- ·-->
-<div class="form-group">
-<label class="form-label">카드 번호</label>
-<input class="form-control" id="inputCardNumber" maxlength="19" oninput="formatCardNumber(this)" onkeyup="updatePreview()" placeholder="0000 0000 0000 0000" type="text"/>
-</div>
-<div class="form-group">
-<label class="form-label">카드 소유자 이름</label>
-<input class="form-control" id="inputCardName" oninput="updatePreview()" placeholder="HONG GIL DONG" type="text"/>
-</div>
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-<div class="form-group">
-<label class="form-label">유효기간</label>
-<input class="form-control" id="inputCardExpiry" maxlength="5" oninput="formatExpiry(this); updatePreview()" placeholder="MM/YY" type="text"/>
-</div>
-<div class="form-group">
-<label class="form-label">CVC</label>
-<input class="form-control" id="inputCardCVC" inputmode="numeric" placeholder="***" maxlength="3" type="text"/>
-</div>
-</div>
-<div class="form-group" style="flex-direction:row; align-items:center; gap:10px; margin-bottom:0;">
-<input id="setDefault" style="width:16px;height:16px;cursor:pointer;" type="checkbox"/>
-<label class="form-label" for="setDefault" style="margin:0; cursor:pointer; font-weight:500;">기본 결제수단으로 설정</label>
-</div>
-<div class="modal-footer">
-<button class="btn-outline" onclick="closeModal('addCardModalOverlay')">Cancel</button>
-<button class="btn-primary-sm" onclick="submitAddCard()"><i class="fa-solid fa-shield-check"></i> 카드 등록</button>
-</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="opacity:.7; font-size:.65rem; margin-bottom:2px;">유효기간</div>
+                    <div class="cp-name" id="previewExpiry">MM/YY</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group" style="margin-top:16px;">
+            <label class="form-label">카드 번호</label>
+            <input class="form-control" id="inputCardNumber" maxlength="19" oninput="formatCardNumber(this)" onkeyup="updatePreview()" placeholder="0000 0000 0000 0000" type="text"/>
+        </div>
+        <div class="form-group">
+            <label class="form-label">카드 소유자 이름</label>
+            <input class="form-control" id="inputCardName" oninput="updatePreview()" placeholder="HONG GIL DONG" type="text"/>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div class="form-group">
+                <label class="form-label">유효기간</label>
+                <input class="form-control" id="inputCardExpiry" maxlength="5" oninput="formatExpiry(this); updatePreview()" placeholder="MM/YY" type="text"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label">CVC</label>
+                <input class="form-control" id="inputCardCVC" inputmode="numeric" placeholder="***" maxlength="3" type="text"/>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+            <input id="setDefault" style="width:16px;height:16px;cursor:pointer;" type="checkbox"/>
+            <label class="form-label" for="setDefault" style="margin:0; cursor:pointer; font-weight:500;">기본 결제수단으로 설정</label>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn-outline" onclick="closeModal('addCardModalOverlay')">취소</button>
+        <button class="btn-primary-sm" onclick="submitAddCard()"><i class="fa-solid fa-shield-check"></i> 카드 등록</button>
+    </div>
 </div>
 </div>
 <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
@@ -345,31 +413,33 @@
 ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧 -->
 <div class="modal-overlay" id="payModalOverlay" onclick="handleOverlayClick(event,'payModalOverlay')">
 <div class="modal" style="max-width:460px;">
-<div class="modal-header">
-<h2 class="modal-title"><i class="fa-solid fa-circle-dollar-to-slot" style="color:var(--danger);margin-right:8px;"></i>미납 요금 결제</h2>
-<button class="modal-close" onclick="closeModal('payModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
-</div>
-<div style="background:var(--border2); border-radius:var(--radius-sm); padding:16px; margin-bottom:20px;">
-<div class="pay-summary-row"><span style="color:var(--txt2);">청구일</span><span style="font-weight:600;">2026년 5월</span></span></span></div>
-<div class="pay-summary-row"><span style="color:var(--txt2);">청구 번호</span><span style="color:var(--txt3); font-size:.82rem;">INV-2605-0012</span></div>
-<div class="pay-summary-row"><span style="color:var(--txt2);">플랜</span><span>Premium 플랜</span></div>
-<div class="pay-summary-row total"><span>결제 금액</span><span style="color:var(--danger);">$299.00</span></div>
-</div>
-<div class="form-group">
-<label class="form-label">결제 수단 선택</label>
-<select class="form-control" id="payCardSelect">
-<option value="4242">Visa **** 4242 (기본 결제수단)</option>
-<option value="new">+ 새 카드로 결제</option>
-</select>
-</div>
-<div style="display:flex; align-items:flex-start; gap:10px; padding:14px; background:#EFF6FF; border-radius:var(--radius-sm); font-size:.8rem; color:var(--txt2); margin-top:4px;">
-<i class="fa-solid fa-lock" style="color:var(--primary); margin-top:2px;"></i>
+    <div class="modal-header">
+        <h2 class="modal-title"><i class="fa-solid fa-circle-dollar-to-slot" style="color:var(--danger);margin-right:8px;"></i>미납 요금 결제</h2>
+        <button class="modal-close" onclick="closeModal('payModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+        <div style="background:var(--border2); border-radius:var(--radius-sm); padding:16px; margin-bottom:20px;">
+            <div class="pay-summary-row"><span style="color:var(--txt2);">청구일</span><span style="font-weight:600;">2026년 5월</span></div>
+            <div class="pay-summary-row"><span style="color:var(--txt2);">청구 번호</span><span style="color:var(--txt3); font-size:.82rem;">INV-2605-0012</span></div>
+            <div class="pay-summary-row"><span style="color:var(--txt2);">플랜</span><span>Premium 플랜</span></div>
+            <div class="pay-summary-row total"><span>결제 금액</span><span style="color:var(--danger);">$299.00</span></div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">결제 수단 선택</label>
+            <select class="form-control" id="payCardSelect">
+                <option value="4242">Visa **** 4242 (기본 결제수단)</option>
+                <option value="new">+ 새 카드로 결제</option>
+            </select>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px; padding:14px; background:#EFF6FF; border-radius:var(--radius-sm); font-size:.8rem; color:var(--txt2); margin-top:4px;">
+            <i class="fa-solid fa-lock" style="color:var(--primary); margin-top:2px;"></i>
             결제 정보는 SSL 암호화로 안전하게 전송됩니다.
         </div>
-<div class="modal-footer">
-<button class="btn-outline" onclick="closeModal('payModalOverlay')">Cancel</button>
-<button class="btn-danger-sm" onclick="submitPayment()"><i class="fa-solid fa-credit-card"></i> $299.00 결제하기</button>
-</div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn-outline" onclick="closeModal('payModalOverlay')">취소</button>
+        <button class="btn-danger-sm" onclick="submitPayment()"><i class="fa-solid fa-credit-card"></i> $299.00 결제하기</button>
+    </div>
 </div>
 </div>
 <!-- ?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧?먥븧
@@ -381,42 +451,46 @@
 <h2 class="modal-title">플랜 변경</h2>
 <button class="modal-close" onclick="closeModal('planModalOverlay')"><i class="fa-solid fa-xmark"></i></button>
 </div>
-<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; align-items:stretch; padding:20px 24px 0;">
+
 <!-- Free -->
-<div style="border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px; text-align:center;">
-<div style="font-size:1rem; font-weight:700; margin-bottom:6px;">Free</div>
-<div style="font-size:1.8rem; font-weight:800; color:var(--txt); margin-bottom:14px;">$0<span style="font-size:.9rem;font-weight:500;color:var(--txt3)"> / 월</span></div>
-<ul style="list-style:none;padding:0;margin-bottom:20px;text-align:left;font-size:.82rem;color:var(--txt2);line-height:2;">
-<li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>Room 50개 제한</li>
-<li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>기본 예약 관리</li>
-</ul>
-<button class="btn-outline" onclick="alert('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
+<div style="border:1px solid var(--border); border-radius:12px; padding:24px 20px; text-align:center; display:flex; flex-direction:column;">
+    <div style="font-size:1rem; font-weight:700; margin-bottom:6px;">Free</div>
+    <div style="font-size:1.8rem; font-weight:800; color:var(--txt); margin-bottom:14px;">$0<span style="font-size:.9rem;font-weight:500;color:var(--txt3)"> / 월</span></div>
+    <ul style="list-style:none;padding:0;text-align:left;font-size:.82rem;color:var(--txt2);line-height:2.2; flex:1; margin-bottom:20px;">
+        <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>Room 50개 제한</li>
+        <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>기본 예약 관리</li>
+    </ul>
+    <button class="btn-outline" onclick="alert('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%; margin-top:auto;">선택</button>
 </div>
+
 <!-- Standard -->
-<div style="border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px; text-align:center;">
-<div style="font-size:1rem; font-weight:700; margin-bottom:6px;">Standard</div>
-<div style="font-size:1.8rem; font-weight:800; color:var(--txt); margin-bottom:14px;">$99<span style="font-size:.9rem;font-weight:500;color:var(--txt3)"> / 월</span></div>
-<ul style="list-style:none;padding:0;margin-bottom:20px;text-align:left;font-size:.82rem;color:var(--txt2);line-height:2;">
-<li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>Room 200개 제한</li>
-<li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>하우스키핑 연동</li>
-<li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>기본 정산 기능</li>
-</ul>
-<button class="btn-outline" onclick="alert('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%;">선택</button>
+<div style="border:1px solid var(--border); border-radius:12px; padding:24px 20px; text-align:center; display:flex; flex-direction:column;">
+    <div style="font-size:1rem; font-weight:700; margin-bottom:6px;">Standard</div>
+    <div style="font-size:1.8rem; font-weight:800; color:var(--txt); margin-bottom:14px;">$99<span style="font-size:.9rem;font-weight:500;color:var(--txt3)"> / 월</span></div>
+    <ul style="list-style:none;padding:0;text-align:left;font-size:.82rem;color:var(--txt2);line-height:2.2; flex:1; margin-bottom:20px;">
+        <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>Room 200개 제한</li>
+        <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>하우스키핑 연동</li>
+        <li><i class="fa-solid fa-check" style="color:var(--success);margin-right:8px;"></i>기본 정산 기능</li>
+    </ul>
+    <button class="btn-outline" onclick="alert('다운그레이드는 고객센터 문의가 필요합니다.')" style="width:100%; margin-top:auto;">선택</button>
 </div>
+
 <!-- Premium (current) -->
-<div style="border:2px solid var(--primary); border-radius:var(--radius-sm); padding:20px; text-align:center; background:#EFF6FF; position:relative;">
-<div style="position:absolute;top:-11px;right:20px;background:var(--primary);color:#fff;padding:3px 12px;border-radius:20px;font-size:.7rem;font-weight:700;">현재 이용 중</div>
-                <div style="font-size:1rem; font-weight:700; color:var(--primary); margin-bottom:6px;">Premium</div>
-<div style="font-size:1.8rem; font-weight:800; color:var(--txt); margin-bottom:14px;">$299<span style="font-size:.9rem;font-weight:500;color:var(--txt3)"> / 월</span></div>
-<ul style="list-style:none;padding:0;margin-bottom:20px;text-align:left;font-size:.82rem;color:var(--txt2);line-height:2;">
-<li><i class="fa-solid fa-check" style="color:var(--primary);margin-right:8px;"></i>Room 및 예약 무제한 등록</li>
-<li><i class="fa-solid fa-check" style="color:var(--primary);margin-right:8px;"></i>프리미엄 광고 타겟팅</li>
-<li><i class="fa-solid fa-check" style="color:var(--primary);margin-right:8px;"></i>24시간 우선 지원</li>
-</ul>
-<button class="btn-primary-sm" disabled="" style="width:100%;opacity:.5;cursor:default;">현재 플랜</button>
+<div style="border:2px solid var(--primary); border-radius:12px; padding:24px 20px; text-align:center; background:#EFF6FF; position:relative; display:flex; flex-direction:column;">
+    <div style="position:absolute;top:-12px;right:20px;background:var(--primary);color:#fff;padding:4px 14px;border-radius:20px;font-size:.7rem;font-weight:700;">현재 이용 중</div>
+    <div style="font-size:1rem; font-weight:700; color:var(--primary); margin-bottom:6px;">Premium</div>
+    <div style="font-size:1.8rem; font-weight:800; color:var(--txt); margin-bottom:14px;">$299<span style="font-size:.9rem;font-weight:500;color:var(--txt3)"> / 월</span></div>
+    <ul style="list-style:none;padding:0;text-align:left;font-size:.82rem;color:var(--txt2);line-height:2.2; flex:1; margin-bottom:20px;">
+        <li><i class="fa-solid fa-check" style="color:var(--primary);margin-right:8px;"></i>Room 및 예약 무제한 등록</li>
+        <li><i class="fa-solid fa-check" style="color:var(--primary);margin-right:8px;"></i>프리미엄 광고 타겟팅</li>
+        <li><i class="fa-solid fa-check" style="color:var(--primary);margin-right:8px;"></i>24시간 우선 지원</li>
+    </ul>
+    <button class="btn-primary-sm" disabled style="width:100%; margin-top:auto; opacity:.5; cursor:default;">현재 플랜</button>
 </div>
+
 </div>
-<div class="modal-footer" style="border-top:none; padding-top:0; margin-top:16px;">
+<div class="modal-footer" style="border-top:1px solid var(--border2); margin-top:20px;">
 <button class="btn-outline" onclick="closeModal('planModalOverlay')">닫기</button>
 </div>
 </div>

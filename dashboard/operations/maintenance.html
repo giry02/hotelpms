@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>시설 보수 — Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../common/css/dashboard.css">
@@ -16,122 +18,331 @@
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
     <style>
-        .priority-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; }
-        .priority-urgent { background:#FEE2E2; color:#DC2626; }
-        .priority-high   { background:#FEF3C7; color:#D97706; }
-        .priority-normal { background:#DBEAFE; color:#2563EB; }
-        .status-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; }
-        .status-open     { background:#FEF3C7; color:#D97706; }
-        .status-progress { background:#DBEAFE; color:#2563EB; }
-        .status-done     { background:#D1FAE5; color:#059669; }
+        /* ── KPI ── */
+        .mt-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .mt-kpi-card {
+            background: #fff; border: 1px solid var(--border); border-radius: 14px;
+            padding: 20px; display: flex; align-items: center; gap: 16px;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .mt-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+        .mt-kpi-icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; flex-shrink: 0;
+        }
+        .mt-kpi-val { font-size: 1.8rem; font-weight: 800; color: var(--txt); line-height: 1; }
+        .mt-kpi-label { font-size: .78rem; color: var(--txt3); margin-top: 4px; font-weight: 500; }
+
+        /* ── Kanban Board ── */
+        .kanban-wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+        .kanban-col {
+            background: #f8fafc; border-radius: 14px; border: 1px solid var(--border2);
+            display: flex; flex-direction: column; min-height: 320px;
+        }
+        .kanban-header {
+            padding: 14px 18px; font-weight: 700; font-size: .9rem;
+            display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid var(--border2);
+        }
+        .kanban-header .count {
+            background: var(--border2); color: var(--txt2); padding: 2px 8px;
+            border-radius: 10px; font-size: .72rem; font-weight: 700;
+        }
+        .kanban-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 460px; }
+
+        .mt-ticket {
+            background: #fff; border: 1px solid var(--border); border-radius: 10px;
+            padding: 14px 16px; cursor: pointer;
+            transition: border-color .2s, box-shadow .2s, transform .15s;
+        }
+        .mt-ticket:hover { border-color: var(--primary); box-shadow: 0 4px 14px rgba(59,130,246,.1); transform: translateY(-1px); }
+        .mt-ticket-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .mt-ticket-id { font-size: .72rem; font-weight: 700; color: var(--txt3); font-family: 'Courier New', monospace; }
+        .mt-ticket-title { font-weight: 600; color: var(--txt); font-size: .88rem; margin-bottom: 6px; line-height: 1.4; }
+        .mt-ticket-meta { display: flex; align-items: center; gap: 10px; font-size: .75rem; color: var(--txt3); flex-wrap: wrap; }
+        .mt-ticket-meta i { width: 12px; }
+
+        /* ── Badges ── */
+        .priority-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
+        .priority-urgent { background: #FEE2E2; color: #DC2626; }
+        .priority-high   { background: #FEF3C7; color: #D97706; }
+        .priority-normal { background: #DBEAFE; color: #2563EB; }
+        .priority-low    { background: #F1F5F9; color: #64748B; }
+
+        .type-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 4px; font-size: .7rem; font-weight: 600;
+            background: #F1F5F9; color: #475569;
+        }
+
+        /* ── Table ── */
+        .mt-table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+        .mt-table-wrap table { width: 100%; border-collapse: collapse; }
+        .mt-table-wrap thead th {
+            padding: 12px 16px; font-size: .78rem; font-weight: 700; color: var(--txt3);
+            background: #f8fafc; text-align: left; border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .mt-table-wrap tbody td {
+            padding: 14px 16px; font-size: .85rem; border-bottom: 1px solid var(--border2);
+            vertical-align: middle;
+        }
+        .mt-table-wrap tbody tr:last-child td { border-bottom: none; }
+        .mt-table-wrap tbody tr:hover { background: #f8fafc; }
+
+        /* ── Action Buttons ── */
+        .action-btn {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border);
+            background: #fff; font-family: var(--font); font-size: .75rem; font-weight: 600;
+            color: var(--txt2); cursor: pointer; transition: all .2s;
+        }
+        .action-btn:hover { border-color: var(--primary); color: var(--primary); background: #EFF6FF; }
+        .action-btn.danger:hover { border-color: #DC2626; color: #DC2626; background: #FEF2F2; }
+
+        /* ── Toggle View ── */
+        .view-toggle {
+            display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+        }
+        .view-toggle button {
+            padding: 7px 14px; border: none; background: #fff; cursor: pointer;
+            font-family: var(--font); font-size: .8rem; color: var(--txt3);
+            display: flex; align-items: center; gap: 5px; transition: all .2s;
+        }
+        .view-toggle button + button { border-left: 1px solid var(--border); }
+        .view-toggle button.active { background: var(--primary); color: #fff; }
+
+        /* ── Modal ── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border2); display: flex; align-items: center; justify-content: space-between; }
+        .modal-title { font-size: 1.05rem; font-weight: 700; color: var(--txt); display: flex; align-items: center; gap: 8px; }
+        .modal-close { background: none; border: none; font-size: 1.1rem; color: var(--txt3); cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+        .modal-close:hover { background: var(--border2); color: var(--txt); }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border2); display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; border-radius: 0 0 16px 16px; }
+
+        .form-label { font-size: .82rem; font-weight: 600; color: var(--txt2); margin-bottom: 6px; display: block; }
+        .form-input {
+            width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+            font-family: var(--font); font-size: .85rem; color: var(--txt); background: #fff;
+            outline: none; transition: border-color .2s, box-shadow .2s; box-sizing: border-box;
+        }
+        .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
+
+        .btn-primary-sm {
+            display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+            border-radius: 8px; border: none; cursor: pointer; font-family: var(--font);
+            font-size: .82rem; font-weight: 600; background: var(--primary); color: #fff;
+            transition: background .2s, transform .15s; box-shadow: 0 2px 8px rgba(59,130,246,.2);
+        }
+        .btn-primary-sm:hover { background: #1D4ED8; transform: translateY(-1px); }
+
+        .btn-outline {
+            display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+            border-radius: 8px; cursor: pointer; font-family: var(--font);
+            font-size: .82rem; font-weight: 600; background: #fff; color: var(--txt);
+            border: 1.5px solid var(--border); transition: all .2s;
+        }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* ── Section Title ── */
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .section-title { font-weight: 700; font-size: 1rem; color: var(--txt); display: flex; align-items: center; gap: 8px; }
+
+        /* ── Filter chips ── */
+        .chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+            background: #fff; font-family: var(--font); font-size: .8rem; font-weight: 600;
+            color: var(--txt2); cursor: pointer; transition: all .2s; white-space: nowrap;
+        }
+        .chip:hover { border-color: var(--primary); color: var(--primary); }
+        .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .chip .chip-count {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px;
+            font-size: .7rem; font-weight: 700;
+            background: rgba(0,0,0,.08); color: inherit;
+        }
+        .chip.active .chip-count { background: rgba(255,255,255,.25); }
+
+        .filter-bar-mt {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+            flex-wrap: wrap; padding: 12px 16px;
+            background: #fff; border: 1px solid var(--border); border-radius: 12px;
+        }
+
+        .search-box-mt {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+            background: #fff; transition: border-color .2s; flex: 0 1 260px;
+        }
+        .search-box-mt:focus-within { border-color: var(--primary); }
+        .search-box-mt i { color: var(--txt3); font-size: .85rem; }
+        .search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; }
+        .btn-search {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 14px; border-radius: 8px; border: none; cursor: pointer;
+            background: var(--primary); color: #fff; font-family: var(--font);
+            font-size: .8rem; font-weight: 600; transition: background .2s;
+        }
+        .btn-search:hover { background: #1D4ED8; }
+
+        /* ── Responsive ── */
+        @media (max-width: 1200px) { .kanban-wrap { grid-template-columns: 1fr; } }
+        @media (max-width: 900px) { .mt-kpi { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .mt-kpi { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 <div class="main">
-        <header class="topbar"><h1 data-i18n-key="Maintenance">시설 보수</h1></header>
+    <header class="topbar"><h1 data-i18n-key="Maintenance">시설 보수</h1></header>
     <div class="content">
-        <!-- KPI Cards -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px">
-            <div class="kpi-card orange">
-                <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                <div class="kpi-body"><div class="kpi-value">4</div><div class="kpi-label">신규 요청</div></div>
+
+        <!-- ── KPI Cards ── -->
+        <div class="mt-kpi">
+            <div class="mt-kpi-card">
+                <div class="mt-kpi-icon" style="background:#FEF2F2; color:#DC2626;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div><div class="mt-kpi-val" id="kpiUrgent">2</div><div class="mt-kpi-label">긴급 대기</div></div>
             </div>
-            <div class="kpi-card blue">
-                <div class="kpi-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-                <div class="kpi-body"><div class="kpi-value">3</div><div class="kpi-label">진행 중</div></div>
+            <div class="mt-kpi-card">
+                <div class="mt-kpi-icon" style="background:#FEF3C7; color:#D97706;"><i class="fa-solid fa-clipboard-list"></i></div>
+                <div><div class="mt-kpi-val" id="kpiOpen">5</div><div class="mt-kpi-label">신규 요청</div></div>
             </div>
-            <div class="kpi-card green">
-                <div class="kpi-icon"><i class="fa-solid fa-circle-check"></i></div>
-                <div class="kpi-body"><div class="kpi-value">18</div><div class="kpi-label">이번 달 완료</div></div>
+            <div class="mt-kpi-card">
+                <div class="mt-kpi-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                <div><div class="mt-kpi-val" id="kpiProgress">3</div><div class="mt-kpi-label">작업 진행 중</div></div>
+            </div>
+            <div class="mt-kpi-card">
+                <div class="mt-kpi-icon" style="background:#D1FAE5; color:#059669;"><i class="fa-solid fa-circle-check"></i></div>
+                <div><div class="mt-kpi-val" id="kpiDone">24</div><div class="mt-kpi-label">이번 달 완료</div></div>
             </div>
         </div>
 
-        <!-- Filter Bar -->
-        <div class="filter-bar">
-            <div class="filter-left" style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="chip active" onclick="filterMt('all')">전체</button>
-                <button class="chip" onclick="filterMt('open')">신규 요청</button>
-                <button class="chip" onclick="filterMt('in-progress')">진행 중</button>
-                <button class="chip" onclick="filterMt('done')">완료</button>
-                <select class="form-input" style="height:36px;min-width:140px;margin-left:8px" id="priorityFilter" onchange="filterMt()">
-                    <option value="">전체 우선순위</option>
-                    <option value="urgent">긴급</option>
-                    <option value="high">높음</option>
-                    <option value="normal">일반</option>
-                </select>
+        <!-- ── Filter Bar ── -->
+        <div class="filter-bar-mt">
+            <div class="search-box-mt">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchMt" placeholder="Room 번호 검색..." oninput="filterMt(null)">
             </div>
-            <div class="filter-right">
+            <button class="btn-search" onclick="filterMt(null)"><i class="fa-solid fa-magnifying-glass"></i> 검색</button>
+
+            <div style="width:1px; height:24px; background:var(--border); margin:0 4px;"></div>
+
+            <button class="chip active" data-filter="all" onclick="filterMt(this,'all')">전체 <span class="chip-count" id="chipAll">0</span></button>
+            <button class="chip" data-filter="open" onclick="filterMt(this,'open')"><i class="fa-solid fa-circle" style="font-size:6px; color:#D97706;"></i> 신규 요청 <span class="chip-count" id="chipOpen">0</span></button>
+            <button class="chip" data-filter="in-progress" onclick="filterMt(this,'in-progress')"><i class="fa-solid fa-circle" style="font-size:6px; color:#2563EB;"></i> 진행 중 <span class="chip-count" id="chipProgress">0</span></button>
+            <button class="chip" data-filter="done" onclick="filterMt(this,'done')"><i class="fa-solid fa-circle" style="font-size:6px; color:#059669;"></i> 완료 <span class="chip-count" id="chipDone">0</span></button>
+
+            <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+                <select class="form-input" style="width:auto; min-width:130px; padding:6px 10px; font-size:.8rem;" id="priorityFilter" onchange="filterMt(null)">
+                    <option value="">전체 우선순위</option>
+                    <option value="urgent">🔴 긴급</option>
+                    <option value="high">🟡 높음</option>
+                    <option value="normal">🔵 일반</option>
+                    <option value="low">⚪ 낮음</option>
+                </select>
+                <div class="view-toggle">
+                    <button onclick="switchView(this,'kanban')"><i class="fa-solid fa-columns"></i> 칸반</button>
+                    <button class="active" onclick="switchView(this,'table')"><i class="fa-solid fa-table-list"></i> 테이블</button>
+                </div>
                 <button class="btn-primary-sm" onclick="openModal('newRequestModal')"><i class="fa-solid fa-plus"></i> 티켓 생성</button>
             </div>
         </div>
 
-        <!-- Table -->
-        <div class="table-card">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>요청 번호</th>
-                        <th>객실</th>
-                        <th>유형</th>
-                        <th>상세 내용</th>
-                        <th>우선순위</th>
-                        <th>담당자</th>
-                        <th>상태</th>
-                        <th>등록일</th>
-                        <th>관리</th>
-                    </tr>
-                </thead>
-                <tbody id="mtTableBody">
-                </tbody>
-            </table>
+        <!-- ── Kanban View ── -->
+        <div id="kanbanView" style="display:none;">
+            <div class="kanban-wrap">
+                <div class="kanban-col">
+                    <div class="kanban-header" style="color:#D97706;"><i class="fa-solid fa-clipboard-list"></i> 신규 요청 <span class="count" id="kanbanOpenCount">0</span></div>
+                    <div class="kanban-body" id="kanbanOpen"></div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-header" style="color:#2563EB;"><i class="fa-solid fa-screwdriver-wrench"></i> 진행 중 <span class="count" id="kanbanProgressCount">0</span></div>
+                    <div class="kanban-body" id="kanbanProgress"></div>
+                </div>
+                <div class="kanban-col">
+                    <div class="kanban-header" style="color:#059669;"><i class="fa-solid fa-circle-check"></i> 완료 <span class="count" id="kanbanDoneCount">0</span></div>
+                    <div class="kanban-body" id="kanbanDone"></div>
+                </div>
+            </div>
         </div>
+
+        <!-- ── Table View ── -->
+        <div id="tableView">
+            <div class="mt-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>요청 번호</th>
+                            <th>객실</th>
+                            <th>유형</th>
+                            <th>상세 내용</th>
+                            <th>우선순위</th>
+                            <th>담당자</th>
+                            <th>상태</th>
+                            <th>등록일</th>
+                            <th style="text-align:right;">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mtTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>
 
-<!-- New Request Modal -->
+<!-- ── New Request Modal ── -->
 <div class="modal-overlay" id="newRequestModal" onclick="if(event.target===this)closeModal('newRequestModal')">
-    <div class="modal-card" style="max-width:520px;width:95vw">
+    <div class="modal-card" style="max-width:540px; width:95vw;">
         <div class="modal-header">
-            <h3 class="modal-title">시설 보수 요청 등록</h3>
+            <h3 class="modal-title"><i class="fa-solid fa-wrench" style="color:var(--primary)"></i> 시설 보수 요청 등록</h3>
             <button class="modal-close" onclick="closeModal('newRequestModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
                     <label class="form-label">객실 번호 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" class="form-input" style="width:100%" placeholder="예: 1205">
+                    <input type="text" class="form-input" id="newRoom" placeholder="예: 1205">
                 </div>
                 <div>
                     <label class="form-label">유형 <span style="color:var(--danger)">*</span></label>
-                    <select class="form-input" style="width:100%">
+                    <select class="form-input" id="newType">
                         <option>전기/조명</option>
                         <option>배관/수도</option>
                         <option>에어컨/냉난방</option>
                         <option>가구/비품</option>
                         <option>도어/잠금장치</option>
+                        <option>엘리베이터</option>
                         <option>기타</option>
                     </select>
                 </div>
             </div>
             <div>
-                <label class="form-label">상세 내용</label>
-                <textarea class="form-input" style="width:100%;min-height:80px;resize:vertical" placeholder="증상 및 위치를 구체적으로 작성해주세요."></textarea>
+                <label class="form-label">상세 내용 <span style="color:var(--danger)">*</span></label>
+                <textarea class="form-input" id="newDesc" style="min-height:80px; resize:vertical;" placeholder="증상 및 위치를 구체적으로 작성해주세요."></textarea>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
                     <label class="form-label">우선순위</label>
-                    <select class="form-input" style="width:100%">
-                        <option value="urgent">긴급 (즉시 처리)</option>
-                        <option value="high">높음</option>
-                        <option value="normal" selected>일반</option>
+                    <select class="form-input" id="newPriority">
+                        <option value="urgent">🔴 긴급 (즉시 처리)</option>
+                        <option value="high">🟡 높음</option>
+                        <option value="normal" selected>🔵 일반</option>
+                        <option value="low">⚪ 낮음</option>
                     </select>
                 </div>
                 <div>
                     <label class="form-label">담당자 배정</label>
-                    <select class="form-input" style="width:100%">
+                    <select class="form-input" id="newAssignee">
                         <option>김철수 (시설팀장)</option>
                         <option>이영호 (전기담당)</option>
                         <option>박미래 (배관담당)</option>
+                        <option>최동훈 (냉난방)</option>
                         <option>미배정</option>
                     </select>
                 </div>
@@ -139,8 +350,20 @@
         </div>
         <div class="modal-footer">
             <button class="btn-outline" onclick="closeModal('newRequestModal')">취소</button>
-            <button class="btn-primary-sm" onclick="showToast('요청이 등록되었습니다.'); closeModal('newRequestModal');"><i class="fa-solid fa-check"></i> 등록</button>
+            <button class="btn-primary-sm" onclick="addTicket()"><i class="fa-solid fa-check"></i> 등록</button>
         </div>
+    </div>
+</div>
+
+<!-- ── Detail Modal ── -->
+<div class="modal-overlay" id="detailModal" onclick="if(event.target===this)closeModal('detailModal')">
+    <div class="modal-card" style="max-width:500px; width:95vw;">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-info-circle" style="color:var(--primary)"></i> <span id="detailId">MT-000</span></h3>
+            <button class="modal-close" onclick="closeModal('detailModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" id="detailBody"></div>
+        <div class="modal-footer" id="detailFooter"></div>
     </div>
 </div>
 
@@ -148,75 +371,193 @@
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function showToast(msg) {
-    let t = document.getElementById('toast');
-    if(!t) { t = document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:0.85rem;'; document.body.appendChild(t); }
-    t.textContent = msg; t.style.display='block';
-    setTimeout(()=>{ t.style.display='none'; }, 3000);
+    let t = document.getElementById('pmsToast');
+    if(!t) { t = document.createElement('div'); t.id='pmsToast'; t.style.cssText='position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:14px 22px;border-radius:10px;z-index:9999;font-size:.85rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);opacity:0;transform:translateY(12px);transition:all .3s;'; document.body.appendChild(t); }
+    t.textContent = msg;
+    requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateY(0)'; });
+    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(12px)'; }, 3000);
 }
 
-let requests = [];
+const typeIcons = {
+    '전기/조명':'fa-lightbulb', '배관/수도':'fa-faucet-drip', '에어컨/냉난방':'fa-temperature-arrow-down',
+    '가구/비품':'fa-couch', '도어/잠금장치':'fa-door-closed', '엘리베이터':'fa-elevator', '기타':'fa-toolbox'
+};
+const priorityLabel = { urgent:'긴급', high:'높음', normal:'일반', low:'낮음' };
+const priorityClass = { urgent:'priority-urgent', high:'priority-high', normal:'priority-normal', low:'priority-low' };
+const statusLabel   = { open:'신규 요청', 'in-progress':'진행 중', done:'완료' };
 
-const priorityLabel = { urgent:'긴급', high:'높음', normal:'일반' };
-const priorityClass = { urgent:'priority-urgent', high:'priority-high', normal:'priority-normal' };
-const statusLabel = { open:'신규 요청', 'in-progress':'진행 중', done:'완료' };
-const statusClass = { open:'status-open', 'in-progress':'status-progress', done:'status-done' };
+let requests = [
+    { id:'MT-101', room:'1205', type:'에어컨/냉난방', desc:'온도 조절기 작동 불량 — 객실 좌측 벽면 조절 패널에서 반응 없음', priority:'urgent', assignee:'최동훈', status:'open', date:'2026-05-22' },
+    { id:'MT-102', room:'0807', type:'배관/수도', desc:'세면대 배수구 막힘 — 물이 빠지지 않음', priority:'urgent', assignee:'박미래', status:'in-progress', date:'2026-05-22' },
+    { id:'MT-103', room:'1401', type:'전기/조명', desc:'거실 메인 조명 깜빡임 현상 반복', priority:'high', assignee:'이영호', status:'open', date:'2026-05-21' },
+    { id:'MT-104', room:'0505', type:'가구/비품', desc:'옷장 우측 문 경첩 파손 — 닫히지 않음', priority:'normal', assignee:'김철수', status:'done', date:'2026-05-20' },
+    { id:'MT-105', room:'0901', type:'도어/잠금장치', desc:'객실 메인 도어 카드키 인식 오류 — 반복적으로 3~4회 시도 필요', priority:'high', assignee:'김철수', status:'in-progress', date:'2026-05-21' },
+    { id:'MT-106', room:'1102', type:'배관/수도', desc:'욕조 수전 온수 나오지 않음', priority:'high', assignee:'박미래', status:'open', date:'2026-05-22' },
+    { id:'MT-107', room:'0304', type:'전기/조명', desc:'화장실 환풍기 소음 발생', priority:'normal', assignee:'이영호', status:'in-progress', date:'2026-05-20' },
+    { id:'MT-108', room:'0602', type:'에어컨/냉난방', desc:'냉방 작동 시 이상 소음 및 진동', priority:'normal', assignee:'최동훈', status:'open', date:'2026-05-22' },
+    { id:'MT-109', room:'1301', type:'가구/비품', desc:'침대 프레임 삐걱거림', priority:'low', assignee:'김철수', status:'done', date:'2026-05-19' },
+    { id:'MT-110', room:'0405', type:'도어/잠금장치', desc:'발코니 슬라이딩 도어 레일 걸림', priority:'normal', assignee:'김철수', status:'done', date:'2026-05-18' },
+    { id:'MT-111', room:'0710', type:'전기/조명', desc:'콘센트 2구 작동 불량 (침대 좌측)', priority:'normal', assignee:'이영호', status:'done', date:'2026-05-17' },
+    { id:'MT-112', room:'1003', type:'에어컨/냉난방', desc:'실외기 이상 소음 — 인접 객실 민원 발생', priority:'high', assignee:'최동훈', status:'open', date:'2026-05-22' },
+];
 
 let currentStatusFilter = 'all';
+let nextId = 113;
 
-function filterMt(status) {
-    if(status) currentStatusFilter = status;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    document.querySelectorAll('.chip').forEach(c => {
-        if(c.getAttribute('onclick') && c.getAttribute('onclick').includes(`'${currentStatusFilter}'`)) c.classList.add('active');
-    });
+function updateKPI() {
+    document.getElementById('kpiUrgent').textContent = requests.filter(r => r.priority === 'urgent' && r.status !== 'done').length;
+    
+    const openCount = requests.filter(r => r.status === 'open').length;
+    const progCount = requests.filter(r => r.status === 'in-progress').length;
+    const doneCount = requests.filter(r => r.status === 'done').length;
+    const allCount = requests.length;
+
+    document.getElementById('kpiOpen').textContent = openCount;
+    document.getElementById('kpiProgress').textContent = progCount;
+    document.getElementById('kpiDone').textContent = doneCount;
+
+    document.getElementById('chipAll').textContent = allCount;
+    document.getElementById('chipOpen').textContent = openCount;
+    document.getElementById('chipProgress').textContent = progCount;
+    document.getElementById('chipDone').textContent = doneCount;
+}
+
+function getFiltered() {
     const pf = document.getElementById('priorityFilter').value;
-    const filtered = requests.filter(r => {
-        const statusMatch = currentStatusFilter === 'all' || r.status === currentStatusFilter;
-        const priorityMatch = !pf || r.priority === pf;
-        return statusMatch && priorityMatch;
+    const search = (document.getElementById('searchMt').value || '').toLowerCase();
+    return requests.filter(r => {
+        if (currentStatusFilter !== 'all' && r.status !== currentStatusFilter) return false;
+        if (pf && r.priority !== pf) return false;
+        if (search && !r.room.includes(search) && !r.desc.toLowerCase().includes(search) && !r.id.toLowerCase().includes(search) && !r.type.toLowerCase().includes(search)) return false;
+        return true;
     });
+}
+
+function filterMt(btn, status) {
+    if (status) currentStatusFilter = status;
+    if (btn) {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+    }
+    render();
+}
+
+function render() {
+    const filtered = getFiltered();
+    renderKanban(filtered);
     renderTable(filtered);
 }
 
-function renderTable(data) {
-    const tbody = document.getElementById('mtTableBody');
-    if(!data) data = requests;
-    tbody.innerHTML = data.map(r => `
-        <tr>
-            <td><strong>${r.id}</strong></td>
-            <td>${r.room}호</td>
-            <td>${r.type}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.desc}</td>
-            <td><span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span></td>
-            <td>${r.assignee}</td>
-            <td><span class="status-badge ${statusClass[r.status]}">${statusLabel[r.status]}</span></td>
-            <td>${r.date}</td>
-            <td>
-                <button class="btn-outline-sm" onclick="showToast('담당자 배정 창을 엽니다.')">배정</button>
-                <button class="btn-outline-sm" onclick="showToast('상태가 업데이트 되었습니다.')">상태 변경</button>
-            </td>
-        </tr>
-    `).join('');
+function ticketCard(r) {
+    const icon = typeIcons[r.type] || 'fa-toolbox';
+    return `<div class="mt-ticket" onclick="showDetail('${r.id}')">
+        <div class="mt-ticket-top">
+            <span class="mt-ticket-id">${r.id}</span>
+            <span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span>
+        </div>
+        <div class="mt-ticket-title"><i class="fa-solid ${icon}" style="color:var(--txt3); margin-right:6px; font-size:.8rem;"></i>${r.desc}</div>
+        <div class="mt-ticket-meta">
+            <span><i class="fa-solid fa-door-open"></i> ${r.room}호</span>
+            <span class="type-tag">${r.type}</span>
+            <span style="margin-left:auto;"><i class="fa-solid fa-user"></i> ${r.assignee}</span>
+        </div>
+    </div>`;
 }
 
-document.addEventListener('DOMContentLoaded', () => { renderTable(); });
-</script>
+function renderKanban(data) {
+    const open = data.filter(r => r.status === 'open');
+    const prog = data.filter(r => r.status === 'in-progress');
+    const done = data.filter(r => r.status === 'done');
+    document.getElementById('kanbanOpen').innerHTML = open.map(ticketCard).join('') || '<div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:40px 0;">요청 없음</div>';
+    document.getElementById('kanbanProgress').innerHTML = prog.map(ticketCard).join('') || '<div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:40px 0;">작업 없음</div>';
+    document.getElementById('kanbanDone').innerHTML = done.map(ticketCard).join('') || '<div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:40px 0;">완료 항목 없음</div>';
+    document.getElementById('kanbanOpenCount').textContent = open.length;
+    document.getElementById('kanbanProgressCount').textContent = prog.length;
+    document.getElementById('kanbanDoneCount').textContent = done.length;
+}
 
-<script>
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        requests = [
-            { id: 'MT-101', room: '1205', type: '에어컨/냉난방', desc: '온도 조절기 작동 불량', priority: 'high', assignee: '김철수', status: 'open', date: '2026-05-22' },
-            { id: 'MT-102', room: '0807', type: '배관/수도', desc: '세면대 배수구 막힘', priority: 'urgent', assignee: '박미래', status: 'in-progress', date: '2026-05-22' },
-            { id: 'MT-103', room: '1401', type: '전기/조명', desc: '거실 전등 깜빡임', priority: 'normal', assignee: '이영호', status: 'open', date: '2026-05-21' },
-            { id: 'MT-104', room: '0505', type: '가구/비품', desc: '옷장 문 경첩 파손', priority: 'normal', assignee: '미배정', status: 'done', date: '2026-05-20' }
-        ];
-        renderTable();
-    } catch(e) { console.error(e); }
-});
+function renderTable(data) {
+    document.getElementById('mtTableBody').innerHTML = data.map(r => {
+        const stClass = r.status === 'open' ? 'priority-high' : r.status === 'in-progress' ? 'priority-normal' : 'priority-low';
+        return `<tr>
+            <td><strong style="cursor:pointer; color:var(--primary);" onclick="showDetail('${r.id}')">${r.id}</strong></td>
+            <td>${r.room}호</td>
+            <td><span class="type-tag"><i class="fa-solid ${typeIcons[r.type]||'fa-toolbox'}" style="font-size:.65rem;"></i> ${r.type}</span></td>
+            <td style="max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.desc}</td>
+            <td><span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span></td>
+            <td>${r.assignee}</td>
+            <td><span class="priority-badge ${stClass}">${statusLabel[r.status]}</span></td>
+            <td style="color:var(--txt3); font-size:.8rem;">${r.date}</td>
+            <td style="text-align:right;">
+                <div style="display:flex; gap:4px; justify-content:flex-end;">
+                    ${r.status === 'open' ? `<button class="action-btn" onclick="changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> 착수</button>` : ''}
+                    ${r.status === 'in-progress' ? `<button class="action-btn" onclick="changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> 완료</button>` : ''}
+                    <button class="action-btn" onclick="showDetail('${r.id}')"><i class="fa-solid fa-eye"></i></button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function switchView(btn, view) {
+    document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('kanbanView').style.display = view === 'kanban' ? 'block' : 'none';
+    document.getElementById('tableView').style.display = view === 'table' ? 'block' : 'none';
+}
+
+function changeStatus(id, newStatus) {
+    const r = requests.find(x => x.id === id);
+    if (r) { r.status = newStatus; updateKPI(); render(); showToast(`${id} 상태가 '${statusLabel[newStatus]}'(으)로 변경되었습니다.`); }
+}
+
+function showDetail(id) {
+    const r = requests.find(x => x.id === id);
+    if (!r) return;
+    document.getElementById('detailId').textContent = r.id;
+    const icon = typeIcons[r.type] || 'fa-toolbox';
+    document.getElementById('detailBody').innerHTML = `
+        <div style="display:flex; gap:10px; align-items:center; margin-bottom:18px;">
+            <span class="priority-badge ${priorityClass[r.priority]}" style="font-size:.8rem; padding:5px 14px;">${priorityLabel[r.priority]}</span>
+            <span class="priority-badge ${r.status==='open'?'priority-high':r.status==='in-progress'?'priority-normal':'priority-low'}" style="font-size:.8rem; padding:5px 14px;">${statusLabel[r.status]}</span>
+        </div>
+        <div style="background:#f8fafc; border-radius:10px; padding:16px; margin-bottom:16px;">
+            <div style="font-weight:700; font-size:.95rem; margin-bottom:8px;"><i class="fa-solid ${icon}" style="color:var(--primary); margin-right:6px;"></i>${r.type}</div>
+            <div style="font-size:.88rem; color:var(--txt2); line-height:1.6;">${r.desc}</div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">객실</span><div style="font-weight:700; margin-top:4px;">${r.room}호</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">담당자</span><div style="font-weight:700; margin-top:4px;">${r.assignee}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">등록일</span><div style="font-weight:700; margin-top:4px;">${r.date}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">경과 시간</span><div style="font-weight:700; margin-top:4px;">${Math.floor((Date.now() - new Date(r.date).getTime())/(1000*60*60))}시간</div></div>
+        </div>
+    `;
+    let footerHtml = '<button class="btn-outline" onclick="closeModal(\'detailModal\')">닫기</button>';
+    if (r.status === 'open') footerHtml += `<button class="btn-primary-sm" onclick="changeStatus('${r.id}','in-progress'); closeModal('detailModal');"><i class="fa-solid fa-play"></i> 작업 착수</button>`;
+    if (r.status === 'in-progress') footerHtml += `<button class="btn-primary-sm" onclick="changeStatus('${r.id}','done'); closeModal('detailModal');"><i class="fa-solid fa-check"></i> 작업 완료</button>`;
+    document.getElementById('detailFooter').innerHTML = footerHtml;
+    openModal('detailModal');
+}
+
+function addTicket() {
+    const room = document.getElementById('newRoom').value.trim();
+    const type = document.getElementById('newType').value;
+    const desc = document.getElementById('newDesc').value.trim();
+    const priority = document.getElementById('newPriority').value;
+    const assignee = document.getElementById('newAssignee').value;
+    if (!room || !desc) { showToast('객실 번호와 상세 내용을 입력해주세요.'); return; }
+    const today = new Date().toISOString().split('T')[0];
+    requests.unshift({ id: 'MT-' + (nextId++), room, type, desc, priority, assignee, status: 'open', date: today });
+    updateKPI(); render();
+    closeModal('newRequestModal');
+    document.getElementById('newRoom').value = '';
+    document.getElementById('newDesc').value = '';
+    showToast('시설 보수 요청이 등록되었습니다.');
+}
+
+document.addEventListener('DOMContentLoaded', () => { updateKPI(); render(); });
 </script>
 <script>
-// Sync language selector to stored preference
 (function(){
     var sel = document.getElementById('langSelect');
     if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';

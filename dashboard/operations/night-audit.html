@@ -127,11 +127,19 @@
                         </tr>
                         <tr>
                             <td>
-                                <i class="fa-solid fa-spa" style="color:var(--txt3); margin-right:8px; width:16px"></i> 
-                                부가서비스 (Ancillary / Spa / Golf)
-                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">스파, 골프 예약, 렌터카 등</div>
+                                <i class="fa-solid fa-golf-ball-tee" style="color:var(--txt3); margin-right:8px; width:16px"></i>
+                                골프장 (Golf)
+                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">그린피, 카트 이용료 기준</div>
                             </td>
-                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revAncAmt">$0</span> <a href="folio.html?dept=golf" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
+                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revGolfAmt">$0</span> <a href="folio.html?dept=golf" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <i class="fa-solid fa-car" style="color:var(--txt3); margin-right:8px; width:16px"></i>
+                                렌트카 (Rent-a-car)
+                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">차량 렌탈 이용료 기준</div>
+                            </td>
+                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revCarAmt">$0</span> <a href="folio.html?dept=car" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
                         </tr>
                         <tr class="rev-total">
                             <td>일일 총 영업 이익 (Total Revenue)</td>
@@ -203,10 +211,12 @@ async function loadAuditData() {
         
         document.getElementById('revFnbAmt').textContent = '$' + todayData.fnb.toLocaleString();
         
-        const anc = todayData.spa + todayData.other;
-        document.getElementById('revAncAmt').textContent = '$' + anc.toLocaleString();
+        const golf = todayData.spa || 1300;
+        const car  = todayData.other || 880;
+        document.getElementById('revGolfAmt').textContent = '$' + golf.toLocaleString();
+        document.getElementById('revCarAmt').textContent  = '$' + car.toLocaleString();
 
-        totalRev = todayData.room + todayData.fnb + anc;
+        totalRev = todayData.room + todayData.fnb + golf + car;
         document.getElementById('revTotalAmt').textContent = '$' + totalRev.toLocaleString();
 
     } catch (e) {
