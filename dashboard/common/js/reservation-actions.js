@@ -91,7 +91,7 @@
         }
     }
 
-    window.openUnifiedResModal = async function(resId) {
+    window.openUnifiedResModal = async function(resId = null, prefillGroupId = null) {
         ensureModal();
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
         if (!allRes) {
