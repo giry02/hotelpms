@@ -82,11 +82,11 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
             const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
             if (langSelect) langSelect.value = lang;
             if (typeof window.changeLang === 'function') window.changeLang(lang);
-            updateClock();
+            window.updateClock();
         }
     }
 
-    function updateClock() {
+    window.updateClock = function() {
         const clockEl = document.querySelector('.date-badge .live-clock');
         if(clockEl) {
             const now = new Date();
@@ -96,7 +96,7 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
             clockEl.textContent = `${dateStr} ${timeStr}`;
         }
     }
-    setInterval(updateClock, 60000);
+    setInterval(window.updateClock, 60000);
 
     // 알림창 토글 이벤트
     window.toggleNotifications = function(e) {

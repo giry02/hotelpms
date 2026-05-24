@@ -77,8 +77,8 @@
         }
 
         /* ── Table ── */
-        .mt-table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-        .mt-table-wrap table { width: 100%; border-collapse: collapse; }
+        .mt-table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .mt-table-wrap table { width: 100%; border-collapse: collapse; min-width: 800px; }
         .mt-table-wrap thead th {
             padding: 12px 16px; font-size: .78rem; font-weight: 700; color: var(--txt3);
             background: #f8fafc; text-align: left; border-bottom: 1px solid var(--border);
@@ -170,15 +170,18 @@
         .chip.active .chip-count { background: rgba(255,255,255,.25); }
 
         .filter-bar-mt {
-            display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
-            flex-wrap: wrap; padding: 12px 16px;
-            background: #fff; border: 1px solid var(--border); border-radius: 12px;
+            display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+            padding: 12px 20px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
         }
+        .filter-search-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .filter-bar-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
+        .filter-chips-group { display: flex; align-items: center; gap: 8px; flex: 1; }
+        .filter-actions-group { display: flex; align-items: center; gap: 10px; flex-shrink: 0; margin-left: auto; }
 
         .search-box-mt {
             display: flex; align-items: center; gap: 8px;
             padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px;
-            background: #fff; transition: border-color .2s; flex: 0 1 260px;
+            background: #fff; transition: border-color .2s; width: 220px;
         }
         .search-box-mt:focus-within { border-color: var(--primary); }
         .search-box-mt i { color: var(--txt3); font-size: .85rem; }
@@ -194,7 +197,75 @@
         /* ── Responsive ── */
         @media (max-width: 1200px) { .kanban-wrap { grid-template-columns: 1fr; } }
         @media (max-width: 900px) { .mt-kpi { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 600px) { .mt-kpi { grid-template-columns: 1fr; } }
+        @media (max-width: 800px) {
+            .filter-bar-mt { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
+            .filter-bar-mt .filter-search-group { display: flex; width: 100%; gap: 8px; }
+            .search-box-mt { flex: 1; }
+            .filter-bar-divider { display: none; }
+            .filter-chips-group { overflow-x: auto; padding-bottom: 2px; display: flex; gap: 6px; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+            .filter-actions-group { margin-left: 0 !important; width: 100%; display: flex; flex-wrap: nowrap; gap: 8px; }
+            .filter-actions-group .form-input { flex: 1; min-width: 0; }
+            .filter-actions-group .view-toggle { display: none !important; }
+            .filter-actions-group .btn-primary-sm { flex: 1; justify-content: center; }
+            
+            #kanbanView { display: none !important; }
+            #tableView { display: block !important; }
+        }
+        @media (max-width: 600px) { 
+            .mt-kpi { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; } 
+            .mt-kpi-card { padding: 12px; flex-direction: row; text-align: left; gap: 10px; align-items: center; }
+            .mt-kpi-icon { margin: 0; width: 36px; height: 36px; font-size: 1.1rem; }
+            .mt-kpi-val { font-size: 1.3rem; }
+            .modal-card { width: 100%; border-radius: 12px 12px 0 0; position: absolute; bottom: 0; max-height: 85vh; }
+            .modal-body > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+            
+            /* Hide Chip Counts on Mobile */
+            .chip .chip-count { display: none !important; }
+            
+            /* Table to Card List Grid */
+            .mt-table-wrap { overflow: visible !important; border: none; background: transparent; padding: 0; }
+            .mt-table-wrap table, .mt-table-wrap tbody, .mt-table-wrap thead { display: block; width: 100%; min-width: auto; }
+            .mt-table-wrap thead { display: none; }
+            .mt-table-wrap tr {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                margin-bottom: 16px; background: #fff; border: 1px solid var(--border);
+                border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            }
+            .mt-table-wrap td {
+                display: flex; flex-direction: column; align-items: flex-start;
+                padding: 0; border: none !important; text-align: left; white-space: normal;
+            }
+            .mt-table-wrap td::before {
+                content: attr(data-label); font-weight: 600; color: var(--txt3); font-size: .72rem; text-align: left; margin-bottom: 4px; margin-right: 0;
+            }
+            
+            /* Reorder items for mobile cards */
+            .mt-table-wrap td[data-label="요청 번호"] { order: 1; }
+            .mt-table-wrap td[data-label="객실"] { order: 2; }
+            .mt-table-wrap td[data-label="유형"] { order: 3; }
+            .mt-table-wrap td[data-label="우선순위"] { order: 4; }
+            .mt-table-wrap td[data-label="담당자"] { order: 5; }
+            .mt-table-wrap td[data-label="상태"] { order: 6; }
+            
+            .mt-table-wrap td[data-label="상세 내용"] { 
+                order: 7; grid-column: span 2; 
+                background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border2); 
+                white-space: normal !important; word-break: break-all;
+            }
+            .mt-table-wrap td[data-label="상세 내용"]::before { margin-bottom: 6px; }
+            
+            .mt-table-wrap td[data-label="등록일"] {
+                order: 8; justify-content: flex-end;
+                padding-top: 12px; border-top: 1px dashed var(--border) !important; margin-top: 4px;
+            }
+            .mt-table-wrap td[data-label="액션"] {
+                order: 9; align-items: flex-end; justify-content: flex-end;
+                padding-top: 12px; border-top: 1px dashed var(--border) !important; margin-top: 4px;
+            }
+            .mt-table-wrap td[data-label="액션"]::before { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -224,20 +295,24 @@
 
         <!-- ── Filter Bar ── -->
         <div class="filter-bar-mt">
-            <div class="search-box-mt">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="searchMt" placeholder="Room 번호 검색..." oninput="filterMt(null)">
+            <div class="filter-search-group">
+                <div class="search-box-mt">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchMt" placeholder="Room 번호 검색..." oninput="filterMt(null)">
+                </div>
+                <button class="btn-search" onclick="filterMt(null)"><i class="fa-solid fa-magnifying-glass"></i> 검색</button>
             </div>
-            <button class="btn-search" onclick="filterMt(null)"><i class="fa-solid fa-magnifying-glass"></i> 검색</button>
 
-            <div style="width:1px; height:24px; background:var(--border); margin:0 4px;"></div>
+            <div class="filter-bar-divider" style="width:1px; height:24px; background:var(--border); margin:0 4px;"></div>
 
-            <button class="chip active" data-filter="all" onclick="filterMt(this,'all')">전체 <span class="chip-count" id="chipAll">0</span></button>
-            <button class="chip" data-filter="open" onclick="filterMt(this,'open')"><i class="fa-solid fa-circle" style="font-size:6px; color:#D97706;"></i> 신규 요청 <span class="chip-count" id="chipOpen">0</span></button>
-            <button class="chip" data-filter="in-progress" onclick="filterMt(this,'in-progress')"><i class="fa-solid fa-circle" style="font-size:6px; color:#2563EB;"></i> 진행 중 <span class="chip-count" id="chipProgress">0</span></button>
-            <button class="chip" data-filter="done" onclick="filterMt(this,'done')"><i class="fa-solid fa-circle" style="font-size:6px; color:#059669;"></i> 완료 <span class="chip-count" id="chipDone">0</span></button>
+            <div class="filter-chips-group">
+                <button class="chip active" data-filter="all" onclick="filterMt(this,'all')">전체 <span class="chip-count" id="chipAll">0</span></button>
+                <button class="chip" data-filter="open" onclick="filterMt(this,'open')"><i class="fa-solid fa-circle" style="font-size:6px; color:#D97706;"></i> 신규 요청 <span class="chip-count" id="chipOpen">0</span></button>
+                <button class="chip" data-filter="in-progress" onclick="filterMt(this,'in-progress')"><i class="fa-solid fa-circle" style="font-size:6px; color:#2563EB;"></i> 진행 중 <span class="chip-count" id="chipProgress">0</span></button>
+                <button class="chip" data-filter="done" onclick="filterMt(this,'done')"><i class="fa-solid fa-circle" style="font-size:6px; color:#059669;"></i> 완료 <span class="chip-count" id="chipDone">0</span></button>
+            </div>
 
-            <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+            <div class="filter-actions-group" style="margin-left:auto; display:flex; gap:10px; align-items:center;">
                 <select class="form-input" style="width:auto; min-width:130px; padding:6px 10px; font-size:.8rem;" id="priorityFilter" onchange="filterMt(null)">
                     <option value="">전체 우선순위</option>
                     <option value="urgent">🔴 긴급</option>
@@ -480,16 +555,16 @@ function renderTable(data) {
     document.getElementById('mtTableBody').innerHTML = data.map(r => {
         const stClass = r.status === 'open' ? 'priority-high' : r.status === 'in-progress' ? 'priority-normal' : 'priority-low';
         return `<tr>
-            <td><strong style="cursor:pointer; color:var(--primary);" onclick="showDetail('${r.id}')">${r.id}</strong></td>
-            <td>${r.room}호</td>
-            <td><span class="type-tag"><i class="fa-solid ${typeIcons[r.type]||'fa-toolbox'}" style="font-size:.65rem;"></i> ${r.type}</span></td>
-            <td style="max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.desc}</td>
-            <td><span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span></td>
-            <td>${r.assignee}</td>
-            <td><span class="priority-badge ${stClass}">${statusLabel[r.status]}</span></td>
-            <td style="color:var(--txt3); font-size:.8rem;">${r.date}</td>
-            <td style="text-align:right;">
-                <div style="display:flex; gap:4px; justify-content:flex-end;">
+            <td data-label="요청 번호"><strong style="cursor:pointer; color:var(--primary);" onclick="showDetail('${r.id}')">${r.id}</strong></td>
+            <td data-label="객실">${r.room}호</td>
+            <td data-label="유형"><span class="type-tag"><i class="fa-solid ${typeIcons[r.type]||'fa-toolbox'}" style="font-size:.65rem;"></i> ${r.type}</span></td>
+            <td data-label="상세 내용" style="max-width:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.desc}</td>
+            <td data-label="우선순위"><span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span></td>
+            <td data-label="담당자">${r.assignee}</td>
+            <td data-label="상태"><span class="priority-badge ${stClass}">${statusLabel[r.status]}</span></td>
+            <td data-label="등록일" style="color:var(--txt3); font-size:.8rem;">${r.date}</td>
+            <td data-label="액션" style="text-align:right;">
+                <div style="display:flex; gap:4px; justify-content:flex-end; width:100%;">
                     ${r.status === 'open' ? `<button class="action-btn" onclick="changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> 착수</button>` : ''}
                     ${r.status === 'in-progress' ? `<button class="action-btn" onclick="changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> 완료</button>` : ''}
                     <button class="action-btn" onclick="showDetail('${r.id}')"><i class="fa-solid fa-eye"></i></button>

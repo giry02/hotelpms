@@ -25,6 +25,39 @@
     #newResModal .modal-footer{flex-direction:column;gap:8px}
     #newResModal .modal-footer button{width:100%}
 }
+/* Filter Bar Styling */
+.filter-bar-mt {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px;
+    padding: 12px 20px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
+}
+.filter-left { display: flex; align-items: center; gap: 12px; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.filter-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.search-container { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.search-box-mt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: #fff; transition: border-color .2s; width: 220px;
+}
+.search-box-mt:focus-within { border-color: var(--primary); }
+.search-box-mt i { color: var(--txt3); font-size: .85rem; }
+.search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
+.btn-search {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 7px 14px; border-radius: 8px; border: none; cursor: pointer;
+    background: var(--primary); color: #fff; font-family: var(--font);
+    font-size: .8rem; font-weight: 600; transition: background .2s;
+}
+.btn-search:hover { background: #1D4ED8; }
+.filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
+.filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+@media(max-width:768px){
+    .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+    .filter-left { flex-wrap: wrap; gap: 10px; }
+    .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
+    .search-box-mt { flex: 1; min-width: 0; width: auto; }
+    .filter-right { justify-content: flex-start; }
+}
 </style>
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
@@ -32,6 +65,8 @@
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
+    <script src="../common/js/guest-search.js"></script>
+    <script src="../common/js/reservation-actions.js"></script>
 </head>
 <body>
 
@@ -45,44 +80,39 @@
         <!-- ROOM STATUS SUMMARY -->
         <div class="kpi-grid kpi-grid-5" style="margin-bottom:20px">
             <div class="kpi-card blue">
-                <div class="kpi-icon"><i class="fa-solid fa-bed"></i></div>
-                <div class="kpi-body"><div class="kpi-value">120</div><div class="kpi-label" data-i18n-key="Total Rooms">Total Rooms</div></div>
+                <div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiConfirmed">0</div><div class="kpi-label" data-i18n-key="예약 확정">예약 확정</div></div>
             </div>
             <div class="kpi-card green">
                 <div class="kpi-icon"><i class="fa-solid fa-check-circle"></i></div>
-                <div class="kpi-body"><div class="kpi-value">99</div><div class="kpi-label" data-i18n-key="Occupied">Occupied</div></div>
-            </div>
-            <div class="kpi-card orange">
-                <div class="kpi-icon"><i class="fa-solid fa-clock"></i></div>
-                <div class="kpi-body"><div class="kpi-value">15</div><div class="kpi-label" data-i18n-key="Available">Available</div></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiCheckedin">0</div><div class="kpi-label" data-i18n-key="체크인 완료">체크인 완료</div></div>
             </div>
             <div class="kpi-card red">
-                <div class="kpi-icon"><i class="fa-solid fa-wrench"></i></div>
-                <div class="kpi-body"><div class="kpi-value">3</div><div class="kpi-label" data-i18n-key="OOS">OOS</div></div>
+                <div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiCheckout">0</div><div class="kpi-label" data-i18n-key="체크아웃">체크아웃</div></div>
             </div>
             <div class="kpi-card purple">
                 <div class="kpi-icon"><i class="fa-solid fa-crown"></i></div>
-                <div class="kpi-body"><div class="kpi-value">6</div><div class="kpi-label" data-i18n-key="VIP Guests">VIP Guests</div></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiVip">0</div><div class="kpi-label" data-i18n-key="VIP">VIP</div></div>
             </div>
         </div>
 
         <!-- TOOLBAR -->
-        <div class="tl-toolbar">
-            <div class="tl-toolbar-left">
+        <div class="filter-bar-mt">
+            <div class="filter-left">
                 <button class="tl-nav-btn" onclick="shiftWeek(-1)"><i class="fa-solid fa-chevron-left"></i></button>
                 <span class="tl-range" id="tlRange">5월 12일 — 5월 25일</span>
                 <button class="tl-nav-btn" onclick="shiftWeek(1)"><i class="fa-solid fa-chevron-right"></i></button>
                 <button class="tl-today-btn" onclick="goToday()" data-i18n-key="Today">오늘</button>
             </div>
-            <div class="tl-toolbar-right">
+            <div class="filter-right">
                 <div class="tl-legend">
-                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span> Confirmed</span>
-                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#F59E0B"></span> Pending</span>
-                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span> Check-in</span>
-                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#8B5CF6"></span> VIP</span>
+                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span> <span data-i18n-key="예약 확정">예약 확정</span></span>
+                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span> <span data-i18n-key="체크인 완료">체크인 완료</span></span>
+                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#8B5CF6"></span> <span data-i18n-key="VIP">VIP</span></span>
                     <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#9CA3AF"></span> OOS</span>
                 </div>
-                <button class="btn-primary-sm" onclick="openNewReservation()"><i class="fa-solid fa-plus"></i> <span data-i18n-key="New Booking">New Booking</span></button>
+                <button class="btn-primary-sm" onclick="openUnifiedResModal()"><i class="fa-solid fa-plus"></i> <span data-i18n-key="New Booking">New Booking</span></button>
             </div>
         </div>
 
@@ -100,22 +130,7 @@
     </div>
 </div>
 
-<!-- RESERVATION DETAIL MODAL -->
-<div class="modal-overlay" id="resModal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <h3 id="modalTitle">Booking Detail</h3>
-            <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body" id="modalBody">
-            <!-- Filled by JS -->
-        </div>
-        <div class="modal-footer">
-            <button class="btn-outline" onclick="closeModal()">닫기</button>
-            <button class="btn-primary-sm">Process Check-in</button>
-        </div>
-    </div>
-</div>
+
 
 <!-- NEW RESERVATION MODAL -->
 <div class="modal-overlay" id="newResModal" onclick="if(event.target===this) closeNewRes()">
@@ -125,34 +140,8 @@
             <button class="modal-close" onclick="closeNewRes()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:18px;max-height:65vh;overflow-y:auto">
-            <!-- Guest Info -->
-            <div style="display:flex;align-items:center;gap:8px;padding-bottom:4px;border-bottom:2px solid var(--primary);margin-bottom:-8px">
-                <i class="fa-solid fa-user" style="color:var(--primary);font-size:.8rem"></i>
-                <span style="font-weight:700;font-size:.82rem;color:var(--primary)">Guest 정보</span>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                <div style="display:flex;flex-direction:column;gap:5px">
-                    <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">Guest 이름 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" id="nrGuest" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="예: John Doe">
-                </div>
-                <div style="display:flex;flex-direction:column;gap:5px">
-                    <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">Contact</label>
-                    <input type="text" id="nrPhone" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="+84 000 0000">
-                </div>
-                <div style="display:flex;flex-direction:column;gap:5px">
-                    <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">이메일</label>
-                    <input type="email" id="nrEmail" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="guest@email.com">
-                </div>
-                <div style="display:flex;flex-direction:column;gap:5px">
-                    <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">Country</label>
-                    <select id="nrNation" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);font-size:.82rem;background:#fff">
-                        <option value="">선택</option>
-                        <option>🇻🇳 Vietnam</option><option>🇰🇷 South Korea</option><option>🇯🇵 Japan</option>
-                        <option>🇺🇸 USA</option><option>🇨🇳 China</option><option>🇩🇪 Germany</option><option>🇫🇷 France</option>
-                        <option>🇬🇧 UK</option><option>🇦🇺 Australia</option><option>기타</option>
-                    </select>
-                </div>
-            </div>
+            <!-- Guest Section (공통 모듈에서 동적 생성) -->
+            <div id="guestSectionTL"></div>
 
             <!-- Stay Info -->
             <div style="display:flex;align-items:center;gap:8px;padding-bottom:4px;border-bottom:2px solid var(--success);margin-bottom:-8px;margin-top:6px">
@@ -228,27 +217,6 @@
                 <div style="display:flex;flex-direction:column;gap:5px">
                     <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">Airport Pickup</label>
                     <select style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);font-size:.82rem;background:#fff">
-                        <option>불필요</option><option>편도 ($35)</option><option>왕복 ($60)</option>
-                    </select>
-                </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:5px">
-                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">특별 요청사항</label>
-                <textarea id="nrNote" style="min-height:70px;border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-family:var(--font);font-size:.82rem;width:100%;resize:vertical" placeholder="얼리 체크인, 고층 선호, 알레르기 등..."></textarea>
-            </div>
-
-            <!-- Estimate -->
-            <div style="background:var(--border2);border-radius:8px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
-                <div>
-                    <div style="font-size:.72rem;color:var(--txt3)">예상 Stay료</div>
-                    <div style="font-size:.72rem;color:var(--txt3);margin-top:2px" id="nrCalcDetail">Deluxe $130 × 3박</div>
-                </div>
-                <div style="font-size:1.3rem;font-weight:800;color:var(--primary)" id="nrEstimate">$390.00</div>
-            </div>
-        </div>
-        <div class="modal-footer" style="padding:14px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-            <button class="btn-outline" onclick="closeNewRes()">취소</button>
-            <button class="btn-primary-sm" onclick="saveNewRes()"><i class="fa-solid fa-check"></i> 예약 Save</button>
         </div>
     </div>
 </div>
@@ -257,14 +225,17 @@
 // ===== ROOM & RESERVATION DATA =====
 let rooms = [];
 
-let reservations = [];
+window.reservations = [];
 
 const DAYS = 14;
-const baseDate = new Date(2026, 4, 12); // May 12, 2026
+const EPOCH = new Date(2026, 4, 12); // Reference date for mock reservations
+let baseDate = new Date(2026, 4, 12); // Current view start date
 
 function buildTimeline() {
     const grid = document.getElementById('tlGrid');
     grid.innerHTML = '';
+
+    let cntConfirmed=0, cntCheckedin=0, cntCheckout=0, cntVip=0, cntB2B=0;
 
     // Header row
     let headerHTML = '<div class="tl-room-header">Room</div>';
@@ -303,62 +274,60 @@ function buildTimeline() {
         const row = grid.querySelectorAll('.tl-row')[roomIdx];
         if (!row) return;
 
+        const offset = Math.round((baseDate - EPOCH) / 86400000);
+        const renderStart = res.start - offset;
+        const renderEnd = renderStart + res.len;
+
+        if (renderEnd <= 0 || renderStart >= DAYS) return; // out of view
+
         const block = document.createElement('div');
         block.className = `tl-block ${res.status}`;
-        block.style.left = `calc(140px + ${res.start} * ((100% - 140px) / ${DAYS}) + 3px)`;
-        block.style.width = `calc(${res.len} * ((100% - 140px) / ${DAYS}) - 6px)`;
+        
+        const clipStart = Math.max(0, renderStart);
+        const clipEnd = Math.min(DAYS, renderEnd);
+        const renderLen = clipEnd - clipStart;
+
+        block.style.left = `calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px)`;
+        block.style.width = `calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px)`;
         
         const isB2B = res.isB2B;
-        const b2bBadge = isB2B ? `<span style="background:#111827;color:#fff;font-size:0.6rem;padding:2px 4px;border-radius:4px;margin-right:4px;box-shadow:0 1px 2px rgba(0,0,0,0.2)">${res.channel.split(' ')[0]}</span>` : '';
-        block.innerHTML = `<span class="tl-block-text">${b2bBadge}${res.guest}</span>`;
+        const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
+        if(isVip) cntVip++;
+        if(res.status === 'confirmed') cntConfirmed++;
+        else if(res.status === 'checkedin') cntCheckedin++;
+        else if(res.status === 'checkout') cntCheckout++;
 
-        block.onclick = () => showDetail(res);
+        const b2bBadge = isB2B ? `<span style="background:#111827;color:#fff;font-size:0.6rem;padding:2px 4px;border-radius:4px;margin-right:4px;box-shadow:0 1px 2px rgba(0,0,0,0.2)">${res.channel.split(' ')[0]}</span>` : '';
+        const vipIcon = isVip ? `<i class="fa-solid fa-crown" style="color:#F59E0B; margin-right:4px; font-size:0.7rem;"></i>` : '';
+        block.innerHTML = `<span class="tl-block-text">${b2bBadge}${vipIcon}${res.guest}</span>`;
+
+        block.onclick = () => window.openUnifiedResModal(res.id);
         row.style.position = 'relative';
         row.appendChild(block);
     });
+
+    document.getElementById('kpiConfirmed').textContent = cntConfirmed;
+    document.getElementById('kpiCheckedin').textContent = cntCheckedin;
+        document.getElementById('kpiCheckout').textContent = cntCheckout;
+    document.getElementById('kpiVip').textContent = cntVip;
+    if (document.getElementById('kpiB2B')) document.getElementById('kpiB2B').textContent = cntB2B;
 }
 
-function showDetail(res) {
-    const isEn = typeof currentLang !== 'undefined' ? currentLang === 'en' : false;
-    const statusMap = isEn ? 
-        {confirmed:'Confirmed',pending:'Pending',checkedin:'Check-in',vip:'VIP'} : 
-        {confirmed:'예약 확정',pending:'대기 중',checkedin:'체크인 완료',vip:'VIP'};
-    const colorMap = {confirmed:'var(--primary)',pending:'var(--warning)',checkedin:'var(--success)',vip:'var(--purple)'};
-    const checkIn = new Date(baseDate);
-    checkIn.setDate(checkIn.getDate() + res.start);
-    const checkOut = new Date(checkIn);
-    checkOut.setDate(checkOut.getDate() + res.len);
 
-    const isB2B = res.isB2B;
-    const b2bBadge = isB2B ? `<span style="background:#111827;color:#fff;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:600;vertical-align:middle;letter-spacing:0.5px"><i class="fa-solid fa-building"></i> B2B 고객</span>` : '';
+// ===== GUEST SEARCH (공통 모듈 사용) =====
+let _gsWidget = null;
 
-    const labels = isEn ? 
-        ['Status', isB2B ? 'Agency' : 'Channel','Check-in','Check-out','Stay','Room Type'] : 
-        ['상태', isB2B ? '제휴 업체' : '예약 채널','체크인','체크아웃','숙박 일수','객실 타입'];
+// Guest 섹션 동적 렌더 + 위젯 초기화
+(function initGuestSection() {
+    const container = document.getElementById('guestSectionTL');
+    if (container) {
+        container.innerHTML = renderGuestSearchHTML('');
+        _gsWidget = initGuestSearch('');
+    }
+})();
 
-    document.getElementById('modalTitle').innerHTML = `${res.room}호 — ${res.guest} ${b2bBadge}`;
-    document.getElementById('modalBody').innerHTML = `
-        <div class="modal-detail-grid">
-            <div class="md-item"><div class="md-label">${labels[0]}</div><div class="md-value"><span class="status-dot" style="background:${colorMap[res.status]}"></span> ${statusMap[res.status]}</div></div>
-            <div class="md-item"><div class="md-label">${labels[1]}</div><div class="md-value"><span style="font-weight:700;color:var(--primary)">${res.channel}</span></div></div>
-            <div class="md-item"><div class="md-label">${labels[2]}</div><div class="md-value">${checkIn.getMonth()+1}/${checkIn.getDate()}</div></div>
-            <div class="md-item"><div class="md-label">${labels[3]}</div><div class="md-value">${checkOut.getMonth()+1}/${checkOut.getDate()}</div></div>
-            <div class="md-item"><div class="md-label">${labels[4]}</div><div class="md-value">${res.len}${isEn?' Nights':'박'}</div></div>
-            <div class="md-item"><div class="md-label">${labels[5]}</div><div class="md-value">${rooms.find(r=>r.id===res.room)?.type||'-'}</div></div>
-        </div>
-    `;
-    document.getElementById('resModal').classList.add('active');
-}
 
-function closeModal() { document.getElementById('resModal').classList.remove('active'); }
-function openNewReservation() { document.getElementById('newResModal').classList.add('active'); calcEstimate(); }
-function closeNewRes() { document.getElementById('newResModal').classList.remove('active'); }
-function saveNewRes() {
-    const guest = document.getElementById('nrGuest').value.trim();
-    if (!guest) { showToast('Guest 이름을 입력해 주세요.'); return; }
-    showToast(`${guest} 님의 예약이 성공적으로 등록되었습니다!`);
-    closeNewRes();
-}
+
 function calcEstimate() {
     const cin = new Date(document.getElementById('nrCheckin').value);
     const cout = new Date(document.getElementById('nrCheckout').value);
@@ -369,8 +338,29 @@ function calcEstimate() {
     document.getElementById('nrEstimate').textContent = `$${total.toLocaleString('en',{minimumFractionDigits:2})}`;
     document.getElementById('nrCalcDetail').textContent = `${typeName} $${rate} × ${nights}박`;
 }
-function shiftWeek(dir) { /* placeholder */ }
-function goToday() { /* placeholder */ }
+function updateDateRangeText() {
+    const end = new Date(baseDate);
+    end.setDate(end.getDate() + DAYS - 1);
+    const m1 = baseDate.getMonth() + 1;
+    const d1 = baseDate.getDate();
+    const m2 = end.getMonth() + 1;
+    const d2 = end.getDate();
+    document.getElementById('tlRange').innerText = `${m1}월 ${d1}일 — ${m2}월 ${d2}일`;
+}
+
+function shiftWeek(dir) {
+    baseDate.setDate(baseDate.getDate() + dir * 7);
+    updateDateRangeText();
+    buildTimeline();
+    buildMobileView();
+}
+function goToday() {
+    baseDate = new Date();
+    baseDate.setHours(0,0,0,0);
+    updateDateRangeText();
+    buildTimeline();
+    buildMobileView();
+}
 
 // ===== MOBILE MENU =====
 function toggleMenu() {
@@ -381,14 +371,22 @@ function toggleMenu() {
 // ===== MOBILE ROOM LIST VIEW =====
 function buildMobileView() {
     const container = document.getElementById('tlMobileView');
-    const statusMap = {confirmed:'Confirmed',pending:'Pending',checkedin:'Check-in',vip:'VIP'};
-    const colorMap = {confirmed:'#3B82F6',pending:'#F59E0B',checkedin:'#10B981',vip:'#8B5CF6'};
-    const iconMap = {confirmed:'fa-check',pending:'fa-clock',checkedin:'fa-right-to-bracket',vip:'fa-crown'};
+    const isEn = typeof window.currentLang !== 'undefined' ? window.currentLang === 'en' : false;
+    const statusMap = isEn ? 
+        {confirmed:'Confirmed',checkedin:'Check-in',vip:'VIP'} : 
+        {confirmed:'예약 확정',checkedin:'체크인 완료',vip:'VIP'};
+    const colorMap = {confirmed:'#3B82F6',checkedin:'#10B981',vip:'#8B5CF6'};
+    const iconMap = {confirmed:'fa-check',checkedin:'fa-right-to-bracket',vip:'fa-crown'};
 
     let html = '';
     rooms.forEach(room => {
+        const offset = Math.round((baseDate - EPOCH) / 86400000);
         const roomRes = reservations.filter(r => r.room === room.id);
-        const hasToday = roomRes.some(r => r.start === 0);
+        const hasToday = roomRes.some(r => {
+            const renderStart = r.start - offset;
+            const renderEnd = renderStart + r.len;
+            return renderStart <= 0 && renderEnd > 0;
+        });
 
         html += `<div class="m-room-card ${hasToday ? '' : 'vacant'}">
             <div class="m-room-header">
@@ -396,19 +394,19 @@ function buildMobileView() {
                     <span class="room-tag">${room.id}</span>
                     <span class="m-room-type">${room.type}</span>
                 </div>
-                <span class="m-room-status ${hasToday ? 'occupied' : 'available'}">${hasToday ? 'Occupied' : '공실'}</span>
+                <span class="m-room-status ${hasToday ? 'occupied' : 'available'}">${hasToday ? (isEn?'Occupied':'점유 중') : (isEn?'Available':'공실')}</span>
             </div>`;
 
         if (roomRes.length > 0) {
             html += '<div class="m-room-bookings">';
             roomRes.forEach(res => {
-                const cin = new Date(baseDate);
+                const cin = new Date(EPOCH);
                 cin.setDate(cin.getDate() + res.start);
                 const cout = new Date(cin);
                 cout.setDate(cout.getDate() + res.len);
                 const color = colorMap[res.status];
                 html += `
-                <div class="m-booking-item" style="border-left:3px solid ${color}" onclick="showDetail({room:'${res.room}',guest:'${res.guest}',start:${res.start},len:${res.len},status:'${res.status}',channel:'${res.channel}'})">
+                <div class="m-booking-item" style="border-left:3px solid ${color}" onclick="window.openUnifiedResModal('${res.id}')">
                     <div class="m-booking-top">
                         <div class="m-booking-guest">
                             <i class="fa-solid ${iconMap[res.status]}" style="color:${color}"></i>
@@ -446,7 +444,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Clear cached local storage to ensure fresh fallback data is used
         localStorage.removeItem('pms_rooms');
         localStorage.removeItem('pms_timeline_res');
-        localStorage.removeItem('pms_reservations');
+        // removed init
         
         log('Fetching rooms...');
         const [rmData, resData] = await Promise.all([
@@ -454,12 +452,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             PmsAPI.getTimelineReservations()
         ]);
         rooms = rmData;
-        reservations = resData;
+        window.reservations = resData;
         log(`Fetched ${rooms ? rooms.length : 0} rooms.`);
         log(`Fetched ${reservations ? reservations.length : 0} reservations.`);
         
         log('Building timeline...');
         buildTimeline();
+        buildMobileView();
+        if(typeof updateDateRangeText === 'function') updateDateRangeText();
         log('Timeline built.');
         
         log('Building mobile view...');
