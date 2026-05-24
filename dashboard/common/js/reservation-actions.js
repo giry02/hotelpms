@@ -22,19 +22,27 @@
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Room">객실 배정</div>
                         <select id="unifiedRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;"></select>
                     </div>
-                    <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Channel">예약 채널 (Channel)</div>
-                        <select id="unifiedChannel" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
-                            <option value="Walk-in">Walk-in</option>
-                            <option value="Phone">Phone (Direct)</option>
-                            <option value="Homepage">Website</option>
-                            <option value="Agoda">Agoda</option>
-                            <option value="Booking.com">Booking.com</option>
-                            <option value="모두투어 (Mode)">모두투어 (Mode)</option>
-                            <option value="하나투어 (Hana)">하나투어 (Hana)</option>
-                        </select>
-                        <div style="margin-top:8px;">
-                            <label style="font-size:0.8rem;color:var(--txt2);display:flex;align-items:center;gap:6px;"><input type="checkbox" id="unifiedIsB2B"> B2B(여행사) 고객</label>
+                    <div class="md-item" style="grid-column: 1 / -1;">
+                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Reservation Source">예약 유형 및 채널 (Source & Channel)</div>
+                        <div style="display:flex;gap:16px;align-items:center;margin-bottom:10px;">
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="unifiedSourceType" value="FIT" checked onclick="toggleUnifiedGroupSelect()"> 개별 예약 (FIT / OTA)</label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="unifiedSourceType" value="Group" onclick="toggleUnifiedGroupSelect()"> 단체 및 B2B 연동 (Group / Agency)</label>
+                        </div>
+                        <div id="unifiedGroupSelectWrapper" style="display:none;background:#f8fafc;padding:12px;border:1px solid var(--border2);border-radius:8px;">
+                            <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:4px">소속 단체 / 여행사 선택</div>
+                            <select id="unifiedGroupId" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
+                                <option value="">단체를 선택하세요...</option>
+                            </select>
+                        </div>
+                        <div id="unifiedFitChannelWrapper" style="margin-top:10px;">
+                            <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:4px">개별 채널 (Channel)</div>
+                            <select id="unifiedChannel" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
+                                <option value="Walk-in">Walk-in</option>
+                                <option value="Phone">Phone (Direct)</option>
+                                <option value="Homepage">Website</option>
+                                <option value="Agoda">Agoda</option>
+                                <option value="Booking.com">Booking.com</option>
+                            </select>
                         </div>
                     </div>
                     <div class="md-item">
@@ -119,8 +127,15 @@
             document.getElementById('unifiedModalTitle').innerHTML = `신규 예약 등록 (New Booking)`;
             document.getElementById('unifiedResId').value = '';
             document.getElementById('unifiedStatus').value = 'confirmed';
+            document.querySelector('input[name="unifiedSourceType"][value="FIT"]').checked = true;
             document.getElementById('unifiedChannel').value = 'Walk-in';
-            document.getElementById('unifiedIsB2B').checked = false;
+            if (prefillGroupId) {
+                document.querySelector('input[name="unifiedSourceType"][value="Group"]').checked = true;
+                document.getElementById('unifiedGroupId').value = prefillGroupId;
+            } else {
+                document.getElementById('unifiedGroupId').value = '';
+            }
+            toggleUnifiedGroupSelect();
             
             // Set default dates to today and tomorrow
             const today = new Date();
@@ -174,16 +189,24 @@
         
             document.getElementById('unifiedStatus').value = res.status;
             
-            const chanSelect = document.getElementById('unifiedChannel');
-            let foundOption = Array.from(chanSelect.options).find(o => o.value === res.channel);
-            if (!foundOption && res.channel) {
-                const opt = document.createElement('option');
-                opt.value = res.channel;
-                opt.textContent = res.channel;
-                chanSelect.appendChild(opt);
+            if (res.groupId || res.isB2B) {
+                document.querySelector('input[name="unifiedSourceType"][value="Group"]').checked = true;
+                setTimeout(() => {
+                    document.getElementById('unifiedGroupId').value = res.groupId || '';
+                }, 100); // Wait for loadUnifiedGroups if necessary, but actually we should await it
+            } else {
+                document.querySelector('input[name="unifiedSourceType"][value="FIT"]').checked = true;
+                const chanSelect = document.getElementById('unifiedChannel');
+                let foundOption = Array.from(chanSelect.options).find(o => o.value === res.channel);
+                if (!foundOption && res.channel) {
+                    const opt = document.createElement('option');
+                    opt.value = res.channel;
+                    opt.textContent = res.channel;
+                    chanSelect.appendChild(opt);
+                }
+                chanSelect.value = res.channel || 'Walk-in';
             }
-            chanSelect.value = res.channel || 'Walk-in';
-            document.getElementById('unifiedIsB2B').checked = !!res.isB2B;
+            toggleUnifiedGroupSelect();
             document.getElementById('unifiedCin').textContent = res.cin || '-';
             document.getElementById('unifiedCout').textContent = res.cout || '-';
             document.getElementById('unifiedNights').textContent = res.nights ? (res.nights + '박') : (res.len ? res.len + '박' : '-');
@@ -219,8 +242,25 @@
         }
         const room = document.getElementById('unifiedRoom').value;
         const status = document.getElementById('unifiedStatus').value;
-        const channel = document.getElementById('unifiedChannel').value;
-        const isB2B = document.getElementById('unifiedIsB2B').checked;
+        const isGroup = document.querySelector('input[name="unifiedSourceType"]:checked').value === 'Group';
+        let channel = document.getElementById('unifiedChannel').value;
+        let isB2B = false;
+        let groupId = null;
+        
+        if (isGroup) {
+            const grpSelect = document.getElementById('unifiedGroupId');
+            groupId = grpSelect.value;
+            const opt = grpSelect.options[grpSelect.selectedIndex];
+            if (opt && groupId) {
+                channel = opt.dataset.name || 'Group';
+                isB2B = opt.dataset.b2b === 'true' || opt.textContent.includes('여행사') || opt.textContent.includes('B2B');
+            } else {
+                channel = 'Group (Unknown)';
+            }
+            // For now, if it's a group, we can set isB2B = true just to make it show up in B2B KPIs, 
+            // but semantically we might want to separate Group and B2B. We'll set isB2B=true for both.
+            isB2B = true; 
+        }
         
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
         if (!allRes) return;
@@ -235,6 +275,7 @@
                 status: status,
                 channel: channel,
                 isB2B: isB2B,
+                groupId: groupId,
                 cin: document.getElementById('unifiedCin').textContent,
                 cout: document.getElementById('unifiedCout').textContent,
                 nights: 1,
@@ -257,6 +298,7 @@
                 res.status = status;
                 res.channel = channel;
                 res.isB2B = isB2B;
+                res.groupId = groupId;
             }
             if (window.showToast) window.showToast('예약이 성공적으로 수정되었습니다.', 'success');
         }
