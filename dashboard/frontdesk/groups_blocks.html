@@ -124,28 +124,28 @@
                     <div class="kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="fa-solid fa-users-rectangle"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-label">전체 행사</div>
-                        <div class="kpi-value">5</div>
+                        <div class="kpi-value" id="kpiTotalGroups">5</div>
                     </div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-icon" style="background:#ECFDF5;color:#059669"><i class="fa-solid fa-bed"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-label">현재 투숙 중</div>
-                        <div class="kpi-value">2</div>
+                        <div class="kpi-value" id="kpiInhouse">2</div>
                     </div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-icon" style="background:#F5F3FF;color:#7C3AED"><i class="fa-solid fa-door-open"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-label">블록 배정 객실</div>
-                        <div class="kpi-value">128</div>
+                        <div class="kpi-value" id="kpiBlocks">128</div>
                     </div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-icon" style="background:#FFF7ED;color:#EA580C"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                     <div class="kpi-info">
                         <div class="kpi-label">미정산 단체</div>
-                        <div class="kpi-value">1</div>
+                        <div class="kpi-value" id="kpiUnpaid">1</div>
                     </div>
                 </div>
             </div>
@@ -168,7 +168,7 @@
                     </div>
                 </div>
                 <div class="filter-right">
-                    <button class="btn-outline" style="height:38px"><i class="fa-solid fa-download"></i> 다운로드</button>
+                    <button class="btn-outline" style="height:38px" onclick="showToast('다운로드 되었습니다.')"><i class="fa-solid fa-download"></i> 다운로드</button>
                     <button class="btn-primary-sm" style="height:38px;padding:0 16px" onclick="openNewGroupModal()">
                         <i class="fa-solid fa-plus"></i> 신규 객실 배정
                     </button>
@@ -295,17 +295,6 @@
 <script>
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function showToast(msg) {
-    let t = document.getElementById('_toast');
-    if (!t) {
-        t = document.createElement('div');
-        t.id = '_toast';
-        t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:0.85rem;font-family:var(--font);box-shadow:0 4px 20px rgba(0,0,0,0.2)';
-        document.body.appendChild(t);
-    }
-    t.textContent = msg; t.style.display = 'block';
-    setTimeout(() => { t.style.display = 'none'; }, 3000);
-}
 
 const statusMap = {
     confirmed: { label: '확정',      cls: 'pill-confirmed' },
@@ -384,7 +373,7 @@ window.openNewGroupModal = function() {
 
 function filterGroups(status, btn) {
     currentFilter = status;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     if (btn) btn.classList.add('active');
     renderGroups();
 }
@@ -444,10 +433,10 @@ function renderGroups(search = '') {
             <div class="group-card-footer">
                 <div style="font-size:0.78rem;color:var(--txt3)">담당: ${g.sales}</div>
                 <div style="display:flex;gap:8px">
-                    <button class="btn-outline-sm" onclick="showDetail('${g.id}')" title="상세"><i class="fa-solid fa-eye"></i></button>
-                    <button class="btn-outline-sm" onclick="editGroup('${g.id}')" title="수정"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn-outline-sm" onclick="deleteGroup('${g.id}')" title="삭제" style="color:var(--danger);border-color:var(--danger)"><i class="fa-solid fa-trash"></i></button>
-                    <button class="btn-outline-sm" onclick="showToast('정산 화면으로 이동합니다.')"><i class="fa-solid fa-receipt"></i> 정산</button>
+                    <button class="btn-outline-sm" onclick="showDetail('${g.id}')" title="상세" style="padding:0 8px"><i class="fa-solid fa-eye"></i></button>
+                    <button class="btn-outline-sm" onclick="editGroup('${g.id}')" title="수정" style="padding:0 8px"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-outline-sm" onclick="deleteGroup('${g.id}')" title="삭제" style="color:var(--danger);border-color:var(--danger);padding:0 8px"><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn-outline-sm" onclick="showToast('정산 화면으로 이동합니다.')" style="padding:0 12px"><i class="fa-solid fa-receipt"></i> 정산</button>
                 </div>
             </div>
         </div>`;
@@ -506,6 +495,15 @@ function updateFilterCounts() {
     document.getElementById('chip-inhouse').innerHTML = `투숙 중 (${groups.filter(g=>g.status==='inhouse').length})`;
     document.getElementById('chip-pending').innerHTML = `대기 (${groups.filter(g=>g.status==='pending').length})`;
     document.getElementById('chip-departed').innerHTML = `체크아웃 (${groups.filter(g=>g.status==='departed').length})`;
+
+    const inhouseCount = groups.filter(g=>g.status==='inhouse').length;
+    const totalBlocks = groups.reduce((sum, g) => sum + (g.block || 0), 0);
+    const unpaidCount = groups.filter(g=>g.status!=='departed').length;
+
+    document.getElementById('kpiTotalGroups').textContent = groups.length;
+    document.getElementById('kpiInhouse').textContent = inhouseCount;
+    document.getElementById('kpiBlocks').textContent = totalBlocks;
+    document.getElementById('kpiUnpaid').textContent = unpaidCount;
 }
 
 function addAllocationRow(type='Standard Double', count=1, rate='') {
@@ -540,7 +538,7 @@ function calcTotalBlock() {
 function saveGroup() {
     const id = document.getElementById('ngId').value;
     const name = document.getElementById('ngName').value;
-    if (!name) { alert('행사(블록)명을 입력하세요.'); return; }
+    if (!name) { showToast('행사(블록)명을 입력하세요.', 'error'); return; }
     
     const agency = document.getElementById('ngAgency').value;
     const type = document.getElementById('ngType').value;
@@ -566,7 +564,7 @@ function saveGroup() {
         }
     }
     
-    if (block === 0) { alert('최소 1개 이상의 객실을 할당해야 합니다.'); return; }
+    if (block === 0) { showToast('최소 1개 이상의 객실을 할당해야 합니다.', 'error'); return; }
 
     if (id) {
         const g = groups.find(x => x.id === id);
@@ -634,10 +632,10 @@ function editGroup(id) {
     openModal('newGroupModal');
 }
 
-function deleteGroup(id) {
+async function deleteGroup(id) {
     const g = groups.find(x => x.id === id);
     if (!g) return;
-    if (confirm(`정말 [${g.name}] 행사를 취소(삭제)하시겠습니까? 관련된 예약에 영향을 줄 수 있습니다.`)) {
+    if (await showConfirm(`정말 [${g.name}] 행사를 취소(삭제)하시겠습니까? 관련된 예약에 영향을 줄 수 있습니다.`)) {
         groups = groups.filter(x => x.id !== id);
         localStorage.setItem('pms_groups', JSON.stringify(groups));
         showToast('행사가 취소/삭제되었습니다.');

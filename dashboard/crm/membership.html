@@ -11,10 +11,15 @@
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/crm.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-crm.js"></script>
     <script src="../common/js/i18n.js"></script>
-<script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
+    <style>
+        .tc-item:hover { background: var(--bg); }
+    </style>
 </head>
 <body>
 
@@ -27,7 +32,7 @@
             <div class="tier-card diamond">
                 <div class="tier-card-icon"><i class="fa-solid fa-gem"></i></div>
                 <div class="tier-card-info">
-                    <div class="tier-card-count">40</div>
+                    <div class="tier-card-count" id="countDiamond">40</div>
                     <div class="tier-card-name">Diamond</div>
                 </div>
                 <div class="tier-card-criteria">20회 이상 투숙 · 연 $10,000+</div>
@@ -35,7 +40,7 @@
             <div class="tier-card platinum">
                 <div class="tier-card-icon"><i class="fa-solid fa-star"></i></div>
                 <div class="tier-card-info">
-                    <div class="tier-card-count">52</div>
+                    <div class="tier-card-count" id="countPlatinum">52</div>
                     <div class="tier-card-name">Platinum</div>
                 </div>
                 <div class="tier-card-criteria">10회 이상 투숙 · 연 $5,000+</div>
@@ -43,7 +48,7 @@
             <div class="tier-card gold">
                 <div class="tier-card-icon"><i class="fa-solid fa-crown"></i></div>
                 <div class="tier-card-info">
-                    <div class="tier-card-count">94</div>
+                    <div class="tier-card-count" id="countGold">94</div>
                     <div class="tier-card-name">Gold</div>
                 </div>
                 <div class="tier-card-criteria">5회 이상 투숙 · 연 $2,000+</div>
@@ -51,7 +56,7 @@
             <div class="tier-card standard">
                 <div class="tier-card-icon"><i class="fa-solid fa-user"></i></div>
                 <div class="tier-card-info">
-                    <div class="tier-card-count">2,661</div>
+                    <div class="tier-card-count" id="countStandard">2,661</div>
                     <div class="tier-card-name">Standard</div>
                 </div>
                 <div class="tier-card-criteria">일반 회원 · 가입 즉시</div>
@@ -340,7 +345,40 @@ const translations={ko: {
 "VIP Members":"VIP Members","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Tier Benefits":"Tier Benefits","Recent Tier Changes":"Recent Tier Changes","This Month":"This Month","Last Month":"Last Month","Benefit":"Benefit","Room Discount":"Room Discount","Early Check-in":"Early Check-in","Late Check-out":"Late Check-out","Free Breakfast":"Free Breakfast","Room Upgrade":"Room Upgrade","Lounge Access":"Lounge Access","Airport Pickup":"Airport Pickup","Welcome Amenity":"Welcome Amenity","Point Earn Rate":"Point Earn Rate"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){currentLang=l;const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]})}
-document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
+document.addEventListener('DOMContentLoaded', async () => {
+    setupI18n();
+    changeLang(currentLang);
+    
+    // Add 상세보기
+    document.querySelectorAll('.tc-item').forEach(el => {
+        el.style.cursor = 'pointer';
+        el.title = '상세보기';
+        el.onclick = () => location.href = 'guests.html';
+    });
+
+    if (window.PmsAPI) {
+        try {
+            const guests = await PmsAPI.getGuests();
+            let d=0, p=0, g=0, s=0;
+            guests.forEach(guest => {
+                if(guest.tier === 'diamond') d++;
+                else if(guest.tier === 'platinum') p++;
+                else if(guest.tier === 'gold') g++;
+                else s++;
+            });
+            const cDiamond = document.getElementById('countDiamond');
+            const cPlatinum = document.getElementById('countPlatinum');
+            const cGold = document.getElementById('countGold');
+            const cStandard = document.getElementById('countStandard');
+            if(cDiamond) cDiamond.textContent = d.toLocaleString();
+            if(cPlatinum) cPlatinum.textContent = p.toLocaleString();
+            if(cGold) cGold.textContent = g.toLocaleString();
+            if(cStandard) cStandard.textContent = s.toLocaleString();
+        } catch(e) {
+            console.error(e);
+        }
+    }
+});
 </script>
 
 <!-- VIP Criteria Management Modal -->
@@ -398,7 +436,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('vipCriteriaModal')">Cancel</button>
-            <button class="btn-primary-sm" onclick="alert('승급 기준이 업데이트 되었습니다.');closeModal('vipCriteriaModal')"><i class="fa-solid fa-check"></i> Save</button>
+            <button class="btn-primary-sm" onclick="showToast('승급 기준이 업데이트 되었습니다.', 'success');closeModal('vipCriteriaModal')"><i class="fa-solid fa-check"></i> Save</button>
         </div>
     </div>
 </div>

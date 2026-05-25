@@ -201,17 +201,6 @@
 <script>
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function showToast(msg) {
-    let t = document.getElementById('_toast');
-    if (!t) {
-        t = document.createElement('div');
-        t.id = '_toast';
-        t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:0.85rem;font-family:var(--font);box-shadow:0 4px 20px rgba(0,0,0,0.2)';
-        document.body.appendChild(t);
-    }
-    t.textContent = msg; t.style.display = 'block';
-    setTimeout(() => { t.style.display = 'none'; }, 3000);
-}
 
 let companies = [];
 let currentFilter = 'all';
@@ -233,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function filterCompanies(type, btn) {
     currentFilter = type;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     if(btn) btn.classList.add('active');
     renderCompanies();
 }
@@ -334,7 +323,7 @@ function editCompany(id) {
 function saveCompany() {
     const id = document.getElementById('compId').value;
     const name = document.getElementById('compName').value;
-    if(!name) { alert('업체명을 입력하세요.'); return; }
+    if(!name) { showToast('업체명을 입력하세요.', 'error'); return; }
     
     const data = {
         name: name,
@@ -361,9 +350,9 @@ function saveCompany() {
     renderCompanies();
 }
 
-function deleteCompany(id) {
+async function deleteCompany(id) {
     const c = companies.find(x => x.id === id);
-    if(confirm(`정말 [${c.name}] 업체를 삭제하시겠습니까?`)) {
+    if(await showConfirm(`정말 [${c.name}] 업체를 삭제하시겠습니까?`)) {
         companies = companies.filter(x => x.id !== id);
         localStorage.setItem('pms_companies', JSON.stringify(companies));
         showToast('업체가 삭제되었습니다.');

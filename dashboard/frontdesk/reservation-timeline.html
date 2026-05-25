@@ -79,17 +79,17 @@
     <div class="content">
         <!-- ROOM STATUS SUMMARY -->
         <div class="kpi-grid kpi-grid-5" style="margin-bottom:20px">
-            <div class="kpi-card blue">
+            <div class="kpi-card blue" style="cursor:pointer" onclick="openUnifiedResModal()">
                 <div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div>
-                <div class="kpi-body"><div class="kpi-value" id="kpiConfirmed">0</div><div class="kpi-label" data-i18n-key="예약 확정">예약 확정</div></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiConfirmed">0</div><div class="kpi-label">체크인 대상(잔여)</div></div>
             </div>
             <div class="kpi-card green">
-                <div class="kpi-icon"><i class="fa-solid fa-check-circle"></i></div>
-                <div class="kpi-body"><div class="kpi-value" id="kpiCheckedin">0</div><div class="kpi-label" data-i18n-key="체크인 완료">체크인 완료</div></div>
+                <div class="kpi-icon"><i class="fa-solid fa-bed"></i></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiCheckedin">0</div><div class="kpi-label" data-i18n-key="투숙 중">투숙 중</div></div>
             </div>
             <div class="kpi-card red">
                 <div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
-                <div class="kpi-body"><div class="kpi-value" id="kpiCheckout">0</div><div class="kpi-label" data-i18n-key="체크아웃">체크아웃</div></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiCheckout">0</div><div class="kpi-label">체크아웃 대상(잔여)</div></div>
             </div>
             <div class="kpi-card purple">
                 <div class="kpi-icon"><i class="fa-solid fa-crown"></i></div>
@@ -153,6 +153,19 @@ function buildTimeline() {
 
     let cntConfirmed=0, cntCheckedin=0, cntCheckout=0, cntVip=0, cntB2B=0;
 
+    // Count all reservations to maintain consistency with other views
+    reservations.forEach(res => {
+        const isB2B = res.isB2B;
+        const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
+        if(isVip) cntVip++;
+        if(isB2B) cntB2B++;
+        if(res.status === 'confirmed') cntConfirmed++; // 남은 체크인 대상
+        else if(res.status === 'checkedin' || res.status === 'checked-in') {
+            cntCheckedin++; 
+            cntCheckout++; // 투숙중인 사람 = 오늘 나가야 할 잠재적 대상
+        }
+    });
+
     // Header row
     let headerHTML = '<div class="tl-room-header">Room</div>';
     for (let d = 0; d < DAYS; d++) {
@@ -182,6 +195,9 @@ function buildTimeline() {
         grid.innerHTML += `<div class="tl-row">${rowHTML}</div>`;
     });
 
+    // Track levels for each room to handle overlapping blocks
+    const roomLevels = {};
+
     // Place reservation blocks
     reservations.forEach(res => {
         const roomIdx = rooms.findIndex(r => r.id === res.room);
@@ -196,23 +212,38 @@ function buildTimeline() {
 
         if (renderEnd <= 0 || renderStart >= DAYS) return; // out of view
 
+        // Find available level to avoid overlapping
+        if (!roomLevels[roomIdx]) roomLevels[roomIdx] = [];
+        let level = 0;
+        // Check if there is an overlapping reservation in this level.
+        // We use > instead of >= so back-to-back reservations (checkout/checkin on same day) don't overlap vertically
+        while (roomLevels[roomIdx][level] !== undefined && roomLevels[roomIdx][level] > renderStart) {
+            level++;
+        }
+        roomLevels[roomIdx][level] = renderEnd;
+
         const block = document.createElement('div');
-        block.className = `tl-block ${res.status}`;
+        const safeStatus = res.status.replace('-', '');
+        block.className = `tl-block ${safeStatus}`;
         
         const clipStart = Math.max(0, renderStart);
         const clipEnd = Math.min(DAYS, renderEnd);
         const renderLen = clipEnd - clipStart;
 
+        block.style.position = 'absolute';
+        block.style.top = `${8 + (level * 36)}px`;
         block.style.left = `calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px)`;
         block.style.width = `calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px)`;
         
+        // Adjust row height if multiple levels are used
+        const requiredHeight = 52 + (level * 36);
+        const currentHeight = parseInt(row.style.height || 52);
+        if (currentHeight < requiredHeight) {
+            row.style.height = `${requiredHeight}px`;
+        }
+        
         const isB2B = res.isB2B;
         const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
-        if(isVip) cntVip++;
-        if(isB2B) cntB2B++;
-        if(res.status === 'confirmed') cntConfirmed++;
-        else if(res.status === 'checkedin') cntCheckedin++;
-        else if(res.status === 'checkout') cntCheckout++;
 
         const b2bBadge = isB2B ? `<span style="background:#111827;color:#fff;font-size:0.6rem;padding:2px 4px;border-radius:4px;margin-right:4px;box-shadow:0 1px 2px rgba(0,0,0,0.2)">${res.channel.split(' ')[0]}</span>` : '';
         const vipIcon = isVip ? `<i class="fa-solid fa-crown" style="color:#F59E0B; margin-right:4px; font-size:0.7rem;"></i>` : '';

@@ -307,10 +307,35 @@ function changePage(page) {
 function setFilter(btn, filter) {
     currentFilter = filter;
     currentPage = 1;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     renderTable();
-    updateChipCounts();
+}
+
+function updateChipCounts() {
+    const counts = { all: reservations.length, confirmed: 0, checkedin: 0, checkout: 0, cancelled: 0 };
+    reservations.forEach(r => {
+        if (counts[r.status] !== undefined) counts[r.status]++;
+    });
+    
+    // Desktop chips
+    document.querySelectorAll('.chip').forEach(c => {
+        const f = c.getAttribute('data-filter');
+        const span = c.querySelector('.chip-count');
+        if(span && counts[f] !== undefined) span.textContent = counts[f];
+    });
+    
+    // Mobile bottom sheet
+    const bsMap = { 'all': 0, 'confirmed': 1, 'checkedin': 2, 'checkout': 3, 'cancelled': 4 };
+    document.querySelectorAll('.bs-option').forEach(btn => {
+        const span = btn.querySelector('.bs-option-count');
+        const onClickStr = btn.getAttribute('onclick');
+        for (let key in counts) {
+            if (onClickStr && onClickStr.includes(`'${key}'`) && span) {
+                span.textContent = counts[key];
+            }
+        }
+    });
 }
 
 function filterTable() { 
@@ -503,7 +528,7 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
 }
 function saveNewRes() {
-    alert('새 예약이 성공적으로 Save되었습니다!');
+    showToast('새 예약이 성공적으로 저장되었습니다!', 'success');
     closeModal('newResModal');
 }
 
@@ -513,8 +538,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Fetch dynamic reservations
     if(window.PmsAPI && window.PmsAPI.getReservations) {
-        reservations = await window.PmsAPI.getReservations();
+        let rawRes = await window.PmsAPI.getReservations();
+        reservations = rawRes.map(r => {
+            if (r.status === 'checked-in') r.status = 'checkedin';
+            if (r.status === 'checked-out') r.status = 'checkout';
+            return r;
+        });
     }
+    updateChipCounts();
     renderTable();
 });
 </script>

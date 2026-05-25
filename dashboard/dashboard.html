@@ -185,15 +185,15 @@
             <div class="card">
                 <div class="card-header">
                     <a class="card-title card-title-link" href="operations/ancillary.html"><i class="fa-solid fa-coins"></i> Ancillary Rev</a>
-                    <div class="card-actions">
-                        <button class="active">Today</button>
-                        <button>주간</button>
+                    <div class="card-actions" id="ancillaryBtns">
+                        <button class="active" onclick="toggleAncillary(false)">Today</button>
+                        <button onclick="toggleAncillary(true)">주간</button>
                     </div>
                 </div>
                 <div class="card-body">
                     <div style="text-align:center;margin-bottom:16px">
-                        <div style="font-size:2rem;font-weight:800;color:#111827">$1,285</div>
-                        <div style="font-size:.7rem;color:#6B7280">Today 총 Ancillary Rev</div>
+                        <div id="ancillaryTotal" style="font-size:2rem;font-weight:800;color:#111827">$1,285</div>
+                        <div id="ancillaryLabel" style="font-size:.7rem;color:#6B7280">Today 총 Ancillary Rev</div>
                     </div>
                     <div class="svc-breakdown" id="svcBreakdown"></div>
                 </div>
@@ -369,6 +369,63 @@ if(svcBk) {
         }, 300);
     });
 }
+
+function toggleAncillary(isWeekly) {
+    const isEn = currentLang === 'en';
+    const totalEl = document.getElementById('ancillaryTotal');
+    const labelEl = document.getElementById('ancillaryLabel');
+    const svcBk = document.getElementById('svcBreakdown');
+    
+    if(isWeekly) {
+        totalEl.textContent = '$8,450';
+        labelEl.textContent = isEn ? "Weekly Total Revenue" : "주간 총 Ancillary Rev";
+        window.svcData = [
+            { name: '스파', val: 3200, pct: 38, icon: 'fa-spa', color: '#EC4899' },
+            { name: '외부 대행', val: 2400, pct: 28, icon: 'fa-golf-ball-tee', color: '#10B981' },
+            { name: 'Room Service', val: 1500, pct: 18, icon: 'fa-utensils', color: '#F59E0B' },
+            { name: '미니바', val: 850, pct: 10, icon: 'fa-wine-glass', color: '#8B5CF6' },
+            { name: '세탁', val: 500, pct: 6, icon: 'fa-shirt', color: '#3B82F6' }
+        ];
+    } else {
+        totalEl.textContent = '$1,285';
+        labelEl.textContent = isEn ? "Today's Total Revenue" : "Today 총 Ancillary Rev";
+        window.svcData = [
+            { name: '스파', val: 540, pct: 42, icon: 'fa-spa', color: '#EC4899' },
+            { name: '외부 대행', val: 320, pct: 25, icon: 'fa-golf-ball-tee', color: '#10B981' },
+            { name: 'Room Service', val: 215, pct: 17, icon: 'fa-utensils', color: '#F59E0B' },
+            { name: '미니바', val: 120, pct: 9, icon: 'fa-wine-glass', color: '#8B5CF6' },
+            { name: '세탁', val: 90, pct: 7, icon: 'fa-shirt', color: '#3B82F6' }
+        ];
+    }
+    
+    // re-render breakdown
+    if(svcBk) {
+        svcBk.innerHTML = '';
+        const dict = Object.assign({}, window.translations ? window.translations[currentLang] : {}, translations[currentLang] || translations.ko);
+        window.svcData.forEach(s => {
+            const name = dict[s.name] || s.name;
+            const row = document.createElement('div');
+            row.className = 'svc-row';
+            row.style.cursor = 'pointer';
+            row.style.transition = 'background 0.2s';
+            row.onmouseover = () => row.style.background = 'rgba(0,0,0,0.02)';
+            row.onmouseout = () => row.style.background = 'transparent';
+            row.innerHTML = `
+                <div class="svc-icon" style="background:${s.color}1A; color:${s.color}"><i class="fa-solid ${s.icon}"></i></div>
+                <div class="svc-name">${name}</div>
+                <div class="svc-bar-bg"><div class="svc-bar" style="width:0; background:${s.color}"></div></div>
+                <div class="svc-val">$${s.val}</div>
+            `;
+            row.onclick = (e) => toggleChartDataLayer(e, `부대시설 매출 - ${name}`, `<div style="display:flex;justify-content:space-between;gap:20px;"><span>매출액:</span> <strong style="color:${s.color}">$${s.val}</strong></div><div style="display:flex;justify-content:space-between;gap:20px;"><span>비중:</span> <strong>${s.pct}%</strong></div>`);
+            svcBk.appendChild(row);
+            
+            setTimeout(() => {
+                row.querySelector('.svc-bar').style.width = s.pct + '%';
+            }, 50);
+        });
+    }
+}
+
 
 // ===== CARD ACTION TOGGLE =====
 document.querySelectorAll('.card-actions').forEach(group => {

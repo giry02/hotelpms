@@ -18,8 +18,8 @@
                 Are you sure?
             </div>
             <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-                <button class="btn-outline" id="pms-confirm-cancel">취소 (Cancel)</button>
-                <button class="btn-primary" id="pms-confirm-ok">확인 (OK)</button>
+                <button class="btn-outline" id="pms-confirm-cancel" style="padding:8px 16px;background:#fff;border:1px solid var(--border);color:var(--txt);border-radius:6px;font-weight:600;cursor:pointer;">취소 (Cancel)</button>
+                <button class="btn-primary" id="pms-confirm-ok" style="padding:8px 16px;background:var(--primary);border:none;color:#fff;border-radius:6px;font-weight:600;cursor:pointer;">확인 (OK)</button>
             </div>
         </div>
     </div>

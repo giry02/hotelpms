@@ -1,5 +1,6 @@
 // api-core.js
-const API_VERSION = 'v1.6';
+const API_VERSION = 'v1.9'; // Bumped to reset everything cleanly
+
 if (localStorage.getItem('pms_api_version') !== API_VERSION) {
     Object.keys(localStorage).forEach(key => {
         if (key.startsWith('pms_')) localStorage.removeItem(key);
@@ -15,7 +16,5 @@ function initStorage(key, fallbackData) {
     }
     return JSON.parse(data);
 }
-// API Core & Common Storage Logic
-const API_VERSION = 'v1.8'; // Bump this to force reset local storage
 
 window.PmsAPI = window.PmsAPI || {};

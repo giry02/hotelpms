@@ -18,22 +18,6 @@
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
     <style>
-        /* ── KPI ── */
-        .mt-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-        .mt-kpi-card {
-            background: #fff; border: 1px solid var(--border); border-radius: 14px;
-            padding: 20px; display: flex; align-items: center; gap: 16px;
-            transition: transform .2s, box-shadow .2s;
-        }
-        .mt-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.06); }
-        .mt-kpi-icon {
-            width: 48px; height: 48px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; flex-shrink: 0;
-        }
-        .mt-kpi-val { font-size: 1.8rem; font-weight: 800; color: var(--txt); line-height: 1; }
-        .mt-kpi-label { font-size: .78rem; color: var(--txt3); margin-top: 4px; font-weight: 500; }
-
         /* ── Kanban Board ── */
         .kanban-wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
         .kanban-col {
@@ -62,6 +46,30 @@
         .mt-ticket-title { font-weight: 600; color: var(--txt); font-size: .88rem; margin-bottom: 6px; line-height: 1.4; }
         .mt-ticket-meta { display: flex; align-items: center; gap: 10px; font-size: .75rem; color: var(--txt3); flex-wrap: wrap; }
         .mt-ticket-meta i { width: 12px; }
+
+        /* Room Filter Card Classes */
+        .rfc-card{background:#fff;border-radius:16px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border:1px solid var(--border2);box-shadow:0 2px 10px rgba(0,0,0,0.02);transition:all 0.2s}
+        .rfc-left{display:flex;align-items:center;gap:14px}
+        .rfc-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+        .rfc-info{display:flex;flex-direction:column;gap:4px}
+        .rfc-val{font-size:1.5rem;font-weight:800;color:var(--txt);line-height:1}
+        .rfc-label{font-size:.8rem;font-weight:500;color:var(--txt2)}
+
+        @media screen and (max-width:768px){
+            .kpi-grid{grid-template-columns:1fr 1fr!important;gap:12px!important}
+            .rfc-info{flex-direction:column;align-items:flex-start!important;gap:2px!important}
+            .rfc-val{font-size:1.4rem!important}
+            .rfc-label{font-size:.75rem!important}
+        }
+        @media screen and (max-width:480px){
+            .kpi-grid{gap:8px!important}
+            .rfc-card{padding:12px 10px!important}
+            .rfc-left{gap:8px!important}
+            .rfc-icon{width:36px!important;height:36px!important;font-size:.9rem!important;border-radius:8px!important}
+            .rfc-val{font-size:1.1rem!important}
+            .rfc-label{font-size:.65rem!important}
+            .rfc-card .fa-chevron-right{font-size:.8rem!important}
+        }
 
         /* ── Badges ── */
         .priority-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
@@ -196,7 +204,6 @@
 
         /* ── Responsive ── */
         @media (max-width: 1200px) { .kanban-wrap { grid-template-columns: 1fr; } }
-        @media (max-width: 900px) { .mt-kpi { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 800px) {
             .filter-bar-mt { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
             .filter-bar-mt .filter-search-group { display: flex; width: 100%; gap: 8px; }
@@ -212,10 +219,6 @@
             #tableView { display: block !important; }
         }
         @media (max-width: 600px) { 
-            .mt-kpi { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; } 
-            .mt-kpi-card { padding: 12px; flex-direction: row; text-align: left; gap: 10px; align-items: center; }
-            .mt-kpi-icon { margin: 0; width: 36px; height: 36px; font-size: 1.1rem; }
-            .mt-kpi-val { font-size: 1.3rem; }
             .modal-card { width: 100%; border-radius: 12px 12px 0 0; position: absolute; bottom: 0; max-height: 85vh; }
             .modal-body > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
             
@@ -274,22 +277,46 @@
     <div class="content">
 
         <!-- ── KPI Cards ── -->
-        <div class="mt-kpi">
-            <div class="mt-kpi-card">
-                <div class="mt-kpi-icon" style="background:#FEF2F2; color:#DC2626;"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                <div><div class="mt-kpi-val" id="kpiUrgent">2</div><div class="mt-kpi-label">긴급 대기</div></div>
+        <div class="kpi-grid">
+            <div class="rfc-card" onclick="filterMt(null,'all')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--danger)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
+                <div class="rfc-left">
+                    <div class="rfc-icon" style="background:var(--danger-lt);color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="rfc-info">
+                        <span class="rfc-val" id="kpiUrgent">2</span>
+                        <span class="rfc-label">긴급 대기</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
             </div>
-            <div class="mt-kpi-card">
-                <div class="mt-kpi-icon" style="background:#FEF3C7; color:#D97706;"><i class="fa-solid fa-clipboard-list"></i></div>
-                <div><div class="mt-kpi-val" id="kpiOpen">5</div><div class="mt-kpi-label">신규 요청</div></div>
+            <div class="rfc-card" onclick="filterMt(null,'open')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--warning)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
+                <div class="rfc-left">
+                    <div class="rfc-icon" style="background:var(--warning-lt);color:var(--warning)"><i class="fa-solid fa-clipboard-list"></i></div>
+                    <div class="rfc-info">
+                        <span class="rfc-val" id="kpiOpen">5</span>
+                        <span class="rfc-label">신규 요청</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
             </div>
-            <div class="mt-kpi-card">
-                <div class="mt-kpi-icon" style="background:#DBEAFE; color:#2563EB;"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-                <div><div class="mt-kpi-val" id="kpiProgress">3</div><div class="mt-kpi-label">작업 진행 중</div></div>
+            <div class="rfc-card" onclick="filterMt(null,'in-progress')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--primary)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
+                <div class="rfc-left">
+                    <div class="rfc-icon" style="background:var(--primary-lt);color:var(--primary)"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                    <div class="rfc-info">
+                        <span class="rfc-val" id="kpiProgress">3</span>
+                        <span class="rfc-label">작업 진행 중</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
             </div>
-            <div class="mt-kpi-card">
-                <div class="mt-kpi-icon" style="background:#D1FAE5; color:#059669;"><i class="fa-solid fa-circle-check"></i></div>
-                <div><div class="mt-kpi-val" id="kpiDone">24</div><div class="mt-kpi-label">이번 달 완료</div></div>
+            <div class="rfc-card" onclick="filterMt(null,'done')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--success)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
+                <div class="rfc-left">
+                    <div class="rfc-icon" style="background:var(--success-lt);color:var(--success)"><i class="fa-solid fa-circle-check"></i></div>
+                    <div class="rfc-info">
+                        <span class="rfc-val" id="kpiDone">24</span>
+                        <span class="rfc-label">이번 달 완료</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
             </div>
         </div>
 
@@ -511,7 +538,7 @@ function getFiltered() {
 function filterMt(btn, status) {
     if (status) currentStatusFilter = status;
     if (btn) {
-        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
     }
     render();
@@ -534,7 +561,10 @@ function ticketCard(r) {
         <div class="mt-ticket-meta">
             <span><i class="fa-solid fa-door-open"></i> ${r.room}호</span>
             <span class="type-tag">${r.type}</span>
-            <span style="margin-left:auto;"><i class="fa-solid fa-user"></i> ${r.assignee}</span>
+            ${r.status === 'done' ? 
+              `<span style="margin-left:auto;color:var(--success);font-weight:600;font-size:0.75rem;"><i class="fa-solid fa-check-circle"></i> 처리완료: ${r.assignee}</span>` :
+              `<span style="margin-left:auto;"><i class="fa-solid fa-user"></i> ${r.assignee}</span>`
+            }
         </div>
     </div>`;
 }

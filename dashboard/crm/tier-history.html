@@ -274,15 +274,15 @@ function renderHistory() {
     document.getElementById('pageButtons').innerHTML = btns;
 }
 
-function goPage(p) { currentPage = p; /* renderHistory(); */ }
-function changePageSize() { pageSize = parseInt(document.getElementById('pageSizeSelect').value); currentPage = 1; /* renderHistory(); */ }
+function goPage(p) { currentPage = p; renderHistory(); }
+function changePageSize() { pageSize = parseInt(document.getElementById('pageSizeSelect').value); currentPage = 1; renderHistory(); }
 
 function setDir(btn, dir) {
     currentDir = dir;
     currentPage = 1;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
-    /* renderHistory(); */
+    renderHistory();
 }
 
 function toggleMenu() {
@@ -308,16 +308,16 @@ function selectFilter(dir, label) {
     // Update mobile trigger label
     document.getElementById('mFilterLabel').textContent = label;
     // Sync desktop chips
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    const chips = document.querySelectorAll('.chip');
+    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    const chips = btn.closest('.filter-chips').querySelectorAll('.chip');
     if (dir === 'all') chips[0].classList.add('active');
     else if (dir === 'up') chips[1].classList.add('active');
     else chips[2].classList.add('active');
     closeBottomSheet();
-    /* renderHistory(); */
+    renderHistory();
 }
 
-/* renderHistory(); */
+renderHistory();
 
 // i18n
 let currentLang='ko';
@@ -379,7 +379,7 @@ const translations={ko: {
         "Support": "Support",
 "Tier Change History":"Tier Change History","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Upgrades (Month)":"Upgrades (Month)","Downgrades (Month)":"Downgrades (Month)","Retention Rate":"Retention Rate","New Diamond":"New Diamond","All":"All","Upgrade":"Upgrade","Downgrade":"Downgrade"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){currentLang=l;const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});document.getElementById('searchInput').placeholder=l==='en'?'Search guest name...':'Guest명 검색...';/* renderHistory(); */}
+function changeLang(l){currentLang=l;const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});document.getElementById('searchInput').placeholder=l==='en'?'Search guest name...':'Guest명 검색...';renderHistory();}
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
 </script>
 

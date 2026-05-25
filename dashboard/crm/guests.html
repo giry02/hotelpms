@@ -147,7 +147,7 @@
             <div class="kpi-card blue">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-users"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">2,847</div>
+                    <div class="kpi-value" id="kpiTotalGuests">0</div>
                     <div class="kpi-label">Total Guests</div>
                     <div class="kpi-sub">This Month 신규 +128</div>
                 </div>
@@ -155,7 +155,7 @@
             <div class="kpi-card green">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-rotate"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">34.2%</div>
+                    <div class="kpi-value" id="kpiReturnRate">0%</div>
                     <div class="kpi-label">Return Rate</div>
                     <div class="kpi-sub">2회 이상 투숙 Guest</div>
                 </div>
@@ -163,15 +163,15 @@
             <div class="kpi-card orange">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-crown"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">186</div>
+                    <div class="kpi-value" id="kpiVipGuests">0</div>
                     <div class="kpi-label">VIP Guests</div>
-                    <div class="kpi-sub">Gold 94 · Platinum 52 · Diamond 40</div>
+                    <div class="kpi-sub">Gold/Platinum/Diamond</div>
                 </div>
             </div>
             <div class="kpi-card purple">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-dollar-sign"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">$148</div>
+                    <div class="kpi-value" id="kpiAvgSpend">$0</div>
                     <div class="kpi-label">Avg. Spend/Guest</div>
                     <div class="kpi-sub">전월 대비 +$19</div>
                 </div>
@@ -224,7 +224,7 @@
         <div class="mobile-cards mobile-only" id="guestMobile"></div>
 
         <div class="pagination" style="margin-top:16px">
-            <span class="page-info">총 <b>16명</b> 표시</span>
+            <span class="page-info">총 <b id="pageTotalCount">0</b>명 표시</span>
             <div class="page-btns">
                 <button class="page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
                 <button class="page-btn active">1</button>
@@ -325,7 +325,7 @@ function renderGuests() {
             <td style="font-weight:700">$${g.spend.toLocaleString()}</td>
             <td><span style="font-size:.75rem;color:var(--txt2)">${g.phone}</span></td>
             <td><div class="action-btns">
-                <button class="act-btn" title="상세"><i class="fa-solid fa-eye"></i></button>
+                <button class="act-btn" title="상세" onclick="event.stopPropagation(); openGuestDetail('${g.email}')"><i class="fa-solid fa-eye"></i></button>
             </div></td>
         </tr>`;
     }).join('');
@@ -354,7 +354,7 @@ function renderGuests() {
                 <div class="m-res-detail"><i class="fa-solid fa-envelope"></i> ${g.email}</div>
             </div>
             <div class="m-res-actions">
-                <button class="act-btn"><i class="fa-solid fa-eye"></i> 상세</button>
+                <button class="act-btn" onclick="event.stopPropagation(); openGuestDetail('${g.email}')"><i class="fa-solid fa-eye"></i> 상세</button>
             </div>
         </div>`;
     }).join('');
@@ -362,7 +362,7 @@ function renderGuests() {
 
 function setTier(btn, tier) {
     currentTier = tier;
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     renderGuests();
 }
@@ -380,6 +380,25 @@ function updateFilterCounts() {
         
         countSpan.textContent = count;
     });
+
+    const totalGuests = guests.length;
+    const returnCount = guests.filter(g => g.visits >= 2).length;
+    const vipCount = guests.filter(g => g.tier === 'gold' || g.tier === 'platinum' || g.tier === 'diamond').length;
+    const totalSpend = guests.reduce((sum, g) => sum + (g.spend || 0), 0);
+    const avgSpend = totalGuests > 0 ? Math.floor(totalSpend / totalGuests) : 0;
+    const returnRate = totalGuests > 0 ? ((returnCount / totalGuests) * 100).toFixed(1) : 0;
+
+    const elTotal = document.getElementById('kpiTotalGuests');
+    const elReturn = document.getElementById('kpiReturnRate');
+    const elVip = document.getElementById('kpiVipGuests');
+    const elSpend = document.getElementById('kpiAvgSpend');
+    const elPageCount = document.getElementById('pageTotalCount');
+
+    if(elTotal) elTotal.textContent = totalGuests.toLocaleString();
+    if(elReturn) elReturn.textContent = returnRate + '%';
+    if(elVip) elVip.textContent = vipCount.toLocaleString();
+    if(elSpend) elSpend.textContent = '$' + avgSpend.toLocaleString();
+    if(elPageCount) elPageCount.textContent = totalGuests.toLocaleString();
 }
 
 // Bottom sheet
@@ -398,14 +417,10 @@ function selectFilter(tier, label) {
     event.currentTarget.classList.add('selected');
     // Update mobile trigger label
     document.getElementById('mFilterLabel').textContent = label;
-    // Sync desktop chips
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    const chips = document.querySelectorAll('.chip');
-    if (tier === 'all') chips[0].classList.add('active');
-    else if (tier === 'diamond') chips[1].classList.add('active');
-    else if (tier === 'platinum') chips[2].classList.add('active');
-    else if (tier === 'gold') chips[3].classList.add('active');
-    else chips[4].classList.add('active');
+    // Sync desktop chips via data-tier attribute
+    document.querySelectorAll('.chip[data-tier]').forEach(c => {
+        c.classList.toggle('active', c.getAttribute('data-tier') === tier);
+    });
     closeBottomSheet();
     renderGuests();
 }
@@ -572,8 +587,8 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 
         <!-- 고객 기본 정보 (Detail Info fields matching New Guest form) -->
         <div class="gd-profile-form" style="margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--border2);">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:8px;">
-                <div style="font-size:0.95rem; font-weight:700; color:var(--txt); word-break:keep-all;"><i class="fa-solid fa-address-card"></i> 기본 인적 사항</div>
+            <div style="font-size:0.95rem; font-weight:700; color:var(--txt); margin-bottom:16px; word-break:keep-all;"><i class="fa-solid fa-address-card"></i> 기본 인적 사항</div>
+            <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr !important;gap:12px;margin-bottom:12px;">
                 <div style="display:flex;flex-direction:column;gap:4px">
                     <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">이름 (이름) <span style="color:var(--danger)">*</span></label>
                     <input type="text" id="gdInputFirstName" style="height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;">
@@ -586,11 +601,11 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr !important;gap:12px;margin-bottom:12px;">
                 <div style="display:flex;flex-direction:column;gap:4px">
                     <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">Contact <span style="color:var(--danger)">*</span></label>
-                    <input type="text" id="gdInput전화번호" style="height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                    <input type="text" id="gdInputPhone" style="height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:4px">
                     <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">이메일</label>
-                    <input type="email" id="gdInput이메일" style="height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                    <input type="email" id="gdInputEmail" style="height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                 </div>
             </div>
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr !important;gap:12px;margin-bottom:12px;">
@@ -671,8 +686,8 @@ function openGuestDetail(email) {
     const firstName = nameParts.join(' ');
     document.getElementById('gdInputFirstName').value = firstName || guest.name;
     document.getElementById('gdInputLastName').value = lastName;
-    document.getElementById('gdInput전화번호').value = guest.phone;
-    document.getElementById('gdInput이메일').value = guest.email;
+    document.getElementById('gdInputPhone').value = guest.phone;
+    document.getElementById('gdInputEmail').value = guest.email;
     const nSel = document.getElementById('gdInputNation');
     if(!Array.from(nSel.options).some(o => o.value === guest.nation)) {
         nSel.add(new Option(guest.nation, guest.nation));

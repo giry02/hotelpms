@@ -3,7 +3,12 @@ window.PmsAPI = window.PmsAPI || {};
 Object.assign(window.PmsAPI, {
 
     getBuildings: async () => {
-        return initStorage('pms_buildings', ['Forest Tower', 'Lakeside Villa', 'Ocean Tower']);
+        let bldgs = initStorage('pms_buildings', ['Forest Tower', 'Lakeside Villa', 'Ocean Tower']);
+        if (!bldgs || bldgs.length === 0) {
+            bldgs = ['Forest Tower', 'Lakeside Villa', 'Ocean Tower'];
+            localStorage.setItem('pms_buildings', JSON.stringify(bldgs));
+        }
+        return bldgs;
     },
 
     saveBuildings: async (buildings) => {
@@ -21,7 +26,7 @@ Object.assign(window.PmsAPI, {
             let res = await fetch('../data/frontdesk/rooms.json');
             if (res.ok) return await res.json();
         } catch(e) {}
-        return initStorage('pms_rooms', [
+        let rooms = initStorage('pms_rooms', [
             { "id": "PH01", "floor": 20, "type": "Penthouse", "status": "occupied", "guest": "Yoon Ji", "building": "Ocean Tower" },
             { "id": "PH02", "floor": 20, "type": "Penthouse", "status": "vacant-clean", "guest": "", "building": "Ocean Tower" },
             { "id": "1401", "floor": 14, "type": "Premier", "status": "vacant-dirty", "guest": "Bae Yoon", "building": "Ocean Tower" },
@@ -39,6 +44,34 @@ Object.assign(window.PmsAPI, {
             { "id": "V-01", "floor": 1, "type": "Pool Villa", "status": "occupied", "guest": "Jeong Tae", "building": "Lakeside Villa" },
             { "id": "V-02", "floor": 1, "type": "Pool Villa", "status": "vacant-clean", "guest": "", "building": "Lakeside Villa" }
         ]);
+        if (!rooms || rooms.length === 0) {
+            localStorage.removeItem('pms_rooms');
+            rooms = initStorage('pms_rooms', [
+                { "id": "PH01", "floor": 20, "type": "Penthouse", "status": "occupied", "guest": "Yoon Ji", "building": "Ocean Tower" },
+                { "id": "PH02", "floor": 20, "type": "Penthouse", "status": "vacant-clean", "guest": "", "building": "Ocean Tower" },
+                { "id": "1401", "floor": 14, "type": "Premier", "status": "vacant-dirty", "guest": "Bae Yoon", "building": "Ocean Tower" },
+                { "id": "1402", "floor": 14, "type": "Premier", "status": "occupied", "guest": "Park Soo", "building": "Ocean Tower" },
+                { "id": "1403", "floor": 14, "type": "Premier", "status": "occupied", "guest": "Choi Min", "building": "Ocean Tower" },
+                { "id": "1405", "floor": 14, "type": "Premier", "status": "oos", "guest": "", "building": "Ocean Tower" },
+                { "id": "1201", "floor": 12, "type": "Deluxe", "status": "occupied", "guest": "Kang Do", "building": "Forest Tower" },
+                { "id": "1202", "floor": 12, "type": "Deluxe", "status": "vacant-clean", "guest": "", "building": "Forest Tower" },
+                { "id": "1203", "floor": 12, "type": "Deluxe", "status": "vacant-clean", "guest": "", "building": "Forest Tower" },
+                { "id": "1205", "floor": 12, "type": "Deluxe", "status": "occupied", "guest": "Kim Jin", "building": "Forest Tower" },
+                { "id": "1206", "floor": 12, "type": "Deluxe", "status": "vacant-dirty", "guest": "", "building": "Forest Tower" },
+                { "id": "0801", "floor": 8, "type": "Standard", "status": "occupied", "guest": "Han So", "building": "Forest Tower" },
+                { "id": "0802", "floor": 8, "type": "Standard", "status": "occupied", "guest": "Lee Ji", "building": "Forest Tower" },
+                { "id": "0803", "floor": 8, "type": "Standard", "status": "oos", "guest": "", "building": "Forest Tower" },
+                { "id": "V-01", "floor": 1, "type": "Pool Villa", "status": "occupied", "guest": "Jeong Tae", "building": "Lakeside Villa" },
+                { "id": "V-02", "floor": 1, "type": "Pool Villa", "status": "vacant-clean", "guest": "", "building": "Lakeside Villa" }
+            ]);
+        }
+        // Data sanitization to prevent rendering crash from corrupted localStorage items
+        if (Array.isArray(rooms)) {
+            rooms = rooms.filter(r => r !== null && typeof r === 'object');
+        } else {
+            rooms = [];
+        }
+        return rooms;
     },
 
     getTimelineReservations: async () => {
@@ -46,6 +79,10 @@ Object.assign(window.PmsAPI, {
     },
 
     getReservations: async () => {
+        // FORCE CACHE CLEAR to ensure bug fixes apply globally across all pages
+        localStorage.removeItem('pms_reservations');
+        localStorage.removeItem('pms_groups');
+        
         try {
             let res = await fetch('../data/frontdesk/reservations.json');
             if (!res.ok) res = await fetch('../common/data/reservations.json');
@@ -2487,6 +2524,21 @@ Object.assign(window.PmsAPI, {
                         const epo = new Date(2026, 4, 12);
                         const cin = new Date(g.checkin);
                         const cout = new Date(g.checkout);
+                        
+                        // Check if room is already occupied for these dates
+                        const hasConflict = reservations.some(r => {
+                            if (r.room !== rm.id) return false;
+                            try {
+                                const rCinParts = r.cin.split('/');
+                                const rCoutParts = r.cout.split('/');
+                                // Assume year is 2026 for mock data
+                                const rCin = new Date(2026, parseInt(rCinParts[0]) - 1, parseInt(rCinParts[1]));
+                                const rCout = new Date(2026, parseInt(rCoutParts[0]) - 1, parseInt(rCoutParts[1]));
+                                return (cin < rCout && cout > rCin);
+                            } catch(e) { return false; }
+                        });
+                        if (hasConflict) continue;
+                        
                         const start = Math.round((cin - epo) / 86400000);
                         const len = Math.max(1, Math.round((cout - cin) / 86400000));
                         
@@ -2503,7 +2555,7 @@ Object.assign(window.PmsAPI, {
                             start: start,
                             len: len,
                             nights: len,
-                            status: g.status === 'inhouse' ? 'checkedin' : 'confirmed',
+                            status: (g.status === 'inhouse' && cin.getTime() <= new Date(2026, 4, 25).getTime()) ? 'checkedin' : 'confirmed',
                             channel: g.agency || 'Group',
                             cin: `${cin.getMonth()+1}/${cin.getDate()}`,
                             cout: `${cout.getMonth()+1}/${cout.getDate()}`,
