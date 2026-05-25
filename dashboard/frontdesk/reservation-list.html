@@ -15,11 +15,11 @@
 .m-filter-trigger i{font-size:.65rem;color:var(--txt3)}
 .bottom-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9998;opacity:0;pointer-events:none;transition:opacity .3s}
 .bottom-sheet-overlay.active{opacity:1;pointer-events:auto}
-.bottom-sheet{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#fff;border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:70vh;box-shadow:0 -4px 30px rgba(0,0,0,.15)}
+.bottom-sheet{display:flex;flex-direction:column;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#fff;border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:70vh;box-shadow:0 -4px 30px rgba(0,0,0,.15)}
 .bottom-sheet.active{transform:translateY(0)}
 .bottom-sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:10px auto 0}
 .bottom-sheet-title{padding:16px 20px 8px;font-size:.88rem;font-weight:700;color:var(--txt)}
-.bottom-sheet-options{padding:0 12px 20px}
+.bottom-sheet-options{overflow-y:auto;flex:1;padding:0 12px 20px}
 .bs-option{display:flex;align-items:center;gap:12px;padding:13px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:background .15s;border:none;background:none;width:100%;text-align:left;font-family:var(--font);font-size:.82rem;color:var(--txt)}
 .bs-option:hover,.bs-option:active{background:var(--border2)}
 .bs-option.selected{background:rgba(99,102,241,.06);color:var(--primary);font-weight:700}
@@ -75,7 +75,7 @@
                 </button>
             </div>
             <div class="filter-right">
-                <button class="btn-outline"><i class="fa-solid fa-download"></i> Export</button>
+                <button class="btn-outline" onclick="exportReservationsToCSV()"><i class="fa-solid fa-download"></i> Export</button>
                 <button class="btn-primary-sm" onclick="openUnifiedResModal()"><i class="fa-solid fa-plus"></i> New Booking</button>
             </div>
         </div>
@@ -116,11 +116,11 @@
 
         <!-- PAGINATION -->
         <div class="pagination">
-            <span class="page-info">총 <b>24건</b> 중 1–24 표시</span>
-            <div class="page-btns">
+            <span class="page-info" id="pageInfo">총 <b>0건</b> 중 0–0 표시</span>
+            <div class="page-btns" id="pageBtns">
                 <button class="page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
                 <button class="page-btn active">1</button>
-                <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                <button class="page-btn" disabled><i class="fa-solid fa-chevron-right"></i></button>
             </div>
         </div>
     </div>
@@ -178,6 +178,8 @@ const statusConfig = {
 };
 
 let currentFilter = 'all';
+let currentPage = 1;
+const itemsPerPage = 10;
 
 function renderTable() {
     const tbody = document.getElementById('resBody');
@@ -190,8 +192,17 @@ function renderTable() {
         return true;
     });
 
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIdx = (currentPage - 1) * itemsPerPage;
+    const paginated = filtered.slice(startIdx, startIdx + itemsPerPage);
+
+    updatePagination(totalItems, startIdx, paginated.length, totalPages);
+
     // Desktop table
-    tbody.innerHTML = filtered.map(r => {
+    tbody.innerHTML = paginated.map(r => {
         const st = statusConfig[r.status];
         const isVip = r.vip.includes('VIP') || r.vip.includes('Gold');
         return `
@@ -229,7 +240,7 @@ function renderTable() {
     }).join('');
 
     // Mobile cards
-    mobileContainer.innerHTML = filtered.map(r => {
+    mobileContainer.innerHTML = paginated.map(r => {
         const st = statusConfig[r.status];
         const isVip = r.vip.includes('VIP') || r.vip.includes('Gold');
         return `
@@ -261,18 +272,84 @@ function renderTable() {
     }).join('');
 }
 
+function updatePagination(totalItems, startIdx, currentCount, totalPages) {
+    const pageInfo = document.getElementById('pageInfo');
+    const pageBtns = document.getElementById('pageBtns');
+    
+    if (totalItems === 0) {
+        pageInfo.innerHTML = `총 <b>0건</b>`;
+        pageBtns.innerHTML = `
+            <button class="page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn" disabled><i class="fa-solid fa-chevron-right"></i></button>
+        `;
+        return;
+    }
+
+    pageInfo.innerHTML = `총 <b>${totalItems}건</b> 중 ${startIdx + 1}–${startIdx + currentCount} 표시`;
+    
+    let btnsHtml = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})"><i class="fa-solid fa-chevron-left"></i></button>`;
+    
+    for (let i = 1; i <= totalPages; i++) {
+        btnsHtml += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+    }
+    
+    btnsHtml += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})"><i class="fa-solid fa-chevron-right"></i></button>`;
+    
+    pageBtns.innerHTML = btnsHtml;
+}
+
+function changePage(page) {
+    currentPage = page;
+    renderTable();
+}
+
 function setFilter(btn, filter) {
     currentFilter = filter;
+    currentPage = 1;
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     renderTable();
     updateChipCounts();
 }
 
-function filterTable() { renderTable(); }
+function filterTable() { 
+    currentPage = 1;
+    renderTable(); 
+}
 function toggleAll() {
     const checked = document.getElementById('checkAll').checked;
     document.querySelectorAll('.row-check').forEach(c => c.checked = checked);
+}
+
+function exportReservationsToCSV() {
+    if (!reservations || reservations.length === 0) {
+        if(window.showToast) window.showToast('데이터가 없습니다.');
+        return;
+    }
+    const headers = ['Booking #', 'Guest', 'Room', 'Type', 'Check-in', 'Check-out', 'Stay', 'Channel', 'Amount(USD)', 'Status'];
+    const rows = reservations.map(r => [
+        r.id, 
+        '"' + r.guest + '"', 
+        r.room, 
+        r.type, 
+        r.cin, 
+        r.cout, 
+        r.nights, 
+        r.channel, 
+        r.amount, 
+        r.status
+    ]);
+    const csvContent = [headers.join(',')].concat(rows.map(e => e.join(','))).join('\n');
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'reservations.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // ===== MOBILE MENU =====
