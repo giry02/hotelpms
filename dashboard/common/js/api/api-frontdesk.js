@@ -559,7 +559,6 @@ Object.assign(window.PmsAPI, {
                             "isVip": true,
                             "isB2B": false
                   }
-                  }
         ]);
         
         if (window.PmsAPI.syncGroupsToReservations) {

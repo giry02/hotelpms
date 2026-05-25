@@ -1,39 +1,40 @@
 // api-settings.js
 window.PmsAPI = window.PmsAPI || {};
-// Add logic if needed
+
+const _ALL_MENUS = [
+    { key:'dashboard',    icon:'fa-gauge-high',          label:'대시보드' },
+    { key:'reservation',  icon:'fa-calendar-days',       label:'예약 관리' },
+    { key:'checkin',      icon:'fa-right-to-bracket',    label:'체크인/아웃' },
+    { key:'crm',          icon:'fa-users',               label:'고객 CRM' },
+    { key:'rooms',        icon:'fa-bed',                 label:'객실 관리' },
+    { key:'rates',        icon:'fa-tags',                label:'요금 캘린더' },
+    { key:'housekeeping', icon:'fa-broom',               label:'하우스키핑' },
+    { key:'folio',        icon:'fa-file-invoice-dollar', label:'정산/청구' },
+    { key:'ancillary',    icon:'fa-concierge-bell',      label:'부가서비스' },
+    { key:'settings',     icon:'fa-gear',                label:'호텔 설정' },
+    { key:'staff',        icon:'fa-users-gear',          label:'직원 관리' },
+    { key:'billing',      icon:'fa-credit-card',         label:'요금 및 결제' },
+];
+
+const _SYSTEM_ROLES = [
+    { id:'sys_admin',       name:'Admin',       color:'#6D28D9', desc:'전체 접근',          perms:_ALL_MENUS.map(m=>m.key) }
+];
+
+const _DEFAULT_CUSTOM_ROLES = [
+    { id:'sys_manager',     name:'Manager',     color:'#1D4ED8', desc:'프론트/운영 관리',   perms:['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary'] },
+    { id:'sys_housekeeper', name:'Housekeeper', color:'#065F46', desc:'하우스키핑 전용',    perms:['dashboard','housekeeping','rooms'] },
+];
+
+const _DEFAULT_STAFF = [
+    { id:'s1', name:'Nguyen Kim',     init:'NK', email:'kim@hotel.com',   roleId:'sys_admin',       status:'online',  last:'방금 전', color:'#6D28D9' },
+    { id:'s2', name:'Tran Minh',      init:'TM', email:'minh@hotel.com',  roleId:'sys_manager',     status:'offline', last:'2시간 전', color:'#1D4ED8' },
+    { id:'s3', name:'Park Seo Joon',  init:'PS', email:'park@hotel.com',  roleId:'sys_manager',     status:'online',  last:'5분 전', color:'#1D4ED8' },
+    { id:'s4', name:'Sato Yuki',      init:'SY', email:'sato@hotel.com',  roleId:'sys_housekeeper', status:'offline', last:'1일 전', color:'#065F46' },
+];
 
 Object.assign(window.PmsAPI, {
-    getALL_MENUS: async () => { return JSON.parse(JSON.stringify(_ALL_MENUS)); },},
- {id:'m2', name:'객실 현황'} ]; },
-    getSYSTEM_ROLES: async () => { return JSON.parse(JSON.stringify(_SYSTEM_ROLES)); },},
- {id:'r2', name:'Front Desk'} ]; },
-    getDEFAULT_CUSTOM_ROLES: async () => { return JSON.parse(JSON.stringify(_DEFAULT_CUSTOM_ROLES)); },},
-
-    getDEFAULT_STAFF: async () => { return JSON.parse(JSON.stringify(_DEFAULT_STAFF)); },},
- ]; }
-getDEFAULT_ROOM_TYPES: async () => { return JSON.parse(JSON.stringify(_DEFAULT_ROOM_TYPES)); },},
-getAllRooms: async () => { return initStorage('pms_rooms', _fallbackRooms); },},
-getAllRoomTypes: async () => { return initStorage('pms_room_types', _fallbackRoomTypes); },
-saveRoom: async (roomData) => {
-const rooms = initStorage('pms_rooms', _fallbackRooms);
-const existing = rooms.findIndex(r => r.id === roomData.id);
-if(existing >= 0) rooms[existing] = roomData;
-else rooms.push(roomData);
-localStorage.setItem('pms_rooms', JSON.stringify(rooms));
-return true;
-},
-saveRoomType: async (typeData) => {
-const types = initStorage('pms_room_types', _fallbackRoomTypes);
-const existing = types.findIndex(t => t.id === typeData.id);
-if(existing >= 0) types[existing] = typeData;
-else types.push(typeData);
-localStorage.setItem('pms_room_types', JSON.stringify(types));
-return true;
-},
-deleteRoom: async (roomId) => {
-let rooms = initStorage('pms_rooms', _fallbackRooms);
-rooms = rooms.filter(r => r.id !== roomId);
-localStorage.setItem('pms_rooms', JSON.stringify(rooms));
-return true;
-},
+    getALL_MENUS: async () => { return JSON.parse(JSON.stringify(_ALL_MENUS)); },
+    getSYSTEM_ROLES: async () => { return JSON.parse(JSON.stringify(_SYSTEM_ROLES)); },
+    getDEFAULT_CUSTOM_ROLES: async () => { return JSON.parse(JSON.stringify(_DEFAULT_CUSTOM_ROLES)); },
+    getDEFAULT_STAFF: async () => { return JSON.parse(JSON.stringify(_DEFAULT_STAFF)); }
 });

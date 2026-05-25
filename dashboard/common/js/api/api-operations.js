@@ -1,5 +1,37 @@
 // api-operations.js
 window.PmsAPI = window.PmsAPI || {};
+
+const _fallbackRooms = [
+    {id:'PH01', floor:20, type:'Penthouse', status:'occupied', building:'Ocean Tower'},
+    {id:'PH02', floor:20, type:'Penthouse', status:'vacant-clean', building:'Ocean Tower'},
+    
+    {id:'1401', floor:14, type:'Premier', status:'vacant-dirty', building:'Ocean Tower'},
+    {id:'1402', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower'},
+    {id:'1403', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower'},
+    {id:'1405', floor:14, type:'Premier', status:'oos', building:'Ocean Tower'},
+    
+    {id:'1201', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower'},
+    {id:'1202', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
+    {id:'1203', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
+    {id:'1205', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower'},
+    {id:'1206', floor:12, type:'Deluxe', status:'vacant-dirty', building:'Forest Tower'},
+    
+    {id:'0801', floor:8, type:'Standard', status:'occupied', building:'Forest Tower'},
+    {id:'0802', floor:8, type:'Standard', status:'occupied', building:'Forest Tower'},
+    {id:'0803', floor:8, type:'Standard', status:'oos', building:'Forest Tower'},
+    
+    {id:'V-01', floor:1, type:'Pool Villa', status:'occupied', building:'Lakeside Villa'},
+    {id:'V-02', floor:1, type:'Pool Villa', status:'vacant-clean', building:'Lakeside Villa'}
+];
+
+const _fallbackRoomTypes = [
+    { id: 'Standard',    name: 'Standard',    code: 'STD', count: 45 },
+    { id: 'Deluxe',      name: 'Deluxe',      code: 'DLX', count: 32 },
+    { id: 'Premier',     name: 'Premier',     code: 'PRM', count: 18 },
+    { id: 'Penthouse',   name: 'Penthouse',   code: 'PTH', count: 2 },
+    { id: 'Pool Villa',  name: 'Pool Villa',  code: 'VIL', count: 5 }
+];
+
 Object.assign(window.PmsAPI, {
 
     getTasks: async () => {
@@ -111,7 +143,6 @@ Object.assign(window.PmsAPI, {
         ]);
     },
 
-    
     getDailyData: async () => { return [{date:'5.16',room:18000,fnb:2000,spa:1500,other:800},{date:'5.17',room:19000,fnb:2200,spa:1600,other:900},{date:'5.18',room:21000,fnb:2500,spa:1800,other:1100},{date:'5.19',room:24000,fnb:3000,spa:2000,other:1200},{date:'5.20',room:25000,fnb:3200,spa:2100,other:1300},{date:'5.21',room:22000,fnb:2800,spa:1900,other:1000},{date:'5.22',room:20000,fnb:2400,spa:1700,other:900}]; },
     getMonthlyData: async () => { return [{m:'1월',v:650000},{m:'2월',v:580000},{m:'3월',v:620000},{m:'4월',v:670000},{m:'5월',v:690000},{m:'6월',v:0},{m:'7월',v:0},{m:'8월',v:0},{m:'9월',v:0},{m:'10월',v:0},{m:'11월',v:0},{m:'12월',v:0}]; },
     getYoyData: async () => { return [{m:1,ly:620000,ty:650000},{m:2,ly:550000,ty:580000},{m:3,ly:600000,ty:620000},{m:4,ly:630000,ty:670000},{m:5,ly:650000,ty:690000},{m:6,ly:680000,ty:0},{m:7,ly:720000,ty:0},{m:8,ly:750000,ty:0},{m:9,ly:610000,ty:0},{m:10,ly:640000,ty:0},{m:11,ly:620000,ty:0},{m:12,ly:700000,ty:0}]; },
@@ -133,10 +164,34 @@ Object.assign(window.PmsAPI, {
             {date:'2026-05-17', room:{v:17250, d:8.2}, pos:{v:3160, d:6.5}, golf:{v:1930, d:12.4}, car:{v:1300, d:5.1}},
             {date:'2026-05-16', room:{v:15950, d:0}, pos:{v:2970, d:0}, golf:{v:1720, d:0}, car:{v:1240, d:0}}
         ]; 
-    
+    },
 
-    }, getAllRooms: async () => { return []; },
-    getAllRoomTypes: async () => { return []; },
-    getReservations: async () => { return []; },
-    getDEFAULT_ROOM_TYPES: async () => { return []; }
+    getAllRooms: async () => { return window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : _fallbackRooms; },
+    getAllRoomTypes: async () => { return window.initStorage ? window.initStorage('pms_room_types', _fallbackRoomTypes) : _fallbackRoomTypes; },
+    getDEFAULT_ROOM_TYPES: async () => { return JSON.parse(JSON.stringify(_fallbackRoomTypes)); },
+
+    saveRoom: async (roomData) => {
+        let rooms = window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : [];
+        const existing = rooms.findIndex(r => r.id === roomData.id);
+        if(existing >= 0) rooms[existing] = roomData;
+        else rooms.push(roomData);
+        localStorage.setItem('pms_rooms', JSON.stringify(rooms));
+        return true;
+    },
+
+    saveRoomType: async (typeData) => {
+        let types = window.initStorage ? window.initStorage('pms_room_types', _fallbackRoomTypes) : [];
+        const existing = types.findIndex(t => t.id === typeData.id);
+        if(existing >= 0) types[existing] = typeData;
+        else types.push(typeData);
+        localStorage.setItem('pms_room_types', JSON.stringify(types));
+        return true;
+    },
+
+    deleteRoom: async (roomId) => {
+        let rooms = window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : [];
+        rooms = rooms.filter(r => r.id !== roomId);
+        localStorage.setItem('pms_rooms', JSON.stringify(rooms));
+        return true;
+    }
 });
