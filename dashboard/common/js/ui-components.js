@@ -6,10 +6,10 @@
     const uiHtml = `
     <div id="pms-toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;"></div>
     
-    <div class="modal-overlay" id="pms-confirm-modal" style="z-index:10000;">
-        <div class="modal-card" style="max-width:400px;width:95vw">
-            <div class="modal-header">
-                <div class="modal-title" style="display:flex;align-items:center;gap:8px">
+    <div class="modal-overlay" id="pms-confirm-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.6);z-index:10000;align-items:center;justify-content:center;">
+        <div class="modal-card" style="background:#fff;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.15);overflow:hidden;max-width:400px;width:95vw">
+            <div class="modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border2,#e2e8f0);display:flex;align-items:center;">
+                <div class="modal-title" style="font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:8px">
                     <i class="fa-solid fa-circle-question" style="color:var(--primary)"></i> 
                     <span id="pms-confirm-title">Confirm</span>
                 </div>
@@ -47,9 +47,10 @@
             animation: slideInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             pointer-events: auto;
         }
-        .pms-toast.error { border-left-color: var(--danger); }
-        .pms-toast.success { border-left-color: var(--success); }
+        .pms-toast.error { border-left-color: var(--danger, #ef4444); }
+        .pms-toast.success { border-left-color: var(--success, #10b981); }
         .pms-toast.fade-out { animation: fadeOutRight 0.3s forwards; }
+        .modal-overlay.active { display: flex !important; }
         
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }

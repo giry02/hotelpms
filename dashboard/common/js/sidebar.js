@@ -10,7 +10,7 @@
     const BASE = _subDirs.includes(_parentDir) ? '../' : '';
 
     // ─── 사용자 역할 로드 (기본값 admin) ─────────
-    window.currentUserRole = localStorage.getItem('currentUserRole') || 'admin';
+    window.currentUserRole = localStorage.getItem('currentUserRole') || 'sys_admin';
 
     // DataReady 이벤트는 init() 완료 후 dispatch
 
@@ -18,14 +18,13 @@
     const MENU = [
         {
             group: 'Main',
-            roles: ['admin', 'manager', 'housekeeper'],
             items: [
                 { icon: 'fa-gauge-high', label: 'Dashboard', href: BASE + 'dashboard.html' },
             ]
         },
         {
             group: 'Front Desk',
-            roles: ['admin', 'manager'],
+            roles: ['sys_admin', 'sys_gm', 'sys_desk'],
             items: [
                 { icon: 'fa-calendar-days',    label: 'Reservations',  href: BASE + 'frontdesk/reservation-timeline.html' },
                 { icon: 'fa-list-check',       label: 'Booking List',  href: BASE + 'frontdesk/reservation-list.html' },
@@ -42,7 +41,7 @@
         },
         {
             group: 'Guest & CRM',
-            roles: ['admin', 'manager'],
+            roles: ['sys_admin', 'sys_gm', 'sys_desk'],
             items: [
                 { icon: 'fa-address-book', label: 'Guest CRM',   href: BASE + 'crm/guests.html' },
                 { icon: 'fa-crown',        label: 'VIP Members', href: BASE + 'crm/membership.html' },
@@ -50,7 +49,6 @@
         },
         {
             group: 'Operations',
-            roles: ['admin', 'manager', 'housekeeper'],
             items: [
                 {
                     icon: 'fa-bed', label: 'Room Mgmt', id: 'rooms',
@@ -61,10 +59,11 @@
                         { label: 'Rates Calendar', href: BASE + 'operations/rates.html' },
                     ]
                 },
-                { icon: 'fa-broom', label: 'Housekeeping', href: BASE + 'operations/housekeeping.html', badge: '5' },
-                { icon: 'fa-wrench', label: 'Maintenance', href: BASE + 'operations/maintenance.html' },
+                { icon: 'fa-broom', label: 'Housekeeping', href: BASE + 'operations/housekeeping.html', badge: '5', roles: ['sys_admin', 'sys_gm', 'sys_housekeeping'] },
+                { icon: 'fa-wrench', label: 'Maintenance', href: BASE + 'operations/maintenance.html', roles: ['sys_admin', 'sys_gm', 'sys_maintenance'] },
                 {
                     icon: 'fa-file-invoice-dollar', label: 'Folio & Billing', id: 'folio',
+                    roles: ['sys_admin', 'sys_gm', 'sys_desk'],
                     mainHref: BASE + 'operations/folio.html',
                     children: [
                         { label: 'Folio List',        href: BASE + 'operations/folio.html' },
@@ -74,6 +73,7 @@
                 },
                 {
                     icon: 'fa-concierge-bell', label: 'Ancillary Svcs', id: 'ancillary',
+                    roles: ['sys_admin', 'sys_gm', 'sys_desk'],
                     mainHref: BASE + 'operations/unified-pos.html',
                     children: [
                         { label: 'Unified POS', href: BASE + 'operations/unified-pos.html' },
@@ -85,7 +85,7 @@
         },
         {
             group: 'Settings',
-            roles: ['admin', 'manager'],
+            roles: ['sys_admin', 'sys_gm'],
             items: [
                 { icon: 'fa-gear',        label: 'Hotel Settings', href: BASE + 'settings/settings.html' },
                 {
@@ -122,11 +122,25 @@
     }
 
     function buildSidebar() {
-        const groups = MENU.filter(g => !g.roles || g.roles.includes(window.currentUserRole)).map(g => `
+        const groups = MENU.map(g => {
+            if (g.roles && !g.roles.includes(window.currentUserRole)) return null;
+            const validItems = g.items.filter(item => !item.roles || item.roles.includes(window.currentUserRole));
+            if (validItems.length === 0) return null;
+            return `
         <div class="nav-group">
             <div class="nav-group-label" data-i18n-key="${g.group}">${g.group}</div>
-            ${g.items.map(buildNavItem).join('')}
-        </div>`).join('');
+            ${validItems.map(buildNavItem).join('')}
+        </div>`;
+        }).filter(Boolean).join('');
+
+        const userProfiles = {
+            'sys_admin': { name: 'Nguyen Kim', init: 'NK', color: '#6D28D9' },
+            'sys_gm': { name: 'Robert Ford', init: 'RF', color: '#111827' },
+            'sys_desk': { name: 'Sarah Connor', init: 'SC', color: '#2563EB' },
+            'sys_housekeeping': { name: 'Maria Garcia', init: 'MG', color: '#059669' },
+            'sys_maintenance': { name: 'James Bond', init: 'JB', color: '#D97706' }
+        };
+        const activeProfile = userProfiles[window.currentUserRole] || userProfiles['sys_admin'];
 
         return `
 <div class="sidebar-overlay" onclick="PMS_Sidebar.toggleMenu()"></div>
@@ -141,13 +155,15 @@
     <nav class="sidebar-nav">${groups}</nav>
     <div class="sidebar-bottom">
         <div class="sidebar-user">
-            <div class="user-avatar">NK</div>
+            <div class="user-avatar" style="background:${activeProfile.color}">${activeProfile.init}</div>
             <div class="user-info">
-                <div class="user-name">Nguyen Kim</div>
+                <div class="user-name">${activeProfile.name}</div>
                 <select class="user-role-select" onchange="window.switchRole(this.value)">
-                    <option value="admin" ${window.currentUserRole==='admin'?'selected':''}>Admin</option>
-                    <option value="manager" ${window.currentUserRole==='manager'?'selected':''}>Manager</option>
-                    <option value="housekeeper" ${window.currentUserRole==='housekeeper'?'selected':''}>Housekeeper</option>
+                    <option value="sys_admin" ${window.currentUserRole==='sys_admin'?'selected':''}>Admin</option>
+                    <option value="sys_gm" ${window.currentUserRole==='sys_gm'?'selected':''}>General Manager</option>
+                    <option value="sys_desk" ${window.currentUserRole==='sys_desk'?'selected':''}>Front Desk</option>
+                    <option value="sys_housekeeping" ${window.currentUserRole==='sys_housekeeping'?'selected':''}>Housekeeping</option>
+                    <option value="sys_maintenance" ${window.currentUserRole==='sys_maintenance'?'selected':''}>Maintenance</option>
                 </select>
             </div>
         </div>
@@ -170,6 +186,15 @@
     function updateActiveSidebarLinks() {
         const currentPath = window.location.pathname.split('/').pop() || 'dashboard.html';
         const currentHash = window.location.hash;
+
+        // Force close all menus first (strict accordion)
+        document.querySelectorAll('.nav-item[data-menu]').forEach(item => {
+            item.classList.remove('expanded', 'active');
+            const sub = item.nextElementSibling;
+            if (sub) sub.classList.remove('show');
+            const id = item.getAttribute('data-menu');
+            if (id) localStorage.setItem('menu_expanded_' + id, 'false');
+        });
 
         document.querySelectorAll('.sidebar-nav a.nav-item, .sidebar-nav a.nav-sub-item').forEach(link => {
             link.classList.remove('active');

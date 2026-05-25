@@ -278,12 +278,12 @@
 
         <!-- ── KPI Cards ── -->
         <div class="kpi-grid">
-            <div class="rfc-card" onclick="filterMt(null,'all')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--danger)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
+            <div class="rfc-card" onclick="filterMt(null,'all')" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='var(--txt)'" onmouseout="this.style.transform='translateY(0)';this.style.borderColor='var(--border2)'">
                 <div class="rfc-left">
-                    <div class="rfc-icon" style="background:var(--danger-lt);color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="rfc-icon" style="background:#f1f5f9;color:var(--txt)"><i class="fa-solid fa-list-ul"></i></div>
                     <div class="rfc-info">
-                        <span class="rfc-val" id="kpiUrgent">2</span>
-                        <span class="rfc-label">긴급 대기</span>
+                        <span class="rfc-val" id="kpiAll">0</span>
+                        <span class="rfc-label">전체</span>
                     </div>
                 </div>
                 <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
@@ -292,7 +292,7 @@
                 <div class="rfc-left">
                     <div class="rfc-icon" style="background:var(--warning-lt);color:var(--warning)"><i class="fa-solid fa-clipboard-list"></i></div>
                     <div class="rfc-info">
-                        <span class="rfc-val" id="kpiOpen">5</span>
+                        <span class="rfc-val" id="kpiOpen">0</span>
                         <span class="rfc-label">신규 요청</span>
                     </div>
                 </div>
@@ -302,8 +302,8 @@
                 <div class="rfc-left">
                     <div class="rfc-icon" style="background:var(--primary-lt);color:var(--primary)"><i class="fa-solid fa-screwdriver-wrench"></i></div>
                     <div class="rfc-info">
-                        <span class="rfc-val" id="kpiProgress">3</span>
-                        <span class="rfc-label">작업 진행 중</span>
+                        <span class="rfc-val" id="kpiProgress">0</span>
+                        <span class="rfc-label">진행 중</span>
                     </div>
                 </div>
                 <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
@@ -312,8 +312,8 @@
                 <div class="rfc-left">
                     <div class="rfc-icon" style="background:var(--success-lt);color:var(--success)"><i class="fa-solid fa-circle-check"></i></div>
                     <div class="rfc-info">
-                        <span class="rfc-val" id="kpiDone">24</span>
-                        <span class="rfc-label">이번 달 완료</span>
+                        <span class="rfc-val" id="kpiDone">0</span>
+                        <span class="rfc-label">완료</span>
                     </div>
                 </div>
                 <i class="fa-solid fa-chevron-right" style="color:var(--txt3);font-size:1rem;transition:transform 0.2s"></i>
@@ -322,6 +322,11 @@
 
         <!-- ── Filter Bar ── -->
         <div class="filter-bar-mt">
+            <div class="view-toggle" style="margin-right: 12px; height: 38px; display: flex; align-items: center; border-radius: 8px; border: 1px solid var(--border); overflow: hidden; background: #fff;">
+                <button onclick="switchView(this,'kanban')" style="height: 100%; border: none; background: transparent; padding: 0 14px; font-weight: 600; color: var(--txt3); cursor: pointer; transition: all .2s;"><i class="fa-solid fa-columns"></i> 칸반</button>
+                <button class="active" onclick="switchView(this,'table')" style="height: 100%; border: none; background: var(--primary); padding: 0 14px; font-weight: 600; color: #fff; cursor: pointer; transition: all .2s;"><i class="fa-solid fa-table-list"></i> 테이블</button>
+            </div>
+
             <div class="filter-search-group">
                 <div class="search-box-mt">
                     <i class="fa-solid fa-magnifying-glass"></i>
@@ -340,6 +345,7 @@
             </div>
 
             <div class="filter-actions-group" style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+                <button class="btn-outline" id="btnUrgentOnly" onclick="toggleUrgentOnly(this)" style="color:var(--danger); border-color:var(--danger-lt); background:#fff;"><i class="fa-solid fa-triangle-exclamation"></i> 긴급 대기 <span class="chip-count" id="chipUrgentCount" style="margin-left:4px; padding:2px 6px; background:rgba(220,38,38,0.1); border-radius:10px; font-size:0.7rem;">0</span></button>
                 <select class="form-input" style="width:auto; min-width:130px; padding:6px 10px; font-size:.8rem;" id="priorityFilter" onchange="filterMt(null)">
                     <option value="">전체 우선순위</option>
                     <option value="urgent">🔴 긴급</option>
@@ -347,10 +353,6 @@
                     <option value="normal">🔵 일반</option>
                     <option value="low">⚪ 낮음</option>
                 </select>
-                <div class="view-toggle">
-                    <button onclick="switchView(this,'kanban')"><i class="fa-solid fa-columns"></i> 칸반</button>
-                    <button class="active" onclick="switchView(this,'table')"><i class="fa-solid fa-table-list"></i> 테이블</button>
-                </div>
                 <button class="btn-primary-sm" onclick="openModal('newRequestModal')"><i class="fa-solid fa-plus"></i> 티켓 생성</button>
             </div>
         </div>
@@ -504,16 +506,36 @@ let requests = [
 ];
 
 let currentStatusFilter = 'all';
+let isUrgentOnly = false;
 let nextId = 113;
 
+function toggleUrgentOnly(btn) {
+    isUrgentOnly = !isUrgentOnly;
+    if(isUrgentOnly) {
+        btn.style.background = 'var(--danger)';
+        btn.style.color = '#fff';
+        // 긴급 대기 클릭 시 다른 탭들의 시각적 강조 해제 (혼동 방지)
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    } else {
+        btn.style.background = '#fff';
+        btn.style.color = 'var(--danger)';
+        // 긴급 대기 해제 시 현재 필터 탭 다시 강조
+        const chip = document.querySelector(`.chip[data-filter="${currentStatusFilter}"]`);
+        if (chip) chip.classList.add('active');
+    }
+    render();
+}
+
 function updateKPI() {
-    document.getElementById('kpiUrgent').textContent = requests.filter(r => r.priority === 'urgent' && r.status !== 'done').length;
-    
+    const allCount = requests.length;
     const openCount = requests.filter(r => r.status === 'open').length;
     const progCount = requests.filter(r => r.status === 'in-progress').length;
     const doneCount = requests.filter(r => r.status === 'done').length;
-    const allCount = requests.length;
+    
+    // For the separate urgent button count
+    const urgentCount = requests.filter(r => r.priority === 'urgent' && r.status !== 'done').length;
 
+    document.getElementById('kpiAll').textContent = allCount;
     document.getElementById('kpiOpen').textContent = openCount;
     document.getElementById('kpiProgress').textContent = progCount;
     document.getElementById('kpiDone').textContent = doneCount;
@@ -522,24 +544,55 @@ function updateKPI() {
     document.getElementById('chipOpen').textContent = openCount;
     document.getElementById('chipProgress').textContent = progCount;
     document.getElementById('chipDone').textContent = doneCount;
+    
+    document.getElementById('chipUrgentCount').textContent = urgentCount;
 }
 
 function getFiltered() {
     const pf = document.getElementById('priorityFilter').value;
     const search = (document.getElementById('searchMt').value || '').toLowerCase();
     return requests.filter(r => {
+        // 검색어 필터는 항상 적용
+        if (search && !r.room.includes(search) && !r.desc.toLowerCase().includes(search) && !r.id.toLowerCase().includes(search) && !r.type.toLowerCase().includes(search)) return false;
+        
+        // 긴급대기 모드일 경우: 긴급(urgent)이면서 완료가 아닌 것만 무조건 통과 (나머지 탭 무시)
+        if (isUrgentOnly) {
+            if (r.priority !== 'urgent' || r.status === 'done') return false;
+            return true;
+        }
+        
+        // 일반 모드일 경우: 탭 필터와 우선순위 드롭다운 필터 적용
         if (currentStatusFilter !== 'all' && r.status !== currentStatusFilter) return false;
         if (pf && r.priority !== pf) return false;
-        if (search && !r.room.includes(search) && !r.desc.toLowerCase().includes(search) && !r.id.toLowerCase().includes(search) && !r.type.toLowerCase().includes(search)) return false;
+        
         return true;
     });
 }
 
 function filterMt(btn, status) {
     if (status) currentStatusFilter = status;
+    
+    // 만약 긴급대기 모드가 켜진 상태에서 다른 탭을 누르면, 긴급대기 모드를 끈다
+    if (isUrgentOnly) {
+        isUrgentOnly = false;
+        const btnUrgent = document.getElementById('btnUrgentOnly');
+        if (btnUrgent) {
+            btnUrgent.style.background = '#fff';
+            btnUrgent.style.color = 'var(--danger)';
+        }
+    }
+
     if (btn) {
-        btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-        btn.classList.add('active');
+        btn.closest('.filter-chips-group, .kpi-grid').parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        // If clicking KPI card, try to sync chip active state
+        const chip = document.querySelector(`.chip[data-filter="${status}"]`);
+        if (chip) chip.classList.add('active');
+        else if(btn.classList.contains('chip')) btn.classList.add('active');
+    } else {
+        // Find chip based on currentStatusFilter to keep sync when searching
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        const chip = document.querySelector(`.chip[data-filter="${currentStatusFilter}"]`);
+        if (chip) chip.classList.add('active');
     }
     render();
 }

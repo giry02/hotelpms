@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/settings.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-settings.js"></script>
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
@@ -185,20 +187,9 @@
 
 <script>
 // ─── 데이터 정의 ──────────────────────────────────────────────
-const ALL_MENUS = [
-    { key:'dashboard',    icon:'fa-gauge-high',          label:'대시보드' },
-    { key:'reservation',  icon:'fa-calendar-days',       label:'예약 관리' },
-    { key:'checkin',      icon:'fa-right-to-bracket',    label:'체크인/아웃' },
-    { key:'crm',          icon:'fa-users',               label:'고객 CRM' },
-    { key:'rooms',        icon:'fa-bed',                 label:'객실 관리' },
-    { key:'rates',        icon:'fa-tags',                label:'요금 캘린더' },
-    { key:'housekeeping', icon:'fa-broom',               label:'하우스키핑' },
-    { key:'folio',        icon:'fa-file-invoice-dollar', label:'정산/청구' },
-    { key:'ancillary',    icon:'fa-concierge-bell',      label:'부가서비스' },
-    { key:'settings',     icon:'fa-gear',                label:'호텔 설정' },
-    { key:'staff',        icon:'fa-users-gear',          label:'직원 관리' },
-    { key:'billing',      icon:'fa-credit-card',         label:'요금 및 결제' },
-];
+let ALL_MENUS = [];
+let SYSTEM_ROLES = [];
+let DEFAULT_CUSTOM_ROLES = [];
 
 const COLORS = [
     '#6D28D9','#1D4ED8','#0891B2','#065F46',
@@ -206,27 +197,25 @@ const COLORS = [
     '#7C3AED','#2563EB','#0E7490','#047857',
 ];
 
-const SYSTEM_ROLES = [
-    { id: 'sys_admin',       name: 'Admin',       desc: '모든 메뉴에 접근 가능한 최고 관리자', color: '#6D28D9', isSystem: true, perms: ALL_MENUS.map(m=>m.key) }
-];
-
-const DEFAULT_CUSTOM_ROLES = [
-    { id: 'sys_manager',     name: 'Manager',     desc: '설정·직원관리를 제외한 대부분 접근 가능', color: '#1D4ED8', isSystem: false, perms: ['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary'] },
-    { id: 'sys_housekeeper', name: 'Housekeeper', desc: '하우스키핑 전용 접근', color: '#065F46', isSystem: false, perms: ['dashboard','housekeeping','rooms'] },
-];
-
 function loadRoles() {
     try { 
         const saved = localStorage.getItem('pms_custom_roles');
-        if (saved) return JSON.parse(saved);
-        saveRoles(DEFAULT_CUSTOM_ROLES);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            // If old data is found (e.g. sys_housekeeping has more than 1 permission), force reset
+            const hkRole = parsed.find(r => r.id === 'sys_housekeeping');
+            if (parsed.length === 0 || !parsed.find(r => r.id === 'sys_gm') || (hkRole && hkRole.perms.length > 1)) {
+                return JSON.parse(JSON.stringify(DEFAULT_CUSTOM_ROLES));
+            }
+            return parsed;
+        }
         return JSON.parse(JSON.stringify(DEFAULT_CUSTOM_ROLES));
     } 
     catch { return JSON.parse(JSON.stringify(DEFAULT_CUSTOM_ROLES)); }
 }
 function saveRoles(roles) { localStorage.setItem('pms_custom_roles', JSON.stringify(roles)); }
 
-let customRoles = loadRoles();
+let customRoles = [];
 let currentRoleId = null;
 let isCreating = false;
 
@@ -471,8 +460,19 @@ function showToast(msg, type = 'success') {
 }
 
 // 초기화
-renderRolesList();
-renderEditor();
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        ALL_MENUS = await PmsAPI.getALL_MENUS();
+        SYSTEM_ROLES = await PmsAPI.getSYSTEM_ROLES();
+        DEFAULT_CUSTOM_ROLES = await PmsAPI.getDEFAULT_CUSTOM_ROLES();
+        
+        customRoles = loadRoles();
+        saveRoles(customRoles); // force save latest to ensure sync
+
+        renderRolesList();
+        renderEditor();
+    } catch(e) { console.error(e); }
+});
 </script>
 
 <script>

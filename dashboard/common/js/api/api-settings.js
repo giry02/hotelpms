@@ -21,15 +21,19 @@ const _SYSTEM_ROLES = [
 ];
 
 const _DEFAULT_CUSTOM_ROLES = [
-    { id:'sys_manager',     name:'Manager',     color:'#1D4ED8', desc:'프론트/운영 관리',   perms:['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary'] },
-    { id:'sys_housekeeper', name:'Housekeeper', color:'#065F46', desc:'하우스키핑 전용',    perms:['dashboard','housekeeping','rooms'] },
+    { id:'sys_gm',           name:'General Manager', color:'#111827', desc:'총괄 매니저',       perms:['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary','settings','staff','billing'] },
+    { id:'sys_desk',         name:'Front Desk',      color:'#2563EB', desc:'프론트 데스크',     perms:['dashboard','reservation','checkin','crm','rooms','folio','ancillary'] },
+    { id:'sys_housekeeping', name:'Housekeeping',    color:'#059669', desc:'하우스키핑',        perms:['housekeeping'] },
+    { id:'sys_maintenance',  name:'Maintenance',     color:'#D97706', desc:'유지보수 및 시설',  perms:['housekeeping'] }
 ];
 
 const _DEFAULT_STAFF = [
-    { id:'s1', name:'Nguyen Kim',     init:'NK', email:'kim@hotel.com',   roleId:'sys_admin',       status:'online',  last:'방금 전', color:'#6D28D9' },
-    { id:'s2', name:'Tran Minh',      init:'TM', email:'minh@hotel.com',  roleId:'sys_manager',     status:'offline', last:'2시간 전', color:'#1D4ED8' },
-    { id:'s3', name:'Park Seo Joon',  init:'PS', email:'park@hotel.com',  roleId:'sys_manager',     status:'online',  last:'5분 전', color:'#1D4ED8' },
-    { id:'s4', name:'Sato Yuki',      init:'SY', email:'sato@hotel.com',  roleId:'sys_housekeeper', status:'offline', last:'1일 전', color:'#065F46' },
+    { id:'s1', name:'Nguyen Kim',     init:'NK', email:'kim@hotel.com',    roleId:'sys_admin',        status:'online',  last:'방금 전', color:'#6D28D9' },
+    { id:'s2', name:'Robert Ford',    init:'RF', email:'gm@hotel.com',     roleId:'sys_gm',           status:'online',  last:'10분 전', color:'#111827' },
+    { id:'s3', name:'Sarah Connor',   init:'SC', email:'desk1@hotel.com',  roleId:'sys_desk',         status:'online',  last:'방금 전', color:'#2563EB' },
+    { id:'s4', name:'John Smith',     init:'JS', email:'desk2@hotel.com',  roleId:'sys_desk',         status:'offline', last:'2시간 전', color:'#2563EB' },
+    { id:'s5', name:'Maria Garcia',   init:'MG', email:'house@hotel.com',  roleId:'sys_housekeeping', status:'online',  last:'30분 전', color:'#059669' },
+    { id:'s6', name:'James Bond',     init:'JB', email:'maint@hotel.com',  roleId:'sys_maintenance',  status:'offline', last:'1일 전', color:'#D97706' }
 ];
 
 Object.assign(window.PmsAPI, {
