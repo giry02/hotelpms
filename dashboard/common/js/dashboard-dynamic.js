@@ -43,7 +43,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Populate Today Check-in
-    const checkinBody = document.querySelector('a[href="frontdesk/checkin.html"]').closest('.card').querySelector('tbody');
+    const checkinLink = document.querySelector('a.card-title-link[href="frontdesk/checkin.html"]');
+    const checkinBody = checkinLink ? checkinLink.closest('.card').querySelector('tbody') : null;
     if (checkinBody) {
         const checkinRes = reservations.filter(r => r.status === 'confirmed').slice(0, 5);
         if (checkinRes.length > 0) {
