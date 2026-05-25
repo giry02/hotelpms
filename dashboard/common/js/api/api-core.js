@@ -16,4 +16,6 @@ function initStorage(key, fallbackData) {
     return JSON.parse(data);
 }
 // API Core & Common Storage Logic
+const API_VERSION = 'v1.8'; // Bump this to force reset local storage
+
 window.PmsAPI = window.PmsAPI || {};

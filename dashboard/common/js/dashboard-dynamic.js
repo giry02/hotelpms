@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Calculate KPIs
     const today = '5/25';
+    const today = '5/25';
     let totalRooms = 120; // assumed
     let occupied = reservations.filter(r => r.status === 'checked-in').length;
     let occ = ((occupied / totalRooms) * 100).toFixed(1) + '%';
