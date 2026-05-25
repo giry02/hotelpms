@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
@@ -43,9 +45,9 @@
                     <div class="kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
                 </div>
                 <div class="kpi-body">
-                    <div class="kpi-value">24</div>
+                    <div class="kpi-value" id="kpiExpectedCin">0</div>
                     <div class="kpi-label">금일 체크인 예정</div>
-                    <div class="kpi-sub">Confirmed 21 · Pending 3</div>
+                    <div class="kpi-sub"><span id="kpiExpectedCinSub">Confirmed 0 · Pending 0</span></div>
                 </div>
             </div>
             <div class="kpi-card green">
@@ -53,7 +55,7 @@
                     <div class="kpi-icon"><i class="fa-solid fa-check-double"></i></div>
                 </div>
                 <div class="kpi-body">
-                    <div class="kpi-value">6</div>
+                    <div class="kpi-value" id="kpiCompletedCin">0</div>
                     <div class="kpi-label">Check-in Completed</div>
                     <div class="kpi-sub">Today Completed</div>
                 </div>
@@ -63,9 +65,9 @@
                     <div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
                 </div>
                 <div class="kpi-body">
-                    <div class="kpi-value">18</div>
+                    <div class="kpi-value" id="kpiExpectedCout">0</div>
                     <div class="kpi-label">Today Check-out 예정</div>
-                    <div class="kpi-sub">Completed 12 · 잔여 6</div>
+                    <div class="kpi-sub"><span id="kpiExpectedCoutSub">Completed 0 · 잔여 0</span></div>
                 </div>
             </div>
             <div class="kpi-card purple">
@@ -73,7 +75,7 @@
                     <div class="kpi-icon"><i class="fa-solid fa-crown"></i></div>
                 </div>
                 <div class="kpi-body">
-                    <div class="kpi-value">3</div>
+                    <div class="kpi-value" id="kpiVipArrivals">0</div>
                     <div class="kpi-label">VIP 도착 예정</div>
                     <div class="kpi-sub">환영 준비 필요</div>
                 </div>
@@ -260,197 +262,135 @@
 
 <script>
 // ===== TAB SWITCH =====
-function updateFilterCounts() {
-    const checkinCount = document.querySelectorAll('#checkinPanel .ci-card:not(.done)').length;
-    const checkoutCount = document.querySelectorAll('#checkoutPanel .ci-card:not(.done)').length;
-    
-    document.querySelectorAll('.chip').forEach(chip => {
-        const tab = chip.getAttribute('data-tab');
-        const textSpan = chip.querySelector('.chip-text');
-        if (!textSpan) return;
-        
-        let count = 0;
-        let baseText = textSpan.getAttribute('data-base-text');
-        if (!baseText) {
-            baseText = textSpan.textContent.trim().replace(/\s*\(\d+\)$/, '');
-            textSpan.setAttribute('data-base-text', baseText);
-        }
-        
-        if (tab === 'checkin') count = checkinCount;
-        if (tab === 'checkout') count = checkoutCount;
-        
-        textSpan.textContent = `${baseText} (${count})`;
-    });
-}
+;
 
-function switchTab(btn, tab) {
-    document.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('checkinPanel').style.display = tab === 'checkin' ? 'flex' : 'none';
-    document.getElementById('checkoutPanel').style.display = tab === 'checkout' ? 'flex' : 'none';
-}
+let reservations = [];
 
-// ===== CHECK-IN PROCESS =====
-async function processCheckin(btn) {
-    const card = btn.closest('.ci-card');
-    const name = card.querySelector('.ci-name').textContent.trim();
-    const confirmMsg = currentLang === 'en' ? `Process check-in for ${name}?` : `${name} 님을 체크인 처리하시겠습니까?`;
-    if (await showConfirm(confirmMsg)) {
-        card.style.transition = 'all .4s ease';
-        card.style.opacity = '0';
-        card.style.transform = 'translateX(40px)';
-        setTimeout(() => {
-            const statusMsg = currentLang === 'en' ? 'Check-in Completed' : '체크인 완료';
-            const timeMsg = currentLang === 'en' ? 'Processed just now' : '방금 처리됨';
-            card.innerHTML = `
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        reservations = await PmsAPI.getReservations();
+        renderCheckinData();
+    } catch(e) {
+        console.error(e);
+    }
+});
+
+function renderCheckinData() {
+    const today = '5/25'; // Mock today date
+
+    const expectedCheckins = reservations.filter(r => r.cin === today);
+    const expectedCheckouts = reservations.filter(r => r.cout === today);
+
+    const completedCheckins = expectedCheckins.filter(r => r.status === 'checked-in').length;
+    const pendingCheckins = expectedCheckins.filter(r => r.status === 'confirmed').length;
+
+    const completedCheckouts = expectedCheckouts.filter(r => r.status === 'checked-out').length;
+    const pendingCheckouts = expectedCheckouts.filter(r => r.status === 'checked-in').length;
+
+    const vipArrivals = expectedCheckins.filter(r => r.isVip).length;
+
+    // Update KPIs
+    document.getElementById('kpiExpectedCin').textContent = expectedCheckins.length;
+    document.getElementById('kpiCompletedCin').textContent = completedCheckins;
+    document.getElementById('kpiExpectedCout').textContent = expectedCheckouts.length;
+    document.getElementById('kpiVipArrivals').textContent = vipArrivals;
+
+    document.getElementById('kpiExpectedCinSub').textContent = `Confirmed ${pendingCheckins} · Pending 0`;
+    document.getElementById('kpiExpectedCoutSub').textContent = `Completed ${completedCheckouts} · 잔여 ${pendingCheckouts}`;
+
+    document.getElementById('tabCheckinCount').textContent = pendingCheckins;
+    document.getElementById('tabCheckoutCount').textContent = pendingCheckouts;
+
+    // Render Panels
+    const cinPanel = document.getElementById('checkinPanel');
+    const coutPanel = document.getElementById('checkoutPanel');
+
+    const formatCard = (r, isCout) => {
+        const isDone = isCout ? r.status === 'checked-out' : r.status === 'checked-in';
+        const actionBtn = isDone 
+            ? `<div class="ci-done-icon co"><i class="fa-solid fa-check"></i></div>`
+            : `<button class="btn-primary-sm" onclick="processCheck${isCout?'out':'in'}(this, '${r.id}')"><i class="fa-solid fa-right-${isCout?'from':'to'}-bracket"></i> ${isCout?'체크아웃':'체크인'}</button>`;
+
+        const vipTag = r.isVip ? `<span class="guest-tier" style="color:var(--orange);border-color:#FDE68A;background:#FFFBEB"><i class="fa-solid fa-crown"></i> ${r.vip}</span>` : '';
+
+        return `
+            <div class="ci-card ${isDone ? 'done' : ''}" id="${r.id}">
                 <div class="ci-left">
-                    <div class="ci-done-icon"><i class="fa-solid fa-check"></i></div>
+                    <div class="ci-avatar" style="background:${r.color}">${r.initials}</div>
                     <div class="ci-info">
-                        <div class="ci-name" style="color:var(--success)">${name} — ${statusMsg}</div>
-                        <div class="ci-meta">${timeMsg} · ${new Date().toLocaleTimeString('ko',{hour:'2-digit',minute:'2-digit'})}</div>
+                        <div class="ci-name">${r.guest} ${vipTag}</div>
+                        <div class="ci-meta">${r.room} · ${r.type} · ${r.nights}박 (${r.cin} - ${r.cout}) · ${r.channel}</div>
+                        ${!isDone && r.isVip ? `<div class="ci-warning"><i class="fa-solid fa-bell-concierge"></i> 환영 준비 필요</div>` : ''}
+                        ${isDone ? `<div class="ci-warning" style="color:var(--success); background:rgba(16,185,129,.1)">${isCout?'체크아웃 완료':'체크인 완료'}</div>` : ''}
                     </div>
                 </div>
-            `;
-            card.classList.add('done');
-            card.style.opacity = '1';
-            card.style.transform = 'translateX(0)';
-            updateFilterCounts();
-        }, 400);
+                <div class="ci-right">
+                    <div class="ci-folio">
+                        ${isCout ? 
+                            (r.amount > 0 ? `<b>${r.amount}</b><br><span style="color:var(--danger)">미정산</span>` : `<b>$0.00</b><br><span style="color:var(--txt3)">(정산 완료)</span>`) :
+                            `<b>${r.amount.toLocaleString()}</b>`
+                        }
+                    </div>
+                    ${actionBtn}
+                    <button class="btn-outline-sm" onclick="window.location.href='reservation-list.html?id=${r.id}'"><i class="fa-solid fa-pen"></i></button>
+                </div>
+            </div>
+        `;
+    };
+
+    cinPanel.innerHTML = expectedCheckins.map(r => formatCard(r, false)).join('');
+    coutPanel.innerHTML = expectedCheckouts.map(r => formatCard(r, true)).join('');
+}
+
+async function processCheckin(btn, id) {
+    const r = reservations.find(x => x.id === id);
+    if (!r) return;
+    const confirmMsg = currentLang === 'en' ? `Process check-in for ${r.guest}?` : `${r.guest} 님을 체크인 처리하시겠습니까?`;
+    if (await showConfirm(confirmMsg)) {
+        r.status = 'checked-in';
+        await PmsAPI.syncGroupsToReservations(reservations);
+        if(window.PmsAPI.saveReservations) {
+            await window.PmsAPI.saveReservations(reservations);
+        } else {
+            localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+        }
+        renderCheckinData();
+        showToast(currentLang === 'en' ? 'Check-in Completed' : '체크인 완료');
     }
 }
 
-// ===== CHECK-OUT PROCESS =====
-async function processCheckout(btn) {
-    const card = btn.closest('.ci-card');
-    const name = card.querySelector('.ci-name').textContent.trim();
-    const hasBalance = card.querySelector('.ci-folio b').textContent !== '$0.00';
-    if (hasBalance) {
+async function processCheckout(btn, id) {
+    const r = reservations.find(x => x.id === id);
+    if (!r) return;
+    if (r.amount > 0) {
         const errorMsg = currentLang === 'en' ? 'Outstanding balance remains. Please settle the folio first.' : '정산 잔액이 남아 있습니다. 먼저 정산을 완료해 주세요.';
-        showToast(errorMsg);
+        showToast(errorMsg, 'error');
         return;
     }
-    const confirmMsg = currentLang === 'en' ? `Process check-out for ${name}?` : `${name} 님을 체크아웃 처리하시겠습니까?`;
+    const confirmMsg = currentLang === 'en' ? `Process check-out for ${r.guest}?` : `${r.guest} 님을 체크아웃 처리하시겠습니까?`;
     if (await showConfirm(confirmMsg)) {
-        card.style.transition = 'all .4s ease';
-        card.style.opacity = '0';
-        card.style.transform = 'translateX(40px)';
-        setTimeout(() => {
-            const statusMsg = currentLang === 'en' ? 'Check-out Completed' : '체크아웃 완료';
-            const timeMsg = currentLang === 'en' ? 'Processed just now' : '방금 처리됨';
-            card.innerHTML = `
-                <div class="ci-left">
-                    <div class="ci-done-icon co"><i class="fa-solid fa-check"></i></div>
-                    <div class="ci-info">
-                        <div class="ci-name" style="color:var(--warning)">${name} — ${statusMsg}</div>
-                        <div class="ci-meta">${timeMsg} · ${new Date().toLocaleTimeString('ko',{hour:'2-digit',minute:'2-digit'})}</div>
-                    </div>
-                </div>
-            `;
-            card.classList.add('done');
-            card.style.opacity = '1';
-            card.style.transform = 'translateX(0)';
-        }, 400);
+        r.status = 'checked-out';
+        await PmsAPI.syncGroupsToReservations(reservations);
+        if(window.PmsAPI.saveReservations) {
+            await window.PmsAPI.saveReservations(reservations);
+        } else {
+            localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+        }
+        renderCheckinData();
+        showToast(currentLang === 'en' ? 'Check-out Completed' : '체크아웃 완료');
     }
 }
 
-// ===== MOBILE MENU =====
-function toggleMenu() {
-    document.querySelector('.sidebar').classList.toggle('active');
-    document.querySelector('.sidebar-overlay').classList.toggle('active');
+function exportData() {
+    if(!reservations.length) { showToast('No data'); return; }
+    const rows = reservations.map(r => [r.id, r.guest, r.room, r.cin, r.cout, r.status].join(',')).join('\n');
+    const blob = new Blob(['ID,Guest,Room,CheckIn,CheckOut,Status\n' + rows], {type:'text/csv;charset=utf-8;'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'checkin_out.csv';
+    link.click();
 }
-
-// ===== i18n =====
-let currentLang = 'ko';
-const translations = {
-    ko: {
-        "Main": "메인",
-        "Front Desk": "프론트 데스크",
-        "Guest & CRM": "투숙객 및 CRM",
-        "Operations": "운영 관리",
-        "Settings": "설정",
-        "Dashboard": "대시보드",
-        "Reservations": "예약 타임라인",
-        "Booking List": "예약 목록",
-        "Check-in/out": "체크인/아웃",
-        "Guest CRM": "투숙객 관리",
-        "VIP Members": "VIP 멤버십",
-        "Room Mgmt": "객실 관리",
-        "Room Types": "객실 유형",
-        "Rates Calendar": "요금 캘린더",
-        "Housekeeping": "하우스키핑",
-        "Folio & Billing": "통합 정산",
-        "Folio List": "정산 목록",
-        "Revenue Analytics": "매출 분석",
-        "Ancillary Svcs": "부가서비스",
-        "Room Service": "룸서비스",
-        "Golf": "골프",
-        "Rent-a-car": "렌터카",
-        "Hotel Settings": "호텔 설정",
-        "Staff Mgmt": "직원 관리",
-        "Billing & Payment": "요금 및 결제",
-        "Notices": "공지사항",
-        "Support": "고객지원",
-
-        "Check-in/out":"체크인/아웃","Dashboard":"대시보드","Reservations":"예약 타임라인",
-        "Booking List":"예약 목록","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십",
-        "Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산",
-        "Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리",
-        "금일 체크인 예정":"금일 체크인 예정","Check-in Completed":"체크인 완료",
-        "Today Check-out 예정":"금일 체크아웃 예정","VIP 도착 예정":"VIP 도착 예정",
-        "취소 대기 중":"취소 대기 중",
-        "Check-in Pending":"체크인 대기","Check-out Pending":"체크아웃 대기",
-        "Check-in":"체크인","Check-out":"체크아웃","Cancel 처리":"취소 처리",
-        "Confirmed 21 · Pending 3":"확정 21 · 대기 3","Today Completed":"금일 완료",
-        "Completed 12 · 잔여 6":"완료 12 · 잔여 6","환영 준비 필요":"환영 준비 필요",
-        "Main": "메인","Front Desk":"프론트 데스크","Guest & CRM": "투숙객 및 CRM",
-        "Operations": "운영 관리","Settings": "설정"
-    },
-    en: {
-        "Main": "Main",
-        "Front Desk": "Front Desk",
-        "Guest & CRM": "Guest & CRM",
-        "Operations": "Operations",
-        "Settings": "Settings",
-        "Dashboard": "Dashboard",
-        "Reservations": "Reservations",
-        "Booking List": "Booking List",
-        "Check-in/out": "Check-in/out",
-        "Guest CRM": "Guest CRM",
-        "VIP Members": "VIP Members",
-        "Room Mgmt": "Room Mgmt",
-        "Room Types": "Room Types",
-        "Rates Calendar": "Rates Calendar",
-        "Housekeeping": "Housekeeping",
-        "Folio & Billing": "Folio & Billing",
-        "Folio List": "Folio List",
-        "Revenue Analytics": "Revenue Analytics",
-        "Ancillary Svcs": "Ancillary Svcs",
-        "Room Service": "Room Service",
-        "Golf": "Golf",
-        "Rent-a-car": "Rent-a-car",
-        "Hotel Settings": "Hotel Settings",
-        "Staff Mgmt": "Staff Mgmt",
-        "Billing & Payment": "Billing & Payment",
-        "Notices": "Notices",
-        "Support": "Support",
-
-        "Check-in/out":"Check-in/out","Dashboard":"Dashboard","Reservations":"Reservations",
-        "Booking List":"Booking List","Guest CRM":"Guest CRM","VIP Members":"VIP Members",
-        "Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing",
-        "Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt",
-        "금일 체크인 예정":"Today's Arrivals","Check-in Completed":"Checked In",
-        "Today Check-out 예정":"Today's Departures","VIP 도착 예정":"VIP Arrivals",
-        "취소 대기 중":"Auto-cancel Pending",
-        "Check-in Pending":"Check-in Queue","Check-out Pending":"Check-out Queue",
-        "Check-in":"Check-in","Check-out":"Check-out","Cancel 처리":"Cancel",
-        "Confirmed 21 · Pending 3":"21 Confirmed · 3 Pending","Today Completed":"Processed Today",
-        "Completed 12 · 잔여 6":"12 Done · 6 Remaining","환영 준비 필요":"Welcome Prep Required",
-        "(정산 완료)":"(Settlement Done)","미정산":"Unsettled",
-        "Main":"Main","Front Desk":"Front Desk","Guest & CRM":"Guest & CRM",
-        "Operations":"Operations","Settings":"Settings"
-    }
-};
-function setupI18n(){
+\nfunction setupI18n(){
     const walk=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);
     let node; const textNodes=[];
     while(node=walk.nextNode()){
