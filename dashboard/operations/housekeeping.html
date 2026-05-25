@@ -194,6 +194,20 @@
             </div>
         </div>
     </div>
+<!-- HK Log Modal -->
+<div class="modal-overlay" id="hkLogModal" onclick="if(event.target===this) closeModal('hkLogModal')">
+    <div class="modal-card">
+        <div class="modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
+            <h3 style="font-size:1.1rem;font-weight:700" id="hkLogTitle">작업 로그</h3>
+            <button class="modal-close" onclick="closeModal('hkLogModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" id="hkLogContent" style="padding:20px;font-size:0.9rem;line-height:1.5;">
+            <!-- Generated Log -->
+        </div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+            <button class="btn-primary-sm" onclick="closeModal('hkLogModal')">닫기</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -203,7 +217,8 @@ let currentFilter = 'all';
 const typeMap = {
     'checkout': { label:'Check-out 청소', icon:'fa-person-walking-luggage', color:'var(--danger)' },
     'stayover': { label:'재실 청소', icon:'fa-bed', color:'var(--primary)' },
-    'deep': { label:'정밀 청소', icon:'fa-spray-can-sparkles', color:'var(--purple)' }
+    'deep': { label:'정밀 청소', icon:'fa-spray-can-sparkles', color:'var(--purple)' },
+    'maintenance': { label:'시설 점검 (OOS)', icon:'fa-wrench', color:'var(--orange)' }
 };
 
 const statusMap = {
@@ -301,6 +316,19 @@ function completeTask(id, nextStatus) {
     const task = tasks.find(t => t.id === id);
     if(task) {
         task.status = nextStatus;
+        if (window.PmsAPI && window.PmsAPI.saveTasks) window.PmsAPI.saveTasks(tasks);
+        
+        // Sync back to room status if clean
+        if (nextStatus === 'clean' && window.PmsAPI && window.PmsAPI.getAllRooms) {
+            window.PmsAPI.getAllRooms().then(rooms => {
+                const rIdx = rooms.findIndex(r => r.id === task.room);
+                if (rIdx > -1) {
+                    rooms[rIdx].status = 'vacant-clean';
+                    if (window.PmsAPI.saveRooms) window.PmsAPI.saveRooms(rooms);
+                }
+            });
+        }
+        
         updateKpis();
         renderTasks();
     }
@@ -338,7 +366,30 @@ function setFilter(btn, status) {
 }
 
 function showHkLog(roomNum) {
-    showToast(`${roomNum}호 작업 로그를 불러왔습니다.`);
+    const content = document.getElementById('hkLogContent');
+    document.getElementById('hkLogTitle').textContent = `${roomNum}호 작업 로그`;
+    
+    // Generate a realistic mock log
+    const now = new Date();
+    const t1 = new Date(now.getTime() - 45 * 60000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const t2 = new Date(now.getTime() - 10 * 60000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    content.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;gap:10px;">
+                <div style="width:60px;color:var(--txt3);font-size:0.85rem">${t1}</div>
+                <div><strong style="color:var(--danger)">Status Changed:</strong> Vacant Dirty (System/Checkout)</div>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <div style="width:60px;color:var(--txt3);font-size:0.85rem">${t2}</div>
+                <div><strong style="color:var(--purple)">Status Changed:</strong> To Inspect (Housekeeping Park)</div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)">
+                <div style="color:var(--txt3);font-size:0.85rem"><i class="fa-solid fa-info-circle"></i> 추가 메모: 고객 요청으로 추가 타월 2장 비치 완료.</div>
+            </div>
+        </div>
+    `;
+    openModal('hkLogModal');
 }
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }

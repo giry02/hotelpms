@@ -138,6 +138,8 @@
     .room-grid { grid-template-columns: 1fr; }
 }
 </style>
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
@@ -305,31 +307,8 @@
 </div>
 
 <script>
-// Mock Room Data (Same as rooms.html)
-let allBuildings = ['Forest Tower', 'Lakeside Villa', 'Ocean Tower'];
-
-let allRooms = [
-    {id:'PH01', floor:20, type:'Penthouse', status:'occupied', building:'Ocean Tower'},
-    {id:'PH02', floor:20, type:'Penthouse', status:'vacant-clean', building:'Ocean Tower'},
-    
-    {id:'1401', floor:14, type:'Premier', status:'vacant-dirty', building:'Ocean Tower'},
-    {id:'1402', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower'},
-    {id:'1403', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower'},
-    {id:'1405', floor:14, type:'Premier', status:'oos', building:'Ocean Tower'},
-    
-    {id:'1201', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower'},
-    {id:'1202', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
-    {id:'1203', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
-    {id:'1205', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower'},
-    {id:'1206', floor:12, type:'Deluxe', status:'vacant-dirty', building:'Forest Tower'},
-    
-    {id:'0801', floor:8, type:'Standard', status:'occupied', building:'Forest Tower'},
-    {id:'0802', floor:8, type:'Standard', status:'occupied', building:'Forest Tower'},
-    {id:'0803', floor:8, type:'Standard', status:'oos', building:'Forest Tower'},
-    
-    {id:'V-01', floor:1, type:'Pool Villa', status:'occupied', building:'Lakeside Villa'},
-    {id:'V-02', floor:1, type:'Pool Villa', status:'vacant-clean', building:'Lakeside Villa'},
-];
+let allBuildings = [];
+let allRooms = [];
 
 const statusConfig = {
     'occupied': { label: 'Occupied' },
@@ -401,6 +380,7 @@ function addBuilding() {
             alert('이미 존재하는 건물/구역명입니다.');
         } else {
             allBuildings.push(trimmed);
+            if (window.PmsAPI) window.PmsAPI.saveBuildings(allBuildings);
             renderTabs();
         }
     }
@@ -419,6 +399,10 @@ function editBuilding(oldName) {
             allRooms.forEach(r => {
                 if (r.building === oldName) r.building = trimmed;
             });
+            if (window.PmsAPI) {
+                window.PmsAPI.saveBuildings(allBuildings);
+                window.PmsAPI.saveRooms(allRooms);
+            }
             
             if (currentTab === oldName) currentTab = trimmed;
             renderTabs();
@@ -438,6 +422,10 @@ function deleteBuilding(name) {
         allRooms.forEach(r => {
             if (r.building === name) r.building = null;
         });
+        if (window.PmsAPI) {
+            window.PmsAPI.saveBuildings(allBuildings);
+            window.PmsAPI.saveRooms(allRooms);
+        }
         if (currentTab === name) currentTab = 'all';
         renderTabs();
         renderTable();
@@ -530,6 +518,8 @@ function saveRoom() {
         allRooms.push({ id, floor: parseInt(floor)||0, type, status: 'vacant-clean', building });
     }
     
+    if (window.PmsAPI) window.PmsAPI.saveRooms(allRooms);
+    
     closeModal('addRoomModal');
     renderTabs();
     renderTable();
@@ -538,12 +528,19 @@ function saveRoom() {
 function deleteRoom(idx) {
     if (confirm('이 Room을 삭제하시겠습니까?')) {
         allRooms.splice(idx, 1);
+        if (window.PmsAPI) window.PmsAPI.saveRooms(allRooms);
         renderTabs();
         renderTable();
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        if (window.PmsAPI) {
+            allBuildings = await window.PmsAPI.getBuildings();
+            allRooms = await window.PmsAPI.getAllRooms();
+        }
+    } catch(e) { console.error(e); }
     renderTabs();
     renderTable();
 });

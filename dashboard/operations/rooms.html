@@ -244,6 +244,35 @@
     </div>
 </div>
 
+<!-- Status Change Modal -->
+<div class="modal-overlay" id="statusChangeModal" onclick="if(event.target===this) closeModal('statusChangeModal')">
+    <div class="modal-card">
+        <div class="modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
+            <h3 style="font-size:1.1rem;font-weight:700">객실 상태 변경</h3>
+            <button class="modal-close" onclick="closeModal('statusChangeModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px;">
+            <p style="margin-bottom:16px;color:var(--txt2);font-size:0.9rem;">객실 <strong id="scRoomId" style="color:var(--txt)"></strong>의 상태를 변경합니다.</p>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input type="radio" name="newRoomStatus" value="vacant-clean"> 청결 공실 (Vacant Clean)
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input type="radio" name="newRoomStatus" value="vacant-dirty"> 오염 공실 (Vacant Dirty)
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input type="radio" name="newRoomStatus" value="oos"> 점검 중 (Out of Order)
+                </label>
+            </div>
+            <input type="hidden" id="scOriginalStatus">
+        </div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+            <button class="btn-outline-sm" onclick="closeModal('statusChangeModal')">취소</button>
+            <button class="btn-primary-sm" onclick="saveStatusChange()">상태 저장</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // Mock Room Data — building field is optional (null = no building)
 let allRooms = [];
@@ -306,7 +335,7 @@ function renderRooms() {
                 floorRooms.forEach(r => {
                     const stLabel = statusConfig[r.status].label;
                     const guestHtml = r.guest ? `<div class="room-guest-name">${r.guest}</div>` : '';
-                    html += `<div class="room-box ${r.status}"><div class="room-box-num">${r.id}</div><div class="room-box-type">${r.type}</div><div class="room-box-status">${stLabel}</div>${guestHtml}</div>`;
+                    html += `<div class="room-box ${r.status}" style="cursor:pointer" onclick="openStatusModal('${r.id}', '${r.status}')"><div class="room-box-num">${r.id}</div><div class="room-box-type">${r.type}</div><div class="room-box-status">${stLabel}</div>${guestHtml}</div>`;
                 });
                 html += `</div></div>`;
             });
@@ -324,12 +353,58 @@ function renderRooms() {
             floorRooms.forEach(r => {
                 const stLabel = statusConfig[r.status].label;
                 const guestHtml = r.guest ? `<div class="room-guest-name">${r.guest}</div>` : '';
-                html += `<div class="room-box ${r.status}"><div class="room-box-num">${r.id}</div><div class="room-box-type">${r.type}</div><div class="room-box-status">${stLabel}</div>${guestHtml}</div>`;
+                html += `<div class="room-box ${r.status}" style="cursor:pointer" onclick="openStatusModal('${r.id}', '${r.status}')"><div class="room-box-num">${r.id}</div><div class="room-box-type">${r.type}</div><div class="room-box-status">${stLabel}</div>${guestHtml}</div>`;
             });
             html += `</div></div>`;
             container.innerHTML += html;
         });
+    });
+}
+
+// Status Change Modal Logic
+function openStatusModal(roomId, currentStatus) {
+    if (currentStatus === 'occupied') {
+        showToast('투숙 중인 객실은 프론트데스크 예약 화면에서 체크아웃 처리를 해야 합니다.');
+        return;
     }
+    document.getElementById('scRoomId').textContent = roomId;
+    document.getElementById('scOriginalStatus').value = currentStatus;
+    
+    document.querySelectorAll('input[name="newRoomStatus"]').forEach(radio => {
+        if (radio.value === currentStatus) radio.checked = true;
+        else radio.checked = false;
+    });
+    
+    document.getElementById('statusChangeModal').classList.add('active');
+}
+
+function saveStatusChange() {
+    const roomId = document.getElementById('scRoomId').textContent;
+    const oldStatus = document.getElementById('scOriginalStatus').value;
+    const selected = document.querySelector('input[name="newRoomStatus"]:checked');
+    if (!selected) return;
+    const newStatus = selected.value;
+    
+    if (oldStatus !== newStatus) {
+        // Update local memory
+        const rIdx = allRooms.findIndex(r => r.id === roomId);
+        if (rIdx > -1) {
+            allRooms[rIdx].status = newStatus;
+            
+            // Save to storage
+            if (window.PmsAPI && window.PmsAPI.saveRooms) window.PmsAPI.saveRooms(allRooms);
+            
+            // Sync with housekeeping
+            if (window.PmsAPI && window.PmsAPI.syncRoomStatusToTask) {
+                window.PmsAPI.syncRoomStatusToTask(roomId, newStatus);
+            }
+            
+            showToast(`${roomId}호 상태가 변경되었습니다.`);
+            renderRooms();
+            updateKPIs();
+        }
+    }
+    closeModal('statusChangeModal');
 }
 
 // Bottom sheet
@@ -372,7 +447,7 @@ function selectFilter(status, label) {
     });
     
     closeBottomSheet();
-    /* renderRooms(); */
+    renderRooms();
 }
 
 function setStatus(btn, status) {
@@ -478,7 +553,7 @@ function changeLang(l){
     statusConfig['vacant-clean'].label = l==='en'?'Vacant Clean':'청결 공실';
     statusConfig['vacant-dirty'].label = l==='en'?'Vacant Dirty':'오염 공실';
     statusConfig['oos'].label = l==='en'?'Out of Order':'점검/수리중';
-    /* renderRooms(); */
+    renderRooms();
 }
 
 

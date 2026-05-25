@@ -1,5 +1,5 @@
 // api-core.js
-const API_VERSION = 'v1.2';
+const API_VERSION = 'v1.3';
 if (localStorage.getItem('pms_api_version') !== API_VERSION) {
     Object.keys(localStorage).forEach(key => {
         if (key.startsWith('pms_')) localStorage.removeItem(key);

@@ -30,7 +30,14 @@
                 { icon: 'fa-calendar-days',    label: 'Reservations',  href: BASE + 'frontdesk/reservation-timeline.html' },
                 { icon: 'fa-list-check',       label: 'Booking List',  href: BASE + 'frontdesk/reservation-list.html' },
                 { icon: 'fa-right-to-bracket', label: 'Check-in/out',  href: BASE + 'frontdesk/checkin.html' },
-                { icon: 'fa-users',            label: 'Groups',        href: BASE + 'frontdesk/groups.html' },
+                {
+                    icon: 'fa-users', label: 'Groups', id: 'groups',
+                    mainHref: BASE + 'frontdesk/groups_blocks.html',
+                    children: [
+                        { label: 'Room Assignment', href: BASE + 'frontdesk/groups_blocks.html' },
+                        { label: 'Group Companies', href: BASE + 'frontdesk/groups_companies.html' },
+                    ]
+                },
             ]
         },
         {

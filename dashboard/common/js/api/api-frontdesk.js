@@ -2,32 +2,42 @@
 window.PmsAPI = window.PmsAPI || {};
 Object.assign(window.PmsAPI, {
 
+    getBuildings: async () => {
+        return initStorage('pms_buildings', ['Forest Tower', 'Lakeside Villa', 'Ocean Tower']);
+    },
+
+    saveBuildings: async (buildings) => {
+        localStorage.setItem('pms_buildings', JSON.stringify(buildings));
+        return true;
+    },
+
+    saveRooms: async (rooms) => {
+        localStorage.setItem('pms_rooms', JSON.stringify(rooms));
+        return true;
+    },
+
     getAllRooms: async () => {
         try {
             let res = await fetch('../data/frontdesk/rooms.json');
             if (res.ok) return await res.json();
         } catch(e) {}
         return initStorage('pms_rooms', [
-            { "id": "0301", "floor": 3,  "type": "Standard",  "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "0302", "floor": 3,  "type": "Standard",  "status": "occupied",     "guest": "Park Soo",  "building": "Main" },
-            { "id": "0303", "floor": 3,  "type": "Standard",  "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "0501", "floor": 5,  "type": "Standard",  "status": "occupied",     "guest": "Lee Ji",    "building": "Main" },
-            { "id": "0502", "floor": 5,  "type": "Standard",  "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "0503", "floor": 5,  "type": "Standard",  "status": "occupied",     "guest": "Choi Min",  "building": "Main" },
-            { "id": "0701", "floor": 7,  "type": "Deluxe",    "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "0702", "floor": 7,  "type": "Deluxe",    "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "0703", "floor": 7,  "type": "Deluxe",    "status": "occupied",     "guest": "Kim Jin",   "building": "Main" },
-            { "id": "0801", "floor": 8,  "type": "Deluxe",    "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "0805", "floor": 8,  "type": "Deluxe",    "status": "occupied",     "guest": "Han So",    "building": "Main" },
-            { "id": "0807", "floor": 8,  "type": "Deluxe",    "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "1001", "floor": 10, "type": "Suite",     "status": "occupied",     "guest": "Jeong Tae", "building": "Main" },
-            { "id": "1002", "floor": 10, "type": "Suite",     "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "1201", "floor": 12, "type": "Premier",   "status": "occupied",     "guest": "Kang Do",   "building": "Main" },
-            { "id": "1205", "floor": 12, "type": "Premier",   "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "1401", "floor": 14, "type": "Penthouse", "status": "occupied",     "guest": "Bae Yoon",  "building": "Main" },
-            { "id": "1402", "floor": 14, "type": "Penthouse", "status": "vacant-clean", "guest": "",          "building": "Main" },
-            { "id": "PH01", "floor": 15, "type": "Penthouse", "status": "occupied",     "guest": "Yoon Ji",   "building": "Main" },
-            { "id": "PH02", "floor": 15, "type": "Penthouse", "status": "vacant-clean", "guest": "",          "building": "Main" }
+            { "id": "PH01", "floor": 20, "type": "Penthouse", "status": "occupied", "guest": "Yoon Ji", "building": "Ocean Tower" },
+            { "id": "PH02", "floor": 20, "type": "Penthouse", "status": "vacant-clean", "guest": "", "building": "Ocean Tower" },
+            { "id": "1401", "floor": 14, "type": "Premier", "status": "vacant-dirty", "guest": "Bae Yoon", "building": "Ocean Tower" },
+            { "id": "1402", "floor": 14, "type": "Premier", "status": "occupied", "guest": "Park Soo", "building": "Ocean Tower" },
+            { "id": "1403", "floor": 14, "type": "Premier", "status": "occupied", "guest": "Choi Min", "building": "Ocean Tower" },
+            { "id": "1405", "floor": 14, "type": "Premier", "status": "oos", "guest": "", "building": "Ocean Tower" },
+            { "id": "1201", "floor": 12, "type": "Deluxe", "status": "occupied", "guest": "Kang Do", "building": "Forest Tower" },
+            { "id": "1202", "floor": 12, "type": "Deluxe", "status": "vacant-clean", "guest": "", "building": "Forest Tower" },
+            { "id": "1203", "floor": 12, "type": "Deluxe", "status": "vacant-clean", "guest": "", "building": "Forest Tower" },
+            { "id": "1205", "floor": 12, "type": "Deluxe", "status": "occupied", "guest": "Kim Jin", "building": "Forest Tower" },
+            { "id": "1206", "floor": 12, "type": "Deluxe", "status": "vacant-dirty", "guest": "", "building": "Forest Tower" },
+            { "id": "0801", "floor": 8, "type": "Standard", "status": "occupied", "guest": "Han So", "building": "Forest Tower" },
+            { "id": "0802", "floor": 8, "type": "Standard", "status": "occupied", "guest": "Lee Ji", "building": "Forest Tower" },
+            { "id": "0803", "floor": 8, "type": "Standard", "status": "oos", "guest": "", "building": "Forest Tower" },
+            { "id": "V-01", "floor": 1, "type": "Pool Villa", "status": "occupied", "guest": "Jeong Tae", "building": "Lakeside Villa" },
+            { "id": "V-02", "floor": 1, "type": "Pool Villa", "status": "vacant-clean", "guest": "", "building": "Lakeside Villa" }
         ]);
     },
 
@@ -41,10 +51,10 @@ Object.assign(window.PmsAPI, {
             if (!res.ok) res = await fetch('../common/data/reservations.json');
             if (res.ok) {
                 const data = await res.json();
-                if (data.length > 10) return data;
+                if (data.length > 10) return await window.PmsAPI.syncGroupsToReservations(data);
             }
         } catch(e) {}
-        return initStorage('pms_reservations', [
+        let reservations = initStorage('pms_reservations', [
                   {
                             "id": "RSV-20260512-001",
                             "room": "0301",
@@ -549,7 +559,95 @@ Object.assign(window.PmsAPI, {
                             "isVip": true,
                             "isB2B": false
                   }
+                  }
         ]);
+        
+        if (window.PmsAPI.syncGroupsToReservations) {
+            reservations = await window.PmsAPI.syncGroupsToReservations(reservations);
+        }
+        return reservations;
+    },
+
+    syncGroupsToReservations: async (reservations) => {
+        const groupStr = localStorage.getItem('pms_groups');
+        if (!groupStr) return reservations;
+        const groups = JSON.parse(groupStr);
+        
+        let rooms = [];
+        try { rooms = await window.PmsAPI.getAllRooms(); } catch(e) {}
+        
+        let modified = false;
+        
+        groups.forEach(g => {
+            if (!g.allocations || g.allocations.length === 0) return;
+            const existing = reservations.filter(r => r.groupId === g.id);
+            if (existing.length < g.block) {
+                let needed = g.block - existing.length;
+                let allocated = 0;
+                
+                for (let a of g.allocations) {
+                    if (allocated >= needed) break;
+                    // Find matching room types (fuzzy match on first word like 'Standard')
+                    const matchingRooms = rooms.filter(rm => rm.type === a.type || rm.type.includes(a.type.split(' ')[0]));
+                    
+                    for (let rm of matchingRooms) {
+                        if (allocated >= needed) break;
+                        if (existing.some(r => r.room === rm.id)) continue;
+                        
+                        const epo = new Date(2026, 4, 12);
+                        const cin = new Date(g.checkin);
+                        const cout = new Date(g.checkout);
+                        const start = Math.round((cin - epo) / 86400000);
+                        const len = Math.max(1, Math.round((cout - cin) / 86400000));
+                        
+                        const newRes = {
+                            id: `RSV-${g.id}-${Math.floor(Math.random()*10000)}`,
+                            groupId: g.id,
+                            room: rm.id,
+                            fullRoom: rm.building ? `${rm.building.substring(0,1)}T-${rm.id}` : rm.id,
+                            type: rm.type,
+                            guestId: `G-${Math.floor(Math.random()*10000)}`,
+                            guest: `${g.name} (단체)`,
+                            initials: g.name.substring(0,2).toUpperCase(),
+                            color: '#111827',
+                            start: start,
+                            len: len,
+                            nights: len,
+                            status: g.status === 'inhouse' ? 'checkedin' : 'confirmed',
+                            channel: g.agency || 'Group',
+                            cin: `${cin.getMonth()+1}/${cin.getDate()}`,
+                            cout: `${cout.getMonth()+1}/${cout.getDate()}`,
+                            amount: a.rate * len,
+                            vip: 'Standard',
+                            isVip: false,
+                            isB2B: true
+                        };
+                        reservations.push(newRes);
+                        existing.push(newRes); // prevent picking same room
+                        allocated++;
+                        modified = true;
+                    }
+                }
+            }
+        });
+        
+        // Remove orphans
+        const validGroupIds = groups.map(g => g.id);
+        const originalCount = reservations.length;
+        reservations = reservations.filter(r => {
+            if (r.groupId) {
+                if (!validGroupIds.includes(r.groupId)) return false;
+                
+                // If block size reduced, we might want to trim, but simple orphan removal is enough for deleted groups.
+            }
+            return true;
+        });
+        if (reservations.length !== originalCount) modified = true;
+        
+        if (modified) {
+            localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+        }
+        return reservations;
     },
 
     getGroups: async () => {
@@ -591,14 +689,21 @@ Object.assign(window.PmsAPI, {
                 "sales": "정우성", "note": "디포짓 입금 대기중"
             },
             {
-                "id": "GRP-2605-05", "name": "Jeju Tour Package",
+                "id": "GRP-2605-05", "name": "하나투어 (Hana Tour) 제주패키지",
                 "type": "여행사 단체", "status": "departed",
                 "checkin": "2026-05-18", "checkout": "2026-05-20",
                 "block": 10, "pickup": 10, "pax": 20,
                 "routing": "Travel Agency Account", "contact": "064-123-4567 (가이드)",
                 "sales": "김현수", "note": "정산 대기 (미정산 단체)"
+            },
+            {
+                "id": "GRP-2605-06", "name": "모두투어 (Modetour) 해외VIP",
+                "type": "여행사 단체", "status": "confirmed",
+                "checkin": "2026-06-01", "checkout": "2026-06-05",
+                "block": 15, "pickup": 0, "pax": 30,
+                "routing": "Travel Agency Account", "contact": "02-1544-5252 (예약과)",
+                "sales": "이동국", "note": "특별 조식 요금 적용"
             }
         ]);
     }
-
 });

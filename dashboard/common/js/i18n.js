@@ -5,7 +5,11 @@ window.currentLang = localStorage.getItem('pms_lang') || 'ko';
 window.translations = {
     ko: {
 
-    "Groups": "그룹 관리",
+    "Groups": "단체 관리",
+    "Group Companies": "단체업체 관리",
+    "Block Allocations": "행사 및 객실배정",
+    "Group Companies": "단체업체 관리",
+    "Block Allocations": "행사 및 객실배정",
     "Room List": "객실 현황",
     "Maintenance": "시설 관리",
     "Night Audit": "야간 마감",
@@ -22,6 +26,7 @@ window.translations = {
         "Booking List": "예약 목록",
         "Check-in/out": "체크인/아웃",
         "Guest CRM": "고객 CRM",
+            "Agencies": "거래처/여행사",
         "VIP Members": "VIP 멤버십",
         "Room Mgmt": "객실 관리",
         "Room Types": "객실 타입",
@@ -43,6 +48,7 @@ window.translations = {
     "Main": "메인",
     "Guest & CRM": "고객 & CRM",
     "Guest CRM": "고객 CRM",
+            "Agencies": "거래처/여행사",
     "VIP Members": "VIP 멤버십",
     "Room Mgmt": "객실 관리",
     "Folio List": "정산 목록",
@@ -224,6 +230,8 @@ window.translations = {
     en: {
 
     "Groups": "Groups",
+    "Group Companies": "Group Companies",
+    "Block Allocations": "Block Allocations",
     "Room List": "Room List",
     "Maintenance": "Maintenance",
     "Night Audit": "Night Audit",
@@ -279,6 +287,7 @@ window.translations = {
     "System Admins": "System Admins",
     "Front Desk": "Front Desk",
     "Guest CRM": "Guest CRM",
+            "Agencies": "Agencies",
     "Check-in/out": "Check-in/out",
     "Total Guests": "Total Guests",
     "VIP Guests": "VIP Guests",
@@ -510,6 +519,8 @@ Object.assign(window.translations.ko, {
     "Booking List": "예약 목록",
     "Check-in/out": "체크인/아웃",
     "Groups": "단체 관리",
+    "Group Companies": "단체업체 관리",
+    "Block Allocations": "행사 및 객실배정",
     "Guest CRM": "투숙객 관리",
     "VIP Members": "VIP 멤버십",
     "Room Mgmt": "객실 관리",
@@ -570,6 +581,7 @@ Object.assign(window.translations.en, {
     "Booking List": "Booking List",
     "Check-in/out": "Check-in/out",
     "Guest CRM": "Guest CRM",
+            "Agencies": "Agencies",
     "VIP Members": "VIP Members",
     "Room Mgmt": "Room Mgmt",
     "Room Types": "Room Types",

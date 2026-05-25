@@ -17,6 +17,42 @@ Object.assign(window.PmsAPI, {
         ]);
     },
 
+    saveTasks: async (tasks) => {
+        localStorage.setItem('pms_tasks', JSON.stringify(tasks));
+        return true;
+    },
+
+    syncRoomStatusToTask: async (roomId, newStatus) => {
+        let tasks = [];
+        try { tasks = await window.PmsAPI.getTasks(); } catch(e) {}
+        
+        let existingTaskIndex = tasks.findIndex(t => t.room === roomId && t.status !== 'clean');
+        
+        if (newStatus === 'vacant-clean') {
+            if (existingTaskIndex > -1) {
+                tasks[existingTaskIndex].status = 'clean';
+                window.PmsAPI.saveTasks(tasks);
+            }
+        } else if (newStatus === 'vacant-dirty') {
+            if (existingTaskIndex === -1) {
+                tasks.push({ id: 't' + Date.now(), room: roomId, type: 'checkout', status: 'dirty', priority: false, note: 'System generated' });
+                window.PmsAPI.saveTasks(tasks);
+            } else {
+                tasks[existingTaskIndex].status = 'dirty';
+                window.PmsAPI.saveTasks(tasks);
+            }
+        } else if (newStatus === 'oos') {
+            if (existingTaskIndex === -1) {
+                tasks.push({ id: 't' + Date.now(), room: roomId, type: 'maintenance', status: 'dirty', priority: true, note: 'System generated OOS' });
+                window.PmsAPI.saveTasks(tasks);
+            } else {
+                tasks[existingTaskIndex].type = 'maintenance';
+                tasks[existingTaskIndex].status = 'dirty';
+                window.PmsAPI.saveTasks(tasks);
+            }
+        }
+    },
+
     getGolfOrders: async () => { 
         try {
             let res = await fetch('../data/operations/golf.json');

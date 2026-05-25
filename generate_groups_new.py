@@ -1,0 +1,458 @@
+import os
+
+file_path = os.path.join('dashboard', 'frontdesk', 'groups.html')
+
+html_content = """<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>단체/업체 관리 - Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../common/css/dashboard.css">
+    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
+<style>
+.kpi-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+@media(max-width: 768px) { .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); } }
+
+.filter-bar-mt {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px;
+    padding: 12px 20px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
+}
+.filter-left { display: flex; align-items: center; gap: 12px; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.filter-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.search-box-mt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: #fff; transition: border-color .2s; width: 220px;
+}
+.search-box-mt:focus-within { border-color: var(--primary); }
+.search-box-mt i { color: var(--txt3); font-size: .85rem; }
+.search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
+
+.company-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; display: flex; flex-direction: column; gap: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.company-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+.company-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.company-name { font-size: 1.15rem; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+.company-type { font-size: 0.8rem; color: var(--txt2); font-weight: 500; }
+.company-meta {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.82rem; color: var(--txt2);
+    background: var(--bg); padding: 12px; border-radius: 8px;
+}
+.company-meta div { display: flex; align-items: center; gap: 6px; }
+.company-meta i { color: var(--primary); width: 14px; text-align:center; }
+.card-footer-btns { display: flex; gap: 8px; margin-top: 8px; justify-content: space-between; align-items: center; }
+
+.status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+.pill-active { background: #ECFDF5; color: #059669; }
+.pill-inactive { background: #F3F4F6; color: #4B5563; }
+</style>
+</head>
+<body>
+<div class="main">
+    <header class="topbar"><h1 data-i18n-key="Groups">단체/업체 관리</h1></header>
+    <div class="content">
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid-4">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="fa-solid fa-building"></i></div>
+                <div class="kpi-info"><div class="kpi-label">등록 업체 수</div><div class="kpi-value" id="kpiTotal">0</div></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#ECFDF5;color:#059669"><i class="fa-solid fa-handshake"></i></div>
+                <div class="kpi-info"><div class="kpi-label">계약 활성</div><div class="kpi-value" id="kpiActive">0</div></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#F5F3FF;color:#7C3AED"><i class="fa-solid fa-calendar-check"></i></div>
+                <div class="kpi-info"><div class="kpi-label">진행/예정 행사</div><div class="kpi-value">2</div></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#FFF7ED;color:#EA580C"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <div class="kpi-info"><div class="kpi-label">미정산 단체</div><div class="kpi-value">1</div></div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar-mt">
+            <div class="filter-left">
+                <div class="search-box-mt">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="업체명 검색..." oninput="searchCompanies(this.value)">
+                </div>
+                <div class="filter-chips">
+                    <button class="chip active" onclick="filterCompanies('all', this)">전체</button>
+                    <button class="chip" onclick="filterCompanies('Corporate', this)">일반 기업</button>
+                    <button class="chip" onclick="filterCompanies('Travel Agency', this)">여행사</button>
+                    <button class="chip" onclick="filterCompanies('Other', this)">기타</button>
+                </div>
+            </div>
+            <div class="filter-right">
+                <button class="btn-primary-sm" style="height:38px;padding:0 16px" onclick="openNewCompanyModal()">
+                    <i class="fa-solid fa-plus"></i> 신규 업체 등록
+                </button>
+            </div>
+        </div>
+
+        <div id="companyGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:16px"></div>
+        
+        <div id="emptyState" style="display:none;text-align:center;padding:60px 20px;color:var(--txt3)">
+            <i class="fa-solid fa-building-circle-xmark" style="font-size:2.5rem;margin-bottom:12px;display:block"></i>
+            등록된 업체가 없습니다.
+        </div>
+
+    </div>
+</div>
+
+<!-- 1단계: 신규/수정 업체 등록 모달 -->
+<div class="modal-overlay" id="companyModal" onclick="if(event.target===this)closeModal('companyModal')">
+    <div class="modal-card" style="max-width:500px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title" id="compModalTitle">업체 등록</h3>
+            <input type="hidden" id="compId">
+            <button class="modal-close" onclick="closeModal('companyModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
+            <div>
+                <label class="form-label">업체명 (Company/Agency Name) <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="compName" class="form-input" style="width:100%" placeholder="예: 삼성전자">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">업체 유형</label>
+                    <select id="compType" class="form-input" style="width:100%">
+                        <option value="Corporate">일반 기업 (Corporate)</option>
+                        <option value="Travel Agency">여행사 (Travel Agency)</option>
+                        <option value="Government">정부/공공기관</option>
+                        <option value="Other">기타 단체 (스포츠팀, 종교 등)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">상태</label>
+                    <select id="compStatus" class="form-input" style="width:100%">
+                        <option value="active">계약 활성</option>
+                        <option value="inactive">계약 만료/비활성</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">담당자 이름</label>
+                    <input type="text" id="compContactName" class="form-input" style="width:100%" placeholder="예: 김대리">
+                </div>
+                <div>
+                    <label class="form-label">연락처</label>
+                    <input type="text" id="compPhone" class="form-input" style="width:100%" placeholder="예: 010-1234-5678">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">계약 조건 (Discount/Comm)</label>
+                    <input type="text" id="compRate" class="form-input" style="width:100%" placeholder="예: 객실 15% 할인">
+                </div>
+                <div>
+                    <label class="form-label">정산 방식</label>
+                    <select id="compBilling" class="form-input" style="width:100%">
+                        <option>Master Folio (후불 월정산)</option>
+                        <option>Individual (현장 개별결제)</option>
+                        <option>가상계좌 선입금</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">메모</label>
+                <textarea id="compNote" class="form-input" style="width:100%;min-height:60px;resize:vertical" placeholder="추가 계약사항 등"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="closeModal('companyModal')">취소</button>
+            <button class="btn-primary-sm" onclick="saveCompany()"><i class="fa-solid fa-check"></i> 저장</button>
+        </div>
+    </div>
+</div>
+
+<!-- 2단계: 행사 및 객실 배정 모달 -->
+<div class="modal-overlay" id="blockModal" onclick="if(event.target===this)closeModal('blockModal')">
+    <div class="modal-card" style="max-width:700px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">객실 배정 (행사 블록 생성)</h3>
+            <input type="hidden" id="blockCompId">
+            <button class="modal-close" onclick="closeModal('blockModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:#F8FAFC; padding:12px; border-radius:8px; display:flex; gap:10px; align-items:center;">
+                <i class="fa-solid fa-building" style="color:var(--primary); font-size:1.2rem;"></i>
+                <div>
+                    <div style="font-size:0.75rem; color:var(--txt3);">주관 업체</div>
+                    <div id="blockCompNameDisplay" style="font-weight:700; font-size:1.05rem; color:var(--txt);"></div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">행사명 <span style="color:var(--danger)">*</span></label>
+                    <input type="text" id="blockEventName" class="form-input" style="width:100%" placeholder="예: 2026 하반기 워크샵">
+                </div>
+                <div>
+                    <label class="form-label">체크인 <span style="color:var(--danger)">*</span></label>
+                    <input type="date" id="blockCin" class="form-input" style="width:100%">
+                </div>
+                <div>
+                    <label class="form-label">체크아웃 <span style="color:var(--danger)">*</span></label>
+                    <input type="date" id="blockCout" class="form-input" style="width:100%">
+                </div>
+            </div>
+
+            <!-- Dynamic Room Allocation -->
+            <div style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <label class="form-label" style="margin:0;">객실 할당 및 가변 단가 설정 <span style="color:var(--danger)">*</span></label>
+                    <button class="btn-outline-sm" onclick="addAllocationRow()" type="button"><i class="fa-solid fa-plus"></i> 객실 추가</button>
+                </div>
+                <div id="allocationContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                <div style="margin-top:12px; font-weight:600; font-size:0.85rem; color:var(--txt);">
+                    총 할당: <span id="blockTotal" style="color:var(--primary); font-size:1.1rem;">0</span> 실
+                </div>
+            </div>
+            
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="closeModal('blockModal')">취소</button>
+            <button class="btn-primary-sm" onclick="saveBlock()"><i class="fa-solid fa-check"></i> 행사 배정 완료</button>
+        </div>
+    </div>
+</div>
+
+<script src="../common/js/sidebar.js"></script>
+<script>
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showToast(msg) {
+    let t = document.getElementById('_toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = '_toast';
+        t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:0.85rem;font-family:var(--font);box-shadow:0 4px 20px rgba(0,0,0,0.2)';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg; t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+let companies = [];
+let currentFilter = 'all';
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize dummy companies if empty
+    let stored = localStorage.getItem('pms_companies');
+    if(stored) {
+        companies = JSON.parse(stored);
+    } else {
+        companies = [
+            { id: 'COMP-1001', name: '삼성전자 (Samsung)', type: 'Corporate', status: 'active', contactName: '김부장', phone: '02-2255-0000', rate: '객실 15% 할인', billing: 'Master Folio (후불 월정산)', note: '' },
+            { id: 'COMP-1002', name: '하나투어 (Hana Tour)', type: 'Travel Agency', status: 'active', contactName: '이과장', phone: '02-1234-5678', rate: '커미션 10%', billing: '가상계좌 선입금', note: '' },
+            { id: 'COMP-1003', name: '한화이글스', type: 'Other', status: 'active', contactName: '매니저', phone: '010-1111-2222', rate: '특별 단가 (유선협의)', billing: 'Master Folio (후불 월정산)', note: '' }
+        ];
+        localStorage.setItem('pms_companies', JSON.stringify(companies));
+    }
+    renderCompanies();
+});
+
+function filterCompanies(type, btn) {
+    currentFilter = type;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+    renderCompanies();
+}
+function searchCompanies(val) { renderCompanies(val); }
+
+function renderCompanies(search = '') {
+    const grid = document.getElementById('companyGrid');
+    const empty = document.getElementById('emptyState');
+    
+    document.getElementById('kpiTotal').textContent = companies.length;
+    document.getElementById('kpiActive').textContent = companies.filter(c => c.status==='active').length;
+
+    const filtered = companies.filter(c => {
+        const typeMatch = currentFilter === 'all' || c.type === currentFilter;
+        const searchMatch = !search || c.name.toLowerCase().includes(search.toLowerCase());
+        return typeMatch && searchMatch;
+    });
+
+    if (filtered.length === 0) {
+        grid.style.display = 'none'; empty.style.display = 'block'; return;
+    }
+    grid.style.display = 'grid'; empty.style.display = 'none';
+
+    grid.innerHTML = filtered.map(c => {
+        const typeName = c.type==='Corporate'?'일반 기업':c.type==='Travel Agency'?'여행사':c.type==='Government'?'정부/공공':'기타 단체';
+        const badgeCls = c.status==='active'?'pill-active':'pill-inactive';
+        const badgeTxt = c.status==='active'?'계약 활성':'계약 비활성';
+        return `
+        <div class="company-card">
+            <div class="company-header">
+                <div>
+                    <div class="company-name">${c.name}</div>
+                    <div class="company-type">${typeName} · ${c.id}</div>
+                </div>
+                <span class="status-badge ${badgeCls}">${badgeTxt}</span>
+            </div>
+            <div class="company-meta">
+                <div><i class="fa-solid fa-user"></i> 담당: ${c.contactName || '-'}</div>
+                <div><i class="fa-solid fa-phone"></i> ${c.phone || '-'}</div>
+                <div><i class="fa-solid fa-percent"></i> ${c.rate || '-'}</div>
+                <div><i class="fa-solid fa-credit-card"></i> ${c.billing || '-'}</div>
+            </div>
+            <div class="card-footer-btns">
+                <button class="btn-primary-sm" style="flex:1" onclick="openBlockModal('${c.id}')">
+                    <i class="fa-solid fa-bed"></i> 객실/행사 배정
+                </button>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn-outline-sm" onclick="editCompany('${c.id}')"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-outline-sm" onclick="deleteCompany('${c.id}')" style="color:var(--danger);border-color:var(--danger)"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Company CRUD
+function openNewCompanyModal() {
+    document.getElementById('compModalTitle').textContent = '신규 업체 등록';
+    document.getElementById('compId').value = '';
+    document.getElementById('compName').value = '';
+    document.getElementById('compContactName').value = '';
+    document.getElementById('compPhone').value = '';
+    document.getElementById('compRate').value = '';
+    document.getElementById('compNote').value = '';
+    openModal('companyModal');
+}
+
+function editCompany(id) {
+    const c = companies.find(x => x.id === id);
+    if(!c) return;
+    document.getElementById('compModalTitle').textContent = '업체 정보 수정';
+    document.getElementById('compId').value = c.id;
+    document.getElementById('compName').value = c.name;
+    document.getElementById('compType').value = c.type;
+    document.getElementById('compStatus').value = c.status;
+    document.getElementById('compContactName').value = c.contactName;
+    document.getElementById('compPhone').value = c.phone;
+    document.getElementById('compRate').value = c.rate;
+    document.getElementById('compNote').value = c.note || '';
+    
+    // billing match
+    const bSel = document.getElementById('compBilling');
+    const bMatch = Array.from(bSel.options).find(o => o.value.includes(c.billing) || (c.billing && c.billing.includes(o.value)));
+    if(bMatch) bSel.value = bMatch.value;
+
+    openModal('companyModal');
+}
+
+function saveCompany() {
+    const id = document.getElementById('compId').value;
+    const name = document.getElementById('compName').value;
+    if(!name) { alert('업체명을 입력하세요.'); return; }
+    
+    const data = {
+        name: name,
+        type: document.getElementById('compType').value,
+        status: document.getElementById('compStatus').value,
+        contactName: document.getElementById('compContactName').value,
+        phone: document.getElementById('compPhone').value,
+        rate: document.getElementById('compRate').value,
+        billing: document.getElementById('compBilling').value,
+        note: document.getElementById('compNote').value
+    };
+
+    if(id) {
+        const c = companies.find(x => x.id === id);
+        Object.assign(c, data);
+        showToast('업체 정보가 수정되었습니다.');
+    } else {
+        data.id = 'COMP-' + Math.floor(Math.random()*10000);
+        companies.unshift(data);
+        showToast('신규 업체가 등록되었습니다.');
+    }
+    localStorage.setItem('pms_companies', JSON.stringify(companies));
+    closeModal('companyModal');
+    renderCompanies();
+}
+
+function deleteCompany(id) {
+    const c = companies.find(x => x.id === id);
+    if(confirm(`정말 [${c.name}] 업체를 삭제하시겠습니까?`)) {
+        companies = companies.filter(x => x.id !== id);
+        localStorage.setItem('pms_companies', JSON.stringify(companies));
+        showToast('업체가 삭제되었습니다.');
+        renderCompanies();
+    }
+}
+
+// Block Allocation Flow
+function openBlockModal(compId) {
+    const c = companies.find(x => x.id === compId);
+    if(!c) return;
+    document.getElementById('blockCompId').value = c.id;
+    document.getElementById('blockCompNameDisplay').textContent = c.name;
+    document.getElementById('blockEventName').value = '';
+    document.getElementById('blockCin').value = '';
+    document.getElementById('blockCout').value = '';
+    
+    document.getElementById('allocationContainer').innerHTML = '';
+    addAllocationRow(); // default row
+    
+    openModal('blockModal');
+}
+
+function addAllocationRow(type='Standard Double', count=1, rate='') {
+    const container = document.getElementById('allocationContainer');
+    const row = document.createElement('div');
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '2fr 1fr 1.5fr auto';
+    row.style.gap = '8px';
+    
+    row.innerHTML = `
+        <select class="form-input alloc-type" style="padding:6px 10px; font-size:0.85rem;">
+            <option ${type==='Standard Double'?'selected':''}>Standard Double</option>
+            <option ${type==='Deluxe Twin'?'selected':''}>Deluxe Twin</option>
+            <option ${type==='Suite'?'selected':''}>Suite</option>
+        </select>
+        <input type="number" class="form-input alloc-count" style="padding:6px 10px; font-size:0.85rem;" min="1" value="${count}" onchange="calcBlock()" placeholder="수량">
+        <input type="number" class="form-input alloc-rate" style="padding:6px 10px; font-size:0.85rem;" value="${rate}" placeholder="가변할인가(KRW)">
+        <button type="button" class="btn-outline-sm" style="color:var(--danger); border-color:var(--danger); padding:4px 8px;" onclick="this.parentElement.remove(); calcBlock();"><i class="fa-solid fa-trash"></i></button>
+    `;
+    container.appendChild(row);
+    calcBlock();
+}
+
+function calcBlock() {
+    const counts = document.querySelectorAll('.alloc-count');
+    let total = 0;
+    counts.forEach(c => total += parseInt(c.value || 0));
+    document.getElementById('blockTotal').textContent = total;
+}
+
+function saveBlock() {
+    const ename = document.getElementById('blockEventName').value;
+    if(!ename) { alert('행사명을 입력해주세요.'); return; }
+    
+    // In a real system, this would save to pms_blocks or a reservations array.
+    showToast(`행사 [${ename}]에 객실 배정이 완료되었습니다! (임시 시뮬레이션)`);
+    closeModal('blockModal');
+}
+</script>
+</body>
+</html>
+"""
+
+with open(file_path, 'w', encoding='utf-8') as f:
+    f.write(html_content)
+print('Generated new groups.html focusing on Company-First UX')

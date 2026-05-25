@@ -35,10 +35,14 @@
     .filter-left .search-box{flex:1;min-width:0;width:auto!important}
 }
 </style>
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/i18n.js"></script>
-<script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
+    <script src="../common/js/guest-search.js"></script>
+    <script src="../common/js/reservation-actions.js"></script>
 </head>
 <body>
 
@@ -164,33 +168,7 @@
 
 <script>
 // ===== RESERVATION DATA =====
-const reservations = [
-    {id:'RSV-20260512-001',guest:'Nguyen Thi',initials:'NT',color:'#3B82F6',vip:'VIP Gold',room:'1205',type:'Deluxe',cin:'5/12',cout:'5/15',nights:3,channel:'Samsung Tech Conference 2026',amount:373.50,status:'confirmed',isB2B:true,groupId:'GRP-2605-01'},
-    {id:'RSV-20260512-002',guest:'John Smith',initials:'JS',color:'#8B5CF6',vip:'Silver',room:'0807',type:'Suite',cin:'5/12',cout:'5/14',nights:2,channel:'Agoda',amount:520.00,status:'checkedin'},
-    {id:'RSV-20260512-003',guest:'Park Kyung',initials:'PK',color:'#10B981',vip:'Standard',room:'0503',type:'Standard',cin:'5/12',cout:'5/13',nights:1,channel:'Direct',amount:95.00,status:'confirmed'},
-    {id:'RSV-20260512-004',guest:'Tran Linh',initials:'TL',color:'#F59E0B',vip:'VIP',room:'PH01',type:'Penthouse',cin:'5/12',cout:'5/16',nights:4,channel:'Direct',amount:2400.00,status:'confirmed'},
-    {id:'RSV-20260512-005',guest:'Kim Da',initials:'KD',color:'#EC4899',vip:'Gold',room:'0501',type:'Standard',cin:'5/12',cout:'5/17',nights:5,channel:'Booking',amount:475.00,status:'checkedin'},
-    {id:'RSV-20260512-006',guest:'Lee Min',initials:'LM',color:'#3B82F6',vip:'Standard',room:'0302',type:'Standard',cin:'5/13',cout:'5/17',nights:4,channel:'Agoda',amount:360.00,status:'confirmed'},
-    {id:'RSV-20260512-007',guest:'Chen Wei',initials:'CW',color:'#10B981',vip:'Standard',room:'0701',type:'Deluxe',cin:'5/13',cout:'5/19',nights:6,channel:'Agoda',amount:780.00,status:'confirmed'},
-    {id:'RSV-20260512-008',guest:'Nguyen Ha',initials:'NH',color:'#F59E0B',vip:'Standard',room:'0702',type:'Deluxe',cin:'5/12',cout:'5/15',nights:3,channel:'Direct',amount:390.00,status:'checkedin'},
-    {id:'RSV-20260512-009',guest:'Park Soo',initials:'PS',color:'#8B5CF6',vip:'Standard',room:'0301',type:'Standard',cin:'5/12',cout:'5/15',nights:3,channel:'Direct',amount:270.00,status:'confirmed'},
-    {id:'RSV-20260512-010',guest:'Tran Van',initials:'TV',color:'#EF4444',vip:'Standard',room:'0303',type:'Standard',cin:'5/14',cout:'5/16',nights:2,channel:'Walk-in',amount:180.00,status:'confirmed'},
-    {id:'RSV-20260512-011',guest:'Pham Anh',initials:'PA',color:'#3B82F6',vip:'Standard',room:'0502',type:'Standard',cin:'5/15',cout:'5/18',nights:3,channel:'Direct',amount:285.00,status:'confirmed'},
-    {id:'RSV-20260512-012',guest:'Tanaka Y.',initials:'TY',color:'#10B981',vip:'Standard',room:'0703',type:'Deluxe',cin:'5/16',cout:'5/20',nights:4,channel:'Booking',amount:520.00,status:'confirmed'},
-    {id:'RSV-20260512-013',guest:'Smith J.',initials:'SJ',color:'#F59E0B',vip:'Standard',room:'0801',type:'Deluxe',cin:'5/12',cout:'5/14',nights:2,channel:'Direct',amount:260.00,status:'checkout'},
-    {id:'RSV-20260512-014',guest:'Wong Li',initials:'WL',color:'#8B5CF6',vip:'Standard',room:'0807',type:'Suite',cin:'5/14',cout:'5/19',nights:5,channel:'Agoda',amount:1300.00,status:'confirmed'},
-    {id:'RSV-20260512-015',guest:'Garcia M.',initials:'GM',color:'#EC4899',vip:'VIP',room:'1001',type:'Suite',cin:'5/12',cout:'5/19',nights:7,channel:'Direct',amount:2100.00,status:'confirmed'},
-    {id:'RSV-20260512-016',guest:'Mueller K.',initials:'MK',color:'#3B82F6',vip:'Standard',room:'1002',type:'Suite',cin:'5/13',cout:'5/16',nights:3,channel:'Booking',amount:780.00,status:'confirmed'},
-    {id:'RSV-20260512-017',guest:'Sato Yuki',initials:'SY',color:'#10B981',vip:'Standard',room:'1201',type:'Deluxe',cin:'5/15',cout:'5/19',nights:4,channel:'Agoda',amount:520.00,status:'confirmed'},
-    {id:'RSV-20260512-018',guest:'Kim Jun',initials:'KJ',color:'#F59E0B',vip:'Standard',room:'1401',type:'Premier',cin:'5/12',cout:'5/13',nights:1,channel:'Direct',amount:180.00,status:'checkout'},
-    {id:'RSV-20260512-019',guest:'Lee Hana',initials:'LH',color:'#8B5CF6',vip:'VIP Gold',room:'1402',type:'Premier',cin:'5/14',cout:'5/19',nights:5,channel:'Direct',amount:1250.00,status:'confirmed'},
-    {id:'RSV-20260512-020',guest:'Al Rashid',initials:'AR',color:'#EC4899',vip:'Standard',room:'PH02',type:'Penthouse',cin:'5/17',cout:'5/22',nights:5,channel:'Booking',amount:3000.00,status:'confirmed'},
-    {id:'RSV-20260512-021',guest:'Vo Duc',initials:'VD',color:'#3B82F6',vip:'Standard',room:'0301',type:'Standard',cin:'5/17',cout:'5/21',nights:4,channel:'Agoda',amount:360.00,status:'confirmed'},
-    {id:'RSV-20260512-021',guest:'Vo Duc',initials:'VD',color:'#3B82F6',vip:'Standard',room:'0301',type:'Standard',cin:'5/17',cout:'5/21',nights:4,channel:'Agoda',amount:360.00,status:'confirmed'},
-    {id:'RSV-20260512-022',guest:'Bui Tien',initials:'BT',color:'#10B981',vip:'Standard',room:'0503',type:'Standard',cin:'5/14',cout:'5/17',nights:3,channel:'Walk-in',amount:270.00,status:'confirmed'},
-    {id:'RSV-20260512-023',guest:'Nakamura',initials:'NM',color:'#F59E0B',vip:'Standard',room:'0801',type:'Deluxe',cin:'5/16',cout:'5/19',nights:3,channel:'Booking',amount:390.00,status:'confirmed'},
-    {id:'RSV-20260512-024',guest:'David C.',initials:'DC',color:'#8B5CF6',vip:'VIP',room:'1401',type:'Premier',cin:'5/15',cout:'5/19',nights:4,channel:'Direct',amount:1000.00,status:'cancelled'},
-];
+let reservations = [];
 
 const statusConfig = {
     confirmed: {label:'Confirmed',cls:'confirmed'},
@@ -242,9 +220,9 @@ function renderTable() {
             <td><span class="status-badge ${st.cls}">${st.label}</span></td>
             <td>
                 <div class="action-btns">
-                    <button class="act-btn" title="상세보기"><i class="fa-solid fa-eye"></i></button>
-                    <button class="act-btn" title="수정"><i class="fa-solid fa-pen"></i></button>
-                    <button class="act-btn danger" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
+                    <button class="act-btn" title="상세보기" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-eye"></i></button>
+                    <button class="act-btn" title="수정" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-pen"></i></button>
+                    <button class="act-btn danger" title="Cancel" onclick="window.cancelResAction('${r.id}')"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </td>
         </tr>`;
@@ -275,9 +253,9 @@ function renderTable() {
                 <div class="m-res-detail"><i class="fa-solid fa-globe"></i> <span class="channel-tag ${r.channel.toLowerCase().replace('-','')}">${r.channel}</span></div>
             </div>
             <div class="m-res-actions">
-                <button class="act-btn"><i class="fa-solid fa-eye"></i> 상세</button>
-                <button class="act-btn"><i class="fa-solid fa-pen"></i> 수정</button>
-                <button class="act-btn danger"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                <button class="act-btn" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-eye"></i> 상세</button>
+                <button class="act-btn" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-pen"></i> 수정</button>
+                <button class="act-btn danger" onclick="window.cancelResAction('${r.id}')"><i class="fa-solid fa-xmark"></i> Cancel</button>
             </div>
         </div>`;
     }).join('');
@@ -325,7 +303,7 @@ function selectResFilter(btn, filter, label) {
     renderTable();
 }
 
-renderTable();
+// Removed sync call renderTable() here. Called below in DOMContentLoaded.
 
 // ===== i18n =====
 let currentLang = 'ko';
@@ -452,7 +430,16 @@ function saveNewRes() {
     closeModal('newResModal');
 }
 
-document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang);});
+document.addEventListener('DOMContentLoaded', async () => {
+    setupI18n();
+    changeLang(currentLang);
+    
+    // Fetch dynamic reservations
+    if(window.PmsAPI && window.PmsAPI.getReservations) {
+        reservations = await window.PmsAPI.getReservations();
+    }
+    renderTable();
+});
 </script>
 
 <!-- NEW RESERVATION MODAL -->
