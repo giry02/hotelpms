@@ -66,6 +66,7 @@
 .tl-block.checkedin { background: #10B981 !important; }
 .tl-block.checkout, .tl-block.checkedout { background: #EF4444 !important; } /* Match KPI Danger color */
 .tl-block.cancelled { background: #EF4444 !important; }
+.tl-block.completed { background: #94A3B8 !important; } /* Past reservations (gray) */
 </style>
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
@@ -121,8 +122,8 @@
                 <div class="tl-legend">
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span>예약 확정</div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span>투숙 중</div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#EF4444"></span>체크아웃</div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#64748B"></span>점검 중 (OOS)</div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#EF4444"></span>체크아웃 대상</div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#94A3B8"></span>이전 예약 / OOS</div>
                 </div>
                 <button class="btn-primary-sm" onclick="openUnifiedResModal()"><i class="fa-solid fa-plus"></i> <span data-i18n-key="New Booking">New Booking</span></button>
             </div>
@@ -153,7 +154,8 @@ window.reservations = [];
 
 const DAYS = 14;
 const EPOCH = new Date(2026, 4, 12); // Base reference date
-let baseDate = new Date(2026, 4, 12); // Start view on May 12 where data exists
+let baseDate = new Date(); // Start view from actual today
+baseDate.setHours(0,0,0,0);
 
 function buildTimeline() {
     const grid = document.getElementById('tlGrid');
@@ -248,13 +250,33 @@ function buildTimeline() {
         const block = document.createElement('div');
         let safeStatus = res.status ? res.status.replace(/[- _]/g, '').toLowerCase() : 'confirmed';
         
-        // User logic correction: VIP should not have a separate color, use base color (confirmed)
         if (safeStatus === 'vip') safeStatus = 'confirmed';
         
-        // User logic correction: Data mock flaw where multi-day future reservations are marked "checked-out" 
-        // It makes no sense to have a checked-out bar spanning into tomorrow. Force to 'checkedin' (투숙 중).
-        if (safeStatus === 'checkout' || safeStatus === 'checkedout') {
-            safeStatus = 'checkedin';
+        // Date-based logical correction for timeline
+        const realToday = new Date();
+        realToday.setHours(0,0,0,0);
+        
+        let rCoutDateObj = null;
+        if (res.cout) {
+            try {
+                const coutParts = res.cout.split('/');
+                rCoutDateObj = new Date(2026, parseInt(coutParts[0])-1, parseInt(coutParts[1]));
+            } catch(e){}
+        }
+
+        if (rCoutDateObj) {
+            if (rCoutDateObj < realToday) {
+                // Past reservations
+                safeStatus = 'completed';
+            } else if (rCoutDateObj.getTime() === realToday.getTime()) {
+                // Checking out today
+                safeStatus = 'checkout';
+            } else if (rCoutDateObj > realToday) {
+                // Future reservations shouldn't be checkout/checkedout
+                if (safeStatus === 'checkout' || safeStatus === 'checkedout') {
+                    safeStatus = 'checkedin';
+                }
+            }
         }
 
         block.className = `tl-block ${safeStatus}`;
