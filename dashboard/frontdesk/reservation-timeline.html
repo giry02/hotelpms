@@ -144,8 +144,8 @@ let rooms = [];
 window.reservations = [];
 
 const DAYS = 14;
-const EPOCH = new Date(2026, 4, 25); // Reference date for mock reservations
-let baseDate = new Date(2026, 4, 25); // Current view start date
+const EPOCH = new Date(2026, 4, 12); // Base reference date
+let baseDate = new Date(2026, 4, 12); // Start view on May 12 where data exists
 
 function buildTimeline() {
     const grid = document.getElementById('tlGrid');
@@ -205,9 +205,25 @@ function buildTimeline() {
         const row = grid.querySelectorAll('.tl-row')[roomIdx];
         if (!row) return;
 
-        const offset = Math.round((baseDate - EPOCH) / 86400000);
-        const renderStart = res.start - offset;
-        const renderEnd = renderStart + res.len;
+        let renderStart, renderEnd;
+        if (res.cin && res.cout) {
+            try {
+                const cinParts = res.cin.split('/');
+                const coutParts = res.cout.split('/');
+                const rCinDate = new Date(2026, parseInt(cinParts[0])-1, parseInt(cinParts[1]));
+                const rCoutDate = new Date(2026, parseInt(coutParts[0])-1, parseInt(coutParts[1]));
+                renderStart = Math.round((rCinDate - baseDate) / 86400000);
+                renderEnd = Math.round((rCoutDate - baseDate) / 86400000);
+            } catch(e) {
+                const offset = Math.round((baseDate - EPOCH) / 86400000);
+                renderStart = res.start - offset;
+                renderEnd = renderStart + res.len;
+            }
+        } else {
+            const offset = Math.round((baseDate - EPOCH) / 86400000);
+            renderStart = res.start - offset;
+            renderEnd = renderStart + res.len;
+        }
 
         if (renderEnd <= 0 || renderStart >= DAYS) return; // out of view
 
@@ -330,8 +346,21 @@ function buildMobileView() {
         const offset = Math.round((baseDate - EPOCH) / 86400000);
         const roomRes = reservations.filter(r => r.room === room.id || r.fullRoom === room.id || (room.number && r.room === room.number) || (room.display && r.room === room.display));
         const hasToday = roomRes.some(r => {
-            const renderStart = r.start - offset;
-            const renderEnd = renderStart + r.len;
+            let renderStart, renderEnd;
+            if (r.cin && r.cout) {
+                try {
+                    const cinParts = r.cin.split('/');
+                    const coutParts = r.cout.split('/');
+                    const rCinDate = new Date(2026, parseInt(cinParts[0])-1, parseInt(cinParts[1]));
+                    const rCoutDate = new Date(2026, parseInt(coutParts[0])-1, parseInt(coutParts[1]));
+                    renderStart = Math.round((rCinDate - baseDate) / 86400000);
+                    renderEnd = Math.round((rCoutDate - baseDate) / 86400000);
+                } catch(e) {
+                    renderStart = r.start - offset; renderEnd = renderStart + r.len;
+                }
+            } else {
+                renderStart = r.start - offset; renderEnd = renderStart + r.len;
+            }
             return renderStart <= 0 && renderEnd > 0;
         });
 
