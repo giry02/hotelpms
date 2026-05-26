@@ -64,9 +64,8 @@
 .tl-block.confirmed { background: #3B82F6 !important; }
 .tl-block.pending { background: #F59E0B !important; }
 .tl-block.checkedin { background: #10B981 !important; }
-.tl-block.checkout, .tl-block.checkedout { background: #8B5CF6 !important; }
+.tl-block.checkout, .tl-block.checkedout { background: #EF4444 !important; } /* Match KPI Danger color */
 .tl-block.cancelled { background: #EF4444 !important; }
-.tl-block.vip { background: linear-gradient(135deg, #8B5CF6, #A78BFA) !important; }
 </style>
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
@@ -120,10 +119,10 @@
             </div>
             <div class="filter-right">
                 <div class="tl-legend">
-                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span> <span data-i18n-key="예약 확정">예약 확정</span></span>
-                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span> <span data-i18n-key="체크인 완료">체크인 완료</span></span>
-                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#8B5CF6"></span> <span data-i18n-key="VIP">VIP</span></span>
-                    <span class="tl-leg-item"><span class="tl-leg-dot" style="background:#9CA3AF"></span> OOS</span>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span>예약 확정</div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span>투숙 중</div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#EF4444"></span>체크아웃</div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#64748B"></span>점검 중 (OOS)</div>
                 </div>
                 <button class="btn-primary-sm" onclick="openUnifiedResModal()"><i class="fa-solid fa-plus"></i> <span data-i18n-key="New Booking">New Booking</span></button>
             </div>
@@ -247,7 +246,17 @@ function buildTimeline() {
         roomLevels[roomIdx][level] = renderEnd;
 
         const block = document.createElement('div');
-        const safeStatus = res.status ? res.status.replace(/[- _]/g, '').toLowerCase() : 'confirmed';
+        let safeStatus = res.status ? res.status.replace(/[- _]/g, '').toLowerCase() : 'confirmed';
+        
+        // User logic correction: VIP should not have a separate color, use base color (confirmed)
+        if (safeStatus === 'vip') safeStatus = 'confirmed';
+        
+        // User logic correction: Data mock flaw where multi-day future reservations are marked "checked-out" 
+        // It makes no sense to have a checked-out bar spanning into tomorrow. Force to 'checkedin' (투숙 중).
+        if (safeStatus === 'checkout' || safeStatus === 'checkedout') {
+            safeStatus = 'checkedin';
+        }
+
         block.className = `tl-block ${safeStatus}`;
         
         const clipStart = Math.max(0, renderStart);
