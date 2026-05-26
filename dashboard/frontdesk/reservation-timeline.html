@@ -58,6 +58,15 @@
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
     .filter-right { justify-content: flex-start; }
 }
+
+/* Fallback & Override for Timeline Blocks to bypass CSS Cache */
+.tl-block { background-color: #64748B !important; color: #fff !important; }
+.tl-block.confirmed { background: #3B82F6 !important; }
+.tl-block.pending { background: #F59E0B !important; }
+.tl-block.checkedin { background: #10B981 !important; }
+.tl-block.checkout, .tl-block.checkedout { background: #8B5CF6 !important; }
+.tl-block.cancelled { background: #EF4444 !important; }
+.tl-block.vip { background: linear-gradient(135deg, #8B5CF6, #A78BFA) !important; }
 </style>
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
@@ -238,7 +247,7 @@ function buildTimeline() {
         roomLevels[roomIdx][level] = renderEnd;
 
         const block = document.createElement('div');
-        const safeStatus = res.status.replace('-', '');
+        const safeStatus = res.status ? res.status.replace(/[- _]/g, '').toLowerCase() : 'confirmed';
         block.className = `tl-block ${safeStatus}`;
         
         const clipStart = Math.max(0, renderStart);
