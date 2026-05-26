@@ -73,7 +73,7 @@
             </div>
             <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 0 0 var(--radius-sm) var(--radius-sm);">
                 <div>
-                    <button class="btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelUnifiedRes()" data-i18n-key="Cancel Booking"><i class="fa-solid fa-trash"></i> 예약 취소</button>
+                    <button id="unifiedBtnCancel" class="btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelUnifiedRes()" data-i18n-key="Cancel Booking"><i class="fa-solid fa-trash"></i> 예약 취소</button>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-outline" onclick="closeUnifiedResModal()" data-i18n-key="Close">닫기</button>
@@ -160,6 +160,8 @@
 
         if (!resId) {
             // NEW BOOKING MODE
+            const cancelBtn = document.getElementById('unifiedBtnCancel');
+            if (cancelBtn) cancelBtn.style.display = 'none';
             document.getElementById('unifiedModalTitle').innerHTML = `신규 예약 등록 (New Booking)`;
             document.getElementById('unifiedResId').value = '';
             document.getElementById('unifiedStatus').value = 'confirmed';
@@ -189,6 +191,8 @@
             }
         } else {
             // EDIT BOOKING MODE
+            const cancelBtn = document.getElementById('unifiedBtnCancel');
+            if (cancelBtn) cancelBtn.style.display = 'inline-flex';
             const res = allRes.find(r => r.id === resId);
             if (!res) {
                 alert('Error: reservation not found for ID ' + resId);

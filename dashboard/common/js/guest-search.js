@@ -217,13 +217,13 @@ function renderGuestSearchHTML(prefix) {
     </div>
 
     <!-- 검색 결과 -->
-    <div id="guestSearchResults${prefix}" style="display:none"></div>
+    <div id="guestSearchResults${prefix}" style="display:none; margin-top: 16px;"></div>
 
     <!-- 선택된 회원 카드 -->
-    <div id="selectedGuestCard${prefix}" style="display:none"></div>
+    <div id="selectedGuestCard${prefix}" style="display:none; margin-top: 16px;"></div>
 
     <!-- 신규 회원 등록 폼 -->
-    <div id="newGuestForm${prefix}" style="display:none">
+    <div id="newGuestForm${prefix}" style="display:none; margin-top: 20px;">
         <div style="display:flex;align-items:center;gap:8px;padding-bottom:4px;border-bottom:2px solid #8B5CF6;margin-bottom:10px">
             <i class="fa-solid fa-user-plus" style="color:#8B5CF6;font-size:.8rem"></i>
             <span style="font-weight:700;font-size:.82rem;color:#8B5CF6">신규 회원 등록</span>
