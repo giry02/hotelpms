@@ -198,9 +198,8 @@ function buildTimeline() {
     // Track levels for each room to handle overlapping blocks
     const roomLevels = {};
 
-    // Place reservation blocks
     reservations.forEach(res => {
-        const roomIdx = rooms.findIndex(r => r.id === res.room);
+        const roomIdx = rooms.findIndex(r => r.id === res.room || r.id === res.fullRoom || (r.number && r.number === res.room) || (r.display && r.display === res.room));
         if (roomIdx === -1) return;
         
         const row = grid.querySelectorAll('.tl-row')[roomIdx];
@@ -329,7 +328,7 @@ function buildMobileView() {
     let html = '';
     rooms.forEach(room => {
         const offset = Math.round((baseDate - EPOCH) / 86400000);
-        const roomRes = reservations.filter(r => r.room === room.id);
+        const roomRes = reservations.filter(r => r.room === room.id || r.fullRoom === room.id || (room.number && r.room === room.number) || (room.display && r.room === room.display));
         const hasToday = roomRes.some(r => {
             const renderStart = r.start - offset;
             const renderEnd = renderStart + r.len;
