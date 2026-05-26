@@ -11,214 +11,516 @@
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <script src="../common/js/i18n.js"></script>
-<script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
 <style>
-/* Filter Bar Styling */
+/* ===== FILTER BAR ===== */
 .filter-bar-mt {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px;
-    padding: 12px 20px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-bottom: 24px; padding: 12px 20px;
+    background: #fff; border: 1px solid var(--border); border-radius: 14px;
 }
-.filter-left { display: flex; align-items: center; gap: 12px; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.filter-left  { display: flex; align-items: center; gap: 12px; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .filter-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
 @media(max-width:768px){
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
 }
+
+/* ===== SORT CHIPS ===== */
+.sort-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.sort-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border);
+    background: #fff; color: var(--txt2); font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; transition: all .2s ease; white-space: nowrap;
+}
+.sort-chip:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-lt,#eff6ff); }
+.sort-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.sort-chip.co.active { background: var(--warning); border-color: var(--warning); color: #fff; }
+.sort-chip .chip-badge {
+    background: rgba(255,255,255,.25); color: inherit;
+    font-size: 0.72rem; font-weight: 700; padding: 1px 6px;
+    border-radius: 10px; min-width: 18px; text-align: center;
+}
+.sort-chip:not(.active) .chip-badge { background: var(--border); color: var(--txt3); }
+
+/* ===== CI-QUEUE UNIFIED ===== */
+.ci-queue {
+    display: flex; flex-direction: column; gap: 12px;
+}
+
+/* ===== CI-CARD ===== */
+.ci-card {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #fff; border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px 20px; gap: 16px;
+    transition: box-shadow .2s ease, opacity .4s ease, transform .4s ease;
+}
+.ci-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+.ci-card.done { opacity: .65; }
+
+/* card type border accent */
+.ci-card[data-type="checkin"]  { border-left: 3px solid var(--primary); }
+.ci-card[data-type="checkout"] { border-left: 3px solid var(--warning); }
+.ci-card.done[data-type="checkin"]  { border-left: 3px solid var(--success); }
+.ci-card.done[data-type="checkout"] { border-left: 3px solid var(--warning); }
+
+.ci-left  { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+.ci-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+
+.guest-avatar {
+    width: 42px; height: 42px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .95rem; color: #fff; flex-shrink: 0;
+    position: relative;
+}
+/* VIP badge */
+.guest-avatar .vip-badge {
+    position: absolute; top: -5px; right: -6px;
+    background: #f59e0b; color: #fff;
+    border-radius: 50%; width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .55rem; border: 2px solid #fff;
+}
+
+.ci-info { min-width: 0; }
+.ci-name {
+    font-weight: 700; font-size: 1rem; color: var(--txt);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 6px;
+}
+.ci-name .type-tag {
+    font-size: .7rem; font-weight: 600; padding: 2px 8px;
+    border-radius: 10px; flex-shrink: 0;
+}
+.type-tag.ci  { background: #dbeafe; color: #1d4ed8; }
+.type-tag.co  { background: #fef3c7; color: #b45309; }
+.ci-meta { font-size: .78rem; color: var(--txt3); margin-top: 3px; }
+.ci-folio { font-size: .85rem; color: var(--txt2); white-space: nowrap; }
+.ci-folio b.balance-warn { color: var(--danger); }
+
+.btn-ci {
+    padding: 7px 18px; border-radius: 8px; border: none;
+    font-size: .85rem; font-weight: 600; cursor: pointer;
+    transition: opacity .2s, transform .1s;
+    white-space: nowrap;
+}
+.btn-ci:active { transform: scale(.96); }
+.btn-ci.btn-in  { background: var(--primary); color: #fff; }
+.btn-ci.btn-out { background: var(--warning); color: #fff; }
+.btn-ci:disabled { opacity: .5; cursor: not-allowed; }
+
+/* done state */
+.ci-done-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: #d1fae5; color: var(--success);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+}
+.ci-done-icon.co { background: #fef3c7; color: var(--warning); }
+
+/* hidden cards when filtered */
+.ci-card.filter-hidden { display: none !important; }
 </style>
 </head>
 <body>
 
-<!-- MOBILE OVERLAY -->
-
 <!-- ===== MAIN ===== -->
 <div class="main">
-        <header class="topbar"><h1 data-i18n-key="Check-in/out">체크인/아웃</h1></header>
+    <header class="topbar"><h1 data-i18n-key="Check-in/out">체크인/아웃</h1></header>
 
     <div class="content">
-        <!-- TODAY SUMMARY KPI -->
+        <!-- ===== KPI GRID ===== -->
         <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
             <div class="kpi-card blue">
-                <div class="kpi-top">
-                    <div class="kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
-                </div>
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">24</div>
+                    <div class="kpi-value" id="kpi-ci-total">0</div>
                     <div class="kpi-label">금일 체크인 예정</div>
-                    <div class="kpi-sub">Confirmed 21 · Pending 3</div>
+                    <div class="kpi-sub" id="kpi-ci-sub">확정 0 · 대기 0</div>
                 </div>
             </div>
             <div class="kpi-card green">
-                <div class="kpi-top">
-                    <div class="kpi-icon"><i class="fa-solid fa-check-double"></i></div>
-                </div>
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-check-double"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">6</div>
-                    <div class="kpi-label">Check-in Completed</div>
-                    <div class="kpi-sub">Today Completed</div>
+                    <div class="kpi-value" id="kpi-ci-done">0</div>
+                    <div class="kpi-label">체크인 완료</div>
+                    <div class="kpi-sub">금일 처리 완료</div>
                 </div>
             </div>
             <div class="kpi-card orange">
-                <div class="kpi-top">
-                    <div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
-                </div>
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">18</div>
-                    <div class="kpi-label">Today Check-out 예정</div>
-                    <div class="kpi-sub">Completed 12 · 잔여 6</div>
+                    <div class="kpi-value" id="kpi-co-total">0</div>
+                    <div class="kpi-label">금일 체크아웃 예정</div>
+                    <div class="kpi-sub" id="kpi-co-sub">완료 0 · 잔여 0</div>
                 </div>
             </div>
             <div class="kpi-card purple">
-                <div class="kpi-top">
-                    <div class="kpi-icon"><i class="fa-solid fa-crown"></i></div>
-                </div>
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-crown"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">3</div>
+                    <div class="kpi-value" id="kpi-vip">0</div>
                     <div class="kpi-label">VIP 도착 예정</div>
                     <div class="kpi-sub">환영 준비 필요</div>
                 </div>
             </div>
             <div class="kpi-card" style="border-left:3px solid var(--danger)">
-                <div class="kpi-top">
-                    <div class="kpi-icon" style="background:var(--danger-lt);color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                </div>
+                <div class="kpi-top"><div class="kpi-icon" style="background:var(--danger-lt,#fee2e2);color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">1</div>
+                    <div class="kpi-value" id="kpi-noshow">1</div>
                     <div class="kpi-label">No-show</div>
                     <div class="kpi-sub">취소 대기 중</div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB SWITCHER -->
+        <!-- ===== FILTER / SORT BAR ===== -->
         <div class="filter-bar-mt">
             <div class="filter-left">
-                <div class="filter-chips">
-                    <button class="chip active" onclick="switchTab(this, 'checkin')" data-tab="checkin"><i class="fa-solid fa-right-to-bracket"></i> <span class="chip-text">Check-in Pending</span></button>
-                    <button class="chip" onclick="switchTab(this, 'checkout')" data-tab="checkout"><i class="fa-solid fa-right-from-bracket"></i> <span class="chip-text">Check-out Pending</span></button>
+                <span style="font-size:.82rem;color:var(--txt3);font-weight:600;white-space:nowrap;">정렬</span>
+                <div class="sort-chips">
+                    <button class="sort-chip active" data-filter="all" onclick="applyFilter(this,'all')">
+                        <i class="fa-solid fa-border-all"></i>
+                        전체
+                        <span class="chip-badge" id="badge-all">0</span>
+                    </button>
+                    <button class="sort-chip" data-filter="checkin" onclick="applyFilter(this,'checkin')">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        체크인 대기
+                        <span class="chip-badge" id="badge-ci">0</span>
+                    </button>
+                    <button class="sort-chip co" data-filter="checkout" onclick="applyFilter(this,'checkout')">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        체크아웃 대기
+                        <span class="chip-badge" id="badge-co">0</span>
+                    </button>
                 </div>
+            </div>
+            <div class="filter-right">
+                <span style="font-size:.8rem;color:var(--txt3);" id="filter-status-label">전체 표시 중</span>
             </div>
         </div>
 
-        <!-- CHECK-IN QUEUE -->
-        <div class="ci-queue" id="checkinPanel">
-            <div class="ci-card" style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px;">
-                <div class="ci-left" style="display:flex; align-items:center; gap:16px;">
-                    <div class="guest-avatar" style="background:#3B82F6; color:#fff; width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700;">JD</div>
-                    <div class="ci-info">
-                        <div class="ci-name" style="font-weight:700; font-size:1.05rem; color:var(--txt);">John Doe</div>
-                        <div class="ci-meta" style="font-size:0.8rem; color:var(--txt3);">RSV-0123 · Deluxe King · Agoda</div>
-                    </div>
-                </div>
-                <div class="ci-right" style="display:flex; align-items:center; gap:16px;">
-                    <div class="ci-folio" style="font-size:0.85rem; color:var(--txt2);">Balance: <b>$0.00</b></div>
-                    <button class="btn-primary-sm" style="padding:6px 16px; border-radius:6px; border:none; background:var(--primary); color:#fff; cursor:pointer;" onclick="processCheckin(this)">Check-in</button>
-                </div>
-            </div>
-            <div class="ci-card" style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px;">
-                <div class="ci-left" style="display:flex; align-items:center; gap:16px;">
-                    <div class="guest-avatar" style="background:#F59E0B; color:#fff; width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700;">SK</div>
-                    <div class="ci-info">
-                        <div class="ci-name" style="font-weight:700; font-size:1.05rem; color:var(--txt);">Sejin Kim</div>
-                        <div class="ci-meta" style="font-size:0.8rem; color:var(--txt3);">RSV-0124 · Standard Twin · Walk-in</div>
-                    </div>
-                </div>
-                <div class="ci-right" style="display:flex; align-items:center; gap:16px;">
-                    <div class="ci-folio" style="font-size:0.85rem; color:var(--txt2);">Balance: <b>$50.00</b></div>
-                    <button class="btn-primary-sm" style="padding:6px 16px; border-radius:6px; border:none; background:var(--primary); color:#fff; cursor:pointer;" onclick="processCheckin(this)">Check-in</button>
-                </div>
-            </div>
-        </div>
+        <!-- ===== UNIFIED CARD LIST ===== -->
+        <div class="ci-queue" id="cardList">
 
-        <!-- CHECK-OUT QUEUE (hidden by default) -->
-        <div class="ci-queue" id="checkoutPanel" style="display:none">
-            <div class="ci-card" style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px;">
-                <div class="ci-left" style="display:flex; align-items:center; gap:16px;">
-                    <div class="guest-avatar" style="background:#10B981; color:#fff; width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700;">AL</div>
+            <!-- ── CHECK-IN CARDS ── -->
+            <div class="ci-card" data-type="checkin" data-vip="false">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#3B82F6">JD</div>
                     <div class="ci-info">
-                        <div class="ci-name" style="font-weight:700; font-size:1.05rem; color:var(--txt);">Alice Lee</div>
-                        <div class="ci-meta" style="font-size:0.8rem; color:var(--txt3);">RSV-0098 · Suite Room · Expedia</div>
+                        <div class="ci-name">
+                            John Doe
+                            <span class="type-tag ci">체크인</span>
+                        </div>
+                        <div class="ci-meta">RSV-0123 · Deluxe King · Agoda · 14:00 입실 예정</div>
                     </div>
                 </div>
-                <div class="ci-right" style="display:flex; align-items:center; gap:16px;">
-                    <div class="ci-folio" style="font-size:0.85rem; color:var(--txt2);">Balance: <b>$0.00</b></div>
-                    <button class="btn-primary-sm" style="padding:6px 16px; border-radius:6px; border:none; background:var(--warning); color:#fff; cursor:pointer;" onclick="processCheckout(this)">Check-out</button>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$0.00</b></div>
+                    <button class="btn-ci btn-in" onclick="processCheckin(this)">체크인</button>
                 </div>
             </div>
-            <div class="ci-card" style="display:flex; justify-content:space-between; align-items:center; background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px;">
-                <div class="ci-left" style="display:flex; align-items:center; gap:16px;">
-                    <div class="guest-avatar" style="background:#8B5CF6; color:#fff; width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700;">BC</div>
+
+            <div class="ci-card" data-type="checkin" data-vip="false">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#F59E0B">SK</div>
                     <div class="ci-info">
-                        <div class="ci-name" style="font-weight:700; font-size:1.05rem; color:var(--txt);">Bob Chen</div>
-                        <div class="ci-meta" style="font-size:0.8rem; color:var(--txt3);">RSV-0102 · Deluxe King · Direct</div>
+                        <div class="ci-name">
+                            Sejin Kim
+                            <span class="type-tag ci">체크인</span>
+                        </div>
+                        <div class="ci-meta">RSV-0124 · Standard Twin · Walk-in · 지금 대기 중</div>
                     </div>
                 </div>
-                <div class="ci-right" style="display:flex; align-items:center; gap:16px;">
-                    <div class="ci-folio" style="font-size:0.85rem; color:var(--danger);">Balance: <b>$24.50</b></div>
-                    <button class="btn-primary-sm" style="padding:6px 16px; border-radius:6px; border:none; background:var(--warning); color:#fff; cursor:pointer;" onclick="processCheckout(this)">Check-out</button>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$50.00</b></div>
+                    <button class="btn-ci btn-in" onclick="processCheckin(this)">체크인</button>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+
+            <div class="ci-card" data-type="checkin" data-vip="true">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#FF5722">
+                        AB
+                        <span class="vip-badge"><i class="fa-solid fa-crown"></i></span>
+                    </div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Alice Brown
+                            <span class="type-tag ci">체크인</span>
+                            <i class="fa-solid fa-crown" style="color:#f59e0b;font-size:.75rem;" title="VIP"></i>
+                        </div>
+                        <div class="ci-meta">RSV-0201 · Deluxe Queen · Booking.com · VIP — 환영 준비 필요</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$0.00</b></div>
+                    <button class="btn-ci btn-in" onclick="processCheckin(this)">체크인</button>
+                </div>
+            </div>
+
+            <div class="ci-card" data-type="checkin" data-vip="false">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#6B8E23">CK</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Charles Kim
+                            <span class="type-tag ci">체크인</span>
+                        </div>
+                        <div class="ci-meta">RSV-0202 · Standard Twin · Direct · 15:00 입실 예정</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$0.00</b></div>
+                    <button class="btn-ci btn-in" onclick="processCheckin(this)">체크인</button>
+                </div>
+            </div>
+
+            <div class="ci-card" data-type="checkin" data-vip="true">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#7C3AED">
+                        PW
+                        <span class="vip-badge"><i class="fa-solid fa-crown"></i></span>
+                    </div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Peter Wang
+                            <span class="type-tag ci">체크인</span>
+                            <i class="fa-solid fa-crown" style="color:#f59e0b;font-size:.75rem;" title="VIP"></i>
+                        </div>
+                        <div class="ci-meta">RSV-0210 · Presidential Suite · Direct · VIP — 과일 바구니 준비 완료</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$0.00</b></div>
+                    <button class="btn-ci btn-in" onclick="processCheckin(this)">체크인</button>
+                </div>
+            </div>
+
+            <div class="ci-card" data-type="checkin" data-vip="false">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#0D9488">HS</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Hyunsu Park
+                            <span class="type-tag ci">체크인</span>
+                        </div>
+                        <div class="ci-meta">RSV-0215 · Ocean View · Agoda · 16:00 입실 예정</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$30.00</b></div>
+                    <button class="btn-ci btn-in" onclick="processCheckin(this)">체크인</button>
+                </div>
+            </div>
+
+            <!-- ── CHECK-OUT CARDS ── -->
+            <div class="ci-card" data-type="checkout" data-vip="false">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#10B981">AL</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Alice Lee
+                            <span class="type-tag co">체크아웃</span>
+                        </div>
+                        <div class="ci-meta">RSV-0098 · Suite Room · Expedia · 11:00 퇴실 예정</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$0.00</b></div>
+                    <button class="btn-ci btn-out" onclick="processCheckout(this)">체크아웃</button>
+                </div>
+            </div>
+
+            <div class="ci-card" data-type="checkout" data-vip="false">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#8B5CF6">BC</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Bob Chen
+                            <span class="type-tag co">체크아웃</span>
+                        </div>
+                        <div class="ci-meta">RSV-0102 · Deluxe King · Direct · 12:00 퇴실 예정</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b class="balance-warn">$24.50</b></div>
+                    <button class="btn-ci btn-out" onclick="processCheckout(this)">체크아웃</button>
+                </div>
+            </div>
+
+            <div class="ci-card" data-type="checkout" data-vip="true">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#9C27B0">
+                        ML
+                        <span class="vip-badge"><i class="fa-solid fa-crown"></i></span>
+                    </div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Mia Lee
+                            <span class="type-tag co">체크아웃</span>
+                            <i class="fa-solid fa-crown" style="color:#f59e0b;font-size:.75rem;" title="VIP"></i>
+                        </div>
+                        <div class="ci-meta">RSV-0301 · Suite · Agoda · VIP — 10:00 조기 퇴실 요청</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$0.00</b></div>
+                    <button class="btn-ci btn-out" onclick="processCheckout(this)">체크아웃</button>
+                </div>
+            </div>
+
+            <div class="ci-card" data-type="checkout" data-vip="false">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#03A9F4">JS</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            John Smith
+                            <span class="type-tag co">체크아웃</span>
+                        </div>
+                        <div class="ci-meta">RSV-0302 · Deluxe King · Expedia · 11:30 퇴실 예정</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$0.00</b></div>
+                    <button class="btn-ci btn-out" onclick="processCheckout(this)">체크아웃</button>
+                </div>
+            </div>
+
+            <div class="ci-card" data-type="checkout" data-vip="false">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#E91E63">YJ</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Yujin Choi
+                            <span class="type-tag co">체크아웃</span>
+                        </div>
+                        <div class="ci-meta">RSV-0320 · Standard Queen · Booking.com · 12:00 퇴실 예정</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b class="balance-warn">$12.00</b></div>
+                    <button class="btn-ci btn-out" onclick="processCheckout(this)">체크아웃</button>
+                </div>
+            </div>
+
+            <div class="ci-card" data-type="checkout" data-vip="false">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#607D8B">DK</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            David Kim
+                            <span class="type-tag co">체크아웃</span>
+                        </div>
+                        <div class="ci-meta">RSV-0325 · Twin Room · Direct · 11:00 퇴실 예정</div>
+                    </div>
+                </div>
+                <div class="ci-right">
+                    <div class="ci-folio">Balance: <b>$0.00</b></div>
+                    <button class="btn-ci btn-out" onclick="processCheckout(this)">체크아웃</button>
+                </div>
+            </div>
+
+        </div><!-- /cardList -->
+
+    </div><!-- /content -->
+</div><!-- /main -->
 
 <script>
-// ===== TAB SWITCH =====
-function updateFilterCounts() {
-    const checkinCount = document.querySelectorAll('#checkinPanel .ci-card:not(.done)').length;
-    const checkoutCount = document.querySelectorAll('#checkoutPanel .ci-card:not(.done)').length;
-    
-    document.querySelectorAll('.chip').forEach(chip => {
-        const tab = chip.getAttribute('data-tab');
-        const textSpan = chip.querySelector('.chip-text');
-        if (!textSpan) return;
-        
-        let count = 0;
-        let baseText = textSpan.getAttribute('data-base-text');
-        if (!baseText) {
-            baseText = textSpan.textContent.trim().replace(/\s*\(\d+\)$/, '');
-            textSpan.setAttribute('data-base-text', baseText);
-        }
-        
-        if (tab === 'checkin') count = checkinCount;
-        if (tab === 'checkout') count = checkoutCount;
-        
-        textSpan.textContent = `${baseText} (${count})`;
-    });
+// ===== STATE =====
+let currentLang = 'ko';
+let currentFilter = 'all';
+
+// ===== KPI UPDATE =====
+function updateKPICounts() {
+    const allCards    = document.querySelectorAll('#cardList .ci-card');
+    const ciCards     = document.querySelectorAll('#cardList .ci-card[data-type="checkin"]');
+    const coCards     = document.querySelectorAll('#cardList .ci-card[data-type="checkout"]');
+    const ciDone      = document.querySelectorAll('#cardList .ci-card[data-type="checkin"].done');
+    const coDone      = document.querySelectorAll('#cardList .ci-card[data-type="checkout"].done');
+    const vipCards    = document.querySelectorAll('#cardList .ci-card[data-vip="true"]:not(.done)');
+
+    const ciTotal  = ciCards.length;
+    const coTotal  = coCards.length;
+    const ciDoneN  = ciDone.length;
+    const coDoneN  = coDone.length;
+
+    // KPI values
+    const kpiCiTotal = document.getElementById('kpi-ci-total');
+    const kpiCiDone  = document.getElementById('kpi-ci-done');
+    const kpiCoTotal = document.getElementById('kpi-co-total');
+    const kpiCiSub   = document.getElementById('kpi-ci-sub');
+    const kpiCoSub   = document.getElementById('kpi-co-sub');
+    const kpiVip     = document.getElementById('kpi-vip');
+
+    if(kpiCiTotal) kpiCiTotal.textContent = ciTotal;
+    if(kpiCiDone)  kpiCiDone.textContent  = ciDoneN;
+    if(kpiCoTotal) kpiCoTotal.textContent = coTotal;
+    if(kpiCiSub)   kpiCiSub.textContent   = `완료 ${ciDoneN} · 대기 ${ciTotal - ciDoneN}`;
+    if(kpiCoSub)   kpiCoSub.textContent   = `완료 ${coDoneN} · 잔여 ${coTotal - coDoneN}`;
+    if(kpiVip)     kpiVip.textContent     = vipCards.length;
+
+    // Badge counts on sort chips (pending only)
+    const ciPending = ciTotal - ciDoneN;
+    const coPending = coTotal - coDoneN;
+    const el = (id) => document.getElementById(id);
+    if(el('badge-all')) el('badge-all').textContent = ciPending + coPending;
+    if(el('badge-ci'))  el('badge-ci').textContent  = ciPending;
+    if(el('badge-co'))  el('badge-co').textContent  = coPending;
 }
 
-function switchTab(btn, tab) {
-    document.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
+// ===== FILTER / SORT =====
+function applyFilter(btn, filter) {
+    currentFilter = filter;
+
+    // Update chip active state
+    document.querySelectorAll('.sort-chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('checkinPanel').style.display = tab === 'checkin' ? 'flex' : 'none';
-    document.getElementById('checkoutPanel').style.display = tab === 'checkout' ? 'flex' : 'none';
+
+    // Show / hide cards
+    document.querySelectorAll('#cardList .ci-card').forEach(card => {
+        if (filter === 'all') {
+            card.classList.remove('filter-hidden');
+        } else {
+            const isMatch = card.getAttribute('data-type') === filter;
+            card.classList.toggle('filter-hidden', !isMatch);
+        }
+    });
+
+    // Status label
+    const labelMap = { all: '전체 표시 중', checkin: '체크인 대기만 표시 중', checkout: '체크아웃 대기만 표시 중' };
+    const lbl = document.getElementById('filter-status-label');
+    if(lbl) lbl.textContent = labelMap[filter] || '';
 }
 
 // ===== CHECK-IN PROCESS =====
 async function processCheckin(btn) {
     const card = btn.closest('.ci-card');
-    const name = card.querySelector('.ci-name').textContent.trim();
-    const confirmMsg = currentLang === 'en' ? `Process check-in for ${name}?` : `${name} 님을 체크인 처리하시겠습니까?`;
+    const nameEl = card.querySelector('.ci-name');
+    // Extract just the name text (before any child elements)
+    const name = nameEl.childNodes[0].textContent.trim();
+    const confirmMsg = currentLang === 'en'
+        ? `Process check-in for ${name}?`
+        : `${name} 님을 체크인 처리하시겠습니까?`;
     if (await showConfirm(confirmMsg)) {
-        card.style.transition = 'all .4s ease';
         card.style.opacity = '0';
-        card.style.transform = 'translateX(40px)';
+        card.style.transform = 'translateX(30px)';
         setTimeout(() => {
-            const statusMsg = currentLang === 'en' ? 'Check-in Completed' : '체크인 완료';
-            const timeMsg = currentLang === 'en' ? 'Processed just now' : '방금 처리됨';
+            const time = new Date().toLocaleTimeString('ko', {hour:'2-digit', minute:'2-digit'});
             card.innerHTML = `
                 <div class="ci-left">
                     <div class="ci-done-icon"><i class="fa-solid fa-check"></i></div>
                     <div class="ci-info">
-                        <div class="ci-name" style="color:var(--success)">${name} — ${statusMsg}</div>
-                        <div class="ci-meta">${timeMsg} · ${new Date().toLocaleTimeString('ko',{hour:'2-digit',minute:'2-digit'})}</div>
+                        <div class="ci-name" style="color:var(--success)">${name} — 체크인 완료</div>
+                        <div class="ci-meta">방금 처리됨 · ${time}</div>
                     </div>
-                </div>
-            `;
+                </div>`;
             card.classList.add('done');
             card.style.opacity = '1';
             card.style.transform = 'translateX(0)';
-            updateFilterCounts();
+            updateKPICounts();
         }, 400);
     }
 }
@@ -226,166 +528,112 @@ async function processCheckin(btn) {
 // ===== CHECK-OUT PROCESS =====
 async function processCheckout(btn) {
     const card = btn.closest('.ci-card');
-    const name = card.querySelector('.ci-name').textContent.trim();
-    const hasBalance = card.querySelector('.ci-folio b').textContent !== '$0.00';
+    const nameEl = card.querySelector('.ci-name');
+    const name = nameEl.childNodes[0].textContent.trim();
+
+    // Check outstanding balance
+    const balanceEl = card.querySelector('.ci-folio b');
+    const balanceText = balanceEl ? balanceEl.textContent.trim() : '$0.00';
+    const hasBalance = balanceText !== '$0.00';
     if (hasBalance) {
-        const errorMsg = currentLang === 'en' ? 'Outstanding balance remains. Please settle the folio first.' : '정산 잔액이 남아 있습니다. 먼저 정산을 완료해 주세요.';
-        showToast(errorMsg);
+        const msg = currentLang === 'en'
+            ? `Outstanding balance: ${balanceText}. Please settle the folio first.`
+            : `미정산 잔액 ${balanceText}이 있습니다. 먼저 정산을 완료해 주세요.`;
+        showToast(msg);
         return;
     }
-    const confirmMsg = currentLang === 'en' ? `Process check-out for ${name}?` : `${name} 님을 체크아웃 처리하시겠습니까?`;
+    const confirmMsg = currentLang === 'en'
+        ? `Process check-out for ${name}?`
+        : `${name} 님을 체크아웃 처리하시겠습니까?`;
     if (await showConfirm(confirmMsg)) {
-        card.style.transition = 'all .4s ease';
         card.style.opacity = '0';
-        card.style.transform = 'translateX(40px)';
+        card.style.transform = 'translateX(30px)';
         setTimeout(() => {
-            const statusMsg = currentLang === 'en' ? 'Check-out Completed' : '체크아웃 완료';
-            const timeMsg = currentLang === 'en' ? 'Processed just now' : '방금 처리됨';
+            const time = new Date().toLocaleTimeString('ko', {hour:'2-digit', minute:'2-digit'});
             card.innerHTML = `
                 <div class="ci-left">
                     <div class="ci-done-icon co"><i class="fa-solid fa-check"></i></div>
                     <div class="ci-info">
-                        <div class="ci-name" style="color:var(--warning)">${name} — ${statusMsg}</div>
-                        <div class="ci-meta">${timeMsg} · ${new Date().toLocaleTimeString('ko',{hour:'2-digit',minute:'2-digit'})}</div>
+                        <div class="ci-name" style="color:var(--warning)">${name} — 체크아웃 완료</div>
+                        <div class="ci-meta">방금 처리됨 · ${time}</div>
                     </div>
-                </div>
-            `;
+                </div>`;
             card.classList.add('done');
             card.style.opacity = '1';
             card.style.transform = 'translateX(0)';
+            updateKPICounts();
         }, 400);
     }
 }
 
-// ===== MOBILE MENU =====
-function toggleMenu() {
-    document.querySelector('.sidebar').classList.toggle('active');
-    document.querySelector('.sidebar-overlay').classList.toggle('active');
-}
-
 // ===== i18n =====
-let currentLang = 'ko';
 const translations = {
     ko: {
-        "Main": "메인",
-        "Front Desk": "프론트 데스크",
-        "Guest & CRM": "투숙객 및 CRM",
-        "Operations": "운영 관리",
-        "Settings": "설정",
-        "Dashboard": "대시보드",
-        "Reservations": "예약 타임라인",
-        "Booking List": "예약 목록",
-        "Check-in/out": "체크인/아웃",
-        "Guest CRM": "투숙객 관리",
-        "VIP Members": "VIP 멤버십",
-        "Room Mgmt": "객실 관리",
-        "Room Types": "객실 유형",
-        "Rates Calendar": "요금 캘린더",
-        "Housekeeping": "하우스키핑",
-        "Folio & Billing": "통합 정산",
-        "Folio List": "정산 목록",
-        "Revenue Analytics": "매출 분석",
-        "Ancillary Svcs": "부가서비스",
-        "Room Service": "룸서비스",
-        "Golf": "골프",
-        "Rent-a-car": "렌터카",
-        "Hotel Settings": "호텔 설정",
-        "Staff Mgmt": "직원 관리",
-        "Billing & Payment": "요금 및 결제",
-        "Notices": "공지사항",
-        "Support": "고객지원",
-
-        "Check-in/out":"체크인/아웃","Dashboard":"대시보드","Reservations":"예약 타임라인",
-        "Booking List":"예약 목록","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십",
-        "Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산",
-        "Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리",
-        "금일 체크인 예정":"금일 체크인 예정","Check-in Completed":"체크인 완료",
-        "Today Check-out 예정":"금일 체크아웃 예정","VIP 도착 예정":"VIP 도착 예정",
-        "취소 대기 중":"취소 대기 중",
-        "Check-in Pending":"체크인 대기","Check-out Pending":"체크아웃 대기",
-        "Check-in":"체크인","Check-out":"체크아웃","Cancel 처리":"취소 처리",
-        "Confirmed 21 · Pending 3":"확정 21 · 대기 3","Today Completed":"금일 완료",
-        "Completed 12 · 잔여 6":"완료 12 · 잔여 6","환영 준비 필요":"환영 준비 필요",
-        "Main": "메인","Front Desk":"프론트 데스크","Guest & CRM": "투숙객 및 CRM",
-        "Operations": "운영 관리","Settings": "설정"
+        "Main":"메인","Front Desk":"프론트 데스크","Guest & CRM":"투숙객 및 CRM",
+        "Operations":"운영 관리","Settings":"설정","Dashboard":"대시보드",
+        "Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃",
+        "Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리",
+        "Room Types":"객실 유형","Rates Calendar":"요금 캘린더","Housekeeping":"하우스키핑",
+        "Folio & Billing":"통합 정산","Folio List":"정산 목록","Revenue Analytics":"매출 분석",
+        "Ancillary Svcs":"부가서비스","Room Service":"룸서비스","Golf":"골프","Rent-a-car":"렌터카",
+        "Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Billing & Payment":"요금 및 결제",
+        "Notices":"공지사항","Support":"고객지원"
     },
     en: {
-        "Main": "Main",
-        "Front Desk": "Front Desk",
-        "Guest & CRM": "Guest & CRM",
-        "Operations": "Operations",
-        "Settings": "Settings",
-        "Dashboard": "Dashboard",
-        "Reservations": "Reservations",
-        "Booking List": "Booking List",
-        "Check-in/out": "Check-in/out",
-        "Guest CRM": "Guest CRM",
-        "VIP Members": "VIP Members",
-        "Room Mgmt": "Room Mgmt",
-        "Room Types": "Room Types",
-        "Rates Calendar": "Rates Calendar",
-        "Housekeeping": "Housekeeping",
-        "Folio & Billing": "Folio & Billing",
-        "Folio List": "Folio List",
-        "Revenue Analytics": "Revenue Analytics",
-        "Ancillary Svcs": "Ancillary Svcs",
-        "Room Service": "Room Service",
-        "Golf": "Golf",
-        "Rent-a-car": "Rent-a-car",
-        "Hotel Settings": "Hotel Settings",
-        "Staff Mgmt": "Staff Mgmt",
-        "Billing & Payment": "Billing & Payment",
-        "Notices": "Notices",
-        "Support": "Support",
-
-        "Check-in/out":"Check-in/out","Dashboard":"Dashboard","Reservations":"Reservations",
-        "Booking List":"Booking List","Guest CRM":"Guest CRM","VIP Members":"VIP Members",
-        "Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing",
-        "Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt",
-        "금일 체크인 예정":"Today's Arrivals","Check-in Completed":"Checked In",
-        "Today Check-out 예정":"Today's Departures","VIP 도착 예정":"VIP Arrivals",
-        "취소 대기 중":"Auto-cancel Pending",
-        "Check-in Pending":"Check-in Queue","Check-out Pending":"Check-out Queue",
-        "Check-in":"Check-in","Check-out":"Check-out","Cancel 처리":"Cancel",
-        "Confirmed 21 · Pending 3":"21 Confirmed · 3 Pending","Today Completed":"Processed Today",
-        "Completed 12 · 잔여 6":"12 Done · 6 Remaining","환영 준비 필요":"Welcome Prep Required",
-        "(정산 완료)":"(Settlement Done)","미정산":"Unsettled",
         "Main":"Main","Front Desk":"Front Desk","Guest & CRM":"Guest & CRM",
-        "Operations":"Operations","Settings":"Settings"
+        "Operations":"Operations","Settings":"Settings","Dashboard":"Dashboard",
+        "Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out",
+        "Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt",
+        "Room Types":"Room Types","Rates Calendar":"Rates Calendar","Housekeeping":"Housekeeping",
+        "Folio & Billing":"Folio & Billing","Folio List":"Folio List",
+        "Revenue Analytics":"Revenue Analytics","Ancillary Svcs":"Ancillary Svcs",
+        "Room Service":"Room Service","Golf":"Golf","Rent-a-car":"Rent-a-car",
+        "Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt",
+        "Billing & Payment":"Billing & Payment","Notices":"Notices","Support":"Support"
     }
 };
+
 function setupI18n(){
-    const walk=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);
-    let node; const textNodes=[];
-    while(node=walk.nextNode()){
-        const orig=node.nodeValue,text=orig.trim();
-        if(text&&translations.ko[text]&&!node.parentNode.hasAttribute('data-i18n-key')){
-            const span=document.createElement('span');
-            span.setAttribute('data-i18n-key',text);span.textContent=text;
-            textNodes.push({node,span,originalText:orig});
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    let node; const textNodes = [];
+    while(node = walk.nextNode()){
+        const orig = node.nodeValue, text = orig.trim();
+        if(text && translations.ko[text] && !node.parentNode.hasAttribute('data-i18n-key')){
+            const span = document.createElement('span');
+            span.setAttribute('data-i18n-key', text); span.textContent = text;
+            textNodes.push({node, span, originalText: orig});
         }
     }
-    textNodes.forEach(({node,span,originalText})=>{
-        const frag=document.createDocumentFragment();
-        const ls=originalText.match(/^\s+/),ts=originalText.match(/\s+$/);
-        if(ls)frag.appendChild(document.createTextNode(ls[0]));
+    textNodes.forEach(({node, span, originalText}) => {
+        const frag = document.createDocumentFragment();
+        const ls = originalText.match(/^\s+/), ts = originalText.match(/\s+$/);
+        if(ls) frag.appendChild(document.createTextNode(ls[0]));
         frag.appendChild(span);
-        if(ts)frag.appendChild(document.createTextNode(ts[0]));
-        node.parentNode.replaceChild(frag,node);
+        if(ts) frag.appendChild(document.createTextNode(ts[0]));
+        node.parentNode.replaceChild(frag, node);
     });
 }
+
 function changeLang(lang){
-    currentLang=lang;
+    currentLang = lang;
     const dict = Object.assign({}, window.translations ? window.translations[lang] : {}, translations[lang] || translations.ko);
-    document.querySelectorAll('[data-i18n-key]').forEach(el=>{
-        const key=el.getAttribute('data-i18n-key');
-        if(dict[key])el.textContent=dict[key];
+    document.querySelectorAll('[data-i18n-key]').forEach(el => {
+        const key = el.getAttribute('data-i18n-key');
+        if(dict[key]) el.textContent = dict[key];
     });
 }
-document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang);updateFilterCounts();});
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+    setupI18n();
+    changeLang(currentLang);
+    updateKPICounts();
+    // Init filter label
+    const lbl = document.getElementById('filter-status-label');
+    if(lbl) lbl.textContent = '전체 표시 중';
+});
 </script>
 <script>
-// Sync language selector to stored preference
 (function(){
     var sel = document.getElementById('langSelect');
     if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
