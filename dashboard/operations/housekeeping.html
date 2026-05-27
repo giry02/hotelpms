@@ -337,7 +337,7 @@
 </div>
 
 <!-- ===== MAINTENANCE REQUEST MODAL (identical to maintenance.html) ===== -->
-<div class="modal-overlay" id="newRequestModal" onclick="if(event.target===this)closeModal('newRequestModal')">
+<div class="modal-overlay" id="newRequestModal" onclick="if(event.target===this)closeModal('newRequestModal')" data-no-i18n="true">
     <div class="modal-card" style="max-width:540px; width:95vw;">
         <div class="modal-header">
             <h3 class="modal-title"><i class="fa-solid fa-wrench" style="color:var(--primary)"></i> 시설 보수 요청 등록</h3>
@@ -744,41 +744,64 @@ function showHkLog(roomNum) {
     openModal('logModal');
 }
 
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function openModal(id) { var el=document.getElementById(id); if(el) el.classList.add('active'); }
+function closeModal(id) { var el=document.getElementById(id); if(el) el.classList.remove('active'); }
+
+// 인라인 showToast (ui-components.js 로드 실패 시 fallback)
+if (typeof showToast === 'undefined') {
+    window.showToast = function(msg) {
+        var t = document.getElementById('hkToast');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'hkToast';
+            t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#fff;padding:13px 22px;border-radius:10px;z-index:9999;font-size:.85rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transition:all .3s;white-space:nowrap;';
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        requestAnimationFrame(function(){ t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
+        setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; }, 3000);
+    };
+}
 
 // ===== MAINTENANCE REQUEST (maintenance.html 티켓 생성과 동일한 팝업) =====
 function openMaintModal() {
-    document.getElementById('newRoom').value = '';
-    document.getElementById('newDesc').value = '';
-    document.getElementById('newType').value = '전기/조명';
-    document.getElementById('newPriority').value = 'normal';
-    document.getElementById('newAssignee').value = '미배정';
+    var r = document.getElementById('newRoom');
+    var d = document.getElementById('newDesc');
+    if (r) r.value = '';
+    if (d) d.value = '';
+    var p = document.getElementById('newPriority');
+    if (p) p.value = 'normal';
     openModal('newRequestModal');
 }
 
 function addTicketFromHK() {
-    const room     = document.getElementById('newRoom').value.trim();
-    const type     = document.getElementById('newType').value;
-    const desc     = document.getElementById('newDesc').value.trim();
-    const priority = document.getElementById('newPriority').value;
-    const assignee = document.getElementById('newAssignee').value;
+    var roomEl     = document.getElementById('newRoom');
+    var typeEl     = document.getElementById('newType');
+    var descEl     = document.getElementById('newDesc');
+    var priorityEl = document.getElementById('newPriority');
+    var assigneeEl = document.getElementById('newAssignee');
+
+    var room     = roomEl     ? roomEl.value.trim()     : '';
+    var type     = typeEl     ? typeEl.value             : '기타';
+    var desc     = descEl     ? descEl.value.trim()     : '';
+    var priority = priorityEl ? priorityEl.value         : 'normal';
+    var assignee = assigneeEl ? assigneeEl.value         : '미배정';
 
     if (!room || !desc) { showToast('객실 번호와 상세 내용을 입력해주세요.'); return; }
 
-    const today = new Date().toISOString().split('T')[0];
-    const id    = 'MT-' + Date.now().toString().slice(-6);
+    var today = new Date().toISOString().split('T')[0];
+    var id    = 'MT-' + Date.now().toString().slice(-6);
 
     // pms_maintenance localStorage 에 저장 (시설보수 페이지와 동일한 저장소)
-    let list = [];
+    var list = [];
     try { list = JSON.parse(localStorage.getItem('pms_maintenance') || '[]'); } catch(e) {}
-    list.unshift({ id, room, type, desc, priority, assignee, status: 'open', date: today, source: 'housekeeping' });
+    list.unshift({ id: id, room: room, type: type, desc: desc, priority: priority, assignee: assignee, status: 'open', date: today, source: 'housekeeping' });
     localStorage.setItem('pms_maintenance', JSON.stringify(list));
 
     closeModal('newRequestModal');
-    document.getElementById('newRoom').value = '';
-    document.getElementById('newDesc').value  = '';
-    showToast('✅ 시설 보수 요청이 등록되었습니다. (' + id + ')');
+    if (roomEl) roomEl.value = '';
+    if (descEl) descEl.value = '';
+    showToast('시설 보수 요청이 등록되었습니다. (' + id + ')');
 }
 
 // i18n
@@ -840,7 +863,8 @@ const translations={ko: {
         "Notices": "Notices",
         "Support": "Support",
 "Housekeeping":"Housekeeping","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Tasks":"Total Tasks","Pending Clean":"Pending Clean","To Inspect":"To Inspect","Completed":"Completed","All":"All","Needs Cleaning":"Needs Cleaning","Print Task List":"Print Task List","Grid View":"Grid View","List View":"List View"}};
-function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
+function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){// 상위에 data-no-i18n 속성이 있으면 건너뜀
+let skip=false;let p=n.parentNode;while(p){if(p.hasAttribute&&p.hasAttribute('data-no-i18n')){skip=true;break;}p=p.parentNode;}if(skip)continue;const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){
     currentLang=l;
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
