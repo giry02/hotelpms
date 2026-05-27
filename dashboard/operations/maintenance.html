@@ -694,11 +694,34 @@ function changeStatus(id, newStatus) {
     if (r) { r.status = newStatus; updateKPI(); render(); showToast(`${id} 상태가 '${statusLabel[newStatus]}'(으)로 변경되었습니다.`); }
 }
 
-function showDetail(id) {
+window.changeAssignee = function(id, newAssignee) {
+    const r = requests.find(x => x.id === id);
+    if(r) {
+        r.assignee = newAssignee;
+        localStorage.setItem('pms_maintenance', JSON.stringify(requests));
+        renderList();
+        showToast('담당자가 ' + newAssignee + '(으)로 변경되었습니다.');
+    }
+}
+
+async function showDetail(id) {
     const r = requests.find(x => x.id === id);
     if (!r) return;
     document.getElementById('detailId').textContent = r.id;
     const icon = typeIcons[r.type] || 'fa-toolbox';
+    
+    let assigneeHtml = `<div style="font-weight:700; margin-top:4px;">${r.assignee}</div>`;
+    
+    if (window.PmsAPI && PmsAPI.getCurrentUser) {
+        const currentUser = await PmsAPI.getCurrentUser();
+        if (currentUser.roleId === 'sys_maintenance' || currentUser.roleId === 'sys_admin') {
+            const staff = await PmsAPI.getDEFAULT_STAFF();
+            const maintStaff = staff.filter(s => s.roleId === 'sys_maintenance' || s.roleId === 'sys_admin');
+            const options = maintStaff.map(s => `<option value="${s.name}" ${r.assignee === s.name ? 'selected' : ''}>${s.name} (${s.roleId === 'sys_admin' ? '관리자' : '시설팀'})</option>`).join('') + `<option value="미배정" ${r.assignee === '미배정' ? 'selected' : ''}>미배정</option>`;
+            assigneeHtml = `<select class="form-input" style="padding:4px; font-size:.8rem; margin-top:4px;" onchange="changeAssignee('${r.id}', this.value)">${options}</select>`;
+        }
+    }
+
     document.getElementById('detailBody').innerHTML = `
         <div style="display:flex; gap:10px; align-items:center; margin-bottom:18px;">
             <span class="priority-badge ${priorityClass[r.priority]}" style="font-size:.8rem; padding:5px 14px;">${priorityLabel[r.priority]}</span>
@@ -710,7 +733,7 @@ function showDetail(id) {
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div style="font-size:.82rem;"><span style="color:var(--txt3);">객실</span><div style="font-weight:700; margin-top:4px;">${r.room}호</div></div>
-            <div style="font-size:.82rem;"><span style="color:var(--txt3);">담당자</span><div style="font-weight:700; margin-top:4px;">${r.assignee}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">담당자</span>${assigneeHtml}</div>
             <div style="font-size:.82rem;"><span style="color:var(--txt3);">등록일</span><div style="font-weight:700; margin-top:4px;">${r.date}</div></div>
             <div style="font-size:.82rem;"><span style="color:var(--txt3);">경과 시간</span><div style="font-weight:700; margin-top:4px;">${Math.floor((Date.now() - new Date(r.date).getTime())/(1000*60*60))}시간</div></div>
         </div>
