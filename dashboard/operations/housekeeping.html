@@ -173,6 +173,45 @@
     .log-info { display:flex; align-items:center; gap:8px; font-size:0.85rem; font-weight:600; color:var(--txt); }
     .log-status { padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:700; }
     .status-clean-log { background:var(--success-lt); color:var(--success); }
+
+    /* === Guest Flag (DND / MUR / Away) === */
+    .room-box.occupied {
+        border: 2px solid #6366f1;
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    }
+    .room-box.occupied .room-box-status {
+        background: #6366f1 !important;
+        color: #fff !important;
+    }
+    .guest-flag-badge {
+        margin-top: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 10px;
+    }
+    .guest-flag-badge.flag-dnd { background: #fee2e2; color: #dc2626; }
+    .guest-flag-badge.flag-mur { background: #d1fae5; color: #059669; }
+    .guest-flag-badge.flag-away { background: #dbeafe; color: #2563eb; }
+    .guest-flag-badge.flag-none { background: #f3f4f6; color: #6b7280; }
+    .flag-btn-group {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        margin-bottom: 6px;
+    }
+    .flag-btn {
+        width: 28px; height: 28px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 0.75rem;
+        display: flex; align-items: center; justify-content: center;
+        transition: all .15s;
+    }
+    .flag-btn:hover { border-color: var(--primary); transform: scale(1.1); }
+    .flag-btn.active { border-color: #6366f1; background: #eef2ff; box-shadow: 0 0 0 2px rgba(99,102,241,.2); }
     </style>
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-operations.js"></script>
@@ -444,6 +483,7 @@ function renderGrid() {
             // Default based on room status
             if (r.status === 'vacant-clean') mapped.hkStatus = 'clean';
             else if (r.status === 'vacant-dirty') mapped.hkStatus = 'dirty';
+            else if (r.status === 'occupied') { mapped.hkStatus = 'occupied'; }
             else mapped.hkStatus = 'clean';
         }
         return mapped;
@@ -494,20 +534,52 @@ function renderGrid() {
 }
 
 function renderRoomBox(r, appendHtml) {
-    // Check language
     const isEn = typeof currentLang !== 'undefined' && currentLang === 'en';
     
-    // Map hkStatus to visual classes similar to rooms.html
     let boxClass = '';
     let stLabel = '';
-    if (r.hkStatus === 'dirty') { boxClass = 'vacant-dirty'; stLabel = isEn ? 'Pending Clean' : '청소 요망'; }
-    else if (r.hkStatus === 'inspect') { boxClass = 'oos'; stLabel = isEn ? 'To Inspect' : '점검 대기'; } // oos class uses purple which matches inspect
-    else { boxClass = 'vacant-clean'; stLabel = isEn ? 'Completed' : '청소 완료'; }
+    let flagBadge = '';
+    let flagButtons = '';
+    
+    // Check if room is occupied (guest currently staying)
+    const isOccupied = (r.status === 'occupied');
+    
+    if (isOccupied) {
+        boxClass = 'occupied';
+        stLabel = isEn ? 'Occupied' : '투숙 중';
+        
+        const gf = r.guestFlag || 'none';
+        const flagMap = {
+            'dnd':  { emoji: '🔴', label: isEn ? 'DND' : '방해금지', cls: 'flag-dnd' },
+            'mur':  { emoji: '🟢', label: isEn ? 'MUR' : '청소요청', cls: 'flag-mur' },
+            'away': { emoji: '🚶', label: isEn ? 'Away' : '외출 중', cls: 'flag-away' },
+            'none': { emoji: '🛌', label: isEn ? 'In Room' : '재실 중', cls: 'flag-none' }
+        };
+        const fi = flagMap[gf] || flagMap['none'];
+        flagBadge = `<div class="guest-flag-badge ${fi.cls}">${fi.emoji} ${fi.label}</div>`;
+        
+        // Flag toggle buttons
+        flagButtons = `<div class="flag-btn-group">
+            <button class="flag-btn ${gf==='dnd'?'active':''}" title="방해금지" onclick="setFlag('${r.id}','dnd'); event.stopPropagation();">🔴</button>
+            <button class="flag-btn ${gf==='mur'?'active':''}" title="청소요청" onclick="setFlag('${r.id}','mur'); event.stopPropagation();">🟢</button>
+            <button class="flag-btn ${gf==='away'?'active':''}" title="외출" onclick="setFlag('${r.id}','away'); event.stopPropagation();">🚶</button>
+            <button class="flag-btn ${gf==='none'?'active':''}" title="재실" onclick="setFlag('${r.id}','none'); event.stopPropagation();">🛌</button>
+        </div>`;
+    } else if (r.hkStatus === 'dirty') {
+        boxClass = 'vacant-dirty';
+        stLabel = isEn ? 'Pending Clean' : '청소 요망';
+    } else if (r.hkStatus === 'inspect') {
+        boxClass = 'oos';
+        stLabel = isEn ? 'To Inspect' : '점검 대기';
+    } else {
+        boxClass = 'vacant-clean';
+        stLabel = isEn ? 'Completed' : '청소 완료';
+    }
 
     let actionBtnHtml = '';
     let completedByHtml = '';
 
-    if (r.taskId) {
+    if (!isOccupied && r.taskId) {
         const task = tasks.find(t => t.id === r.taskId);
         if (r.hkStatus === 'dirty') {
             const btnText = isEn ? 'Start Clean' : '청소시작';
@@ -518,8 +590,8 @@ function renderRoomBox(r, appendHtml) {
         }
     }
 
-    if (r.hkStatus === 'clean') {
-        let nameToDisplay = 'Maria G.'; // default fallback
+    if (!isOccupied && r.hkStatus === 'clean') {
+        let nameToDisplay = 'Maria G.';
         if (r.taskId) {
             const task = tasks.find(t => t.id === r.taskId);
             if (task && (task.inspectedBy || task.cleanedBy)) {
@@ -538,11 +610,13 @@ function renderRoomBox(r, appendHtml) {
             <div class="room-box-num" style="font-size:1.15rem; font-weight:800; color:var(--txt);">${r.id || 'N/A'}</div>
             <div class="room-box-type" style="font-size:0.7rem; color:var(--txt3); margin-top:2px;">${r.type || ''}</div>
             <div class="room-box-status" style="display:inline-block; padding:3px 10px; margin-top:8px; border-radius:12px; font-size:0.7rem; font-weight:700;">${stLabel}</div>
+            ${flagBadge}
         </div>
         <div style="margin-top:auto; padding-top:12px; border-top:1px solid rgba(0,0,0,0.05); width:100%; display:flex; flex-direction:column; align-items:stretch;">
             <div class="room-action-wrap">
                 ${completedByHtml}
                 ${actionBtnHtml}
+                ${flagButtons}
                 ${logBtnHtml}
             </div>
         </div>
@@ -752,6 +826,18 @@ if (typeof showToast === 'undefined') {
         requestAnimationFrame(function(){ t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
         setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; }, 3000);
     };
+}
+
+async function setFlag(roomId, flag) {
+    if (window.PmsAPI && PmsAPI.setGuestFlag) {
+        await PmsAPI.setGuestFlag(roomId, flag);
+        // Update local data and re-render
+        const room = allRooms.find(r => r.id === roomId);
+        if (room) room.guestFlag = flag;
+        renderAllViews();
+        const labels = { dnd: '방해금지(DND)', mur: '청소요청(MUR)', away: '외출 중', none: '재실 중' };
+        showToast(roomId + '호 → ' + (labels[flag] || flag));
+    }
 }
 
 // ===== MAINTENANCE REQUEST (maintenance.html 티켓 생성과 동일한 팝업) =====

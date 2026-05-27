@@ -2,25 +2,25 @@
 window.PmsAPI = window.PmsAPI || {};
 
 const _fallbackRooms = [
-    {id:'PH01', floor:20, type:'Penthouse', status:'occupied', building:'Ocean Tower'},
+    {id:'PH01', floor:20, type:'Penthouse', status:'occupied', building:'Ocean Tower', guestFlag:'dnd'},
     {id:'PH02', floor:20, type:'Penthouse', status:'vacant-clean', building:'Ocean Tower'},
     
     {id:'1401', floor:14, type:'Premier', status:'vacant-dirty', building:'Ocean Tower'},
-    {id:'1402', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower'},
-    {id:'1403', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower'},
+    {id:'1402', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower', guestFlag:'mur'},
+    {id:'1403', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower', guestFlag:'away'},
     {id:'1405', floor:14, type:'Premier', status:'oos', building:'Ocean Tower'},
     
-    {id:'1201', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower'},
+    {id:'1201', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower', guestFlag:'none'},
     {id:'1202', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
     {id:'1203', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
-    {id:'1205', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower'},
+    {id:'1205', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower', guestFlag:'none'},
     {id:'1206', floor:12, type:'Deluxe', status:'vacant-dirty', building:'Forest Tower'},
     
-    {id:'0801', floor:8, type:'Standard', status:'occupied', building:'Forest Tower'},
-    {id:'0802', floor:8, type:'Standard', status:'occupied', building:'Forest Tower'},
+    {id:'0801', floor:8, type:'Standard', status:'occupied', building:'Forest Tower', guestFlag:'dnd'},
+    {id:'0802', floor:8, type:'Standard', status:'occupied', building:'Forest Tower', guestFlag:'none'},
     {id:'0803', floor:8, type:'Standard', status:'oos', building:'Forest Tower'},
     
-    {id:'V-01', floor:1, type:'Pool Villa', status:'occupied', building:'Lakeside Villa'},
+    {id:'V-01', floor:1, type:'Pool Villa', status:'occupied', building:'Lakeside Villa', guestFlag:'away'},
     {id:'V-02', floor:1, type:'Pool Villa', status:'vacant-clean', building:'Lakeside Villa'}
 ];
 
@@ -164,6 +164,16 @@ Object.assign(window.PmsAPI, {
             {date:'2026-05-17', room:{v:17250, d:8.2}, pos:{v:3160, d:6.5}, golf:{v:1930, d:12.4}, car:{v:1300, d:5.1}},
             {date:'2026-05-16', room:{v:15950, d:0}, pos:{v:2970, d:0}, golf:{v:1720, d:0}, car:{v:1240, d:0}}
         ]; 
+    },
+
+    setGuestFlag: async (roomId, flag) => {
+        let rooms = window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : _fallbackRooms;
+        const room = rooms.find(r => r.id === roomId);
+        if (room) {
+            room.guestFlag = flag;
+            localStorage.setItem('pms_rooms', JSON.stringify(rooms));
+        }
+        return true;
     },
 
     getAllRooms: async () => { return window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : _fallbackRooms; },
