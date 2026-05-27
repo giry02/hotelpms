@@ -190,6 +190,7 @@ function toggleAncillary(isWeekly) {
         });
     }
 }
+window.toggleAncillary = toggleAncillary;
 
 // CARD ACTION TOGGLE
 document.querySelectorAll('.card-actions').forEach(group => {
