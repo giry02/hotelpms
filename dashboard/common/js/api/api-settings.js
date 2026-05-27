@@ -9,6 +9,7 @@ const _ALL_MENUS = [
     { key:'rooms',        icon:'fa-bed',                 label:'객실 관리' },
     { key:'rates',        icon:'fa-tags',                label:'요금 캘린더' },
     { key:'housekeeping', icon:'fa-broom',               label:'하우스키핑' },
+    { key:'maintenance',  icon:'fa-toolbox',             label:'시설보수' },
     { key:'folio',        icon:'fa-file-invoice-dollar', label:'정산/청구' },
     { key:'ancillary',    icon:'fa-concierge-bell',      label:'부가서비스' },
     { key:'settings',     icon:'fa-gear',                label:'호텔 설정' },
@@ -17,15 +18,14 @@ const _ALL_MENUS = [
 ];
 
 const _SYSTEM_ROLES = [
-    { id:'sys_admin',       name:'Admin',       color:'#6D28D9', desc:'전체 접근',          perms:_ALL_MENUS.map(m=>m.key) }
+    { id:'sys_admin',       name:'Admin',           color:'#6D28D9', desc:'전체 접근',          isSystem: true, perms:_ALL_MENUS.map(m=>m.key) },
+    { id:'sys_gm',          name:'General Manager', color:'#111827', desc:'총괄 매니저',        isSystem: true, perms:['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','maintenance','folio','ancillary','settings','staff','billing'] },
+    { id:'sys_desk',        name:'Front Desk',      color:'#2563EB', desc:'프론트 데스크',      isSystem: true, perms:['dashboard','reservation','checkin','crm','rooms','folio','ancillary'] },
+    { id:'sys_housekeeping',name:'Housekeeping',    color:'#059669', desc:'하우스키핑',         isSystem: true, perms:['housekeeping'] },
+    { id:'sys_maintenance', name:'Maintenance',     color:'#D97706', desc:'유지보수 및 시설',   isSystem: true, perms:['housekeeping', 'maintenance'] }
 ];
 
-const _DEFAULT_CUSTOM_ROLES = [
-    { id:'sys_gm',           name:'General Manager', color:'#111827', desc:'총괄 매니저',       perms:['dashboard','reservation','checkin','crm','rooms','rates','housekeeping','folio','ancillary','settings','staff','billing'] },
-    { id:'sys_desk',         name:'Front Desk',      color:'#2563EB', desc:'프론트 데스크',     perms:['dashboard','reservation','checkin','crm','rooms','folio','ancillary'] },
-    { id:'sys_housekeeping', name:'Housekeeping',    color:'#059669', desc:'하우스키핑',        perms:['housekeeping'] },
-    { id:'sys_maintenance',  name:'Maintenance',     color:'#D97706', desc:'유지보수 및 시설',  perms:['housekeeping'] }
-];
+const _DEFAULT_CUSTOM_ROLES = [];
 
 const _DEFAULT_STAFF = [
     { id:'s1', name:'Nguyen Kim',     init:'NK', email:'kim@hotel.com',    roleId:'sys_admin',        status:'online',  last:'방금 전', color:'#6D28D9' },

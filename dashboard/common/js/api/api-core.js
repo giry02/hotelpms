@@ -1,5 +1,5 @@
 // api-core.js
-const API_VERSION = 'v1.9'; // Bumped to reset everything cleanly
+const API_VERSION = 'v2.0'; // Bumped to force reset system roles
 
 if (localStorage.getItem('pms_api_version') !== API_VERSION) {
     Object.keys(localStorage).forEach(key => {
