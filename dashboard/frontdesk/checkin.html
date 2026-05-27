@@ -14,7 +14,23 @@
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
 <style>
+/* === Guest Flag Buttons === */
+.flag-btn-group { display: flex; gap: 4px; }
+.flag-btn {
+    width: 28px; height: 28px;
+    border: 1.5px solid var(--border); border-radius: 8px;
+    background: #fff; cursor: pointer; font-size: 0.75rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+}
+.flag-btn:hover { border-color: var(--primary); transform: scale(1.1); }
+.flag-btn.active { border-color: #6366f1; background: #eef2ff; box-shadow: 0 0 0 2px rgba(99,102,241,.2); }
+/* Search Input */
+.ci-search { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; width: 150px; outline: none; margin-left:12px; }
+.ci-search:focus { border-color: var(--primary); }
 /* ===== STAY INFO ===== */
 .ci-stay {
     font-size: .76rem; color: var(--txt3); margin-top: 3px;
@@ -209,7 +225,11 @@
                         체크아웃 대기
                         <span class="chip-badge" id="badge-co">0</span>
                     </button>
+                    <button class="sort-chip" data-filter="stayover" onclick="applyFilter(this,'stayover')">
+                        <i class="fa-solid fa-bed"></i> 투숙 중 <span class="chip-badge" id="badge-so">5</span>
+                    </button>
                 </div>
+                <input type="text" id="ciSearchInput" class="ci-search" placeholder="이름/호실 검색..." oninput="applySearch()">
             </div>
             <div class="filter-right">
                 <span style="font-size:.8rem;color:var(--txt3);" id="filter-status-label">전체 표시 중</span>
@@ -336,6 +356,122 @@
                 </div>
             </div>
 
+            <!-- ── STAYOVER CARDS ── -->
+            <div class="ci-card filter-hidden" data-type="stayover" data-room="PH01">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#4ade80">ST</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Steve Taylor
+                            <span class="type-tag" style="background:#e0e7ff; color:#4338ca;">투숙 중</span>
+                        </div>
+                        <div class="ci-meta">PH01 · Penthouse · Direct</div>
+                        <div class="ci-stay"><i class="fa-regular fa-calendar"></i> 2026.05.25 ~ 2026.05.29 <span class="stay-nights">4박</span></div>
+                    </div>
+                </div>
+                <div class="ci-right" style="flex-direction:column; align-items:flex-end; gap:6px;">
+                    <span style="font-size:0.75rem; color:var(--txt3); font-weight:600;">상태 설정 (프론트 전용)</span>
+                    <div class="flag-btn-group" id="flag-grp-PH01">
+                        <button class="flag-btn active" title="방해금지" onclick="setStayoverFlag('PH01', 'dnd')">🔴</button>
+                        <button class="flag-btn" title="청소요청" onclick="setStayoverFlag('PH01', 'mur')">🟢</button>
+                        <button class="flag-btn" title="외출" onclick="setStayoverFlag('PH01', 'away')">🚶</button>
+                        <button class="flag-btn" title="재실" onclick="setStayoverFlag('PH01', 'none')">🛌</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ci-card filter-hidden" data-type="stayover" data-room="1402">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#f43f5e">EJ</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Emily Jones
+                            <span class="type-tag" style="background:#e0e7ff; color:#4338ca;">투숙 중</span>
+                        </div>
+                        <div class="ci-meta">1402 · Deluxe Twin · Agoda</div>
+                        <div class="ci-stay"><i class="fa-regular fa-calendar"></i> 2026.05.24 ~ 2026.05.28 <span class="stay-nights">4박</span></div>
+                    </div>
+                </div>
+                <div class="ci-right" style="flex-direction:column; align-items:flex-end; gap:6px;">
+                    <span style="font-size:0.75rem; color:var(--txt3); font-weight:600;">상태 설정 (프론트 전용)</span>
+                    <div class="flag-btn-group" id="flag-grp-1402">
+                        <button class="flag-btn" title="방해금지" onclick="setStayoverFlag('1402', 'dnd')">🔴</button>
+                        <button class="flag-btn active" title="청소요청" onclick="setStayoverFlag('1402', 'mur')">🟢</button>
+                        <button class="flag-btn" title="외출" onclick="setStayoverFlag('1402', 'away')">🚶</button>
+                        <button class="flag-btn" title="재실" onclick="setStayoverFlag('1402', 'none')">🛌</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ci-card filter-hidden" data-type="stayover" data-room="1403">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#eab308">MR</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Michael Rose
+                            <span class="type-tag" style="background:#e0e7ff; color:#4338ca;">투숙 중</span>
+                        </div>
+                        <div class="ci-meta">1403 · Deluxe Twin · Expedia</div>
+                        <div class="ci-stay"><i class="fa-regular fa-calendar"></i> 2026.05.26 ~ 2026.05.27 <span class="stay-nights">1박</span></div>
+                    </div>
+                </div>
+                <div class="ci-right" style="flex-direction:column; align-items:flex-end; gap:6px;">
+                    <span style="font-size:0.75rem; color:var(--txt3); font-weight:600;">상태 설정 (프론트 전용)</span>
+                    <div class="flag-btn-group" id="flag-grp-1403">
+                        <button class="flag-btn" title="방해금지" onclick="setStayoverFlag('1403', 'dnd')">🔴</button>
+                        <button class="flag-btn" title="청소요청" onclick="setStayoverFlag('1403', 'mur')">🟢</button>
+                        <button class="flag-btn active" title="외출" onclick="setStayoverFlag('1403', 'away')">🚶</button>
+                        <button class="flag-btn" title="재실" onclick="setStayoverFlag('1403', 'none')">🛌</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ci-card filter-hidden" data-type="stayover" data-room="0801">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#3b82f6">KH</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Kevin Hart
+                            <span class="type-tag" style="background:#e0e7ff; color:#4338ca;">투숙 중</span>
+                        </div>
+                        <div class="ci-meta">0801 · Standard King · Direct</div>
+                        <div class="ci-stay"><i class="fa-regular fa-calendar"></i> 2026.05.26 ~ 2026.05.30 <span class="stay-nights">4박</span></div>
+                    </div>
+                </div>
+                <div class="ci-right" style="flex-direction:column; align-items:flex-end; gap:6px;">
+                    <span style="font-size:0.75rem; color:var(--txt3); font-weight:600;">상태 설정 (프론트 전용)</span>
+                    <div class="flag-btn-group" id="flag-grp-0801">
+                        <button class="flag-btn active" title="방해금지" onclick="setStayoverFlag('0801', 'dnd')">🔴</button>
+                        <button class="flag-btn" title="청소요청" onclick="setStayoverFlag('0801', 'mur')">🟢</button>
+                        <button class="flag-btn" title="외출" onclick="setStayoverFlag('0801', 'away')">🚶</button>
+                        <button class="flag-btn" title="재실" onclick="setStayoverFlag('0801', 'none')">🛌</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ci-card filter-hidden" data-type="stayover" data-room="V-01">
+                <div class="ci-left">
+                    <div class="guest-avatar" style="background:#a855f7">LS</div>
+                    <div class="ci-info">
+                        <div class="ci-name">
+                            Laura Smith
+                            <span class="type-tag" style="background:#e0e7ff; color:#4338ca;">투숙 중</span>
+                        </div>
+                        <div class="ci-meta">V-01 · Villa Pool · Booking.com</div>
+                        <div class="ci-stay"><i class="fa-regular fa-calendar"></i> 2026.05.21 ~ 2026.05.28 <span class="stay-nights">7박</span></div>
+                    </div>
+                </div>
+                <div class="ci-right" style="flex-direction:column; align-items:flex-end; gap:6px;">
+                    <span style="font-size:0.75rem; color:var(--txt3); font-weight:600;">상태 설정 (프론트 전용)</span>
+                    <div class="flag-btn-group" id="flag-grp-V-01">
+                        <button class="flag-btn" title="방해금지" onclick="setStayoverFlag('V-01', 'dnd')">🔴</button>
+                        <button class="flag-btn" title="청소요청" onclick="setStayoverFlag('V-01', 'mur')">🟢</button>
+                        <button class="flag-btn active" title="외출" onclick="setStayoverFlag('V-01', 'away')">🚶</button>
+                        <button class="flag-btn" title="재실" onclick="setStayoverFlag('V-01', 'none')">🛌</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- ── CHECK-OUT CARDS ── -->
             <div class="ci-card" data-type="checkout" data-vip="false">
                 <div class="ci-left">
@@ -458,6 +594,7 @@
 // ===== STATE =====
 let currentLang = 'ko';
 let currentFilter = 'all';
+let currentSearch = '';
 
 // ===== KPI UPDATE =====
 function updateKPICounts() {
@@ -498,27 +635,57 @@ function updateKPICounts() {
 }
 
 // ===== FILTER / SORT =====
+function applySearch() {
+    currentSearch = document.getElementById('ciSearchInput').value.toLowerCase();
+    applyFilter(document.querySelector('.sort-chip.active') || document.querySelector('.sort-chip'), currentFilter);
+}
+
 function applyFilter(btn, filter) {
     currentFilter = filter;
 
     // Update chip active state
     document.querySelectorAll('.sort-chip').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
+    if(btn) btn.classList.add('active');
 
     // Show / hide cards
     document.querySelectorAll('#cardList .ci-card').forEach(card => {
-        if (filter === 'all') {
-            card.classList.remove('filter-hidden');
-        } else {
-            const isMatch = card.getAttribute('data-type') === filter;
-            card.classList.toggle('filter-hidden', !isMatch);
+        let isMatch = (filter === 'all') || (card.getAttribute('data-type') === filter);
+        if (isMatch && currentSearch) {
+            const name = card.querySelector('.ci-name') ? card.querySelector('.ci-name').textContent.toLowerCase() : '';
+            const room = card.getAttribute('data-room') ? card.getAttribute('data-room').toLowerCase() : '';
+            const meta = card.querySelector('.ci-meta') ? card.querySelector('.ci-meta').textContent.toLowerCase() : '';
+            if (!name.includes(currentSearch) && !room.includes(currentSearch) && !meta.includes(currentSearch)) {
+                isMatch = false;
+            }
         }
+        card.classList.toggle('filter-hidden', !isMatch);
     });
 
     // Status label
-    const labelMap = { all: '전체 표시 중', checkin: '체크인 대기만 표시 중', checkout: '체크아웃 대기만 표시 중' };
+    const labelMap = { all: '전체 표시 중', checkin: '체크인 대기만 표시 중', checkout: '체크아웃 대기만 표시 중', stayover: '투숙 중인 객실 표시 중' };
     const lbl = document.getElementById('filter-status-label');
     if(lbl) lbl.textContent = labelMap[filter] || '';
+}
+
+// ===== STAYOVER FLAG =====
+async function setStayoverFlag(roomId, flag) {
+    if (window.PmsAPI && PmsAPI.setGuestFlag) {
+        await PmsAPI.setGuestFlag(roomId, flag);
+        const grp = document.getElementById('flag-grp-' + roomId);
+        if (grp) {
+            const btns = grp.querySelectorAll('.flag-btn');
+            btns[0].classList.toggle('active', flag === 'dnd');
+            btns[1].classList.toggle('active', flag === 'mur');
+            btns[2].classList.toggle('active', flag === 'away');
+            btns[3].classList.toggle('active', flag === 'none');
+        }
+        const labels = { dnd: '방해금지(DND)', mur: '청소요청(MUR)', away: '외출 중', none: '재실 중' };
+        if (typeof showToast === 'function') {
+            showToast(roomId + '호 → ' + (labels[flag] || flag));
+        } else {
+            alert(roomId + '호 → ' + (labels[flag] || flag));
+        }
+    }
 }
 
 // ===== CHECK-IN PROCESS =====
