@@ -562,7 +562,8 @@ Object.assign(window.translations.ko, {
     "Notice Mgmt": "공지사항 관리",
     "Audit Logs": "감사 로그",
     "Platform Owner": "플랫폼 소유자",
-    "Super Admin": "슈퍼 관리자"
+    "Super Admin": "슈퍼 관리자",
+    "더보기 →": "더보기 →"
 });
 Object.assign(window.translations.en, {
     "Group & MICE": "Group & MICE",
@@ -615,4 +616,5 @@ Object.assign(window.translations.en, {
     "Audit Logs": "Audit Logs",
     "Platform Owner": "Platform Owner",
     "Super Admin": "Super Admin",
+    "더보기 →": "View More →"
 });
