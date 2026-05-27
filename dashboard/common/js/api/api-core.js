@@ -18,3 +18,13 @@ function initStorage(key, fallbackData) {
 }
 
 window.PmsAPI = window.PmsAPI || {};
+
+Object.assign(window.PmsAPI, {
+    // Session Mock: Change to 's5' (housekeeping) or 's1' (admin) for testing
+    getCurrentUser: async () => {
+        // Defaults to Admin if not explicitly set in localStorage for testing
+        const override = localStorage.getItem('mock_user_id') || 's1'; 
+        const staffList = await window.PmsAPI.getDEFAULT_STAFF();
+        return staffList.find(s => s.id === override) || staffList[0];
+    }
+});

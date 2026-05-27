@@ -353,7 +353,7 @@
                     <option value="normal">🔵 일반</option>
                     <option value="low">⚪ 낮음</option>
                 </select>
-                <button class="btn-primary-sm" onclick="openModal('newRequestModal')"><i class="fa-solid fa-plus"></i> 티켓 생성</button>
+                <button class="btn-primary-sm" onclick="openMaintModal()"><i class="fa-solid fa-plus"></i> 티켓 생성</button>
             </div>
         </div>
 
@@ -416,12 +416,6 @@
                 <div>
                     <label class="form-label">유형 <span style="color:var(--danger)">*</span></label>
                     <select class="form-input" id="newType">
-                        <option>전기/조명</option>
-                        <option>배관/수도</option>
-                        <option>에어컨/냉난방</option>
-                        <option>가구/비품</option>
-                        <option>도어/잠금장치</option>
-                        <option>엘리베이터</option>
                         <option>기타</option>
                     </select>
                 </div>
@@ -440,13 +434,9 @@
                         <option value="low">⚪ 낮음</option>
                     </select>
                 </div>
-                <div>
+                <div id="assigneeWrapper">
                     <label class="form-label">담당자 배정</label>
                     <select class="form-input" id="newAssignee">
-                        <option>김철수 (시설팀장)</option>
-                        <option>이영호 (전기담당)</option>
-                        <option>박미래 (배관담당)</option>
-                        <option>최동훈 (냉난방)</option>
                         <option>미배정</option>
                     </select>
                 </div>
@@ -472,6 +462,41 @@
 </div>
 
 <script>
+async function openMaintModal() {
+    var r = document.getElementById('newRoom');
+    var d = document.getElementById('newDesc');
+    if (r) r.value = '';
+    if (d) d.value = '';
+    var p = document.getElementById('newPriority');
+    if (p) p.value = 'normal';
+
+    var typeEl = document.getElementById('newType');
+    if (typeEl && window.PmsAPI && PmsAPI.getMAINTENANCE_TYPES) {
+        var types = await PmsAPI.getMAINTENANCE_TYPES();
+        typeEl.innerHTML = types.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+    }
+
+    var assigneeEl = document.getElementById('newAssignee');
+    var assigneeWrapper = document.getElementById('assigneeWrapper');
+    
+    if (window.PmsAPI && PmsAPI.getCurrentUser) {
+        var currentUser = await PmsAPI.getCurrentUser();
+        if (currentUser.roleId === 'sys_housekeeping') {
+            if (assigneeWrapper) assigneeWrapper.style.display = 'none';
+            if (assigneeEl) assigneeEl.value = '미배정';
+        } else {
+            if (assigneeWrapper) assigneeWrapper.style.display = 'block';
+            if (assigneeEl && PmsAPI.getDEFAULT_STAFF) {
+                var staff = await PmsAPI.getDEFAULT_STAFF();
+                var maintStaff = staff.filter(s => s.roleId === 'sys_maintenance' || s.roleId === 'sys_admin');
+                assigneeEl.innerHTML = maintStaff.map(s => `<option value="${s.name}">${s.name} (${s.roleId === 'sys_admin' ? '관리자' : '시설팀'})</option>`).join('') + '<option value="미배정">미배정</option>';
+            }
+        }
+    }
+
+    openModal('newRequestModal');
+}
+
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function showToast(msg) {

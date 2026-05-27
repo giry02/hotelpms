@@ -33,12 +33,25 @@ const _DEFAULT_STAFF = [
     { id:'s3', name:'Sarah Connor',   init:'SC', email:'desk1@hotel.com',  roleId:'sys_desk',         status:'online',  last:'방금 전', color:'#2563EB' },
     { id:'s4', name:'John Smith',     init:'JS', email:'desk2@hotel.com',  roleId:'sys_desk',         status:'offline', last:'2시간 전', color:'#2563EB' },
     { id:'s5', name:'Maria Garcia',   init:'MG', email:'house@hotel.com',  roleId:'sys_housekeeping', status:'online',  last:'30분 전', color:'#059669' },
-    { id:'s6', name:'James Bond',     init:'JB', email:'maint@hotel.com',  roleId:'sys_maintenance',  status:'offline', last:'1일 전', color:'#D97706' }
+    { id:'s6', name:'James Bond',     init:'JB', email:'maint@hotel.com',  roleId:'sys_maintenance',  status:'offline', last:'1일 전', color:'#D97706' },
+    { id:'s7', name:'김철수',         init:'CS', email:'maint2@hotel.com', roleId:'sys_maintenance',  status:'online',  last:'방금 전', color:'#D97706' },
+    { id:'s8', name:'이영호',         init:'YH', email:'maint3@hotel.com', roleId:'sys_maintenance',  status:'online',  last:'10분 전', color:'#D97706' }
+];
+
+const _MAINTENANCE_TYPES = [
+    { id: 'mt1', name: '전기/조명' },
+    { id: 'mt2', name: '배관/수도' },
+    { id: 'mt3', name: '에어컨/냉난방' },
+    { id: 'mt4', name: '가구/비품' },
+    { id: 'mt5', name: '도어/잠금장치' },
+    { id: 'mt6', name: '엘리베이터' },
+    { id: 'mt7', name: '기타' }
 ];
 
 Object.assign(window.PmsAPI, {
     getALL_MENUS: async () => { return JSON.parse(JSON.stringify(_ALL_MENUS)); },
     getSYSTEM_ROLES: async () => { return JSON.parse(JSON.stringify(_SYSTEM_ROLES)); },
     getDEFAULT_CUSTOM_ROLES: async () => { return JSON.parse(JSON.stringify(_DEFAULT_CUSTOM_ROLES)); },
-    getDEFAULT_STAFF: async () => { return JSON.parse(JSON.stringify(_DEFAULT_STAFF)); }
+    getDEFAULT_STAFF: async () => { return JSON.parse(JSON.stringify(_DEFAULT_STAFF)); },
+    getMAINTENANCE_TYPES: async () => { return JSON.parse(JSON.stringify(_MAINTENANCE_TYPES)); }
 });
