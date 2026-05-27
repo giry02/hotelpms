@@ -558,13 +558,8 @@ function renderRoomBox(r, appendHtml) {
         const fi = flagMap[gf] || flagMap['none'];
         flagBadge = `<div class="guest-flag-badge ${fi.cls}">${fi.emoji} ${fi.label}</div>`;
         
-        // Flag toggle buttons
-        flagButtons = `<div class="flag-btn-group">
-            <button class="flag-btn ${gf==='dnd'?'active':''}" title="방해금지" onclick="setFlag('${r.id}','dnd'); event.stopPropagation();">🔴</button>
-            <button class="flag-btn ${gf==='mur'?'active':''}" title="청소요청" onclick="setFlag('${r.id}','mur'); event.stopPropagation();">🟢</button>
-            <button class="flag-btn ${gf==='away'?'active':''}" title="외출" onclick="setFlag('${r.id}','away'); event.stopPropagation();">🚶</button>
-            <button class="flag-btn ${gf==='none'?'active':''}" title="재실" onclick="setFlag('${r.id}','none'); event.stopPropagation();">🛌</button>
-        </div>`;
+        // Flag toggle buttons (Moved to Front Desk / Check-in page per user request)
+        flagButtons = ``;
     } else if (r.hkStatus === 'dirty') {
         boxClass = 'vacant-dirty';
         stLabel = isEn ? 'Pending Clean' : '청소 요망';
@@ -828,17 +823,7 @@ if (typeof showToast === 'undefined') {
     };
 }
 
-async function setFlag(roomId, flag) {
-    if (window.PmsAPI && PmsAPI.setGuestFlag) {
-        await PmsAPI.setGuestFlag(roomId, flag);
-        // Update local data and re-render
-        const room = allRooms.find(r => r.id === roomId);
-        if (room) room.guestFlag = flag;
-        renderAllViews();
-        const labels = { dnd: '방해금지(DND)', mur: '청소요청(MUR)', away: '외출 중', none: '재실 중' };
-        showToast(roomId + '호 → ' + (labels[flag] || flag));
-    }
-}
+
 
 // ===== MAINTENANCE REQUEST (maintenance.html 티켓 생성과 동일한 팝업) =====
 async function openMaintModal() {
