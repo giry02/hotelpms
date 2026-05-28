@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>호텔 입점 신청 - Hotel PMS</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<link href="../common/css/admin-login.css" rel="stylesheet"/>
+<style>
+body{display:block;overflow:auto;background:#f1f5f9;color:#111827}
+.apply-shell{min-height:100vh;display:grid;grid-template-columns:minmax(320px,430px) 1fr}
+.apply-aside{background:#020617;color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:space-between}
+.apply-logo{display:flex;align-items:center;gap:12px;font-weight:800}
+.apply-logo-icon{width:42px;height:42px;border-radius:12px;background:var(--primary);display:flex;align-items:center;justify-content:center}
+.apply-aside h1{font-size:2rem;line-height:1.2;margin:52px 0 14px}
+.apply-aside p{color:#94a3b8;line-height:1.7;font-size:.92rem}
+.apply-steps{display:flex;flex-direction:column;gap:12px;margin-top:36px}
+.apply-step{display:flex;gap:10px;align-items:flex-start;color:#cbd5e1;font-size:.84rem}
+.apply-step i{color:#818cf8;margin-top:2px}
+.apply-main{padding:42px;display:flex;align-items:center;justify-content:center}
+.apply-card{width:min(900px,100%);background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 12px 34px rgba(15,23,42,.08);overflow:hidden}
+.apply-header{padding:24px 28px;border-bottom:1px solid #eef2f7;display:flex;justify-content:space-between;gap:16px;align-items:center}
+.apply-header h2{font-size:1.25rem}
+.apply-header p{font-size:.84rem;color:#64748b;margin-top:4px}
+.apply-body{padding:28px;display:flex;flex-direction:column;gap:22px}
+.apply-section{display:flex;flex-direction:column;gap:14px}
+.apply-section h3{font-size:.92rem;display:flex;align-items:center;gap:8px}
+.apply-section h3 i{color:var(--primary)}
+.apply-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.apply-field{display:flex;flex-direction:column;gap:6px}
+.apply-field label{font-size:.78rem;font-weight:700;color:#475569}
+.apply-field input,.apply-field select,.apply-field textarea{border:1px solid #dbe3ef;border-radius:10px;padding:11px 12px;font-family:var(--font);font-size:.9rem}
+.apply-field input:focus,.apply-field select:focus,.apply-field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-lt)}
+.apply-note{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:12px;padding:13px 14px;font-size:.82rem;line-height:1.55}
+.apply-footer{padding:18px 28px;background:#f8fafc;border-top:1px solid #eef2f7;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.apply-link{color:#475569;text-decoration:none;font-size:.86rem;font-weight:700}
+.apply-btn{border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:800;padding:12px 18px;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.apply-btn:hover{background:var(--primary-dk)}
+.apply-error{display:none;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:10px;padding:12px 14px;font-size:.84rem}
+.apply-error.show{display:block}
+@media(max-width:900px){.apply-shell{grid-template-columns:1fr}.apply-aside{padding:30px}.apply-main{padding:20px}.apply-grid{grid-template-columns:1fr}.apply-footer{flex-direction:column;align-items:stretch}.apply-btn{justify-content:center}}
+</style>
+</head>
+<body>
+<div class="apply-shell">
+<aside class="apply-aside">
+<div>
+<div class="apply-logo"><div class="apply-logo-icon"><i class="fa-solid fa-hotel"></i></div><span>HOTEL PMS</span></div>
+<h1>호텔 입점 신청</h1>
+<p>신청이 접수되면 플랫폼 관리자가 계약/운영 정보를 확인한 뒤 승인 결과와 접속 안내를 이메일로 발송합니다.</p>
+<div class="apply-steps">
+<div class="apply-step"><i class="fa-solid fa-1"></i><span>호텔 정보와 담당자 계정을 입력합니다.</span></div>
+<div class="apply-step"><i class="fa-solid fa-2"></i><span>Super Admin에서 심사 후 승인/반려를 처리합니다.</span></div>
+<div class="apply-step"><i class="fa-solid fa-3"></i><span>승인 시 로그인 안내와 임시 비밀번호 초기화 링크가 이메일로 발송됩니다.</span></div>
+</div>
+</div>
+<a class="apply-link" href="../login.html" style="color:#cbd5e1"><i class="fa-solid fa-arrow-left"></i> 관리자 로그인으로 돌아가기</a>
+</aside>
+<main class="apply-main">
+<form class="apply-card" onsubmit="submitApplication(event)">
+<div class="apply-header">
+<div>
+<h2>입점 신청서</h2>
+<p>로그인 ID는 담당자 이메일로 생성됩니다. 비밀번호는 승인 전까지 활성화되지 않습니다.</p>
+</div>
+<span style="font-size:.78rem;font-weight:800;color:#6366f1;background:rgba(99,102,241,.1);padding:6px 10px;border-radius:999px">신규 신청</span>
+</div>
+<div class="apply-body">
+<div class="apply-error" id="applyError"></div>
+<section class="apply-section">
+<h3><i class="fa-solid fa-building"></i> 호텔 정보</h3>
+<div class="apply-grid">
+<div class="apply-field"><label>호텔명 *</label><input id="hotelName" required placeholder="예: Seoul Tower Hotel"/></div>
+<div class="apply-field"><label>객실 수 *</label><input id="rooms" required min="1" type="number" placeholder="예: 120"/></div>
+<div class="apply-field"><label>국가 *</label><select id="country" required><option value="">선택</option><option>South Korea</option><option>Vietnam</option><option>Thailand</option><option>Japan</option></select></div>
+<div class="apply-field"><label>도시 *</label><input id="city" required placeholder="예: Seoul"/></div>
+<div class="apply-field"><label>희망 플랜</label><select id="plan"><option>Free</option><option>Standard</option><option>Premium</option></select></div>
+<div class="apply-field"><label>기본 통화</label><select id="currency"><option>KRW</option><option>VND</option><option>USD</option><option>THB</option><option>JPY</option></select></div>
+</div>
+</section>
+<section class="apply-section">
+<h3><i class="fa-solid fa-user-shield"></i> 초기 관리자 계정</h3>
+<div class="apply-grid">
+<div class="apply-field"><label>담당자 이름 *</label><input id="contactName" required placeholder="예: 홍길동"/></div>
+<div class="apply-field"><label>연락처 *</label><input id="phone" required placeholder="+82 10 0000 0000"/></div>
+<div class="apply-field"><label>로그인 이메일 *</label><input id="email" required type="email" placeholder="admin@hotel.com"/></div>
+<div class="apply-field"><label>초기 비밀번호 *</label><input id="password" required minlength="8" type="password" placeholder="8자 이상"/></div>
+<div class="apply-field"><label>비밀번호 확인 *</label><input id="passwordConfirm" required minlength="8" type="password"/></div>
+<div class="apply-field"><label>신청 경로</label><select id="source"><option>직접 신청</option><option>영업 담당자 안내</option><option>기존 호텔 추천</option><option>기타</option></select></div>
+</div>
+</section>
+<section class="apply-section">
+<h3><i class="fa-solid fa-clipboard-list"></i> 요청 사항</h3>
+<div class="apply-field"><label>특이사항</label><textarea id="memo" rows="4" placeholder="필요한 연동, 운영 시작 희망일, 계약 관련 메모를 입력하세요."></textarea></div>
+<div class="apply-note"><strong>운영 기준:</strong> 승인 이후 비밀번호 분실 시 호텔 담당자는 이메일 기반 재설정 링크를 받고, Super Admin은 호텔 상세 또는 관리자 계정 화면에서 임시 비밀번호 발송을 처리합니다.</div>
+</section>
+</div>
+<div class="apply-footer">
+<a class="apply-link" href="../login.html">이미 계정이 있습니다</a>
+<button class="apply-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> 신청 접수</button>
+</div>
+</form>
+</main>
+</div>
+<script>
+function submitApplication(event) {
+    event.preventDefault();
+    const error = document.getElementById('applyError');
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('passwordConfirm').value;
+    error.classList.remove('show');
+    if (password !== confirm) {
+        error.textContent = '비밀번호와 비밀번호 확인이 일치하지 않습니다.';
+        error.classList.add('show');
+        return;
+    }
+
+    const applications = JSON.parse(localStorage.getItem('admin_tenant_applications') || '[]');
+    const data = {
+        id: 'APP-' + new Date().toISOString().slice(0,10).replaceAll('-', '') + '-' + String(applications.length + 1).padStart(3, '0'),
+        hotelName: document.getElementById('hotelName').value.trim(),
+        rooms: Number(document.getElementById('rooms').value || 0),
+        country: document.getElementById('country').value,
+        city: document.getElementById('city').value.trim(),
+        plan: document.getElementById('plan').value,
+        currency: document.getElementById('currency').value,
+        contactName: document.getElementById('contactName').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        source: document.getElementById('source').value,
+        memo: document.getElementById('memo').value.trim(),
+        status: '심사 중',
+        submittedAt: new Date().toISOString().slice(0, 10)
+    };
+    applications.unshift(data);
+    localStorage.setItem('admin_tenant_applications', JSON.stringify(applications));
+    alert(`입점 신청이 접수되었습니다.\n신청번호: ${data.id}\n심사 결과는 ${data.email}로 안내됩니다.`);
+    location.href = '../login.html';
+}
+</script>
+</body>
+</html>

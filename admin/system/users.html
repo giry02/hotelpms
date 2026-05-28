@@ -22,7 +22,7 @@
 <h1>사용자 관리</h1>
 </div>
 <div class="topbar-right">
-<button class="btn-primary" style="padding:8px 16px; font-size:0.85rem;"><i class="fa-solid fa-user-plus"></i> 신규 사용자 추가</button>
+<button class="btn-primary" style="padding:8px 16px; font-size:0.85rem;" onclick="alert('신규 관리자 초대 메일을 발송하는 화면으로 연결됩니다.')"><i class="fa-solid fa-user-plus"></i> 신규 관리자 초대</button>
 </div>
 </header>
 <div class="content">
@@ -35,12 +35,12 @@
 <thead>
 <tr>
 <th>ID</th>
-<th>Name</th>
-<th>Role</th>
-<th>Email</th>
-<th>Status</th>
-<th>Last Login</th>
-<th>Action</th>
+<th>이름</th>
+<th>역할</th>
+<th>이메일</th>
+<th>상태</th>
+<th>최근 로그인</th>
+<th>관리</th>
 </tr>
 </thead>
 <tbody id="userTableBody">
@@ -54,21 +54,32 @@
 	window.addEventListener('DataReady', () => {
 		const users = window.AdminData?.users || [];
 		const tbody = document.getElementById('userTableBody');
+		const roleLabel = {
+			'System Admin': '시스템 관리자',
+			'Sales Manager': '영업 관리자',
+			'Support Specialist': '지원 담당자'
+		};
+		const statusLabel = { active: '활성', inactive: '비활성' };
 		
 		tbody.innerHTML = users.map(u => `
 			<tr>
 				<td><strong>${u.id}</strong></td>
 				<td>${u.name}</td>
-				<td><span class="badge ${u.role === 'System Admin' ? 'indigo' : 'gray'}">${u.role}</span></td>
+				<td><span class="badge ${u.role === 'System Admin' ? 'indigo' : 'gray'}">${roleLabel[u.role] || u.role}</span></td>
 				<td>${u.email}</td>
-				<td><span class="badge ${u.status === 'active' ? 'green' : 'red'}">${u.status}</span></td>
+				<td><span class="badge ${u.status === 'active' ? 'green' : 'red'}">${statusLabel[u.status] || u.status}</span></td>
 				<td>${u.lastLogin}</td>
 				<td>
-					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;">Edit</button>
+					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;" onclick="alert('${u.email} 계정 편집 화면을 엽니다.')">수정</button>
+					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;color:var(--primary);border-color:var(--primary)" onclick="sendAdminPasswordReset('${u.email}')"><i class="fa-solid fa-envelope"></i> 비밀번호 초기화</button>
 				</td>
 			</tr>
 		`).join('');
 	});
+
+	function sendAdminPasswordReset(email) {
+		alert(`${email}로 비밀번호 재설정 링크가 발송되었습니다.`);
+	}
 </script>
 </body>
 </html>

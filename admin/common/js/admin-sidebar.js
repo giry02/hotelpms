@@ -22,7 +22,8 @@
         { key: 'billing', src: `${BASE}data/billing.json` },
         { key: 'tickets', src: `${BASE}data/tickets.json` },
         { key: 'devices', src: `${BASE}data/trusted-devices.json` },
-        { key: 'auditLogs', src: `${BASE}data/audit-logs.json` }
+        { key: 'auditLogs', src: `${BASE}data/audit-logs.json` },
+        { key: 'tenantApplications', src: `${BASE}data/tenant-applications.json` }
     ];
 
     window.AdminData = window.AdminData || {};
@@ -56,25 +57,25 @@
     loadAdminData();
 
     const MENU = [
-        { group: 'Main', items: [
-            { icon: 'fa-chart-line', label: 'Platform Status', href: BASE + 'admin.html' }
+        { group: '메인', items: [
+            { icon: 'fa-chart-line', label: '플랫폼 현황', href: BASE + 'admin.html' }
         ]},
-        { group: 'Tenant Mgmt', items: [
-            { icon: 'fa-building',       label: 'Hotel List',     href: BASE + 'tenants/list.html' },
-            { icon: 'fa-circle-plus',    label: 'New Registration', href: BASE + 'tenants/register.html' }
+        { group: '입점 호텔 관리', items: [
+            { icon: 'fa-building',       label: '호텔 목록',     href: BASE + 'tenants/list.html' },
+            { icon: 'fa-circle-plus',    label: '관리자 직접 등록', href: BASE + 'tenants/register.html' }
         ]},
-        { group: 'Ad Network', items: [
-            { icon: 'fa-rectangle-ad',   label: 'Campaigns',   href: BASE + 'ads/campaigns.html' },
-            { icon: 'fa-plus',           label: 'New Campaign',   href: BASE + 'ads/new.html' },
-            { icon: 'fa-file-invoice-dollar', label: 'Ad Billing', href: BASE + 'ads/billing.html' }
+        { group: '광고 네트워크', items: [
+            { icon: 'fa-rectangle-ad',   label: '캠페인 목록',   href: BASE + 'ads/campaigns.html' },
+            { icon: 'fa-plus',           label: '캠페인 등록',   href: BASE + 'ads/new.html' },
+            { icon: 'fa-file-invoice-dollar', label: '광고 정산', href: BASE + 'ads/billing.html' }
         ]},
-        { group: 'System', items: [
-            { icon: 'fa-users-gear',         label: 'Admin Accounts',   href: BASE + 'system/users.html' },
-            { icon: 'fa-credit-card',        label: 'Subscription & Billing',   href: BASE + 'system/billing.html' },
-            { icon: 'fa-plug',               label: 'Integration Hub',  href: BASE + 'system/integrations.html' },
-            { icon: 'fa-headset',            label: 'Customer Support',     href: BASE + 'system/helpdesk.html' },
-            { icon: 'fa-bullhorn',           label: 'Notice Mgmt', href: BASE + 'system/notices.html' },
-            { icon: 'fa-clock-rotate-left',  label: 'Audit Logs',     href: BASE + 'system/audit-logs.html' }
+        { group: '시스템 관리', items: [
+            { icon: 'fa-users-gear',         label: '관리자 계정',   href: BASE + 'system/users.html' },
+            { icon: 'fa-credit-card',        label: '구독 및 결제',   href: BASE + 'system/billing.html' },
+            { icon: 'fa-plug',               label: '연동 관리',  href: BASE + 'system/integrations.html' },
+            { icon: 'fa-headset',            label: '고객 지원',     href: BASE + 'system/helpdesk.html' },
+            { icon: 'fa-bullhorn',           label: '공지사항 관리', href: BASE + 'system/notices.html' },
+            { icon: 'fa-clock-rotate-left',  label: '감사 로그',     href: BASE + 'system/audit-logs.html' }
         ]}
     ];
 
@@ -83,7 +84,7 @@
         MENU.forEach(g => {
             let items = '';
             g.items.forEach(it => {
-                items += `<a class="nav-item" href="${it.href}"><i class="fa-solid ${it.icon}"></i><span data-i18n-key="${it.label}">${it.label}</span></a>`;
+                items += `<a class="nav-item" href="${it.href}"><i class="fa-solid ${it.icon}"></i><span>${it.label}</span></a>`;
             });
             groups += `<div class="nav-group"><div class="nav-group-label">${g.group}</div>${items}</div>`;
         });
@@ -97,7 +98,7 @@
     <div class="sidebar-bottom">
         <a href="${BASE}system/profile.html" class="sidebar-user" style="text-decoration:none; color:inherit; display:flex; padding:8px; border-radius:8px; transition:background 0.2s;">
             <div class="user-avatar">SA</div>
-            <div class="user-info"><div class="user-name">Super Admin</div><div class="user-role">Platform Owner</div></div>
+            <div class="user-info"><div class="user-name">슈퍼 관리자</div><div class="user-role">플랫폼 운영자</div></div>
         </a>
     </div>
 </aside>`;

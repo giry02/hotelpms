@@ -50,24 +50,24 @@
 <div>
 <div class="profile-card">
 <div class="profile-avatar">SA</div>
-<div class="profile-name">Super Admin</div>
-<div class="profile-role">Platform Owner</div>
-<button class="btn-outline" style="width:100%;margin-bottom:20px;">비밀번호 변경</button>
+<div class="profile-name">슈퍼 관리자</div>
+<div class="profile-role">플랫폼 운영자</div>
+<button class="btn-outline" style="width:100%;margin-bottom:20px;" onclick="alert('등록된 이메일로 비밀번호 변경 링크가 발송됩니다.')">비밀번호 변경</button>
 <div class="profile-info">
 <div class="pi-row"><span style="color:var(--txt3)"> ID</span><strong>ADM-001</strong></div>
-<div class="pi-row"><span style="color:var(--txt3)"≯</span><strong>admin@platform.sys</strong></div>
-<div class="pi-row"><span style="color:var(--txt3)">2ܰ  (2FA)</span><strong style="color:var(--success)">Ȱȭ</strong></div>
+<div class="pi-row"><span style="color:var(--txt3)">이메일</span><strong>admin@platform.sys</strong></div>
+<div class="pi-row"><span style="color:var(--txt3)">2단계 인증 (2FA)</span><strong style="color:var(--success)">활성</strong></div>
 </div>
 </div>
 </div>
 <!-- TRUSTED DEVICES -->
 <div class="card">
 <div class="card-header">
-<h2><i class="fa-solid fa-laptop-medical"></i> 등록된 기기 관리 (Trusted Devices)</h2>
+<h2><i class="fa-solid fa-laptop-medical"></i> 등록된 기기 관리</h2>
 </div>
 <div class="card-body">
 <p style="font-size:0.85rem;color:var(--txt2);margin-bottom:24px;line-height:1.5;">
-						ϵ ⿡ α  2ܰ  ˴ϴ. нǵǾų  ̻  ʴ  [ ]	ϼ.
+						관리자 계정에 연결된 신뢰 기기 목록입니다. 분실했거나 더 이상 사용하지 않는 기기는 즉시 해제하세요.
 					</p>
 <div id="deviceList">
 <!-- JS inject -->
@@ -85,10 +85,10 @@
 		listEl.innerHTML = devices.map(d => {
 			const icon = d.name.includes('iPhone') || d.name.includes('Galaxy') ? 'fa-mobile-screen' : 'fa-laptop';
 			const revokeBtn = d.current 
-				? `<span class=\"badge green\">현재 기기</span>` 
+				? `<span class="badge green">현재 기기</span>`
 				: (d.status === 'active' 
-					? `<button class="btn-danger btn-sm" onclick="alert('연결이 해제되었습니다. 해당 기기에서 로그아웃됩니다.');this.parentElement.innerHTML='<span class=\\'badge gray\\'></span>';"><i class="fa-solid fa-ban"></i>  </button>`
-					: `<span class="badge gray"></span>`);
+					? `<button class="btn-danger btn-sm" onclick="alert('연결이 해제되었습니다. 해당 기기에서 로그아웃됩니다.');this.parentElement.innerHTML='<span class=\\'badge gray\\'>해제됨</span>';"><i class="fa-solid fa-ban"></i> 기기 해제</button>`
+					: `<span class="badge gray">만료됨</span>`);
 			
 			return `
 			<div class="device-card ${d.current ? 'current' : ''}">
@@ -97,7 +97,7 @@
 					<div class="dev-details">
 						<h4>${d.name} ${d.current ? '<span class="badge indigo" style="font-size:0.6rem;padding:2px 4px;">현재 기기</span>' : ''}</h4>
 						<p>IP: ${d.ip}</p>
-						<p>ֱ : ${d.lastActive} | : ${d.addedAt}</p>
+						<p>최근 활동: ${d.lastActive} | 등록일: ${d.addedAt}</p>
 					</div>
 				</div>
 				<div class="dev-action">

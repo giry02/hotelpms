@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>고객 지원 (Helpdesk) - Super Admin</title>
+<title>고객 지원 - Super Admin</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
@@ -48,7 +48,7 @@
 <header class="topbar">
 <div class="topbar-left">
 <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-<h1>고객 지원 (Helpdesk)</h1>
+<h1>고객 지원</h1>
 </div>
 </header>
 <div class="content">
@@ -56,8 +56,8 @@
 <!-- LIST -->
 <div class="ticket-list">
 <div class="ticket-list-header">
-<h3 style="font-size:1rem;font-weight:600;">Open Tickets</h3>
-<span class="badge red">2 Action Req.</span>
+<h3 style="font-size:1rem;font-weight:600;">미처리 문의</h3>
+<span class="badge red">2건 처리 필요</span>
 </div>
 <div class="ticket-items" id="ticketList">
 <!-- Injected by JS -->
@@ -69,8 +69,8 @@
 <div class="td-title" id="dtlTitle"> </div>
 <div class="td-meta">
 <span id="dtlHotel"><i class="fa-solid fa-building"></i> The Grand Saigon</span>
-<span id="dtlAuthor"><i class="fa-solid fa-user"></i> Mgmt Team</span>
-<span class="badge orange" id="dtlStatus">Open</span>
+<span id="dtlAuthor"><i class="fa-solid fa-user"></i> 관리팀</span>
+<span class="badge orange" id="dtlStatus">접수</span>
 </div>
 </div>
 <div class="td-body" id="dtlBody">
@@ -91,13 +91,14 @@
 	window.addEventListener('DataReady', () => {
 		const tickets = window.AdminData?.tickets || [];
 		const listEl = document.getElementById('ticketList');
+		const statusLabel = { open: '접수', 'in-progress': '처리 중', resolved: '완료' };
 		
 		listEl.innerHTML = tickets.map((t, i) => `
 			<div class="ticket-item ${i===0 ? 'active':''}">
 				<div class="tk-title">[${t.id}] ${t.subject}</div>
 				<div class="tk-meta">
 					<span>${t.hotel}</span>
-					<span class="badge ${t.status === 'resolved' ? 'green' : (t.status === 'open' ? 'orange' : 'indigo')}">${t.status}</span>
+					<span class="badge ${t.status === 'resolved' ? 'green' : (t.status === 'open' ? 'orange' : 'indigo')}">${statusLabel[t.status] || t.status}</span>
 				</div>
 			</div>
 		`).join('');

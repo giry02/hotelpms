@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>감사 로그 (Audit Logs) - Super Admin</title>
+<title>감사 로그 - Super Admin</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
@@ -19,7 +19,7 @@
 <header class="topbar">
 <div class="topbar-left">
 <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-<h1>감사 로그 (Audit Logs)</h1>
+<h1>감사 로그</h1>
 </div>
 <div class="topbar-right">
 <a class="btn-outline" download="" href="../common/downloads/global_audit_logs.csv" style="padding:6px 12px;font-size:0.8rem;text-decoration:none;"><i class="fa-solid fa-download"></i> CSV 다운로드</a>
@@ -28,12 +28,12 @@
 <div class="content">
 <div class="card">
 <div class="card-header">
-<h2>감사 이벤트 (Audit Events)</h2>
+<h2>감사 이벤트</h2>
 <div class="filter-chips">
-<button class="chip active">All</button>
-<button class="chip">Logins</button>
-<button class="chip">Devices</button>
-<button class="chip" style="color:var(--danger);border-color:var(--danger-lt);">Critical</button>
+<button class="chip active">전체</button>
+<button class="chip">로그인</button>
+<button class="chip">기기</button>
+<button class="chip" style="color:var(--danger);border-color:var(--danger-lt);">위험</button>
 </div>
 </div>
 <div class="card-body">
@@ -41,13 +41,13 @@
 <table class="data-table">
 <thead>
 <tr>
-<th>Log ID</th>
-<th>Time</th>
-<th>Admin User</th>
-<th>Action Type</th>
-<th>Details</th>
-<th>Source IP</th>
-<th>Risk</th>
+<th>로그 ID</th>
+<th>시간</th>
+<th>관리자</th>
+<th>작업 유형</th>
+<th>상세</th>
+<th>접속 IP</th>
+<th>위험도</th>
 </tr>
 </thead>
 <tbody id="auditTableBody">
@@ -63,6 +63,21 @@
 	window.addEventListener('DataReady', () => {
 		const logs = window.AdminData?.auditLogs || [];
 		const tbody = document.getElementById('auditTableBody');
+		const actionLabel = {
+			'Device Registered': '신뢰 기기 등록',
+			'Failed Login': '로그인 실패',
+			'Permission Change': '권한 변경',
+			'Device Revoked': '기기 해제',
+			'Blocked Access': '접근 차단'
+		};
+		const detailsLabel = {
+			'Added new trusted device: iPhone 15 Pro': '신뢰 기기 추가: iPhone 15 Pro',
+			'Invalid password attempt': '잘못된 비밀번호 입력',
+			'Granted [SaaS Billing] access to ADM-002': 'ADM-002에 구독 결제 권한 부여',
+			'Auto-revoked expired device DEV-003': '만료된 기기 DEV-003 자동 해제',
+			'Login attempt from untrusted Geo-IP (Russia)': '신뢰되지 않은 지역 IP 로그인 시도'
+		};
+		const riskLabel = { Low: '낮음', Medium: '보통', High: '높음', Critical: '위험' };
 		
 		tbody.innerHTML = logs.map(l => {
 			let riskBadge = 'gray';
@@ -75,10 +90,10 @@
 				<td style="font-size:0.75rem;color:var(--txt3);">${l.id}</td>
 				<td style="font-size:0.8rem;">${l.time}</td>
 				<td style="font-weight:600;">${l.adminId}</td>
-				<td><span class="badge ${riskBadge === 'red' ? 'red' : 'gray'}">${l.action}</span></td>
-				<td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${l.details}">${l.details}</td>
+				<td><span class="badge ${riskBadge === 'red' ? 'red' : 'gray'}">${actionLabel[l.action] || l.action}</span></td>
+				<td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${detailsLabel[l.details] || l.details}">${detailsLabel[l.details] || l.details}</td>
 				<td style="font-family:monospace;">${l.ip}</td>
-				<td><span class="badge ${riskBadge}">${l.risk}</span></td>
+				<td><span class="badge ${riskBadge}">${riskLabel[l.risk] || l.risk}</span></td>
 			</tr>
 			`;
 		}).join('');

@@ -29,7 +29,7 @@
 <div class="content">
 <!-- KPI -->
 <div class="kpi-grid">
-<div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-money-bill-trend-up"></i></div><div class="kpi-body"><div class="kpi-value">$125,000</div><div class="kpi-label">This Month 결제 Completed</div></div></div>
+<div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-money-bill-trend-up"></i></div><div class="kpi-body"><div class="kpi-value">$125,000</div><div class="kpi-label">이번 달 결제 완료</div></div></div>
 <div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-clock"></i></div><div class="kpi-body"><div class="kpi-value">$18,400</div><div class="kpi-label">미납 및 연체</div></div></div>
 <div class="kpi-card red"><div class="kpi-icon"><i class="fa-solid fa-user-slash"></i></div><div class="kpi-body"><div class="kpi-value">2</div><div class="kpi-label">정지된 테넌트 (이탈)</div></div></div>
 </div>
@@ -37,23 +37,23 @@
 <div class="card-header" style="flex-direction:column; align-items:flex-start; gap:16px;">
 <h2 style="font-size:1.1rem; font-weight:700;">All 결제 내역</h2>
 <div class="filter-chips">
-<button class="chip active" onclick="filterTable('all')">All (All)</button>
-<button class="chip" onclick="filterTable('overdue')" style="color:var(--danger);border-color:var(--danger-lt);">미납/연체</button>
-<button class="chip" onclick="filterTable('expiring')">만료 임박 (D-3)</button>
-<button class="chip" onclick="filterTable('expired')">만료됨</button>
+<button class="chip active" onclick="filterTable('all', this)">전체</button>
+<button class="chip" onclick="filterTable('overdue', this)" style="color:var(--danger);border-color:var(--danger-lt);">미납/연체</button>
+<button class="chip" onclick="filterTable('expiring', this)">만료 임박 (D-3)</button>
+<button class="chip" onclick="filterTable('expired', this)">만료됨</button>
 </div>
 </div>
 <div class="card-body">
 <table class="data-table">
 <thead>
 <tr>
-<th>Tenant (Hotel)</th>
-<th>Plan</th>
-<th>Cycle</th>
-<th>Amount</th>
-<th>Renewal Date</th>
-<th>Status</th>
-<th>Action</th>
+<th>호텔</th>
+<th>플랜</th>
+<th>결제 주기</th>
+<th>금액</th>
+<th>갱신일</th>
+<th>상태</th>
+<th>관리</th>
 </tr>
 </thead>
 <tbody id="billingTableBody">
@@ -91,7 +91,7 @@
 </div>
 </div>
 <div class="modal-footer">
-<button class="btn-outline" onclick="closeModal('promoModal')">Cancel</button>
+<button class="btn-outline" onclick="closeModal('promoModal')">취소</button>
 <button class="btn-purple" onclick="alert('프로모션 메일이 발송되었습니다!');closeModal('promoModal');"><i class="fa-solid fa-paper-plane"></i> 메일 발송</button>
 </div>
 </div>
@@ -110,7 +110,7 @@
 </div>
 </div>
 <div class="modal-footer">
-<button class="btn-outline" onclick="closeModal('alertModal')">Cancel</button>
+<button class="btn-outline" onclick="closeModal('alertModal')">취소</button>
 <button class="btn-warning" onclick="alert('안내 알림이 발송되었습니다.');closeModal('alertModal');"><i class="fa-solid fa-paper-plane"></i> 안내 발송</button>
 </div>
 </div>
@@ -132,7 +132,7 @@
 			let statusLabel = i.status;
 			let actionBtn = '-';
 			
-			if (i.status === 'paid') { badgeColor = 'green'; statusLabel = '결제 Completed'; }
+			if (i.status === 'paid') { badgeColor = 'green'; statusLabel = '결제 완료'; }
 			if (i.status === 'overdue') { badgeColor = 'red'; statusLabel = '연체'; }
 			if (i.status === 'expiring') { 
 				badgeColor = 'orange'; 
@@ -149,7 +149,7 @@
 			<tr>
 				<td><strong style="font-weight:600;">${i.hotel}</strong><br><span style="font-size:0.7rem;color:var(--txt3)">${i.id}</span></td>
 				<td><span class="badge ${i.plan === 'Premium' ? 'purple' : 'gray'}">${i.plan}</span></td>
-				<td>${i.cycle === 'Yearly' ? '<span class="badge indigo">연간</span>' : ''}</td>
+				<td>${i.cycle === 'Yearly' ? '<span class="badge indigo">연간</span>' : '<span class="badge gray">월간</span>'}</td>
 				<td style="font-weight:600;">$${i.amount.toLocaleString()}</td>
 				<td>${i.date}</td>
 				<td><span class="badge ${badgeColor}">${statusLabel}</span></td>
@@ -159,10 +159,10 @@
 		}).join('');
 	}
 
-	function filterTable(status) {
+	function filterTable(status, btn) {
 		currentFilter = status;
 		document.querySelectorAll('.chip').forEach(t => t.classList.remove('active'));
-		event.currentTarget.classList.add('active');
+		if (btn) btn.classList.add('active');
 		renderTable();
 	}
 
