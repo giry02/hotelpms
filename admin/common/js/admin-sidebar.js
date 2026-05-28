@@ -17,25 +17,43 @@
     const _subDirs = ['tenants', 'ads', 'system'];
     const BASE = _subDirs.includes(_parentDir) ? '../' : '';
 
-    const scriptsToLoad = [
-        `${BASE}common/data/users.js`,
-        `${BASE}common/data/billing.js`,
-        `${BASE}common/data/tickets.js`,
-        `${BASE}common/data/devices.js`,
-        `${BASE}common/data/audit.js`
+    const DATASETS = [
+        { key: 'users', src: `${BASE}data/users.json` },
+        { key: 'billing', src: `${BASE}data/billing.json` },
+        { key: 'tickets', src: `${BASE}data/tickets.json` },
+        { key: 'devices', src: `${BASE}data/trusted-devices.json` },
+        { key: 'auditLogs', src: `${BASE}data/audit-logs.json` }
     ];
-    let loadedCount = 0;
-    scriptsToLoad.forEach(src => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = () => {
-            loadedCount++;
-            if(loadedCount === scriptsToLoad.length) {
-                window.dispatchEvent(new Event('DataReady'));
+
+    window.AdminData = window.AdminData || {};
+    window.adminDataReady = false;
+    window.onAdminDataReady = function(callback) {
+        if (window.adminDataReady) callback();
+        else window.addEventListener('DataReady', callback, { once: true });
+    };
+
+    async function loadAdminData() {
+        await Promise.all(DATASETS.map(async item => {
+            try {
+                const res = await fetch(item.src);
+                if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+                window.AdminData[item.key] = await res.json();
+            } catch (err) {
+                window.AdminData[item.key] = window.AdminData[item.key] || [];
+                console.warn(`Admin data load failed: ${item.src}`, err);
             }
+        }));
+        const emitReady = () => {
+            window.adminDataReady = true;
+            window.dispatchEvent(new Event('DataReady'));
         };
-        document.head.appendChild(script);
-    });
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', emitReady, { once: true });
+        } else {
+            emitReady();
+        }
+    }
+    loadAdminData();
 
     const MENU = [
         { group: 'Main', items: [

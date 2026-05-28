@@ -396,8 +396,174 @@ async function deleteCompany(id) {
 }
 
 function openBlockModal(compId) {
-    window.location.href = `groups_blocks.html?newBlock=true&comp=${compId}`;
+    window.location.href = `groups_block_detail.html?mode=new&companyId=${encodeURIComponent(compId)}`;
 }
+</script>
+<script>
+(function(){
+    function companyGroups(company) {
+        let groups = [];
+        try { groups = JSON.parse(localStorage.getItem('pms_groups') || '[]'); } catch(e) {}
+        return groups.filter(g => g.agencyId === company.id || g.agency === company.name || (g.agency || '').includes(company.name));
+    }
+    function parseDate(value) {
+        if (!value) return null;
+        const d = value.includes('-') ? new Date(value) : new Date(`2026/${value}`);
+        if (Number.isNaN(d.getTime())) return null;
+        d.setHours(0,0,0,0);
+        return d;
+    }
+    function stageCounts(events) {
+        const now = new Date();
+        now.setHours(0,0,0,0);
+        return events.reduce((acc, g) => {
+            const cin = parseDate(g.checkin);
+            const cout = parseDate(g.checkout);
+            if (cin && cout && cin <= now && cout > now) acc.active++;
+            else if (cin && cin > now) acc.upcoming++;
+            else if (cout && cout <= now) acc.past++;
+            return acc;
+        }, {active:0, upcoming:0, past:0});
+    }
+    window.renderCompanies = function(search = '') {
+        const grid = document.getElementById('companyGrid');
+        const empty = document.getElementById('emptyState');
+        if (!grid) return;
+        document.getElementById('kpiTotal').textContent = companies.length;
+        document.getElementById('kpiActive').textContent = companies.filter(c => c.status === 'active').length;
+        const allEvents = companies.flatMap(c => companyGroups(c));
+        document.getElementById('kpiEvents').textContent = allEvents.filter(g => g.status === 'confirmed' || g.status === 'inhouse').length;
+        document.getElementById('kpiUnpaid').textContent = allEvents.filter(g => g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid').length;
+
+        const q = String(search || '').toLowerCase();
+        const filtered = companies.filter(c => {
+            const typeMatch = currentFilter === 'all' || c.type === currentFilter;
+            const text = [c.name, c.contactName, c.phone, c.rate, c.billing].filter(Boolean).join(' ').toLowerCase();
+            return typeMatch && (!q || text.includes(q));
+        });
+        if (!filtered.length) {
+            grid.style.display = 'none';
+            if (empty) empty.style.display = 'block';
+            return;
+        }
+        grid.style.display = 'grid';
+        if (empty) empty.style.display = 'none';
+        grid.innerHTML = filtered.map(c => {
+            const events = companyGroups(c);
+            const cnt = stageCounts(events);
+            const typeName = c.type === 'Corporate' ? '기업' : c.type === 'Travel Agency' ? '여행사' : c.type === 'Government' ? '공공기관' : '기타';
+            const badgeCls = c.status === 'active' ? 'pill-active' : 'pill-inactive';
+            const badgeTxt = c.status === 'active' ? '계약 활성' : '비활성';
+            return `
+            <div class="company-card">
+                <div class="company-header">
+                    <div>
+                        <div class="company-name">${c.name}</div>
+                        <div class="company-type">${typeName} · ${c.id}</div>
+                    </div>
+                    <span class="status-badge ${badgeCls}">${badgeTxt}</span>
+                </div>
+                <div class="company-meta">
+                    <div><i class="fa-solid fa-user"></i> 담당: ${c.contactName || '-'}</div>
+                    <div><i class="fa-solid fa-phone"></i> ${c.phone || '-'}</div>
+                    <div><i class="fa-solid fa-percent"></i> ${c.rate || (c.groupDiscount ? `객실 ${c.groupDiscount}% 할인` : '-')}</div>
+                    <div><i class="fa-solid fa-credit-card"></i> ${c.billing || '-'}</div>
+                    <div><i class="fa-solid fa-calendar-check"></i> 진행 ${cnt.active} · 예정 ${cnt.upcoming}</div>
+                    <div><i class="fa-solid fa-box-archive"></i> 지난 행사 ${cnt.past}</div>
+                </div>
+                <div class="card-footer-btns">
+                    <button class="btn-room-assign" onclick="openBlockModal('${c.id}')"><i class="fa-solid fa-calendar-plus"></i> 행사 생성</button>
+                    <button class="btn-card-edit" onclick="location.href='groups_blocks.html?companyId=${encodeURIComponent(c.id)}'" title="행사 보기"><i class="fa-solid fa-list"></i></button>
+                    <button class="btn-card-edit" onclick="editCompany('${c.id}')" title="업체 수정"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-card-delete" onclick="deleteCompany('${c.id}')" title="삭제"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>`;
+        }).join('');
+    };
+    document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+        if (typeof renderCompanies === 'function') renderCompanies();
+    }, 0));
+})();
+</script>
+<script>
+(function(){
+    function parseDiscount(rate) {
+        const m = String(rate || '').match(/(\d+(?:\.\d+)?)\s*%/);
+        return m ? Number(m[1]) : 0;
+    }
+    function ensureCompanyDiscountField() {
+        if (document.getElementById('compGroupDiscount')) return;
+        const rateInput = document.getElementById('compRate');
+        if (!rateInput) return;
+        const wrap = rateInput.closest('div');
+        const field = document.createElement('div');
+        field.innerHTML = `
+            <label class="form-label">단체 객실 할인율 (%)</label>
+            <input type="number" id="compGroupDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" placeholder="예: 15">
+        `;
+        wrap.parentElement.insertBefore(field, wrap.nextSibling);
+        rateInput.placeholder = '할인율을 입력하면 자동 생성됩니다';
+    }
+    function normalizeCompanies() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('pms_companies') || '[]');
+            let touched = false;
+            saved.forEach(c => {
+                if (c.groupDiscount === undefined) {
+                    c.groupDiscount = parseDiscount(c.rate);
+                    touched = true;
+                }
+                if (!c.rate && c.groupDiscount) {
+                    c.rate = `객실 ${c.groupDiscount}% 할인`;
+                    touched = true;
+                }
+            });
+            if (touched) {
+                localStorage.setItem('pms_companies', JSON.stringify(saved));
+                companies = saved;
+            }
+        } catch(e) {}
+    }
+    const oldOpen = window.openNewCompanyModal;
+    window.openNewCompanyModal = function() {
+        ensureCompanyDiscountField();
+        oldOpen();
+        document.getElementById('compGroupDiscount').value = '';
+    };
+    const oldEdit = window.editCompany;
+    window.editCompany = function(id) {
+        ensureCompanyDiscountField();
+        oldEdit(id);
+        const c = companies.find(x => x.id === id);
+        document.getElementById('compGroupDiscount').value = c?.groupDiscount ?? parseDiscount(c?.rate);
+    };
+    const oldSave = window.saveCompany;
+    window.saveCompany = function() {
+        ensureCompanyDiscountField();
+        const discount = Number(document.getElementById('compGroupDiscount').value || 0);
+        const rate = document.getElementById('compRate');
+        if (rate) rate.value = `객실 ${discount}% 할인`;
+        oldSave();
+        try {
+            const saved = JSON.parse(localStorage.getItem('pms_companies') || '[]');
+            const name = document.getElementById('compName').value;
+            const id = document.getElementById('compId').value;
+            const c = saved.find(x => (id && x.id === id) || x.name === name);
+            if (c) {
+                c.groupDiscount = discount;
+                c.rate = `객실 ${discount}% 할인`;
+                localStorage.setItem('pms_companies', JSON.stringify(saved));
+                companies = saved;
+                renderCompanies();
+            }
+        } catch(e) {}
+    };
+    document.addEventListener('DOMContentLoaded', () => {
+        ensureCompanyDiscountField();
+        normalizeCompanies();
+        if (typeof renderCompanies === 'function') renderCompanies();
+    });
+})();
 </script>
 </body>
 </html>

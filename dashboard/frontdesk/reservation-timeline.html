@@ -62,11 +62,35 @@
 /* Fallback & Override for Timeline Blocks to bypass CSS Cache */
 .tl-block { background-color: #64748B !important; color: #fff !important; }
 .tl-block.confirmed { background: #3B82F6 !important; }
+.tl-block.blocked { background: #111827 !important; }
 .tl-block.pending { background: #F59E0B !important; }
 .tl-block.checkedin { background: #10B981 !important; }
 .tl-block.checkout, .tl-block.checkedout { background: #EF4444 !important; } /* Match KPI Danger color */
 .tl-block.cancelled { background: #EF4444 !important; }
 .tl-block.completed { background: #94A3B8 !important; } /* Past reservations (gray) */
+.tl-block.group-assigned {
+    background: #2563EB !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.tl-group-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(255,255,255,.18);
+    color: #fff;
+    font-size: .58rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,.24);
+    margin-right: 5px;
+    vertical-align: 1px;
+}
+.tl-block.blocked .tl-group-badge {
+    background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.24);
+}
 </style>
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
@@ -156,6 +180,61 @@ const DAYS = 14;
 const EPOCH = new Date(2026, 4, 12); // Base reference date
 let baseDate = new Date(); // Start view from actual today
 baseDate.setHours(0,0,0,0);
+
+function cleanTimelineGuestName(value) {
+    const text = String(value || '').trim();
+    if (!text || text === 'undefined' || text === 'null' || text === '-') return '';
+    if (text.includes('객실 블록') || text.includes('(단체)')) return '';
+    return text;
+}
+
+function normalizeReservationStatus(res) {
+    let safeStatus = res && res.status ? String(res.status).replace(/[- _]/g, '').toLowerCase() : 'confirmed';
+    return safeStatus === 'vip' ? 'confirmed' : safeStatus;
+}
+
+function timelineGuestName(res) {
+    if (!res) return '';
+    const roomingName = cleanTimelineGuestName(res.roomingGuestName) || cleanTimelineGuestName(res.guestName);
+    if (roomingName) return roomingName;
+    if (res.isGroupPlaceholder || normalizeReservationStatus(res) === 'blocked') return '';
+    return cleanTimelineGuestName(res.guest);
+}
+
+function timelineCompanyLabel(res) {
+    if (!res) return '단체';
+    const channel = String(res.channel || '').trim();
+    const agency = String(res.agency || res.companyName || res.company || '').trim();
+    const groupName = String(res.groupName || '').trim();
+    if (channel && channel !== 'Group') return channel.split(' ')[0];
+    if (agency) return agency;
+    if (groupName) return groupName;
+    return '단체';
+}
+
+function hasTimelineGroupGuest(res) {
+    return !!(res && res.groupId && timelineGuestName(res));
+}
+
+function renderTimelineStatus(res, safeStatus) {
+    if (hasTimelineGroupGuest(res) && (res.isGroupPlaceholder || ['blocked', 'confirmed', 'pending'].includes(safeStatus))) return 'group-assigned';
+    return safeStatus;
+}
+
+function timelineDisplayName(res) {
+    const guestName = timelineGuestName(res);
+    if (res && res.groupId && guestName) return `${timelineCompanyLabel(res)} · ${guestName}`;
+    if (res && res.groupId && (normalizeReservationStatus(res) === 'blocked' || res.isGroupPlaceholder)) {
+        return res.groupName || res.channel || '단체 블록';
+    }
+    return guestName || (res && (res.guest || res.groupName)) || '예약';
+}
+
+function timelineGroupBadge(res) {
+    if (!res || !(res.groupId || res.isB2B || res.isGroupPlaceholder)) return '';
+    const label = res.groupId && !timelineGuestName(res) ? '블록' : '단체';
+    return `<span class="tl-group-badge"><i class="fa-solid fa-users"></i>${label}</span>`;
+}
 
 function buildTimeline() {
     const grid = document.getElementById('tlGrid');
@@ -248,9 +327,7 @@ function buildTimeline() {
         roomLevels[roomIdx][level] = renderEnd;
 
         const block = document.createElement('div');
-        let safeStatus = res.status ? res.status.replace(/[- _]/g, '').toLowerCase() : 'confirmed';
-        
-        if (safeStatus === 'vip') safeStatus = 'confirmed';
+        let safeStatus = normalizeReservationStatus(res);
         
         // Date-based logical correction for timeline
         const realToday = new Date();
@@ -264,7 +341,7 @@ function buildTimeline() {
             } catch(e){}
         }
 
-        if (rCoutDateObj) {
+        if (rCoutDateObj && safeStatus !== 'blocked' && !res.isGroupPlaceholder) {
             if (rCoutDateObj < realToday) {
                 // Past reservations
                 safeStatus = 'completed';
@@ -279,7 +356,8 @@ function buildTimeline() {
             }
         }
 
-        block.className = `tl-block ${safeStatus}`;
+        const renderStatus = renderTimelineStatus(res, safeStatus);
+        block.className = `tl-block ${renderStatus}`;
         
         const clipStart = Math.max(0, renderStart);
         const clipEnd = Math.min(DAYS, renderEnd);
@@ -300,11 +378,12 @@ function buildTimeline() {
         const isB2B = res.isB2B;
         const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
 
-        const b2bBadge = isB2B ? `<span style="background:#111827;color:#fff;font-size:0.6rem;padding:2px 4px;border-radius:4px;margin-right:4px;box-shadow:0 1px 2px rgba(0,0,0,0.2)">${res.channel.split(' ')[0]}</span>` : '';
+        const displayName = timelineDisplayName(res);
+        const groupBadge = timelineGroupBadge(res);
         const vipIcon = isVip ? `<i class="fa-solid fa-crown" style="color:#F59E0B; margin-right:4px; font-size:0.7rem;"></i>` : '';
-        block.innerHTML = `<span class="tl-block-text">${b2bBadge}${vipIcon}${res.guest}</span>`;
+        block.innerHTML = `<span class="tl-block-text">${groupBadge}${vipIcon}${displayName}</span>`;
 
-        block.onclick = () => window.openUnifiedResModal(res.id);
+        block.onclick = () => openTimelineReservation(res);
         row.style.position = 'relative';
         row.appendChild(block);
     });
@@ -365,6 +444,60 @@ function goToday() {
     buildMobileView();
 }
 
+function reservationWindow(res) {
+    if (res.cin && res.cout) {
+        try {
+            const cinParts = res.cin.split('/');
+            const coutParts = res.cout.split('/');
+            return {
+                start: new Date(2026, parseInt(cinParts[0], 10) - 1, parseInt(cinParts[1], 10)),
+                end: new Date(2026, parseInt(coutParts[0], 10) - 1, parseInt(coutParts[1], 10))
+            };
+        } catch(e) {}
+    }
+    const start = new Date(EPOCH);
+    start.setDate(start.getDate() + Number(res.start || 0));
+    const end = new Date(start);
+    end.setDate(end.getDate() + Number(res.len || res.nights || 1));
+    return { start, end };
+}
+
+function hasVisibleGroupBlock() {
+    const rangeEnd = new Date(baseDate);
+    rangeEnd.setDate(rangeEnd.getDate() + DAYS);
+    return reservations.some(res => {
+        if (res.status !== 'blocked' && !res.isGroupPlaceholder) return false;
+        const win = reservationWindow(res);
+        return win.start < rangeEnd && win.end > baseDate;
+    });
+}
+
+function alignTimelineToFirstGroupBlock() {
+    if (hasVisibleGroupBlock()) return;
+    const firstBlock = reservations
+        .filter(res => res.status === 'blocked' || res.isGroupPlaceholder)
+        .map(res => ({ res, win: reservationWindow(res) }))
+        .filter(item => item.win.start && !Number.isNaN(item.win.start.getTime()))
+        .sort((a, b) => a.win.start - b.win.start)[0];
+    if (!firstBlock) return;
+    baseDate = new Date(firstBlock.win.start);
+    baseDate.setHours(0,0,0,0);
+}
+
+function openTimelineReservation(res) {
+    if (!res) return;
+    if (res.groupId) {
+        try {
+            const groups = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+            const selected = groups.find(g => g.id === res.groupId);
+            if (selected) sessionStorage.setItem('pms_selected_group', JSON.stringify(selected));
+        } catch(e) {}
+        location.href = `groups_block_detail.html?id=${encodeURIComponent(res.groupId)}&tab=rooms`;
+        return;
+    }
+    window.openUnifiedResModal(res.id);
+}
+
 // ===== MOBILE MENU =====
 function toggleMenu() {
     document.querySelector('.sidebar').classList.toggle('active');
@@ -376,10 +509,10 @@ function buildMobileView() {
     const container = document.getElementById('tlMobileView');
     const isEn = typeof window.currentLang !== 'undefined' ? window.currentLang === 'en' : false;
     const statusMap = isEn ? 
-        {confirmed:'Confirmed',checkedin:'Check-in',vip:'VIP'} : 
-        {confirmed:'예약 확정',checkedin:'체크인 완료',vip:'VIP'};
-    const colorMap = {confirmed:'#3B82F6',checkedin:'#10B981',vip:'#8B5CF6'};
-    const iconMap = {confirmed:'fa-check',checkedin:'fa-right-to-bracket',vip:'fa-crown'};
+        {blocked:'Group Block','group-assigned':'Group Booking',confirmed:'Confirmed',checkedin:'Check-in',checkout:'Checkout',completed:'Completed',vip:'VIP'} :
+        {blocked:'단체 블록','group-assigned':'단체 예약',confirmed:'예약 확정',checkedin:'체크인 완료',checkout:'체크아웃 예정',completed:'완료',vip:'VIP'};
+    const colorMap = {blocked:'#111827','group-assigned':'#2563EB',confirmed:'#3B82F6',checkedin:'#10B981',checkout:'#EF4444',completed:'#94A3B8',vip:'#8B5CF6'};
+    const iconMap = {blocked:'fa-building','group-assigned':'fa-users',confirmed:'fa-check',checkedin:'fa-right-to-bracket',checkout:'fa-right-from-bracket',completed:'fa-check-double',vip:'fa-crown'};
 
     let html = '';
     rooms.forEach(room => {
@@ -420,15 +553,16 @@ function buildMobileView() {
                 cin.setDate(cin.getDate() + res.start);
                 const cout = new Date(cin);
                 cout.setDate(cout.getDate() + res.len);
-                const color = colorMap[res.status];
+                const renderStatus = renderTimelineStatus(res, normalizeReservationStatus(res));
+                const color = colorMap[renderStatus] || colorMap.confirmed;
                 html += `
-                <div class="m-booking-item" style="border-left:3px solid ${color}" onclick="window.openUnifiedResModal('${res.id}')">
+                <div class="m-booking-item" style="border-left:3px solid ${color}" onclick="openTimelineReservation(reservations.find(r => r.id === '${res.id}'))">
                     <div class="m-booking-top">
                         <div class="m-booking-guest">
-                            <i class="fa-solid ${iconMap[res.status]}" style="color:${color}"></i>
-                            <strong>${res.guest}</strong>
+                            <i class="fa-solid ${iconMap[renderStatus] || iconMap.confirmed}" style="color:${color}"></i>
+                            <strong>${timelineDisplayName(res)}</strong>
                         </div>
-                        <span class="status-badge ${res.status === 'checkedin' ? 'checkin' : res.status}">${statusMap[res.status]}</span>
+                        <span class="status-badge ${renderStatus === 'checkedin' ? 'checkin' : renderStatus}">${statusMap[renderStatus] || statusMap.confirmed}</span>
                     </div>
                     <div class="m-booking-meta">
                         ${cin.getMonth()+1}/${cin.getDate()} → ${cout.getMonth()+1}/${cout.getDate()} (${res.len}박) · ${res.channel}
@@ -469,6 +603,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ]);
         rooms = rmData;
         window.reservations = resData;
+        alignTimelineToFirstGroupBlock();
         log(`Fetched ${rooms ? rooms.length : 0} rooms.`);
         log(`Fetched ${reservations ? reservations.length : 0} reservations.`);
         

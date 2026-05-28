@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>행사 등록/관리 - Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
+    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
+    <script src="../common/js/guest-search.js"></script>
+    <script src="../common/js/reservation-actions.js"></script>
+    <style>
+        .detail-shell{display:flex;flex-direction:column;gap:18px}
+        .breadcrumb-row{display:flex;justify-content:space-between;gap:12px;align-items:center}
+        .breadcrumb{font-size:.78rem;color:var(--txt3);font-weight:700}
+        .detail-hero{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+        .detail-title{font-size:1.25rem;font-weight:800;color:var(--txt);margin-bottom:6px}
+        .detail-sub{display:flex;flex-wrap:wrap;gap:10px;font-size:.78rem;color:var(--txt2)}
+        .detail-sub span{display:inline-flex;align-items:center;gap:6px}
+        .status-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:800}
+        .pill-confirmed{background:#eff6ff;color:#2563eb}.pill-inhouse{background:#ecfdf5;color:#059669}.pill-pending{background:#fef3c7;color:#d97706}.pill-departed{background:#f1f5f9;color:#64748b}
+        .summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+        .summary-card{background:#fff;border:1px solid var(--border);border-radius:9px;padding:14px}
+        .summary-card .label{font-size:.7rem;color:var(--txt3);font-weight:800;margin-bottom:6px}
+        .summary-card .value{font-size:1.2rem;color:var(--txt);font-weight:850}
+        .local-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+        .local-tab{height:38px;padding:0 14px;border:none;background:transparent;border-bottom:2px solid transparent;font-family:var(--font);font-size:.82rem;font-weight:800;color:var(--txt2);cursor:pointer}
+        .local-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+        .tab-panel{display:none}.tab-panel.active{display:block}
+        .panel{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px}
+        .section-title{font-size:.94rem;font-weight:850;color:var(--txt);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+        .info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+        .info-item{border:1px solid var(--border2);border-radius:8px;padding:12px;background:#f8fafc}
+        .info-item .k{font-size:.7rem;color:var(--txt3);font-weight:800;margin-bottom:5px}
+        .info-item .v{font-size:.86rem;color:var(--txt);font-weight:700}
+        .data-table{width:100%;border-collapse:collapse;font-size:.8rem}
+        .data-table th,.data-table td{padding:10px 8px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:middle}
+        .data-table th{background:#f8fafc;color:#64748b;font-size:.72rem;font-weight:800}
+        .room-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:7px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:.72rem;font-weight:800}
+        .mini-btn{height:30px;padding:0 10px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--txt);font-family:var(--font);font-size:.74rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+        .mini-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+        .mini-btn.danger{border-color:#fecaca;color:#dc2626;background:#fff1f2}
+        .rooming-tools{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+        .progress{height:7px;background:#eef2f7;border-radius:99px;overflow:hidden}.progress>div{height:100%;background:var(--primary)}
+        .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+        .form-grid .wide{grid-column:1/-1}
+        .management-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
+        .allocation-editor{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+        .allocation-editor-row{display:grid;grid-template-columns:minmax(180px,1fr) 120px 120px 40px;gap:8px;align-items:center;border:1px solid var(--border2);border-radius:8px;background:#f8fafc;padding:8px}
+        .empty-guide{border:1px dashed var(--border);border-radius:10px;padding:18px;text-align:center;color:var(--txt2);font-size:.86rem;font-weight:700;background:#f8fafc}
+        @media(max-width:900px){.detail-hero{grid-template-columns:1fr}.summary-grid{grid-template-columns:repeat(2,1fr)}.info-grid{grid-template-columns:1fr}.panel{overflow-x:auto}}
+    </style>
+</head>
+<body>
+<div class="main">
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="mobile-menu-btn" onclick="PMS_Sidebar.toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+            <h1>행사 등록/관리</h1>
+        </div>
+    </header>
+    <div class="content">
+        <div class="detail-shell">
+            <div class="breadcrumb-row">
+                <div class="breadcrumb">단체 관리 &gt; 행사 목록 &gt; <span id="bcName">상세</span></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                    <button class="mini-btn primary" onclick="switchTabById('rooms')"><i class="fa-solid fa-bed"></i> 객실/투숙객 배정</button>
+                    <button class="mini-btn" onclick="location.href='groups_blocks.html'"><i class="fa-solid fa-arrow-left"></i> 목록</button>
+                </div>
+            </div>
+
+            <div class="detail-hero">
+                <div>
+                    <div class="detail-title" id="groupName">-</div>
+                    <div class="detail-sub">
+                        <span><i class="fa-solid fa-building"></i><span id="agencyText">-</span></span>
+                        <span><i class="fa-solid fa-calendar"></i><span id="dateText">-</span></span>
+                        <span><i class="fa-solid fa-user-tie"></i><span id="salesText">-</span></span>
+                    </div>
+                </div>
+                <span id="statusPill" class="status-pill pill-confirmed">확정</span>
+            </div>
+
+            <div class="summary-grid" id="summaryGrid"></div>
+
+            <div class="local-tabs">
+                <button class="local-tab active" onclick="switchTab('overview', this)">개요</button>
+                <button class="local-tab" onclick="switchTab('rooms', this)">객실/투숙객 배정</button>
+                <button class="local-tab" onclick="switchTab('rooming', this)">투숙객 명단</button>
+                <button class="local-tab" onclick="switchTab('folio', this)">정산</button>
+                <button class="local-tab" onclick="switchTab('history', this)">변경 이력</button>
+            </div>
+
+            <div id="overview" class="tab-panel active panel"></div>
+            <div id="rooms" class="tab-panel panel"></div>
+            <div id="rooming" class="tab-panel panel"></div>
+            <div id="folio" class="tab-panel panel"></div>
+            <div id="history" class="tab-panel panel"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="roomingModal" onclick="if(event.target===this)closeModal('roomingModal')">
+    <div class="modal-card" style="max-width:520px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">투숙객 등록</h3>
+            <button class="modal-close" onclick="closeModal('roomingModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+            <input type="hidden" id="guestEditId">
+            <div>
+                <label class="form-label">이름 <span style="color:var(--danger)">*</span></label>
+                <input id="guestNameInput" class="form-input" style="width:100%" placeholder="예: Tran Linh">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">호실</label>
+                    <select id="guestRoomInput" class="form-input" style="width:100%"></select>
+                </div>
+                <div>
+                    <label class="form-label">구분</label>
+                    <select id="guestRoleInput" class="form-input" style="width:100%">
+                        <option value="primary">대표 투숙객</option>
+                        <option value="companion">동반 투숙객</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">국적</label>
+                    <input id="guestNationInput" class="form-input" style="width:100%" placeholder="Korea">
+                </div>
+                <div>
+                    <label class="form-label">여권/신분증 확인</label>
+                    <select id="guestDocInput" class="form-input" style="width:100%">
+                        <option value="pending">미확인</option>
+                        <option value="verified">확인 완료</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="closeModal('roomingModal')">취소</button>
+            <button class="btn-primary-sm" onclick="saveRoomingGuest()"><i class="fa-solid fa-check"></i> 저장</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+let group = null;
+let groups = [];
+let reservations = [];
+let rooms = [];
+
+const statusMap = {
+    confirmed:{label:'확정', cls:'pill-confirmed'},
+    inhouse:{label:'투숙 중', cls:'pill-inhouse'},
+    pending:{label:'대기', cls:'pill-pending'},
+    departed:{label:'체크아웃', cls:'pill-departed'}
+};
+
+function getId() {
+    return new URLSearchParams(location.search).get('id');
+}
+
+function roomId(room) {
+    return room.id || room.roomId || room.fullRoom || room.display || room.number || '';
+}
+
+function getAssignedRooms(g) {
+    const source = Array.isArray(g?.roomAllocations) && g.roomAllocations.length ? g.roomAllocations : (g?.allocations || []);
+    return source.filter(a => a && (a.roomId || a.room || a.id)).map(a => {
+        const id = a.roomId || a.room || a.id;
+        const rm = rooms.find(r => roomId(r) === id) || {};
+        return {
+            roomId: id,
+            roomLabel: a.roomLabel || rm.display || rm.number || id,
+            type: a.type || rm.type || 'Standard',
+            building: a.building || rm.building || rm.bldgCode || '',
+            baseRate: Number(a.baseRate || 0),
+            discountPercent: Number(a.discountPercent || 0),
+            rate: Number(a.rate || 0)
+        };
+    });
+}
+
+function roomDisplayName(a) {
+    const label = a.roomLabel || a.roomId || '';
+    return a.building && !label.includes(a.building) ? `${a.building} ${label}` : label;
+}
+
+function getCurrency() {
+    const code = localStorage.getItem('pms_default_currency') || 'KRW';
+    return { code, symbol: code === 'USD' ? '$' : code === 'VND' ? '₫' : '₩' };
+}
+
+function money(value) {
+    const cur = getCurrency();
+    return `${cur.symbol}${Number(value || 0).toLocaleString()}`;
+}
+
+function nights() {
+    const cin = new Date(group.checkin);
+    const cout = new Date(group.checkout);
+    if (Number.isNaN(cin.getTime()) || Number.isNaN(cout.getTime())) return 1;
+    return Math.max(1, Math.round((cout - cin) / 86400000));
+}
+
+function groupReservations() {
+    return reservations.filter(r => r.groupId === group.id && r.status !== 'cancelled');
+}
+
+function roomingList() {
+    if (!Array.isArray(group.roomingList)) group.roomingList = [];
+    return group.roomingList;
+}
+
+function saveGroup() {
+    const idx = groups.findIndex(g => g.id === group.id);
+    if (idx >= 0) groups[idx] = group;
+    else if (group.id) groups.unshift(group);
+    localStorage.setItem('pms_groups', JSON.stringify(groups));
+}
+
+function switchTab(id, btn) {
+    document.querySelectorAll('.local-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(id).classList.add('active');
+}
+
+function switchTabById(id) {
+    const btn = Array.from(document.querySelectorAll('.local-tab')).find(b => (b.getAttribute('onclick') || '').includes(`'${id}'`));
+    if (btn) switchTab(id, btn);
+}
+
+function isDraftGroup() {
+    return !group || !group.id;
+}
+
+function createDraftGroup() {
+    return {
+        id: '',
+        name: '',
+        agency: '',
+        agencyId: '',
+        type: '기업 행사 / 컨퍼런스',
+        status: 'pending',
+        checkin: '',
+        checkout: '',
+        block: 0,
+        pickup: 0,
+        pax: 0,
+        routing: 'Master Folio (단체 일괄)',
+        sales: '',
+        contact: '',
+        note: '',
+        roomAllocations: [],
+        allocations: [],
+        roomingList: [],
+        history: []
+    };
+}
+
+function nextGroupId() {
+    const today = new Date().toISOString().slice(2,10).replace(/-/g, '');
+    const prefix = `GRP-${today}`;
+    const count = groups.filter(g => String(g.id || '').startsWith(prefix)).length + 1;
+    return `${prefix}-${String(count).padStart(2, '0')}`;
+}
+
+function renderHeader() {
+    const s = statusMap[group.status] || statusMap.confirmed;
+    const title = group.name || '신규 단체 관리';
+    document.getElementById('bcName').textContent = title;
+    document.getElementById('groupName').textContent = title;
+    document.getElementById('agencyText').textContent = group.agency || '-';
+    document.getElementById('dateText').textContent = `${group.checkin || '-'} ~ ${group.checkout || '-'}`;
+    document.getElementById('salesText').textContent = group.sales || '-';
+    document.getElementById('statusPill').textContent = isDraftGroup() ? '신규 작성' : s.label;
+    document.getElementById('statusPill').className = `status-pill ${s.cls}`;
+}
+
+function renderSummary() {
+    const assigned = getAssignedRooms(group);
+    const res = groupReservations();
+    const guests = roomingList();
+    const verified = guests.filter(g => g.docStatus === 'verified').length;
+    const pax = Number(group.pax || 0);
+    const guestPct = pax ? Math.round(guests.length / pax * 100) : 0;
+    document.getElementById('summaryGrid').innerHTML = [
+        ['배정 호실', `${assigned.length}실`],
+        ['예약/블록', `${res.length}/${assigned.length}`],
+        ['총 PAX', `${pax}명`],
+        ['등록 투숙객', `${guests.length}명 (${guestPct}%)`],
+        ['여권/신분증 확인', `${verified}명`]
+    ].map(([label,value]) => `<div class="summary-card"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
+}
+
+function renderOverview() {
+    document.getElementById('overview').innerHTML = `
+        <div class="section-title"><i class="fa-solid fa-circle-info"></i> 기본 정보</div>
+        <div class="info-grid">
+            <div class="info-item"><div class="k">행사 유형</div><div class="v">${group.type || '-'}</div></div>
+            <div class="info-item"><div class="k">정산 방식</div><div class="v">${group.routing || '-'}</div></div>
+            <div class="info-item"><div class="k">담당자 연락처</div><div class="v">${group.contact || '-'}</div></div>
+            <div class="info-item"><div class="k">영업 담당</div><div class="v">${group.sales || '-'}</div></div>
+            <div class="info-item" style="grid-column:1/-1"><div class="k">메모</div><div class="v">${group.note || '없음'}</div></div>
+        </div>`;
+}
+
+function renderRooms() {
+    const assigned = getAssignedRooms(group);
+    const res = groupReservations();
+    const guests = roomingList();
+    document.getElementById('rooms').innerHTML = `
+        <div class="section-title"><i class="fa-solid fa-bed"></i> 객실/예약</div>
+        <table class="data-table">
+            <thead><tr><th>호실</th><th>타입</th><th>요금</th><th>예약 상태</th><th>대표 투숙객</th><th></th></tr></thead>
+            <tbody>
+                ${assigned.map(a => {
+                    const r = res.find(x => x.room === a.roomId || x.fullRoom === a.roomId);
+                    const primary = guests.find(g => g.roomId === a.roomId && g.role === 'primary');
+                    const state = r ? (r.status === 'blocked' || r.isGroupPlaceholder ? '단체 블록' : r.status) : '미생성';
+                    return `<tr>
+                        <td><span class="room-chip">${roomDisplayName(a)}</span></td>
+                        <td>${a.type}</td>
+                        <td>${money(a.rate)} <span style="color:var(--txt3);font-size:.7rem">(${a.discountPercent || 0}% 할인)</span></td>
+                        <td>${state}</td>
+                        <td>${primary ? primary.name : '-'}</td>
+                        <td><button class="mini-btn primary" onclick="openRoomReservation('${a.roomId}')"><i class="fa-solid fa-calendar-plus"></i> 예약 관리</button></td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="6">배정된 호실이 없습니다.</td></tr>'}
+            </tbody>
+        </table>`;
+}
+
+function renderRooming() {
+    const guests = roomingList();
+    const pax = Number(group.pax || 0);
+    const pct = pax ? Math.min(100, Math.round(guests.length / pax * 100)) : 0;
+    document.getElementById('rooming').innerHTML = `
+        <div class="rooming-tools">
+            <div>
+                <div class="section-title" style="margin-bottom:6px"><i class="fa-solid fa-users"></i> Rooming List</div>
+                <div style="font-size:.76rem;color:var(--txt3);font-weight:700">${guests.length}/${pax || 0}명 등록</div>
+            </div>
+            <button class="mini-btn primary" onclick="openRoomingModal()"><i class="fa-solid fa-user-plus"></i> 투숙객 추가</button>
+        </div>
+        <div class="progress" style="margin-bottom:12px"><div style="width:${pct}%"></div></div>
+        <table class="data-table">
+            <thead><tr><th>이름</th><th>호실</th><th>구분</th><th>국적</th><th>여권/신분증</th><th></th></tr></thead>
+            <tbody>
+                ${guests.map(g => `<tr>
+                    <td>${g.name}</td>
+                    <td>${g.roomId || '-'}</td>
+                    <td>${g.role === 'primary' ? '대표' : '동반'}</td>
+                    <td>${g.nation || '-'}</td>
+                    <td>${g.docStatus === 'verified' ? '확인 완료' : '미확인'}</td>
+                    <td><button class="mini-btn danger" onclick="removeRoomingGuest('${g.id}')"><i class="fa-solid fa-trash"></i> 삭제</button></td>
+                </tr>`).join('') || '<tr><td colspan="6">등록된 투숙객이 없습니다. 엑셀 업로드/일괄 등록은 다음 단계에서 붙일 수 있습니다.</td></tr>'}
+            </tbody>
+        </table>`;
+}
+
+function renderFolio() {
+    const assigned = getAssignedRooms(group);
+    const n = nights();
+    const total = assigned.reduce((sum, a) => sum + Number(a.rate || 0) * n, 0);
+    document.getElementById('folio').innerHTML = `
+        <div class="section-title"><i class="fa-solid fa-file-invoice-dollar"></i> 정산 요약</div>
+        <div class="info-grid">
+            <div class="info-item"><div class="k">정산 방식</div><div class="v">${group.routing || '-'}</div></div>
+            <div class="info-item"><div class="k">숙박 일수</div><div class="v">${n}박</div></div>
+            <div class="info-item"><div class="k">객실료 합계</div><div class="v">${money(total)}</div></div>
+            <div class="info-item"><div class="k">업체</div><div class="v">${group.agency || '-'}</div></div>
+        </div>`;
+}
+
+function renderHistory() {
+    const history = Array.isArray(group.history) ? group.history : [];
+    document.getElementById('history').innerHTML = `
+        <div class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> 변경 이력</div>
+        <table class="data-table">
+            <thead><tr><th>일시</th><th>작업</th><th>메모</th></tr></thead>
+            <tbody>${history.map(h => `<tr><td>${h.at}</td><td>${h.action}</td><td>${h.note || '-'}</td></tr>`).join('') || '<tr><td colspan="3">아직 기록된 변경 이력이 없습니다.</td></tr>'}</tbody>
+        </table>`;
+}
+
+function renderAll() {
+    renderHeader();
+    renderSummary();
+    renderOverview();
+    renderRooms();
+    renderRooming();
+    renderFolio();
+    renderHistory();
+}
+
+function populateGuestRooms() {
+    const sel = document.getElementById('guestRoomInput');
+    sel.innerHTML = '<option value="">호실 선택</option>' + getAssignedRooms(group).map(a => `<option value="${a.roomId}">${a.roomLabel} · ${a.type}</option>`).join('');
+}
+
+window.openRoomingModal = function() {
+    populateGuestRooms();
+    document.getElementById('guestEditId').value = '';
+    document.getElementById('guestNameInput').value = '';
+    document.getElementById('guestNationInput').value = '';
+    document.getElementById('guestDocInput').value = 'pending';
+    document.getElementById('guestRoleInput').value = 'primary';
+    openModal('roomingModal');
+};
+
+window.editCurrentGroup = function() {
+    switchTabById('rooms');
+};
+
+window.saveRoomingGuest = function() {
+    const name = document.getElementById('guestNameInput').value.trim();
+    if (!name) { showToast('이름을 입력하세요.', 'error'); return; }
+    const guest = {
+        id: 'GG-' + Date.now(),
+        groupId: group.id,
+        name,
+        roomId: document.getElementById('guestRoomInput').value,
+        role: document.getElementById('guestRoleInput').value,
+        nation: document.getElementById('guestNationInput').value,
+        docStatus: document.getElementById('guestDocInput').value
+    };
+    roomingList().push(guest);
+    group.history = group.history || [];
+    group.history.unshift({ at: new Date().toLocaleString('ko-KR'), action: '투숙객 추가', note: `${guest.name} (${guest.roomId || '호실 미정'})` });
+    saveGroup();
+    closeModal('roomingModal');
+    renderAll();
+    showToast('투숙객이 Rooming List에 추가되었습니다.');
+};
+
+window.removeRoomingGuest = async function(id) {
+    const guest = roomingList().find(g => g.id === id);
+    if (!guest) return;
+    const ok = window.showConfirm ? await showConfirm(`[${guest.name}] 투숙객을 삭제하시겠습니까?`) : confirm(`[${guest.name}] 투숙객을 삭제하시겠습니까?`);
+    if (!ok) return;
+    group.roomingList = roomingList().filter(g => g.id !== id);
+    group.history = group.history || [];
+    group.history.unshift({ at: new Date().toLocaleString('ko-KR'), action: '투숙객 삭제', note: guest.name });
+    saveGroup();
+    renderAll();
+};
+
+window.openRoomReservation = async function(roomIdValue) {
+    try {
+        if (window.PmsAPI?.getAllRooms && (!window.rooms || !window.rooms.length)) {
+            window.rooms = rooms = await PmsAPI.getAllRooms();
+        }
+        if (window.PmsAPI?.getReservations) {
+            window.reservations = reservations = await PmsAPI.getReservations();
+        }
+        if (typeof window.openUnifiedResModal !== 'function') {
+            showToast('예약 모달을 불러오지 못했습니다. 페이지를 새로고침 후 다시 시도해주세요.', 'error');
+            return;
+        }
+        const existing = groupReservations().find(r => r.room === roomIdValue || r.fullRoom === roomIdValue);
+        if (existing) {
+            await window.openUnifiedResModal(existing.id);
+            return;
+        }
+        const a = getAssignedRooms(group).find(x => x.roomId === roomIdValue);
+        await window.openUnifiedResModal({
+            groupId: group.id,
+            room: roomIdValue,
+            type: a?.type,
+            checkin: formatMD(group.checkin),
+            checkout: formatMD(group.checkout),
+            sourceName: group.name
+        });
+    } catch(e) {
+        console.error(e);
+        showToast('예약 화면을 여는 중 오류가 발생했습니다.', 'error');
+    }
+};
+
+function formatMD(value) {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value || '';
+    return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function renderOverview() {
+    document.getElementById('overview').innerHTML = `
+        <div class="section-title"><i class="fa-solid fa-circle-info"></i> 기본 정보</div>
+        <div class="form-grid">
+            <div class="wide">
+                <label class="form-label">행사(블록)명 <span style="color:var(--danger)">*</span></label>
+                <input id="detailName" class="form-input" style="width:100%" value="${group.name || ''}" placeholder="예: Samsung Tech Conference 2026">
+            </div>
+            <div><label class="form-label">주관 업체</label><input id="detailAgency" class="form-input" style="width:100%" value="${group.agency || ''}" placeholder="업체/여행사/기업명"></div>
+            <div><label class="form-label">행사 유형</label><select id="detailType" class="form-input" style="width:100%">${['기업 행사 / 컨퍼런스','여행사 단체','웨딩 / 연회','스포츠팀','기타'].map(v => `<option ${group.type === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+            <div><label class="form-label">체크인</label><input type="date" id="detailCheckin" class="form-input" style="width:100%" value="${group.checkin || ''}"></div>
+            <div><label class="form-label">체크아웃</label><input type="date" id="detailCheckout" class="form-input" style="width:100%" value="${group.checkout || ''}"></div>
+            <div><label class="form-label">총 인원(PAX)</label><input type="number" id="detailPax" class="form-input" style="width:100%" min="0" value="${group.pax || ''}"></div>
+            <div><label class="form-label">상태</label><select id="detailStatus" class="form-input" style="width:100%">${Object.entries(statusMap).map(([k,v]) => `<option value="${k}" ${group.status === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
+            <div><label class="form-label">정산 방식</label><select id="detailRouting" class="form-input" style="width:100%">${['Master Folio (단체 일괄)','Individual (개별 정산)','혼합 (일부 단체/일부 개별)'].map(v => `<option ${group.routing === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+            <div><label class="form-label">담당 영업 직원</label><input id="detailSales" class="form-input" style="width:100%" value="${group.sales || ''}" placeholder="담당자명"></div>
+            <div><label class="form-label">담당자 / 연락처</label><input id="detailContact" class="form-input" style="width:100%" value="${group.contact || ''}" placeholder="예: 홍길동 / 010-1234-5678"></div>
+            <div class="wide"><label class="form-label">특이사항 / 메모</label><textarea id="detailNote" class="form-input" style="width:100%;min-height:76px;resize:vertical">${group.note || ''}</textarea></div>
+        </div>
+        <div class="management-actions"><button class="mini-btn primary" onclick="saveBasicInfo()"><i class="fa-solid fa-check"></i> 기본 정보 저장</button></div>`;
+}
+
+window.saveBasicInfo = function() {
+    const name = document.getElementById('detailName').value.trim();
+    if (!name) { showToast('행사명을 입력해주세요.', 'error'); return; }
+    const wasDraft = isDraftGroup();
+    Object.assign(group, {
+        id: group.id || nextGroupId(),
+        name,
+        agency: document.getElementById('detailAgency').value.trim(),
+        type: document.getElementById('detailType').value,
+        checkin: document.getElementById('detailCheckin').value,
+        checkout: document.getElementById('detailCheckout').value,
+        pax: parseInt(document.getElementById('detailPax').value || 0, 10),
+        status: document.getElementById('detailStatus').value,
+        routing: document.getElementById('detailRouting').value,
+        sales: document.getElementById('detailSales').value.trim(),
+        contact: document.getElementById('detailContact').value.trim(),
+        note: document.getElementById('detailNote').value.trim()
+    });
+    group.history = group.history || [];
+    group.history.unshift({ at: new Date().toLocaleString('ko-KR'), action: wasDraft ? '단체 생성' : '기본 정보 수정', note: group.name });
+    saveGroup();
+    if (wasDraft) history.replaceState(null, '', `groups_block_detail.html?id=${encodeURIComponent(group.id)}`);
+    renderAll();
+    showToast(wasDraft ? '단체 관리가 시작되었습니다.' : '기본 정보가 저장되었습니다.');
+};
+
+function allocationOptions(selected = '') {
+    return ['<option value="">호실 선택</option>'].concat((rooms || []).map(r => {
+        const id = roomId(r);
+        const label = `${r.bldgCode || r.building || ''} ${r.display || r.number || id}`.trim();
+        return `<option value="${id}" ${id === selected ? 'selected' : ''}>${label} · ${r.type || 'Standard'}</option>`;
+    })).join('');
+}
+
+window.addDetailAllocationRow = function(allocation = {}) {
+    const wrap = document.getElementById('detailAllocationEditor');
+    if (!wrap) return;
+    const row = document.createElement('div');
+    row.className = 'allocation-editor-row';
+    row.innerHTML = `
+        <select class="form-input detail-room" style="width:100%">${allocationOptions(allocation.roomId)}</select>
+        <input type="number" class="form-input detail-rate" placeholder="단가" value="${allocation.rate || ''}">
+        <input type="number" class="form-input detail-discount" placeholder="할인율" value="${allocation.discountPercent || 0}">
+        <button class="mini-btn danger" type="button" onclick="this.closest('.allocation-editor-row').remove()"><i class="fa-solid fa-trash"></i></button>`;
+    wrap.prepend(row);
+};
+
+window.saveRoomAllocationsFromDetail = async function() {
+    if (isDraftGroup()) { showToast('기본 정보를 먼저 저장해주세요.', 'error'); switchTabById('overview'); return; }
+    const rows = Array.from(document.querySelectorAll('.allocation-editor-row'));
+    const allocations = rows.map(row => {
+        const id = row.querySelector('.detail-room').value;
+        const rm = rooms.find(r => roomId(r) === id) || {};
+        const baseRate = Number(row.querySelector('.detail-rate').value || 0);
+        const discountPercent = Number(row.querySelector('.detail-discount').value || 0);
+        return {
+            roomId: id,
+            roomLabel: `${rm.bldgCode || rm.building || ''} ${rm.display || rm.number || id}`.trim(),
+            type: rm.type || 'Standard',
+            building: rm.bldgCode || rm.building || '',
+            baseRate,
+            discountPercent,
+            rate: Math.round(baseRate * (100 - discountPercent) / 100)
+        };
+    }).filter(a => a.roomId);
+    const ids = allocations.map(a => a.roomId);
+    if (new Set(ids).size !== ids.length) { showToast('같은 호실이 중복되었습니다.', 'error'); return; }
+    group.roomAllocations = allocations;
+    group.allocations = allocations;
+    group.block = allocations.length;
+    group.history = group.history || [];
+    group.history.unshift({ at: new Date().toLocaleString('ko-KR'), action: '객실 배정 수정', note: `${allocations.length}실` });
+    saveGroup();
+    if (window.PmsAPI?.getReservations) window.reservations = reservations = await PmsAPI.getReservations();
+    renderAll();
+    switchTabById('rooms');
+    showToast('객실 배정이 저장되었습니다.');
+};
+
+function renderRooms() {
+    if (isDraftGroup()) {
+        document.getElementById('rooms').innerHTML = `<div class="empty-guide">기본 정보를 저장하면 객실 배정과 예약 관리를 시작할 수 있습니다.</div>`;
+        return;
+    }
+    const assigned = getAssignedRooms(group);
+    const res = groupReservations();
+    const guests = roomingList();
+    document.getElementById('rooms').innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px">
+            <div class="section-title" style="margin-bottom:0"><i class="fa-solid fa-bed"></i> 객실 배정 / 예약 관리</div>
+            <button class="mini-btn primary" onclick="addDetailAllocationRow()"><i class="fa-solid fa-plus"></i> 호실 추가</button>
+        </div>
+        <div id="detailAllocationEditor" class="allocation-editor"></div>
+        <div class="management-actions" style="margin-top:0;margin-bottom:16px"><button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button></div>
+        <table class="data-table">
+            <thead><tr><th>호실</th><th>타입</th><th>요금</th><th>예약 상태</th><th>투숙객</th><th></th></tr></thead>
+            <tbody>
+                ${assigned.map(a => {
+                    const r = res.find(x => x.room === a.roomId || x.fullRoom === a.roomId);
+                    const primary = guests.find(g => g.roomId === a.roomId && g.role === 'primary');
+                    const state = r ? (r.status === 'blocked' || r.isGroupPlaceholder ? '단체 블록' : r.status) : '미생성';
+                    return `<tr>
+                        <td><span class="room-chip">${roomDisplayName(a)}</span></td>
+                        <td>${a.type}</td>
+                        <td>${money(a.rate)} <span style="color:var(--txt3);font-size:.7rem">(${a.discountPercent || 0}% 할인)</span></td>
+                        <td>${state}</td>
+                        <td>${primary ? primary.name : '-'}</td>
+                        <td><button class="mini-btn primary" onclick="openRoomReservation('${a.roomId}')"><i class="fa-solid fa-calendar-plus"></i> 예약 관리</button></td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="6">배정된 호실이 없습니다.</td></tr>'}
+            </tbody>
+        </table>`;
+    assigned.forEach(a => addDetailAllocationRow(a));
+};
+
+function renderRooming() {
+    if (isDraftGroup()) {
+        document.getElementById('rooming').innerHTML = `<div class="empty-guide">기본 정보를 저장한 뒤 Rooming List를 등록할 수 있습니다.</div>`;
+        return;
+    }
+    const guests = roomingList();
+    const pax = Number(group.pax || 0);
+    const pct = pax ? Math.min(100, Math.round(guests.length / pax * 100)) : 0;
+    document.getElementById('rooming').innerHTML = `
+        <div class="rooming-tools">
+            <div>
+                <div class="section-title" style="margin-bottom:6px"><i class="fa-solid fa-users"></i> Rooming List</div>
+                <div style="font-size:.76rem;color:var(--txt3);font-weight:700">${guests.length}/${pax || 0}명 등록</div>
+            </div>
+            <button class="mini-btn primary" onclick="openRoomingModal()"><i class="fa-solid fa-user-plus"></i> 투숙객 추가</button>
+        </div>
+        <div class="progress" style="margin-bottom:12px"><div style="width:${pct}%"></div></div>
+        <table class="data-table">
+            <thead><tr><th>이름</th><th>호실</th><th>구분</th><th>국적</th><th>여권/신분증</th><th></th></tr></thead>
+            <tbody>
+                ${guests.map(g => `<tr>
+                    <td>${g.name}</td><td>${g.roomId || '-'}</td><td>${g.role === 'primary' ? '대표' : '동반'}</td><td>${g.nation || '-'}</td><td>${g.docStatus === 'verified' ? '확인 완료' : '미확인'}</td>
+                    <td><button class="mini-btn danger" onclick="removeRoomingGuest('${g.id}')"><i class="fa-solid fa-trash"></i> 삭제</button></td>
+                </tr>`).join('') || '<tr><td colspan="6">등록된 투숙객이 없습니다.</td></tr>'}
+            </tbody>
+        </table>`;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        rooms = await PmsAPI.getAllRooms();
+        const stored = localStorage.getItem('pms_groups');
+        groups = stored ? JSON.parse(stored) : [];
+        if ((!Array.isArray(groups) || groups.length === 0) && PmsAPI.getGroups) {
+            groups = await PmsAPI.getGroups();
+            localStorage.setItem('pms_groups', JSON.stringify(groups));
+        }
+        const params = new URLSearchParams(location.search);
+        if (params.get('mode') === 'new') {
+            group = createDraftGroup();
+            window.reservations = reservations = [];
+            renderAll();
+            switchTabById('overview');
+            return;
+        }
+        const id = getId();
+        group = groups.find(g => g.id === id);
+        if (!group) {
+            try {
+                const selected = JSON.parse(sessionStorage.getItem('pms_selected_group') || 'null');
+                if (selected && selected.id === id) {
+                    group = selected;
+                    groups.unshift(group);
+                }
+            } catch(e) {}
+        }
+        if (!group) {
+            document.querySelector('.detail-shell').innerHTML = `<div class="panel">단체 블록을 찾을 수 없습니다. <button class="mini-btn" onclick="location.href='groups_blocks.html'">목록으로</button></div>`;
+            return;
+        }
+        window.reservations = reservations = await PmsAPI.getReservations();
+        try {
+            const syncedGroups = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+            const syncedGroup = syncedGroups.find(g => g.id === id);
+            if (syncedGroup) {
+                groups = syncedGroups;
+                group = syncedGroup;
+            }
+        } catch(e) {}
+        renderAll();
+        const initialTab = new URLSearchParams(location.search).get('tab');
+        if (initialTab) {
+            const tabBtn = Array.from(document.querySelectorAll('.local-tab')).find(btn => (btn.getAttribute('onclick') || '').includes(`'${initialTab}'`));
+            if (tabBtn && document.getElementById(initialTab)) switchTab(initialTab, tabBtn);
+        }
+    } catch(e) {
+        console.error(e);
+        document.querySelector('.detail-shell').innerHTML = `<div class="panel" style="color:var(--danger)">상세 화면을 불러오지 못했습니다: ${e.message}</div>`;
+    }
+});
+
+window.addEventListener('DataReady', () => {
+    const item = document.querySelector('[data-menu="groups"]');
+    const sub = document.querySelector('[data-submenu="groups"]');
+    if (item && sub) {
+        item.classList.add('expanded', 'active');
+        sub.classList.add('show');
+        sub.querySelectorAll('a').forEach(a => {
+            if ((a.getAttribute('href') || '').includes('groups_blocks.html')) a.classList.add('active');
+        });
+    }
+});
+</script>
+<script>
+(function(){
+    let detailCompanies = [];
+    function safeAttr(value) {
+        return String(value || '').replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    }
+    function loadDetailCompanies() {
+        try { detailCompanies = JSON.parse(localStorage.getItem('pms_companies') || '[]'); } catch(e) { detailCompanies = []; }
+        if (!Array.isArray(detailCompanies)) detailCompanies = [];
+        return detailCompanies;
+    }
+    function companyById(id) {
+        return loadDetailCompanies().find(c => c.id === id);
+    }
+    function companyForGroup() {
+        const companies = loadDetailCompanies();
+        if (group?.agencyId) {
+            const byId = companies.find(c => c.id === group.agencyId);
+            if (byId) return byId;
+        }
+        if (group?.agency) {
+            return companies.find(c => c.name === group.agency || group.agency.includes(c.name) || c.name.includes(group.agency));
+        }
+        return null;
+    }
+    function companyDiscount() {
+        const c = companyForGroup();
+        if (!c) return 0;
+        if (c.groupDiscount !== undefined) return Number(c.groupDiscount || 0);
+        const m = String(c.rate || '').match(/(\d+(?:\.\d+)?)\s*%/);
+        return m ? Number(m[1]) : 0;
+    }
+    function companySelectOptions(selectedId = '') {
+        const selectedCompany = selectedId ? companyById(selectedId) : companyForGroup();
+        const selected = selectedCompany?.id || '';
+        return '<option value="">업체 미지정 / 직접 입력</option>' + loadDetailCompanies().map(c => `<option value="${safeAttr(c.id)}" ${c.id === selected ? 'selected' : ''}>${safeAttr(c.name)} · ${safeAttr(c.type || '')}</option>`).join('');
+    }
+    window.createDraftGroup = function() {
+        const params = new URLSearchParams(location.search);
+        const c = companyById(params.get('companyId'));
+        return {
+            id: '',
+            name: '',
+            agency: c?.name || '',
+            agencyId: c?.id || '',
+            type: '기업 행사 / 컨퍼런스',
+            status: 'pending',
+            checkin: '',
+            checkout: '',
+            block: 0,
+            pickup: 0,
+            pax: 0,
+            routing: c?.billing || 'Master Folio (단체 일괄)',
+            sales: '',
+            contact: c ? [c.contactName, c.phone].filter(Boolean).join(' / ') : '',
+            note: '',
+            roomAllocations: [],
+            allocations: [],
+            roomingList: [],
+            history: []
+        };
+    };
+    window.renderOverview = function() {
+        const c = companyForGroup();
+        document.getElementById('overview').innerHTML = `
+            <div class="section-title"><i class="fa-solid fa-circle-info"></i> 행사 기본 정보</div>
+            <div class="form-grid">
+                <div class="wide">
+                    <label class="form-label">행사명 <span style="color:var(--danger)">*</span></label>
+                    <input id="detailName" class="form-input" style="width:100%" value="${safeAttr(group.name)}" placeholder="예: Samsung Tech Conference 2026">
+                </div>
+                <div>
+                    <label class="form-label">등록 업체</label>
+                    <select id="detailAgencyId" class="form-input" style="width:100%" onchange="syncSelectedCompanyInfo()">${companySelectOptions(group.agencyId)}</select>
+                </div>
+                <div>
+                    <label class="form-label">업체명 직접 입력</label>
+                    <input id="detailAgencyManual" class="form-input" style="width:100%" value="${safeAttr(c ? '' : group.agency)}" placeholder="등록 업체가 없을 때만 입력">
+                </div>
+                <div><label class="form-label">행사 유형</label><select id="detailType" class="form-input" style="width:100%">${['기업 행사 / 컨퍼런스','여행사 단체','웨딩 / 연회','스포츠팀','기타'].map(v => `<option ${group.type === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+                <div><label class="form-label">체크인</label><input type="date" id="detailCheckin" class="form-input" style="width:100%" value="${safeAttr(group.checkin)}"></div>
+                <div><label class="form-label">체크아웃</label><input type="date" id="detailCheckout" class="form-input" style="width:100%" value="${safeAttr(group.checkout)}"></div>
+                <div><label class="form-label">총 인원(PAX)</label><input type="number" id="detailPax" class="form-input" style="width:100%" min="0" value="${safeAttr(group.pax || '')}"></div>
+                <div><label class="form-label">상태</label><select id="detailStatus" class="form-input" style="width:100%">
+                    <option value="pending" ${group.status === 'pending' ? 'selected' : ''}>대기</option>
+                    <option value="confirmed" ${group.status === 'confirmed' ? 'selected' : ''}>확정</option>
+                    <option value="inhouse" ${group.status === 'inhouse' ? 'selected' : ''}>투숙 중</option>
+                    <option value="departed" ${group.status === 'departed' ? 'selected' : ''}>체크아웃</option>
+                </select></div>
+                <div><label class="form-label">정산 방식</label><select id="detailRouting" class="form-input" style="width:100%">${['Master Folio (단체 일괄)','Individual (개별 정산)','혼합 (일부 단체/일부 개별)'].map(v => `<option ${group.routing === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+                <div><label class="form-label">담당 영업 직원</label><input id="detailSales" class="form-input" style="width:100%" value="${safeAttr(group.sales)}" placeholder="담당자명"></div>
+                <div><label class="form-label">담당자 / 연락처</label><input id="detailContact" class="form-input" style="width:100%" value="${safeAttr(group.contact)}" placeholder="예: 홍길동 / 010-1234-5678"></div>
+                <div class="wide"><label class="form-label">특이사항 / 메모</label><textarea id="detailNote" class="form-input" style="width:100%;min-height:76px;resize:vertical">${safeAttr(group.note)}</textarea></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:14px">
+                <button class="mini-btn" onclick="location.href='groups_companies.html'"><i class="fa-solid fa-building"></i> 업체 등록/관리</button>
+                <button class="mini-btn primary" onclick="saveBasicInfo()"><i class="fa-solid fa-check"></i> 행사 저장</button>
+            </div>`;
+    };
+    window.syncSelectedCompanyInfo = function() {
+        const c = companyById(document.getElementById('detailAgencyId')?.value);
+        if (!c) return;
+        const routing = document.getElementById('detailRouting');
+        const contact = document.getElementById('detailContact');
+        const manual = document.getElementById('detailAgencyManual');
+        if (routing && c.billing) routing.value = [...routing.options].some(o => o.value === c.billing) ? c.billing : routing.value;
+        if (contact && !contact.value) contact.value = [c.contactName, c.phone].filter(Boolean).join(' / ');
+        if (manual) manual.value = '';
+    };
+    window.saveBasicInfo = function() {
+        const name = document.getElementById('detailName').value.trim();
+        if (!name) { showToast('행사명을 입력해주세요.', 'error'); return; }
+        const wasDraft = isDraftGroup();
+        const companyId = document.getElementById('detailAgencyId').value;
+        const company = companyById(companyId);
+        Object.assign(group, {
+            id: group.id || nextGroupId(),
+            name,
+            agencyId: company?.id || '',
+            agency: company?.name || document.getElementById('detailAgencyManual').value.trim(),
+            type: document.getElementById('detailType').value,
+            checkin: document.getElementById('detailCheckin').value,
+            checkout: document.getElementById('detailCheckout').value,
+            pax: parseInt(document.getElementById('detailPax').value || 0, 10),
+            status: document.getElementById('detailStatus').value,
+            routing: document.getElementById('detailRouting').value,
+            sales: document.getElementById('detailSales').value.trim(),
+            contact: document.getElementById('detailContact').value.trim(),
+            note: document.getElementById('detailNote').value.trim()
+        });
+        group.history = group.history || [];
+        group.history.unshift({ at: new Date().toLocaleString('ko-KR'), action: wasDraft ? '행사 생성' : '행사 기본 정보 수정', note: group.name });
+        saveGroup();
+        if (wasDraft) history.replaceState(null, '', `groups_block_detail.html?id=${encodeURIComponent(group.id)}`);
+        renderAll();
+        showToast(wasDraft ? '행사가 생성되었습니다. 이제 객실을 배정하세요.' : '행사 정보가 저장되었습니다.');
+    };
+    window.addDetailAllocationRow = function(allocation = {}) {
+        const wrap = document.getElementById('detailAllocationEditor');
+        if (!wrap) return;
+        const row = document.createElement('div');
+        row.className = 'allocation-editor-row';
+        row.innerHTML = `
+            <select class="form-input detail-room" style="width:100%">${allocationOptions(allocation.roomId)}</select>
+            <input type="number" class="form-input detail-rate" placeholder="기준 단가" value="${allocation.baseRate || allocation.rate || ''}">
+            <input type="number" class="form-input detail-discount" placeholder="할인율" value="${allocation.discountPercent ?? companyDiscount()}">
+            <button class="mini-btn danger" type="button" onclick="this.closest('.allocation-editor-row').remove()"><i class="fa-solid fa-trash"></i></button>`;
+        wrap.prepend(row);
+    };
+})();
+</script>
+<script>
+(function(){
+    const style = document.createElement('style');
+    style.textContent = `
+        .allocation-editor-row{grid-template-columns:minmax(240px,1fr) 140px 120px 140px 40px}
+        .alloc-field{display:flex;flex-direction:column;gap:4px;min-width:0}
+        .alloc-field label{font-size:.68rem;font-weight:850;color:var(--txt3)}
+        .alloc-field .form-input[readonly]{background:#eef2f7;color:#475569;font-weight:800}
+        @media(max-width:900px){.allocation-editor-row{grid-template-columns:1fr}.allocation-editor-row .mini-btn{width:max-content}}
+    `;
+    document.head.appendChild(style);
+
+    function typeConfigs() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('pms_room_types_config') || '[]');
+            return Array.isArray(saved) ? saved : [];
+        } catch(e) {
+            return [];
+        }
+    }
+    function baseRateFor(room, allocation = {}) {
+        if (Number(allocation.baseRate || 0) > 0) return Number(allocation.baseRate);
+        const direct = Number(room?.baseRate || room?.rate || room?.price || room?.defaultRate || room?.rackRate || 0);
+        if (direct > 0) return direct;
+        const type = String(room?.type || allocation.type || '').toLowerCase();
+        const cfg = typeConfigs().find(t => {
+            const keys = [t.id, t.code, t.name, t.type, t.label].filter(Boolean).map(v => String(v).toLowerCase());
+            return keys.some(k => k === type || k.includes(type) || type.includes(k));
+        });
+        const cfgRate = Number(cfg?.basePrice || cfg?.baseRate || cfg?.rate || cfg?.price || 0);
+        if (cfgRate > 0) return cfgRate;
+        if (type.includes('penthouse')) return 500000;
+        if (type.includes('suite')) return 250000;
+        if (type.includes('deluxe')) return 150000;
+        return type ? 100000 : 0;
+    }
+    function defaultDiscount() {
+        try {
+            const companies = JSON.parse(localStorage.getItem('pms_companies') || '[]');
+            const c = companies.find(x => x.id === group?.agencyId || x.name === group?.agency || (group?.agency || '').includes(x.name));
+            if (!c) return 0;
+            if (c.groupDiscount !== undefined) return Number(c.groupDiscount || 0);
+            const m = String(c.rate || '').match(/(\d+(?:\.\d+)?)\s*%/);
+            return m ? Number(m[1]) : 0;
+        } catch(e) {
+            return 0;
+        }
+    }
+    function moneyNumber(value) {
+        return Number(value || 0);
+    }
+    window.recalcAllocationRow = function(row, keepFinal = false) {
+        const roomValue = row.querySelector('.detail-room')?.value || '';
+        const room = (rooms || []).find(r => roomId(r) === roomValue) || {};
+        const base = baseRateFor(room);
+        const discount = Number(row.querySelector('.detail-discount')?.value || 0);
+        const baseInput = row.querySelector('.detail-base-rate');
+        const finalInput = row.querySelector('.detail-final-rate');
+        if (baseInput) baseInput.value = base || '';
+        if (finalInput && !keepFinal) finalInput.value = base ? Math.round(base * (100 - discount) / 100) : '';
+    };
+    window.addDetailAllocationRow = function(allocation = {}) {
+        const wrap = document.getElementById('detailAllocationEditor');
+        if (!wrap) return;
+        const room = (rooms || []).find(r => roomId(r) === allocation.roomId) || {};
+        const base = baseRateFor(room, allocation);
+        const discount = allocation.discountPercent ?? defaultDiscount();
+        const finalRate = allocation.rate || (base ? Math.round(base * (100 - Number(discount || 0)) / 100) : '');
+        const row = document.createElement('div');
+        row.className = 'allocation-editor-row';
+        row.innerHTML = `
+            <div class="alloc-field">
+                <label>호실</label>
+                <select class="form-input detail-room" style="width:100%">${allocationOptions(allocation.roomId)}</select>
+            </div>
+            <div class="alloc-field">
+                <label>기준 단가</label>
+                <input type="number" class="form-input detail-base-rate" readonly value="${base || ''}">
+            </div>
+            <div class="alloc-field">
+                <label>할인율(%)</label>
+                <input type="number" class="form-input detail-discount" min="0" max="100" step="1" value="${discount}">
+            </div>
+            <div class="alloc-field">
+                <label>최종 단가</label>
+                <input type="number" class="form-input detail-final-rate" min="0" value="${finalRate}">
+            </div>
+            <button class="mini-btn danger" type="button" title="삭제" onclick="this.closest('.allocation-editor-row').remove()"><i class="fa-solid fa-trash"></i></button>`;
+        row.querySelector('.detail-room').addEventListener('change', () => window.recalcAllocationRow(row));
+        row.querySelector('.detail-discount').addEventListener('input', () => window.recalcAllocationRow(row));
+        wrap.prepend(row);
+    };
+    window.saveRoomAllocationsFromDetail = async function() {
+        if (isDraftGroup()) { showToast('기본 정보를 먼저 저장해주세요.', 'error'); switchTabById('overview'); return; }
+        const rows = Array.from(document.querySelectorAll('.allocation-editor-row'));
+        const allocations = rows.map(row => {
+            const id = row.querySelector('.detail-room').value;
+            const rm = (rooms || []).find(r => roomId(r) === id) || {};
+            const baseRate = moneyNumber(row.querySelector('.detail-base-rate').value || baseRateFor(rm));
+            const discountPercent = Number(row.querySelector('.detail-discount').value || 0);
+            const rate = moneyNumber(row.querySelector('.detail-final-rate').value || Math.round(baseRate * (100 - discountPercent) / 100));
+            return {
+                roomId: id,
+                roomLabel: `${rm.bldgCode || rm.building || ''} ${rm.display || rm.number || id}`.trim(),
+                type: rm.type || 'Standard',
+                building: rm.bldgCode || rm.building || '',
+                baseRate,
+                discountPercent,
+                rate
+            };
+        }).filter(a => a.roomId);
+        const ids = allocations.map(a => a.roomId);
+        if (new Set(ids).size !== ids.length) { showToast('같은 호실이 중복되었습니다.', 'error'); return; }
+        group.roomAllocations = allocations;
+        group.allocations = allocations;
+        group.block = allocations.length;
+        group.history = group.history || [];
+        group.history.unshift({ at: new Date().toLocaleString('ko-KR'), action: '객실 배정 수정', note: `${allocations.length}실` });
+        saveGroup();
+        if (window.PmsAPI?.getReservations) window.reservations = reservations = await PmsAPI.getReservations();
+        renderAll();
+        switchTabById('rooms');
+        showToast('객실 배정이 저장되었습니다.');
+    };
+})();
+</script>
+<script>
+(function(){
+    function primaryGuest(roomIdValue) {
+        return roomingList().find(g => g.roomId === roomIdValue && g.role === 'primary') ||
+               roomingList().find(g => g.roomId === roomIdValue);
+    }
+    function reservationForRoom(roomIdValue) {
+        return groupReservations().find(r => r.room === roomIdValue || r.fullRoom === roomIdValue);
+    }
+    function guestStatusCell(guest) {
+        if (!guest) return '<span class="stage-pill stage-past">미등록</span>';
+        return '<span class="stage-pill stage-live">등록됨</span>';
+    }
+    function docStatusCell(guest) {
+        if (!guest) return '<span style="color:var(--txt3);font-weight:800">-</span>';
+        return guest.docStatus === 'verified'
+            ? '<span class="stage-pill stage-live">확인 완료</span>'
+            : '<span class="stage-pill stage-upcoming">미확인</span>';
+    }
+    window.renderRooms = function() {
+        if (isDraftGroup()) {
+            document.getElementById('rooms').innerHTML = `<div class="empty-guide">기본 정보를 저장하면 객실 배정과 투숙객 등록을 시작할 수 있습니다.</div>`;
+            return;
+        }
+        const assigned = getAssignedRooms(group);
+        const guests = roomingList();
+        const registered = assigned.filter(a => primaryGuest(a.roomId)).length;
+        document.getElementById('rooms').innerHTML = `
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px">
+                <div>
+                    <div class="section-title" style="margin-bottom:4px"><i class="fa-solid fa-bed"></i> 객실 / 투숙객 배정</div>
+                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">투숙객 등록 ${registered}/${assigned.length}실 · 전체 명단 ${guests.length}/${group.pax || 0}명</div>
+                </div>
+                <button class="mini-btn primary" onclick="addDetailAllocationRow()"><i class="fa-solid fa-plus"></i> 호실 추가</button>
+            </div>
+            <div id="detailAllocationEditor" class="allocation-editor"></div>
+            <div class="management-actions" style="margin-top:0;margin-bottom:16px"><button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button></div>
+            <table class="data-table">
+                <thead><tr><th>호실</th><th>블록/예약</th><th>투숙객</th><th>등록</th><th>문서</th><th>요금</th><th></th></tr></thead>
+                <tbody>
+                    ${assigned.map(a => {
+                        const r = reservationForRoom(a.roomId);
+                        const guest = primaryGuest(a.roomId);
+                        const blockState = r ? (r.status === 'blocked' || r.isGroupPlaceholder ? '단체 블록' : r.status) : '블록 미생성';
+                        return `<tr>
+                            <td><span class="room-chip">${roomDisplayName(a)}</span><div class="event-sub">${a.type}</div></td>
+                            <td><div class="event-metric">${blockState}</div><small style="color:var(--txt3);font-weight:800">${r?.id || '-'}</small></td>
+                            <td><div class="event-metric">${guest ? guest.name : '미등록'}</div><small style="color:var(--txt3);font-weight:800">${guest ? (guest.nation || '-') : '투숙객을 등록하세요'}</small></td>
+                            <td>${guestStatusCell(guest)}</td>
+                            <td>${docStatusCell(guest)}</td>
+                            <td>${money(a.rate)} <small style="display:block;color:var(--txt3);font-weight:800">할인 ${a.discountPercent || 0}%</small></td>
+                            <td style="white-space:nowrap">
+                                <button class="mini-btn primary" onclick="openRoomingModal('${a.roomId}', '${guest?.id || ''}')"><i class="fa-solid fa-user-plus"></i> ${guest ? '투숙객 수정' : '투숙객 등록'}</button>
+                                <button class="mini-btn" onclick="openRoomReservation('${a.roomId}')"><i class="fa-solid fa-calendar-check"></i> 블록 관리</button>
+                            </td>
+                        </tr>`;
+                    }).join('') || '<tr><td colspan="7">배정된 호실이 없습니다. 상단에서 호실을 추가하세요.</td></tr>'}
+                </tbody>
+            </table>`;
+        assigned.forEach(a => addDetailAllocationRow(a));
+    };
+    window.renderRooming = function() {
+        const panel = document.getElementById('rooming');
+        if (panel) panel.innerHTML = '';
+        const tab = Array.from(document.querySelectorAll('.local-tab')).find(btn => (btn.getAttribute('onclick') || '').includes("'rooming'"));
+        if (tab) tab.style.display = 'none';
+        const roomsTab = Array.from(document.querySelectorAll('.local-tab')).find(btn => (btn.getAttribute('onclick') || '').includes("'rooms'"));
+        if (roomsTab) roomsTab.textContent = '객실/투숙객 배정';
+    };
+    window.openRoomingModal = function(roomIdValue = '', guestId = '') {
+        populateGuestRooms();
+        const guest = guestId ? roomingList().find(g => g.id === guestId) : primaryGuest(roomIdValue);
+        const title = document.querySelector('#roomingModal .modal-title');
+        if (title) title.textContent = guest ? '투숙객 정보 수정' : '투숙객 등록';
+        document.getElementById('guestEditId').value = guest?.id || '';
+        document.getElementById('guestNameInput').value = guest?.name || '';
+        document.getElementById('guestRoomInput').value = guest?.roomId || roomIdValue || '';
+        document.getElementById('guestRoleInput').value = guest?.role || 'primary';
+        document.getElementById('guestNationInput').value = guest?.nation || '';
+        document.getElementById('guestDocInput').value = guest?.docStatus || 'pending';
+        openModal('roomingModal');
+    };
+    window.saveRoomingGuest = function() {
+        const name = document.getElementById('guestNameInput').value.trim();
+        if (!name) { showToast('이름을 입력하세요.', 'error'); return; }
+        const editId = document.getElementById('guestEditId').value;
+        const roomIdValue = document.getElementById('guestRoomInput').value;
+        const data = {
+            id: editId || 'GG-' + Date.now(),
+            groupId: group.id,
+            name,
+            roomId: roomIdValue,
+            role: document.getElementById('guestRoleInput').value,
+            nation: document.getElementById('guestNationInput').value,
+            docStatus: document.getElementById('guestDocInput').value
+        };
+        const list = roomingList();
+        const idx = list.findIndex(g => g.id === editId);
+        if (idx >= 0) list[idx] = data;
+        else list.push(data);
+        const res = reservationForRoom(roomIdValue);
+        if (res) {
+            res.roomingGuestId = data.id;
+            res.roomingGuestName = data.name;
+        }
+        group.history = group.history || [];
+        group.history.unshift({ at: new Date().toLocaleString('ko-KR'), action: editId ? '투숙객 수정' : '투숙객 등록', note: `${data.name} (${data.roomId || '호실 미정'})` });
+        saveGroup();
+        localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+        closeModal('roomingModal');
+        renderAll();
+        switchTabById('rooms');
+        showToast(editId ? '투숙객 정보가 수정되었습니다.' : '투숙객이 등록되었습니다.');
+    };
+    document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+        const tab = Array.from(document.querySelectorAll('.local-tab')).find(btn => (btn.getAttribute('onclick') || '').includes("'rooming'"));
+        if (tab) tab.style.display = 'none';
+        const roomsTab = Array.from(document.querySelectorAll('.local-tab')).find(btn => (btn.getAttribute('onclick') || '').includes("'rooms'"));
+        if (roomsTab) roomsTab.textContent = '객실/투숙객 배정';
+    }, 0));
+})();
+</script>
+<script>
+(function(){
+    function readArray(key) {
+        try {
+            const data = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(data) ? data : [];
+        } catch(e) {
+            return [];
+        }
+    }
+
+    function safe(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    }
+
+    function roomMatches(res, roomIdValue) {
+        return res && (res.room === roomIdValue || res.fullRoom === roomIdValue || res.roomId === roomIdValue);
+    }
+
+    function reservationForAssignedRoom(roomIdValue) {
+        return groupReservations().find(res => roomMatches(res, roomIdValue));
+    }
+
+    function reservationGuestName(res) {
+        if (!res) return '';
+        if (res.roomingGuestName) return res.roomingGuestName;
+        if (res.isGroupPlaceholder && !res.guest && !res.guestName) return '';
+        return res.guestName || res.guest || '';
+    }
+
+    function guestForRoom(roomIdValue) {
+        const direct = roomingList().find(guest => guest.roomId === roomIdValue && guest.role === 'primary') ||
+            roomingList().find(guest => guest.roomId === roomIdValue);
+        if (direct) return direct;
+
+        const res = reservationForAssignedRoom(roomIdValue);
+        const name = reservationGuestName(res);
+        if (!name) return null;
+        return {
+            id: res.roomingGuestId || res.guestId || `RES-${res.id || roomIdValue}`,
+            groupId: group.id,
+            roomId: roomIdValue,
+            role: 'primary',
+            name,
+            nation: res.nation || res.nationality || '',
+            docStatus: res.docStatus || res.documentStatus || 'pending',
+            note: res.roomingGuestNote || res.guestNote || res.specialNotes || res.allergy || res.note || '',
+            specialNotes: res.roomingGuestNote || res.guestNote || res.specialNotes || res.allergy || res.note || '',
+            sourceReservation: true
+        };
+    }
+
+    function allGuestRows() {
+        const guests = new Map();
+        roomingList().forEach(guest => {
+            if (!guest?.name && !guest?.id) return;
+            guests.set(guest.id || `${guest.name}-${guest.roomId || ''}`, guest);
+        });
+        groupReservations().forEach(res => {
+            const name = reservationGuestName(res);
+            if (!name) return;
+            const key = res.roomingGuestId || res.guestId || `${name}-${res.room || res.fullRoom || ''}`;
+            if (!guests.has(key)) {
+                guests.set(key, {
+                    id: key,
+                    groupId: group.id,
+                    roomId: res.room || res.fullRoom || '',
+                    role: 'primary',
+                    name,
+                    nation: res.nation || res.nationality || '',
+                    docStatus: res.docStatus || res.documentStatus || 'pending',
+                    sourceReservation: true
+                });
+            }
+        });
+        return [...guests.values()];
+    }
+
+    function guestStatusCell(guest) {
+        return guest
+            ? '<span class="stage-pill stage-live">등록</span>'
+            : '<span class="stage-pill stage-past">미등록</span>';
+    }
+
+    function docStatusCell(guest) {
+        if (!guest) return '<span style="color:var(--txt3);font-weight:800">-</span>';
+        return guest.docStatus === 'verified'
+            ? '<span class="stage-pill stage-live">확인 완료</span>'
+            : '<span class="stage-pill stage-upcoming">미확인</span>';
+    }
+
+    window.saveGroup = function() {
+        if (!group?.id) return;
+        const stored = readArray('pms_groups');
+        const memory = Array.isArray(groups) ? groups : [];
+        const merged = new Map();
+        [...stored, ...memory].forEach(item => {
+            if (item?.id) merged.set(item.id, item);
+        });
+        merged.set(group.id, group);
+        groups = [...merged.values()];
+        localStorage.setItem('pms_groups', JSON.stringify(groups));
+        try { sessionStorage.setItem('pms_selected_group', JSON.stringify(group)); } catch(e) {}
+    };
+    try { saveGroup = window.saveGroup; } catch(e) {}
+
+    window.populateGuestRooms = function() {
+        const select = document.getElementById('guestRoomInput');
+        if (!select) return;
+        const assigned = getAssignedRooms(group);
+        select.innerHTML = '<option value="">호실 선택</option>' + assigned.map(room =>
+            `<option value="${safe(room.roomId)}">${safe(room.roomLabel)} · ${safe(room.type)}</option>`
+        ).join('');
+    };
+    try { populateGuestRooms = window.populateGuestRooms; } catch(e) {}
+
+    window.renderSummary = function() {
+        const assigned = getAssignedRooms(group);
+        const res = groupReservations();
+        const guests = allGuestRows();
+        const verified = guests.filter(guest => guest.docStatus === 'verified').length;
+        const pax = Number(group.pax || 0);
+        const guestPct = pax ? Math.round(guests.length / pax * 100) : 0;
+        document.getElementById('summaryGrid').innerHTML = [
+            ['배정 호실', `${assigned.length}실`],
+            ['예약/블록', `${res.length}/${assigned.length}`],
+            ['총 PAX', `${pax}명`],
+            ['등록 투숙객', `${guests.length}명 (${guestPct}%)`],
+            ['여권/신분증 확인', `${verified}명`]
+        ].map(([label, value]) => `<div class="summary-card"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
+    };
+    try { renderSummary = window.renderSummary; } catch(e) {}
+
+    window.renderRooms = function() {
+        if (isDraftGroup()) {
+            document.getElementById('rooms').innerHTML = '<div class="empty-guide">기본 정보를 저장하면 객실 배정과 투숙객 등록을 시작할 수 있습니다.</div>';
+            return;
+        }
+
+        const assigned = getAssignedRooms(group);
+        const guests = allGuestRows();
+        const assignedIds = new Set(assigned.map(room => room.roomId));
+        const registered = assigned.filter(room => guestForRoom(room.roomId)).length;
+        const unassignedGuests = guests.filter(guest => !guest.roomId || !assignedIds.has(guest.roomId));
+        const unassignedHtml = unassignedGuests.length ? `
+            <div class="empty-guide" style="margin-top:12px;text-align:left">
+                <strong>호실 미연결 투숙객</strong>
+                <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                    ${unassignedGuests.map(guest => `<span class="room-chip">${safe(guest.name)} · ${safe(guest.roomId || '호실 미정')}</span>`).join('')}
+                </div>
+            </div>` : '';
+
+        document.getElementById('rooms').innerHTML = `
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px">
+                <div>
+                    <div class="section-title" style="margin-bottom:4px"><i class="fa-solid fa-bed"></i> 객실 / 투숙객 배정</div>
+                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">투숙객 등록 ${registered}/${assigned.length}실 · 전체 명단 ${guests.length}/${group.pax || 0}명</div>
+                </div>
+                <button class="mini-btn primary" onclick="addDetailAllocationRow()"><i class="fa-solid fa-plus"></i> 호실 추가</button>
+            </div>
+            <div id="detailAllocationEditor" class="allocation-editor"></div>
+            <div class="management-actions" style="margin-top:0;margin-bottom:16px">
+                <button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>호실</th><th>블록/예약</th><th>투숙객</th><th>등록</th><th>문서</th><th>요금</th><th></th></tr></thead>
+                <tbody>
+                    ${assigned.map(room => {
+                        const res = reservationForAssignedRoom(room.roomId);
+                        const guest = guestForRoom(room.roomId);
+                        const note = guest?.note || guest?.specialNotes || guest?.allergy || '';
+                        const display = typeof roomDisplayName === 'function' ? roomDisplayName(room) : (room.roomLabel || room.roomId);
+                        const blockState = res ? (res.status === 'blocked' || res.isGroupPlaceholder ? '단체 블록' : res.status) : '블록 미생성';
+                        return `<tr>
+                            <td><span class="room-chip">${safe(display)}</span><div class="event-sub">${safe(room.type)}</div></td>
+                            <td><div class="event-metric">${safe(blockState)}</div><small style="color:var(--txt3);font-weight:800">${safe(res?.id || '-')}</small></td>
+                            <td><div class="event-metric">${guest ? safe(guest.name) : '미등록'}</div><small style="color:var(--txt3);font-weight:800">${guest ? safe(guest.nation || '-') : '투숙객을 등록하세요'}</small>${note ? `<small style="display:block;margin-top:3px;color:#dc2626;font-weight:850"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(note)}</small>` : ''}</td>
+                            <td>${guestStatusCell(guest)}</td>
+                            <td>${docStatusCell(guest)}</td>
+                            <td>${money(room.rate)} <small style="display:block;color:var(--txt3);font-weight:800">할인 ${safe(room.discountPercent || 0)}%</small></td>
+                            <td style="white-space:nowrap">
+                                <button class="mini-btn primary" onclick="openRoomingModal('${safe(room.roomId)}', '${safe(guest && !guest.sourceReservation ? guest.id : '')}')"><i class="fa-solid fa-user-plus"></i> ${guest ? '투숙객 수정' : '투숙객 등록'}</button>
+                                <button class="mini-btn" onclick="openRoomReservation('${safe(room.roomId)}')"><i class="fa-solid fa-calendar-check"></i> 블록 관리</button>
+                            </td>
+                        </tr>`;
+                    }).join('') || '<tr><td colspan="7">배정된 호실이 없습니다. 상단에서 호실을 추가하세요.</td></tr>'}
+                </tbody>
+            </table>
+            ${unassignedHtml}`;
+        assigned.forEach(room => addDetailAllocationRow(room));
+    };
+    try { renderRooms = window.renderRooms; } catch(e) {}
+
+    window.renderRooming = function() {
+        const panel = document.getElementById('rooming');
+        if (panel) panel.innerHTML = '';
+        const tab = Array.from(document.querySelectorAll('.local-tab')).find(btn => (btn.getAttribute('onclick') || '').includes("'rooming'"));
+        if (tab) tab.style.display = 'none';
+        const roomsTab = Array.from(document.querySelectorAll('.local-tab')).find(btn => (btn.getAttribute('onclick') || '').includes("'rooms'"));
+        if (roomsTab) roomsTab.textContent = '객실/투숙객 배정';
+    };
+    try { renderRooming = window.renderRooming; } catch(e) {}
+
+    window.openRoomingModal = function(roomIdValue = '', guestId = '') {
+        populateGuestRooms();
+        const select = document.getElementById('guestRoomInput');
+        if (roomIdValue && select && ![...select.options].some(option => option.value === roomIdValue)) {
+            const option = document.createElement('option');
+            option.value = roomIdValue;
+            option.textContent = roomIdValue;
+            select.appendChild(option);
+        }
+        const guest = guestId ? roomingList().find(item => item.id === guestId) : guestForRoom(roomIdValue);
+        const title = document.querySelector('#roomingModal .modal-title');
+        if (title) title.textContent = guest ? '투숙객 정보 수정' : '투숙객 등록';
+        document.getElementById('guestEditId').value = guest && !guest.sourceReservation ? guest.id : '';
+        document.getElementById('guestNameInput').value = guest?.name || '';
+        document.getElementById('guestRoomInput').value = guest?.roomId || roomIdValue || '';
+        document.getElementById('guestRoleInput').value = guest?.role || 'primary';
+        document.getElementById('guestNationInput').value = guest?.nation || '';
+        document.getElementById('guestDocInput').value = guest?.docStatus || 'pending';
+        openModal('roomingModal');
+    };
+
+    window.saveRoomingGuest = function() {
+        const name = document.getElementById('guestNameInput').value.trim();
+        const roomIdValue = document.getElementById('guestRoomInput').value;
+        if (!name) { showToast('이름을 입력하세요.', 'error'); return; }
+        if (!roomIdValue) { showToast('호실을 선택하세요.', 'error'); return; }
+
+        const editId = document.getElementById('guestEditId').value;
+        const data = {
+            id: editId || 'GG-' + Date.now(),
+            groupId: group.id,
+            name,
+            roomId: roomIdValue,
+            role: document.getElementById('guestRoleInput').value,
+            nation: document.getElementById('guestNationInput').value,
+            docStatus: document.getElementById('guestDocInput').value
+        };
+        const list = roomingList();
+        let idx = editId ? list.findIndex(guest => guest.id === editId) : -1;
+        if (idx < 0) idx = list.findIndex(guest => guest.roomId === roomIdValue && guest.role === data.role);
+        if (idx >= 0) list[idx] = data;
+        else list.push(data);
+
+        const res = reservationForAssignedRoom(roomIdValue);
+        if (res) {
+            res.roomingGuestId = data.id;
+            res.roomingGuestName = data.name;
+            res.nation = data.nation;
+            res.docStatus = data.docStatus;
+            if (!res.isGroupPlaceholder) res.guest = data.name;
+        }
+        group.history = group.history || [];
+        group.history.unshift({ at: new Date().toLocaleString('ko-KR'), action: editId ? '투숙객 수정' : '투숙객 등록', note: `${data.name} (${data.roomId})` });
+        saveGroup();
+        window.reservations = reservations;
+        localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+        closeModal('roomingModal');
+        renderAll();
+        switchTabById('rooms');
+        showToast(editId ? '투숙객 정보가 수정되었습니다.' : '투숙객이 등록되었습니다.');
+    };
+    try { saveRoomingGuest = window.saveRoomingGuest; } catch(e) {}
+})();
+</script>
+<script>
+(function(){
+    const ROOMING_PREFIX = 'Rooming';
+
+    function escapeText(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    }
+
+    function assignedRoomList() {
+        try {
+            return getAssignedRooms(group);
+        } catch(e) {
+            return [];
+        }
+    }
+
+    function currentGuestForRoom(roomIdValue) {
+        const list = typeof roomingList === 'function' ? roomingList() : [];
+        const direct = list.find(guest => guest.roomId === roomIdValue && guest.role === 'primary') ||
+            list.find(guest => guest.roomId === roomIdValue);
+        if (direct) return direct;
+
+        const res = typeof groupReservations === 'function'
+            ? groupReservations().find(item => item.room === roomIdValue || item.fullRoom === roomIdValue || item.roomId === roomIdValue)
+            : null;
+        const name = res?.roomingGuestName || res?.guestName || (!res?.isGroupPlaceholder ? res?.guest : '');
+        if (!name) return null;
+        return {
+            id: res.roomingGuestId || res.guestId || '',
+            guestId: res.guestId || '',
+            name,
+            roomId: roomIdValue,
+            role: 'primary',
+            phone: res.phone || '',
+            email: res.email || '',
+            nation: res.nation || res.nationality || '',
+            docStatus: res.docStatus || res.documentStatus || 'pending',
+            note: res.roomingGuestNote || res.guestNote || res.specialNotes || res.allergy || res.note || '',
+            specialNotes: res.roomingGuestNote || res.guestNote || res.specialNotes || res.allergy || res.note || '',
+            sourceReservation: true
+        };
+    }
+
+    function roomOptions(selectedRoomId = '') {
+        const options = assignedRoomList().map(room => {
+            const label = [room.roomLabel || room.roomId, room.type].filter(Boolean).join(' · ');
+            return `<option value="${escapeText(room.roomId)}" ${room.roomId === selectedRoomId ? 'selected' : ''}>${escapeText(label)}</option>`;
+        }).join('');
+        return `<option value="">호실 선택</option>${options}`;
+    }
+
+    function guestSearchFallback() {
+        return `
+            <div id="newGuestForm${ROOMING_PREFIX}" style="display:block">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                        <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">Guest 이름 <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="nrGuest${ROOMING_PREFIX}" class="form-input" placeholder="예: John Doe">
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                        <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">연락처</label>
+                        <input type="text" id="nrPhone${ROOMING_PREFIX}" class="form-input" placeholder="+84 000 0000">
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                        <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">이메일</label>
+                        <input type="email" id="nrEmail${ROOMING_PREFIX}" class="form-input" placeholder="guest@email.com">
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                        <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">국적</label>
+                        <input type="text" id="nrNation${ROOMING_PREFIX}" class="form-input" placeholder="Korea">
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function ensureRoomingModalLayout() {
+        const modal = document.getElementById('roomingModal');
+        if (!modal) return;
+        const card = modal.querySelector('.modal-card');
+        if (!card) return;
+        card.style.maxWidth = '760px';
+        card.style.width = '95vw';
+        card.innerHTML = `
+            <div class="modal-header">
+                <h3 class="modal-title" id="roomingModalTitle">투숙객 등록</h3>
+                <button class="modal-close" onclick="closeModal('roomingModal')"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;max-height:72vh;overflow-y:auto">
+                <input type="hidden" id="guestEditId">
+                <div style="display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:12px;background:#f8fafc;border:1px solid var(--border2);border-radius:8px;padding:12px">
+                    <div>
+                        <label class="form-label">호실</label>
+                        <select id="guestRoomInput" class="form-input" style="width:100%"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">투숙 구분</label>
+                        <select id="guestRoleInput" class="form-input" style="width:100%">
+                            <option value="primary">대표 투숙객</option>
+                            <option value="companion">동반 투숙객</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">여권/신분증</label>
+                        <select id="guestDocInput" class="form-input" style="width:100%">
+                            <option value="pending">미확인</option>
+                            <option value="verified">확인 완료</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="roomingGuestSearchSection" style="background:#f8fafc;border:1px solid var(--border2);border-radius:8px;padding:15px">
+                    ${typeof renderGuestSearchHTML === 'function' ? renderGuestSearchHTML(ROOMING_PREFIX) : guestSearchFallback()}
+                </div>
+                <div style="background:#fff;border:1px solid var(--border2);border-radius:8px;padding:12px">
+                    <label class="form-label">특이사항 / 알러지</label>
+                    <textarea id="guestNoteInput" class="form-input" style="width:100%;min-height:76px;resize:vertical;padding-top:10px" placeholder="예: 땅콩 알러지, 고층 선호, 늦은 도착"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" onclick="closeModal('roomingModal')">취소</button>
+                <button class="btn-primary-sm" onclick="saveRoomingGuest()"><i class="fa-solid fa-check"></i> 저장</button>
+            </div>`;
+    }
+
+    function initRoomingGuestWidget() {
+        if (typeof initGuestSearch !== 'function') {
+            window._roomingGuestWidget = null;
+            return null;
+        }
+        window._roomingGuestWidget = initGuestSearch(ROOMING_PREFIX);
+        return window._roomingGuestWidget;
+    }
+
+    function fillRoomingGuestForm(guest, roomIdValue) {
+        const widget = window._roomingGuestWidget;
+        if (widget) {
+            widget.reset();
+            const existing = typeof GUEST_DB !== 'undefined'
+                ? GUEST_DB.find(item => item.id === guest?.guestId || item.id === guest?.id || item.name === guest?.name)
+                : null;
+            if (existing) {
+                widget.select(existing.id);
+            } else {
+                widget.showNewForm();
+            }
+        }
+
+        const nameInput = document.getElementById(`nrGuest${ROOMING_PREFIX}`);
+        const phoneInput = document.getElementById(`nrPhone${ROOMING_PREFIX}`);
+        const emailInput = document.getElementById(`nrEmail${ROOMING_PREFIX}`);
+        const nationInput = document.getElementById(`nrNation${ROOMING_PREFIX}`);
+        const noteInput = document.getElementById('guestNoteInput');
+        if (nameInput) nameInput.value = guest?.name || '';
+        if (phoneInput) phoneInput.value = guest?.phone || '';
+        if (emailInput) emailInput.value = guest?.email || '';
+        if (nationInput) nationInput.value = guest?.nation || guest?.country || '';
+        if (noteInput) noteInput.value = guest?.note || guest?.specialNotes || guest?.allergy || '';
+
+        document.getElementById('guestEditId').value = guest && !guest.sourceReservation ? (guest.id || '') : '';
+        document.getElementById('guestRoomInput').innerHTML = roomOptions(guest?.roomId || roomIdValue || '');
+        document.getElementById('guestRoomInput').value = guest?.roomId || roomIdValue || '';
+        document.getElementById('guestRoleInput').value = guest?.role || 'primary';
+        document.getElementById('guestDocInput').value = guest?.docStatus || 'pending';
+    }
+
+    function selectedGuestPayload() {
+        const widget = window._roomingGuestWidget;
+        const selected = widget?.getSelectedGuest?.();
+        const nameInput = document.getElementById(`nrGuest${ROOMING_PREFIX}`);
+        const phoneInput = document.getElementById(`nrPhone${ROOMING_PREFIX}`);
+        const emailInput = document.getElementById(`nrEmail${ROOMING_PREFIX}`);
+        const nationInput = document.getElementById(`nrNation${ROOMING_PREFIX}`);
+        const name = selected?.name || widget?.getGuestName?.() || nameInput?.value?.trim() || '';
+        return {
+            guestId: selected?.id || '',
+            name,
+            phone: selected?.phone || phoneInput?.value?.trim() || '',
+            email: selected?.email || emailInput?.value?.trim() || '',
+            nation: selected?.country || selected?.nation || nationInput?.value || ''
+        };
+    }
+
+    window.populateGuestRooms = function() {
+        const select = document.getElementById('guestRoomInput');
+        if (!select) return;
+        select.innerHTML = roomOptions(select.value || '');
+    };
+    try { populateGuestRooms = window.populateGuestRooms; } catch(e) {}
+
+    window.openRoomingModal = function(roomIdValue = '', guestId = '') {
+        ensureRoomingModalLayout();
+        const guest = guestId ? roomingList().find(item => item.id === guestId) : currentGuestForRoom(roomIdValue);
+        document.getElementById('roomingModalTitle').textContent = guest ? '투숙객 정보 수정' : '투숙객 등록';
+        initRoomingGuestWidget();
+        fillRoomingGuestForm(guest, roomIdValue);
+        openModal('roomingModal');
+    };
+
+    window.saveRoomingGuest = function() {
+        const roomIdValue = document.getElementById('guestRoomInput')?.value || '';
+        const role = document.getElementById('guestRoleInput')?.value || 'primary';
+        const docStatus = document.getElementById('guestDocInput')?.value || 'pending';
+        const note = document.getElementById('guestNoteInput')?.value.trim() || '';
+        const editId = document.getElementById('guestEditId')?.value || '';
+        const guest = selectedGuestPayload();
+
+        if (!roomIdValue) { showToast('호실을 선택하세요.', 'error'); return; }
+        if (!guest.name) { showToast('기존 회원을 선택하거나 신규 회원 이름을 입력하세요.', 'error'); return; }
+
+        const data = {
+            id: editId || guest.guestId || 'GG-' + Date.now(),
+            guestId: guest.guestId,
+            groupId: group.id,
+            name: guest.name,
+            phone: guest.phone,
+            email: guest.email,
+            nation: guest.nation,
+            roomId: roomIdValue,
+            role,
+            docStatus,
+            note,
+            specialNotes: note
+        };
+
+        const list = roomingList();
+        let idx = editId ? list.findIndex(item => item.id === editId) : -1;
+        if (idx < 0) idx = list.findIndex(item => item.roomId === roomIdValue && item.role === role);
+        if (idx >= 0) list[idx] = data;
+        else list.push(data);
+
+        const res = typeof groupReservations === 'function'
+            ? groupReservations().find(item => item.room === roomIdValue || item.fullRoom === roomIdValue || item.roomId === roomIdValue)
+            : null;
+        if (res) {
+            res.roomingGuestId = data.id;
+            res.guestId = data.guestId || res.guestId;
+            res.roomingGuestName = data.name;
+            res.guestName = data.name;
+            res.phone = data.phone;
+            res.email = data.email;
+            res.nation = data.nation;
+            res.docStatus = data.docStatus;
+            res.roomingGuestNote = data.note;
+            res.guestNote = data.note;
+            res.specialNotes = data.specialNotes;
+            res.guest = data.name;
+            res.initials = data.name.substring(0, 2).toUpperCase();
+            res.isGroupPlaceholder = false;
+            res.groupAssigned = true;
+            if (!res.status || res.status === 'blocked') res.status = 'confirmed';
+            if (!res.color || res.color === '#111827') res.color = '#2563EB';
+        }
+
+        group.history = group.history || [];
+        group.history.unshift({
+            at: new Date().toLocaleString('ko-KR'),
+            action: editId ? '투숙객 수정' : '투숙객 등록',
+            note: `${data.name} (${data.roomId})`
+        });
+        saveGroup();
+        window.reservations = reservations;
+        localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+        closeModal('roomingModal');
+        renderAll();
+        switchTabById('rooms');
+        showToast(editId ? '투숙객 정보가 수정되었습니다.' : '투숙객이 등록되었습니다.');
+    };
+    try { saveRoomingGuest = window.saveRoomingGuest; } catch(e) {}
+})();
+</script>
+</body>
+</html>

@@ -171,6 +171,7 @@
 let reservations = [];
 
 const statusConfig = {
+    blocked: {label:'Block',cls:'pending'},
     confirmed: {label:'Confirmed',cls:'confirmed'},
     checkedin: {label:'Check-in',cls:'checkin'},
     checkout: {label:'Check-out',cls:'vip'},
@@ -205,6 +206,7 @@ function renderTable() {
     tbody.innerHTML = paginated.map(r => {
         const st = statusConfig[r.status];
         const isVip = r.vip.includes('VIP') || r.vip.includes('Gold');
+        const displayGuest = (r.status === 'blocked' || r.isGroupPlaceholder) ? (r.groupName || r.channel || '단체 블록') : r.guest;
         return `
         <tr>
             <td><input type="checkbox" class="row-check"></td>
@@ -213,7 +215,7 @@ function renderTable() {
                 <div class="guest-cell">
                     <div class="guest-avatar" style="background:${r.color}">${r.initials}</div>
                     <div>
-                        ${r.guest}${isVip ? ' <i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.6rem"></i>' : ''}
+                        ${displayGuest}${isVip ? ' <i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.6rem"></i>' : ''}
                         <span style="font-size:.72rem;color:#9CA3AF;margin-left:6px">${r.vip}</span>
                     </div>
                 </div>
@@ -243,13 +245,14 @@ function renderTable() {
     mobileContainer.innerHTML = paginated.map(r => {
         const st = statusConfig[r.status];
         const isVip = r.vip.includes('VIP') || r.vip.includes('Gold');
+        const displayGuest = (r.status === 'blocked' || r.isGroupPlaceholder) ? (r.groupName || r.channel || '단체 블록') : r.guest;
         return `
         <div class="m-res-card">
             <div class="m-res-top">
                 <div class="m-res-guest">
                     <div class="guest-avatar" style="background:${r.color}">${r.initials}</div>
                     <div>
-                        <div class="m-res-name">${r.guest} ${isVip ? '<i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.65rem"></i>' : ''}</div>
+                        <div class="m-res-name">${displayGuest} ${isVip ? '<i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.65rem"></i>' : ''}</div>
                         <div class="m-res-sub">${r.vip}</div>
                     </div>
                 </div>

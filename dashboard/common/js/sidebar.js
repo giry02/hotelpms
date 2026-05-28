@@ -33,8 +33,8 @@
                     icon: 'fa-users', label: 'Groups', id: 'groups',
                     mainHref: BASE + 'frontdesk/groups_blocks.html',
                     children: [
-                        { label: 'Room Assignment', href: BASE + 'frontdesk/groups_blocks.html' },
-                        { label: 'Group Companies', href: BASE + 'frontdesk/groups_companies.html' },
+                        { label: '단체/행사 목록', href: BASE + 'frontdesk/groups_blocks.html' },
+                        { label: '단체업체 관리', href: BASE + 'frontdesk/groups_companies.html' },
                     ]
                 },
             ]
@@ -104,6 +104,13 @@
     ];
 
     // ─── HTML 생성 ────────────────────────────────────────────
+    const groupsMenu = MENU.find(group => group.items?.some(item => item.id === 'groups'));
+    const groupsItem = groupsMenu?.items.find(item => item.id === 'groups');
+    if (groupsItem?.children?.length >= 2) {
+        groupsItem.children[0].label = '\uB2E8\uCCB4/\uD589\uC0AC \uBAA9\uB85D';
+        groupsItem.children[1].label = '\uB2E8\uCCB4\uC5C5\uCCB4 \uAD00\uB9AC';
+    }
+
     function buildNavItem(item) {
         if (item.children) {
             const children = item.children.map(c =>
@@ -185,6 +192,7 @@
 
     function updateActiveSidebarLinks() {
         const currentPath = window.location.pathname.split('/').pop() || 'dashboard.html';
+        const activePath = currentPath === 'groups_block_detail.html' ? 'groups_blocks.html' : currentPath;
         const currentHash = window.location.hash;
 
         // Force close all menus first (strict accordion)
@@ -205,7 +213,7 @@
             const hrefHash = hrefFileAndHash.includes('#') ? '#' + hrefFileAndHash.split('#')[1] : '';
 
             let isMatch = false;
-            if (hrefFile === currentPath) {
+            if (hrefFile === activePath) {
                 if (currentHash) {
                     if (hrefHash === currentHash) isMatch = true;
                 } else {
@@ -227,7 +235,7 @@
 
         document.querySelectorAll('.sidebar-nav div.nav-item[onclick]').forEach(div => {
             div.classList.remove('active');
-            if (div.getAttribute('onclick').includes(currentPath)) div.classList.add('active');
+            if (div.getAttribute('onclick').includes(activePath)) div.classList.add('active');
         });
     }
 

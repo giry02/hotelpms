@@ -1,9 +1,0 @@
-window.AdminData = window.AdminData || {};
-window.AdminData.billing = [
-    { id: 'INV-202605-01', hotel: 'The Grand Saigon', plan: 'Premium', cycle: 'Yearly', amount: 12000, date: '2026-05-10', dday: null, status: 'paid' },
-    { id: 'INV-202605-02', hotel: 'Da Nang Beach Resort', plan: 'Standard', cycle: 'Monthly', amount: 300, date: '2026-05-24', dday: 3, status: 'expiring' },
-    { id: 'INV-202605-03', hotel: 'Seoul Tower Hotel', plan: 'Pro', cycle: 'Monthly', amount: 500, date: '2026-04-15', dday: null, status: 'overdue' },
-    { id: 'INV-202605-04', hotel: 'Jeju Ocean Villa', plan: 'Premium', cycle: 'Yearly', amount: 12000, date: '2026-05-23', dday: 2, status: 'expiring' },
-    { id: 'INV-202605-05', hotel: 'Tokyo Capsule', plan: 'Standard', cycle: 'Monthly', amount: 300, date: '2026-03-20', dday: null, status: 'expired' },
-    { id: 'INV-202605-06', hotel: 'Hanoi Heritage', plan: 'Pro', cycle: 'Yearly', amount: 6000, date: '2025-05-10', dday: null, status: 'expired' }
-];

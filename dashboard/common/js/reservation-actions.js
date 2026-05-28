@@ -47,6 +47,7 @@
                     <div class="md-item">
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Status">상태</div>
                         <select id="unifiedStatus" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
+                            <option value="blocked">단체 블록 (Blocked)</option>
                             <option value="confirmed">예약 확정 (Confirmed)</option>
                             <option value="checkedin">체크인 완료 (Checked-in)</option>
                             <option value="checkout">체크아웃 (Check-out)</option>
@@ -113,6 +114,11 @@
     };
 
     window.openUnifiedResModal = async function(resId = null, prefillGroupId = null) {
+        const prefill = (resId && typeof resId === 'object') ? resId : null;
+        if (prefill) {
+            prefillGroupId = prefill.groupId || prefillGroupId;
+            resId = null;
+        }
         ensureModal();
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
         if (!allRes) {
@@ -124,6 +130,9 @@
         if (!window._editGuestWidget && typeof initGuestSearch === 'function') {
             window._editGuestWidget = initGuestSearch('Edit');
         }
+
+        const currentRes = resId ? allRes.find(r => r.id === resId) : null;
+        const isEditingBlock = !!(currentRes && (currentRes.status === 'blocked' || currentRes.isGroupPlaceholder));
 
         // Populate room select
         if (!window.rooms || window.rooms.length === 0) {
@@ -143,7 +152,9 @@
                     window.rooms.filter(r => (r.building || '미지정') === b).forEach(r => {
                         const opt = document.createElement('option');
                         opt.value = r.id;
-                        opt.textContent = `${r.id} (${r.type || 'Standard'})`;
+                        const blocked = !prefillGroupId && allRes.some(res => (res.room === r.id || res.fullRoom === r.id) && res.status === 'blocked' && (!currentRes || res.id !== currentRes.id));
+                        opt.disabled = blocked;
+                        opt.textContent = `${r.id} (${r.type || 'Standard'})${blocked ? ' · 단체 블록' : ''}`;
                         group.appendChild(opt);
                     });
                     roomSelect.appendChild(group);
@@ -152,11 +163,18 @@
                 window.rooms.forEach(r => {
                     const opt = document.createElement('option');
                     opt.value = r.id;
-                    opt.textContent = `${r.id} (${r.type || 'Standard'})`;
+                    const blocked = !prefillGroupId && allRes.some(res => (res.room === r.id || res.fullRoom === r.id) && res.status === 'blocked' && (!currentRes || res.id !== currentRes.id));
+                    opt.disabled = blocked;
+                    opt.textContent = `${r.id} (${r.type || 'Standard'})${blocked ? ' · 단체 블록' : ''}`;
                     roomSelect.appendChild(opt);
                 });
             }
         }
+        roomSelect.onchange = () => {
+            const selectedRoom = (window.rooms || []).find(r => r.id === roomSelect.value || r.fullRoom === roomSelect.value || r.number === roomSelect.value || r.display === roomSelect.value);
+            const typeEl = document.getElementById('unifiedType');
+            if (typeEl) typeEl.textContent = selectedRoom?.type || '-';
+        };
 
         if (!resId) {
             // NEW BOOKING MODE
@@ -180,10 +198,17 @@
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
             const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
-            document.getElementById('unifiedCin').textContent = fmt(today);
-            document.getElementById('unifiedCout').textContent = fmt(tomorrow);
-            document.getElementById('unifiedNights').textContent = '1박';
-            document.getElementById('unifiedType').textContent = 'Standard';
+            document.getElementById('unifiedCin').textContent = prefill?.checkin || fmt(today);
+            document.getElementById('unifiedCout').textContent = prefill?.checkout || fmt(tomorrow);
+            const cinParts = document.getElementById('unifiedCin').textContent.split('/');
+            const coutParts = document.getElementById('unifiedCout').textContent.split('/');
+            const cinDate = cinParts.length === 2 ? new Date(2026, parseInt(cinParts[0],10)-1, parseInt(cinParts[1],10)) : today;
+            const coutDate = coutParts.length === 2 ? new Date(2026, parseInt(coutParts[0],10)-1, parseInt(coutParts[1],10)) : tomorrow;
+            const nights = Math.max(1, Math.round((coutDate - cinDate) / 86400000));
+            document.getElementById('unifiedNights').textContent = nights + '박';
+            if (prefill?.room) roomSelect.value = prefill.room;
+            const selectedRoom = (window.rooms || []).find(r => r.id === roomSelect.value || r.fullRoom === roomSelect.value);
+            document.getElementById('unifiedType').textContent = selectedRoom?.type || prefill?.type || 'Standard';
             
             if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
@@ -213,9 +238,31 @@
                 opt.textContent = res.room;
                 roomSelect.appendChild(opt);
             }
-            roomSelect.value = res.room;
+            const matchedRoom = (window.rooms || []).find(r => r.id === res.room || r.fullRoom === res.room || r.number === res.room || r.display === res.room || r.id === res.fullRoom);
+            const targetRoomValue = matchedRoom ? matchedRoom.id : res.room;
+            if (targetRoomValue && !Array.from(roomSelect.options).some(o => o.value === targetRoomValue)) {
+                const opt = document.createElement('option');
+                opt.value = targetRoomValue;
+                opt.textContent = `${targetRoomValue} (${res.type || matchedRoom?.type || 'Standard'})`;
+                roomSelect.appendChild(opt);
+            }
+            roomSelect.value = targetRoomValue;
 
-            if (window._editGuestWidget) {
+            const guestSection = document.getElementById('unifiedGuestSection');
+            if (guestSection) {
+                guestSection.style.display = isEditingBlock ? 'none' : 'block';
+                let blockNotice = document.getElementById('unifiedBlockNotice');
+                if (!blockNotice) {
+                    blockNotice = document.createElement('div');
+                    blockNotice.id = 'unifiedBlockNotice';
+                    blockNotice.style.cssText = 'margin-bottom:20px;background:#f8fafc;border:1px solid var(--border2);border-radius:8px;padding:14px;font-size:.82rem;color:var(--txt2);font-weight:700';
+                    guestSection.parentElement.insertBefore(blockNotice, guestSection);
+                }
+                blockNotice.style.display = isEditingBlock ? 'block' : 'none';
+                blockNotice.innerHTML = `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> 단체 블록 상태입니다. 아직 개별 투숙객이 배정되지 않았으며, 투숙객은 단체 상세의 Rooming List에서 등록하거나 상태를 예약 확정으로 전환할 때 연결합니다.`;
+            }
+
+            if (!isEditingBlock && window._editGuestWidget) {
                 window._editGuestWidget.reset();
                 const existingGuest = typeof GUEST_DB !== 'undefined' ? GUEST_DB.find(g => g.name === res.guest) : null;
                 if (existingGuest) {
@@ -223,7 +270,7 @@
                 } else {
                     window._editGuestWidget.showNewForm();
                     const nameInput = document.getElementById('nrGuestEdit');
-                    if (nameInput) nameInput.value = res.guest;
+                    if (nameInput) nameInput.value = res.guest || '';
                 }
             }
         
@@ -269,19 +316,24 @@
 
     window.saveUnifiedRes = function() {
         const id = document.getElementById('unifiedResId').value;
+        const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
+        if (!allRes) return;
         
         let guest = '';
-        if (window._editGuestWidget) {
+        const currentRes = id ? allRes.find(r => r.id === id) : null;
+        const isBlockSave = currentRes && (currentRes.status === 'blocked' || currentRes.isGroupPlaceholder) && document.getElementById('unifiedStatus').value === 'blocked';
+        if (!isBlockSave && window._editGuestWidget) {
             guest = window._editGuestWidget.getGuestName();
-        } else {
+        } else if (!isBlockSave) {
             const guestInput = document.getElementById('nrGuestEdit');
             if (guestInput) guest = guestInput.value;
         }
-        if (!guest || !guest.trim()) {
+        if (!isBlockSave && (!guest || !guest.trim())) {
             alert('고객명을 입력하거나 선택해주세요.');
             return;
         }
         const room = document.getElementById('unifiedRoom').value;
+        const selectedRoom = (window.rooms || []).find(r => r.id === room || r.fullRoom === room || r.number === room || r.display === room);
         const status = document.getElementById('unifiedStatus').value;
         const isB2B = document.getElementById('unifiedIsB2B').checked;
         let channel = document.getElementById('unifiedChannel').value;
@@ -297,9 +349,6 @@
             }
         }
         
-        const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
-        if (!allRes) return;
-        
         if (!id) {
             // NEW BOOKING MODE
             const newId = 'RSV-' + new Date().toISOString().replace(/\D/g,'').slice(0,14) + '-' + Math.floor(Math.random()*1000);
@@ -313,9 +362,10 @@
                 groupId: groupId,
                 cin: document.getElementById('unifiedCin').textContent,
                 cout: document.getElementById('unifiedCout').textContent,
-                nights: 1,
+                nights: parseInt(document.getElementById('unifiedNights').textContent, 10) || 1,
 
-                type: 'Standard',
+                type: selectedRoom?.type || document.getElementById('unifiedType').textContent || 'Standard',
+                fullRoom: selectedRoom?.id || room,
                 amount: 0,
                 color: '#3B82F6',
                 initials: guest.substring(0,2).toUpperCase(),
@@ -331,6 +381,10 @@
                 if (guest.trim()) res.initials = guest.split(' ').map(n => n[0]).join('');
                 res.room = room;
                 res.status = status;
+                if (res.isGroupPlaceholder && status !== 'blocked' && guest.trim()) {
+                    res.isGroupPlaceholder = false;
+                    res.status = 'confirmed';
+                }
                 res.channel = channel;
                 res.isB2B = isB2B;
                 res.groupId = groupId;

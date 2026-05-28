@@ -1,7 +1,0 @@
-window.AdminData = window.AdminData || {};
-window.AdminData.users = [
-    { id: 'ADM-001', name: 'John Doe', role: 'System Admin', email: 'john@platform.sys', status: 'active', lastLogin: '2026-05-20 10:30' },
-    { id: 'ADM-002', name: 'Alice Smith', role: 'Sales Manager', email: 'alice@platform.sys', status: 'active', lastLogin: '2026-05-19 14:20' },
-    { id: 'ADM-003', name: 'Bob Jones', role: 'Support Specialist', email: 'bob@platform.sys', status: 'inactive', lastLogin: '2026-05-10 09:15' },
-    { id: 'ADM-004', name: 'Charlie Lee', role: 'Support Specialist', email: 'charlie@platform.sys', status: 'active', lastLogin: '2026-05-21 08:45' }
-];

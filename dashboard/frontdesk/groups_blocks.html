@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>객실 배정 - Hotel PMS</title>
+    <title>단체/행사 목록 - Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -101,7 +101,7 @@
                 <button class="mobile-menu-btn" onclick="PMS_Sidebar.toggleMenu()">
                     <i class="fa-solid fa-bars"></i>
                 </button>
-                <h1 data-i18n-key="Room Assignment">객실 배정</h1>
+                <h1 data-i18n-key="Group Events">단체/행사 목록</h1>
             </div>
             <div class="topbar-right">
                 <div class="search-box">
@@ -169,8 +169,8 @@
                 </div>
                 <div class="filter-right">
                     <button class="btn-outline" style="height:38px" onclick="showToast('다운로드 되었습니다.')"><i class="fa-solid fa-download"></i> 다운로드</button>
-                    <button class="btn-primary-sm" style="height:38px;padding:0 16px" onclick="openNewGroupModal()">
-                        <i class="fa-solid fa-plus"></i> 신규 객실 배정
+                    <button class="btn-primary-sm" style="height:38px;padding:0 16px" onclick="createGroupEvent()">
+                        <i class="fa-solid fa-plus"></i> 신규 행사 생성
                     </button>
                 </div>
             </div>
@@ -325,7 +325,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto open logic
     const urlParams = new URLSearchParams(window.location.search);
     if(urlParams.get('newBlock') === 'true') {
-        setTimeout(() => { window.openNewGroupModal(); }, 300);
+        const comp = urlParams.get('comp');
+        location.href = `groups_block_detail.html?mode=new${comp ? `&companyId=${encodeURIComponent(comp)}` : ''}`;
+        return;
     }
 });
 
@@ -433,10 +435,7 @@ function renderGroups(search = '') {
             <div class="group-card-footer">
                 <div style="font-size:0.78rem;color:var(--txt3)">담당: ${g.sales}</div>
                 <div style="display:flex;gap:8px">
-                    <button class="btn-outline-sm" onclick="showDetail('${g.id}')" title="상세" style="padding:0 8px"><i class="fa-solid fa-eye"></i></button>
-                    <button class="btn-outline-sm" onclick="editGroup('${g.id}')" title="수정" style="padding:0 8px"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn-outline-sm" onclick="deleteGroup('${g.id}')" title="삭제" style="color:var(--danger);border-color:var(--danger);padding:0 8px"><i class="fa-solid fa-trash"></i></button>
-                    <button class="btn-outline-sm" onclick="showToast('정산 화면으로 이동합니다.')" style="padding:0 12px"><i class="fa-solid fa-receipt"></i> 정산</button>
+                    <button class="btn-outline-sm" onclick="openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button>
                 </div>
             </div>
         </div>`;
@@ -643,6 +642,1397 @@ async function deleteGroup(id) {
         renderGroups();
     }
 }
+</script>
+<script>
+(function(){
+    let eventStatusFilter = 'all';
+    let eventCompanyFilter = 'all';
+
+    function parseStored(key) {
+        try {
+            const data = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(data) ? data : [];
+        } catch(e) {
+            return [];
+        }
+    }
+    function companiesData() {
+        return parseStored('pms_companies');
+    }
+    function reservationsData() {
+        return Array.isArray(window.reservations) ? window.reservations : parseStored('pms_reservations');
+    }
+    function roomLabelFromAllocation(a) {
+        return a.roomLabel || a.roomId || a.room || a.id || '';
+    }
+    function assignedRoomsOf(g) {
+        const source = Array.isArray(g.roomAllocations) && g.roomAllocations.length ? g.roomAllocations : (Array.isArray(g.allocations) ? g.allocations : []);
+        return source.filter(a => a && (a.roomId || a.room || a.id)).map(a => ({
+            roomId: a.roomId || a.room || a.id,
+            roomLabel: roomLabelFromAllocation(a),
+            type: a.type || 'Standard'
+        }));
+    }
+    function groupReservationsOf(groupId) {
+        return reservationsData().filter(r => r.groupId === groupId && r.status !== 'cancelled');
+    }
+    function parseDate(value) {
+        if (!value) return null;
+        const d = value.includes('-') ? new Date(value) : new Date(`2026/${value}`);
+        if (Number.isNaN(d.getTime())) return null;
+        d.setHours(0,0,0,0);
+        return d;
+    }
+    function today() {
+        const d = new Date();
+        d.setHours(0,0,0,0);
+        return d;
+    }
+    function stageOf(g) {
+        const now = today();
+        const cin = parseDate(g.checkin);
+        const cout = parseDate(g.checkout);
+        const unsettled = g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid';
+        if (unsettled && cout && cout < now) return { key:'settlement', label:'정산 필요', cls:'stage-settle' };
+        if (cin && cin.getTime() === now.getTime()) return { key:'today', label:'오늘 체크인', cls:'stage-today' };
+        if (cin && cout && cin <= now && cout > now) return { key:'active', label:'투숙 중', cls:'stage-live' };
+        if (cin && cin > now) return { key:'upcoming', label:'예정', cls:'stage-upcoming' };
+        if (cout && cout <= now) return { key:'past', label:'지난 행사', cls:'stage-past' };
+        if (g.status === 'inhouse') return { key:'active', label:'투숙 중', cls:'stage-live' };
+        if (g.status === 'departed') return { key:'past', label:'지난 행사', cls:'stage-past' };
+        return { key:'upcoming', label:'예정', cls:'stage-upcoming' };
+    }
+    function dday(g) {
+        const cin = parseDate(g.checkin);
+        if (!cin) return '-';
+        const diff = Math.round((cin - today()) / 86400000);
+        if (diff === 0) return 'D-Day';
+        return diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
+    }
+    function companyOf(g) {
+        const companies = companiesData();
+        if (g.agencyId) {
+            const c = companies.find(x => x.id === g.agencyId);
+            if (c) return c;
+        }
+        if (g.agency) {
+            const c = companies.find(x => x.name === g.agency || g.agency.includes(x.name) || x.name.includes(g.agency));
+            if (c) return c;
+        }
+        return null;
+    }
+    function companyKeyOf(g) {
+        return g.agencyId || companyOf(g)?.id || g.agency || '';
+    }
+    function ensureEventToolbar() {
+        const title = document.querySelector('.topbar-left h1');
+        if (title) title.textContent = '단체/행사 목록';
+        const chips = document.querySelector('.filter-chips');
+        if (chips) {
+            chips.innerHTML = `
+                <button class="chip ${eventStatusFilter === 'all' ? 'active' : ''}" onclick="filterGroups('all', this)">전체</button>
+                <button class="chip ${eventStatusFilter === 'today' ? 'active' : ''}" onclick="filterGroups('today', this)">오늘 체크인</button>
+                <button class="chip ${eventStatusFilter === 'active' ? 'active' : ''}" onclick="filterGroups('active', this)">투숙 중</button>
+                <button class="chip ${eventStatusFilter === 'upcoming' ? 'active' : ''}" onclick="filterGroups('upcoming', this)">예정</button>
+                <button class="chip ${eventStatusFilter === 'past' ? 'active' : ''}" onclick="filterGroups('past', this)">지난 행사</button>
+                <button class="chip ${eventStatusFilter === 'settlement' ? 'active' : ''}" onclick="filterGroups('settlement', this)">정산 필요</button>`;
+        }
+        const filterLeft = document.querySelector('.filter-left');
+        if (filterLeft && !document.getElementById('companyFilter')) {
+            const select = document.createElement('select');
+            select.id = 'companyFilter';
+            select.className = 'company-filter';
+            select.onchange = () => {
+                eventCompanyFilter = select.value;
+                window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
+            };
+            const chipsEl = document.querySelector('.filter-chips');
+            filterLeft.insertBefore(select, chipsEl);
+        }
+        const companySelect = document.getElementById('companyFilter');
+        if (companySelect) {
+            const urlCompany = new URLSearchParams(location.search).get('companyId');
+            if (urlCompany && eventCompanyFilter === 'all') eventCompanyFilter = urlCompany;
+            const companies = companiesData();
+            const eventCompanies = [...new Set((groups || []).map(g => g.agency).filter(Boolean))];
+            companySelect.innerHTML = '<option value="all">전체 업체</option>' +
+                companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('') +
+                eventCompanies.filter(name => !companies.some(c => c.name === name)).map(name => `<option value="${name}">${name}</option>`).join('');
+            companySelect.value = [...companySelect.options].some(o => o.value === eventCompanyFilter) ? eventCompanyFilter : 'all';
+            eventCompanyFilter = companySelect.value;
+        }
+        const filterRight = document.querySelector('.filter-right');
+        if (filterRight) {
+            filterRight.innerHTML = `
+                <button class="btn-outline" style="height:38px" onclick="location.href='groups_companies.html'"><i class="fa-solid fa-building"></i> 업체 관리</button>
+                <button class="btn-primary-sm" style="height:38px;padding:0 16px" onclick="location.href='groups_block_detail.html?mode=new'"><i class="fa-solid fa-plus"></i> 신규 행사 생성</button>`;
+        }
+    }
+    function updateEventKpis() {
+        const list = groups || [];
+        const inhouse = list.filter(g => stageOf(g).key === 'active').length;
+        const rooms = list.reduce((sum, g) => sum + assignedRoomsOf(g).length, 0);
+        const settle = list.filter(g => stageOf(g).key === 'settlement' || (stageOf(g).key === 'past' && g.settlementStatus !== 'paid')).length;
+        const total = document.getElementById('kpiTotalGroups');
+        const live = document.getElementById('kpiInhouse');
+        const block = document.getElementById('kpiBlocks');
+        const unpaid = document.getElementById('kpiUnpaid');
+        if (total) total.textContent = list.length;
+        if (live) live.textContent = inhouse;
+        if (block) block.textContent = rooms;
+        if (unpaid) unpaid.textContent = settle;
+    }
+    window.filterGroups = function(status, btn) {
+        eventStatusFilter = status || 'all';
+        currentFilter = eventStatusFilter;
+        btn?.closest('.filter-chips')?.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        btn?.classList.add('active');
+        window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
+    };
+    window.searchGroups = function(value) {
+        window.renderGroups(value || '');
+    };
+    window.updateFilterCounts = function() {
+        updateEventKpis();
+    };
+    window.renderGroups = function(search = '') {
+        ensureEventToolbar();
+        updateEventKpis();
+        const grid = document.getElementById('groupGrid');
+        const empty = document.getElementById('emptyState');
+        if (!grid) return;
+        const q = String(search || '').toLowerCase();
+        const list = (groups || []).filter(g => {
+            const stage = stageOf(g);
+            const statusMatch = eventStatusFilter === 'all' || stage.key === eventStatusFilter;
+            const cKey = companyKeyOf(g);
+            const companyMatch = eventCompanyFilter === 'all' || cKey === eventCompanyFilter || g.agency === eventCompanyFilter;
+            const roomText = assignedRoomsOf(g).map(r => `${r.roomId} ${r.roomLabel}`).join(' ').toLowerCase();
+            const text = [g.name, g.agency, companyOf(g)?.name, g.sales, g.contact, g.id].filter(Boolean).join(' ').toLowerCase();
+            return statusMatch && companyMatch && (!q || text.includes(q) || roomText.includes(q));
+        }).sort((a,b) => {
+            const order = { today:0, active:1, settlement:2, upcoming:3, past:4 };
+            const sa = stageOf(a);
+            const sb = stageOf(b);
+            if ((order[sa.key] ?? 9) !== (order[sb.key] ?? 9)) return (order[sa.key] ?? 9) - (order[sb.key] ?? 9);
+            return (parseDate(a.checkin)?.getTime() || 0) - (parseDate(b.checkin)?.getTime() || 0);
+        });
+        if (!list.length) {
+            grid.style.display = 'none';
+            if (empty) {
+                empty.style.display = 'block';
+                empty.innerHTML = '<i class="fa-solid fa-calendar-xmark" style="font-size:2.5rem;margin-bottom:12px;display:block"></i>해당 조건의 행사가 없습니다.';
+            }
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+        grid.style.display = 'block';
+        grid.innerHTML = `
+            <div class="event-register">
+                <div class="event-head">
+                    <div>운영 상태</div><div>행사 / 업체</div><div>기간</div><div>D-Day</div><div>객실</div><div>투숙객</div><div>정산</div><div></div>
+                </div>
+                ${list.map(g => {
+                    const assigned = assignedRoomsOf(g);
+                    const reservations = groupReservationsOf(g.id);
+                    const guests = Array.isArray(g.roomingList) ? g.roomingList.length : 0;
+                    const stage = stageOf(g);
+                    const settlement = g.settlementStatus === 'paid' ? '완료' : (stage.key === 'past' || stage.key === 'settlement' ? '확인 필요' : '진행 전');
+                    return `<div class="event-row">
+                        <div data-label="운영 상태"><span class="stage-pill ${stage.cls}">${stage.label}</span></div>
+                        <div class="event-main"><div class="event-name">${g.name || '-'}</div><div class="event-company">${g.agency || '업체 미지정'} · ${g.id || '-'}</div></div>
+                        <div data-label="기간"><div class="event-metric">${g.checkin || '-'} ~ ${g.checkout || '-'}</div><div class="event-sub">${g.type || '-'}</div></div>
+                        <div data-label="D-Day"><div class="event-metric">${dday(g)}</div></div>
+                        <div data-label="객실"><div class="event-metric">${reservations.length}/${assigned.length}실<small>예약/배정</small></div></div>
+                        <div data-label="투숙객"><div class="event-metric">${guests}/${g.pax || 0}명<small>등록/PAX</small></div></div>
+                        <div data-label="정산"><div class="event-metric">${settlement}</div></div>
+                        <div><button class="btn-outline-sm" onclick="openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button></div>
+                    </div>`;
+                }).join('')}
+            </div>`;
+    };
+    document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+        ensureEventToolbar();
+        window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
+    }, 20));
+})();
+</script>
+<script>
+(function(){
+    const labels = {
+        modalNew: '신규 객실 배정',
+        modalEdit: '객실 배정 수정',
+        roomSection: '배정 호실',
+        addRoom: '호실 추가',
+        roomRequired: '최소 1개 이상의 호실을 배정해야 합니다.',
+        nameRequired: '행사(블록)명을 입력하세요.',
+        dateRequired: '체크인/체크아웃 날짜를 입력하세요.',
+        duplicateRoom: '같은 호실이 중복 배정되었습니다.',
+        saved: '객실 배정이 저장되었습니다.',
+        updated: '객실 배정이 수정되었습니다.',
+        noRooms: '배정 가능한 객실 정보가 없습니다.',
+        rooms: '호실',
+        roomsAssigned: '배정 호실',
+        pickup: '예약 진행',
+        reserve: '예약',
+        view: '상세',
+        edit: '수정',
+        folio: '정산',
+        blocked: '블록',
+        noAssignment: '배정된 호실이 없습니다.'
+    };
+
+    let blockRooms = [];
+    let blockReservations = [];
+
+    function injectRoomBlockStyles() {
+        if (document.getElementById('roomBlockPatchStyles')) return;
+        const style = document.createElement('style');
+        style.id = 'roomBlockPatchStyles';
+        style.textContent = `
+            .room-block-panel{background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:12px}
+            .room-block-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+            .room-block-title{font-size:.82rem;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:6px}
+            .room-alloc-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px}
+            .room-alloc-row + .room-alloc-row{margin-top:8px}
+            .room-alloc-row .form-input{padding:8px 10px;font-size:.82rem}
+            .room-rate-line{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1.1fr;gap:8px;align-items:center}
+            .room-rate-chip{min-height:36px;display:flex;align-items:center;gap:6px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:7px;padding:0 10px;font-size:.72rem;color:#475569;font-weight:700}
+            .room-rate-chip strong{color:#0f172a}
+            .room-chip-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+            .room-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border:1px solid #dbe3ee;border-radius:7px;background:#fff;color:#334155;font-size:.72rem;font-weight:700}
+            .room-chip small{font-size:.66rem;color:#64748b;font-weight:600}
+            .room-chip.blocked{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}
+            .room-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+            .room-summary-tile{border:1px solid var(--border2);background:#fff;border-radius:8px;padding:10px}
+            .room-summary-tile .num{font-size:1rem;font-weight:800;color:var(--primary)}
+            .room-summary-tile .cap{font-size:.68rem;color:var(--txt3);font-weight:700;margin-top:2px}
+            .room-assignment-table{width:100%;border-collapse:collapse;font-size:.78rem}
+            .room-assignment-table th,.room-assignment-table td{padding:8px;border-bottom:1px solid #edf2f7;text-align:left}
+            .room-assignment-table th{background:#f8fafc;color:#64748b;font-size:.7rem}
+            .room-action-btn{height:28px;padding:0 9px;border-radius:6px;border:1px solid var(--border);background:#fff;font-family:var(--font);font-size:.72rem;font-weight:700;color:var(--txt);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+            .room-action-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+            @media(max-width:768px){
+                #groupGrid{grid-template-columns:1fr!important}
+                .room-alloc-row{grid-template-columns:1fr}
+                .room-summary-grid{grid-template-columns:1fr 1fr}
+                .room-rate-line{grid-template-columns:1fr}
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function roomKey(room) {
+        return room.id || room.fullRoom || room.display || room.number || '';
+    }
+
+    function roomLabel(room) {
+        const id = roomKey(room);
+        const bldg = room.building || room.bldgCode || '';
+        const number = room.number || room.display || id;
+        return bldg ? `${bldg} ${number}` : number;
+    }
+
+    function roomType(room) {
+        return room.type || 'Standard';
+    }
+
+    function getCurrency() {
+        const saved = localStorage.getItem('pms_default_currency') || localStorage.getItem('pms_currency') || 'KRW';
+        const code = saved.includes('USD') ? 'USD' : saved.includes('VND') ? 'VND' : saved.includes('KRW') ? 'KRW' : saved;
+        const symbols = { USD: '$', KRW: '₩', VND: '₫' };
+        return { code, symbol: symbols[code] || code };
+    }
+
+    function money(value) {
+        const cur = getCurrency();
+        const n = Number(value || 0);
+        return `${cur.symbol}${n.toLocaleString()}`;
+    }
+
+    function getRoomTypesConfig() {
+        try {
+            const saved = localStorage.getItem('pms_room_types_config');
+            if (saved) return JSON.parse(saved);
+        } catch(e) {}
+        return [
+            { id: 'Standard', name: 'Standard Double', basePrice: 100000 },
+            { id: 'Deluxe', name: 'Deluxe King', basePrice: 150000 },
+            { id: 'Premier', name: 'Premier Twin', basePrice: 180000 },
+            { id: 'Suite', name: 'Executive Suite', basePrice: 300000 },
+            { id: 'Penthouse', name: 'Penthouse', basePrice: 800000 }
+        ];
+    }
+
+    function getBaseRateForRoom(room) {
+        const date = document.getElementById('ngCheckin')?.value || new Date().toISOString().slice(0,10);
+        const type = roomType(room);
+        let dailyRates = {};
+        try { dailyRates = JSON.parse(localStorage.getItem('pms_daily_rates') || '{}'); } catch(e) {}
+        const typeConfig = getRoomTypesConfig().find(rt => rt.id === type || rt.name === type || type.includes(rt.id) || rt.name.includes(type));
+        const typeId = typeConfig ? typeConfig.id : type;
+        let rate = dailyRates[date] && dailyRates[date][typeId] !== undefined ? Number(dailyRates[date][typeId]) : Number(typeConfig?.basePrice || 0);
+        if (getCurrency().code === 'KRW' && rate > 0 && rate < 1000) rate = rate * 1000;
+        return rate;
+    }
+
+    function getSelectedCompany() {
+        const agencySel = document.getElementById('ngAgency');
+        const id = agencySel?.value || '';
+        try {
+            const companies = getCompanies();
+            return companies.find(c => c.id === id || c.name === id || (agencySel?.selectedOptions[0]?.textContent || '').includes(c.name));
+        } catch(e) {
+            return null;
+        }
+    }
+
+    function getCompanies() {
+        let companies = [];
+        try { companies = JSON.parse(localStorage.getItem('pms_companies') || '[]'); } catch(e) {}
+        if (!Array.isArray(companies) || !companies.length) {
+            companies = [
+                { id: 'COMP-1001', name: '삼성전자 (Samsung)', type: 'Corporate', status: 'active', groupDiscount: 15, rate: '객실 15% 할인' },
+                { id: 'COMP-1002', name: '하나투어 (Hana Tour)', type: 'Travel Agency', status: 'active', groupDiscount: 10, rate: '객실 10% 할인' },
+                { id: 'COMP-1003', name: '한화이글스', type: 'Other', status: 'active', groupDiscount: 8, rate: '객실 8% 할인' }
+            ];
+            localStorage.setItem('pms_companies', JSON.stringify(companies));
+        }
+        return companies;
+    }
+
+    window.loadCompaniesForDropdown = function() {
+        const sel = document.getElementById('ngAgency');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">주관 업체를 선택하세요</option>';
+        getCompanies().forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.name} (${c.type === 'Corporate' ? '기업' : c.type === 'Travel Agency' ? '여행사' : '기타'}) · 할인 ${parseDiscount(c)}%`;
+            sel.appendChild(opt);
+        });
+    };
+
+    function parseDiscount(company) {
+        if (!company) return 0;
+        if (company.groupDiscount !== undefined) return Number(company.groupDiscount || 0);
+        const text = String(company.rate || '');
+        const match = text.match(/(\d+(?:\.\d+)?)\s*%/);
+        return match ? Number(match[1]) : 0;
+    }
+
+    function normalizeRoom(room) {
+        const id = roomKey(room);
+        return {
+            id,
+            roomId: id,
+            roomLabel: roomLabel(room),
+            type: roomType(room),
+            building: room.building || room.bldgCode || '',
+            rate: 0
+        };
+    }
+
+    function getAssignedRooms(g) {
+        if (Array.isArray(g.roomAllocations) && g.roomAllocations.length) {
+            return g.roomAllocations.map(a => ({
+                roomId: a.roomId || a.id || a.room || '',
+                roomLabel: a.roomLabel || a.display || a.room || a.roomId || '',
+                type: a.type || 'Standard',
+                building: a.building || '',
+                baseRate: Number(a.baseRate || 0),
+                discountPercent: Number(a.discountPercent || 0),
+                rate: Number(a.rate || 0)
+            })).filter(a => a.roomId);
+        }
+        if (Array.isArray(g.allocations) && g.allocations.some(a => a.roomId || a.room)) {
+            return g.allocations.map(a => ({
+                roomId: a.roomId || a.room,
+                roomLabel: a.roomLabel || a.room || a.roomId,
+                type: a.type || 'Standard',
+                building: a.building || '',
+                baseRate: Number(a.baseRate || 0),
+                discountPercent: Number(a.discountPercent || 0),
+                rate: Number(a.rate || 0)
+            })).filter(a => a.roomId);
+        }
+        return [];
+    }
+
+    function migrateCountAllocations(g) {
+        if (getAssignedRooms(g).length) return g;
+        const selected = [];
+        const used = new Set((groups || []).flatMap(x => getAssignedRooms(x).map(a => a.roomId)));
+        (g.allocations || []).forEach(a => {
+            const need = Number(a.count || 0);
+            const typePrefix = String(a.type || '').split(' ')[0].toLowerCase();
+            const matches = blockRooms.filter(r => {
+                const id = roomKey(r);
+                const type = roomType(r).toLowerCase();
+                return id && !used.has(id) && (!typePrefix || type.includes(typePrefix));
+            }).slice(0, need);
+            matches.forEach(r => {
+                const normalized = normalizeRoom(r);
+                normalized.rate = Number(a.rate || 0);
+                selected.push(normalized);
+                used.add(normalized.roomId);
+            });
+        });
+        if (selected.length) {
+            g.roomAllocations = selected;
+            g.block = selected.length;
+        }
+        return g;
+    }
+
+    function syncLegacyGroups() {
+        let touched = false;
+        (groups || []).forEach(g => {
+            const before = getAssignedRooms(g).length;
+            migrateCountAllocations(g);
+            const after = getAssignedRooms(g).length;
+            if (after && after !== before) touched = true;
+        });
+        if (touched) localStorage.setItem('pms_groups', JSON.stringify(groups));
+    }
+
+    function formatDateMD(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (Number.isNaN(d.getTime())) return dateStr;
+        return `${d.getMonth()+1}/${d.getDate()}`;
+    }
+
+    function getGroupReservations(groupId) {
+        return (blockReservations || []).filter(r => r.groupId === groupId && r.status !== 'cancelled');
+    }
+
+    function setRoomOptions(select, selectedRoomId) {
+        const selectedInForm = Array.from(document.querySelectorAll('.alloc-room'))
+            .map(el => el.value)
+            .filter(Boolean)
+            .filter(id => id !== selectedRoomId);
+
+        select.innerHTML = `<option value="">호실 선택</option>`;
+        const grouped = {};
+        blockRooms.forEach(room => {
+            const id = roomKey(room);
+            if (!id) return;
+            const disabled = selectedInForm.includes(id);
+            const key = roomType(room);
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push({ room, disabled });
+        });
+
+        Object.keys(grouped).sort().forEach(type => {
+            const og = document.createElement('optgroup');
+            og.label = type;
+            grouped[type].forEach(({room, disabled}) => {
+                const opt = document.createElement('option');
+                opt.value = roomKey(room);
+                opt.textContent = `${roomLabel(room)} · ${roomType(room)}`;
+                opt.disabled = disabled;
+                if (opt.value === selectedRoomId) opt.selected = true;
+                og.appendChild(opt);
+            });
+            select.appendChild(og);
+        });
+    }
+
+    function refreshAllRoomOptions() {
+        document.querySelectorAll('.alloc-room').forEach(select => setRoomOptions(select, select.value));
+    }
+
+    function updateAllocationRow(row, keepManualRate = false) {
+        const select = row.querySelector('.alloc-room');
+        const room = blockRooms.find(r => roomKey(r) === select.value);
+        const baseRateEl = row.querySelector('.alloc-base-rate');
+        const discountEl = row.querySelector('.alloc-discount');
+        const rateInput = row.querySelector('.alloc-rate');
+        const company = getSelectedCompany();
+        const discount = parseDiscount(company);
+
+        if (!room) {
+            baseRateEl.textContent = `기준가: -`;
+            discountEl.textContent = `단체 할인: ${discount}%`;
+            if (!keepManualRate) rateInput.value = '';
+            return;
+        }
+
+        const baseRate = getBaseRateForRoom(room);
+        const finalRate = Math.round(baseRate * (100 - discount) / 100);
+        row.dataset.baseRate = String(baseRate);
+        row.dataset.discount = String(discount);
+        baseRateEl.textContent = `기준가: ${money(baseRate)}`;
+        discountEl.textContent = `단체 할인: ${discount}%`;
+        if (!keepManualRate || !rateInput.value) rateInput.value = finalRate || '';
+    }
+
+    function refreshAllocationRates() {
+        document.querySelectorAll('.room-alloc-row').forEach(row => updateAllocationRow(row, false));
+    }
+
+    window.addAllocationRow = function(roomId = '', rate = '') {
+        const container = document.getElementById('allocationContainer');
+        if (!container) return;
+        const row = document.createElement('div');
+        row.className = 'room-alloc-row';
+        row.innerHTML = `
+            <select class="form-input alloc-room"></select>
+            <button type="button" class="btn-outline-sm" style="color:var(--danger);border-color:var(--danger);padding:4px 8px" title="삭제"><i class="fa-solid fa-trash"></i></button>
+            <div class="room-rate-line">
+                <div class="room-rate-chip alloc-base-rate">기준가: -</div>
+                <div class="room-rate-chip alloc-discount">단체 할인: 0%</div>
+                <input type="number" class="form-input alloc-rate" min="0" value="${rate || ''}" placeholder="최종 적용가">
+            </div>
+        `;
+        const select = row.querySelector('.alloc-room');
+        setRoomOptions(select, roomId);
+        const updateType = () => {
+            updateAllocationRow(row, false);
+            calcTotalBlock();
+            refreshAllRoomOptions();
+        };
+        select.addEventListener('change', updateType);
+        row.querySelector('button').onclick = () => {
+            row.remove();
+            calcTotalBlock();
+            refreshAllRoomOptions();
+        };
+        container.prepend(row);
+        if (rate) row.querySelector('.alloc-rate').value = rate;
+        updateType();
+    };
+
+    window.calcTotalBlock = function() {
+        const ids = Array.from(document.querySelectorAll('.alloc-room')).map(s => s.value).filter(Boolean);
+        const el = document.getElementById('ngTotalBlock');
+        if (el) el.textContent = ids.length;
+    };
+
+    function collectRoomAllocations() {
+        const rows = Array.from(document.querySelectorAll('.room-alloc-row'));
+        return rows.map(row => {
+            const roomId = row.querySelector('.alloc-room')?.value || '';
+            if (!roomId) return null;
+            const room = blockRooms.find(r => roomKey(r) === roomId) || {};
+            return {
+                roomId,
+                roomLabel: roomLabel(room) || roomId,
+                type: roomType(room),
+                building: room.building || room.bldgCode || '',
+                baseRate: Number(row.dataset.baseRate || 0),
+                discountPercent: Number(row.dataset.discount || 0),
+                rate: Number(row.querySelector('.alloc-rate')?.value || 0)
+            };
+        }).filter(Boolean);
+    }
+
+    function hydrateRoomPanelText() {
+        const panel = document.getElementById('allocationContainer')?.closest('div[style*="background"]');
+        if (!panel || panel.classList.contains('room-block-panel')) return;
+        panel.className = 'room-block-panel';
+        const head = panel.querySelector('div[style*="justify-content"]');
+        if (head) {
+            head.className = 'room-block-head';
+            head.removeAttribute('style');
+            const label = head.querySelector('label');
+            if (label) {
+                label.className = 'room-block-title';
+                label.innerHTML = `<i class="fa-solid fa-door-open"></i> ${labels.roomSection} <span style="color:var(--danger)">*</span>`;
+            }
+            const btn = head.querySelector('button');
+            if (btn) btn.innerHTML = `<i class="fa-solid fa-plus"></i> ${labels.addRoom}`;
+        }
+    }
+
+    window.openNewGroupModal = function() {
+        loadCompaniesForDropdown();
+        hydrateRoomPanelText();
+        document.getElementById('ngModalTitle').textContent = labels.modalNew;
+        document.getElementById('ngId').value = '';
+        document.getElementById('ngName').value = '';
+        document.getElementById('ngAgency').selectedIndex = 0;
+        document.getElementById('ngCheckin').value = '';
+        document.getElementById('ngCheckout').value = '';
+        document.getElementById('ngPax').value = '';
+        document.getElementById('ngContact').value = '';
+        document.getElementById('ngNote').value = '';
+        document.getElementById('allocationContainer').innerHTML = '';
+        addAllocationRow();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const preComp = urlParams.get('comp');
+        if (preComp) setTimeout(() => { document.getElementById('ngAgency').value = preComp; refreshAllocationRates(); }, 50);
+        openModal('newGroupModal');
+    };
+
+    window.saveGroup = function() {
+        const id = document.getElementById('ngId').value;
+        const name = document.getElementById('ngName').value.trim();
+        const checkin = document.getElementById('ngCheckin').value;
+        const checkout = document.getElementById('ngCheckout').value;
+        if (!name) { showToast(labels.nameRequired, 'error'); return; }
+        if (!checkin || !checkout) { showToast(labels.dateRequired, 'error'); return; }
+
+        const roomAllocations = collectRoomAllocations();
+        if (!roomAllocations.length) { showToast(labels.roomRequired, 'error'); return; }
+        const ids = roomAllocations.map(a => a.roomId);
+        if (new Set(ids).size !== ids.length) { showToast(labels.duplicateRoom, 'error'); return; }
+
+        const type = document.getElementById('ngType').value;
+        const agencySelect = document.getElementById('ngAgency');
+        const agencyId = agencySelect.value;
+        const agency = agencySelect.options[agencySelect.selectedIndex]?.textContent || agencySelect.value || '';
+        const pax = parseInt(document.getElementById('ngPax').value || 0, 10);
+        const routing = document.getElementById('ngRouting').value;
+        const sales = document.getElementById('ngSales').value.split(' ')[0];
+        const contact = document.getElementById('ngContact').value;
+        const note = document.getElementById('ngNote').value;
+
+        const allocations = roomAllocations.map(a => ({
+            type: a.type,
+            roomId: a.roomId,
+            roomLabel: a.roomLabel,
+            building: a.building,
+            baseRate: a.baseRate,
+            discountPercent: a.discountPercent,
+            rate: a.rate
+        }));
+        if (id) {
+            const g = groups.find(x => x.id === id);
+            if (g) Object.assign(g, { name, agencyId, agency, type, checkin, checkout, block: roomAllocations.length, roomAllocations, allocations, pax, routing, sales, contact, note });
+            showToast(labels.updated);
+        } else {
+            const newId = 'GRP-' + Math.floor(1000 + Math.random()*9000);
+            groups.unshift({ id: newId, name, agencyId, agency, type, checkin, checkout, block: roomAllocations.length, roomAllocations, allocations, pax, routing, sales, contact, note, status: 'confirmed', pickup: 0 });
+            showToast(labels.saved);
+        }
+        localStorage.setItem('pms_groups', JSON.stringify(groups));
+        closeModal('newGroupModal');
+        updateFilterCounts();
+        refreshReservations().then(renderGroups);
+    };
+
+    window.editGroup = function(id) {
+        loadCompaniesForDropdown();
+        hydrateRoomPanelText();
+        const g = groups.find(x => x.id === id);
+        if (!g) return;
+        document.getElementById('ngModalTitle').textContent = labels.modalEdit;
+        document.getElementById('ngId').value = g.id;
+        document.getElementById('ngName').value = g.name || '';
+        const agencySel = document.getElementById('ngAgency');
+        if (agencySel && g.agencyId) agencySel.value = g.agencyId;
+        document.getElementById('ngType').value = g.type || document.getElementById('ngType').options[0].value;
+        document.getElementById('ngCheckin').value = g.checkin || '';
+        document.getElementById('ngCheckout').value = g.checkout || '';
+        document.getElementById('ngPax').value = g.pax || '';
+        document.getElementById('ngContact').value = g.contact || '';
+        document.getElementById('ngNote').value = g.note || '';
+
+        const allocationContainer = document.getElementById('allocationContainer');
+        allocationContainer.innerHTML = '';
+        const assigned = getAssignedRooms(g);
+        if (assigned.length) assigned.forEach(a => addAllocationRow(a.roomId, a.rate));
+        else addAllocationRow();
+        openModal('newGroupModal');
+    };
+
+    window.renderGroups = function(search = '') {
+        const grid = document.getElementById('groupGrid');
+        const empty = document.getElementById('emptyState');
+        const filtered = (groups || []).filter(g => {
+            const statusMatch = currentFilter === 'all' || g.status === currentFilter;
+            const assigned = getAssignedRooms(g).map(a => `${a.roomLabel} ${a.roomId}`).join(' ').toLowerCase();
+            const q = search.toLowerCase();
+            const searchMatch = !q || (g.name || '').toLowerCase().includes(q) || assigned.includes(q);
+            return statusMatch && searchMatch;
+        });
+
+        if (!filtered.length) {
+            grid.style.display = 'none';
+            empty.style.display = 'block';
+            return;
+        }
+        grid.style.display = 'grid';
+        empty.style.display = 'none';
+
+        grid.innerHTML = filtered.map(g => {
+            const assigned = getAssignedRooms(g);
+            const resCount = getGroupReservations(g.id).length;
+            const pct = assigned.length ? Math.round((resCount / assigned.length) * 100) : 0;
+            const s = statusMap[g.status] || statusMap.confirmed;
+            return `
+            <div class="group-card">
+                <div class="group-card-header">
+                    <div>
+                        <div class="group-name">${g.name}</div>
+                        <div class="group-type">${g.type || '-'} · ${g.id}</div>
+                    </div>
+                    <span class="status-pill ${s.cls}">${s.label}</span>
+                </div>
+                <div class="group-meta">
+                    <div class="group-meta-item"><i class="fa-solid fa-calendar-check"></i> ${g.checkin || '-'} ~ ${g.checkout || '-'}</div>
+                    <div class="group-meta-item"><i class="fa-solid fa-person"></i> ${g.pax || 0}명</div>
+                    <div class="group-meta-item"><i class="fa-solid fa-building"></i> ${g.agency || '-'}</div>
+                    <div class="group-meta-item"><i class="fa-solid fa-phone"></i> ${g.contact || '-'}</div>
+                </div>
+                <div class="room-summary-grid">
+                    <div class="room-summary-tile"><div class="num">${assigned.length}</div><div class="cap">${labels.roomsAssigned}</div></div>
+                    <div class="room-summary-tile"><div class="num">${resCount}</div><div class="cap">${labels.pickup}</div></div>
+                    <div class="room-summary-tile"><div class="num">${pct}%</div><div class="cap">진행률</div></div>
+                </div>
+                <div>
+                    <div style="font-size:.78rem;font-weight:800;color:var(--txt);margin:12px 0 6px">${labels.rooms}</div>
+                    <div class="room-chip-list">
+                        ${assigned.length ? assigned.map(a => `<span class="room-chip blocked"><i class="fa-solid fa-door-closed"></i>${a.roomLabel || a.roomId}<small>${a.type}</small></span>`).join('') : `<span style="font-size:.76rem;color:var(--txt3)">${labels.noAssignment}</span>`}
+                    </div>
+                </div>
+                <div style="margin-top:12px">
+                    <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--txt2);margin-bottom:6px">
+                        <span>${labels.pickup}</span>
+                        <span style="font-weight:700;color:var(--primary)">${resCount} / ${assigned.length}실 (${pct}%)</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+                </div>
+                <div class="group-card-footer">
+                    <div style="font-size:.78rem;color:var(--txt3)">담당: ${g.sales || '-'}</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                        <button class="btn-outline-sm" onclick="openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    };
+
+    window.openGroupDetail = function(id) {
+        const selected = (groups || []).find(g => g.id === id);
+        if (selected) {
+            try { sessionStorage.setItem('pms_selected_group', JSON.stringify(selected)); } catch(e) {}
+        }
+        location.href = `groups_block_detail.html?id=${encodeURIComponent(id)}`;
+    };
+
+    window.showDetail = function(id) {
+        const g = groups.find(x => x.id === id);
+        if (!g) return;
+        const assigned = getAssignedRooms(g);
+        const reservations = getGroupReservations(g.id);
+        document.getElementById('detailGroupName').textContent = g.name;
+        const s = statusMap[g.status] || statusMap.confirmed;
+        document.getElementById('detailBody').innerHTML = `
+            <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">주관 업체</div><div style="font-weight:700">${g.agency || '-'}</div></div>
+                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">상태</div><span class="status-pill ${s.cls}">${s.label}</span></div>
+                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">체크인</div><div style="font-weight:700">${g.checkin || '-'}</div></div>
+                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">체크아웃</div><div style="font-weight:700">${g.checkout || '-'}</div></div>
+                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">PAX</div><div style="font-weight:700">${g.pax || 0}명</div></div>
+                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">정산</div><div style="font-weight:700">${g.routing || '-'}</div></div>
+                    <div style="grid-column:1/-1"><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">메모</div><div style="font-weight:500;color:var(--txt2)">${g.note || '없음'}</div></div>
+                </div>
+                <div style="border-top:1px solid var(--border);padding-top:14px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                        <div style="font-size:.86rem;font-weight:800">배정 호실별 예약</div>
+                        <button class="room-action-btn primary" onclick="openGroupRoomReservation('${g.id}')"><i class="fa-solid fa-plus"></i> 예약 추가</button>
+                    </div>
+                    <table class="room-assignment-table">
+                        <thead><tr><th>호실</th><th>타입</th><th>기준가</th><th>할인</th><th>최종가</th><th>예약</th><th></th></tr></thead>
+                        <tbody>
+                            ${assigned.length ? assigned.map(a => {
+                                const res = reservations.find(r => r.room === a.roomId || r.fullRoom === a.roomId);
+                                return `<tr>
+                                    <td><span class="room-chip blocked">${a.roomLabel || a.roomId}</span></td>
+                                    <td>${a.type || '-'}</td>
+                                    <td>${a.baseRate ? money(a.baseRate) : '-'}</td>
+                                    <td>${a.discountPercent || 0}%</td>
+                                    <td>${a.rate ? money(a.rate) : '-'}</td>
+                                    <td>${res ? `${res.guest || '-'} · ${res.status || '-'}` : labels.blocked}</td>
+                                    <td><button class="room-action-btn ${res ? '' : 'primary'}" onclick="openGroupRoomReservation('${g.id}','${a.roomId}')"><i class="fa-solid fa-calendar-plus"></i>${res ? '수정' : labels.reserve}</button></td>
+                                </tr>`;
+                            }).join('') : `<tr><td colspan="7">${labels.noAssignment}</td></tr>`}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        openModal('groupDetailModal');
+    };
+
+    window.openGroupRoomReservation = async function(groupId, roomId = '') {
+        const g = groups.find(x => x.id === groupId);
+        if (!g) return;
+        await refreshReservations();
+        const targetRoom = roomId || getAssignedRooms(g)[0]?.roomId || '';
+        const existing = blockReservations.find(r => r.groupId === groupId && (!targetRoom || r.room === targetRoom || r.fullRoom === targetRoom));
+        if (existing) {
+            window.openUnifiedResModal(existing.id);
+            return;
+        }
+        if (typeof window.openUnifiedResModal === 'function') {
+            window.openUnifiedResModal({
+                groupId,
+                room: targetRoom,
+                checkin: formatDateMD(g.checkin),
+                checkout: formatDateMD(g.checkout),
+                sourceName: g.name
+            });
+        }
+    };
+
+    async function refreshRooms() {
+        if (window.PmsAPI && window.PmsAPI.getAllRooms) {
+            blockRooms = await window.PmsAPI.getAllRooms();
+            window.rooms = blockRooms;
+        }
+        if (!Array.isArray(blockRooms)) blockRooms = [];
+    }
+
+    async function refreshReservations() {
+        if (window.PmsAPI && window.PmsAPI.getReservations) {
+            blockReservations = await window.PmsAPI.getReservations();
+            window.reservations = blockReservations;
+            try {
+                const syncedGroups = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+                if (Array.isArray(syncedGroups) && syncedGroups.length) groups = syncedGroups;
+            } catch(e) {}
+        }
+        if (!Array.isArray(blockReservations)) blockReservations = [];
+        return blockReservations;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        injectRoomBlockStyles();
+        hydrateRoomPanelText();
+        await refreshRooms();
+        syncLegacyGroups();
+        await refreshReservations();
+        updateFilterCounts();
+        renderGroups();
+
+        document.getElementById('ngAgency')?.addEventListener('change', refreshAllocationRates);
+        document.getElementById('ngCheckin')?.addEventListener('change', refreshAllocationRates);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('newBlock') === 'true') {
+            const comp = urlParams.get('comp');
+            location.href = `groups_block_detail.html?mode=new${comp ? `&companyId=${encodeURIComponent(comp)}` : ''}`;
+            return;
+        }
+        const editGroupId = urlParams.get('editGroup');
+        if (editGroupId) {
+            setTimeout(() => window.editGroup(editGroupId), 250);
+        }
+    });
+})();
+</script>
+<style>
+    .event-register{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .event-head,.event-row{display:grid;grid-template-columns:130px minmax(240px,1.5fr) 190px 105px 120px 120px 110px 90px;gap:12px;align-items:center}
+    .event-head{padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:850;color:#64748b}
+    .event-row{padding:13px 14px;border-bottom:1px solid #edf2f7;font-size:.8rem}
+    .event-row:last-child{border-bottom:none}
+    .event-row:hover{background:#f8fbff}
+    .event-main{min-width:0}
+    .event-name{font-size:.9rem;font-weight:850;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .event-company{font-size:.73rem;font-weight:750;color:var(--txt2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .stage-pill{display:inline-flex;align-items:center;gap:5px;width:max-content;padding:4px 9px;border-radius:999px;font-size:.7rem;font-weight:850}
+    .stage-today{background:#eff6ff;color:#2563eb}.stage-live{background:#ecfdf5;color:#059669}.stage-upcoming{background:#fef3c7;color:#b45309}.stage-past{background:#f1f5f9;color:#64748b}.stage-settle{background:#fff7ed;color:#ea580c}
+    .event-sub{font-size:.72rem;color:var(--txt3);font-weight:700;margin-top:3px}
+    .event-metric{font-weight:850;color:var(--txt)} .event-metric small{display:block;color:var(--txt3);font-size:.68rem;font-weight:750;margin-top:2px}
+    .company-filter{height:38px;border:1.5px solid var(--border);border-radius:8px;background:#fff;padding:0 10px;font-family:var(--font);font-size:.8rem;font-weight:750;color:var(--txt2)}
+    @media(max-width:1100px){.event-head{display:none}.event-row{grid-template-columns:1fr;gap:8px}.event-register{border-radius:10px}.event-row{padding:14px}.event-row>div{display:flex;justify-content:space-between;gap:12px}.event-row>div.event-main{display:block}.event-row>div::before{content:attr(data-label);font-size:.7rem;font-weight:850;color:var(--txt3)}.event-row>div.event-main::before{content:''}}
+</style>
+<script>
+(function(){
+    let companyFilterValue = 'all';
+    let appliedUrlCompany = false;
+    const originalSearchGroups = window.searchGroups;
+
+    function parseDate(value) {
+        if (!value) return null;
+        const d = value.includes('-') ? new Date(value) : new Date(`2026/${value}`);
+        if (Number.isNaN(d.getTime())) return null;
+        d.setHours(0,0,0,0);
+        return d;
+    }
+    function today() {
+        const d = new Date();
+        d.setHours(0,0,0,0);
+        return d;
+    }
+    function stageOf(g) {
+        const now = today();
+        const cin = parseDate(g.checkin);
+        const cout = parseDate(g.checkout);
+        const unsettled = g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid';
+        if (unsettled && cout && cout < now) return { key:'settlement', label:'정산 필요', cls:'stage-settle' };
+        if (cin && cin.getTime() === now.getTime()) return { key:'today', label:'오늘 체크인', cls:'stage-today' };
+        if (cin && cout && cin <= now && cout > now) return { key:'active', label:'투숙 중', cls:'stage-live' };
+        if (cin && cin > now) return { key:'upcoming', label:'예정', cls:'stage-upcoming' };
+        if (cout && cout <= now) return { key:'past', label:'지난 행사', cls:'stage-past' };
+        return { key:g.status || 'upcoming', label:'예정', cls:'stage-upcoming' };
+    }
+    function dday(g) {
+        const cin = parseDate(g.checkin);
+        if (!cin) return '-';
+        const diff = Math.round((cin - today()) / 86400000);
+        if (diff === 0) return 'D-Day';
+        return diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
+    }
+    function getCompaniesForFilter() {
+        try { return JSON.parse(localStorage.getItem('pms_companies') || '[]'); } catch(e) { return []; }
+    }
+    function companyIdOf(g) {
+        if (g.agencyId) return g.agencyId;
+        const companies = getCompaniesForFilter();
+        const match = companies.find(c => c.name === g.agency || (g.agency || '').includes(c.name) || c.name.includes(g.agency || ''));
+        return match?.id || '';
+    }
+    function enhanceToolbar() {
+        const filterLeft = document.querySelector('.filter-left');
+        const filterRight = document.querySelector('.filter-right');
+        const chips = document.querySelector('.filter-chips');
+        if (chips && !chips.dataset.operational) {
+            chips.dataset.operational = '1';
+            chips.innerHTML = `
+                <button class="chip active" onclick="filterGroups('all', this)" id="chip-all">전체</button>
+                <button class="chip" onclick="filterGroups('today', this)">오늘 체크인</button>
+                <button class="chip" onclick="filterGroups('active', this)">투숙 중</button>
+                <button class="chip" onclick="filterGroups('upcoming', this)">예정</button>
+                <button class="chip" onclick="filterGroups('past', this)">지난 행사</button>
+                <button class="chip" onclick="filterGroups('settlement', this)">정산 필요</button>`;
+        }
+        if (filterLeft && !document.getElementById('companyFilter')) {
+            const sel = document.createElement('select');
+            sel.id = 'companyFilter';
+            sel.className = 'company-filter';
+            sel.onchange = () => { companyFilterValue = sel.value; window.renderGroups(document.querySelector('.search-box-mt input')?.value || ''); };
+            filterLeft.insertBefore(sel, chips);
+        }
+        if (filterRight && !filterRight.dataset.eventActions) {
+            filterRight.dataset.eventActions = '1';
+            filterRight.innerHTML = `
+                <button class="btn-outline" style="height:38px" onclick="location.href='groups_companies.html'"><i class="fa-solid fa-building"></i> 업체 관리</button>
+                <button class="btn-primary-sm" style="height:38px;padding:0 16px" onclick="location.href='groups_block_detail.html?mode=new'"><i class="fa-solid fa-plus"></i> 신규 행사 생성</button>`;
+        }
+        refreshCompanyFilterOptions();
+        if (!appliedUrlCompany) {
+            appliedUrlCompany = true;
+            const companyFromUrl = new URLSearchParams(location.search).get('companyId');
+            const sel = document.getElementById('companyFilter');
+            if (companyFromUrl && sel && [...sel.options].some(o => o.value === companyFromUrl)) {
+                sel.value = companyFromUrl;
+                companyFilterValue = companyFromUrl;
+            }
+        }
+    }
+    function refreshCompanyFilterOptions() {
+        const sel = document.getElementById('companyFilter');
+        if (!sel) return;
+        const current = sel.value || companyFilterValue;
+        const companies = getCompaniesForFilter();
+        const fromGroups = [...new Set((groups || []).map(g => g.agency).filter(Boolean))];
+        sel.innerHTML = '<option value="all">전체 업체</option>' +
+            companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('') +
+            fromGroups.filter(name => !companies.some(c => c.name === name)).map(name => `<option value="${name}">${name}</option>`).join('');
+        sel.value = [...sel.options].some(o => o.value === current) ? current : 'all';
+        companyFilterValue = sel.value;
+    }
+    window.filterGroups = function(status, btn) {
+        currentFilter = status;
+        btn?.closest('.filter-chips')?.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        btn?.classList.add('active');
+        window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
+    };
+    window.searchGroups = function(value) {
+        window.renderGroups(value || '');
+        if (typeof originalSearchGroups === 'function' && originalSearchGroups !== window.searchGroups) {}
+    };
+    window.renderGroups = function(search = '') {
+        enhanceToolbar();
+        const grid = document.getElementById('groupGrid');
+        const empty = document.getElementById('emptyState');
+        if (!grid) return;
+        grid.style.display = 'block';
+        const query = String(search || '').toLowerCase();
+        const list = (groups || []).filter(g => {
+            const stage = stageOf(g);
+            const stageMatch = currentFilter === 'all' || stage.key === currentFilter;
+            const compId = companyIdOf(g);
+            const companyMatch = companyFilterValue === 'all' || compId === companyFilterValue || g.agency === companyFilterValue;
+            const roomsText = getAssignedRooms(g).map(a => `${a.roomLabel} ${a.roomId}`).join(' ').toLowerCase();
+            const searchMatch = !query || [g.name, g.agency, g.sales, g.contact, g.id].filter(Boolean).join(' ').toLowerCase().includes(query) || roomsText.includes(query);
+            return stageMatch && companyMatch && searchMatch;
+        }).sort((a,b) => {
+            const order = {today:0, active:1, settlement:2, upcoming:3, past:4};
+            const sa = stageOf(a), sb = stageOf(b);
+            if (order[sa.key] !== order[sb.key]) return (order[sa.key] ?? 9) - (order[sb.key] ?? 9);
+            return (parseDate(a.checkin)?.getTime() || 0) - (parseDate(b.checkin)?.getTime() || 0);
+        });
+        if (!list.length) {
+            grid.style.display = 'none';
+            if (empty) empty.style.display = 'block';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+        grid.innerHTML = `
+            <div class="event-register">
+                <div class="event-head">
+                    <div>운영 상태</div><div>행사 / 업체</div><div>기간</div><div>D-Day</div><div>객실</div><div>Rooming</div><div>정산</div><div></div>
+                </div>
+                ${list.map(g => {
+                    const assigned = getAssignedRooms(g);
+                    const resCount = getGroupReservations(g.id).length;
+                    const guests = Array.isArray(g.roomingList) ? g.roomingList.length : 0;
+                    const stage = stageOf(g);
+                    const settlement = g.settlementStatus === 'paid' ? '완료' : (stage.key === 'past' || stage.key === 'settlement' ? '확인 필요' : '진행 전');
+                    return `<div class="event-row">
+                        <div data-label="운영 상태"><span class="stage-pill ${stage.cls}">${stage.label}</span></div>
+                        <div class="event-main"><div class="event-name">${g.name || '-'}</div><div class="event-company">${g.agency || '업체 미지정'} · ${g.id || '-'}</div></div>
+                        <div data-label="기간"><div class="event-metric">${g.checkin || '-'} ~ ${g.checkout || '-'}</div><div class="event-sub">${g.type || '-'}</div></div>
+                        <div data-label="D-Day"><div class="event-metric">${dday(g)}</div></div>
+                        <div data-label="객실"><div class="event-metric">${resCount}/${assigned.length}실<small>예약/배정</small></div></div>
+                        <div data-label="Rooming"><div class="event-metric">${guests}/${g.pax || 0}명<small>투숙객</small></div></div>
+                        <div data-label="정산"><div class="event-metric">${settlement}</div></div>
+                        <div><button class="btn-outline-sm" onclick="openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button></div>
+                    </div>`;
+                }).join('')}
+            </div>`;
+    };
+    document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
+        enhanceToolbar();
+        if (typeof window.renderGroups === 'function') window.renderGroups();
+    }, 0));
+})();
+</script>
+<script>
+(function(){
+    let eventStatus = 'all';
+    let companyStatus = 'all';
+    let didApplyUrlCompany = false;
+    const T = {
+        title: '\uB2E8\uCCB4/\uD589\uC0AC \uBAA9\uB85D',
+        all: '\uC804\uCCB4',
+        allCompanies: '\uC804\uCCB4 \uC5C5\uCCB4',
+        today: '\uC624\uB298 \uCCB4\uD06C\uC778',
+        active: '\uD22C\uC219 \uC911',
+        upcoming: '\uC608\uC815',
+        past: '\uC9C0\uB09C \uD589\uC0AC',
+        settlement: '\uC815\uC0B0 \uD544\uC694',
+        companyManage: '\uC5C5\uCCB4 \uAD00\uB9AC',
+        newEvent: '\uC2E0\uADDC \uD589\uC0AC \uC0DD\uC131',
+        state: '\uC6B4\uC601 \uC0C1\uD0DC',
+        eventCompany: '\uD589\uC0AC / \uC5C5\uCCB4',
+        period: '\uAE30\uAC04',
+        rooms: '\uAC1D\uC2E4',
+        guests: '\uD22C\uC219\uAC1D',
+        billing: '\uC815\uC0B0',
+        noCompany: '\uC5C5\uCCB4 \uBBF8\uC9C0\uC815',
+        bookedAssigned: '\uC608\uC57D/\uBC30\uC815',
+        registeredPax: '\uB4F1\uB85D/PAX',
+        paid: '\uC644\uB8CC',
+        needCheck: '\uD655\uC778 \uD544\uC694',
+        inProgress: '\uC9C4\uD589 \uC911',
+        manage: '\uAD00\uB9AC',
+        noEvents: '\uD574\uB2F9 \uC870\uAC74\uC758 \uD589\uC0AC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.'
+    };
+
+    function html(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    }
+
+    function readArray(key) {
+        try {
+            const data = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(data) ? data : [];
+        } catch(e) {
+            return [];
+        }
+    }
+
+    function eventData() {
+        const stored = readArray('pms_groups');
+        let memory = [];
+        try { memory = Array.isArray(groups) ? groups : []; } catch(e) {}
+        const merged = new Map();
+        [...stored, ...memory].forEach(group => {
+            if (group?.id) merged.set(group.id, group);
+        });
+        const list = [...merged.values()];
+        try { groups = list; } catch(e) {}
+        return list;
+    }
+
+    function companyData() {
+        return readArray('pms_companies');
+    }
+
+    function reservationData() {
+        return Array.isArray(window.reservations) ? window.reservations : readArray('pms_reservations');
+    }
+
+    function parseDate(value) {
+        if (!value) return null;
+        const raw = String(value).trim();
+        const currentYear = new Date().getFullYear();
+        const date = raw.includes('-') ? new Date(raw) : new Date(`${currentYear}/${raw}`);
+        if (Number.isNaN(date.getTime())) return null;
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+
+    function todayDate() {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+
+    function stageOf(group) {
+        const now = todayDate();
+        const checkin = parseDate(group.checkin);
+        const checkout = parseDate(group.checkout);
+        const unsettled = group.settlementStatus === 'pending' || group.settlementStatus === 'unpaid';
+        if (unsettled && checkout && checkout < now) return { key: 'settlement', label: T.settlement, cls: 'stage-settle' };
+        if (checkin && checkin.getTime() === now.getTime()) return { key: 'today', label: T.today, cls: 'stage-today' };
+        if (checkin && checkout && checkin <= now && checkout > now) return { key: 'active', label: T.active, cls: 'stage-live' };
+        if (checkin && checkin > now) return { key: 'upcoming', label: T.upcoming, cls: 'stage-upcoming' };
+        if (checkout && checkout <= now) return { key: 'past', label: T.past, cls: 'stage-past' };
+        if (group.status === 'inhouse') return { key: 'active', label: T.active, cls: 'stage-live' };
+        if (group.status === 'departed') return { key: 'past', label: T.past, cls: 'stage-past' };
+        return { key: 'upcoming', label: T.upcoming, cls: 'stage-upcoming' };
+    }
+
+    function dday(group) {
+        const checkin = parseDate(group.checkin);
+        if (!checkin) return '-';
+        const diff = Math.round((checkin - todayDate()) / 86400000);
+        if (diff === 0) return 'D-Day';
+        return diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
+    }
+
+    function companyOf(group) {
+        const companies = companyData();
+        if (group.agencyId) {
+            const found = companies.find(company => company.id === group.agencyId);
+            if (found) return found;
+        }
+        if (!group.agency) return null;
+        return companies.find(company =>
+            company.name === group.agency ||
+            String(group.agency).includes(company.name) ||
+            String(company.name).includes(group.agency)
+        ) || null;
+    }
+
+    function companyKey(group) {
+        return group.agencyId || companyOf(group)?.id || group.agency || '';
+    }
+
+    function assignedRooms(group) {
+        const source = Array.isArray(group.roomAllocations) && group.roomAllocations.length
+            ? group.roomAllocations
+            : (Array.isArray(group.allocations) ? group.allocations : []);
+        return source
+            .filter(item => item && (item.roomId || item.room || item.id))
+            .map(item => ({
+                roomId: item.roomId || item.room || item.id,
+                roomLabel: item.roomLabel || item.fullRoom || item.roomName || item.room || item.roomId || item.id,
+                type: item.type || item.roomType || 'Standard'
+            }));
+    }
+
+    function reservationsFor(groupId) {
+        return reservationData().filter(res => res.groupId === groupId && res.status !== 'cancelled');
+    }
+
+    function guestNameFromReservation(res) {
+        if (!res) return '';
+        if (res.roomingGuestName) return res.roomingGuestName;
+        if (res.isGroupPlaceholder && !res.guestName && !res.guest) return '';
+        return res.roomingGuestName || res.guestName || res.guest || '';
+    }
+
+    function guestCountFor(group) {
+        const keys = new Set();
+        (Array.isArray(group.roomingList) ? group.roomingList : []).forEach(guest => {
+            const key = guest.id || `${guest.name || ''}-${guest.roomId || ''}`;
+            if (guest.name || guest.id) keys.add(key);
+        });
+        reservationsFor(group.id).forEach(res => {
+            const name = guestNameFromReservation(res);
+            if (!name) return;
+            keys.add(res.roomingGuestId || res.guestId || `${name}-${res.room || res.fullRoom || ''}`);
+        });
+        return keys.size;
+    }
+
+    function ensureToolbar() {
+        const title = document.querySelector('.topbar-left h1');
+        if (title) title.textContent = T.title;
+
+        const chips = document.querySelector('.filter-chips');
+        if (chips) {
+            const chip = (key, label) => `<button class="chip ${eventStatus === key ? 'active' : ''}" onclick="filterGroups('${key}', this)">${label}</button>`;
+            chips.innerHTML = [
+                chip('all', T.all),
+                chip('today', T.today),
+                chip('active', T.active),
+                chip('upcoming', T.upcoming),
+                chip('past', T.past),
+                chip('settlement', T.settlement)
+            ].join('');
+        }
+
+        const filterLeft = document.querySelector('.filter-left');
+        let select = document.getElementById('companyFilter');
+        if (filterLeft && !select) {
+            select = document.createElement('select');
+            select.id = 'companyFilter';
+            select.className = 'company-filter';
+            select.onchange = () => {
+                companyStatus = select.value;
+                window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
+            };
+            filterLeft.insertBefore(select, chips || null);
+        }
+        if (select) {
+            let current = companyStatus;
+            if (!didApplyUrlCompany) {
+                const companyFromUrl = new URLSearchParams(location.search).get('companyId');
+                if (companyFromUrl) current = companyFromUrl;
+                didApplyUrlCompany = true;
+            }
+            const companies = companyData();
+            const eventCompanies = [...new Set(eventData().map(group => group.agency).filter(Boolean))];
+            select.innerHTML = `<option value="all">${T.allCompanies}</option>` +
+                companies.map(company => `<option value="${html(company.id)}">${html(company.name)}</option>`).join('') +
+                eventCompanies
+                    .filter(name => !companies.some(company => company.name === name))
+                    .map(name => `<option value="${html(name)}">${html(name)}</option>`)
+                    .join('');
+            select.value = [...select.options].some(option => option.value === current) ? current : 'all';
+            companyStatus = select.value;
+        }
+
+        const filterRight = document.querySelector('.filter-right');
+        if (filterRight) {
+            filterRight.innerHTML = `
+                <button class="btn-outline" style="height:38px" onclick="location.href='groups_companies.html'"><i class="fa-solid fa-building"></i> ${T.companyManage}</button>
+                <button class="btn-primary-sm" style="height:38px;padding:0 16px" onclick="createGroupEvent()"><i class="fa-solid fa-plus"></i> ${T.newEvent}</button>`;
+        }
+    }
+
+    window.createGroupEvent = function() {
+        const companyPart = companyStatus && companyStatus !== 'all'
+            ? `&companyId=${encodeURIComponent(companyStatus)}`
+            : '';
+        location.href = `groups_block_detail.html?mode=new${companyPart}`;
+    };
+
+    function updateKpis(list = eventData()) {
+        const activeCount = list.filter(group => stageOf(group).key === 'active').length;
+        const roomCount = list.reduce((sum, group) => sum + assignedRooms(group).length, 0);
+        const settlementCount = list.filter(group => {
+            const stage = stageOf(group).key;
+            return stage === 'settlement' || (stage === 'past' && group.settlementStatus !== 'paid');
+        }).length;
+        const total = document.getElementById('kpiTotalGroups');
+        const live = document.getElementById('kpiInhouse');
+        const blocks = document.getElementById('kpiBlocks');
+        const unpaid = document.getElementById('kpiUnpaid');
+        if (total) total.textContent = list.length;
+        if (live) live.textContent = activeCount;
+        if (blocks) blocks.textContent = roomCount;
+        if (unpaid) unpaid.textContent = settlementCount;
+    }
+
+    window.filterGroups = function(status, button) {
+        eventStatus = status || 'all';
+        try { currentFilter = eventStatus; } catch(e) {}
+        button?.closest('.filter-chips')?.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+        button?.classList.add('active');
+        window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
+    };
+
+    window.searchGroups = function(value) {
+        window.renderGroups(value || '');
+    };
+
+    window.updateFilterCounts = function() {
+        updateKpis();
+    };
+
+    window.renderGroups = function(search = '') {
+        ensureToolbar();
+        const list = eventData();
+        updateKpis(list);
+
+        const grid = document.getElementById('groupGrid');
+        const empty = document.getElementById('emptyState');
+        if (!grid) return;
+
+        const query = String(search || '').toLowerCase();
+        const filtered = list.filter(group => {
+            const stage = stageOf(group);
+            const statusMatches = eventStatus === 'all' || stage.key === eventStatus;
+            const companyMatches = companyStatus === 'all' || companyKey(group) === companyStatus || group.agency === companyStatus;
+            const roomText = assignedRooms(group).map(room => `${room.roomId} ${room.roomLabel} ${room.type}`).join(' ').toLowerCase();
+            const searchText = [group.name, group.agency, companyOf(group)?.name, group.sales, group.contact, group.id]
+                .filter(Boolean).join(' ').toLowerCase();
+            return statusMatches && companyMatches && (!query || searchText.includes(query) || roomText.includes(query));
+        }).sort((a, b) => {
+            const order = { today: 0, active: 1, settlement: 2, upcoming: 3, past: 4 };
+            const stageA = stageOf(a);
+            const stageB = stageOf(b);
+            if ((order[stageA.key] ?? 9) !== (order[stageB.key] ?? 9)) return (order[stageA.key] ?? 9) - (order[stageB.key] ?? 9);
+            return (parseDate(a.checkin)?.getTime() || 0) - (parseDate(b.checkin)?.getTime() || 0);
+        });
+
+        if (!filtered.length) {
+            grid.style.display = 'none';
+            if (empty) {
+                empty.style.display = 'block';
+                empty.innerHTML = `<i class="fa-solid fa-calendar-xmark" style="font-size:2.5rem;margin-bottom:12px;display:block"></i>${T.noEvents}`;
+            }
+            return;
+        }
+
+        if (empty) empty.style.display = 'none';
+        grid.style.display = 'block';
+        grid.innerHTML = `
+            <div class="event-register">
+                <div class="event-head">
+                    <div>${T.state}</div><div>${T.eventCompany}</div><div>${T.period}</div><div>D-Day</div><div>${T.rooms}</div><div>${T.guests}</div><div>${T.billing}</div><div></div>
+                </div>
+                ${filtered.map(group => {
+                    const stage = stageOf(group);
+                    const rooms = assignedRooms(group);
+                    const reservations = reservationsFor(group.id);
+                    const guests = guestCountFor(group);
+                    const settlement = group.settlementStatus === 'paid'
+                        ? T.paid
+                        : (stage.key === 'past' || stage.key === 'settlement' ? T.needCheck : T.inProgress);
+                    return `<div class="event-row">
+                        <div data-label="${T.state}"><span class="stage-pill ${stage.cls}">${stage.label}</span></div>
+                        <div class="event-main"><div class="event-name">${html(group.name || '-')}</div><div class="event-company">${html(group.agency || T.noCompany)} · ${html(group.id || '-')}</div></div>
+                        <div data-label="${T.period}"><div class="event-metric">${html(group.checkin || '-')} ~ ${html(group.checkout || '-')}</div><div class="event-sub">${html(group.type || '-')}</div></div>
+                        <div data-label="D-Day"><div class="event-metric">${dday(group)}</div></div>
+                        <div data-label="${T.rooms}"><div class="event-metric">${reservations.length}/${rooms.length}<small>${T.bookedAssigned}</small></div></div>
+                        <div data-label="${T.guests}"><div class="event-metric">${guests}/${html(group.pax || 0)}<small>${T.registeredPax}</small></div></div>
+                        <div data-label="${T.billing}"><div class="event-metric">${settlement}</div></div>
+                        <div><button class="btn-outline-sm" onclick="openGroupDetail('${html(group.id)}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> ${T.manage}</button></div>
+                    </div>`;
+                }).join('')}
+            </div>`;
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => window.renderGroups(document.querySelector('.search-box-mt input')?.value || ''), 40);
+    });
+})();
 </script>
 </body>
 </html>

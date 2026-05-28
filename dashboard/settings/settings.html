@@ -205,6 +205,38 @@ function switchTab(targetId, el) {
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
 </script>
 <script>
+(function(){
+    function findCurrencySelect() {
+        const selects = Array.from(document.querySelectorAll('select.form-control'));
+        return selects.find(sel => Array.from(sel.options).some(o => /USD|KRW|VND/.test(o.textContent)));
+    }
+    function normalizeCurrencyText(text) {
+        if (/USD/.test(text)) return 'USD';
+        if (/VND/.test(text)) return 'VND';
+        return 'KRW';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const sel = findCurrencySelect();
+        if (!sel) return;
+        sel.id = 'defaultCurrencySelect';
+        const saved = localStorage.getItem('pms_default_currency') || 'KRW';
+        Array.from(sel.options).forEach((opt, idx) => {
+            if (normalizeCurrencyText(opt.textContent) === saved) sel.selectedIndex = idx;
+        });
+        sel.addEventListener('change', () => {
+            localStorage.setItem('pms_default_currency', normalizeCurrencyText(sel.options[sel.selectedIndex].textContent));
+        });
+        const saveBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Save') || btn.textContent.includes('저장'));
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                localStorage.setItem('pms_default_currency', normalizeCurrencyText(sel.options[sel.selectedIndex].textContent));
+                if (window.showToast) showToast('기본 통화 설정이 저장되었습니다.');
+            });
+        }
+    });
+})();
+</script>
+<script>
 // Sync language selector to stored preference
 (function(){
     var sel = document.getElementById('langSelect');
