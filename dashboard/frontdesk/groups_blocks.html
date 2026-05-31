@@ -35,6 +35,14 @@
         @media(max-width:768px){
             .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
             .search-box-mt { flex: 1; min-width: 0; width: auto; }
+            .filter-left { flex-direction: column; align-items: stretch; overflow: visible; gap: 10px; }
+            .filter-left > div { width: 100%; }
+            .filter-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+            .filter-chips .chip { justify-content: center; min-width: 0; padding-inline: 8px; }
+            .company-filter { width: 100%; }
+            .filter-right { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+            .filter-right .btn-outline,
+            .filter-right .btn-primary-sm { justify-content: center; width: 100%; padding-inline: 10px !important; }
         }
 
         .modal-overlay {
@@ -306,19 +314,42 @@ const statusMap = {
 let groups = [];
 let currentFilter = 'all';
 
-document.addEventListener('DOMContentLoaded', () => {
-    let stored = localStorage.getItem('pms_groups');
-    if(stored) {
-        groups = JSON.parse(stored);
-    } else {
-        groups = [
-            {
-                id: 'GRP-1001', name: 'Samsung Tech Conference 2026', agency: '삼성전자 (Samsung)', type: '기업 행사 / 컨퍼런스', checkin: '2026-05-20', checkout: '2026-05-23', block: 35, pax: 70, routing: 'Master Folio (단체 일괄)', sales: '김지연', contact: '홍길동 부장 (010-1111-2222)', note: '조식 70명 포함, 컨퍼런스룸 A 대여', status: 'inhouse', pickup: 32,
-                allocations: [ { type: 'Standard Double', count: 30, rate: 120000 }, { type: 'Suite', count: 5, rate: 250000 } ]
-            }
-        ];
-        localStorage.setItem('pms_groups', JSON.stringify(groups));
+function isLegacyGroupSeed(list) {
+    return Array.isArray(list) && list.length === 1 && list[0]?.id === 'GRP-1001';
+}
+
+function readPersistedGroups() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+        if (isLegacyGroupSeed(stored)) {
+            localStorage.removeItem('pms_groups');
+            return [];
+        }
+        return Array.isArray(stored) ? stored : [];
+    } catch(e) {
+        return [];
     }
+}
+
+function mergeGroupsById(...lists) {
+    const merged = new Map();
+    lists.flat().forEach(item => {
+        if (item?.id) merged.set(item.id, item);
+    });
+    return [...merged.values()];
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const storedGroups = readPersistedGroups();
+    try {
+        if (window.PmsAPI?.getGroups) {
+            const apiGroups = await window.PmsAPI.getGroups();
+            groups = mergeGroupsById(apiGroups, storedGroups);
+        }
+    } catch(e) {
+        console.warn('Group mock load failed', e);
+    }
+    if (!groups.length) groups = storedGroups;
     updateFilterCounts();
     renderGroups();
 
@@ -331,12 +362,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function loadCompaniesForDropdown() {
+async function loadCompaniesForDropdown() {
     const stored = localStorage.getItem('pms_companies');
     const sel = document.getElementById('ngAgency');
     if (!sel) return;
     sel.innerHTML = '<option value="">주관 업체를 선택하세요</option>';
     
+    try {
+        if (window.PmsAPI?.getCompanies) {
+            const comps = await window.PmsAPI.getCompanies();
+            if (Array.isArray(comps) && comps.length) {
+                comps.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.displayName || c.label || c.name;
+                    sel.appendChild(opt);
+                });
+                return;
+            }
+        }
+    } catch(e) {
+        console.warn('Company mock load failed', e);
+    }
+
     if (stored) {
         const comps = JSON.parse(stored);
         comps.forEach(c => {
@@ -1492,10 +1540,8 @@ async function deleteGroup(id) {
         if (window.PmsAPI && window.PmsAPI.getReservations) {
             blockReservations = await window.PmsAPI.getReservations();
             window.reservations = blockReservations;
-            try {
-                const syncedGroups = JSON.parse(localStorage.getItem('pms_groups') || '[]');
-                if (Array.isArray(syncedGroups) && syncedGroups.length) groups = syncedGroups;
-            } catch(e) {}
+            const syncedGroups = readPersistedGroups();
+            if (syncedGroups.length) groups = mergeGroupsById(groups, syncedGroups);
         }
         if (!Array.isArray(blockReservations)) blockReservations = [];
         return blockReservations;
@@ -1528,20 +1574,30 @@ async function deleteGroup(id) {
 </script>
 <style>
     .event-register{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
-    .event-head,.event-row{display:grid;grid-template-columns:130px minmax(240px,1.5fr) 190px 105px 120px 120px 110px 90px;gap:12px;align-items:center}
-    .event-head{padding:10px 14px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:850;color:#64748b}
-    .event-row{padding:13px 14px;border-bottom:1px solid #edf2f7;font-size:.8rem}
+    .event-head,.event-row{display:grid;grid-template-columns:104px minmax(260px,1.8fr) 220px 74px 86px 92px 88px 76px;gap:10px;align-items:center}
+    .event-head>div,.event-row>div{min-width:0}
+    .event-row>div:last-child{display:flex;justify-content:flex-end}
+    .event-head{padding:10px 16px;background:#f8fafc;border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;color:#64748b}
+    .event-row{padding:15px 16px;border-bottom:1px solid #edf2f7;font-size:.82rem;font-weight:500;color:#334155}
     .event-row:last-child{border-bottom:none}
+    .event-row:nth-child(even){background:#fcfdff}
     .event-row:hover{background:#f8fbff}
     .event-main{min-width:0}
-    .event-name{font-size:.9rem;font-weight:850;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .event-company{font-size:.73rem;font-weight:750;color:var(--txt2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .stage-pill{display:inline-flex;align-items:center;gap:5px;width:max-content;padding:4px 9px;border-radius:999px;font-size:.7rem;font-weight:850}
+    .event-name{font-size:.92rem;font-weight:700;color:var(--txt);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .event-company{font-size:.73rem;font-weight:500;color:#64748b;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .stage-pill{display:inline-flex;align-items:center;gap:5px;width:max-content;padding:4px 9px;border-radius:999px;font-size:.7rem;font-weight:700}
     .stage-today{background:#eff6ff;color:#2563eb}.stage-live{background:#ecfdf5;color:#059669}.stage-upcoming{background:#fef3c7;color:#b45309}.stage-past{background:#f1f5f9;color:#64748b}.stage-settle{background:#fff7ed;color:#ea580c}
-    .event-sub{font-size:.72rem;color:var(--txt3);font-weight:700;margin-top:3px}
-    .event-metric{font-weight:850;color:var(--txt)} .event-metric small{display:block;color:var(--txt3);font-size:.68rem;font-weight:750;margin-top:2px}
-    .company-filter{height:38px;border:1.5px solid var(--border);border-radius:8px;background:#fff;padding:0 10px;font-family:var(--font);font-size:.8rem;font-weight:750;color:var(--txt2)}
-    @media(max-width:1100px){.event-head{display:none}.event-row{grid-template-columns:1fr;gap:8px}.event-register{border-radius:10px}.event-row{padding:14px}.event-row>div{display:flex;justify-content:space-between;gap:12px}.event-row>div.event-main{display:block}.event-row>div::before{content:attr(data-label);font-size:.7rem;font-weight:850;color:var(--txt3)}.event-row>div.event-main::before{content:''}}
+    .event-sub{font-size:.72rem;color:#94a3b8;font-weight:500;margin-top:4px}
+    .event-metric{font-weight:600;color:#1e293b;font-variant-numeric:tabular-nums;line-height:1.35}
+    .event-row>div:nth-child(3) .event-metric{white-space:nowrap}
+    .event-row>div:nth-child(4) .event-metric,
+    .event-row>div:nth-child(5) .event-metric,
+    .event-row>div:nth-child(6) .event-metric,
+    .event-row>div:nth-child(7) .event-metric{font-weight:700;color:#0f172a}
+    .event-metric small{display:block;color:#94a3b8;font-size:.68rem;font-weight:500;margin-top:2px}
+    .event-row .btn-outline-sm{height:34px;border-radius:9px;font-weight:600;color:#475569}
+    .company-filter{height:38px;border:1.5px solid var(--border);border-radius:8px;background:#fff;padding:0 10px;font-family:var(--font);font-size:.8rem;font-weight:600;color:var(--txt2)}
+    @media(max-width:1100px){.event-head{display:none}.event-row{grid-template-columns:1fr;gap:8px}.event-register{border-radius:10px}.event-row{padding:14px}.event-row>div{display:flex;justify-content:space-between;gap:12px}.event-row>div.event-main{display:block}.event-row>div::before{content:attr(data-label);font-size:.7rem;font-weight:700;color:var(--txt3)}.event-row>div.event-main::before{content:''}.event-row>div:nth-child(3) .event-metric{white-space:normal}}
 </style>
 <script>
 (function(){
@@ -1754,7 +1810,7 @@ async function deleteGroup(id) {
     }
 
     function eventData() {
-        const stored = readArray('pms_groups');
+        const stored = typeof readPersistedGroups === 'function' ? readPersistedGroups() : readArray('pms_groups');
         let memory = [];
         try { memory = Array.isArray(groups) ? groups : []; } catch(e) {}
         const merged = new Map();

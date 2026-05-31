@@ -28,7 +28,6 @@
             items: [
                 { icon: 'fa-calendar-days',    label: 'Reservations',  href: BASE + 'frontdesk/reservation-timeline.html' },
                 { icon: 'fa-list-check',       label: 'Booking List',  href: BASE + 'frontdesk/reservation-list.html' },
-                { icon: 'fa-right-to-bracket', label: 'Check-in/out',  href: BASE + 'frontdesk/checkin.html' },
                 {
                     icon: 'fa-users', label: 'Groups', id: 'groups',
                     mainHref: BASE + 'frontdesk/groups_blocks.html',

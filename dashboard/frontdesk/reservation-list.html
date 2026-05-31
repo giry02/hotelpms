@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>예약 목록 — Hotel PMS</title>
+    <title>예약 관리 — Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,6 +13,7 @@
 <style>
 .m-filter-trigger{display:none;height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;font-size:.75rem;font-weight:600;color:var(--txt);cursor:pointer;font-family:var(--font);align-items:center;gap:6px;white-space:nowrap;flex-shrink:0}
 .m-filter-trigger i{font-size:.65rem;color:var(--txt3)}
+.filter-chips{display:none!important}
 .bottom-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9998;opacity:0;pointer-events:none;transition:opacity .3s}
 .bottom-sheet-overlay.active{opacity:1;pointer-events:auto}
 .bottom-sheet{display:flex;flex-direction:column;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#fff;border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:70vh;box-shadow:0 -4px 30px rgba(0,0,0,.15)}
@@ -28,15 +29,57 @@
 .bs-option.selected .bs-option-check{opacity:1}
 .bs-option-count{font-size:.7rem;background:var(--border2);border-radius:10px;padding:2px 8px;color:var(--txt2);font-weight:600}
 .bs-option.selected .bs-option-count{background:rgba(99,102,241,.12);color:var(--primary)}
+.ops-tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.ops-tab{height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 14px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.78rem;font-weight:800;cursor:pointer;transition:.15s}
+.ops-tab:hover{border-color:var(--primary);color:var(--primary)}
+.ops-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.ops-tab .ops-count{min-width:20px;height:20px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:var(--border2);color:inherit;font-size:.68rem;padding:0 6px}
+.ops-tab.active .ops-count{background:rgba(255,255,255,.24)}
+.guest-alerts{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.guest-alert{display:inline-flex;align-items:center;gap:4px;max-width:220px;border-radius:999px;padding:2px 8px;font-size:.68rem;font-weight:800;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.guest-alert.warn{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+.guest-alert.info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.guest-alert.doc{background:#f8fafc;color:#475569;border:1px solid #e2e8f0}
+.guest-alert.empty{background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0}
+.guest-alert.id-action{border:1px solid #fed7aa;background:#fff7ed;color:#c2410c;cursor:pointer;font-family:var(--font)}
+.guest-alert.id-action:hover{border-color:#fb923c;background:#ffedd5;color:#9a3412}
+.res-work-action{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:0;border-radius:8px;color:#fff;font-family:var(--font);font-size:.72rem;font-weight:800;cursor:pointer;white-space:nowrap}
+.res-work-action.checkin{background:#2563eb}
+.res-work-action.checkout{background:#ef4444}
+.res-work-action.group{background:#111827}
+.res-work-action:disabled{opacity:.45;cursor:not-allowed}
+.res-submeta{font-size:.72rem;color:#9ca3af;margin-top:3px}
+.res-actions-cell{min-width:330px;text-align:right}
+.res-action-stack{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:nowrap}
+.stay-flag-panel{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:0}
+.stay-flag-label{display:none}
+.stay-flag-buttons{display:flex;gap:5px;justify-content:flex-end;flex-wrap:nowrap}
+.stay-flag-btn{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.68rem;font-weight:850;cursor:pointer;transition:.15s;white-space:nowrap}
+.stay-flag-btn:hover{border-color:var(--primary);color:var(--primary)}
+.stay-flag-btn.active{border-color:#6366f1;background:#eef2ff;box-shadow:0 0 0 2px rgba(99,102,241,.14)}
+.stay-flag-btn.dnd i{color:#e11d48}.stay-flag-btn.mur i{color:#10b981}.stay-flag-btn.away i{color:#f59e0b}.stay-flag-btn.none i{color:#2563eb}
+@media(min-width:769px){
+    .bottom-sheet,.bottom-sheet-overlay{display:none!important}
+    .filter-bar{align-items:center;margin-bottom:14px}
+    .filter-left .search-box{width:340px}
+}
 @media(max-width:768px){
     .m-filter-trigger{display:flex}
-    .filter-chips{display:none!important}
     .filter-left{flex-direction:row!important;gap:8px!important;flex-wrap:nowrap!important;align-items:center!important}
     .filter-left .search-box{flex:1;min-width:0;width:auto!important}
+    .ops-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;overflow:visible;padding-bottom:0}
+    .ops-tab{width:100%;justify-content:center;padding:0 10px}
+    .stay-flag-panel{align-items:flex-start;width:100%}
+    .stay-flag-label{display:block}
+    .stay-flag-buttons{justify-content:flex-start;flex-wrap:wrap}
+    .res-action-stack{align-items:flex-start;justify-content:flex-start;flex-direction:column}
+    .res-actions-cell{min-width:0;text-align:left}
 }
 </style>
     <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
+    <script src="../common/js/api/api-crm.js"></script>
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
@@ -50,9 +93,17 @@
 
 <!-- ===== MAIN ===== -->
 <div class="main">
-    <header class="topbar"><h1 data-i18n-key="Booking List">예약 목록</h1></header>
+    <header class="topbar"><h1 data-i18n-key="Booking List">예약 관리</h1></header>
 
     <div class="content">
+        <div class="ops-tabs" id="reservationOpsTabs">
+            <button class="ops-tab active" data-filter="all" onclick="setFilter(this,'all')"><i class="fa-solid fa-list"></i> 전체 <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="checkin" onclick="setFilter(this,'checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="inhouse" onclick="setFilter(this,'inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="checkout" onclick="setFilter(this,'checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="completed" onclick="setFilter(this,'completed')"><i class="fa-solid fa-check-double"></i> 완료 <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="cancelled" onclick="setFilter(this,'cancelled')"><i class="fa-solid fa-ban"></i> 취소/노쇼 <span class="ops-count">0</span></button>
+        </div>
         <!-- FILTER & SEARCH BAR -->
         <div class="filter-bar">
             <div class="filter-left">
@@ -61,12 +112,11 @@
                     <input type="text" id="searchInput" placeholder="이름, 객실번호, 예약번호 검색..." oninput="filterTable()">
                 </div>
                 <div class="filter-chips">
-                    <button class="chip active" data-filter="all" onclick="setFilter(this,'all')">All <span class="chip-count">24</span></button>
-                    <button class="chip" data-filter="confirmed" onclick="setFilter(this,'confirmed')">Confirmed <span class="chip-count">14</span></button>
-                    
-                    <button class="chip" data-filter="checkedin" onclick="setFilter(this,'checkedin')">Check-in <span class="chip-count">3</span></button>
-                    <button class="chip" data-filter="checkout" onclick="setFilter(this,'checkout')">Check-out <span class="chip-count">2</span></button>
-                    <button class="chip" data-filter="cancelled" onclick="setFilter(this,'cancelled')">Cancel <span class="chip-count">1</span></button>
+                    <button class="chip active" data-filter="all" onclick="setFilter(this,'all')">All <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="checkin" onclick="setFilter(this,'checkin')">Today Check-in <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="inhouse" onclick="setFilter(this,'inhouse')">In-house <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="checkout" onclick="setFilter(this,'checkout')">Check-out <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="cancelled" onclick="setFilter(this,'cancelled')">Cancel <span class="chip-count">0</span></button>
                 </div>
                 <button class="m-filter-trigger" onclick="openResBS()">
                     <i class="fa-solid fa-filter"></i>
@@ -87,16 +137,15 @@
                     <table id="resTable">
                         <thead>
                             <tr>
-                                <th><input type="checkbox" id="checkAll" onclick="toggleAll()"></th>
                                 <th>Booking #</th>
-                                <th>Guest</th>
+                                <th>Guest / 주의사항</th>
                                 <th>Room</th>
                                 <th>Type</th>
                                 <th>Check-in</th>
                                 <th>Check-out</th>
                                 <th>Stay</th>
                                 <th onclick="sortTable('channel')" style="cursor:pointer" title="클릭하여 채널/B2B 정렬">Channel <i class="fa-solid fa-sort" style="font-size:0.7em; opacity:0.5"></i></th>
-                                <th>Amount(USD)</th>
+                                <th>Amount</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -135,32 +184,32 @@
         <button class="bs-option selected" onclick="selectResFilter(this,'all','전체')">
             <div class="bs-option-icon" style="background:var(--border2);color:var(--txt2)"><i class="fa-solid fa-list"></i></div>
             All
-            <span class="bs-option-count">24</span>
+            <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
-        <button class="bs-option" onclick="selectResFilter(this,'confirmed','확정')">
+        <button class="bs-option" onclick="selectResFilter(this,'checkin','오늘 체크인')">
             <div class="bs-option-icon" style="background:rgba(16,185,129,.1);color:#059669"><i class="fa-solid fa-circle-check"></i></div>
-            Confirmed
-            <span class="bs-option-count">14</span>
+            Today Check-in
+            <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
 
-        <button class="bs-option" onclick="selectResFilter(this,'checkedin','체크인')">
+        <button class="bs-option" onclick="selectResFilter(this,'inhouse','투숙 중')">
             <div class="bs-option-icon" style="background:rgba(59,130,246,.1);color:#2563EB"><i class="fa-solid fa-right-to-bracket"></i></div>
-            Check-in
-            <span class="bs-option-count">3</span>
+            In-house
+            <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
         <button class="bs-option" onclick="selectResFilter(this,'checkout','체크아웃')">
             <div class="bs-option-icon" style="background:rgba(139,92,246,.1);color:#7C3AED"><i class="fa-solid fa-right-from-bracket"></i></div>
             Check-out
-            <span class="bs-option-count">2</span>
+            <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
         <button class="bs-option" onclick="selectResFilter(this,'cancelled','취소')">
             <div class="bs-option-icon" style="background:rgba(239,68,68,.1);color:#DC2626"><i class="fa-solid fa-ban"></i></div>
             Cancel
-            <span class="bs-option-count">1</span>
+            <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
     </div>
@@ -169,18 +218,254 @@
 <script>
 // ===== RESERVATION DATA =====
 let reservations = [];
+let rooms = [];
+let guests = [];
+let guestMap = new Map();
 
 const statusConfig = {
     blocked: {label:'Block',cls:'pending'},
+    pending: {label:'Pending',cls:'pending'},
     confirmed: {label:'Confirmed',cls:'confirmed'},
-    checkedin: {label:'Check-in',cls:'checkin'},
+    checkedin: {label:'In-house',cls:'checkin'},
     checkout: {label:'Check-out',cls:'vip'},
+    completed: {label:'Completed',cls:'cancelled'},
     cancelled: {label:'Cancel',cls:'cancelled'}
 };
+
+function normalizeListStatus(status) {
+    const key = String(status || '').replace(/[-_\s]/g, '').toLowerCase();
+    if (['checkedin', 'inhouse', 'occupied'].includes(key)) return 'checkedin';
+    if (key === 'checkout') return 'checkout';
+    if (['checkedout', 'departed', 'completed'].includes(key)) return 'completed';
+    if (key === 'cancelled' || key === 'canceled' || key === 'noshow') return 'cancelled';
+    if (key === 'blocked') return 'blocked';
+    if (key === 'pending') return 'pending';
+    return key || 'confirmed';
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
+function parseListDate(value) {
+    if (!value) return null;
+    const text = String(value).trim();
+    const md = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (md) {
+        const date = new Date(new Date().getFullYear(), Number(md[1]) - 1, Number(md[2]));
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+    const date = new Date(text);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function todayDate() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+}
+
+function normalizeRoomValue(value) {
+    const text = String(value || '').trim().toLowerCase();
+    const digits = (text.match(/\d+/g) || []).join('');
+    return { text, digits, strippedDigits: digits.replace(/^0+(?=\d)/, '') };
+}
+
+function sameRoomValue(left, right) {
+    const a = normalizeRoomValue(left);
+    const b = normalizeRoomValue(right);
+    if (!a.text || !b.text) return false;
+    if (a.text === b.text) return true;
+    return !!(a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits));
+}
+
+function roomMatchesReservation(room, res) {
+    const roomValues = [room?.id, room?.fullRoom, room?.roomId, room?.number, room?.roomNo, room?.display, room?.displayName, room?.roomLabel];
+    const resValues = [res?.room, res?.fullRoom, res?.roomId, res?.roomNo, res?.roomNumber, res?.roomLabel];
+    return roomValues.some(roomValue => resValues.some(resValue => sameRoomValue(roomValue, resValue)));
+}
+
+function roomForReservation(res) {
+    return rooms.find(room => roomMatchesReservation(room, res));
+}
+
+function isRoomInHouse(res) {
+    const room = roomForReservation(res);
+    return normalizeListStatus(room?.frontStatus || room?.status || room?.housekeepingStatus) === 'checkedin';
+}
+
+function checkoutDateIsDue(res) {
+    const end = parseListDate(res?.checkOutDate || res?.checkout || res?.cout);
+    return !!end && end <= todayDate();
+}
+
+function checkinDateIsDue(res) {
+    const start = parseListDate(res?.checkInDate || res?.checkin || res?.cin);
+    return !!start && start <= todayDate();
+}
+
+function isCurrentStayWindow(res) {
+    const start = parseListDate(res?.checkInDate || res?.checkin || res?.cin);
+    const end = parseListDate(res?.checkOutDate || res?.checkout || res?.cout);
+    const today = todayDate();
+    return !!(start && end && start <= today && today < end);
+}
+
+function effectiveRowStatus(res) {
+    let status = normalizeListStatus(res?.status);
+    if (['confirmed', 'pending'].includes(status) && isRoomInHouse(res) && isCurrentStayWindow(res)) status = 'checkedin';
+    if (status === 'checkedin' && checkoutDateIsDue(res)) return 'checkout';
+    return status;
+}
+
+function guestForReservation(res) {
+    const guestId = res?.guestId || res?.roomingGuestId;
+    return guestMap.get(guestId) || guests.find(g => g.name && g.name === (res?.guestName || res?.guest || res?.roomingGuestName)) || null;
+}
+
+function reservationGuestName(res) {
+    return res?.roomingGuestName || res?.guestName || res?.guest || '';
+}
+
+function displayGuestName(res) {
+    if (normalizeListStatus(res?.status) === 'blocked' || res?.isGroupPlaceholder) {
+        return res?.roomingGuestName || res?.guestName || res?.groupName || res?.channel || '단체 블록';
+    }
+    return reservationGuestName(res) || '-';
+}
+
+function operationalNotes(res) {
+    const guest = guestForReservation(res);
+    const notes = [
+        res?.specialNotes,
+        res?.guestNote,
+        res?.roomingGuestNote,
+        guest?.specialNotes
+    ].map(v => String(v || '').trim()).filter(Boolean);
+    return [...new Set(notes)];
+}
+
+function documentStatus(res) {
+    const guest = guestForReservation(res);
+    return res?.docStatus || res?.documentStatus || guest?.documentStatus || guest?.docStatus || guest?.document?.status || '';
+}
+
+function documentBadge(res) {
+    const guestName = displayGuestName(res);
+    if ((res?.isGroupPlaceholder || normalizeListStatus(res?.status) === 'blocked') && (!guestName || guestName === res?.groupName)) {
+        return '<span class="guest-alert empty"><i class="fa-solid fa-user-plus"></i>투숙객 미등록</span>';
+    }
+    const raw = String(documentStatus(res) || '').trim();
+    const key = raw.toLowerCase();
+    if (['verified', 'approved', 'confirmed', 'checked'].includes(key)) {
+        return '<span class="guest-alert doc"><i class="fa-solid fa-id-card"></i>신분증 확인됨</span>';
+    }
+    if (['rejected', 'expired', 'invalid'].includes(key)) {
+        return `<button type="button" class="guest-alert id-action" title="신분증/여권 확인 완료 처리" onclick="verifyReservationDocument('${res.id}', event)"><i class="fa-solid fa-id-card"></i>신분증 재확인</button>`;
+    }
+    if (!raw || ['pending', 'required', 'requested', 'unchecked'].includes(key)) {
+        return `<button type="button" class="guest-alert id-action" title="신분증/여권 확인 완료 처리" onclick="verifyReservationDocument('${res.id}', event)"><i class="fa-solid fa-id-card"></i>신분증 확인</button>`;
+    }
+    return `<span class="guest-alert doc"><i class="fa-solid fa-id-card"></i>${escapeHtml(raw)}</span>`;
+}
+
+function alertBadges(res) {
+    const notes = operationalNotes(res);
+    const noteHtml = notes.length
+        ? notes.slice(0, 2).map(note => `<span class="guest-alert warn" title="${escapeHtml(note)}"><i class="fa-solid fa-triangle-exclamation"></i>${escapeHtml(note)}</span>`).join('')
+        : '<span class="guest-alert empty"><i class="fa-regular fa-note-sticky"></i>특이사항 없음</span>';
+    const docHtml = documentBadge(res);
+    return `<div class="guest-alerts">${noteHtml}${docHtml}</div>`;
+}
+
+function formatMoney(res) {
+    const currency = res.currency || 'KRW';
+    const amount = Number(res.amount || res.totalAmount?.amount || 0);
+    return `${currency} ${amount.toLocaleString('ko-KR')}`;
+}
+
+function operationalBucket(res) {
+    const status = effectiveRowStatus(res);
+    if (status === 'cancelled') return 'cancelled';
+    if (status === 'completed') return 'completed';
+    if (status === 'checkout') return 'checkout';
+    if (status === 'checkedin') return 'inhouse';
+    if (['confirmed', 'pending'].includes(status) && checkinDateIsDue(res)) return 'checkin';
+    return status;
+}
+
+function canCancelReservationRow(res) {
+    const status = effectiveRowStatus(res);
+    return !['checkedin', 'checkout', 'completed', 'cancelled'].includes(status);
+}
+
+function cancelActionButton(res, mobile = false) {
+    if (!canCancelReservationRow(res)) {
+        return mobile
+            ? '<button class="act-btn danger" disabled title="체크인 이후 취소 불가" style="opacity:.45;cursor:not-allowed"><i class="fa-solid fa-lock"></i> 취소 불가</button>'
+            : '<button class="act-btn danger" disabled title="체크인 이후 취소 불가" style="opacity:.45;cursor:not-allowed"><i class="fa-solid fa-lock"></i></button>';
+    }
+    return mobile
+        ? `<button class="act-btn danger" onclick="window.cancelResAction('${res.id}')"><i class="fa-solid fa-xmark"></i> Cancel</button>`
+        : `<button class="act-btn danger" title="Cancel" onclick="window.cancelResAction('${res.id}')"><i class="fa-solid fa-xmark"></i></button>`;
+}
 
 let currentFilter = 'all';
 let currentPage = 1;
 const itemsPerPage = 10;
+
+function rowMatchesFilter(res) {
+    if (currentFilter === 'all') return true;
+    if (['checkin', 'inhouse', 'checkout', 'completed', 'cancelled'].includes(currentFilter)) {
+        return operationalBucket(res) === currentFilter;
+    }
+    return effectiveRowStatus(res) === currentFilter;
+}
+
+function workActionButton(res, mobile = false) {
+    const status = effectiveRowStatus(res);
+    const bucket = operationalBucket(res);
+    if ((res.isGroupPlaceholder || status === 'blocked') && res.groupId) {
+        return `<button class="res-work-action group" onclick="location.href='groups_block_detail.html?id=${encodeURIComponent(res.groupId)}&tab=rooms'"><i class="fa-solid fa-users"></i>${mobile ? '단체 관리' : 'Rooming'}</button>`;
+    }
+    if (bucket === 'checkin') {
+        return `<button class="res-work-action checkin" onclick="processReservationRowFlow('${res.id}','checkin')"><i class="fa-solid fa-right-to-bracket"></i>체크인</button>`;
+    }
+    if (status === 'checkedin' || status === 'checkout') {
+        return `<button class="res-work-action checkout" onclick="processReservationRowFlow('${res.id}','checkout')"><i class="fa-solid fa-right-from-bracket"></i>체크아웃</button>`;
+    }
+    return '';
+}
+
+function stayoverFlagControls(res) {
+    const status = effectiveRowStatus(res);
+    if (!['checkedin', 'checkout'].includes(status)) return '';
+    const room = roomForReservation(res);
+    if (!room) return '';
+    const flag = room.guestFlag || res.guestFlag || 'none';
+    const roomKey = room.roomId || room.fullRoom || room.id || res.room;
+    const options = [
+        { key: 'dnd', label: '방해금지', icon: 'fa-circle', cls: 'dnd' },
+        { key: 'mur', label: '청소요청', icon: 'fa-circle', cls: 'mur' },
+        { key: 'away', label: '외출', icon: 'fa-person-walking', cls: 'away' },
+        { key: 'none', label: '재실', icon: 'fa-bed', cls: 'none' }
+    ];
+    return `<div class="stay-flag-panel">
+        <div class="stay-flag-label">상태 설정 (프론트 전용)</div>
+        <div class="stay-flag-buttons">
+            ${options.map(opt => `<button type="button" class="stay-flag-btn ${opt.cls} ${flag === opt.key ? 'active' : ''}" title="${opt.label}" onclick="setReservationStayoverFlag('${res.id}','${opt.key}','${escapeHtml(roomKey)}')"><i class="fa-solid ${opt.icon}"></i>${opt.label}</button>`).join('')}
+        </div>
+    </div>`;
+}
 
 function renderTable() {
     const tbody = document.getElementById('resBody');
@@ -188,8 +473,18 @@ function renderTable() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     
     const filtered = reservations.filter(r => {
-        if (currentFilter !== 'all' && r.status !== currentFilter) return false;
-        if (search && !r.guest.toLowerCase().includes(search) && !r.room.toLowerCase().includes(search) && !r.id.toLowerCase().includes(search)) return false;
+        if (!rowMatchesFilter(r)) return false;
+        const haystack = [
+            r.id,
+            r.room,
+            r.roomLabel,
+            r.type,
+            r.channel,
+            r.groupName,
+            displayGuestName(r),
+            operationalNotes(r).join(' ')
+        ].join(' ').toLowerCase();
+        if (search && !haystack.includes(search)) return false;
         return true;
     });
 
@@ -204,38 +499,44 @@ function renderTable() {
 
     // Desktop table
     tbody.innerHTML = paginated.map(r => {
-        const st = statusConfig[r.status];
-        const isVip = r.vip.includes('VIP') || r.vip.includes('Gold');
-        const displayGuest = (r.status === 'blocked' || r.isGroupPlaceholder) ? (r.groupName || r.channel || '단체 블록') : r.guest;
+        const status = effectiveRowStatus(r);
+        const st = statusConfig[status] || statusConfig.confirmed;
+        const isVip = String(r.vip || '').includes('VIP') || String(r.vip || '').includes('Gold') || r.isVip;
+        const displayGuest = displayGuestName(r);
+        const initials = r.initials || displayGuest.substring(0,2).toUpperCase();
         return `
         <tr>
-            <td><input type="checkbox" class="row-check"></td>
             <td><span class="res-id">${r.id}</span></td>
             <td>
                 <div class="guest-cell">
-                    <div class="guest-avatar" style="background:${r.color}">${r.initials}</div>
+                    <div class="guest-avatar" style="background:${r.color || '#3B82F6'}">${initials}</div>
                     <div>
-                        ${displayGuest}${isVip ? ' <i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.6rem"></i>' : ''}
-                        <span style="font-size:.72rem;color:#9CA3AF;margin-left:6px">${r.vip}</span>
+                        ${escapeHtml(displayGuest)}${isVip ? ' <i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.6rem"></i>' : ''}
+                        <span style="font-size:.72rem;color:#9CA3AF;margin-left:6px">${escapeHtml(r.vip || '')}</span>
+                        <div class="res-submeta">${escapeHtml(r.groupName || r.companyName || '')}</div>
+                        ${alertBadges(r)}
                     </div>
                 </div>
             </td>
-            <td><span class="room-tag">${r.room}</span></td>
-            <td>${r.type}</td>
-            <td>${r.cin}</td>
-            <td>${r.cout}</td>
+            <td><span class="room-tag">${escapeHtml(r.room)}</span></td>
+            <td>${escapeHtml(r.type)}</td>
+            <td>${escapeHtml(r.cin)}</td>
+            <td>${escapeHtml(r.cout)}</td>
             <td>${r.nights}박</td>
             <td>
-                <span class="channel-tag ${r.channel.toLowerCase().replace('-','')}">${r.channel}</span>
+                <span class="channel-tag ${String(r.channel || '').toLowerCase().replace('-','')}">${escapeHtml(r.channel || '')}</span>
                 ${r.isB2B ? '<span style="background:#111827;color:#fff;font-size:0.6rem;padding:2px 4px;border-radius:4px;margin-left:4px"><i class="fa-solid fa-building"></i> B2B</span>' : ''}
             </td>
-            <td style="font-weight:700">$${r.amount.toLocaleString('en',{minimumFractionDigits:2})}</td>
+            <td style="font-weight:700">${formatMoney(r)}</td>
             <td><span class="status-badge ${st.cls}">${st.label}</span></td>
-            <td>
-                <div class="action-btns">
-                    <button class="act-btn" title="상세보기" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-eye"></i></button>
-                    <button class="act-btn" title="수정" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-pen"></i></button>
-                    <button class="act-btn danger" title="Cancel" onclick="window.cancelResAction('${r.id}')"><i class="fa-solid fa-xmark"></i></button>
+            <td class="res-actions-cell">
+                <div class="res-action-stack">
+                    ${stayoverFlagControls(r)}
+                    <div class="action-btns">
+                    ${workActionButton(r)}
+                    <button class="act-btn" title="관리" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-gear"></i></button>
+                    ${cancelActionButton(r)}
+                    </div>
                 </div>
             </td>
         </tr>`;
@@ -243,33 +544,37 @@ function renderTable() {
 
     // Mobile cards
     mobileContainer.innerHTML = paginated.map(r => {
-        const st = statusConfig[r.status];
-        const isVip = r.vip.includes('VIP') || r.vip.includes('Gold');
-        const displayGuest = (r.status === 'blocked' || r.isGroupPlaceholder) ? (r.groupName || r.channel || '단체 블록') : r.guest;
+        const status = effectiveRowStatus(r);
+        const st = statusConfig[status] || statusConfig.confirmed;
+        const isVip = String(r.vip || '').includes('VIP') || String(r.vip || '').includes('Gold') || r.isVip;
+        const displayGuest = displayGuestName(r);
+        const initials = r.initials || displayGuest.substring(0,2).toUpperCase();
         return `
         <div class="m-res-card">
             <div class="m-res-top">
                 <div class="m-res-guest">
-                    <div class="guest-avatar" style="background:${r.color}">${r.initials}</div>
+                    <div class="guest-avatar" style="background:${r.color || '#3B82F6'}">${initials}</div>
                     <div>
-                        <div class="m-res-name">${displayGuest} ${isVip ? '<i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.65rem"></i>' : ''}</div>
-                        <div class="m-res-sub">${r.vip}</div>
+                        <div class="m-res-name">${escapeHtml(displayGuest)} ${isVip ? '<i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.65rem"></i>' : ''}</div>
+                        <div class="m-res-sub">${escapeHtml(r.vip || r.groupName || '')}</div>
                     </div>
                 </div>
                 <div style="text-align:right">
                     <span class="status-badge ${st.cls}">${st.label}</span>
-                    <div class="m-res-amount">$${r.amount.toLocaleString('en',{minimumFractionDigits:2})}</div>
+                    <div class="m-res-amount">${formatMoney(r)}</div>
                 </div>
             </div>
             <div class="m-res-details">
-                <div class="m-res-detail"><i class="fa-solid fa-door-open"></i> <span class="room-tag">${r.room}</span> ${r.type}</div>
-                <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> ${r.cin} → ${r.cout} (${r.nights}박)</div>
-                <div class="m-res-detail"><i class="fa-solid fa-globe"></i> <span class="channel-tag ${r.channel.toLowerCase().replace('-','')}">${r.channel}</span></div>
+                <div class="m-res-detail"><i class="fa-solid fa-door-open"></i> <span class="room-tag">${escapeHtml(r.room)}</span> ${escapeHtml(r.type)}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> ${escapeHtml(r.cin)} → ${escapeHtml(r.cout)} (${r.nights}박)</div>
+                <div class="m-res-detail"><i class="fa-solid fa-globe"></i> <span class="channel-tag ${String(r.channel || '').toLowerCase().replace('-','')}">${escapeHtml(r.channel || '')}</span></div>
+                ${alertBadges(r)}
             </div>
             <div class="m-res-actions">
-                <button class="act-btn" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-eye"></i> 상세</button>
-                <button class="act-btn" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-pen"></i> 수정</button>
-                <button class="act-btn danger" onclick="window.cancelResAction('${r.id}')"><i class="fa-solid fa-xmark"></i> Cancel</button>
+                ${stayoverFlagControls(r)}
+                ${workActionButton(r, true)}
+                <button class="act-btn" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-gear"></i> 관리</button>
+                ${cancelActionButton(r, true)}
             </div>
         </div>`;
     }).join('');
@@ -310,26 +615,24 @@ function changePage(page) {
 function setFilter(btn, filter) {
     currentFilter = filter;
     currentPage = 1;
-    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
+    document.querySelectorAll('.filter-chips .chip, .ops-tab').forEach(c => c.classList.toggle('active', c.getAttribute('data-filter') === filter));
+    if (btn) btn.classList.add('active');
+    const labelMap = { all: 'All', checkin: 'Today Check-in', inhouse: 'In-house', checkout: 'Check-out', completed: 'Completed', cancelled: 'Cancel' };
+    const mobileLabel = document.getElementById('mResFilterLabel');
+    if (mobileLabel) mobileLabel.textContent = labelMap[filter] || filter;
     renderTable();
 }
 
 function updateChipCounts() {
-    const counts = { all: reservations.length, confirmed: 0, checkedin: 0, checkout: 0, cancelled: 0 };
-    reservations.forEach(r => {
-        if (counts[r.status] !== undefined) counts[r.status]++;
-    });
+    const counts = { all: reservations.length, checkin: 0, inhouse: 0, checkout: 0, completed: 0, cancelled: 0 };
+    reservations.forEach(r => { const bucket = operationalBucket(r); if (counts[bucket] !== undefined) counts[bucket]++; });
     
-    // Desktop chips
-    document.querySelectorAll('.chip').forEach(c => {
+    document.querySelectorAll('.chip, .ops-tab').forEach(c => {
         const f = c.getAttribute('data-filter');
-        const span = c.querySelector('.chip-count');
+        const span = c.querySelector('.chip-count, .ops-count');
         if(span && counts[f] !== undefined) span.textContent = counts[f];
     });
     
-    // Mobile bottom sheet
-    const bsMap = { 'all': 0, 'confirmed': 1, 'checkedin': 2, 'checkout': 3, 'cancelled': 4 };
     document.querySelectorAll('.bs-option').forEach(btn => {
         const span = btn.querySelector('.bs-option-count');
         const onClickStr = btn.getAttribute('onclick');
@@ -345,28 +648,182 @@ function filterTable() {
     currentPage = 1;
     renderTable(); 
 }
-function toggleAll() {
-    const checked = document.getElementById('checkAll').checked;
-    document.querySelectorAll('.row-check').forEach(c => c.checked = checked);
+
+async function persistDocumentVerification(res, guest) {
+    localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+    if (guests.length) localStorage.setItem('pms_guests', JSON.stringify(guests));
+    try {
+        if (window.PmsMockApi && res?.id) {
+            await window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res });
+        }
+        if (window.PmsMockApi && guest?.id) {
+            await window.PmsMockApi.request('PATCH', '/crm/guests', { body: guest });
+        }
+    } catch(e) {
+        console.warn('Document verification save failed', e);
+    }
 }
+
+window.verifyReservationDocument = async function(resId, evt = null) {
+    evt?.preventDefault?.();
+    evt?.stopPropagation?.();
+    const res = reservations.find(item => item.id === resId);
+    if (!res) return;
+    const guest = guestForReservation(res);
+    const name = displayGuestName(res);
+    const confirmed = window.showConfirm
+        ? await window.showConfirm(`${name} 고객의 신분증/여권 확인을 완료 처리할까요?`)
+        : confirm(`${name} 고객의 신분증/여권 확인을 완료 처리할까요?`);
+    if (!confirmed) return;
+    res.docStatus = 'verified';
+    res.documentStatus = 'verified';
+    if (guest) {
+        guest.docStatus = 'verified';
+        guest.documentStatus = 'verified';
+        guest.document = { ...(guest.document || {}), status: 'verified', verifiedAt: new Date().toISOString() };
+    }
+    await persistDocumentVerification(res, guest);
+    renderTable();
+    if (window.showToast) window.showToast('신분증/여권 확인 완료로 저장했습니다.', 'success');
+};
+
+window.setReservationStayoverFlag = async function(resId, flag, roomKey = '') {
+    const res = reservations.find(item => item.id === resId);
+    const room = roomForReservation(res) || rooms.find(item => sameRoomValue(item.id, roomKey) || sameRoomValue(item.roomId, roomKey) || sameRoomValue(item.fullRoom, roomKey));
+    if (!room) {
+        if (window.showToast) window.showToast('객실 정보를 찾을 수 없습니다.', 'error');
+        return;
+    }
+    room.guestFlag = flag;
+    if (res) res.guestFlag = flag;
+    localStorage.setItem('pms_rooms', JSON.stringify(rooms));
+    try {
+        if (window.PmsAPI?.setGuestFlag) {
+            await window.PmsAPI.setGuestFlag(room.roomId || room.fullRoom || room.id, flag);
+        } else if (window.PmsMockApi) {
+            await window.PmsMockApi.request('PATCH', `/rooms/${encodeURIComponent(room.roomId || room.fullRoom || room.id)}/guest-flag`, { body: { flag } });
+        }
+    } catch(e) {
+        console.warn('Guest flag save failed', e);
+    }
+    const labels = { dnd: '방해금지', mur: '청소요청', away: '외출', none: '재실' };
+    renderTable();
+    if (window.showToast) window.showToast(`${room.id || room.number || roomKey} 상태: ${labels[flag] || flag}`, 'success');
+};
+
+async function persistReservationAndRoom(res, room) {
+    localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+    if (rooms.length) localStorage.setItem('pms_rooms', JSON.stringify(rooms));
+    try {
+        if (window.PmsMockApi && res?.id) {
+            await window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res });
+        }
+        if (window.PmsMockApi && room) {
+            await window.PmsMockApi.request('PATCH', `/rooms/${encodeURIComponent(room.roomId || room.fullRoom || room.id)}`, { body: room });
+        }
+    } catch(e) {
+        console.warn('Mock reservation status update failed', e);
+    }
+}
+
+async function syncHousekeepingForReservation(room, status, res) {
+    if (!room || !window.PmsAPI?.syncRoomStatusToTask) return;
+    const roomId = room.roomId || room.fullRoom || room.id || res?.room;
+    try {
+        await window.PmsAPI.syncRoomStatusToTask(roomId, status, {
+            reservationId: res?.id,
+            guestName: displayGuestName(res)
+        });
+    } catch(e) {
+        console.warn('Housekeeping sync failed', e);
+    }
+}
+
+function normalizedRoomOpsStatus(room) {
+    return String(room?.housekeepingStatus || room?.status || room?.frontStatus || '').replace(/[-_\s]/g, '').toLowerCase();
+}
+
+function checkinBlockReasonForRoom(room) {
+    if (!room) return '객실을 먼저 배정해야 체크인할 수 있습니다.';
+    const status = normalizedRoomOpsStatus(room);
+    if (['dirty', 'vacantdirty'].includes(status)) return '하우스키핑 청소 완료 후 체크인할 수 있습니다.';
+    if (['oos', 'outofservice', 'maintenance'].includes(status)) return '점검/수리 중 객실은 체크인할 수 없습니다.';
+    if (['occupied', 'inhouse', 'checkedin', 'checked-in'].includes(status)) return '이미 투숙 중인 객실입니다.';
+    return '';
+}
+
+window.processReservationRowFlow = async function(resId, action) {
+    const res = reservations.find(item => item.id === resId);
+    if (!res) return;
+    const status = effectiveRowStatus(res);
+    if (action === 'checkin' && (!['confirmed', 'pending'].includes(status) || !checkinDateIsDue(res))) {
+        if (window.showToast) window.showToast('체크인은 입실 예정일이 도래한 예약 확정/대기 상태에서만 처리할 수 있습니다.', 'error');
+        return;
+    }
+    if (action === 'checkout' && !['checkedin', 'checkout'].includes(status)) {
+        if (window.showToast) window.showToast('체크아웃은 투숙 중 예약에서만 처리할 수 있습니다.', 'error');
+        return;
+    }
+
+    const room = roomForReservation(res);
+    if (action === 'checkin') {
+        const blockReason = checkinBlockReasonForRoom(room);
+        if (blockReason) {
+            if (window.showToast) window.showToast(blockReason, 'error');
+            return;
+        }
+    }
+
+    const label = action === 'checkin' ? '체크인' : '체크아웃';
+    const name = displayGuestName(res);
+    const confirmed = window.showConfirm
+        ? await window.showConfirm(`${name} 예약을 ${label} 처리하시겠습니까?`)
+        : confirm(`${name} 예약을 ${label} 처리하시겠습니까?`);
+    if (!confirmed) return;
+
+    if (action === 'checkin') {
+        res.status = 'checkedin';
+        if (room) {
+            room.status = 'occupied';
+            room.frontStatus = 'in-house';
+            room.housekeepingStatus = 'occupied';
+            room.guest = name;
+        }
+    } else {
+        res.status = 'completed';
+        if (room) {
+            room.status = 'vacant-dirty';
+            room.frontStatus = 'vacant';
+            room.housekeepingStatus = 'dirty';
+            room.guest = '';
+        }
+    }
+
+    await persistReservationAndRoom(res, room);
+    if (action === 'checkout') await syncHousekeepingForReservation(room, 'vacant-dirty', res);
+    updateChipCounts();
+    renderTable();
+    if (window.showToast) window.showToast(`${label} 처리가 완료되었습니다.`, 'success');
+};
 
 function exportReservationsToCSV() {
     if (!reservations || reservations.length === 0) {
         if(window.showToast) window.showToast('데이터가 없습니다.');
         return;
     }
-    const headers = ['Booking #', 'Guest', 'Room', 'Type', 'Check-in', 'Check-out', 'Stay', 'Channel', 'Amount(USD)', 'Status'];
+    const headers = ['Booking #', 'Guest', 'Room', 'Type', 'Check-in', 'Check-out', 'Stay', 'Channel', 'Amount', 'Status', 'Notes'];
     const rows = reservations.map(r => [
         r.id, 
-        '"' + r.guest + '"', 
+        '"' + displayGuestName(r) + '"', 
         r.room, 
         r.type, 
         r.cin, 
         r.cout, 
         r.nights, 
         r.channel, 
-        r.amount, 
-        r.status
+        formatMoney(r), 
+        effectiveRowStatus(r),
+        '"' + operationalNotes(r).join(' / ') + '"'
     ]);
     const csvContent = [headers.join(',')].concat(rows.map(e => e.join(','))).join('\n');
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -388,6 +845,7 @@ function toggleMenu() {
 
 // ===== BOTTOM SHEET =====
 function openResBS() {
+    if (window.matchMedia && !window.matchMedia('(max-width: 768px)').matches) return;
     document.getElementById('resBsOverlay').classList.add('active');
     document.getElementById('resBsPanel').classList.add('active');
 }
@@ -397,13 +855,11 @@ function closeResBS() {
 }
 function selectResFilter(btn, filter, label) {
     currentFilter = filter;
+    currentPage = 1;
     document.querySelectorAll('.bs-option').forEach(o => o.classList.remove('selected'));
     btn.classList.add('selected');
     document.getElementById('mResFilterLabel').textContent = label;
-    // Sync desktop chips
-    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    const target = document.querySelector(`.chip[data-filter="${filter}"]`);
-    if (target) target.classList.add('active');
+    document.querySelectorAll('.chip, .ops-tab').forEach(c => c.classList.toggle('active', c.getAttribute('data-filter') === filter));
     closeResBS();
     renderTable();
 }
@@ -421,7 +877,7 @@ const translations = {
         "Settings": "설정",
         "Dashboard": "대시보드",
         "Reservations": "예약 타임라인",
-        "Booking List": "예약 목록",
+        "Booking List": "예약 관리",
         "Check-in/out": "체크인/아웃",
         "Guest CRM": "투숙객 관리",
         "VIP Members": "VIP 멤버십",
@@ -442,7 +898,7 @@ const translations = {
         "Notices": "공지사항",
         "Support": "고객지원",
 
-        "Booking List":"예약 목록","Dashboard":"대시보드","Reservations":"예약 타임라인",
+        "Booking List":"예약 관리","Dashboard":"대시보드","Reservations":"예약 타임라인",
         "Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십",
         "Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산",
         "Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리",
@@ -461,7 +917,7 @@ const translations = {
         "Settings": "Settings",
         "Dashboard": "Dashboard",
         "Reservations": "Reservations",
-        "Booking List": "Booking List",
+        "Booking List": "Reservation Management",
         "Check-in/out": "Check-in/out",
         "Guest CRM": "Guest CRM",
         "VIP Members": "VIP Members",
@@ -482,7 +938,7 @@ const translations = {
         "Notices": "Notices",
         "Support": "Support",
 
-        "Booking List":"예약 목록","Dashboard":"대시보드","Reservations":"예약 타임라인",
+        "Booking List":"Reservation Management","Dashboard":"Dashboard","Reservations":"Reservations",
         "Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십",
         "Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산",
         "Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리",
@@ -539,14 +995,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupI18n();
     changeLang(currentLang);
     
-    // Fetch dynamic reservations
-    if(window.PmsAPI && window.PmsAPI.getReservations) {
-        let rawRes = await window.PmsAPI.getReservations();
-        reservations = rawRes.map(r => {
-            if (r.status === 'checked-in') r.status = 'checkedin';
-            if (r.status === 'checked-out') r.status = 'checkout';
+    const params = new URLSearchParams(location.search);
+    const requestedTab = params.get('tab') || params.get('filter') || 'all';
+
+    if (window.PmsAPI) {
+        const [rawRooms, rawGuests, rawRes] = await Promise.all([
+            window.PmsAPI.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
+            window.PmsAPI.getGuests ? window.PmsAPI.getGuests().catch(() => []) : [],
+            window.PmsAPI.getReservations ? window.PmsAPI.getReservations().catch(() => []) : []
+        ]);
+        rooms = rawRooms || [];
+        guests = rawGuests || [];
+        guestMap = new Map(guests.map(guest => [guest.id, guest]));
+        reservations = (rawRes || []).map(r => {
+            r.status = normalizeListStatus(r.status);
             return r;
         });
+    }
+
+    if (requestedTab && document.querySelector(`[data-filter="${requestedTab}"]`)) {
+        currentFilter = requestedTab;
+        document.querySelectorAll('.chip, .ops-tab').forEach(c => c.classList.toggle('active', c.getAttribute('data-filter') === currentFilter));
+        const selectedSheet = Array.from(document.querySelectorAll('.bs-option')).find(btn => (btn.getAttribute('onclick') || '').includes(`'${currentFilter}'`));
+        if (selectedSheet) {
+            document.querySelectorAll('.bs-option').forEach(btn => btn.classList.remove('selected'));
+            selectedSheet.classList.add('selected');
+        }
     }
     updateChipCounts();
     renderTable();

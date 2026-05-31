@@ -241,6 +241,11 @@ function saveGroup() {
     const idx = groups.findIndex(g => g.id === group.id);
     if (idx >= 0) groups[idx] = group;
     else if (group.id) groups.unshift(group);
+    try {
+        if (window.PmsMockApi && group?.id) window.PmsMockApi.request('PATCH', `/groups/events/${encodeURIComponent(group.id)}`, { body: group });
+    } catch(e) {
+        console.warn('Mock group save failed', e);
+    }
     localStorage.setItem('pms_groups', JSON.stringify(groups));
 }
 
@@ -679,6 +684,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         rooms = await PmsAPI.getAllRooms();
         const stored = localStorage.getItem('pms_groups');
         groups = stored ? JSON.parse(stored) : [];
+        try {
+            if (window.PmsAPI?.getGroups) {
+                const apiGroups = await window.PmsAPI.getGroups();
+                const merged = new Map();
+                [...groups, ...apiGroups].forEach(item => {
+                    if (item?.id) merged.set(item.id, item);
+                });
+                groups = [...merged.values()];
+            }
+        } catch(e) {
+            console.warn('Group mock detail load failed', e);
+        }
         if ((!Array.isArray(groups) || groups.length === 0) && PmsAPI.getGroups) {
             groups = await PmsAPI.getGroups();
             localStorage.setItem('pms_groups', JSON.stringify(groups));
@@ -1054,7 +1071,7 @@ window.addEventListener('DataReady', () => {
             <div id="detailAllocationEditor" class="allocation-editor"></div>
             <div class="management-actions" style="margin-top:0;margin-bottom:16px"><button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button></div>
             <table class="data-table">
-                <thead><tr><th>호실</th><th>블록/예약</th><th>투숙객</th><th>등록</th><th>문서</th><th>요금</th><th></th></tr></thead>
+                <thead><tr><th>호실</th><th>블록/예약</th><th>투숙객</th><th>등록</th><th>신분증</th><th>요금</th><th></th></tr></thead>
                 <tbody>
                     ${assigned.map(a => {
                         const r = reservationForRoom(a.roomId);
@@ -1125,6 +1142,10 @@ window.addEventListener('DataReady', () => {
         group.history.unshift({ at: new Date().toLocaleString('ko-KR'), action: editId ? '투숙객 수정' : '투숙객 등록', note: `${data.name} (${data.roomId || '호실 미정'})` });
         saveGroup();
         localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+        if (window.PmsMockApi && res?.id) {
+            window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res })
+                .catch(err => console.warn('Mock reservation rooming update failed', err));
+        }
         closeModal('roomingModal');
         renderAll();
         switchTabById('rooms');
@@ -1241,6 +1262,11 @@ window.addEventListener('DataReady', () => {
         });
         merged.set(group.id, group);
         groups = [...merged.values()];
+        try {
+            if (window.PmsMockApi) window.PmsMockApi.request('PATCH', `/groups/events/${encodeURIComponent(group.id)}`, { body: group });
+        } catch(e) {
+            console.warn('Mock group save failed', e);
+        }
         localStorage.setItem('pms_groups', JSON.stringify(groups));
         try { sessionStorage.setItem('pms_selected_group', JSON.stringify(group)); } catch(e) {}
     };
@@ -1305,7 +1331,7 @@ window.addEventListener('DataReady', () => {
                 <button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button>
             </div>
             <table class="data-table">
-                <thead><tr><th>호실</th><th>블록/예약</th><th>투숙객</th><th>등록</th><th>문서</th><th>요금</th><th></th></tr></thead>
+                <thead><tr><th>호실</th><th>블록/예약</th><th>투숙객</th><th>등록</th><th>신분증</th><th>요금</th><th></th></tr></thead>
                 <tbody>
                     ${assigned.map(room => {
                         const res = reservationForAssignedRoom(room.roomId);
@@ -1399,6 +1425,10 @@ window.addEventListener('DataReady', () => {
         saveGroup();
         window.reservations = reservations;
         localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+        if (window.PmsMockApi && res?.id) {
+            window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res })
+                .catch(err => console.warn('Mock reservation rooming update failed', err));
+        }
         closeModal('roomingModal');
         renderAll();
         switchTabById('rooms');
@@ -1670,6 +1700,10 @@ window.addEventListener('DataReady', () => {
         saveGroup();
         window.reservations = reservations;
         localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+        if (window.PmsMockApi && res?.id) {
+            window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res })
+                .catch(err => console.warn('Mock reservation rooming update failed', err));
+        }
         closeModal('roomingModal');
         renderAll();
         switchTabById('rooms');

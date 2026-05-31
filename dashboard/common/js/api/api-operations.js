@@ -3,38 +3,47 @@ window.PmsAPI = window.PmsAPI || {};
 
 const _fallbackRooms = [
     {id:'PH01', floor:20, type:'Penthouse', status:'occupied', building:'Ocean Tower', guestFlag:'dnd'},
-    {id:'PH02', floor:20, type:'Penthouse', status:'vacant-clean', building:'Ocean Tower'},
+    {id:'PH02', floor:20, type:'Penthouse', status:'occupied', building:'Ocean Tower'},
     
-    {id:'1401', floor:14, type:'Premier', status:'vacant-dirty', building:'Ocean Tower'},
-    {id:'1402', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower', guestFlag:'mur'},
-    {id:'1403', floor:14, type:'Premier', status:'occupied', building:'Ocean Tower', guestFlag:'away'},
+    {id:'1401', floor:14, type:'Premier', status:'vacant-clean', building:'Ocean Tower'},
+    {id:'1402', floor:14, type:'Premier', status:'vacant-clean', building:'Ocean Tower'},
+    {id:'1403', floor:14, type:'Premier', status:'vacant-clean', building:'Ocean Tower'},
     {id:'1405', floor:14, type:'Premier', status:'oos', building:'Ocean Tower'},
     
-    {id:'1201', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower', guestFlag:'none'},
+    {id:'1201', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
     {id:'1202', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
     {id:'1203', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
-    {id:'1205', floor:12, type:'Deluxe', status:'occupied', building:'Forest Tower', guestFlag:'none'},
+    {id:'1205', floor:12, type:'Deluxe', status:'vacant-clean', building:'Forest Tower'},
     {id:'1206', floor:12, type:'Deluxe', status:'vacant-dirty', building:'Forest Tower'},
     
-    {id:'0801', floor:8, type:'Standard', status:'occupied', building:'Forest Tower', guestFlag:'dnd'},
-    {id:'0802', floor:8, type:'Standard', status:'occupied', building:'Forest Tower', guestFlag:'none'},
-    {id:'0803', floor:8, type:'Standard', status:'oos', building:'Forest Tower'},
+    {id:'0801', floor:8, type:'Standard', status:'vacant-clean', building:'Forest Tower'},
+    {id:'0802', floor:8, type:'Standard', status:'vacant-clean', building:'Forest Tower'},
+    {id:'0803', floor:8, type:'Standard', status:'vacant-clean', building:'Forest Tower'},
     
-    {id:'V-01', floor:1, type:'Pool Villa', status:'occupied', building:'Lakeside Villa', guestFlag:'away'},
+    {id:'V-01', floor:1, type:'Pool Villa', status:'vacant-clean', building:'Lakeside Villa'},
     {id:'V-02', floor:1, type:'Pool Villa', status:'vacant-clean', building:'Lakeside Villa'}
 ];
 
 const _fallbackRoomTypes = [
-    { id: 'Standard',    name: 'Standard',    code: 'STD', count: 45 },
-    { id: 'Deluxe',      name: 'Deluxe',      code: 'DLX', count: 32 },
-    { id: 'Premier',     name: 'Premier',     code: 'PRM', count: 18 },
+    { id: 'Standard',    name: 'Standard',    code: 'STD', count: 3 },
+    { id: 'Deluxe',      name: 'Deluxe',      code: 'DLX', count: 5 },
+    { id: 'Premier',     name: 'Premier',     code: 'PRM', count: 4 },
     { id: 'Penthouse',   name: 'Penthouse',   code: 'PTH', count: 2 },
-    { id: 'Pool Villa',  name: 'Pool Villa',  code: 'VIL', count: 5 }
+    { id: 'Pool Villa',  name: 'Pool Villa',  code: 'VIL', count: 2 }
 ];
 
 Object.assign(window.PmsAPI, {
 
     getTasks: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/operations/tasks');
+                const tasks = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyTask);
+                if (tasks.length) return tasks;
+            }
+        } catch(e) {
+            console.warn('Mock tasks fallback', e);
+        }
         try {
             let res = await fetch('../data/operations/tasks.json');
             if (res.ok) return await res.json();
@@ -50,42 +59,102 @@ Object.assign(window.PmsAPI, {
     },
 
     saveTasks: async (tasks) => {
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('PUT', '/operations/tasks', { body: tasks || [] });
+        } catch(e) {
+            console.warn('Mock tasks save fallback', e);
+        }
         localStorage.setItem('pms_tasks', JSON.stringify(tasks));
         return true;
     },
 
-    syncRoomStatusToTask: async (roomId, newStatus) => {
+    syncRoomStatusToTask: async (roomId, newStatus, context = {}) => {
         let tasks = [];
         try { tasks = await window.PmsAPI.getTasks(); } catch(e) {}
-        
-        let existingTaskIndex = tasks.findIndex(t => t.room === roomId && t.status !== 'clean');
-        
-        if (newStatus === 'vacant-clean') {
-            if (existingTaskIndex > -1) {
-                tasks[existingTaskIndex].status = 'clean';
-                window.PmsAPI.saveTasks(tasks);
-            }
-        } else if (newStatus === 'vacant-dirty') {
+
+        const roomKeySet = (value) => {
+            const text = String(value || '').trim();
+            const upper = text.toUpperCase();
+            const tail = upper.includes('-') ? upper.split('-').pop() : upper;
+            const digits = (upper.match(/\d+/g) || []).join('');
+            return new Set([upper, tail, digits].filter(Boolean));
+        };
+        const targetKeys = roomKeySet(roomId);
+        const taskMatchesRoom = (task) => {
+            const taskKeys = roomKeySet(task.roomId || task.roomNo || task.room);
+            return [...taskKeys].some(key => targetKeys.has(key));
+        };
+        const displayRoom = String(roomId || '').split('-').pop() || String(roomId || '');
+        const status = String(newStatus || '').replace(/[_\s]/g, '-').toLowerCase();
+        const openTaskIndexes = tasks
+            .map((task, index) => ({ task, index }))
+            .filter(({ task }) => taskMatchesRoom(task) && task.status !== 'clean')
+            .map(({ index }) => index);
+        const existingTaskIndex = openTaskIndexes[0] ?? -1;
+        let changed = false;
+
+        const completeOpenTasks = (note) => {
+            openTaskIndexes.forEach(index => {
+                tasks[index].status = 'clean';
+                tasks[index].completedAt = new Date().toISOString();
+                tasks[index].inspectedBy = tasks[index].inspectedBy || 'Front Desk';
+                tasks[index].note = tasks[index].note || note;
+                changed = true;
+            });
+        };
+
+        if (['vacant-clean', 'clean'].includes(status)) {
+            completeOpenTasks('객실 정비 완료');
+        } else if (['occupied', 'in-house', 'inhouse', 'checkedin', 'checked-in'].includes(status)) {
+            return true;
+        } else if (['vacant-dirty', 'dirty'].includes(status)) {
+            const note = context?.guestName ? `${context.guestName} 체크아웃 후 청소 필요` : '체크아웃 후 청소 필요';
             if (existingTaskIndex === -1) {
-                tasks.push({ id: 't' + Date.now(), room: roomId, type: 'checkout', status: 'dirty', priority: false, note: 'System generated' });
-                window.PmsAPI.saveTasks(tasks);
+                tasks.push({
+                    id: 't' + Date.now(),
+                    room: displayRoom,
+                    roomId,
+                    type: 'checkout',
+                    status: 'dirty',
+                    priority: false,
+                    note,
+                    reservationId: context?.reservationId || null
+                });
             } else {
+                tasks[existingTaskIndex].type = 'checkout';
                 tasks[existingTaskIndex].status = 'dirty';
-                window.PmsAPI.saveTasks(tasks);
+                tasks[existingTaskIndex].note = note;
+                tasks[existingTaskIndex].reservationId = context?.reservationId || tasks[existingTaskIndex].reservationId;
             }
-        } else if (newStatus === 'oos') {
+            changed = true;
+        } else if (['oos', 'out-of-service', 'outofservice'].includes(status)) {
             if (existingTaskIndex === -1) {
-                tasks.push({ id: 't' + Date.now(), room: roomId, type: 'maintenance', status: 'dirty', priority: true, note: 'System generated OOS' });
-                window.PmsAPI.saveTasks(tasks);
+                tasks.push({ id: 't' + Date.now(), room: displayRoom, roomId, type: 'maintenance', status: 'dirty', priority: true, note: '점검/수리 필요' });
             } else {
                 tasks[existingTaskIndex].type = 'maintenance';
                 tasks[existingTaskIndex].status = 'dirty';
-                window.PmsAPI.saveTasks(tasks);
+                tasks[existingTaskIndex].priority = true;
             }
+            changed = true;
         }
+        if (changed) await window.PmsAPI.saveTasks(tasks);
+        return true;
     },
 
     getGolfOrders: async () => { 
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/ancillaries/golf-orders');
+                const orders = window.PmsMockApi.items(env).map(item => ({
+                    ...item,
+                    room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
+                    total: window.PmsMockApi.amountValue(item.total)
+                }));
+                if (orders.length) return orders;
+            }
+        } catch(e) {
+            console.warn('Mock golf orders fallback', e);
+        }
         try {
             let res = await fetch('../data/operations/golf.json');
             if (res.ok) return await res.json();
@@ -104,6 +173,19 @@ Object.assign(window.PmsAPI, {
 
     getRentacarOrders: async () => { 
         try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/ancillaries/rentacar-orders');
+                const orders = window.PmsMockApi.items(env).map(item => ({
+                    ...item,
+                    room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
+                    total: window.PmsMockApi.amountValue(item.total)
+                }));
+                if (orders.length) return orders;
+            }
+        } catch(e) {
+            console.warn('Mock rentacar orders fallback', e);
+        }
+        try {
             let res = await fetch('../data/operations/rentacar.json');
             if (res.ok) return await res.json();
         } catch(e) {}
@@ -121,6 +203,20 @@ Object.assign(window.PmsAPI, {
 
     getRequests: async () => {
         try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/operations/maintenance-requests');
+                const requests = window.PmsMockApi.items(env).map(item => ({
+                    ...item,
+                    room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
+                    time: item.time || (item.createdAt ? item.createdAt.slice(11, 16) : ''),
+                    type: item.type || 'maintenance'
+                }));
+                if (requests.length) return requests;
+            }
+        } catch(e) {
+            console.warn('Mock requests fallback', e);
+        }
+        try {
             let res = await fetch('../data/operations/requests.json');
             if (res.ok) return await res.json();
         } catch(e) {}
@@ -133,6 +229,19 @@ Object.assign(window.PmsAPI, {
 
     getOrders: async () => {
         try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/pos/orders');
+                const orders = window.PmsMockApi.items(env).map(item => ({
+                    ...item,
+                    room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
+                    total: window.PmsMockApi.amountValue(item.total)
+                }));
+                if (orders.length) return orders;
+            }
+        } catch(e) {
+            console.warn('Mock POS orders fallback', e);
+        }
+        try {
             let res = await fetch('../data/operations/orders.json');
             if (res.ok) return await res.json();
         } catch(e) {}
@@ -143,10 +252,84 @@ Object.assign(window.PmsAPI, {
         ]);
     },
 
-    getDailyData: async () => { return [{date:'5.16',room:18000,fnb:2000,spa:1500,other:800},{date:'5.17',room:19000,fnb:2200,spa:1600,other:900},{date:'5.18',room:21000,fnb:2500,spa:1800,other:1100},{date:'5.19',room:24000,fnb:3000,spa:2000,other:1200},{date:'5.20',room:25000,fnb:3200,spa:2100,other:1300},{date:'5.21',room:22000,fnb:2800,spa:1900,other:1000},{date:'5.22',room:20000,fnb:2400,spa:1700,other:900}]; },
-    getMonthlyData: async () => { return [{m:'1월',v:650000},{m:'2월',v:580000},{m:'3월',v:620000},{m:'4월',v:670000},{m:'5월',v:690000},{m:'6월',v:0},{m:'7월',v:0},{m:'8월',v:0},{m:'9월',v:0},{m:'10월',v:0},{m:'11월',v:0},{m:'12월',v:0}]; },
-    getYoyData: async () => { return [{m:1,ly:620000,ty:650000},{m:2,ly:550000,ty:580000},{m:3,ly:600000,ty:620000},{m:4,ly:630000,ty:670000},{m:5,ly:650000,ty:690000},{m:6,ly:680000,ty:0},{m:7,ly:720000,ty:0},{m:8,ly:750000,ty:0},{m:9,ly:610000,ty:0},{m:10,ly:640000,ty:0},{m:11,ly:620000,ty:0},{m:12,ly:700000,ty:0}]; },
+    getDailyData: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/reports/revenue-daily');
+                const rows = window.PmsMockApi.items(env).map(item => ({
+                    date: item.date ? item.date.slice(5).replace('-', '.') : item.date,
+                    room: Math.round(Number(item.room || 0) / 1000),
+                    fnb: Math.round(Number(item.fnb || 0) / 1000),
+                    spa: Math.round(Number(item.spa || 0) / 1000),
+                    other: Math.round(Number(item.other || 0) / 1000)
+                }));
+                if (rows.length) return rows;
+            }
+        } catch(e) {
+            console.warn('Mock daily report fallback', e);
+        }
+        return [{date:'5.16',room:18000,fnb:2000,spa:1500,other:800},{date:'5.17',room:19000,fnb:2200,spa:1600,other:900},{date:'5.18',room:21000,fnb:2500,spa:1800,other:1100},{date:'5.19',room:24000,fnb:3000,spa:2000,other:1200},{date:'5.20',room:25000,fnb:3200,spa:2100,other:1300},{date:'5.21',room:22000,fnb:2800,spa:1900,other:1000},{date:'5.22',room:20000,fnb:2400,spa:1700,other:900}];
+    },
+    getMonthlyData: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/reports/revenue-monthly');
+                const rows = window.PmsMockApi.items(env).map(item => ({
+                    m: `${item.month}월`,
+                    v: Math.round(Number(item.value || 0) / 1000),
+                    room: Math.round(Number(item.room || 0) / 1000),
+                    fnb: Math.round(Number(item.fnb || 0) / 1000),
+                    spa: Math.round(Number(item.spa || 0) / 1000),
+                    other: Math.round(Number(item.other || 0) / 1000)
+                }));
+                if (rows.length) return rows;
+            }
+        } catch(e) {
+            console.warn('Mock monthly report fallback', e);
+        }
+        return [{m:'1월',v:650000},{m:'2월',v:580000},{m:'3월',v:620000},{m:'4월',v:670000},{m:'5월',v:690000},{m:'6월',v:0},{m:'7월',v:0},{m:'8월',v:0},{m:'9월',v:0},{m:'10월',v:0},{m:'11월',v:0},{m:'12월',v:0}];
+    },
+    getYoyData: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/reports/revenue-yoy');
+                const rows = window.PmsMockApi.items(env).map(item => {
+                    const lyBy = item.lastYearByCategory || {};
+                    const tyBy = item.thisYearByCategory || {};
+                    return {
+                        m: item.month,
+                        ly: Math.round(Number(item.lastYear || 0) / 1000),
+                        ty: Math.round(Number(item.thisYear || 0) / 1000),
+                        lyRoom: Math.round(Number(lyBy.room || 0) / 1000),
+                        lyFnb: Math.round(Number(lyBy.fnb || 0) / 1000),
+                        lySpa: Math.round(Number(lyBy.spa || 0) / 1000),
+                        lyOther: Math.round(Number(lyBy.other || 0) / 1000),
+                        tyRoom: Math.round(Number(tyBy.room || 0) / 1000),
+                        tyFnb: Math.round(Number(tyBy.fnb || 0) / 1000),
+                        tySpa: Math.round(Number(tyBy.spa || 0) / 1000),
+                        tyOther: Math.round(Number(tyBy.other || 0) / 1000)
+                    };
+                });
+                if (rows.length) return rows;
+            }
+        } catch(e) {
+            console.warn('Mock yoy report fallback', e);
+        }
+        return [{m:1,ly:620000,ty:650000},{m:2,ly:550000,ty:580000},{m:3,ly:600000,ty:620000},{m:4,ly:630000,ty:670000},{m:5,ly:650000,ty:690000},{m:6,ly:680000,ty:0},{m:7,ly:720000,ty:0},{m:8,ly:750000,ty:0},{m:9,ly:610000,ty:0},{m:10,ly:640000,ty:0},{m:11,ly:620000,ty:0},{m:12,ly:700000,ty:0}];
+    },
     getDepts: async () => { 
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/reports/revenue-departments');
+                const rows = window.PmsMockApi.items(env).map(item => ({
+                    ...item,
+                    amt: Math.round(Number(item.amt || 0) / 1000)
+                }));
+                if (rows.length) return rows;
+            }
+        } catch(e) {
+            console.warn('Mock departments report fallback', e);
+        }
         return [
             {name:'객실 (Rooms)',sub:'Room Revenue',pct:72,amt:118260,icon:'fa-bed',color:'var(--primary)',lt:'var(--primary-lt)'},
             {name:'통합 POS',sub:'F&B, Retail',pct:15,amt:24630,icon:'fa-cash-register',color:'var(--success)',lt:'rgba(16,185,129,0.15)'},
@@ -155,6 +338,21 @@ Object.assign(window.PmsAPI, {
         ]; 
     },
     getTrendData: async () => { 
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/reports/revenue-trend');
+                const rows = window.PmsMockApi.items(env).map(item => ({
+                    date: item.date,
+                    room: { v: Math.round(Number(item.room?.v || 0) / 1000), d: item.room?.d || 0 },
+                    pos: { v: Math.round(Number(item.pos?.v || 0) / 1000), d: item.pos?.d || 0 },
+                    golf: { v: Math.round(Number(item.golf?.v || 0) / 1000), d: item.golf?.d || 0 },
+                    car: { v: Math.round(Number(item.car?.v || 0) / 1000), d: item.car?.d || 0 }
+                }));
+                if (rows.length) return rows;
+            }
+        } catch(e) {
+            console.warn('Mock trend report fallback', e);
+        }
         return [
             {date:'2026-05-22', room:{v:18500, d:5.2}, pos:{v:3200, d:1.5}, golf:{v:1900, d:-2.1}, car:{v:1400, d:4.0}},
             {date:'2026-05-21', room:{v:17600, d:-1.2}, pos:{v:3150, d:-0.5}, golf:{v:1940, d:3.1}, car:{v:1340, d:1.2}},
@@ -167,8 +365,24 @@ Object.assign(window.PmsAPI, {
     },
 
     setGuestFlag: async (roomId, flag) => {
+        const sameRoomKey = (left, right) => {
+            const normalize = value => {
+                const text = String(value || '').trim().toLowerCase();
+                const digits = (text.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
+                return { text, digits };
+            };
+            const a = normalize(left);
+            const b = normalize(right);
+            return !!(a.text && b.text && (a.text === b.text || (a.digits && a.digits === b.digits)));
+        };
         let rooms = window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : _fallbackRooms;
-        const room = rooms.find(r => r.id === roomId);
+        let room = rooms.find(r => sameRoomKey(r.id, roomId) || sameRoomKey(r.roomId, roomId) || sameRoomKey(r.fullRoom, roomId) || sameRoomKey(r.number, roomId) || sameRoomKey(r.display, roomId));
+        const apiRoomId = room?.roomId || room?.fullRoom || room?.id || roomId;
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('PATCH', `/rooms/${encodeURIComponent(apiRoomId)}/guest-flag`, { body: { flag } });
+        } catch(e) {
+            console.warn('Mock guest flag save fallback', e);
+        }
         if (room) {
             room.guestFlag = flag;
             localStorage.setItem('pms_rooms', JSON.stringify(rooms));
@@ -176,11 +390,49 @@ Object.assign(window.PmsAPI, {
         return true;
     },
 
-    getAllRooms: async () => { return window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : _fallbackRooms; },
-    getAllRoomTypes: async () => { return window.initStorage ? window.initStorage('pms_room_types', _fallbackRoomTypes) : _fallbackRoomTypes; },
-    getDEFAULT_ROOM_TYPES: async () => { return JSON.parse(JSON.stringify(_fallbackRoomTypes)); },
+    getAllRooms: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/rooms');
+                const rooms = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyRoom);
+                if (rooms.length) return rooms;
+            }
+        } catch(e) {
+            console.warn('Mock operation rooms fallback', e);
+        }
+        return window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : _fallbackRooms;
+    },
+    getAllRoomTypes: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/room-types');
+                const roomTypes = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyRoomType);
+                if (roomTypes.length) return roomTypes;
+            }
+        } catch(e) {
+            console.warn('Mock room types fallback', e);
+        }
+        return window.initStorage ? window.initStorage('pms_room_types', _fallbackRoomTypes) : _fallbackRoomTypes;
+    },
+    getDEFAULT_ROOM_TYPES: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/room-types');
+                const roomTypes = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyRoomType);
+                if (roomTypes.length) return roomTypes;
+            }
+        } catch(e) {
+            console.warn('Mock default room types fallback', e);
+        }
+        return JSON.parse(JSON.stringify(_fallbackRoomTypes));
+    },
 
     saveRoom: async (roomData) => {
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('PATCH', `/rooms/${encodeURIComponent(roomData.id)}`, { body: roomData });
+        } catch(e) {
+            console.warn('Mock room save fallback', e);
+        }
         let rooms = window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : [];
         const existing = rooms.findIndex(r => r.id === roomData.id);
         if(existing >= 0) rooms[existing] = roomData;
@@ -190,6 +442,11 @@ Object.assign(window.PmsAPI, {
     },
 
     saveRoomType: async (typeData) => {
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('PATCH', `/room-types/${encodeURIComponent(typeData.typeId || typeData.id)}`, { body: typeData });
+        } catch(e) {
+            console.warn('Mock room type save fallback', e);
+        }
         let types = window.initStorage ? window.initStorage('pms_room_types', _fallbackRoomTypes) : [];
         const existing = types.findIndex(t => t.id === typeData.id);
         if(existing >= 0) types[existing] = typeData;
@@ -199,6 +456,11 @@ Object.assign(window.PmsAPI, {
     },
 
     deleteRoom: async (roomId) => {
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('DELETE', `/rooms/${encodeURIComponent(roomId)}`);
+        } catch(e) {
+            console.warn('Mock room delete fallback', e);
+        }
         let rooms = window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : [];
         rooms = rooms.filter(r => r.id !== roomId);
         localStorage.setItem('pms_rooms', JSON.stringify(rooms));

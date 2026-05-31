@@ -3,6 +3,15 @@ window.PmsAPI = window.PmsAPI || {};
 Object.assign(window.PmsAPI, {
 
     getBuildings: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/buildings');
+                const names = window.PmsMockApi.items(env).map(b => b.name || b.id).filter(Boolean);
+                if (names.length) return names;
+            }
+        } catch(e) {
+            console.warn('Mock buildings fallback', e);
+        }
         let bldgs = initStorage('pms_buildings', ['Forest Tower', 'Lakeside Villa', 'Ocean Tower']);
         if (!bldgs || bldgs.length === 0) {
             bldgs = ['Forest Tower', 'Lakeside Villa', 'Ocean Tower'];
@@ -12,16 +21,42 @@ Object.assign(window.PmsAPI, {
     },
 
     saveBuildings: async (buildings) => {
+        try {
+            if (window.PmsMockApi) {
+                const items = (buildings || []).map((name, index) => ({
+                    id: String(name || `BLDG-${index + 1}`).replace(/\s+/g, '-').toUpperCase(),
+                    name,
+                    sortOrder: index + 1
+                }));
+                await window.PmsMockApi.request('PUT', '/buildings', { body: items });
+            }
+        } catch(e) {
+            console.warn('Mock buildings save fallback', e);
+        }
         localStorage.setItem('pms_buildings', JSON.stringify(buildings));
         return true;
     },
 
     saveRooms: async (rooms) => {
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('PUT', '/rooms', { body: rooms || [] });
+        } catch(e) {
+            console.warn('Mock rooms save fallback', e);
+        }
         localStorage.setItem('pms_rooms', JSON.stringify(rooms));
         return true;
     },
 
     getAllRooms: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/rooms');
+                const rooms = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyRoom);
+                if (rooms.length) return rooms.filter(r => r && typeof r === 'object');
+            }
+        } catch(e) {
+            console.warn('Mock rooms fallback', e);
+        }
         try {
             let res = await fetch('../data/frontdesk/rooms.json');
             if (res.ok) return await res.json();
@@ -75,10 +110,28 @@ Object.assign(window.PmsAPI, {
     },
 
     getTimelineReservations: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/reservations/timeline');
+                const reservations = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyReservation);
+                if (reservations.length) return reservations;
+            }
+        } catch(e) {
+            console.warn('Mock timeline reservations fallback', e);
+        }
         return window.PmsAPI.getReservations();
     },
 
     getReservations: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/reservations');
+                const reservations = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyReservation);
+                if (reservations.length) return reservations;
+            }
+        } catch(e) {
+            console.warn('Mock reservations fallback', e);
+        }
         const storedReservations = localStorage.getItem('pms_reservations');
         if (storedReservations) {
             try {
@@ -2771,6 +2824,15 @@ Object.assign(window.PmsAPI, {
 
     getGroups: async () => {
         try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/groups/events');
+                const groups = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyGroup);
+                if (groups.length) return groups;
+            }
+        } catch(e) {
+            console.warn('Mock groups fallback', e);
+        }
+        try {
             let res = await fetch('../data/frontdesk/groups.json');
             if (res.ok) return await res.json();
         } catch(e) {}
@@ -2824,5 +2886,28 @@ Object.assign(window.PmsAPI, {
                 "sales": "이동국", "note": "특별 조식 요금 적용"
             }
         ]);
+    },
+
+    getCompanies: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/b2b/companies');
+                const companies = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyCompany);
+                if (companies.length) return companies;
+            }
+        } catch(e) {
+            console.warn('Mock companies fallback', e);
+        }
+        return initStorage('pms_companies', []);
+    },
+
+    saveCompanies: async (companies) => {
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('PUT', '/b2b/companies', { body: companies || [] });
+        } catch(e) {
+            console.warn('Mock companies save fallback', e);
+        }
+        localStorage.setItem('pms_companies', JSON.stringify(companies || []));
+        return true;
     }
 });

@@ -28,6 +28,22 @@
 .rev-bar.other { background: var(--warning); }
 .rev-bar-label { font-size: .75rem; color: var(--txt3); font-weight: 600; margin-top: 4px; }
 .rev-bar-val { font-size: 0.9rem; font-weight: 800; color: var(--txt); margin-bottom: 4px; }
+.rev-bar-group { border-radius: 8px; padding: 4px 3px; cursor: pointer; transition: background .15s, box-shadow .15s; }
+.rev-bar-group:hover { background: #f8fafc; }
+.rev-bar-group.active { background: #eff6ff; box-shadow: inset 0 0 0 1px #bfdbfe; }
+.chart-click-detail {
+    display: none; margin-top: 16px; padding: 14px 16px;
+    border: 1px solid var(--border); border-radius: 10px; background: #f8fafc;
+}
+.chart-click-detail.active { display: block; }
+.chart-detail-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.chart-detail-title { font-size: .9rem; font-weight: 800; color: var(--txt); }
+.chart-detail-total { font-size: 1rem; font-weight: 850; color: var(--primary); }
+.chart-detail-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.chart-detail-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 8px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--border2); font-size: .78rem; }
+.chart-detail-label { display: flex; align-items: center; gap: 6px; color: var(--txt2); font-weight: 650; }
+.chart-detail-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.chart-detail-value { font-weight: 800; color: var(--txt); font-variant-numeric: tabular-nums; }
 
 /* Donut Chart */
 .donut-container { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 10px 0; }
@@ -71,7 +87,11 @@
 }
 @media(max-width:768px) {
     .rev-bar-chart { height: 180px; gap: 8px; }
+    .rev-bar-group { min-width: 0; }
     .rev-bar-stack { height: 140px; }
+    .rev-bar-val { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .72rem; }
+    .rev-bar-label { font-size: .68rem; }
+    .chart-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .donut-chart { width: 150px; height: 150px; }
     .donut-hole { width: 84px; height: 84px; }
     .donut-hole .val { font-size: 1.2rem; }
@@ -141,6 +161,7 @@
                         <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--purple)"></span> 스파</div>
                         <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--warning)"></span> 기타</div>
                     </div>
+                    <div class="chart-click-detail" id="dailyChartDetail"></div>
                     <div style="display:flex;justify-content:center;align-items:center;gap:30px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border2)">
                         <div style="text-align:center">
                             <div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">해당 주차 총 매출</div>
@@ -160,6 +181,7 @@
                 <div class="card-header"><div class="card-title"><i class="fa-solid fa-calendar-alt"></i> 월별 매출 추이</div></div>
                 <div class="card-body">
                     <div class="rev-bar-chart" id="monthlyChart" style="height:200px"></div>
+                    <div class="chart-click-detail" id="monthlyChartDetail"></div>
                     <div style="display:flex;justify-content:center;align-items:center;gap:30px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border2)">
                         <div style="text-align:center">
                             <div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">해당 월 총 매출</div>
@@ -184,6 +206,7 @@
                 </div>
                 <div class="card-body">
                     <div id="yoyChart" style="height:200px"></div>
+                    <div class="chart-click-detail" id="yoyChartDetail"></div>
                     <div style="display:flex;justify-content:center;align-items:center;gap:30px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border2)">
                         <div style="text-align:center">
                             <div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">올해 누적 총 매출</div>
@@ -215,11 +238,87 @@
 
 <script>
 let dailyData = [];
-function renderBarChart(){const c=document.getElementById('barChart'),mx=Math.max(...dailyData.map(d=>d.room+d.fnb+d.spa+d.other));c.innerHTML=dailyData.map(d=>{const t=d.room+d.fnb+d.spa+d.other;return`<div class="rev-bar-group"><div class="rev-bar-val">$${(t/1000).toFixed(1)}k</div><div class="rev-bar-stack"><div class="rev-bar other" style="height:${d.other/mx*100}%"></div><div class="rev-bar spa" style="height:${d.spa/mx*100}%"></div><div class="rev-bar fnb" style="height:${d.fnb/mx*100}%"></div><div class="rev-bar room" style="height:${d.room/mx*100}%"></div></div><div class="rev-bar-label">${d.date}</div></div>`}).join('')}
+let selectedDailyIndex = null;
+function chartMoney(v){return '$' + Number(v || 0).toLocaleString();}
+function renderDailyDetail(index){
+    const panel = document.getElementById('dailyChartDetail');
+    if(!panel) return;
+    const d = dailyData[index];
+    if(!d){panel.classList.remove('active');panel.innerHTML='';return;}
+    const total = Number(d.room || 0) + Number(d.fnb || 0) + Number(d.spa || 0) + Number(d.other || 0);
+    panel.classList.add('active');
+    panel.innerHTML = `<div class="chart-detail-head"><div class="chart-detail-title">${d.date} 매출 상세</div><div class="chart-detail-total">${chartMoney(total)}</div></div>
+        <div class="chart-detail-grid">
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--primary)"></span>Room</span><span class="chart-detail-value">${chartMoney(d.room)}</span></div>
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--success)"></span>F&amp;B</span><span class="chart-detail-value">${chartMoney(d.fnb)}</span></div>
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--purple)"></span>스파</span><span class="chart-detail-value">${chartMoney(d.spa)}</span></div>
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--warning)"></span>기타</span><span class="chart-detail-value">${chartMoney(d.other)}</span></div>
+        </div>`;
+}
+function selectDailyBar(index){selectedDailyIndex=index;renderBarChart();}
+function renderBarChart(){
+    const c=document.getElementById('barChart');
+    if(!c) return;
+    const maxTotal = Math.max(1,...dailyData.map(d=>Number(d.room||0)+Number(d.fnb||0)+Number(d.spa||0)+Number(d.other||0)));
+    c.innerHTML=dailyData.map((d,i)=>{const t=Number(d.room||0)+Number(d.fnb||0)+Number(d.spa||0)+Number(d.other||0);const active=i===selectedDailyIndex?' active':'';return`<div class="rev-bar-group${active}" role="button" tabindex="0" title="${d.date} ${chartMoney(t)}" onclick="selectDailyBar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectDailyBar(${i})}"><div class="rev-bar-val">$${(t/1000).toFixed(1)}k</div><div class="rev-bar-stack"><div class="rev-bar other" style="height:${Number(d.other||0)/maxTotal*100}%"></div><div class="rev-bar spa" style="height:${Number(d.spa||0)/maxTotal*100}%"></div><div class="rev-bar fnb" style="height:${Number(d.fnb||0)/maxTotal*100}%"></div><div class="rev-bar room" style="height:${Number(d.room||0)/maxTotal*100}%"></div></div><div class="rev-bar-label">${d.date}</div></div>`}).join('');
+    renderDailyDetail(selectedDailyIndex);
+}
 let monthlyData = [];
-function renderMonthly(){const c=document.getElementById('monthlyChart'),mx=Math.max(...monthlyData.map(d=>d.v))||1;c.innerHTML=monthlyData.map(d=>{const h=d.v>0?(d.v/mx*100).toFixed(0):0;return`<div class="rev-bar-group"><div class="rev-bar-val">${d.v>0?'$'+(d.v/1000).toFixed(0)+'k':''}</div><div class="rev-bar-stack" style="height:160px"><div class="rev-bar room" style="height:${h}%;opacity:${d.v>0?1:.12};border-radius:4px 4px 0 0"></div></div><div class="rev-bar-label" style="font-size:.65rem">${d.m}</div></div>`}).join('')}
+let selectedMonthlyIndex = null;
+function renderMonthlyDetail(index){
+    const panel = document.getElementById('monthlyChartDetail');
+    if(!panel) return;
+    const d = monthlyData[index];
+    if(!d){panel.classList.remove('active');panel.innerHTML='';return;}
+    const total = monthlyTotal(d);
+    panel.classList.add('active');
+    panel.innerHTML = `<div class="chart-detail-head"><div class="chart-detail-title">${d.m} 매출 상세</div><div class="chart-detail-total">${chartMoney(total)}</div></div>
+        <div class="chart-detail-grid">
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--primary)"></span>Room</span><span class="chart-detail-value">${chartMoney(d.room)}</span></div>
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--success)"></span>F&amp;B</span><span class="chart-detail-value">${chartMoney(d.fnb)}</span></div>
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--purple)"></span>스파</span><span class="chart-detail-value">${chartMoney(d.spa)}</span></div>
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--warning)"></span>기타</span><span class="chart-detail-value">${chartMoney(d.other)}</span></div>
+        </div>`;
+}
+function selectMonthlyBar(index){selectedMonthlyIndex=index;renderMonthly();}
+function monthlyTotal(d){return Number(d.v || 0) || (Number(d.room||0)+Number(d.fnb||0)+Number(d.spa||0)+Number(d.other||0));}
+function renderMonthly(){
+    const c=document.getElementById('monthlyChart');
+    if(!c) return;
+    const mx=Math.max(1,...monthlyData.map(monthlyTotal));
+    c.innerHTML=monthlyData.map((d,i)=>{const t=monthlyTotal(d);const active=i===selectedMonthlyIndex?' active':'';return`<div class="rev-bar-group${active}" role="button" tabindex="0" title="${d.m} ${chartMoney(t)}" onclick="selectMonthlyBar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectMonthlyBar(${i})}"><div class="rev-bar-val">${t>0?'$'+(t/1000).toFixed(0)+'k':''}</div><div class="rev-bar-stack" style="height:160px"><div class="rev-bar other" style="height:${Number(d.other||0)/mx*100}%"></div><div class="rev-bar spa" style="height:${Number(d.spa||0)/mx*100}%"></div><div class="rev-bar fnb" style="height:${Number(d.fnb||0)/mx*100}%"></div><div class="rev-bar room" style="height:${Number(d.room||0)/mx*100}%;opacity:${t>0?1:.12};border-radius:4px 4px 0 0"></div></div><div class="rev-bar-label" style="font-size:.65rem">${d.m}</div></div>`}).join('');
+    renderMonthlyDetail(selectedMonthlyIndex);
+}
 let yoyData = [];
-function renderYoY(){const c=document.getElementById('yoyChart'),mx=Math.max(...yoyData.map(d=>Math.max(d.ly,d.ty)))||1;c.innerHTML=`<div style="display:flex;align-items:flex-end;gap:6px;height:100%">${yoyData.map(d=>{const lyH=(d.ly/mx*100).toFixed(0),tyH=d.ty>0?(d.ty/mx*100).toFixed(0):0;return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;align-items:flex-end;gap:2px;height:160px;width:100%"><div style="flex:1;height:${lyH}%;background:var(--border);border-radius:3px 3px 0 0;transition:height .6s"></div><div style="flex:1;height:${tyH}%;background:${d.ty>0?'var(--primary)':'var(--border2)'};border-radius:3px 3px 0 0;transition:height .6s;opacity:${d.ty>0?1:.15}"></div></div><div style="font-size:.6rem;color:var(--txt3);font-weight:600">${d.m}월</div></div>`}).join('')}</div>`}
+let selectedYoyIndex = null;
+function yoySet(d,prefix){return {room:Number(d[`${prefix}Room`]||0),fnb:Number(d[`${prefix}Fnb`]||0),spa:Number(d[`${prefix}Spa`]||0),other:Number(d[`${prefix}Other`]||0)};}
+function yoyTotal(set){return Number(set.room||0)+Number(set.fnb||0)+Number(set.spa||0)+Number(set.other||0);}
+function renderYoyDetail(index){
+    const panel = document.getElementById('yoyChartDetail');
+    if(!panel) return;
+    const d = yoyData[index];
+    if(!d){panel.classList.remove('active');panel.innerHTML='';return;}
+    const last = yoySet(d,'ly');
+    const current = yoySet(d,'ty');
+    const lastTotal = yoyTotal(last) || Number(d.ly || 0);
+    const currentTotal = yoyTotal(current) || Number(d.ty || 0);
+    panel.classList.add('active');
+    panel.innerHTML = `<div class="chart-detail-head"><div class="chart-detail-title">${d.m}월 연도별 매출 상세</div><div class="chart-detail-total">${chartMoney(currentTotal)} / 전년 ${chartMoney(lastTotal)}</div></div>
+        <div class="chart-detail-grid">
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--primary)"></span>Room</span><span class="chart-detail-value">${chartMoney(current.room)} <small style="color:var(--txt3);font-weight:600">전년 ${chartMoney(last.room)}</small></span></div>
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--success)"></span>F&amp;B</span><span class="chart-detail-value">${chartMoney(current.fnb)} <small style="color:var(--txt3);font-weight:600">전년 ${chartMoney(last.fnb)}</small></span></div>
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--purple)"></span>스파</span><span class="chart-detail-value">${chartMoney(current.spa)} <small style="color:var(--txt3);font-weight:600">전년 ${chartMoney(last.spa)}</small></span></div>
+            <div class="chart-detail-item"><span class="chart-detail-label"><span class="chart-detail-dot" style="background:var(--warning)"></span>기타</span><span class="chart-detail-value">${chartMoney(current.other)} <small style="color:var(--txt3);font-weight:600">전년 ${chartMoney(last.other)}</small></span></div>
+        </div>`;
+}
+function selectYoyBar(index){selectedYoyIndex=index;renderYoY();}
+function renderYoY(){
+    const c=document.getElementById('yoyChart');
+    if(!c) return;
+    const mx=Math.max(1,...yoyData.map(d=>Math.max(Number(d.ly||0),Number(d.ty||0))));
+    c.innerHTML=`<div style="display:flex;align-items:flex-end;gap:6px;height:100%">${yoyData.map((d,i)=>{const last=yoySet(d,'ly'),current=yoySet(d,'ty');const active=i===selectedYoyIndex?' active':'';return`<div class="rev-bar-group${active}" role="button" tabindex="0" onclick="selectYoyBar(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectYoyBar(${i})}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="display:flex;align-items:flex-end;gap:2px;height:160px;width:100%"><div class="rev-bar-stack" style="flex:1;height:160px"><div class="rev-bar other" style="height:${last.other/mx*100}%;background:#cbd5e1"></div><div class="rev-bar spa" style="height:${last.spa/mx*100}%;background:#d8b4fe"></div><div class="rev-bar fnb" style="height:${last.fnb/mx*100}%;background:#86efac"></div><div class="rev-bar room" style="height:${last.room/mx*100}%;background:#94a3b8;border-radius:3px 3px 0 0"></div></div><div class="rev-bar-stack" style="flex:1;height:160px"><div class="rev-bar other" style="height:${current.other/mx*100}%"></div><div class="rev-bar spa" style="height:${current.spa/mx*100}%"></div><div class="rev-bar fnb" style="height:${current.fnb/mx*100}%"></div><div class="rev-bar room" style="height:${current.room/mx*100}%;opacity:${d.ty>0?1:.15};border-radius:3px 3px 0 0"></div></div></div><div style="font-size:.6rem;color:var(--txt3);font-weight:600">${d.m}월</div></div>`}).join('')}</div>`;
+    renderYoyDetail(selectedYoyIndex);
+}
 let depts = [];
 function renderDepts(){document.getElementById('deptList').innerHTML=depts.map(d=>`<div class="dept-row"><div class="dept-icon" style="background:${d.lt};color:${d.color}"><i class="fa-solid ${d.icon}"></i></div><div class="dept-info"><div class="dept-name">${d.name}</div><div class="dept-sub">${d.sub}</div><div class="dept-bar-bg"><div class="dept-bar" style="width:${d.pct}%;background:${d.color}"></div></div></div><div class="dept-val">$${d.amt.toLocaleString()}</div></div>`).join('')}
 let trendData = [];

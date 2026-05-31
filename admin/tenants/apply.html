@@ -118,9 +118,11 @@ function submitApplication(event) {
         return;
     }
 
-    const applications = JSON.parse(localStorage.getItem('admin_tenant_applications') || '[]');
+    const mockKey = 'mockapi:v1:ADMIN:tenant-applications';
+    const legacyApplications = JSON.parse(localStorage.getItem('admin_tenant_applications') || '[]');
+    const applications = JSON.parse(localStorage.getItem(mockKey) || '[]');
     const data = {
-        id: 'APP-' + new Date().toISOString().slice(0,10).replaceAll('-', '') + '-' + String(applications.length + 1).padStart(3, '0'),
+        id: 'APP-' + new Date().toISOString().slice(0,10).replaceAll('-', '') + '-' + String(applications.length + legacyApplications.length + 1).padStart(3, '0'),
         hotelName: document.getElementById('hotelName').value.trim(),
         rooms: Number(document.getElementById('rooms').value || 0),
         country: document.getElementById('country').value,
@@ -136,7 +138,7 @@ function submitApplication(event) {
         submittedAt: new Date().toISOString().slice(0, 10)
     };
     applications.unshift(data);
-    localStorage.setItem('admin_tenant_applications', JSON.stringify(applications));
+    localStorage.setItem(mockKey, JSON.stringify(applications));
     alert(`입점 신청이 접수되었습니다.\n신청번호: ${data.id}\n심사 결과는 ${data.email}로 안내됩니다.`);
     location.href = '../login.html';
 }

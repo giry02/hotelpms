@@ -162,9 +162,37 @@ function hideChartDataLayer() {
 
 document.addEventListener('click', hideChartDataLayer);
 
+function renderFallbackTrafficChart(target, categories, traffic) {
+	if (!target) return;
+	const max = Math.max(...traffic, 1);
+	target.innerHTML = `<div style="height:200px;display:flex;align-items:end;gap:10px;padding:10px 4px 0">
+		${traffic.map((value, index) => {
+			const height = Math.max(16, Math.round((value / max) * 170));
+			const color = index >= 5 ? '#F59E0B' : '#3B82F6';
+			return `<button type="button" aria-label="${categories[index]} ${value}k" data-chart-index="${index}" style="flex:1;height:${height}px;border:none;border-radius:6px 6px 0 0;background:${color};color:#fff;font-size:.7rem;font-weight:800;cursor:pointer;display:flex;align-items:start;justify-content:center;padding-top:6px">${value}k</button>`;
+		}).join('')}
+	</div>
+	<div style="display:flex;gap:10px;padding:6px 4px 0;color:#64748b;font-size:.7rem;font-weight:700">
+		${categories.map(day => `<span style="flex:1;text-align:center">${day}</span>`).join('')}
+	</div>`;
+	target.querySelectorAll('[data-chart-index]').forEach(button => {
+		button.addEventListener('click', event => {
+			const index = Number(button.dataset.chartIndex);
+			const day = categories[index];
+			const value = traffic[index];
+			toggleChartDataLayer(event, `최근 7일 접속량 - ${day}`, `<div style="display:flex;justify-content:space-between;gap:20px"><span>접속량:</span><strong style="color:#93c5fd">${value}k</strong></div>`);
+		});
+	});
+}
+
 	window.addEventListener("DataReady", function() {
 		const categories = ['월', '화', '수', '목', '금', '토', '일'];
 		const traffic = [80, 95, 120, 110, 150, 165, 140];
+		const target = document.querySelector("#trafficChart");
+		if (typeof ApexCharts === 'undefined') {
+			renderFallbackTrafficChart(target, categories, traffic);
+			return;
+		}
 		var options = {
 			series: [{
 				name: '접속량',

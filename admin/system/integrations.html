@@ -103,5 +103,35 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const filterButtons = Array.from(document.querySelectorAll('.filter-bar > div .btn-outline'));
+    const cards = Array.from(document.querySelectorAll('.app-card'));
+    const applyFilter = (filter) => {
+        cards.forEach((card, index) => {
+            const show = filter === 'all' || (filter === 'payment' && (index === 0 || index === 2)) || (filter === 'message' && index === 1);
+            card.style.display = show ? '' : 'none';
+        });
+    };
+    filterButtons.forEach((button, index) => {
+        button.addEventListener('click', () => {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            applyFilter(['all', 'payment', 'message'][index] || 'all');
+        });
+    });
+
+    const addButton = document.querySelector('.filter-bar > .btn-primary');
+    if (addButton) {
+        addButton.addEventListener('click', () => alert('커스텀 연동 등록 화면을 준비했습니다.'));
+    }
+
+    document.querySelectorAll('.app-footer .btn-outline-sm').forEach(button => {
+        if (!button.getAttribute('onclick')) {
+            button.addEventListener('click', () => alert('API 설정 화면을 엽니다.'));
+        }
+    });
+});
+</script>
 </body>
 </html>

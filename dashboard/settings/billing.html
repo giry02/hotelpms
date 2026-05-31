@@ -238,7 +238,7 @@
 <input type="date" value="2025-01-01"/>
 <span style="color:var(--txt3); font-size:.8rem;">~</span>
 <input type="date" value="2026-05-31"/>
-<button class="btn-outline btn-sm"><i class="fa-solid fa-magnifying-glass"></i> 조회</button>
+<button class="btn-outline btn-sm" onclick="showToast('조회 조건이 적용되었습니다.')"><i class="fa-solid fa-magnifying-glass"></i> 조회</button>
 <a class="btn-outline btn-sm" download="" href="../common/downloads/billing_invoice.csv" style="text-decoration:none;"><i class="fa-solid fa-download"></i> 총 합계 다운로드</a>
 </div>
 </div>
@@ -636,6 +636,21 @@ function showToast(msg) {
     requestAnimationFrame(() => { t.style.opacity='1'; t.style.transform='translateY(0)'; });
     setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(12px)'; }, 3000);
 }
+
+document.querySelectorAll('.pagination .page-btn').forEach((button, index, buttons) => {
+    button.addEventListener('click', () => {
+        const numbered = Array.from(buttons).filter(btn => /^\d+$/.test(btn.textContent.trim()));
+        let target = button;
+        if (!/^\d+$/.test(button.textContent.trim())) {
+            const activeIndex = numbered.findIndex(btn => btn.classList.contains('active'));
+            const direction = index === 0 ? -1 : 1;
+            target = numbered[Math.max(0, Math.min(numbered.length - 1, activeIndex + direction))] || numbered[0];
+        }
+        numbered.forEach(btn => btn.classList.remove('active'));
+        if (target) target.classList.add('active');
+        showToast(`${target ? target.textContent.trim() : '1'}페이지를 표시했습니다.`);
+    });
+});
 </script>
 <script>
 // Sync language selector to stored preference

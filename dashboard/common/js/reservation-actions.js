@@ -51,6 +51,7 @@
                             <option value="confirmed">예약 확정 (Confirmed)</option>
                             <option value="checkedin">체크인 완료 (Checked-in)</option>
                             <option value="checkout">체크아웃 (Check-out)</option>
+                            <option value="completed">체크아웃 완료 (Completed)</option>
                             <option value="cancelled">취소 (Cancelled)</option>
                         </select>
                     </div>
@@ -73,8 +74,9 @@
                 </div>
             </div>
             <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 0 0 var(--radius-sm) var(--radius-sm);">
-                <div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <button id="unifiedBtnCancel" class="btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelUnifiedRes()" data-i18n-key="Cancel Booking"><i class="fa-solid fa-trash"></i> 예약 취소</button>
+                    <span id="unifiedFlowActions" style="display:inline-flex;gap:8px;flex-wrap:wrap"></span>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-outline" onclick="closeUnifiedResModal()" data-i18n-key="Close">닫기</button>
@@ -106,6 +108,309 @@
             }
         }
     }
+
+    function normalizedReservationStatus(value) {
+        const key = String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+        if (['checkedin', 'inhouse', 'occupied'].includes(key)) return 'checkedin';
+        if (key === 'checkout') return 'checkout';
+        if (['checkedout', 'departed', 'completed'].includes(key)) return 'completed';
+        if (key === 'cancelled' || key === 'canceled') return 'cancelled';
+        if (key === 'blocked') return 'blocked';
+        if (key === 'pending') return 'pending';
+        return key || 'confirmed';
+    }
+
+    function parseReservationDate(value) {
+        if (!value) return null;
+        const text = String(value).trim();
+        const match = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (match) {
+            const date = new Date(new Date().getFullYear(), Number(match[1]) - 1, Number(match[2]));
+            date.setHours(0, 0, 0, 0);
+            return date;
+        }
+        const date = new Date(text);
+        if (!Number.isNaN(date.getTime())) {
+            date.setHours(0, 0, 0, 0);
+            return date;
+        }
+        return null;
+    }
+
+    function isCurrentStayWindow(res) {
+        const start = parseReservationDate(res?.checkInDate || res?.checkin || res?.cin);
+        const end = parseReservationDate(res?.checkOutDate || res?.checkout || res?.cout);
+        if (!start || !end) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return start <= today && today < end;
+    }
+
+    function normalizeRoomValue(value) {
+        const text = String(value || '').trim().toLowerCase();
+        const digits = (text.match(/\d+/g) || []).join('');
+        return {
+            text,
+            digits,
+            strippedDigits: digits.replace(/^0+(?=\d)/, '')
+        };
+    }
+
+    function sameRoomValue(left, right) {
+        const a = normalizeRoomValue(left);
+        const b = normalizeRoomValue(right);
+        if (!a.text || !b.text) return false;
+        if (a.text === b.text) return true;
+        return !!(a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits));
+    }
+
+    function reservationRoomValues(res) {
+        return [
+            res?.fullRoom,
+            res?.roomId,
+            res?.room,
+            res?.roomNo,
+            res?.roomNumber,
+            res?.roomLabel
+        ];
+    }
+
+    function roomMatchesReservation(room, res) {
+        const roomValues = [
+            room?.id,
+            room?.fullRoom,
+            room?.roomId,
+            room?.number,
+            room?.roomNo,
+            room?.display,
+            room?.displayName,
+            room?.roomLabel
+        ];
+        const resValues = reservationRoomValues(res);
+        return roomValues.some(roomValue => resValues.some(resValue => sameRoomValue(roomValue, resValue)));
+    }
+
+    function roomForReservation(res) {
+        return (window.rooms || []).find(item => roomMatchesReservation(item, res));
+    }
+
+    function isRoomInHouse(res) {
+        const room = roomForReservation(res);
+        const roomStatus = normalizedReservationStatus(room?.frontStatus || room?.status || room?.housekeepingStatus);
+        return roomStatus === 'checkedin';
+    }
+
+    function normalizedRoomOpsStatus(room) {
+        return String(room?.housekeepingStatus || room?.status || room?.frontStatus || '').replace(/[-_\s]/g, '').toLowerCase();
+    }
+
+    function checkinBlockReasonForRoom(room) {
+        if (!room) return '객실을 먼저 배정해야 체크인할 수 있습니다.';
+        const status = normalizedRoomOpsStatus(room);
+        if (['dirty', 'vacantdirty'].includes(status)) return '하우스키핑 청소 완료 후 체크인할 수 있습니다.';
+        if (['oos', 'outofservice', 'maintenance'].includes(status)) return '점검/수리 중 객실은 체크인할 수 없습니다.';
+        if (['occupied', 'inhouse', 'checkedin', 'checked-in'].includes(status)) return '이미 투숙 중인 객실입니다.';
+        return '';
+    }
+
+    function checkoutDateIsTodayOrPast(res) {
+        const end = parseReservationDate(res?.checkOutDate || res?.checkout || res?.cout);
+        if (!end) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return end <= today;
+    }
+
+    function effectiveReservationStatus(res) {
+        if (!res) return 'confirmed';
+        let status = normalizedReservationStatus(res.status || res.frontStatus || res.roomStatus);
+        if (['confirmed', 'pending'].includes(status) && isRoomInHouse(res) && isCurrentStayWindow(res)) status = 'checkedin';
+        if (status === 'checkedin' && checkoutDateIsTodayOrPast(res)) return 'checkout';
+        return status;
+    }
+
+    function isReservationReadOnly(res) {
+        if (!res) return false;
+        const status = effectiveReservationStatus(res);
+        if (['checkedin', 'checkout', 'completed', 'cancelled'].includes(status)) return true;
+        return isRoomInHouse(res) && isCurrentStayWindow(res);
+    }
+
+    function guestNameForReservation(res) {
+        return res?.roomingGuestName || res?.guestName || res?.guest || '-';
+    }
+
+    function setUnifiedReservationReadonly(locked, res = null) {
+        const modal = document.getElementById('unifiedResModal');
+        const guestSection = document.getElementById('unifiedGuestSection');
+        if (!modal) return;
+        modal.dataset.readonlyReservation = locked ? 'true' : 'false';
+
+        let notice = document.getElementById('unifiedReadonlyNotice');
+        if (!notice && guestSection) {
+            notice = document.createElement('div');
+            notice.id = 'unifiedReadonlyNotice';
+            notice.style.cssText = 'display:none;margin-bottom:20px;background:#f8fafc;border:1px solid var(--border2);border-radius:8px;padding:14px;font-size:.82rem;color:var(--txt2);font-weight:700;line-height:1.55';
+            guestSection.parentElement.insertBefore(notice, guestSection);
+        }
+
+        if (notice) {
+            notice.style.display = locked ? 'block' : 'none';
+            if (locked) {
+                const roomLabel = res?.roomLabel || res?.fullRoom || res?.room || '-';
+                notice.innerHTML = `
+                    <div style="display:flex;gap:8px;align-items:flex-start">
+                        <i class="fa-solid fa-lock" style="color:var(--primary);margin-top:3px"></i>
+                        <div>
+                            <div style="color:var(--txt);font-size:.9rem;margin-bottom:4px">체크인 이후 예약은 조회 전용입니다.</div>
+                            <div>투숙객 변경, 신규 회원 등록, 객실/채널/상태 변경은 이 화면에서 처리하지 않습니다.</div>
+                            <div style="margin-top:8px;color:var(--txt)">투숙객: ${guestNameForReservation(res)} · 객실: ${roomLabel}</div>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        if (guestSection) guestSection.style.display = locked ? 'none' : 'block';
+        const blockNotice = document.getElementById('unifiedBlockNotice');
+        if (!locked && blockNotice) blockNotice.style.display = 'none';
+        ['unifiedRoom', 'unifiedIsB2B', 'unifiedGroupId', 'unifiedChannel', 'unifiedStatus'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.disabled = locked;
+            if (el.tagName === 'SELECT') el.style.background = locked ? '#f1f5f9' : '#fff';
+            if (el.type === 'checkbox') el.closest('label')?.style.setProperty('opacity', locked ? '.55' : '1');
+        });
+
+        const saveBtn = modal.querySelector('button[onclick="saveUnifiedRes()"]');
+        if (saveBtn) saveBtn.style.display = locked ? 'none' : 'inline-flex';
+        const cancelBtn = document.getElementById('unifiedBtnCancel');
+        if (locked && cancelBtn) cancelBtn.style.display = 'none';
+    }
+
+    function renderUnifiedFlowActions(res = null) {
+        const box = document.getElementById('unifiedFlowActions');
+        if (!box) return;
+        box.innerHTML = '';
+        if (!res || res.isGroupPlaceholder || normalizedReservationStatus(res.status) === 'blocked') return;
+        const status = effectiveReservationStatus(res);
+        const locked = isReservationReadOnly(res);
+        if (status === 'checkedin' || status === 'checkout') {
+            box.innerHTML = `<button type="button" class="btn-primary-sm" style="background:#EF4444" onclick="processUnifiedReservationFlow('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 처리</button>`;
+        } else if (!locked && (status === 'confirmed' || status === 'pending')) {
+            box.innerHTML = `<button type="button" class="btn-primary-sm" onclick="processUnifiedReservationFlow('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 체크인 처리</button>`;
+        }
+    }
+
+    async function persistUnifiedReservation(res) {
+        const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
+        if (allRes) localStorage.setItem('pms_reservations', JSON.stringify(allRes));
+        try {
+            if (window.PmsMockApi && res?.id) {
+                await window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res });
+            }
+        } catch(e) {
+            console.warn('Mock reservation flow save failed', e);
+        }
+    }
+
+    async function persistUnifiedRoom(room) {
+        if (!room) return;
+        localStorage.setItem('pms_rooms', JSON.stringify(window.rooms || []));
+        try {
+            const roomId = room.roomId || room.fullRoom || room.id;
+            if (window.PmsMockApi && roomId) {
+                await window.PmsMockApi.request('PATCH', `/rooms/${encodeURIComponent(roomId)}`, { body: room });
+            }
+        } catch(e) {
+            console.warn('Mock room flow save failed', e);
+        }
+    }
+
+    async function syncUnifiedHousekeeping(room, status, res) {
+        if (!room || !window.PmsAPI?.syncRoomStatusToTask) return;
+        const roomId = room.roomId || room.fullRoom || room.id || res?.room;
+        try {
+            await window.PmsAPI.syncRoomStatusToTask(roomId, status, {
+                reservationId: res?.id,
+                guestName: guestNameForReservation(res)
+            });
+        } catch(e) {
+            console.warn('Housekeeping sync failed', e);
+        }
+    }
+
+    window.processUnifiedReservationFlow = async function(action) {
+        const id = document.getElementById('unifiedResId')?.value;
+        const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
+        const res = allRes?.find(item => item.id === id);
+        if (!res) return;
+        if ((!window.rooms || !window.rooms.length) && window.PmsAPI?.getAllRooms) {
+            try {
+                window.rooms = await window.PmsAPI.getAllRooms();
+            } catch(e) {
+                console.warn('Rooms load for reservation flow guard failed', e);
+            }
+        }
+        const currentStatus = effectiveReservationStatus(res);
+        if (action === 'checkin' && ['checkedin', 'checkout', 'completed', 'cancelled'].includes(currentStatus)) {
+            const message = '이미 체크인 또는 투숙중인 예약입니다. 체크인은 다시 처리할 수 없습니다.';
+            if (window.showToast) window.showToast(message, 'error');
+            else alert(message);
+            setUnifiedReservationReadonly(isReservationReadOnly(res), res);
+            renderUnifiedFlowActions(res);
+            return;
+        }
+        if (action === 'checkout' && !['checkedin', 'checkout'].includes(currentStatus)) {
+            const message = '체크아웃은 투숙중 예약에서만 처리할 수 있습니다.';
+            if (window.showToast) window.showToast(message, 'error');
+            else alert(message);
+            renderUnifiedFlowActions(res);
+            return;
+        }
+        const room = roomForReservation(res);
+        if (action === 'checkin') {
+            const blockReason = checkinBlockReasonForRoom(room);
+            if (blockReason) {
+                if (window.showToast) window.showToast(blockReason, 'error');
+                else alert(blockReason);
+                return;
+            }
+        }
+
+        const label = action === 'checkin' ? '체크인' : '체크아웃';
+        const confirmed = window.showConfirm
+            ? await window.showConfirm(`${guestNameForReservation(res)} 예약을 ${label} 처리하시겠습니까?`)
+            : confirm(`${guestNameForReservation(res)} 예약을 ${label} 처리하시겠습니까?`);
+        if (!confirmed) return;
+
+        if (action === 'checkin') {
+            res.status = 'checkedin';
+            if (room) {
+                room.status = 'occupied';
+                room.frontStatus = 'in-house';
+                room.housekeepingStatus = 'occupied';
+                room.guest = guestNameForReservation(res);
+            }
+        } else {
+            res.status = 'completed';
+            if (room) {
+                room.status = 'vacant-dirty';
+                room.frontStatus = 'vacant';
+                room.housekeepingStatus = 'dirty';
+                room.guest = '';
+            }
+        }
+
+        await persistUnifiedReservation(res);
+        await persistUnifiedRoom(room);
+        if (action === 'checkout') await syncUnifiedHousekeeping(room, 'vacant-dirty', res);
+        if (window.showToast) window.showToast(`${label} 처리가 완료되었습니다.`, 'success');
+        if (typeof window.buildTimeline === 'function') window.buildTimeline();
+        if (typeof window.buildMobileView === 'function') window.buildMobileView();
+        if (typeof window.renderTable === 'function') window.renderTable();
+        if (typeof window.renderResTable === 'function') window.renderResTable();
+        window.openUnifiedResModal(res.id);
+    };
     
     window.toggleUnifiedGroupSelect = function() {
         const isB2B = document.getElementById('unifiedIsB2B').checked;
@@ -125,6 +430,7 @@
             alert('Error: reservations variable not found!');
             return;
         }
+        setUnifiedReservationReadonly(false);
 
         // Initialize Guest Search Widget
         if (!window._editGuestWidget && typeof initGuestSearch === 'function') {
@@ -132,7 +438,7 @@
         }
 
         const currentRes = resId ? allRes.find(r => r.id === resId) : null;
-        const isEditingBlock = !!(currentRes && (currentRes.status === 'blocked' || currentRes.isGroupPlaceholder));
+        const isEditingBlock = !!(currentRes && (normalizedReservationStatus(currentRes.status) === 'blocked' || currentRes.isGroupPlaceholder));
 
         // Populate room select
         if (!window.rooms || window.rooms.length === 0) {
@@ -153,8 +459,10 @@
                         const opt = document.createElement('option');
                         opt.value = r.id;
                         const blocked = !prefillGroupId && allRes.some(res => (res.room === r.id || res.fullRoom === r.id) && res.status === 'blocked' && (!currentRes || res.id !== currentRes.id));
-                        opt.disabled = blocked;
-                        opt.textContent = `${r.id} (${r.type || 'Standard'})${blocked ? ' · 단체 블록' : ''}`;
+                        const roomState = normalizedReservationStatus(r.frontStatus || r.status || r.housekeepingStatus);
+                        const occupied = !currentRes && roomState === 'checkedin';
+                        opt.disabled = blocked || occupied;
+                        opt.textContent = `${r.id} (${r.type || 'Standard'})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
                         group.appendChild(opt);
                     });
                     roomSelect.appendChild(group);
@@ -164,8 +472,10 @@
                     const opt = document.createElement('option');
                     opt.value = r.id;
                     const blocked = !prefillGroupId && allRes.some(res => (res.room === r.id || res.fullRoom === r.id) && res.status === 'blocked' && (!currentRes || res.id !== currentRes.id));
-                    opt.disabled = blocked;
-                    opt.textContent = `${r.id} (${r.type || 'Standard'})${blocked ? ' · 단체 블록' : ''}`;
+                    const roomState = normalizedReservationStatus(r.frontStatus || r.status || r.housekeepingStatus);
+                    const occupied = !currentRes && roomState === 'checkedin';
+                    opt.disabled = blocked || occupied;
+                    opt.textContent = `${r.id} (${r.type || 'Standard'})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
                     roomSelect.appendChild(opt);
                 });
             }
@@ -214,6 +524,7 @@
                 window._editGuestWidget.reset();
                 window._editGuestWidget.showNewForm();
             }
+            renderUnifiedFlowActions(null);
         } else {
             // EDIT BOOKING MODE
             const cancelBtn = document.getElementById('unifiedBtnCancel');
@@ -223,6 +534,8 @@
                 alert('Error: reservation not found for ID ' + resId);
                 return;
             }
+            const effectiveStatus = effectiveReservationStatus(res);
+            const isReadonlyReservation = isReservationReadOnly(res);
             
             const isB2B = res.isB2B;
             const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
@@ -250,7 +563,7 @@
 
             const guestSection = document.getElementById('unifiedGuestSection');
             if (guestSection) {
-                guestSection.style.display = isEditingBlock ? 'none' : 'block';
+                guestSection.style.display = (isEditingBlock || isReadonlyReservation) ? 'none' : 'block';
                 let blockNotice = document.getElementById('unifiedBlockNotice');
                 if (!blockNotice) {
                     blockNotice = document.createElement('div');
@@ -258,11 +571,11 @@
                     blockNotice.style.cssText = 'margin-bottom:20px;background:#f8fafc;border:1px solid var(--border2);border-radius:8px;padding:14px;font-size:.82rem;color:var(--txt2);font-weight:700';
                     guestSection.parentElement.insertBefore(blockNotice, guestSection);
                 }
-                blockNotice.style.display = isEditingBlock ? 'block' : 'none';
+                blockNotice.style.display = (isEditingBlock && !isReadonlyReservation) ? 'block' : 'none';
                 blockNotice.innerHTML = `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> 단체 블록 상태입니다. 아직 개별 투숙객이 배정되지 않았으며, 투숙객은 단체 상세의 Rooming List에서 등록하거나 상태를 예약 확정으로 전환할 때 연결합니다.`;
             }
 
-            if (!isEditingBlock && window._editGuestWidget) {
+            if (!isEditingBlock && !isReadonlyReservation && window._editGuestWidget) {
                 window._editGuestWidget.reset();
                 const existingGuest = typeof GUEST_DB !== 'undefined' ? GUEST_DB.find(g => g.name === res.guest) : null;
                 if (existingGuest) {
@@ -272,9 +585,11 @@
                     const nameInput = document.getElementById('nrGuestEdit');
                     if (nameInput) nameInput.value = res.guest || '';
                 }
+            } else if (isReadonlyReservation && window._editGuestWidget) {
+                window._editGuestWidget.reset();
             }
         
-            document.getElementById('unifiedStatus').value = res.status;
+            document.getElementById('unifiedStatus').value = isReadonlyReservation ? effectiveStatus : normalizedReservationStatus(res.status);
             
             if (res.groupId || res.isB2B) {
                 document.getElementById('unifiedIsB2B').checked = true;
@@ -299,6 +614,8 @@
             document.getElementById('unifiedCout').textContent = res.cout || '-';
             document.getElementById('unifiedNights').textContent = res.nights ? (res.nights + '박') : (res.len ? res.len + '박' : '-');
             document.getElementById('unifiedType').textContent = res.type || '-';
+            setUnifiedReservationReadonly(isReadonlyReservation, res);
+            renderUnifiedFlowActions(res);
         }
 
         // Hide other modals if they are open
@@ -307,21 +624,28 @@
             if(el) el.classList.remove('active');
         });
         
-        document.getElementById('unifiedResModal').classList.add('active');
+        const unifiedModal = document.getElementById('unifiedResModal');
+        if (unifiedModal) unifiedModal.classList.add('active');
     };
 
     window.closeUnifiedResModal = function() {
-        document.getElementById('unifiedResModal').classList.remove('active');
+        const unifiedModal = document.getElementById('unifiedResModal');
+        if (unifiedModal) unifiedModal.classList.remove('active');
     };
 
-    window.saveUnifiedRes = function() {
+    window.saveUnifiedRes = async function() {
         const id = document.getElementById('unifiedResId').value;
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
         if (!allRes) return;
         
         let guest = '';
         const currentRes = id ? allRes.find(r => r.id === id) : null;
-        const isBlockSave = currentRes && (currentRes.status === 'blocked' || currentRes.isGroupPlaceholder) && document.getElementById('unifiedStatus').value === 'blocked';
+        if (currentRes && isReservationReadOnly(currentRes)) {
+            if (window.showToast) window.showToast('체크인 이후 예약은 이 화면에서 수정할 수 없습니다.', 'error');
+            else alert('체크인 이후 예약은 이 화면에서 수정할 수 없습니다.');
+            return;
+        }
+        const isBlockSave = currentRes && (normalizedReservationStatus(currentRes.status) === 'blocked' || currentRes.isGroupPlaceholder) && document.getElementById('unifiedStatus').value === 'blocked';
         if (!isBlockSave && window._editGuestWidget) {
             guest = window._editGuestWidget.getGuestName();
         } else if (!isBlockSave) {
@@ -338,6 +662,7 @@
         const isB2B = document.getElementById('unifiedIsB2B').checked;
         let channel = document.getElementById('unifiedChannel').value;
         let groupId = null;
+        let savedRes = null;
         
         if (isB2B) {
             const grpSel = document.getElementById('unifiedGroupId');
@@ -372,6 +697,7 @@
                 vip: 'Standard'
             };
             allRes.unshift(newRes);
+            savedRes = newRes;
             if (window.showToast) window.showToast('신규 예약을 성공적으로 등록했습니다.', 'success');
         } else {
             // EDIT BOOKING MODE
@@ -388,11 +714,19 @@
                 res.channel = channel;
                 res.isB2B = isB2B;
                 res.groupId = groupId;
+                savedRes = res;
             }
             if (window.showToast) window.showToast('예약이 성공적으로 수정되었습니다.', 'success');
         }
         
         localStorage.setItem('pms_reservations', JSON.stringify(allRes));
+        try {
+            if (window.PmsMockApi && savedRes) {
+                await window.PmsMockApi.request(id ? 'PATCH' : 'POST', id ? `/reservations/${encodeURIComponent(id)}` : '/reservations', { body: savedRes });
+            }
+        } catch(e) {
+            console.warn('Mock reservation save failed', e);
+        }
         if (typeof window.syncGroupData === 'function') window.syncGroupData();
         
         closeUnifiedResModal();
@@ -413,11 +747,30 @@
         if (!allRes) return;
         const res = allRes.find(r => r.id === resId);
         if (!res) return;
+        if ((!window.rooms || !window.rooms.length) && window.PmsAPI?.getAllRooms) {
+            try {
+                window.rooms = await window.PmsAPI.getAllRooms();
+            } catch(e) {
+                console.warn('Rooms load for cancellation guard failed', e);
+            }
+        }
+        const currentStatus = effectiveReservationStatus(res);
+        if (['checkedin', 'checkout', 'completed'].includes(currentStatus)) {
+            const message = '체크인 이후 예약은 취소할 수 없습니다. 체크아웃, 조기퇴실, 환불/정산 정정으로 처리해주세요.';
+            if (window.showToast) window.showToast(message, 'error');
+            else alert(message);
+            return;
+        }
         
         const confirmed = window.showConfirm ? await window.showConfirm(`정말 [${res.guest}] 고객의 예약을 취소하시겠습니까?`) : confirm(`정말 [${res.guest}] 고객의 예약을 취소하시겠습니까?`);
         if (confirmed) {
             res.status = 'cancelled';
             localStorage.setItem('pms_reservations', JSON.stringify(allRes));
+            try {
+                if (window.PmsMockApi) await window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(resId)}`, { body: { status: 'cancelled' } });
+            } catch(e) {
+                console.warn('Mock reservation cancel failed', e);
+            }
             if (typeof window.syncGroupData === 'function') window.syncGroupData();
             
             if (window.showToast) window.showToast('예약이 취소되었습니다.', 'success');

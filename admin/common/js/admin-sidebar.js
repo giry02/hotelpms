@@ -18,12 +18,13 @@
     const BASE = _subDirs.includes(_parentDir) ? '../' : '';
 
     const DATASETS = [
-        { key: 'users', src: `${BASE}data/users.json` },
-        { key: 'billing', src: `${BASE}data/billing.json` },
-        { key: 'tickets', src: `${BASE}data/tickets.json` },
+        { key: 'users', src: `${BASE}data/api/v1/admin/users.json`, legacySrc: `${BASE}data/users.json` },
+        { key: 'billing', src: `${BASE}data/api/v1/admin/billing.json`, legacySrc: `${BASE}data/billing.json` },
+        { key: 'tickets', src: `${BASE}data/api/v1/admin/support-tickets.json`, legacySrc: `${BASE}data/tickets.json` },
         { key: 'devices', src: `${BASE}data/trusted-devices.json` },
-        { key: 'auditLogs', src: `${BASE}data/audit-logs.json` },
-        { key: 'tenantApplications', src: `${BASE}data/tenant-applications.json` }
+        { key: 'auditLogs', src: `${BASE}data/api/v1/admin/audit-logs.json`, legacySrc: `${BASE}data/audit-logs.json` },
+        { key: 'tenantApplications', src: `${BASE}data/api/v1/admin/tenant-applications.json`, legacySrc: `${BASE}data/tenant-applications.json` },
+        { key: 'tenants', src: `${BASE}data/api/v1/admin/tenants.json` }
     ];
 
     window.AdminData = window.AdminData || {};
@@ -36,9 +37,13 @@
     async function loadAdminData() {
         await Promise.all(DATASETS.map(async item => {
             try {
-                const res = await fetch(item.src);
+                let res = await fetch(item.src, { cache: 'no-store' });
+                if (!res.ok && item.legacySrc) res = await fetch(item.legacySrc, { cache: 'no-store' });
                 if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-                window.AdminData[item.key] = await res.json();
+                const payload = await res.json();
+                window.AdminData[item.key] = payload?.success && payload?.data
+                    ? (payload.data.items || payload.data)
+                    : payload;
             } catch (err) {
                 window.AdminData[item.key] = window.AdminData[item.key] || [];
                 console.warn(`Admin data load failed: ${item.src}`, err);

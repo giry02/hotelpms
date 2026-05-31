@@ -55,6 +55,9 @@
     .rfc-label{font-size:.65rem!important}
     .rfc-card .fa-chevron-right{font-size:.8rem!important}
 }
+@media(min-width:769px){
+    .bottom-sheet-overlay,.bottom-sheet{display:none!important}
+}
 
 /* Room Filter Card Classes */
 .rfc-card{background:#fff;border-radius:16px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border:1px solid var(--border2);box-shadow:0 2px 10px rgba(0,0,0,0.02);transition:all 0.2s}
@@ -133,7 +136,7 @@
                 <div class="rfc-left">
                     <div class="rfc-icon" style="background:var(--primary-lt);color:var(--primary)"><i class="fa-solid fa-bed"></i></div>
                     <div class="rfc-info">
-                        <span class="rfc-val">120</span>
+                        <span class="rfc-val" id="roomKpiTotal">0</span>
                         <span class="rfc-label">Total Rooms</span>
                     </div>
                 </div>
@@ -144,7 +147,7 @@
                 <div class="rfc-left">
                     <div class="rfc-icon" style="background:var(--success-lt);color:var(--success)"><i class="fa-solid fa-user-check"></i></div>
                     <div class="rfc-info">
-                        <span class="rfc-val">99</span>
+                        <span class="rfc-val" id="roomKpiOccupied">0</span>
                         <span class="rfc-label">Occupied</span>
                     </div>
                 </div>
@@ -155,7 +158,7 @@
                 <div class="rfc-left">
                     <div class="rfc-icon" style="background:var(--warning-lt);color:var(--warning)"><i class="fa-solid fa-door-open"></i></div>
                     <div class="rfc-info">
-                        <span class="rfc-val">18</span>
+                        <span class="rfc-val" id="roomKpiVacant">0</span>
                         <span class="rfc-label">Vacant</span>
                     </div>
                 </div>
@@ -166,7 +169,7 @@
                 <div class="rfc-left">
                     <div class="rfc-icon" style="background:var(--purple-lt);color:var(--purple)"><i class="fa-solid fa-wrench"></i></div>
                     <div class="rfc-info">
-                        <span class="rfc-val">3</span>
+                        <span class="rfc-val" id="roomKpiOos">0</span>
                         <span class="rfc-label">OOS</span>
                     </div>
                 </div>
@@ -336,6 +339,7 @@ function toggleBuilding(el) {
 }
 
 function renderRooms() {
+    updateKPIs();
     const search = document.getElementById('searchInput').value.toLowerCase();
     const container = document.getElementById('roomContainer');
     container.innerHTML = '';
@@ -405,6 +409,16 @@ function renderRooms() {
     }
 }
 
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.add('active');
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.remove('active');
+}
+
 // Status Change Modal Logic
 function openStatusModal(roomId, currentStatus) {
     if (currentStatus === 'occupied') {
@@ -453,6 +467,7 @@ function saveStatusChange() {
 
 // Bottom sheet
 function openBottomSheet() {
+    if (window.matchMedia && window.matchMedia('(min-width: 769px)').matches) return;
     document.getElementById('bsOverlay').classList.add('active');
     document.getElementById('bsPanel').classList.add('active');
 }
@@ -519,6 +534,26 @@ function updateFilterCounts() {
     });
 }
 
+function updateKPIs() {
+    const counts = allRooms.reduce((acc, room) => {
+        const status = room.status || 'vacant-clean';
+        acc.total += 1;
+        if (status === 'occupied') acc.occupied += 1;
+        else if (status === 'oos') acc.oos += 1;
+        else if (status === 'vacant-clean' || status === 'vacant-dirty') acc.vacant += 1;
+        return acc;
+    }, { total: 0, occupied: 0, vacant: 0, oos: 0 });
+
+    const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    };
+    set('roomKpiTotal', counts.total);
+    set('roomKpiOccupied', counts.occupied);
+    set('roomKpiVacant', counts.vacant);
+    set('roomKpiOos', counts.oos);
+}
+
 function saveRoom() {
     showToast('신규 Room이 등록되었습니다.');
     closeModal('addRoomModal');
@@ -557,7 +592,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"Room Mgmt":"객실 관리","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Total Rooms":"총 객실","Occupied":"판매 중","Vacant":"공실 (Vacant)","OOS":"점검 중 (OOS)","All":"전체","Occupied":"판매 중","Vacant Clean":"청결 공실","Vacant Dirty":"오염 공실","Out of Order":"점검 중","Export":"엑셀 다운","Room Types":"객실 유형 관리","Add Room":"신규 객실 등록","Add Room":"신규 객실 등록"},en: {
+"Room Mgmt":"객실 관리","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Total Rooms":"총 객실","Occupied":"투숙 중","Vacant":"공실 (Vacant)","OOS":"점검 중 (OOS)","All":"전체","Occupied":"투숙 중","Vacant Clean":"청결 공실","Vacant Dirty":"오염 공실","Out of Order":"점검 중","Export":"엑셀 다운","Room Types":"객실 유형 관리","Add Room":"신규 객실 등록","Add Room":"신규 객실 등록"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -593,7 +628,7 @@ function changeLang(l){
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room 번호 검색...';
     // Update JS rendered labels
-    statusConfig['occupied'].label = l==='en'?'Occupied':'판매 중';
+    statusConfig['occupied'].label = l==='en'?'Occupied':'투숙 중';
     statusConfig['vacant-clean'].label = l==='en'?'Vacant Clean':'청결 공실';
     statusConfig['vacant-dirty'].label = l==='en'?'Vacant Dirty':'오염 공실';
     statusConfig['oos'].label = l==='en'?'Out of Order':'점검/수리중';

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="../common/css/operations.css">
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-operations.js"></script>
+    <script src="../common/js/api/api-settings.js"></script>
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
@@ -112,6 +113,7 @@
         /* ── Toggle View ── */
         .view-toggle {
             display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+            flex: 0 0 auto; min-width: max-content;
         }
         .view-toggle button {
             padding: 7px 14px; border: none; background: #fff; cursor: pointer;
@@ -178,13 +180,13 @@
         .chip.active .chip-count { background: rgba(255,255,255,.25); }
 
         .filter-bar-mt {
-            display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;
             padding: 12px 20px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
         }
         .filter-search-group { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .filter-bar-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
-        .filter-chips-group { display: flex; align-items: center; gap: 8px; flex: 1; }
-        .filter-actions-group { display: flex; align-items: center; gap: 10px; flex-shrink: 0; margin-left: auto; }
+        .filter-chips-group { display: flex; align-items: center; gap: 8px; flex: 1 1 320px; min-width: 0; overflow-x: auto; padding-bottom: 2px; }
+        .filter-actions-group { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex: 1 1 320px; min-width: 0; margin-left: auto; }
 
         .search-box-mt {
             display: flex; align-items: center; gap: 8px;
@@ -203,6 +205,9 @@
         .btn-search:hover { background: #1D4ED8; }
 
         /* ── Responsive ── */
+        @media (max-width: 1280px) {
+            .filter-actions-group { width: 100%; margin-left: 0 !important; }
+        }
         @media (max-width: 1200px) { .kanban-wrap { grid-template-columns: 1fr; } }
         @media (max-width: 800px) {
             .filter-bar-mt { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
@@ -534,6 +539,27 @@ let currentStatusFilter = 'all';
 let isUrgentOnly = false;
 let nextId = 113;
 
+function persistMaintenanceRequests() {
+    localStorage.setItem('pms_maintenance', JSON.stringify(requests));
+}
+
+function hydrateMaintenanceRequests() {
+    try {
+        const stored = JSON.parse(localStorage.getItem('pms_maintenance') || '[]');
+        if (!Array.isArray(stored) || !stored.length) return;
+        const storedIds = new Set(stored.map(item => item.id));
+        requests = [...stored, ...requests.filter(item => !storedIds.has(item.id))];
+        const numericIds = requests
+            .map(item => Number(String(item.id || '').replace(/\D/g, '')))
+            .filter(Number.isFinite);
+        if (numericIds.length) nextId = Math.max(nextId, Math.max(...numericIds) + 1);
+    } catch(e) {
+        console.warn('Maintenance storage hydrate failed', e);
+    }
+}
+
+hydrateMaintenanceRequests();
+
 function toggleUrgentOnly(btn) {
     isUrgentOnly = !isUrgentOnly;
     if(isUrgentOnly) {
@@ -691,15 +717,15 @@ function switchView(btn, view) {
 
 function changeStatus(id, newStatus) {
     const r = requests.find(x => x.id === id);
-    if (r) { r.status = newStatus; updateKPI(); render(); showToast(`${id} 상태가 '${statusLabel[newStatus]}'(으)로 변경되었습니다.`); }
+    if (r) { r.status = newStatus; persistMaintenanceRequests(); updateKPI(); render(); showToast(`${id} 상태가 '${statusLabel[newStatus]}'(으)로 변경되었습니다.`); }
 }
 
 window.changeAssignee = function(id, newAssignee) {
     const r = requests.find(x => x.id === id);
     if(r) {
         r.assignee = newAssignee;
-        localStorage.setItem('pms_maintenance', JSON.stringify(requests));
-        renderList();
+        persistMaintenanceRequests();
+        render();
         showToast('담당자가 ' + newAssignee + '(으)로 변경되었습니다.');
     }
 }
@@ -754,6 +780,7 @@ function addTicket() {
     if (!room || !desc) { showToast('객실 번호와 상세 내용을 입력해주세요.'); return; }
     const today = new Date().toISOString().split('T')[0];
     requests.unshift({ id: 'MT-' + (nextId++), room, type, desc, priority, assignee, status: 'open', date: today });
+    persistMaintenanceRequests();
     updateKPI(); render();
     closeModal('newRequestModal');
     document.getElementById('newRoom').value = '';

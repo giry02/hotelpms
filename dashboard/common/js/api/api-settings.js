@@ -49,9 +49,63 @@ const _MAINTENANCE_TYPES = [
 ];
 
 Object.assign(window.PmsAPI, {
-    getALL_MENUS: async () => { return JSON.parse(JSON.stringify(_ALL_MENUS)); },
-    getSYSTEM_ROLES: async () => { return JSON.parse(JSON.stringify(_SYSTEM_ROLES)); },
-    getDEFAULT_CUSTOM_ROLES: async () => { return JSON.parse(JSON.stringify(_DEFAULT_CUSTOM_ROLES)); },
-    getDEFAULT_STAFF: async () => { return JSON.parse(JSON.stringify(_DEFAULT_STAFF)); },
-    getMAINTENANCE_TYPES: async () => { return JSON.parse(JSON.stringify(_MAINTENANCE_TYPES)); }
+    getALL_MENUS: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/settings/menus');
+                const menus = window.PmsMockApi.items(env);
+                if (menus.length) return menus;
+            }
+        } catch(e) {
+            console.warn('Mock menus fallback', e);
+        }
+        return JSON.parse(JSON.stringify(_ALL_MENUS));
+    },
+    getSYSTEM_ROLES: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/settings/roles');
+                const roles = window.PmsMockApi.items(env).filter(role => role.isSystem !== false);
+                if (roles.length) return roles;
+            }
+        } catch(e) {
+            console.warn('Mock system roles fallback', e);
+        }
+        return JSON.parse(JSON.stringify(_SYSTEM_ROLES));
+    },
+    getDEFAULT_CUSTOM_ROLES: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/settings/roles');
+                return window.PmsMockApi.items(env).filter(role => role.isSystem === false);
+            }
+        } catch(e) {
+            console.warn('Mock custom roles fallback', e);
+        }
+        return JSON.parse(JSON.stringify(_DEFAULT_CUSTOM_ROLES));
+    },
+    getDEFAULT_STAFF: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/settings/staff');
+                const staff = window.PmsMockApi.items(env);
+                if (staff.length) return staff;
+            }
+        } catch(e) {
+            console.warn('Mock staff fallback', e);
+        }
+        return JSON.parse(JSON.stringify(_DEFAULT_STAFF));
+    },
+    getMAINTENANCE_TYPES: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/settings/maintenance-types');
+                const types = window.PmsMockApi.items(env);
+                if (types.length) return types;
+            }
+        } catch(e) {
+            console.warn('Mock maintenance types fallback', e);
+        }
+        return JSON.parse(JSON.stringify(_MAINTENANCE_TYPES));
+    }
 });

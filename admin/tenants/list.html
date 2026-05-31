@@ -77,7 +77,24 @@ function updateFilterCounts() {
 function renderApplicationRows() {
     const tbody = document.getElementById('tenantTableBody');
     if (!tbody || tbody.dataset.appRowsRendered === 'true') return;
-    const stored = JSON.parse(localStorage.getItem('admin_tenant_applications') || '[]');
+    const tenants = window.AdminData?.tenants || [];
+    if (tenants.length && tbody.dataset.tenantsRendered !== 'true') {
+        tbody.innerHTML = tenants.map(tenant => `
+            <tr>
+                <td style="font-weight:600">${tenant.hotelName}<br><span style="font-size:.7rem;color:var(--txt3)">${tenant.id}</span></td>
+                <td>${tenant.city}, ${tenant.country}</td>
+                <td><span class="status-badge" style="background:var(--primary-lt);color:var(--primary)">${tenant.plan || 'Free'}</span></td>
+                <td>${tenant.rooms || '-'}</td>
+                <td>${tenant.contractStart || '-'} ~ ${tenant.contractEnd || '-'}</td>
+                <td><span class="status-badge ${tenant.status === 'active' ? 'active' : 'pending'}">${tenant.status === 'active' ? '운영 중' : tenant.status}</span></td>
+                <td><a class="btn-outline btn-sm" href="detail.html?id=${encodeURIComponent(tenant.id)}"><i class="fa-solid fa-eye"></i></a></td>
+            </tr>`).join('');
+        tbody.dataset.tenantsRendered = 'true';
+    }
+    const stored = [
+        ...JSON.parse(localStorage.getItem('mockapi:v1:ADMIN:tenant-applications') || '[]'),
+        ...JSON.parse(localStorage.getItem('admin_tenant_applications') || '[]')
+    ];
     const seeded = window.AdminData?.tenantApplications || [];
     const apps = [...stored, ...seeded];
     apps.reverse().forEach(app => {

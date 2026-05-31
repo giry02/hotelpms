@@ -79,7 +79,14 @@
 		};
 		const riskLabel = { Low: '낮음', Medium: '보통', High: '높음', Critical: '위험' };
 		
-		tbody.innerHTML = logs.map(l => {
+		const renderLogs = (filter = 'all') => {
+			const filteredLogs = logs.filter(l => {
+				if (filter === 'login') return /Login/i.test(l.action);
+				if (filter === 'device') return /Device/i.test(l.action);
+				if (filter === 'risk') return l.risk === 'High' || l.risk === 'Critical';
+				return true;
+			});
+			tbody.innerHTML = filteredLogs.map(l => {
 			let riskBadge = 'gray';
 			if (l.risk === 'Critical') riskBadge = 'red';
 			else if (l.risk === 'High') riskBadge = 'orange';
@@ -96,7 +103,18 @@
 				<td><span class="badge ${riskBadge}">${riskLabel[l.risk] || l.risk}</span></td>
 			</tr>
 			`;
-		}).join('');
+			}).join('');
+		};
+
+		document.querySelectorAll('.filter-chips .chip').forEach((button, index) => {
+			const filters = ['all', 'login', 'device', 'risk'];
+			button.addEventListener('click', () => {
+				document.querySelectorAll('.filter-chips .chip').forEach(chip => chip.classList.remove('active'));
+				button.classList.add('active');
+				renderLogs(filters[index] || 'all');
+			});
+		});
+		renderLogs();
 	});
 </script>
 </body>

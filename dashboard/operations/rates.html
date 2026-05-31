@@ -154,17 +154,17 @@
                 <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">객실 유형</label>
                 <select id="batchRoomType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                     <option value="all">전체 (All Room Types)</option>
-                    <option value="Standard">Standard Double</option>
-                    <option value="Deluxe">Deluxe King</option>
-                    <option value="Premier">Premier Twin</option>
-                    <option value="Suite">Executive Suite</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Deluxe">Deluxe</option>
+                    <option value="Premier">Premier</option>
+                    <option value="Pool Villa">Pool Villa</option>
                     <option value="Penthouse">Penthouse</option>
                 </select>
             </div>
             
             <div style="display:flex;flex-direction:column;gap:6px">
-                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">변경할 요금 ($)</label>
-                <input type="number" id="batchPrice" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 150">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">변경할 요금 (KRW)</label>
+                <input type="number" id="batchPrice" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 150000">
             </div>
             
             <div style="display:flex;flex-direction:column;gap:6px">
@@ -192,23 +192,21 @@
 
 <script>
 // --- 객실 유형 및 기본 요금 설정 ---
-localStorage.removeItem('pms_room_types_config');
 let DEFAULT_ROOM_TYPES = [
-    { id: 'Standard', name: 'Standard Double', basePrice: 100 },
-    { id: 'Deluxe', name: 'Deluxe King', basePrice: 150 },
-    { id: 'Premier', name: 'Premier Twin', basePrice: 180 },
-    { id: 'Suite', name: 'Executive Suite', basePrice: 300 },
-    { id: 'Penthouse', name: 'Penthouse', basePrice: 800 }
+    { id: 'Standard', typeId: 'STD', name: 'Standard', basePrice: 100000, currency: 'KRW' },
+    { id: 'Deluxe', typeId: 'DLX', name: 'Deluxe', basePrice: 140000, currency: 'KRW' },
+    { id: 'Premier', typeId: 'PRM', name: 'Premier', basePrice: 100000, currency: 'KRW' },
+    { id: 'Penthouse', typeId: 'PTH', name: 'Penthouse', basePrice: 650000, currency: 'KRW' },
+    { id: 'Pool Villa', typeId: 'VIL', name: 'Pool Villa', basePrice: 380000, currency: 'KRW' }
 ];
 
 function getRoomTypes() {
     try {
         const saved = localStorage.getItem('pms_room_types_config');
         if (saved) return JSON.parse(saved);
-        localStorage.setItem('pms_room_types_config', JSON.stringify(DEFAULT_ROOM_TYPES));
-        return DEFAULT_ROOM_TYPES;
+        return DEFAULT_ROOM_TYPES.map(type => ({ ...type }));
     } catch {
-        return DEFAULT_ROOM_TYPES;
+        return DEFAULT_ROOM_TYPES.map(type => ({ ...type }));
     }
 }
 
@@ -216,6 +214,14 @@ function getRoomTypes() {
 let roomTypes = getRoomTypes();
 let dailyRates = {}; // { '2026-05-01': { 'Standard': 120, 'Deluxe': 180, ... } }
 let currentYearMonth = '2026-05';
+
+function getCurrencyCode() {
+    return localStorage.getItem('pms_default_currency') || 'KRW';
+}
+
+function formatRate(value) {
+    return Number(value || 0).toLocaleString('ko-KR');
+}
 
 function loadRates() {
     try {
@@ -225,6 +231,24 @@ function loadRates() {
         }
     } catch (e) {
         console.error('Failed to load rates', e);
+    }
+}
+
+async function loadMockRates() {
+    try {
+        if (!window.PmsMockApi) return;
+        const env = await window.PmsMockApi.request('GET', '/rates/calendar');
+        const rows = window.PmsMockApi.items(env);
+        if (!rows.length) return;
+        rows.forEach(row => {
+            const date = row.date;
+            const typeId = row.roomTypeName || row.roomTypeId;
+            if (!date || !typeId) return;
+            if (!dailyRates[date]) dailyRates[date] = {};
+            dailyRates[date][typeId] = window.PmsMockApi.amountValue(row.publicRate || row.baseRate);
+        });
+    } catch(e) {
+        console.warn('Mock rates load failed', e);
     }
 }
 
@@ -313,8 +337,9 @@ function renderCalendar() {
     
     // 1. 헤더 생성
     let thHtml = `<th class="date-col">일자 (Date)</th>`;
+    const currencyCode = getCurrencyCode();
     roomTypes.forEach(rt => {
-        thHtml += `<th>${rt.name}<br><span style="font-size:0.75rem;font-weight:400;color:var(--txt3)">기본: $${rt.basePrice}</span></th>`;
+        thHtml += `<th>${rt.name}<br><span style="font-size:0.75rem;font-weight:400;color:var(--txt3)">Base: ${currencyCode} ${formatRate(rt.basePrice)}</span></th>`;
     });
     header.innerHTML = thHtml;
     
@@ -357,7 +382,7 @@ function renderCalendar() {
             
             trHtml += `<td>
                 <div style="position:relative; display:flex; align-items:center; justify-content:center;">
-                    <span style="position:absolute; left:20px; color:var(--txt3); font-weight:600;">$</span>
+                    <span style="position:absolute; left:12px; color:var(--txt3); font-weight:600;font-size:.72rem;">${currencyCode}</span>
                     <input type="text" class="rate-input" data-date="${dateStr}" data-type="${rt.id}" value="${price}">
                 </div>
             </td>`;
@@ -411,11 +436,16 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        roomTypes = getRoomTypes();
-        if (!Array.isArray(roomTypes) || roomTypes.length === 0) {
-            localStorage.removeItem('pms_room_types_config');
+        if (window.PmsAPI?.getAllRoomTypes) {
+            const apiTypes = await window.PmsAPI.getAllRoomTypes();
+            if (Array.isArray(apiTypes) && apiTypes.length) roomTypes = apiTypes;
+        } else {
             roomTypes = getRoomTypes();
         }
+        if (!Array.isArray(roomTypes) || roomTypes.length === 0) {
+            roomTypes = getRoomTypes();
+        }
+        await loadMockRates();
         renderCalendar();
     } catch(e) { console.error(e); }
 });

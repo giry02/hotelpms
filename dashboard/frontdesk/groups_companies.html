@@ -33,6 +33,19 @@
 .search-box-mt:focus-within { border-color: var(--primary); }
 .search-box-mt i { color: var(--txt3); font-size: .85rem; }
 .search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
+.filter-chips .chip { gap: 6px; }
+.filter-chips .chip-count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--border2); color: inherit; font-size: .68rem; font-weight: 700; }
+.filter-chips .chip.active .chip-count { background: rgba(255,255,255,.24); }
+@media(max-width: 768px) {
+    .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+    .filter-left { flex-direction: column; align-items: stretch; overflow: visible; gap: 10px; }
+    .filter-left > div { width: 100%; }
+    .filter-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .filter-chips .chip { justify-content: center; min-width: 0; }
+    .filter-right { width: 100%; }
+    .filter-right .btn-primary-sm { width: 100%; justify-content: center; padding-inline: 10px !important; }
+    .search-box-mt { width: auto; }
+}
 
 .company-card {
     background: #fff; border: 1px solid var(--border); border-radius: 12px;
@@ -142,10 +155,10 @@
                         <input type="text" placeholder="업체명 검색..." oninput="searchCompanies(this.value)">
                     </div>
                     <div class="filter-chips">
-                        <button class="chip active" onclick="filterCompanies('all', this)">전체</button>
-                        <button class="chip" onclick="filterCompanies('Corporate', this)">일반 기업</button>
-                        <button class="chip" onclick="filterCompanies('Travel Agency', this)">여행사</button>
-                        <button class="chip" onclick="filterCompanies('Other', this)">기타</button>
+                        <button class="chip active" data-filter="all" data-label="전체" onclick="filterCompanies('all', this)">전체</button>
+                        <button class="chip" data-filter="Corporate" data-label="일반 기업" onclick="filterCompanies('Corporate', this)">일반 기업</button>
+                        <button class="chip" data-filter="Travel Agency" data-label="여행사" onclick="filterCompanies('Travel Agency', this)">여행사</button>
+                        <button class="chip" data-filter="Other" data-label="기타" onclick="filterCompanies('Other', this)">기타</button>
                     </div>
                 </div>
                 <div class="filter-right">
@@ -240,17 +253,48 @@ function closeModal(id) { document.getElementById(id).classList.remove('active')
 let companies = [];
 let currentFilter = 'all';
 
-document.addEventListener('DOMContentLoaded', () => {
-    let stored = localStorage.getItem('pms_companies');
-    if(stored) {
-        companies = JSON.parse(stored);
-    } else {
-        companies = [
-            { id: 'COMP-1001', name: '삼성전자 (Samsung)', type: 'Corporate', status: 'active', contactName: '김부장', phone: '02-2255-0000', rate: '객실 15% 할인', billing: 'Master Folio (후불 월정산)', note: '' },
-            { id: 'COMP-1002', name: '하나투어 (Hana Tour)', type: 'Travel Agency', status: 'active', contactName: '이과장', phone: '02-1234-5678', rate: '커미션 10%', billing: '가상계좌 선입금', note: '' },
-            { id: 'COMP-1003', name: '한화이글스', type: 'Other', status: 'active', contactName: '매니저', phone: '010-1111-2222', rate: '특별 단가 (유선협의)', billing: 'Master Folio (후불 월정산)', note: '' }
-        ];
-        localStorage.setItem('pms_companies', JSON.stringify(companies));
+const COMPANY_FILTER_LABELS = {
+    all: '전체',
+    Corporate: '일반 기업',
+    'Travel Agency': '여행사',
+    Other: '기타'
+};
+
+function companyFilterKey(company) {
+    const type = String(company?.type || '').trim().toLowerCase();
+    if (['corporate', 'corporation', 'company', 'enterprise', '기업', '일반 기업'].includes(type)) return 'Corporate';
+    if (['agency', 'travel agency', 'travel_agency', 'ota', '여행사'].includes(type)) return 'Travel Agency';
+    return 'Other';
+}
+
+function companyMatchesFilter(company) {
+    return currentFilter === 'all' || companyFilterKey(company) === currentFilter;
+}
+
+function updateCompanyFilterCounts() {
+    const counts = companies.reduce((acc, company) => {
+        const key = companyFilterKey(company);
+        acc.all += 1;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+    }, { all: 0, Corporate: 0, 'Travel Agency': 0, Other: 0 });
+    document.querySelectorAll('.filter-chips .chip[data-filter]').forEach(chip => {
+        const filter = chip.dataset.filter;
+        const label = chip.dataset.label || COMPANY_FILTER_LABELS[filter] || filter;
+        chip.innerHTML = `${label} <span class="chip-count">${counts[filter] || 0}</span>`;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        if (window.PmsAPI?.getCompanies) {
+            companies = await window.PmsAPI.getCompanies();
+        } else {
+            companies = JSON.parse(localStorage.getItem('pms_companies') || '[]');
+        }
+    } catch(e) {
+        console.warn('companies load fallback', e);
+        companies = JSON.parse(localStorage.getItem('pms_companies') || '[]');
     }
     renderCompanies();
 });
@@ -280,9 +324,10 @@ function renderCompanies(search = '') {
     document.getElementById('kpiEvents').textContent = eventsCount;
     // Mock unpaid as 1 for now if there are events, 0 otherwise
     document.getElementById('kpiUnpaid').textContent = eventsCount > 0 ? 1 : 0;
+    updateCompanyFilterCounts();
 
     const filtered = companies.filter(c => {
-        const typeMatch = currentFilter === 'all' || c.type === currentFilter;
+        const typeMatch = companyMatchesFilter(c);
         const searchMatch = !search || c.name.toLowerCase().includes(search.toLowerCase());
         return typeMatch && searchMatch;
     });
@@ -293,7 +338,8 @@ function renderCompanies(search = '') {
     grid.style.display = 'grid'; empty.style.display = 'none';
 
     grid.innerHTML = filtered.map(c => {
-        const typeName = c.type==='Corporate'?'일반 기업':c.type==='Travel Agency'?'여행사':c.type==='Government'?'정부/공공':'기타 단체';
+        const typeKey = companyFilterKey(c);
+        const typeName = typeKey === 'Corporate' ? '일반 기업' : typeKey === 'Travel Agency' ? '여행사' : '기타 단체';
         const badgeCls = c.status==='active'?'pill-active':'pill-inactive';
         const badgeTxt = c.status==='active'?'계약 활성':'계약 비활성';
         return `
@@ -355,7 +401,12 @@ function editCompany(id) {
     openModal('companyModal');
 }
 
-function saveCompany() {
+async function persistCompanies() {
+    if (window.PmsAPI?.saveCompanies) await window.PmsAPI.saveCompanies(companies);
+    else localStorage.setItem('pms_companies', JSON.stringify(companies));
+}
+
+async function saveCompany() {
     const id = document.getElementById('compId').value;
     const name = document.getElementById('compName').value;
     if(!name) { showToast('업체명을 입력하세요.', 'error'); return; }
@@ -380,7 +431,7 @@ function saveCompany() {
         companies.unshift(data);
         showToast('신규 업체가 등록되었습니다.');
     }
-    localStorage.setItem('pms_companies', JSON.stringify(companies));
+    await persistCompanies();
     closeModal('companyModal');
     renderCompanies();
 }
@@ -389,7 +440,7 @@ async function deleteCompany(id) {
     const c = companies.find(x => x.id === id);
     if(await showConfirm(`정말 [${c.name}] 업체를 삭제하시겠습니까?`)) {
         companies = companies.filter(x => x.id !== id);
-        localStorage.setItem('pms_companies', JSON.stringify(companies));
+        await persistCompanies();
         showToast('업체가 삭제되었습니다.');
         renderCompanies();
     }
@@ -434,10 +485,11 @@ function openBlockModal(compId) {
         const allEvents = companies.flatMap(c => companyGroups(c));
         document.getElementById('kpiEvents').textContent = allEvents.filter(g => g.status === 'confirmed' || g.status === 'inhouse').length;
         document.getElementById('kpiUnpaid').textContent = allEvents.filter(g => g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid').length;
+        updateCompanyFilterCounts();
 
         const q = String(search || '').toLowerCase();
         const filtered = companies.filter(c => {
-            const typeMatch = currentFilter === 'all' || c.type === currentFilter;
+            const typeMatch = companyMatchesFilter(c);
             const text = [c.name, c.contactName, c.phone, c.rate, c.billing].filter(Boolean).join(' ').toLowerCase();
             return typeMatch && (!q || text.includes(q));
         });
@@ -451,7 +503,8 @@ function openBlockModal(compId) {
         grid.innerHTML = filtered.map(c => {
             const events = companyGroups(c);
             const cnt = stageCounts(events);
-            const typeName = c.type === 'Corporate' ? '기업' : c.type === 'Travel Agency' ? '여행사' : c.type === 'Government' ? '공공기관' : '기타';
+            const typeKey = companyFilterKey(c);
+            const typeName = typeKey === 'Corporate' ? '일반 기업' : typeKey === 'Travel Agency' ? '여행사' : '기타';
             const badgeCls = c.status === 'active' ? 'pill-active' : 'pill-inactive';
             const badgeTxt = c.status === 'active' ? '계약 활성' : '비활성';
             return `

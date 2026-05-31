@@ -93,6 +93,7 @@
 }
 </style>
     <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
@@ -190,7 +191,99 @@ function cleanTimelineGuestName(value) {
 
 function normalizeReservationStatus(res) {
     let safeStatus = res && res.status ? String(res.status).replace(/[- _]/g, '').toLowerCase() : 'confirmed';
+    if (['inhouse', 'occupied'].includes(safeStatus)) return 'checkedin';
+    if (['checkedout', 'departed'].includes(safeStatus)) return 'completed';
     return safeStatus === 'vip' ? 'confirmed' : safeStatus;
+}
+
+function normalizeTimelineRoomValue(value) {
+    const text = String(value || '').trim().toLowerCase();
+    const digits = (text.match(/\d+/g) || []).join('');
+    return {
+        text,
+        digits,
+        strippedDigits: digits.replace(/^0+(?=\d)/, '')
+    };
+}
+
+function sameTimelineRoomValue(left, right) {
+    const a = normalizeTimelineRoomValue(left);
+    const b = normalizeTimelineRoomValue(right);
+    if (!a.text || !b.text) return false;
+    if (a.text === b.text) return true;
+    return !!(a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits));
+}
+
+function timelineRoomMatchesReservation(room, res) {
+    const roomValues = [
+        room?.id,
+        room?.fullRoom,
+        room?.roomId,
+        room?.number,
+        room?.roomNo,
+        room?.display,
+        room?.displayName,
+        room?.roomLabel
+    ];
+    const reservationValues = [
+        res?.room,
+        res?.fullRoom,
+        res?.roomId,
+        res?.roomNo,
+        res?.roomNumber,
+        res?.roomLabel
+    ];
+    return roomValues.some(roomValue => reservationValues.some(resValue => sameTimelineRoomValue(roomValue, resValue)));
+}
+
+function timelineRoomForReservation(res) {
+    if (!res) return null;
+    return rooms.find(room => timelineRoomMatchesReservation(room, res));
+}
+
+function parseTimelineDate(value) {
+    if (!value) return null;
+    const text = String(value).trim();
+    const parts = text.split('/');
+    if (parts.length === 2) {
+        const date = new Date(new Date().getFullYear(), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+    const date = new Date(text);
+    if (!Number.isNaN(date.getTime())) {
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+    return null;
+}
+
+function isTimelineCurrentStay(res) {
+    const start = parseTimelineDate(res?.checkInDate || res?.checkin || res?.cin);
+    const end = parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
+    if (!start || !end) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return start <= today && today < end;
+}
+
+function isTimelineRoomInHouse(res) {
+    const room = timelineRoomForReservation(res);
+    const status = String(room?.frontStatus || room?.status || room?.housekeepingStatus || '').replace(/[- _]/g, '').toLowerCase();
+    return ['inhouse', 'checkedin', 'occupied'].includes(status);
+}
+
+function effectiveTimelineStatus(res) {
+    let safeStatus = normalizeReservationStatus(res);
+    if (safeStatus === 'confirmed' && isTimelineRoomInHouse(res) && isTimelineCurrentStay(res)) safeStatus = 'checkedin';
+    const checkoutDate = parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (checkoutDate && safeStatus === 'checkedin') {
+        if (checkoutDate < today) return 'completed';
+        if (checkoutDate.getTime() === today.getTime()) return 'checkout';
+    }
+    return safeStatus;
 }
 
 function timelineGuestName(res) {
@@ -246,13 +339,12 @@ function buildTimeline() {
     reservations.forEach(res => {
         const isB2B = res.isB2B;
         const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
+        const effectiveStatus = effectiveTimelineStatus(res);
         if(isVip) cntVip++;
         if(isB2B) cntB2B++;
-        if(res.status === 'confirmed') cntConfirmed++; // 남은 체크인 대상
-        else if(res.status === 'checkedin' || res.status === 'checked-in') {
-            cntCheckedin++; 
-            cntCheckout++; // 투숙중인 사람 = 오늘 나가야 할 잠재적 대상
-        }
+        if(effectiveStatus === 'confirmed') cntConfirmed++;
+        else if(effectiveStatus === 'checkedin') cntCheckedin++;
+        else if(effectiveStatus === 'checkout') cntCheckout++;
     });
 
     // Header row
@@ -288,7 +380,8 @@ function buildTimeline() {
     const roomLevels = {};
 
     reservations.forEach(res => {
-        const roomIdx = rooms.findIndex(r => r.id === res.room || r.id === res.fullRoom || (r.number && r.number === res.room) || (r.display && r.display === res.room));
+        const matchedRoom = timelineRoomForReservation(res);
+        const roomIdx = matchedRoom ? rooms.indexOf(matchedRoom) : -1;
         if (roomIdx === -1) return;
         
         const row = grid.querySelectorAll('.tl-row')[roomIdx];
@@ -327,34 +420,7 @@ function buildTimeline() {
         roomLevels[roomIdx][level] = renderEnd;
 
         const block = document.createElement('div');
-        let safeStatus = normalizeReservationStatus(res);
-        
-        // Date-based logical correction for timeline
-        const realToday = new Date();
-        realToday.setHours(0,0,0,0);
-        
-        let rCoutDateObj = null;
-        if (res.cout) {
-            try {
-                const coutParts = res.cout.split('/');
-                rCoutDateObj = new Date(2026, parseInt(coutParts[0])-1, parseInt(coutParts[1]));
-            } catch(e){}
-        }
-
-        if (rCoutDateObj && safeStatus !== 'blocked' && !res.isGroupPlaceholder) {
-            if (rCoutDateObj < realToday) {
-                // Past reservations
-                safeStatus = 'completed';
-            } else if (rCoutDateObj.getTime() === realToday.getTime()) {
-                // Checking out today
-                safeStatus = 'checkout';
-            } else if (rCoutDateObj > realToday) {
-                // Future reservations shouldn't be checkout/checkedout
-                if (safeStatus === 'checkout' || safeStatus === 'checkedout') {
-                    safeStatus = 'checkedin';
-                }
-            }
-        }
+        let safeStatus = effectiveTimelineStatus(res);
 
         const renderStatus = renderTimelineStatus(res, safeStatus);
         block.className = `tl-block ${renderStatus}`;
@@ -442,6 +508,7 @@ function goToday() {
     updateDateRangeText();
     buildTimeline();
     buildMobileView();
+    if (window.showToast) showToast('오늘 날짜로 이동했습니다.', 'success');
 }
 
 function reservationWindow(res) {
@@ -517,7 +584,7 @@ function buildMobileView() {
     let html = '';
     rooms.forEach(room => {
         const offset = Math.round((baseDate - EPOCH) / 86400000);
-        const roomRes = reservations.filter(r => r.room === room.id || r.fullRoom === room.id || (room.number && r.room === room.number) || (room.display && r.room === room.display));
+        const roomRes = reservations.filter(r => timelineRoomMatchesReservation(room, r));
         const hasToday = roomRes.some(r => {
             let renderStart, renderEnd;
             if (r.cin && r.cout) {
@@ -553,7 +620,7 @@ function buildMobileView() {
                 cin.setDate(cin.getDate() + res.start);
                 const cout = new Date(cin);
                 cout.setDate(cout.getDate() + res.len);
-                const renderStatus = renderTimelineStatus(res, normalizeReservationStatus(res));
+                const renderStatus = renderTimelineStatus(res, effectiveTimelineStatus(res));
                 const color = colorMap[renderStatus] || colorMap.confirmed;
                 html += `
                 <div class="m-booking-item" style="border-left:3px solid ${color}" onclick="openTimelineReservation(reservations.find(r => r.id === '${res.id}'))">

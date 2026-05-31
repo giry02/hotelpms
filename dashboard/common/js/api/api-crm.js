@@ -3,6 +3,35 @@ window.PmsAPI = window.PmsAPI || {};
 Object.assign(window.PmsAPI, {
     getGuests: async () => {
         try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/crm/guests');
+                const normalizeTier = (tier) => {
+                    const value = String(tier || 'standard').toLowerCase();
+                    if (value.includes('diamond')) return 'diamond';
+                    if (value.includes('platinum')) return 'platinum';
+                    if (value.includes('gold') || value === 'vip') return 'gold';
+                    return 'standard';
+                };
+                const guests = window.PmsMockApi.items(env).map((guest, index) => ({
+                    ...guest,
+                    init: guest.init || String(guest.name || 'G').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase(),
+                    color: guest.color || ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'][index % 4],
+                    nation: guest.nationality || guest.nation || '',
+                    tier: normalizeTier(guest.tier || guest.vip),
+                    visits: guest.visits || 1,
+                    last: guest.lastStayDate || guest.last || '',
+                    spend: window.PmsMockApi.amountValue(guest.totalSpend),
+                    vip: guest.vip || guest.tier || 'Standard',
+                    docStatus: guest.document?.status || guest.docStatus || 'pending',
+                    documentStatus: guest.document?.status || guest.documentStatus || 'pending',
+                    specialNotes: guest.specialNotes || ''
+                }));
+                if (guests.length) return guests;
+            }
+        } catch(e) {
+            console.warn('Mock guests fallback', e);
+        }
+        try {
             let res = await fetch('../data/crm/guests.json');
             if(res.ok) return await res.json();
         } catch(e) { console.warn('Fetch failed for guests'); }
@@ -105,5 +134,39 @@ Object.assign(window.PmsAPI, {
             }
         ]);
     },
-    getHistory: async () => { return []; }
+    getHistory: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/crm/tier-history');
+                const order = { standard: 0, gold: 1, platinum: 2, diamond: 3 };
+                const normalizeTier = (tier) => {
+                    const value = String(tier || 'standard').toLowerCase();
+                    if (value.includes('diamond')) return 'diamond';
+                    if (value.includes('platinum')) return 'platinum';
+                    if (value.includes('gold') || value === 'vip') return 'gold';
+                    return 'standard';
+                };
+                return window.PmsMockApi.items(env).map((item, index) => {
+                    const from = normalizeTier(item.beforeTier || item.from);
+                    const to = normalizeTier(item.afterTier || item.to);
+                    const name = item.guestName || item.name || item.guestId || 'Guest';
+                    return {
+                        ...item,
+                        date: item.changedAt || item.date || '',
+                        name,
+                        init: item.init || String(name).split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase(),
+                        color: item.color || ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'][index % 4],
+                        from,
+                        to,
+                        dir: order[to] >= order[from] ? 'up' : 'down',
+                        reason: item.reason || '',
+                        by: item.by || item.changedBy || 'System'
+                    };
+                });
+            }
+        } catch(e) {
+            console.warn('Mock tier history fallback', e);
+        }
+        return [];
+    }
 });

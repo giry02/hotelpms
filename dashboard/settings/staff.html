@@ -531,18 +531,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         DEFAULT_CUSTOM_ROLES = await PmsAPI.getDEFAULT_CUSTOM_ROLES();
         DEFAULT_STAFF = await PmsAPI.getDEFAULT_STAFF();
         
-        // Force replace if localStorage arrays are empty (Fix for empty screen)
-        const savedRoles = localStorage.getItem('pms_custom_roles');
-        if (!savedRoles || JSON.parse(savedRoles).length === 0) {
-            localStorage.setItem('pms_custom_roles', JSON.stringify(DEFAULT_CUSTOM_ROLES));
-        }
         const savedStaff = localStorage.getItem('pms_staff');
-        if (!savedStaff || JSON.parse(savedStaff).length === 0) {
-            localStorage.setItem('pms_staff', JSON.stringify(DEFAULT_STAFF));
-            staffData = DEFAULT_STAFF;
-        } else {
-            staffData = JSON.parse(savedStaff);
-        }
+        staffData = savedStaff ? JSON.parse(savedStaff) : DEFAULT_STAFF;
 
         buildRoleFilter();
         renderStaff();
