@@ -5,7 +5,9 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const DASH_API = path.join(ROOT, 'dashboard', 'data', 'api', 'v1');
 const ADMIN_API = path.join(ROOT, 'admin', 'data', 'api', 'v1', 'admin');
 const TENANT_ID = 'TENANT-GRAND-SAIGON';
-const CURRENCY = 'KRW';
+const CURRENCY = 'USD';
+const CURRENCY_SYMBOL = '$';
+const MONETARY_KEYS = new Set(['amount', 'value', 'room', 'fnb', 'spa', 'other', 'lastYear', 'thisYear', 'amt', 'v', 'minSpend']);
 const NOW = '2026-05-28T09:00:00+09:00';
 
 function page(total, page = 1, pageSize = 50) {
@@ -31,10 +33,26 @@ function listEnvelope(items, requestId, pageSize = 50) {
   return envelope({ items, page: page(items.length, 1, pageSize) }, requestId);
 }
 
+function normalizeCurrencyPayload(value, key = '') {
+  if (Array.isArray(value)) return value.map(item => normalizeCurrencyPayload(item, key));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, normalizeCurrencyPayload(v, k)]));
+  }
+  if (typeof value === 'string') {
+    if (value === 'KRW') return CURRENCY;
+    if (value === '₩') return CURRENCY_SYMBOL;
+    return value;
+  }
+  if (typeof value === 'number' && MONETARY_KEYS.has(key)) {
+    return value === 0 ? value : Math.round(value / 1000);
+  }
+  return value;
+}
+
 function writeJson(base, rel, payload) {
   const file = path.join(base, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(file, `${JSON.stringify(normalizeCurrencyPayload(payload), null, 2)}\n`, 'utf8');
 }
 
 const buildings = [
@@ -455,14 +473,14 @@ const dailyReport = [
 ];
 
 const adminTenantApplications = [
-  { id: 'APP-20260528-001', hotelName: 'Seoul Tower Hotel', rooms: 180, country: 'South Korea', city: 'Seoul', plan: 'Standard', currency: 'KRW', contactName: '정민호', phone: '+82 10 1111 2222', email: 'admin@seoultower.example', status: 'reviewing', submittedAt: '2026-05-28' },
+  { id: 'APP-20260528-001', hotelName: 'Seoul Tower Hotel', rooms: 180, country: 'South Korea', city: 'Seoul', plan: 'Standard', currency: CURRENCY, contactName: '정민호', phone: '+82 10 1111 2222', email: 'admin@seoultower.example', status: 'reviewing', submittedAt: '2026-05-28' },
   { id: 'APP-20260526-002', hotelName: 'Da Nang Boutique', rooms: 96, country: 'Vietnam', city: 'Da Nang', plan: 'Free', currency: 'VND', contactName: 'Tran Linh', phone: '+84 90 333 4444', email: 'owner@danangboutique.example', status: 'approved', submittedAt: '2026-05-26' }
 ];
 
 const adminTenants = [
-  { id: TENANT_ID, hotelName: 'The Grand Saigon', country: 'Vietnam', city: 'Ho Chi Minh', plan: 'Premium', rooms: 320, status: 'active', contractStart: '2025-01-01', contractEnd: '2027-12-31', currency: 'KRW' },
+  { id: TENANT_ID, hotelName: 'The Grand Saigon', country: 'Vietnam', city: 'Ho Chi Minh', plan: 'Premium', rooms: 320, status: 'active', contractStart: '2025-01-01', contractEnd: '2027-12-31', currency: CURRENCY },
   { id: 'TENANT-HANOI-LAKE', hotelName: 'Hanoi Lakeside', country: 'Vietnam', city: 'Hanoi', plan: 'Standard', rooms: 180, status: 'active', contractStart: '2025-06-01', contractEnd: '2027-05-31', currency: 'VND' },
-  { id: 'TENANT-JEJU-BAY', hotelName: 'Jeju Bay Resort', country: 'South Korea', city: 'Jeju', plan: 'Standard', rooms: 210, status: 'trial', contractStart: '2026-05-01', contractEnd: '2026-06-30', currency: 'KRW' }
+  { id: 'TENANT-JEJU-BAY', hotelName: 'Jeju Bay Resort', country: 'South Korea', city: 'Jeju', plan: 'Standard', rooms: 210, status: 'trial', contractStart: '2026-05-01', contractEnd: '2026-06-30', currency: CURRENCY }
 ];
 
 const adminUsers = [
@@ -571,7 +589,7 @@ function writeDashboardData() {
     { id: 'ACT-2', type: 'task', label: 'OT-1405 maintenance in progress', time: '10:10' }
   ], 'REQ-DASHBOARD-ACTIVITIES'));
   writeJson(DASH_API, 'settings/hotel.json', envelope({ id: TENANT_ID, name: 'The Grand Saigon', country: 'Vietnam', city: 'Ho Chi Minh', timezone: 'Asia/Seoul', defaultCurrency: CURRENCY }, 'REQ-SETTINGS-HOTEL'));
-  writeJson(DASH_API, 'settings/currency.json', envelope({ defaultCurrency: CURRENCY, supported: ['KRW', 'VND', 'USD', 'THB', 'JPY'], display: { symbol: '₩', decimals: 0 } }, 'REQ-SETTINGS-CURRENCY'));
+  writeJson(DASH_API, 'settings/currency.json', envelope({ defaultCurrency: CURRENCY, supported: ['USD', 'VND', 'THB', 'JPY', 'KRW'], display: { symbol: CURRENCY_SYMBOL, decimals: 2 } }, 'REQ-SETTINGS-CURRENCY'));
   writeJson(DASH_API, 'settings/menus.json', listEnvelope(menus, 'REQ-SETTINGS-MENUS'));
   writeJson(DASH_API, 'settings/roles.json', listEnvelope(roles, 'REQ-SETTINGS-ROLES'));
   writeJson(DASH_API, 'settings/staff.json', listEnvelope(staff, 'REQ-SETTINGS-STAFF'));

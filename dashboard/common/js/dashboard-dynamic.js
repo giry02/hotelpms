@@ -6,16 +6,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (value && typeof value === 'object') return Number(value.amount || 0);
         return Number(value || 0);
     };
-    const currencyOf = (value) => (value && typeof value === 'object' && value.currency) || 'KRW';
-    const formatMoney = (amount, currency = 'KRW') => `${currency} ${Math.round(amount || 0).toLocaleString('ko-KR')}`;
+    const defaultRateByType = {
+        standard: 100,
+        deluxe: 140,
+        premier: 100,
+        penthouse: 650,
+        'pool villa': 380
+    };
+    const roomRate = (room) => {
+        const explicit = amountValue(room.baseRate ?? room.rate ?? room.price);
+        if (explicit > 0) return explicit;
+        const type = String(room.roomTypeName || room.type || room.roomTypeId || '').toLowerCase();
+        const match = Object.keys(defaultRateByType).find(key => type.includes(key));
+        return match ? defaultRateByType[match] : 0;
+    };
+    const currencyOf = (value) => (value && typeof value === 'object' && value.currency) || 'USD';
+    const formatMoney = (amount, currency = 'USD') => new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: currency === 'USD' ? 2 : 0
+    }).format(Number(amount || 0));
     const localIso = (date = new Date()) => {
         const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
         return shifted.toISOString().slice(0, 10);
+    };
+    const dateMatches = (value, isoDate) => {
+        if (!value) return false;
+        const raw = String(value);
+        if (raw === isoDate) return true;
+        const d = new Date(`${isoDate}T00:00:00`);
+        const md = `${d.getMonth() + 1}/${d.getDate()}`;
+        return raw === md || raw.replace(/^0/, '').replace('/0', '/') === md;
     };
 
     let rooms = [];
     let reservations = [];
     let tasks = [];
+    let summary = null;
+    if (window.PmsMockApi) {
+        try {
+            const env = await window.PmsMockApi.request('GET', '/dashboard/summary');
+            summary = env && env.success ? env.data : null;
+        } catch(e) {}
+    }
     if (window.PmsAPI) {
         [rooms, reservations, tasks] = await Promise.all([
             window.PmsAPI.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
@@ -26,19 +59,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const totalRooms = rooms.length || 1;
     const occupiedRooms = rooms.filter(isOccupiedRoom);
-    const occupancy = `${((occupiedRooms.length / totalRooms) * 100).toFixed(1)}%`;
-    const currency = rooms.find(r => r.currency || r.baseRate?.currency)?.currency || currencyOf(rooms.find(r => r.baseRate)?.baseRate);
-    const dailyRoomRevenue = occupiedRooms.reduce((sum, room) => sum + amountValue(room.baseRate), 0);
+    const occupancy = summary?.occupancy !== undefined
+        ? `${Number(summary.occupancy).toFixed(1)}%`
+        : `${((occupiedRooms.length / totalRooms) * 100).toFixed(1)}%`;
+    const currency = summary?.revenueToday?.currency
+        || rooms.find(r => r.currency || r.baseRate?.currency)?.currency
+        || currencyOf(rooms.find(r => r.baseRate)?.baseRate);
+    const roomRevenueFromRooms = occupiedRooms.reduce((sum, room) => sum + roomRate(room), 0);
+    const roomRevenueFromReservations = reservations
+        .filter(r => ['checked-in', 'checkedin', 'in-house'].includes(normalizeStatus(r.status)))
+        .reduce((sum, r) => {
+            const nights = Number(r.nights || r.len || 1) || 1;
+            return sum + (amountValue(r.rate) || amountValue(r.totalAmount) / nights || amountValue(r.amount) / nights || 0);
+        }, 0);
+    const dailyRoomRevenue = roomRevenueFromRooms || roomRevenueFromReservations;
     const adr = occupiedRooms.length ? formatMoney(dailyRoomRevenue / occupiedRooms.length, currency) : formatMoney(0, currency);
     const revpar = formatMoney(dailyRoomRevenue / totalRooms, currency);
 
     const today = localIso();
     const todayCheckin = reservations.filter(r =>
-        (r.checkInDate || r.checkin || r.cin) === today && normalizeStatus(r.status) === 'confirmed'
+        dateMatches(r.checkInDate || r.checkin || r.cin, today) && normalizeStatus(r.status) === 'confirmed'
     ).length;
     const todayCheckout = reservations.filter(r => {
         const status = normalizeStatus(r.status);
-        return (r.checkOutDate || r.checkout || r.cout) === today && ['checked-in', 'checkedin', 'checkout'].includes(status);
+        return dateMatches(r.checkOutDate || r.checkout || r.cout, today) && ['checked-in', 'checkedin', 'checked-out', 'checkout'].includes(status);
     }).length;
 
     const kpiVals = document.querySelectorAll('.kpi-value');
@@ -46,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         kpiVals[0].textContent = occupancy;
         kpiVals[1].textContent = adr;
         kpiVals[2].textContent = revpar;
-        kpiVals[3].textContent = `${todayCheckin} / ${todayCheckout}`;
+        kpiVals[3].textContent = `${summary?.arrivals ?? todayCheckin} / ${summary?.departures ?? todayCheckout}`;
         const kpiLabel = kpiVals[3].nextElementSibling;
         if (kpiLabel && kpiLabel.classList.contains('kpi-label')) {
             kpiLabel.textContent = '오늘 체크인 / 체크아웃';

@@ -283,7 +283,7 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         return Number(value || 0);
     }
 
-    function currencyOf(value, fallback = 'KRW') {
+    function currencyOf(value, fallback = 'USD') {
         return (value && typeof value === 'object' && value.currency) || fallback;
     }
 

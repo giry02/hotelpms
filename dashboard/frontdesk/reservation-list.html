@@ -80,7 +80,8 @@
     <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/api/api-crm.js"></script>
-    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/i18n-catalog.js"></script>
+<script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
@@ -388,9 +389,13 @@ function alertBadges(res) {
 }
 
 function formatMoney(res) {
-    const currency = res.currency || 'KRW';
+    const currency = res.currency || 'USD';
     const amount = Number(res.amount || res.totalAmount?.amount || 0);
-    return `${currency} ${amount.toLocaleString('ko-KR')}`;
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: currency === 'USD' ? 2 : 0
+    }).format(amount);
 }
 
 function operationalBucket(res) {

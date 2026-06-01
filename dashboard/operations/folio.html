@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <script src="../common/js/api/api-core.js"></script>
-    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/i18n-catalog.js"></script>
+<script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
@@ -243,8 +244,12 @@ const kpiData = {
 
 let apiFolios = [];
 
-function fmtMoney(value, currency = 'KRW') {
-    return `${currency} ${Number(value || 0).toLocaleString('ko-KR')}`;
+function fmtMoney(value, currency = 'USD') {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: currency === 'USD' ? 2 : 0
+    }).format(Number(value || 0));
 }
 
 function apiAmount(value) {
@@ -268,7 +273,7 @@ function mapApiFolio(item) {
         total,
         paid,
         bal,
-        currency: item.balance?.currency || 'KRW',
+        currency: item.balance?.currency || 'USD',
         roomRevenue,
         ancillaryRevenue,
         status: bal > 0 ? 'unpaid' : 'paid'
@@ -283,7 +288,7 @@ function updateApiKpis() {
         acc.anc += folio.ancillaryRevenue || 0;
         return acc;
     }, { total: 0, room: 0, anc: 0 });
-    const currency = apiFolios[0]?.currency || 'KRW';
+    const currency = apiFolios[0]?.currency || 'USD';
     document.getElementById('kpiTotal').textContent = fmtMoney(totals.total, currency);
     document.getElementById('kpiRoom').textContent = fmtMoney(totals.room, currency);
     document.getElementById('kpiAnc').textContent = fmtMoney(totals.anc, currency);

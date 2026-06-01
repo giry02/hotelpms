@@ -390,7 +390,7 @@ async function adminTenantApplicationFlow(page) {
   await selectIfPresent(page, '#country', { label: 'South Korea' });
   await fillIfPresent(page, '#city', 'Seoul');
   await selectIfPresent(page, '#plan', { label: 'Standard' });
-  await selectIfPresent(page, '#currency', { label: 'KRW' });
+  await selectIfPresent(page, '#currency', { label: 'USD' });
   await fillIfPresent(page, '#contactName', 'E2E Manager');
   await fillIfPresent(page, '#phone', '+82 10 1111 2222');
   await fillIfPresent(page, '#email', `tenant-${runId}@example.com`);

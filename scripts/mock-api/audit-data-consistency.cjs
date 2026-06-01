@@ -185,7 +185,7 @@ function auditCoreRelations() {
   folios.forEach(folio => {
     if (folio.groupId) assert(groupIds.has(folio.groupId), `folios/${folio.id}: unknown groupId ${folio.groupId}`);
     if (folio.companyId) assert(companyIds.has(folio.companyId), `folios/${folio.id}: unknown companyId ${folio.companyId}`);
-    assert(folio.balance?.currency === 'KRW', `folios/${folio.id}: balance currency is not KRW`);
+    assert(folio.balance?.currency === 'USD', `folios/${folio.id}: balance currency is not USD`);
   });
 
   const inHouseRoomIds = rooms

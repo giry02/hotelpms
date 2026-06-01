@@ -1,6 +1,17 @@
 // i18n.js - Global Translation Dictionary (English Base)
 
 window.currentLang = localStorage.getItem('pms_lang') || 'ko';
+window.PMS_I18N_NAMESPACE = window.PMS_I18N_NAMESPACE || 'admin';
+
+(function migrateDefaultCurrencyToUsd(){
+    const migrationKey = 'pms_default_currency_usd_migrated_v1';
+    try {
+        if (localStorage.getItem(migrationKey)) return;
+        const current = localStorage.getItem('pms_default_currency');
+        if (!current || current === 'KRW') localStorage.setItem('pms_default_currency', 'USD');
+        localStorage.setItem(migrationKey, '1');
+    } catch(e) {}
+})();
 
 window.translations = {
     ko: {
@@ -362,9 +373,22 @@ function changeLang(l) {
     window.currentLang = l;
     localStorage.setItem('pms_lang', l);
     const d = window.translations[l] || window.translations.en;
+    const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
+    const catalogDict = catalog[l] || catalog.en || {};
     document.querySelectorAll('[data-i18n-key]').forEach(e => {
         const k = e.getAttribute('data-i18n-key');
-        if(d[k]) e.textContent = d[k];
+        if(catalogDict[k]) e.textContent = catalogDict[k];
+        else if(d[k]) e.textContent = d[k];
+    });
+
+    document.querySelectorAll('[data-i18n]').forEach(e => {
+        const k = e.getAttribute('data-i18n');
+        if(catalogDict[k]) e.textContent = catalogDict[k];
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(e => {
+        const k = e.getAttribute('data-i18n-placeholder');
+        if(catalogDict[k]) e.setAttribute('placeholder', catalogDict[k]);
     });
     
     const langSelects = document.querySelectorAll('#langSelect, .lang-select, select[onchange*="changeLang"]');
@@ -373,156 +397,21 @@ function changeLang(l) {
     });
 
     if(typeof window.applyLocalI18n === 'function') window.applyLocalI18n(l);
-    if(typeof window.applyKoToEnFallback === 'function') window.applyKoToEnFallback(l);
 }
 
-window.PMS_KO_TO_EN = Object.assign(window.PMS_KO_TO_EN || {}, {
-    "메인": "Main",
-    "플랫폼 현황": "Platform Status",
-    "입점 호텔 관리": "Tenant Hotel Management",
-    "호텔 목록": "Hotel List",
-    "관리자 직접 등록": "Direct Admin Registration",
-    "광고 네트워크": "Ad Network",
-    "캠페인 목록": "Campaigns",
-    "캠페인 등록": "New Campaign",
-    "광고 정산": "Ad Billing",
-    "시스템 관리": "System Management",
-    "관리자 계정": "Admin Accounts",
-    "구독 및 결제": "Subscription & Billing",
-    "연동 관리": "Integrations",
-    "고객 지원": "Customer Support",
-    "공지사항 관리": "Notice Management",
-    "감사 로그": "Audit Logs",
-    "과금 현황": "Billing Status",
-    "서드파티 연동 관리": "Third-party Integrations",
-    "프로필 설정": "Profile Settings",
-    "사용자 관리": "User Management",
-    "타겟팅 설정": "Targeting Settings",
-    "신규 입점 등록": "New Tenant Registration",
-    "호텔 입점 신청": "Hotel Tenant Application",
-    "플랫폼 관리 센터": "Platform Admin Center",
-    "플랫폼 전체 시스템을 관리하고": "Manage the entire platform system and",
-    "모든 테넌트와 리소스를 모니터링하세요.": "monitor all tenants and resources.",
-    "시스템 관리자 로그인": "System Admin Login",
-    "관리자 계정으로 로그인하세요.": "Sign in with an administrator account.",
-    "관리자 ID / 이메일": "Admin ID / Email",
-    "비밀번호": "Password",
-    "로그인 상태 유지": "Keep me signed in",
-    "비밀번호 재설정": "Reset Password",
-    "로그인": "Login",
-    "호텔 입점을 원하시나요?": "Want to onboard a hotel?",
-    "입점 신청": "Apply",
-    "신청이 접수되면 플랫폼 관리자가 계약/운영 정보를 확인한 뒤 승인 결과와 접속 안내를 이메일로 발송합니다.": "After submission, the platform admin reviews contract and operation details, then sends the approval result and access guide by email.",
-    "호텔 정보와 담당자 계정을 입력합니다.": "Enter hotel information and the manager account.",
-    "Super Admin에서 심사 후 승인/반려를 처리합니다.": "A Super Admin reviews and approves or rejects the application.",
-    "승인 시 로그인 안내와 임시 비밀번호 초기화 링크가 이메일로 발송됩니다.": "If approved, login instructions and a temporary password reset link are emailed.",
-    "관리자 로그인으로 돌아가기": "Back to Admin Login",
-    "입점 신청서": "Application Form",
-    "로그인 ID는 담당자 이메일로 생성됩니다. 비밀번호는 승인 전까지 활성화되지 않습니다.": "The login ID is created from the manager email. Password access is inactive until approval.",
-    "신규 신청": "New Application",
-    "호텔 정보": "Hotel Information",
-    "호텔명": "Hotel Name",
-    "객실 수": "Room Count",
-    "국가": "Country",
-    "선택": "Select",
-    "도시": "City",
-    "슈퍼 관리자": "Super Admin",
-    "플랫폼 운영자": "Platform Operator",
-    "전체 호텔": "Total Hotels",
-    "월 매출": "Monthly Revenue",
-    "이탈률": "Churn Rate",
-    "평균 가동률": "Average Occupancy",
-    "최근 7일 차트": "Recent 7-Day Chart",
-    "Country별 호텔 수": "Hotels by Country",
-    "베트남": "Vietnam",
-    "한국": "Korea",
-    "태국": "Thailand",
-    "최근 입점 호텔": "Recent Hotel Onboarding",
-    "전체": "All",
-    "검색": "Search",
-    "플랜": "Plan",
-    "운영 중": "Active",
-    "심사 중": "Under Review",
-    "활성 캠페인 TOP 3": "Top 3 Active Campaigns",
-    "캠페인": "Campaign",
-    "글로벌 시스템 로그": "Global System Logs",
-    "CSV 다운로드": "Download CSV",
-    "발생 시간": "Time",
-    "테넌트": "Tenant",
-    "호텔": "Hotel",
-    "모듈": "Module",
-    "메시지": "Message",
-    "결제": "Payment",
-    "객실": "Rooms",
-    "권한": "Permission",
-    "시스템": "System",
-    "배치 작업": "Batch Job",
-    "오류": "Error",
-    "PG사 타임아웃 오류 발생": "Payment gateway timeout error",
-    "RBAC 정책 충돌": "RBAC policy conflict",
-    "자동화 스크립트 오류": "Automation script error",
-    "메모리": "memory"
-});
-
-window.PMS_KO_EXACT_EN = Object.assign(window.PMS_KO_EXACT_EN || {}, {
-    "한국어": "Korean",
-    "Korea어": "Korean",
-    "월": "Mon",
-    "화": "Tue",
-    "수": "Wed",
-    "목": "Thu",
-    "금": "Fri",
-    "토": "Sat",
-    "일": "Sun",
-    "Country별 Hotel 수": "Hotels by Country",
-    "STATUS 코드": "Status Code",
-    "TIME\tTENANT (HOTEL)\tMODULE\tSTATUS 코드\tMESSAGE": "TIME\tTENANT (HOTEL)\tMODULE\tSTATUS CODE\tMESSAGE"
-});
-
-window.applyKoToEnFallback = function(lang) {
-    if (lang !== 'en') return;
-    const entries = Object.entries(window.PMS_KO_TO_EN || {}).sort((a,b) => b[0].length - a[0].length);
-    const exact = window.PMS_KO_EXACT_EN || {};
-    const skip = new Set(['SCRIPT','STYLE','NOSCRIPT']);
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-        acceptNode(node) {
-            const parent = node.parentElement;
-            if (!parent || skip.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
-            return /[\uAC00-\uD7AF]/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
-        }
-    });
-    const nodes = [];
-    let node;
-    while (node = walker.nextNode()) nodes.push(node);
-    nodes.forEach(n => {
-        const trimmed = n.nodeValue.trim();
-        let text = exact[trimmed] || n.nodeValue;
-        if (!exact[trimmed]) entries.forEach(([ko, en]) => { text = text.split(ko).join(en); });
-        n.nodeValue = text;
-    });
-};
-
-(function setupKoFallbackObserver(){
-    let scheduled = false;
-    const apply = () => {
-        scheduled = false;
-        if (typeof window.updateClock === 'function') window.updateClock();
-        window.applyKoToEnFallback(localStorage.getItem('pms_lang') || window.currentLang || 'ko');
-    };
-    const schedule = () => {
-        if (scheduled) return;
-        scheduled = true;
-        setTimeout(apply, 30);
-    };
-    document.addEventListener('change', e => {
-        if (e.target && (e.target.id === 'langSelect' || e.target.classList.contains('lang-select'))) schedule();
-    }, true);
-    document.addEventListener('DOMContentLoaded', schedule);
-    window.addEventListener('DataReady', schedule);
-    if (typeof MutationObserver !== 'undefined') {
-        new MutationObserver(schedule).observe(document.documentElement, {childList:true, subtree:true, characterData:true});
+window.t = function(key, params) {
+    const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+    const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
+    const dict = catalog[lang] || catalog.en || {};
+    const legacy = (window.translations && (window.translations[lang] || window.translations.en)) || {};
+    let value = dict[key] || legacy[key] || key;
+    if (params && typeof value === 'string') {
+        Object.keys(params).forEach(name => {
+            value = value.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+        });
     }
-})();
+    return value;
+};
 
 window.addEventListener('DataReady', () => {
     setupI18n();

@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
-    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/i18n-catalog.js"></script>
+<script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
@@ -568,7 +569,7 @@ function addAllocationRow(type='Standard Double', count=1, rate='') {
             <option ${type==='Suite'?'selected':''}>Suite</option>
         </select>
         <input type="number" class="form-input alloc-count" style="width:100%; padding:6px 10px; font-size:0.85rem;" min="1" value="${count}" onchange="calcTotalBlock()" placeholder="수량">
-        <input type="number" class="form-input alloc-rate" style="width:100%; padding:6px 10px; font-size:0.85rem;" value="${rate}" placeholder="특별단가(KRW)">
+        <input type="number" class="form-input alloc-rate" style="width:100%; padding:6px 10px; font-size:0.85rem;" value="${rate}" placeholder="특별단가(USD)">
         <button type="button" class="btn-outline-sm" style="color:var(--danger); border-color:var(--danger); padding:4px 8px;" onclick="this.parentElement.remove(); calcTotalBlock();"><i class="fa-solid fa-trash"></i></button>
     `;
     container.appendChild(row);
@@ -986,9 +987,9 @@ async function deleteGroup(id) {
     }
 
     function getCurrency() {
-        const saved = localStorage.getItem('pms_default_currency') || localStorage.getItem('pms_currency') || 'KRW';
+        const saved = localStorage.getItem('pms_default_currency') || localStorage.getItem('pms_currency') || 'USD';
         const code = saved.includes('USD') ? 'USD' : saved.includes('VND') ? 'VND' : saved.includes('KRW') ? 'KRW' : saved;
-        const symbols = { USD: '$', KRW: '₩', VND: '₫' };
+        const symbols = { USD: '$', KRW: 'KRW ', VND: 'VND ' };
         return { code, symbol: symbols[code] || code };
     }
 
@@ -1004,11 +1005,11 @@ async function deleteGroup(id) {
             if (saved) return JSON.parse(saved);
         } catch(e) {}
         return [
-            { id: 'Standard', name: 'Standard Double', basePrice: 100000 },
-            { id: 'Deluxe', name: 'Deluxe King', basePrice: 150000 },
-            { id: 'Premier', name: 'Premier Twin', basePrice: 180000 },
-            { id: 'Suite', name: 'Executive Suite', basePrice: 300000 },
-            { id: 'Penthouse', name: 'Penthouse', basePrice: 800000 }
+            { id: 'Standard', name: 'Standard Double', basePrice: 100 },
+            { id: 'Deluxe', name: 'Deluxe King', basePrice: 150 },
+            { id: 'Premier', name: 'Premier Twin', basePrice: 180 },
+            { id: 'Suite', name: 'Executive Suite', basePrice: 300 },
+            { id: 'Penthouse', name: 'Penthouse', basePrice: 800 }
         ];
     }
 

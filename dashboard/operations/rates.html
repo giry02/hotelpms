@@ -44,7 +44,8 @@
     </style>
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-operations.js"></script>
-    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/i18n-catalog.js"></script>
+<script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
@@ -163,8 +164,8 @@
             </div>
             
             <div style="display:flex;flex-direction:column;gap:6px">
-                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">변경할 요금 (KRW)</label>
-                <input type="number" id="batchPrice" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 150000">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">변경할 요금 (USD)</label>
+                <input type="number" id="batchPrice" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 150">
             </div>
             
             <div style="display:flex;flex-direction:column;gap:6px">
@@ -193,11 +194,11 @@
 <script>
 // --- 객실 유형 및 기본 요금 설정 ---
 let DEFAULT_ROOM_TYPES = [
-    { id: 'Standard', typeId: 'STD', name: 'Standard', basePrice: 100000, currency: 'KRW' },
-    { id: 'Deluxe', typeId: 'DLX', name: 'Deluxe', basePrice: 140000, currency: 'KRW' },
-    { id: 'Premier', typeId: 'PRM', name: 'Premier', basePrice: 100000, currency: 'KRW' },
-    { id: 'Penthouse', typeId: 'PTH', name: 'Penthouse', basePrice: 650000, currency: 'KRW' },
-    { id: 'Pool Villa', typeId: 'VIL', name: 'Pool Villa', basePrice: 380000, currency: 'KRW' }
+    { id: 'Standard', typeId: 'STD', name: 'Standard', basePrice: 100, currency: 'USD' },
+    { id: 'Deluxe', typeId: 'DLX', name: 'Deluxe', basePrice: 140, currency: 'USD' },
+    { id: 'Premier', typeId: 'PRM', name: 'Premier', basePrice: 100, currency: 'USD' },
+    { id: 'Penthouse', typeId: 'PTH', name: 'Penthouse', basePrice: 650, currency: 'USD' },
+    { id: 'Pool Villa', typeId: 'VIL', name: 'Pool Villa', basePrice: 380, currency: 'USD' }
 ];
 
 function getRoomTypes() {
@@ -216,7 +217,7 @@ let dailyRates = {}; // { '2026-05-01': { 'Standard': 120, 'Deluxe': 180, ... } 
 let currentYearMonth = '2026-05';
 
 function getCurrencyCode() {
-    return localStorage.getItem('pms_default_currency') || 'KRW';
+    return localStorage.getItem('pms_default_currency') || 'USD';
 }
 
 function formatRate(value) {
@@ -514,8 +515,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     const nativeRenderCalendar = window.renderCalendar;
     function currencyInfo() {
-        const code = localStorage.getItem('pms_default_currency') || 'KRW';
-        return { code, symbol: code === 'USD' ? '$' : code === 'VND' ? '₫' : '₩' };
+        const code = localStorage.getItem('pms_default_currency') || 'USD';
+        return { code, symbol: ({ USD: '$', VND: '₫', KRW: '₩' }[code] || code) };
     }
     function applyCurrencyLabels() {
         const cur = currencyInfo();
