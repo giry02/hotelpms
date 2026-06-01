@@ -78,9 +78,14 @@
 </div>
 </div>
 <script>
-	window.addEventListener('DataReady', () => {
+	function renderProfileDevices() {
 		const devices = window.AdminData?.devices || [];
 		const listEl = document.getElementById('deviceList');
+
+		if (!devices.length) {
+			listEl.innerHTML = '<div class="device-card"><div class="dev-info"><div class="dev-icon"><i class="fa-solid fa-laptop"></i></div><div class="dev-details"><h4>등록된 신뢰 기기가 없습니다.</h4><p>관리자 로그인 후 기기를 등록하면 이곳에 표시됩니다.</p></div></div></div>';
+			return;
+		}
 		
 		listEl.innerHTML = devices.map(d => {
 			const icon = d.name.includes('iPhone') || d.name.includes('Galaxy') ? 'fa-mobile-screen' : 'fa-laptop';
@@ -106,7 +111,10 @@
 			</div>
 			`;
 		}).join('');
-	});
+	}
+
+	if (window.onAdminDataReady) window.onAdminDataReady(renderProfileDevices);
+	else window.addEventListener('DataReady', renderProfileDevices);
 </script>
 </body>
 </html>

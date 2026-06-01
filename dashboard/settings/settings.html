@@ -72,7 +72,7 @@
                 <div class="form-section" id="sec-policy" style="margin-bottom: 0;">
                     <div class="form-header">
                         <div class="form-title">운영 정책</div>
-                        <div class="form-desc">Check-in/out 시간 및 Cancel 정책을 설정합니다.</div>
+                        <div class="form-desc">체크인/체크아웃 시간 및 취소 정책을 설정합니다.</div>
                     </div>
                     <div class="form-body">
                         <div class="form-row">
@@ -125,7 +125,7 @@
 
 <script>
 // i18n
-let currentLang='ko';
+let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 const translations={ko: {
         "Main": "메인",
         "Front Desk": "프론트 데스크",
@@ -182,10 +182,9 @@ const translations={ko: {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
-"Hotel Settings":"Hotel Settings","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Staff Mgmt":"Staff Mgmt","기본 정보":"기본 정보","Policies":"Policies","결제 및 세금":"결제 및 세금","호텔명":"호텔명","대표 전화번호":"대표 전화번호","대표 이메일":"대표 이메일","호텔 주소":"호텔 주소","Hotel Description (Multi)":"Hotel Description (Multi)","Cancel":"Cancel","Save":"Save","운영 정책":"운영 정책","기본 체크인 시간":"기본 체크인 시간","기본 체크아웃 시간":"기본 체크아웃 시간","취소 정책":"취소 정책","오버부킹 허용":"오버부킹 허용","사전 보증금 필수 (Pre-auth)":"사전 보증금 필수 (Pre-auth)"}};
+"Hotel Settings":"Hotel Settings","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Staff Mgmt":"Staff Mgmt","기본 정보":"Basic Info","Policies":"Policies","결제 및 세금":"Billing & Tax","호텔명":"Hotel Name","대표 전화번호":"Main Phone","대표 이메일":"Main Email","호텔 주소":"Hotel Address","Hotel Description (Multi)":"Hotel Description (Multi)","Default Multilingual Settings":"Default Multilingual Settings","Cancel":"Cancel","Save":"Save","운영 정책":"Operational Policies","기본 체크인 시간":"Default Check-in","기본 체크아웃 시간":"Default Check-out","취소 정책":"Cancellation Policy","오버부킹 허용":"Allow Overbooking","사전 보증금 필수 (Pre-auth)":"Require Deposit (Pre-auth)"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){
-    currentLang=l;
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
 }

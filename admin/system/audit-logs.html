@@ -60,7 +60,7 @@
 </div>
 </div>
 <script>
-	window.addEventListener('DataReady', () => {
+	function renderAuditLogs() {
 		const logs = window.AdminData?.auditLogs || [];
 		const tbody = document.getElementById('auditTableBody');
 		const actionLabel = {
@@ -68,24 +68,33 @@
 			'Failed Login': '로그인 실패',
 			'Permission Change': '권한 변경',
 			'Device Revoked': '기기 해제',
-			'Blocked Access': '접근 차단'
-		};
-		const detailsLabel = {
-			'Added new trusted device: iPhone 15 Pro': '신뢰 기기 추가: iPhone 15 Pro',
-			'Invalid password attempt': '잘못된 비밀번호 입력',
-			'Granted [SaaS Billing] access to ADM-002': 'ADM-002에 구독 결제 권한 부여',
-			'Auto-revoked expired device DEV-003': '만료된 기기 DEV-003 자동 해제',
-			'Login attempt from untrusted Geo-IP (Russia)': '신뢰되지 않은 지역 IP 로그인 시도'
+			'Blocked Access': '접근 차단',
+			'tenant.approve': '입점 승인',
+			'user.password_reset': '비밀번호 초기화'
 		};
 		const riskLabel = { Low: '낮음', Medium: '보통', High: '높음', Critical: '위험' };
+
+		const normalizeLog = (log) => ({
+			id: log.id || log.logId || '-',
+			time: log.time || log.createdAt || '-',
+			adminId: log.adminId || log.actor || log.actorId || '-',
+			action: log.action || '-',
+			details: log.details || log.target || log.message || '-',
+			ip: log.ip || '-',
+			risk: log.risk || (/fail|blocked|error/i.test(log.action || '') ? 'High' : 'Low')
+		});
 		
 		const renderLogs = (filter = 'all') => {
-			const filteredLogs = logs.filter(l => {
+			const filteredLogs = logs.map(normalizeLog).filter(l => {
 				if (filter === 'login') return /Login/i.test(l.action);
 				if (filter === 'device') return /Device/i.test(l.action);
 				if (filter === 'risk') return l.risk === 'High' || l.risk === 'Critical';
 				return true;
 			});
+			if (!filteredLogs.length) {
+				tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:28px;">표시할 감사 로그가 없습니다.</td></tr>';
+				return;
+			}
 			tbody.innerHTML = filteredLogs.map(l => {
 			let riskBadge = 'gray';
 			if (l.risk === 'Critical') riskBadge = 'red';
@@ -98,7 +107,7 @@
 				<td style="font-size:0.8rem;">${l.time}</td>
 				<td style="font-weight:600;">${l.adminId}</td>
 				<td><span class="badge ${riskBadge === 'red' ? 'red' : 'gray'}">${actionLabel[l.action] || l.action}</span></td>
-				<td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${detailsLabel[l.details] || l.details}">${detailsLabel[l.details] || l.details}</td>
+				<td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${l.details}">${l.details}</td>
 				<td style="font-family:monospace;">${l.ip}</td>
 				<td><span class="badge ${riskBadge}">${riskLabel[l.risk] || l.risk}</span></td>
 			</tr>
@@ -115,7 +124,10 @@
 			});
 		});
 		renderLogs();
-	});
+	}
+
+	if (window.onAdminDataReady) window.onAdminDataReady(renderAuditLogs);
+	else window.addEventListener('DataReady', renderAuditLogs);
 </script>
 </body>
 </html>

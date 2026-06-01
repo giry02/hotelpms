@@ -27,6 +27,38 @@
         { key: 'tenants', src: `${BASE}data/api/v1/admin/tenants.json` }
     ];
 
+    const FALLBACK_DATA = {
+        users: [
+            { id: 'ADM-1', name: 'Super Admin', email: 'superadmin@platform.example', role: 'Platform Owner', status: 'active', lastLogin: '2026-05-28 09:00' },
+            { id: 'ADM-2', name: 'Ops Manager', email: 'ops@platform.example', role: 'Operations', status: 'active', lastLogin: '2026-05-27 18:40' }
+        ],
+        billing: [
+            { id: 'INV-202605-001', tenantId: 'TENANT-GRAND-SAIGON', hotelName: 'The Grand Saigon', plan: 'Premium', amount: 1250000, currency: 'KRW', status: 'paid', issuedAt: '2026-05-01', dueAt: '2026-05-10' },
+            { id: 'INV-202605-002', tenantId: 'TENANT-HANOI-LAKE', hotelName: 'Hanoi Lakeside', plan: 'Standard', amount: 650000, currency: 'KRW', status: 'open', issuedAt: '2026-05-01', dueAt: '2026-05-10' }
+        ],
+        tickets: [
+            { id: 'TCK-1001', tenantId: 'TENANT-GRAND-SAIGON', hotelName: 'The Grand Saigon', title: '요금 캘린더 저장 확인 요청', status: 'open', priority: 'normal', createdAt: '2026-05-28 09:00' },
+            { id: 'TCK-1002', tenantId: 'TENANT-HANOI-LAKE', hotelName: 'Hanoi Lakeside', title: '관리자 비밀번호 초기화 요청', status: 'pending', priority: 'high', createdAt: '2026-05-27 10:15' }
+        ],
+        devices: [
+            { id: 'DEV-001', name: 'MacBook Pro - Chrome', os: 'macOS 14.0', ip: '112.168.45.12 (Seoul, KR)', addedAt: '2026-05-10', lastActive: '현재 접속 중', status: 'active', current: true },
+            { id: 'DEV-002', name: 'iPhone 15 Pro - Safari', os: 'iOS 17.2', ip: '211.55.102.8 (Busan, KR)', addedAt: '2026-05-12', lastActive: '2026-05-21 08:30', status: 'active', current: false },
+            { id: 'DEV-003', name: 'Galaxy Tab S9 - Chrome', os: 'Android 14', ip: '14.33.20.100 (Jeju, KR)', addedAt: '2026-03-05', lastActive: '2026-04-10 14:20', status: 'expired', current: false }
+        ],
+        auditLogs: [
+            { id: 'AUD-1001', actor: 'Super Admin', action: 'tenant.approve', target: 'APP-20260526-002', ip: '10.0.0.12', createdAt: '2026-05-26 15:10', risk: 'Low' },
+            { id: 'AUD-1002', actor: 'Ops Manager', action: 'user.password_reset', target: 'TENANT-GRAND-SAIGON', ip: '10.0.0.14', createdAt: '2026-05-27 12:00', risk: 'Medium' }
+        ],
+        tenantApplications: [
+            { id: 'APP-20260526-001', hotelName: 'Hanoi Lakeside', country: 'Vietnam', city: 'Hanoi', plan: 'Standard', rooms: 180, status: 'pending', email: 'owner@hanoilake.example' },
+            { id: 'APP-20260526-002', hotelName: 'Jeju Bay Resort', country: 'South Korea', city: 'Jeju', plan: 'Standard', rooms: 210, status: 'pending', email: 'owner@jejubay.example' }
+        ],
+        tenants: [
+            { id: 'TENANT-GRAND-SAIGON', hotelName: 'The Grand Saigon', country: 'Vietnam', city: 'Ho Chi Minh', plan: 'Premium', status: 'active', currency: 'KRW' },
+            { id: 'TENANT-HANOI-LAKE', hotelName: 'Hanoi Lakeside', country: 'Vietnam', city: 'Hanoi', plan: 'Standard', status: 'active', currency: 'VND' }
+        ]
+    };
+
     window.AdminData = window.AdminData || {};
     window.adminDataReady = false;
     window.onAdminDataReady = function(callback) {
@@ -45,7 +77,7 @@
                     ? (payload.data.items || payload.data)
                     : payload;
             } catch (err) {
-                window.AdminData[item.key] = window.AdminData[item.key] || [];
+                window.AdminData[item.key] = window.AdminData[item.key] || JSON.parse(JSON.stringify(FALLBACK_DATA[item.key] || []));
                 console.warn(`Admin data load failed: ${item.src}`, err);
             }
         }));

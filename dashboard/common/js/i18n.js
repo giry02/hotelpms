@@ -494,7 +494,207 @@ function changeLang(l) {
     });
 
     if(typeof window.applyLocalI18n === 'function') window.applyLocalI18n(l);
+    if(typeof window.applyKoToEnFallback === 'function') window.applyKoToEnFallback(l);
+    window.dispatchEvent(new Event('languagechange'));
 }
+
+window.PMS_KO_TO_EN = Object.assign(window.PMS_KO_TO_EN || {}, {
+    "전체": "All",
+    "검색": "Search",
+    "조회": "Search",
+    "추가": "Add",
+    "편집": "Edit",
+    "완료": "Completed",
+    "진행 중": "In Progress",
+    "처리중": "In Progress",
+    "답변완료": "Answered",
+    "취소": "Cancel",
+    "체크인": "Check-in",
+    "체크아웃": "Check-out",
+    "오늘 체크인": "Today's Check-in",
+    "체크인 대상": "Check-in Due",
+    "체크아웃 대상": "Check-out Due",
+    "투숙 중": "In-House",
+    "취소/노쇼": "Canceled/No-show",
+    "특이사항 없음": "No Notes",
+    "신분증 확인": "ID Verified",
+    "방해금지": "Do Not Disturb",
+    "예약 확정": "Confirmed Reservations",
+    "이전 예약": "Previous Reservation",
+    "단체 고객": "Group Guests",
+    "전체 행사": "All Events",
+    "현재 투숙 중": "Currently In-House",
+    "블록 배정 객실": "Blocked Rooms",
+    "미정산 단체": "Unsettled Groups",
+    "전체 업체": "All Companies",
+    "예정": "Scheduled",
+    "지난 행사": "Past Events",
+    "정산 필요": "Settlement Required",
+    "업체 관리": "Company Management",
+    "신규 행사 생성": "Create Group Event",
+    "등록 업체 수": "Registered Companies",
+    "계약 활성": "Active Contracts",
+    "진행/예정 행사": "Active/Scheduled Events",
+    "일반 기업": "Corporate",
+    "여행사": "Travel Agency",
+    "기타": "Other",
+    "신규 업체 등록": "Register Company",
+    "등록된 업체가 없습니다.": "No companies registered.",
+    "단체 블록을 찾을 수 없습니다. 목록으로": "Group block not found. Back to list",
+    "Room 점유율 (OCC)": "Room Occupancy (OCC)",
+    "평균 Room 단가 (ADR)": "Average Room Rate (ADR)",
+    "Room당 수익 (RevPAR)": "Revenue per Available Room (RevPAR)",
+    "오늘 체크인 / 체크아웃": "Today's Check-in / Check-out",
+    "주간 객실 현황": "Weekly Room Status",
+    "주간": "Weekly",
+    "월간": "Monthly",
+    "금일": "Today",
+    "금일 예약 건": "Today's Reservations",
+    "금일 라운딩 Completed": "Today's Completed Rounds",
+    "금일 대여 중/Completed": "Today's Rentals/Completed",
+    "제휴 업체 수": "Partner Companies",
+    "예상 수수료 수익": "Estimated Commission",
+    "업체 Actions": "Company Actions",
+    "신규 예약": "New Reservation",
+    "예약 Pending": "Reservation Pending",
+    "접수": "Received",
+    "청구액": "Charge",
+    "신규 접수": "New Request",
+    "오더 수락": "Accept Order",
+    "항목 Actions": "Item Actions",
+    "항목 관리": "Item Management",
+    "수동 오더 등록": "Manual Order",
+    "전체 오더": "All Orders",
+    "룸서비스": "Room Service",
+    "식음료/룸서비스": "F&B / Room Service",
+    "미니바": "Minibar",
+    "스파": "Spa",
+    "세탁": "Laundry",
+    "Day별 현황": "Daily Status",
+    "합계": "Total",
+    "Today의 Check-in Scheduled": "Today's Scheduled Check-ins",
+    "기간": "Period",
+    "실시간 활동": "Live Activity",
+    "Check-in Completed": "Check-in Completed",
+    "하우스키핑 작업 Update": "Housekeeping Updated",
+    "Check-out Scheduled": "Check-out Scheduled",
+    "Today의 Ancillary Svcs 주문": "Today's Ancillary Service Orders",
+    "시간": "Time",
+    "서비스": "Service",
+    "항목": "Item",
+    "처리": "Status",
+    "클럽 샌드위치": "Club Sandwich",
+    "아이스 라떼": "Iced Latte",
+    "맥주": "Beer",
+    "와인": "Wine",
+    "아로마 테라피": "Aromatherapy",
+    "분 코스": "min course",
+    "객실 청소": "Room Cleaning",
+    "수건 교체": "Towel Change",
+    "고객님": "Guest",
+    "룸서비스 오더": "Room Service Orders",
+    "통합 POS 주문": "Unified POS Orders",
+    "골프 예약": "Golf Reservations",
+    "렌터카 예약": "Rent-a-car Reservations",
+    "부가서비스 통합 대시보드": "Ancillary Services Dashboard",
+    "각 부가서비스 위젯을 클릭하여 상세 페이지로 이동하세요.": "Click each ancillary service widget to open details.",
+    "요금 일괄 수정": "Bulk Rate Edit",
+    "VIP 할인율 설정": "VIP Discount Settings",
+    "단체 할인율": "Group Discount Rate",
+    "기본 요금으로 초기화": "Reset to Default Rates",
+    "일자": "Date",
+    "객실": "Room",
+    "통합 POS": "Unified POS",
+    "골프장": "Golf",
+    "렌트카": "Rent-a-car",
+    "요금 미납": "Unpaid Billing",
+    "현재 이용 중": "Current Plan",
+    "플랜 변경": "Change Plan",
+    "청구 및 결제 이력": "Billing and Payment History",
+    "역할 및 접근 권한 관리": "Role and Access Management",
+    "역할 목록": "Role List",
+    "권한 설정": "Permission Settings",
+    "직원 목록": "Staff List",
+    "직원 등록": "Add Staff",
+    "전체 직원": "All Staff",
+    "근무 중": "On Duty",
+    "오프라인": "Offline",
+    "전체 역할": "All Roles",
+    "전체 상태": "All Statuses",
+    "나의 문의 내역": "My Support Tickets",
+    "문의하기": "Contact Support",
+    "답변 내역": "Replies",
+    "본사 시스템 공지": "Head Office System Notices",
+    "전체 카테고리": "All Categories",
+    "시스템 점검": "System Maintenance",
+    "업데이트": "Update",
+    "정책 변경": "Policy Change",
+    "방금 전": "Just now",
+    "분 전": "min ago",
+    "시간 전": "hours ago",
+    "개 권한": " permissions",
+    "층": "F"
+});
+
+window.PMS_KO_EXACT_EN = Object.assign(window.PMS_KO_EXACT_EN || {}, {
+    "🇰🇷 한국어": "🇰🇷 Korean",
+    "한국어": "Korean",
+    "월": "Mon",
+    "화": "Tue",
+    "수": "Wed",
+    "목": "Thu",
+    "금": "Fri",
+    "토": "Sat",
+    "일": "Sun",
+    "Today 총 Ancillary Rev": "Today's Total Ancillary Revenue",
+    "수거 중": "Picked up",
+    "예약Confirmed": "Reservation Confirmed"
+});
+
+window.applyKoToEnFallback = function(lang) {
+    if (lang !== 'en') return;
+    const entries = Object.entries(window.PMS_KO_TO_EN || {}).sort((a,b) => b[0].length - a[0].length);
+    const exact = window.PMS_KO_EXACT_EN || {};
+    const skip = new Set(['SCRIPT','STYLE','NOSCRIPT']);
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+            const parent = node.parentElement;
+            if (!parent || skip.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
+            return /[\uAC00-\uD7AF]/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+    });
+    const nodes = [];
+    let node;
+    while (node = walker.nextNode()) nodes.push(node);
+    nodes.forEach(n => {
+        const trimmed = n.nodeValue.trim();
+        let text = exact[trimmed] || n.nodeValue;
+        if (!exact[trimmed]) entries.forEach(([ko, en]) => { text = text.split(ko).join(en); });
+        n.nodeValue = text;
+    });
+};
+
+(function setupKoFallbackObserver(){
+    let scheduled = false;
+    const apply = () => {
+        scheduled = false;
+        if (typeof window.updateClock === 'function') window.updateClock();
+        window.applyKoToEnFallback(localStorage.getItem('pms_lang') || window.currentLang || 'ko');
+    };
+    const schedule = () => {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(apply, 30);
+    };
+    document.addEventListener('change', e => {
+        if (e.target && (e.target.id === 'langSelect' || e.target.classList.contains('lang-select'))) schedule();
+    }, true);
+    document.addEventListener('DOMContentLoaded', schedule);
+    window.addEventListener('DataReady', schedule);
+    if (typeof MutationObserver !== 'undefined') {
+        new MutationObserver(schedule).observe(document.documentElement, {childList:true, subtree:true, characterData:true});
+    }
+})();
 
 window.addEventListener('DataReady', () => {
     setupI18n();
@@ -563,7 +763,30 @@ Object.assign(window.translations.ko, {
     "Audit Logs": "감사 로그",
     "Platform Owner": "플랫폼 소유자",
     "Super Admin": "슈퍼 관리자",
-    "더보기 →": "더보기 →"
+    "더보기 →": "더보기 →",
+    "단체/행사 목록": "단체/행사 목록",
+    "단체업체 관리": "단체업체 관리",
+    "Group Events": "단체/행사 목록",
+    "호텔 알림": "호텔 알림",
+    "모두 읽음 처리": "모두 읽음 처리",
+    "모든 알림 보기 →": "모든 알림 보기 →",
+    "알림 및 실시간 활동": "알림 및 실시간 활동",
+    "행사 등록/관리": "행사 등록/관리",
+    "투숙 중": "투숙 중",
+    "하우스키핑 현황": "하우스키핑 현황",
+    "Clean": "청소 완료",
+    "Dirty": "미청소",
+    "Cleaning": "청소 중",
+    "Inspected": "점검 완료",
+    "New Diamond": "신규 다이아몬드",
+    "Vacant": "공실",
+    "Search": "검색",
+    "고객 등록": "고객 등록",
+    "기본 정보": "기본 정보",
+    "호텔명": "호텔명",
+    "대표 전화번호": "대표 전화번호",
+    "대표 이메일": "대표 이메일",
+    "호텔 주소": "호텔 주소"
 });
 Object.assign(window.translations.en, {
     "Group & MICE": "Group & MICE",
@@ -616,5 +839,28 @@ Object.assign(window.translations.en, {
     "Audit Logs": "Audit Logs",
     "Platform Owner": "Platform Owner",
     "Super Admin": "Super Admin",
-    "더보기 →": "View More →"
+    "더보기 →": "View More →",
+    "단체/행사 목록": "Group Events",
+    "단체업체 관리": "Group Companies",
+    "Group Events": "Group Events",
+    "호텔 알림": "Hotel Alerts",
+    "모두 읽음 처리": "Mark all read",
+    "모든 알림 보기 →": "View all notifications →",
+    "알림 및 실시간 활동": "Notifications & Live Activity",
+    "행사 등록/관리": "Group Event Management",
+    "투숙 중": "In-house",
+    "하우스키핑 현황": "Housekeeping Status",
+    "Clean": "Clean",
+    "Dirty": "Dirty",
+    "Cleaning": "Cleaning",
+    "Inspected": "Inspected",
+    "New Diamond": "New Diamond",
+    "Vacant": "Vacant",
+    "Search": "Search",
+    "고객 등록": "Add Guest",
+    "기본 정보": "Basic Info",
+    "호텔명": "Hotel Name",
+    "대표 전화번호": "Main Phone",
+    "대표 이메일": "Main Email",
+    "호텔 주소": "Hotel Address"
 });

@@ -51,31 +51,41 @@
 </div>
 </div>
 <script>
-	window.addEventListener('DataReady', () => {
+	function renderUsers() {
 		const users = window.AdminData?.users || [];
 		const tbody = document.getElementById('userTableBody');
 		const roleLabel = {
 			'System Admin': '시스템 관리자',
 			'Sales Manager': '영업 관리자',
-			'Support Specialist': '지원 담당자'
+			'Support Specialist': '지원 담당자',
+			'Platform Owner': '플랫폼 최고 관리자',
+			'Operations': '운영 관리자'
 		};
 		const statusLabel = { active: '활성', inactive: '비활성' };
+
+		if (!users.length) {
+			tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:28px;">표시할 관리자 계정이 없습니다.</td></tr>';
+			return;
+		}
 		
 		tbody.innerHTML = users.map(u => `
 			<tr>
-				<td><strong>${u.id}</strong></td>
-				<td>${u.name}</td>
+				<td><strong>${u.id || '-'}</strong></td>
+				<td>${u.name || '-'}</td>
 				<td><span class="badge ${u.role === 'System Admin' ? 'indigo' : 'gray'}">${roleLabel[u.role] || u.role}</span></td>
-				<td>${u.email}</td>
+				<td>${u.email || '-'}</td>
 				<td><span class="badge ${u.status === 'active' ? 'green' : 'red'}">${statusLabel[u.status] || u.status}</span></td>
-				<td>${u.lastLogin}</td>
+				<td>${u.lastLogin || '-'}</td>
 				<td>
 					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;" onclick="alert('${u.email} 계정 편집 화면을 엽니다.')">수정</button>
 					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;color:var(--primary);border-color:var(--primary)" onclick="sendAdminPasswordReset('${u.email}')"><i class="fa-solid fa-envelope"></i> 비밀번호 초기화</button>
 				</td>
 			</tr>
 		`).join('');
-	});
+	}
+
+	if (window.onAdminDataReady) window.onAdminDataReady(renderUsers);
+	else window.addEventListener('DataReady', renderUsers);
 
 	function sendAdminPasswordReset(email) {
 		alert(`${email}로 비밀번호 재설정 링크가 발송되었습니다.`);

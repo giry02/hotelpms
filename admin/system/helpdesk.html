@@ -88,12 +88,24 @@
 </div>
 </div>
 <script>
-	window.addEventListener('DataReady', () => {
+	function renderHelpdesk() {
 		const tickets = window.AdminData?.tickets || [];
 		const listEl = document.getElementById('ticketList');
-		const statusLabel = { open: '접수', 'in-progress': '처리 중', resolved: '완료' };
+		const statusLabel = { open: '접수', pending: '대기', 'in-progress': '처리 중', resolved: '완료' };
+		const normalizedTickets = tickets.map((ticket) => ({
+			id: ticket.id || ticket.ticketId || '-',
+			subject: ticket.subject || ticket.title || '-',
+			hotel: ticket.hotel || ticket.hotelName || ticket.tenantName || ticket.tenantId || '-',
+			status: ticket.status || 'open',
+			createdAt: ticket.createdAt || '-'
+		}));
+
+		if (!normalizedTickets.length) {
+			listEl.innerHTML = '<div class="ticket-item"><div class="tk-title">표시할 문의가 없습니다.</div><div class="tk-meta"><span>접수된 지원 티켓 없음</span></div></div>';
+			return;
+		}
 		
-		listEl.innerHTML = tickets.map((t, i) => `
+		listEl.innerHTML = normalizedTickets.map((t, i) => `
 			<div class="ticket-item ${i===0 ? 'active':''}">
 				<div class="tk-title">[${t.id}] ${t.subject}</div>
 				<div class="tk-meta">
@@ -114,7 +126,10 @@
 				body.scrollTop = body.scrollHeight;
 			});
 		}
-	});
+	}
+
+	if (window.onAdminDataReady) window.onAdminDataReady(renderHelpdesk);
+	else window.addEventListener('DataReady', renderHelpdesk);
 </script>
 </body>
 </html>

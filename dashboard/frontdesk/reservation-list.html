@@ -867,7 +867,7 @@ function selectResFilter(btn, filter, label) {
 // Removed sync call renderTable() here. Called below in DOMContentLoaded.
 
 // ===== i18n =====
-let currentLang = 'ko';
+let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 const translations = {
     ko: {
         "Main": "메인",
@@ -939,14 +939,14 @@ const translations = {
         "Support": "Support",
 
         "Booking List":"Reservation Management","Dashboard":"Dashboard","Reservations":"Reservations",
-        "Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십",
-        "Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산",
-        "Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리",
-        "All":"전체","Confirmed":"확정","Check-in":"체크인","Check-out":"체크아웃","Cancel":"Cancelled",
-        "Export":"Export Excel","New Booking":"신규 예약",
-        "Booking #":"예약번호","Guest":"고객","Room":"객실","Type":"유형",
-        "Stay":"숙박","Channel":"채널","Amount(USD)":"금액(USD)","Status":"상태","Actions":"관리",
-        "Main":"Main","Front Desk":"프론트 데스크","Guest & CRM":"Guest & CRM",
+        "Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members",
+        "Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing",
+        "Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt",
+        "All":"All","Confirmed":"Confirmed","Check-in":"Check-in","Check-out":"Check-out","Cancel":"Cancelled",
+        "Export":"Export Excel","New Booking":"New Booking",
+        "Booking #":"Booking #","Guest":"Guest","Room":"Room","Type":"Type",
+        "Stay":"Stay","Channel":"Channel","Amount(USD)":"Amount(USD)","Status":"Status","Actions":"Actions",
+        "Main":"Main","Front Desk":"Front Desk","Guest & CRM":"Guest & CRM",
         "Operations":"Operations","Settings":"Settings"
     }
 };
@@ -970,8 +970,7 @@ function setupI18n(){
         node.parentNode.replaceChild(frag,node);
     });
 }
-function changeLang(lang){
-    currentLang=lang;
+function changeLang(lang){currentLang=lang;window.currentLang=lang;localStorage.setItem('pms_lang', lang);
     const dict = Object.assign({}, window.translations ? window.translations[lang] : {}, translations[lang] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(el=>{
         const key=el.getAttribute('data-i18n-key');

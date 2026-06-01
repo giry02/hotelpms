@@ -434,7 +434,7 @@ renderGuests();
 updateFilterCounts();
 
 // i18n
-let currentLang='ko';
+let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 const translations={ko: {
         "Main": "메인",
         "Front Desk": "프론트 데스크",
@@ -491,9 +491,9 @@ const translations={ko: {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
-"Guest CRM":"Guest CRM","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Guests":"Total Guests","Return Rate":"Return Rate","VIP Guests":"VIP Guests","Avg. Spend/Guest":"Avg. Spend/Guest","All":"All","Export":"Export","고객 등록":"고객 등록","Guest":"Guest","Country":"Country","Tier":"Tier","Visits":"Visits","Last Stay":"Last Stay","Total Spend":"Total Spend","Contact":"Contact","Actions":"Actions"}};
+"Guest CRM":"Guest CRM","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Guests":"Total Guests","Return Rate":"Return Rate","VIP Guests":"VIP Guests","Avg. Spend/Guest":"Avg. Spend/Guest","All":"All","Export":"Export","고객 등록":"Add Guest","Guest":"Guest","Country":"Country","Tier":"Tier","Visits":"Visits","Last Stay":"Last Stay","Total Spend":"Total Spend","Contact":"Contact","Actions":"Actions"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){currentLang=l;const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});    document.getElementById('searchInput').placeholder=l==='en'?'Search name, phone, email...':'이름, Contact, 이메일 검색...';
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});    document.getElementById('searchInput').placeholder=l==='en'?'Search name, phone, email...':'이름, Contact, 이메일 검색...';
 }
 
 // 모달

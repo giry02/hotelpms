@@ -228,7 +228,7 @@
     </div>
 </div>
 
-<script type="module" src="common/js/pages/dashboard.js"></script>
+<script src="common/js/pages/dashboard.js"></script>
 
 <!-- Chart Data Layer Tooltip -->
 <div id="chartDataLayer" style="position:fixed; display:none; background:rgba(15,23,42,0.9); color:#fff; padding:12px 16px; border-radius:8px; font-size:0.85rem; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.3); pointer-events:none; backdrop-filter:blur(4px); transition:opacity 0.15s; opacity:0; transform:translate(-50%, -100%); margin-top:-15px;">
@@ -248,19 +248,25 @@ function toggleChartDataLayer(e, title, content) {
         hideChartDataLayer();
         return;
     }
+    showChartDataLayer(e, title, content);
+}
+
+function positionChartDataLayer(e) {
+    let x = e.clientX;
+    let y = e.clientY;
+    chartTooltip.style.left = x + 'px';
+    chartTooltip.style.top = y + 'px';
+}
+
+function showChartDataLayer(e, title, content) {
+    e.stopPropagation();
     chartTooltip.style.display = 'block';
     // Force reflow
     void chartTooltip.offsetWidth;
     chartTooltip.style.opacity = '1';
     chartTooltipTitle.innerHTML = title;
     chartTooltipContent.innerHTML = content;
-    
-    // Position
-    let x = e.clientX;
-    let y = e.clientY;
-    
-    chartTooltip.style.left = x + 'px';
-    chartTooltip.style.top = y + 'px';
+    positionChartDataLayer(e);
     activeChartData = title;
 }
 

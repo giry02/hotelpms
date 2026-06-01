@@ -595,7 +595,7 @@
 
 <script>
 // ===== STATE =====
-let currentLang = 'ko';
+let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 let currentFilter = 'all';
 let currentSearch = '';
 
@@ -810,8 +810,7 @@ function setupI18n(){
     });
 }
 
-function changeLang(lang){
-    currentLang = lang;
+function changeLang(lang){currentLang=lang;window.currentLang=lang;localStorage.setItem('pms_lang', lang);
     const dict = Object.assign({}, window.translations ? window.translations[lang] : {}, translations[lang] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(el => {
         const key = el.getAttribute('data-i18n-key');

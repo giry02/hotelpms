@@ -416,10 +416,9 @@ function showToast(msg, type = 'success') {
 }
 
 // i18n 처리 (기존 로직 유지)
-let currentLang='ko';
+let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 const translations={ko: {"Save Rates":"요금 저장"}, en: {"Save Rates":"Save Rates"}};
-function changeLang(l){
-    currentLang=l;
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{
         const k=e.getAttribute('data-i18n-key');

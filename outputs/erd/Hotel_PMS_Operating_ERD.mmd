@@ -1,0 +1,272 @@
+erDiagram
+  tenants {
+    varchar tenant_id PK "호텔/테넌트 ID"
+    varchar hotel_name "호텔명"
+    varchar country "국가"
+    varchar city "도시"
+    varchar status "active/trial/suspended"
+    char3 currency "기본 통화"
+  }
+  plans {
+    varchar plan_id PK "플랜 ID"
+    varchar plan_name "Free/Standard/Premium"
+    decimal monthly_fee "월 과금"
+    json features "제공 기능"
+  }
+  tenant_contracts {
+    varchar contract_id PK "계약 ID"
+    varchar tenant_id FK "tenants"
+    varchar plan_id FK "plans"
+    date contract_start "계약 시작"
+    date contract_end "계약 종료"
+    varchar billing_status "청구 상태"
+  }
+  admin_users {
+    varchar admin_user_id PK "관리자 ID"
+    varchar email "로그인 이메일"
+    varchar name "관리자명"
+    varchar role "super_admin"
+    varchar status "계정 상태"
+  }
+  audit_logs {
+    varchar audit_log_id PK "로그 ID"
+    varchar tenant_id FK "tenants"
+    varchar actor_type "admin/staff/system"
+    varchar actor_id "행위자 ID"
+    varchar action "수행 작업"
+    datetime created_at "발생 시각"
+  }
+  ad_campaigns {
+    varchar campaign_id PK "캠페인 ID"
+    varchar advertiser_name "광고주"
+    varchar campaign_name "캠페인명"
+    varchar status "집행 상태"
+    date start_date "시작일"
+    date end_date "종료일"
+  }
+  ad_targeting_rules {
+    varchar rule_id PK "타겟팅 규칙 ID"
+    varchar campaign_id FK "ad_campaigns"
+    varchar tenant_id FK "tenants nullable"
+    varchar country "국가 조건"
+    varchar city "도시 조건"
+    int weight "가중치"
+  }
+  buildings {
+    varchar building_id PK "건물 ID"
+    varchar tenant_id FK "tenants"
+    varchar building_name "건물명"
+    int floor_count "층수"
+    boolean active "사용 여부"
+  }
+  room_types {
+    varchar room_type_id PK "객실 유형 ID"
+    varchar tenant_id FK "tenants"
+    varchar type_name "유형명"
+    int base_occupancy "기준 인원"
+    int max_occupancy "최대 인원"
+    decimal base_rate "기본 요금"
+  }
+  rooms {
+    varchar room_id PK "객실 ID"
+    varchar tenant_id FK "tenants"
+    varchar building_id FK "buildings"
+    varchar room_type_id FK "room_types"
+    varchar room_no "객실 번호"
+    varchar front_status "프론트 상태"
+    varchar housekeeping_status "청소 상태"
+  }
+  daily_rates {
+    varchar daily_rate_id PK "요금 ID"
+    varchar tenant_id FK "tenants"
+    varchar room_type_id FK "room_types"
+    date stay_date "숙박일"
+    decimal rate_amount "요금"
+    char3 currency "통화"
+  }
+  roles {
+    varchar role_id PK "역할 ID"
+    varchar tenant_id FK "tenants"
+    varchar role_name "Admin/GM/Desk 등"
+    json permissions "메뉴/기능 권한"
+  }
+  staff_users {
+    varchar staff_id PK "직원 ID"
+    varchar tenant_id FK "tenants"
+    varchar role_id FK "roles"
+    varchar email "로그인 이메일"
+    varchar name "직원명"
+    varchar department "부서"
+    varchar status "재직 상태"
+  }
+  guests {
+    varchar guest_id PK "고객 ID"
+    varchar tenant_id FK "tenants"
+    varchar tier_id FK "membership_tiers"
+    varchar guest_name "고객명"
+    varchar phone "연락처"
+    varchar email "이메일"
+    varchar status "고객 상태"
+  }
+  membership_tiers {
+    varchar tier_id PK "등급 ID"
+    varchar tenant_id FK "tenants"
+    varchar tier_name "등급명"
+    decimal min_spend "승급 기준"
+    json benefits "혜택"
+  }
+  companies {
+    varchar company_id PK "업체 ID"
+    varchar tenant_id FK "tenants"
+    varchar company_name "업체명"
+    varchar company_type "기업/여행사"
+    varchar payment_terms "후불/개별 정산"
+    varchar status "거래 상태"
+  }
+  group_events {
+    varchar group_event_id PK "행사 ID"
+    varchar tenant_id FK "tenants"
+    varchar company_id FK "companies"
+    varchar event_name "행사명"
+    date arrival_date "도착일"
+    date departure_date "출발일"
+    varchar status "행사 상태"
+  }
+  reservations {
+    varchar reservation_id PK "예약 ID"
+    varchar tenant_id FK "tenants"
+    varchar guest_id FK "guests"
+    varchar room_id FK "rooms nullable"
+    varchar room_type_id FK "room_types"
+    varchar group_event_id FK "group_events nullable"
+    date check_in_date "체크인"
+    date check_out_date "체크아웃"
+    varchar status "예약 상태"
+    decimal total_amount "총 금액"
+  }
+  room_allocations {
+    varchar allocation_id PK "배정 ID"
+    varchar group_event_id FK "group_events"
+    varchar reservation_id FK "reservations"
+    varchar room_id FK "rooms"
+    varchar guest_name "투숙객명"
+    varchar status "배정 상태"
+  }
+  folios {
+    varchar folio_id PK "Folio ID"
+    varchar tenant_id FK "tenants"
+    varchar reservation_id FK "reservations"
+    varchar guest_id FK "guests"
+    varchar folio_status "open/closed"
+    decimal balance_amount "잔액"
+  }
+  folio_items {
+    varchar folio_item_id PK "항목 ID"
+    varchar folio_id FK "folios"
+    varchar item_type "room/pos/service/tax"
+    varchar description "항목 설명"
+    decimal amount "금액"
+    datetime posted_at "반영 시각"
+  }
+  payments {
+    varchar payment_id PK "결제 ID"
+    varchar folio_id FK "folios"
+    varchar method "cash/card/transfer"
+    decimal amount "결제 금액"
+    varchar approval_no "승인번호"
+    datetime paid_at "결제 시각"
+  }
+  pos_orders {
+    varchar pos_order_id PK "주문 ID"
+    varchar tenant_id FK "tenants"
+    varchar folio_id FK "folios nullable"
+    varchar outlet "업장"
+    varchar order_status "주문 상태"
+    decimal total_amount "주문 금액"
+  }
+  ancillary_orders {
+    varchar ancillary_order_id PK "주문 ID"
+    varchar tenant_id FK "tenants"
+    varchar reservation_id FK "reservations nullable"
+    varchar folio_id FK "folios nullable"
+    varchar service_type "golf/rentacar/room_service"
+    varchar status "처리 상태"
+    decimal amount "금액"
+  }
+  housekeeping_tasks {
+    varchar task_id PK "작업 ID"
+    varchar tenant_id FK "tenants"
+    varchar room_id FK "rooms"
+    varchar assigned_staff_id FK "staff_users nullable"
+    varchar task_status "대기/진행/완료"
+    datetime due_at "예정 시각"
+  }
+  maintenance_requests {
+    varchar maintenance_id PK "보수 요청 ID"
+    varchar tenant_id FK "tenants"
+    varchar room_id FK "rooms nullable"
+    varchar assigned_staff_id FK "staff_users nullable"
+    varchar priority "우선순위"
+    varchar status "처리 상태"
+  }
+  night_audits {
+    varchar night_audit_id PK "마감 ID"
+    varchar tenant_id FK "tenants"
+    date audit_date "마감일"
+    decimal room_revenue "객실 매출"
+    decimal folio_balance "Folio 잔액"
+    varchar status "마감 상태"
+  }
+  notices {
+    varchar notice_id PK "공지 ID"
+    varchar tenant_id FK "tenants nullable"
+    varchar portal_scope "dashboard/admin"
+    varchar title "제목"
+    varchar status "게시 상태"
+    datetime published_at "게시 시각"
+  }
+  support_tickets {
+    varchar ticket_id PK "문의 ID"
+    varchar tenant_id FK "tenants nullable"
+    varchar requester_name "요청자"
+    varchar category "카테고리"
+    varchar status "처리 상태"
+    datetime created_at "접수 시각"
+  }
+  tenants ||--o{ tenant_contracts : "tenant_id"
+  plans ||--o{ tenant_contracts : "plan_id"
+  tenants ||--o{ audit_logs : "tenant_id"
+  ad_campaigns ||--o{ ad_targeting_rules : "campaign_id"
+  tenants ||--o{ ad_targeting_rules : "tenant_id optional"
+  tenants ||--o{ buildings : "tenant_id"
+  tenants ||--o{ room_types : "tenant_id"
+  buildings ||--o{ rooms : "building_id"
+  room_types ||--o{ rooms : "room_type_id"
+  room_types ||--o{ daily_rates : "room_type_id"
+  tenants ||--o{ roles : "tenant_id"
+  roles ||--o{ staff_users : "role_id"
+  tenants ||--o{ guests : "tenant_id"
+  membership_tiers ||--o{ guests : "tier_id"
+  tenants ||--o{ companies : "tenant_id"
+  companies ||--o{ group_events : "company_id"
+  guests ||--o{ reservations : "guest_id"
+  rooms ||--o{ reservations : "room_id"
+  room_types ||--o{ reservations : "room_type_id"
+  group_events ||--o{ reservations : "group_event_id"
+  group_events ||--o{ room_allocations : "group_event_id"
+  reservations ||--o{ room_allocations : "reservation_id"
+  rooms ||--o{ room_allocations : "room_id"
+  reservations ||--|| folios : "reservation_id"
+  guests ||--o{ folios : "guest_id"
+  folios ||--o{ folio_items : "folio_id"
+  folios ||--o{ payments : "folio_id"
+  folios ||--o{ pos_orders : "folio_id optional"
+  reservations ||--o{ ancillary_orders : "reservation_id optional"
+  folios ||--o{ ancillary_orders : "folio_id optional"
+  rooms ||--o{ housekeeping_tasks : "room_id"
+  rooms ||--o{ maintenance_requests : "room_id optional"
+  staff_users ||--o{ housekeeping_tasks : "assigned_staff_id"
+  staff_users ||--o{ maintenance_requests : "assigned_staff_id"
+  tenants ||--o{ night_audits : "tenant_id"
+  tenants ||--o{ notices : "tenant_id optional"
+  tenants ||--o{ support_tickets : "tenant_id optional"

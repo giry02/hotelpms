@@ -407,7 +407,7 @@ if (pDept) {
 }
 
 // i18n
-let currentLang='ko';
+let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 const translations={ko: {
         "Main": "메인",
         "Front Desk": "프론트 데스크",
@@ -466,8 +466,7 @@ const translations={ko: {
         "Support": "Support",
 "객실 정산서":"객실 정산서","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","정산 완료 Today":"정산 완료 Today","Outstanding Bal":"Outstanding Bal","Ancillary Rev":"Ancillary Rev","Card Payment %":"Card Payment %","All":"All","Export Transactions":"Export Transactions","Room":"Room","Guest":"Guest","Check-out":"Check-out","Total":"Total","Paid (Deposit)":"Paid (Deposit)","Status":"Status","Actions":"Actions"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){
-    currentLang=l;
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room, guest, folio...':'Room번호, Guest명, Folio 번호 검색...';

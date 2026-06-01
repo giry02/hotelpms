@@ -118,8 +118,45 @@
 <script>
 	let currentFilter = 'all';
 
+	function normalizeBillingStatus(invoice) {
+		const rawStatus = invoice.status || 'open';
+		if (['paid', 'overdue', 'expiring', 'expired'].includes(rawStatus)) return rawStatus;
+		if (rawStatus === 'cancelled' || rawStatus === 'canceled') return 'expired';
+
+		const dueAt = invoice.dueAt || invoice.date || invoice.renewalDate;
+		if (dueAt) {
+			const today = new Date('2026-06-01T00:00:00+09:00');
+			const dueDate = new Date(`${dueAt}T00:00:00+09:00`);
+			const diffDays = Math.ceil((dueDate - today) / 86400000);
+			invoice.dday = diffDays;
+			if (diffDays < 0) return 'overdue';
+			if (diffDays <= 3) return 'expiring';
+		}
+		return 'open';
+	}
+
+	function formatMoney(amount, currency) {
+		const value = Number(amount?.amount ?? amount ?? 0);
+		const code = currency || amount?.currency || 'KRW';
+		return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(value);
+	}
+
+	function normalizeInvoice(invoice) {
+		return {
+			id: invoice.id || invoice.invoiceId || invoice.tenantId || '-',
+			hotel: invoice.hotel || invoice.hotelName || invoice.tenantName || invoice.tenantId || '-',
+			plan: invoice.plan || 'Standard',
+			cycle: invoice.cycle || invoice.billingCycle || 'Monthly',
+			amount: invoice.amount,
+			currency: invoice.currency || invoice.amount?.currency || 'KRW',
+			date: invoice.date || invoice.dueAt || invoice.renewalDate || invoice.issuedAt || '-',
+			status: normalizeBillingStatus(invoice),
+			dday: invoice.dday
+		};
+	}
+
 	function renderTable() {
-		const invoices = window.AdminData?.billing || [];
+		const invoices = (window.AdminData?.billing || []).map(normalizeInvoice);
 		const tbody = document.getElementById('billingTableBody');
 		
 		const filtered = invoices.filter(i => {
@@ -127,12 +164,18 @@
 			return i.status === currentFilter;
 		});
 
+		if (!filtered.length) {
+			tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:28px;">표시할 결제 내역이 없습니다.</td></tr>';
+			return;
+		}
+
 		tbody.innerHTML = filtered.map(i => {
 			let badgeColor = 'gray';
 			let statusLabel = i.status;
 			let actionBtn = '-';
 			
 			if (i.status === 'paid') { badgeColor = 'green'; statusLabel = '결제 완료'; }
+			if (i.status === 'open') { badgeColor = 'orange'; statusLabel = '미결제'; }
 			if (i.status === 'overdue') { badgeColor = 'red'; statusLabel = '연체'; }
 			if (i.status === 'expiring') { 
 				badgeColor = 'orange'; 
@@ -150,7 +193,7 @@
 				<td><strong style="font-weight:600;">${i.hotel}</strong><br><span style="font-size:0.7rem;color:var(--txt3)">${i.id}</span></td>
 				<td><span class="badge ${i.plan === 'Premium' ? 'purple' : 'gray'}">${i.plan}</span></td>
 				<td>${i.cycle === 'Yearly' ? '<span class="badge indigo">연간</span>' : '<span class="badge gray">월간</span>'}</td>
-				<td style="font-weight:600;">$${i.amount.toLocaleString()}</td>
+				<td style="font-weight:600;">${formatMoney(i.amount, i.currency)}</td>
 				<td>${i.date}</td>
 				<td><span class="badge ${badgeColor}">${statusLabel}</span></td>
 				<td>${actionBtn}</td>
@@ -169,7 +212,8 @@
 	function openModal(id) { document.getElementById(id).classList.add('active'); }
 	function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-	window.addEventListener('DataReady', renderTable);
+	if (window.onAdminDataReady) window.onAdminDataReady(renderTable);
+	else window.addEventListener('DataReady', renderTable);
 </script>
 </body>
 </html>

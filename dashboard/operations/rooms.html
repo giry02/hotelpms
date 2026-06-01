@@ -563,7 +563,7 @@ function saveRoom() {
 updateFilterCounts();
 
 // i18n
-let currentLang='ko';
+let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 const translations={ko: {
         "Main": "메인",
         "Front Desk": "프론트 데스크",
@@ -592,7 +592,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"Room Mgmt":"객실 관리","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Total Rooms":"총 객실","Occupied":"투숙 중","Vacant":"공실 (Vacant)","OOS":"점검 중 (OOS)","All":"전체","Occupied":"투숙 중","Vacant Clean":"청결 공실","Vacant Dirty":"오염 공실","Out of Order":"점검 중","Export":"엑셀 다운","Room Types":"객실 유형 관리","Add Room":"신규 객실 등록","Add Room":"신규 객실 등록"},en: {
+"Room Mgmt":"객실 관리","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Total Rooms":"총 객실","Occupied":"투숙 중","Vacant":"공실","OOS":"점검 중 (OOS)","All":"전체","Occupied":"투숙 중","Vacant Clean":"청결 공실","Vacant Dirty":"오염 공실","Out of Order":"점검 중","Export":"엑셀 다운","Room Types":"객실 유형 관리","Add Room":"신규 객실 등록","Add Room":"신규 객실 등록"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -622,8 +622,7 @@ const translations={ko: {
         "Support": "Support",
 "Room Mgmt":"Room Mgmt","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Rooms":"Total Rooms","Occupied":"Occupied","Vacant":"Vacant","OOS":"OOS","All":"All","Occupied":"Occupied","Vacant Clean":"Vacant Clean","Vacant Dirty":"Vacant Dirty","Out of Order":"Out of Order","Export":"Export","Room Types":"Room Types","Add Room":"Add Room","Add Room":"Add Room"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){
-    currentLang=l;
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room 번호 검색...';
