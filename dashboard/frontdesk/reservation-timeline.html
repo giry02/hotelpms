@@ -651,21 +651,11 @@ function buildMobileView() {
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const container = document.querySelector('.tl-container');
-        // Visual debug start
-        if(container) container.innerHTML += '<div id="debugLog" style="padding:10px;color:red;font-size:12px;">[Debug] Init...</div>';
-        
-        const log = (msg) => {
-            const d = document.getElementById('debugLog');
-            if(d) d.innerHTML += `<div>${msg}</div>`;
-        };
-        
         // Clear cached local storage to ensure fresh fallback data is used
         localStorage.removeItem('pms_rooms');
         localStorage.removeItem('pms_timeline_res');
         // removed init
-        
-        log('Fetching rooms...');
+
         const [rmData, resData] = await Promise.all([
             PmsAPI.getAllRooms(),
             PmsAPI.getTimelineReservations()
@@ -673,22 +663,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         rooms = rmData;
         window.reservations = resData;
         alignTimelineToFirstGroupBlock();
-        log(`Fetched ${rooms ? rooms.length : 0} rooms.`);
-        log(`Fetched ${reservations ? reservations.length : 0} reservations.`);
-        
-        log('Building timeline...');
+
         buildTimeline();
         buildMobileView();
         if(typeof updateDateRangeText === 'function') updateDateRangeText();
-        log('Timeline built.');
-        
-        log('Building mobile view...');
+
         buildMobileView();
-        log('Mobile view built.');
-        
-        // Remove debug if successful
-        const d = document.getElementById('debugLog');
-        if(d) d.remove();
 
         if (typeof window.changeLang === 'function') {
             window.changeLang(document.getElementById('langSelect')?.value || 'ko');
