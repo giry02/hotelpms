@@ -342,13 +342,13 @@ function buildTimeline() {
 
     let cntConfirmed=0, cntCheckedin=0, cntCheckout=0, cntVip=0, cntB2B=0;
 
-    // Count all reservations to maintain consistency with other views
+    // Count assigned group guests only; unassigned group block rooms are inventory, not guests.
     reservations.forEach(res => {
-        const isB2B = res.isB2B;
+        const isB2BGuest = (res.groupId || res.isB2B) && !!timelineGuestName(res);
         const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
         const effectiveStatus = effectiveTimelineStatus(res);
         if(isVip) cntVip++;
-        if(isB2B) cntB2B++;
+        if(isB2BGuest) cntB2B++;
         if(effectiveStatus === 'confirmed') cntConfirmed++;
         else if(effectiveStatus === 'checkedin') cntCheckedin++;
         else if(effectiveStatus === 'checkout') cntCheckout++;
