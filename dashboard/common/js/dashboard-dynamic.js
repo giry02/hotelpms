@@ -45,6 +45,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         '"': '&quot;',
         "'": '&#39;'
     }[char]));
+    const lang = () => window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+    const tr = (key) => typeof window.t === 'function' ? window.t(key) : key;
+    const roomText = (roomNo) => {
+        const room = escapeHtml(roomNo || tr('Room'));
+        return lang() === 'en' ? `${tr('Room')} ${room}` : `${room}${tr('room')}`;
+    };
 
     let rooms = [];
     let reservations = [];
@@ -102,7 +108,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         kpiVals[3].textContent = `${todayCheckin || summary?.arrivals || 0} / ${todayCheckout || summary?.departures || 0}`;
         const kpiLabel = kpiVals[3].nextElementSibling;
         if (kpiLabel && kpiLabel.classList.contains('kpi-label')) {
-            kpiLabel.textContent = '오늘 체크인 / 체크아웃';
+            kpiLabel.setAttribute('data-i18n-key', "Today's Check-in / Check-out");
+            kpiLabel.textContent = tr("Today's Check-in / Check-out");
         }
     }
 
@@ -131,7 +138,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return `<tr><td><div class="guest-cell"><div class="guest-avatar" style="background:${escapeHtml(r.color || '#3B82F6')}">${initials}</div><div>${guest} ${vipBadge}</div></div></td><td>${room}</td><td>${type}</td><td>${stay}</td><td><span class="status-badge confirmed">Confirmed</span></td></tr>`;
             }).join('');
         } else {
-            checkinBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:20px">오늘 예정된 체크인이 없습니다.</td></tr>';
+            checkinBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:20px">${tr('No scheduled check-ins for today.')}</td></tr>`;
         }
     }
 
@@ -141,9 +148,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const secondReservation = todayCheckoutRes[0] || reservations.find(r => ['checked-in', 'checkedin'].includes(normalizeStatus(r.status))) || {};
         const firstTask = tasks[0] || {};
         const activities = [
-            { icon: 'ci', iconClass: 'fa-right-to-bracket', text: `<b>${escapeHtml(firstReservation.room || firstReservation.roomNo || '객실')}호</b> ${escapeHtml(firstReservation.guest || firstReservation.guestName || 'Guest')} 체크인 예정`, time: '오늘' },
-            { icon: 'hk', iconClass: 'fa-broom', text: `<b>${escapeHtml(firstTask.room || firstTask.roomNo || '객실')}호</b> 하우스키핑 작업 업데이트`, time: '5분 전' },
-            { icon: 'co', iconClass: 'fa-right-from-bracket', text: `<b>${escapeHtml(secondReservation.room || secondReservation.roomNo || '객실')}호</b> ${escapeHtml(secondReservation.guest || secondReservation.guestName || 'Guest')} 체크아웃 예정`, time: '오늘' }
+            { icon: 'ci', iconClass: 'fa-right-to-bracket', text: `<b>${roomText(firstReservation.room || firstReservation.roomNo)}</b> ${escapeHtml(firstReservation.guest || firstReservation.guestName || 'Guest')} ${tr('Scheduled check-in')}`, time: tr('Today') },
+            { icon: 'hk', iconClass: 'fa-broom', text: `<b>${roomText(firstTask.room || firstTask.roomNo)}</b> ${tr('Housekeeping task updated')}`, time: tr('5 min ago') },
+            { icon: 'co', iconClass: 'fa-right-from-bracket', text: `<b>${roomText(secondReservation.room || secondReservation.roomNo)}</b> ${escapeHtml(secondReservation.guest || secondReservation.guestName || 'Guest')} ${tr('Scheduled check-out')}`, time: tr('Today') }
         ];
         activityList.innerHTML = activities.map(a => `<div class="activity-item"><div class="activity-icon ${a.icon}"><i class="fa-solid ${a.iconClass}"></i></div><div><div class="activity-text">${a.text}</div><div class="activity-time">${a.time}</div></div></div>`).join('');
     }

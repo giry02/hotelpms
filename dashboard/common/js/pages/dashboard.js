@@ -3,21 +3,40 @@
     const DAY_LABELS = {
         Mon: "월", Tue: "화", Wed: "수", Thu: "목", Fri: "금", Sat: "토", Sun: "일"
     };
+    const SERVICE_LABELS = {
+        spa: { ko: "스파", en: "Spa" },
+        golf: { ko: "골프 예약", en: "Golf Booking" },
+        roomService: { ko: "룸서비스", en: "Room Service" },
+        minibar: { ko: "미니바", en: "Minibar" },
+        laundry: { ko: "세탁", en: "Laundry" }
+    };
+    const SERVICE_NAME_TO_KEY = {
+        "스파": "spa",
+        "Spa": "spa",
+        "골프 예약": "golf",
+        "Golf Booking": "golf",
+        "룸서비스": "roomService",
+        "Room Service": "roomService",
+        "미니바": "minibar",
+        "Minibar": "minibar",
+        "세탁": "laundry",
+        "Laundry": "laundry"
+    };
 
     const DEFAULT_SERVICE_DATA = [
-        { name: "스파", val: 540, pct: 42, icon: "fa-spa", color: "#EC4899" },
-        { name: "골프 예약", val: 320, pct: 25, icon: "fa-golf-ball-tee", color: "#10B981" },
-        { name: "룸서비스", val: 215, pct: 17, icon: "fa-utensils", color: "#F59E0B" },
-        { name: "미니바", val: 120, pct: 9, icon: "fa-wine-glass", color: "#8B5CF6" },
-        { name: "세탁", val: 90, pct: 7, icon: "fa-shirt", color: "#3B82F6" }
+        { key: "spa", name: "스파", val: 540, pct: 42, icon: "fa-spa", color: "#EC4899" },
+        { key: "golf", name: "골프 예약", val: 320, pct: 25, icon: "fa-golf-ball-tee", color: "#10B981" },
+        { key: "roomService", name: "룸서비스", val: 215, pct: 17, icon: "fa-utensils", color: "#F59E0B" },
+        { key: "minibar", name: "미니바", val: 120, pct: 9, icon: "fa-wine-glass", color: "#8B5CF6" },
+        { key: "laundry", name: "세탁", val: 90, pct: 7, icon: "fa-shirt", color: "#3B82F6" }
     ];
 
     const WEEKLY_SERVICE_DATA = [
-        { name: "스파", val: 3200, pct: 38, icon: "fa-spa", color: "#EC4899" },
-        { name: "골프 예약", val: 2400, pct: 28, icon: "fa-golf-ball-tee", color: "#10B981" },
-        { name: "룸서비스", val: 1500, pct: 18, icon: "fa-utensils", color: "#F59E0B" },
-        { name: "미니바", val: 850, pct: 10, icon: "fa-wine-glass", color: "#8B5CF6" },
-        { name: "세탁", val: 500, pct: 6, icon: "fa-shirt", color: "#3B82F6" }
+        { key: "spa", name: "스파", val: 3200, pct: 38, icon: "fa-spa", color: "#EC4899" },
+        { key: "golf", name: "골프 예약", val: 2400, pct: 28, icon: "fa-golf-ball-tee", color: "#10B981" },
+        { key: "roomService", name: "룸서비스", val: 1500, pct: 18, icon: "fa-utensils", color: "#F59E0B" },
+        { key: "minibar", name: "미니바", val: 850, pct: 10, icon: "fa-wine-glass", color: "#8B5CF6" },
+        { key: "laundry", name: "세탁", val: 500, pct: 6, icon: "fa-shirt", color: "#3B82F6" }
     ];
 
     const FALLBACK_DASHBOARD_DATA = {
@@ -50,6 +69,19 @@
         return !value || /[?�]/.test(String(value));
     }
 
+    function tr(key) {
+        return typeof window.t === "function" ? window.t(key) : key;
+    }
+
+    function serviceKey(service, index) {
+        return service.key || SERVICE_NAME_TO_KEY[service.name] || DEFAULT_SERVICE_DATA[index]?.key || "roomService";
+    }
+
+    function serviceLabel(service, index) {
+        const key = serviceKey(service, index);
+        return SERVICE_LABELS[key]?.[currentLang === "en" ? "en" : "ko"] || service.name;
+    }
+
     function normalizeDashboardData(data) {
         const fallback = clone(FALLBACK_DASHBOARD_DATA);
         const next = data && typeof data === "object" ? data : fallback;
@@ -67,6 +99,7 @@
                 occ: Number(item.occ || 0)
             })),
             svcData: (next.svcData && next.svcData.length ? next.svcData : fallback.svcData).map((item, index) => ({
+                key: item.key || SERVICE_NAME_TO_KEY[item.name] || serviceDefaults[index]?.key || "roomService",
                 name: isBrokenText(item.name) ? serviceDefaults[index]?.name || `서비스 ${index + 1}` : item.name,
                 val: Number(item.val || 0),
                 pct: Number(item.pct || 0),
@@ -114,10 +147,10 @@
             data.forEach((item) => {
                 const bar = document.createElement("div");
                 bar.style.cssText = "flex:1;min-width:28px;display:flex;flex-direction:column;align-items:center;height:100%;cursor:pointer";
-                const tooltipTitle = `월간 객실 통계 - ${item.day}`;
+                const tooltipTitle = `${tr("Monthly Room Statistics")} - ${item.day}`;
                 const tooltipContent = `
-                    <div style="display:flex;justify-content:space-between;gap:20px"><span>가동 객실:</span><strong style="color:var(--primary)">${item.occ}실</strong></div>
-                    <div style="display:flex;justify-content:space-between;gap:20px"><span>가동률:</span><strong>${(item.occ / 150 * 100).toFixed(1)}%</strong></div>`;
+                    <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Active Rooms")}:</span><strong style="color:var(--primary)">${item.occ}</strong></div>
+                    <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Occupancy Rate")}:</span><strong>${(item.occ / 150 * 100).toFixed(1)}%</strong></div>`;
                 bar.innerHTML = `
                     <div style="font-size:.56rem;font-weight:700;color:var(--txt);flex-shrink:0;margin-bottom:2px">${item.occ}</div>
                     <div style="flex:1;width:100%;display:flex;align-items:flex-end">
@@ -141,17 +174,18 @@
             const isUp = diff >= 0;
             const group = document.createElement("div");
             group.style.cssText = "flex:1;display:flex;flex-direction:column;align-items:center;height:100%;cursor:pointer";
-            const tooltipTitle = `주간 객실 통계 - ${item.label}`;
+            const displayLabel = isEn ? item.day : item.label;
+            const tooltipTitle = `${tr("Weekly Room Statistics")} - ${displayLabel}`;
             const tooltipContent = `
-                <div style="display:flex;justify-content:space-between;gap:20px"><span>금주 가동:</span><strong style="color:var(--primary)">${item.occ}실</strong></div>
-                <div style="display:flex;justify-content:space-between;gap:20px"><span>전주 가동:</span><strong style="color:#D1D5DB">${item.prev}실</strong></div>
-                <div style="display:flex;justify-content:space-between;gap:20px;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.1)"><span>전주 대비:</span><strong style="color:${isUp ? "#10B981" : "#EF4444"}">${isUp ? "+" : ""}${diff}실</strong></div>`;
+                <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("This Week")}:</span><strong style="color:var(--primary)">${item.occ}</strong></div>
+                <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Last Week")}:</span><strong style="color:#D1D5DB">${item.prev}</strong></div>
+                <div style="display:flex;justify-content:space-between;gap:20px;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.1)"><span>${tr("vs Last Week")}:</span><strong style="color:${isUp ? "#10B981" : "#EF4444"}">${isUp ? "+" : ""}${diff}</strong></div>`;
             group.innerHTML = `
                 <div style="flex:1;width:100%;display:flex;align-items:flex-end;gap:2px">
                     <div style="flex:1;height:${occHeight}%;background:var(--primary);border-radius:3px 3px 0 0;transition:opacity .2s"></div>
                     <div style="flex:1;height:${prevHeight}%;background:#D1D5DB;border-radius:3px 3px 0 0;transition:opacity .2s"></div>
                 </div>
-                <div style="font-size:.65rem;color:var(--txt2);margin-top:4px;flex-shrink:0">${item.label}</div>
+                <div style="font-size:.65rem;color:var(--txt2);margin-top:4px;flex-shrink:0">${displayLabel}</div>
                 <div style="font-size:.58rem;font-weight:600;color:${isUp ? "var(--success)" : "var(--danger)"};margin-top:1px;flex-shrink:0">${isUp ? "+" : ""}${diff}</div>`;
             attachChartTooltip(group, tooltipTitle, tooltipContent);
             chart.appendChild(group);
@@ -187,13 +221,14 @@
             const row = document.createElement("div");
             row.className = "svc-row";
             row.style.cursor = "pointer";
-            const tooltipTitle = `부가서비스 매출 - ${service.name}`;
+            const label = serviceLabel(service, data.indexOf(service));
+            const tooltipTitle = `${tr("Ancillary Rev")} - ${label}`;
             const tooltipContent = `
-                <div style="display:flex;justify-content:space-between;gap:20px"><span>매출액:</span><strong style="color:${service.color}">$${service.val.toLocaleString()}</strong></div>
-                <div style="display:flex;justify-content:space-between;gap:20px"><span>비중:</span><strong>${service.pct}%</strong></div>`;
+                <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Revenue Amount")}:</span><strong style="color:${service.color}">$${service.val.toLocaleString()}</strong></div>
+                <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Share")}:</span><strong>${service.pct}%</strong></div>`;
             row.innerHTML = `
                 <div class="svc-icon" style="background:${service.color}1A;color:${service.color}"><i class="fa-solid ${service.icon}"></i></div>
-                <div class="svc-name">${service.name}</div>
+                <div class="svc-name">${label}</div>
                 <div class="svc-bar-bg"><div class="svc-bar" style="width:${service.pct}%;background:${service.color}"></div></div>
                 <div class="svc-val">$${service.val.toLocaleString()}</div>`;
             attachChartTooltip(row, tooltipTitle, tooltipContent);
@@ -231,7 +266,7 @@
         const label = document.getElementById("ancillaryLabel");
         const data = isWeekly ? WEEKLY_SERVICE_DATA : window.svcData;
         if (total) total.textContent = isWeekly ? "$8,450" : "$1,285";
-        if (label) label.textContent = isWeekly ? "주간 총 Ancillary Rev" : "Today 총 Ancillary Rev";
+        if (label) label.textContent = isWeekly ? tr("Weekly Ancillary Revenue") : tr("Today's Ancillary Revenue");
         renderServiceBreakdown(data);
     }
     window.toggleAncillary = toggleAncillary;
