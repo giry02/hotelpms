@@ -106,8 +106,8 @@
         const icon = options.icon || 'fa-inbox';
         const title = options.title || (isEn ? 'No items to display.' : '표시할 항목이 없습니다.');
         const desc = options.desc || (isEn
-            ? 'There is no data for the current filter. Change the filter or add a new item.'
-            : '현재 조건에 맞는 데이터가 없습니다. 필터를 변경하거나 새 항목을 등록해 주세요.');
+            ? 'There is no data for the current condition.'
+            : '현재 조건에 맞는 데이터가 없습니다.');
         const compact = options.compact ? ' compact' : '';
         return `
             <div class="pms-empty-state${compact}">
