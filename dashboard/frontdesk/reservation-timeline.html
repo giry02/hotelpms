@@ -65,7 +65,7 @@
 .tl-block.blocked { background: #111827 !important; }
 .tl-block.pending { background: #F59E0B !important; }
 .tl-block.checkedin { background: #10B981 !important; }
-.tl-block.checkout, .tl-block.checkedout { background: #EF4444 !important; } /* Match KPI Danger color */
+.tl-block.checkout, .tl-block.checkedout { background: #64748B !important; }
 .tl-block.cancelled { background: #EF4444 !important; }
 .tl-block.completed { background: #94A3B8 !important; } /* Past reservations (gray) */
 .tl-block.group-assigned {
@@ -91,6 +91,10 @@
     background: rgba(255,255,255,.16);
     border: 1px solid rgba(255,255,255,.24);
 }
+.kpi-card.slate{border-left-color:#64748B}
+.kpi-card.slate .kpi-icon{background:#F1F5F9;color:#64748B}
+.kpi-card.group{border-left-color:#111827}
+.kpi-card.group .kpi-icon{background:rgba(17,24,39,.1);color:#111827}
 </style>
     <script src="../common/js/api/api-file-fallback-data.js"></script>
     <script src="../common/js/api/api-core.js"></script>
@@ -123,7 +127,7 @@
                 <div class="kpi-icon"><i class="fa-solid fa-bed"></i></div>
                 <div class="kpi-body"><div class="kpi-value" id="kpiCheckedin">0</div><div class="kpi-label" data-i18n-key="투숙 중">투숙 중</div></div>
             </div>
-            <div class="kpi-card red">
+            <div class="kpi-card slate">
                 <div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
                 <div class="kpi-body"><div class="kpi-value" id="kpiCheckout">0</div><div class="kpi-label">체크아웃 대상(잔여)</div></div>
             </div>
@@ -131,8 +135,8 @@
                 <div class="kpi-icon"><i class="fa-solid fa-crown"></i></div>
                 <div class="kpi-body"><div class="kpi-value" id="kpiVip">0</div><div class="kpi-label" data-i18n-key="VIP">VIP</div></div>
             </div>
-            <div class="kpi-card" style="border-left: 4px solid #111827">
-                <div class="kpi-icon" style="background:rgba(17,24,39,0.1); color:#111827"><i class="fa-solid fa-building"></i></div>
+            <div class="kpi-card group">
+                <div class="kpi-icon"><i class="fa-solid fa-building"></i></div>
                 <div class="kpi-body"><div class="kpi-value" id="kpiB2B">0</div><div class="kpi-label">단체 고객</div></div>
             </div>
         </div>
@@ -149,8 +153,9 @@
                 <div class="tl-legend">
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span>예약 확정</div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span>투숙 중</div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#EF4444"></span>체크아웃 대상</div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#64748B"></span>체크아웃 대상</div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#94A3B8"></span>이전 예약 / OOS</div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#111827"></span>단체 블록</div>
                 </div>
                 <button class="btn-primary-sm" onclick="openUnifiedResModal()"><i class="fa-solid fa-plus"></i> <span data-i18n-key="New Booking">New Booking</span></button>
             </div>
@@ -580,7 +585,7 @@ function buildMobileView() {
     const statusMap = isEn ? 
         {blocked:'Group Block','group-assigned':'Group Booking',confirmed:'Confirmed',checkedin:'Check-in',checkout:'Checkout',completed:'Completed',vip:'VIP'} :
         {blocked:'단체 블록','group-assigned':'단체 예약',confirmed:'예약 확정',checkedin:'체크인 완료',checkout:'체크아웃 예정',completed:'완료',vip:'VIP'};
-    const colorMap = {blocked:'#111827','group-assigned':'#2563EB',confirmed:'#3B82F6',checkedin:'#10B981',checkout:'#EF4444',completed:'#94A3B8',vip:'#8B5CF6'};
+    const colorMap = {blocked:'#111827','group-assigned':'#2563EB',confirmed:'#3B82F6',checkedin:'#10B981',checkout:'#64748B',completed:'#94A3B8',vip:'#8B5CF6'};
     const iconMap = {blocked:'fa-building','group-assigned':'fa-users',confirmed:'fa-check',checkedin:'fa-right-to-bracket',checkout:'fa-right-from-bracket',completed:'fa-check-double',vip:'fa-crown'};
 
     let html = '';
