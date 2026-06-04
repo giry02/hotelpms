@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>예약 타임라인 — Hotel PMS</title>
+    <title>Reservations - Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -121,15 +121,15 @@
         <div class="kpi-grid kpi-grid-5" style="margin-bottom:20px">
             <div class="kpi-card blue" style="cursor:pointer" onclick="openUnifiedResModal()">
                 <div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div>
-                <div class="kpi-body"><div class="kpi-value" id="kpiConfirmed">0</div><div class="kpi-label">체크인 대상(잔여)</div></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiConfirmed">0</div><div class="kpi-label" id="kpiConfirmedLabel">체크인 대상(잔여)</div></div>
             </div>
             <div class="kpi-card green">
                 <div class="kpi-icon"><i class="fa-solid fa-bed"></i></div>
-                <div class="kpi-body"><div class="kpi-value" id="kpiCheckedin">0</div><div class="kpi-label" data-i18n-key="투숙 중">투숙 중</div></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiCheckedin">0</div><div class="kpi-label" id="kpiCheckedinLabel">투숙 중</div></div>
             </div>
             <div class="kpi-card checkout">
                 <div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
-                <div class="kpi-body"><div class="kpi-value" id="kpiCheckout">0</div><div class="kpi-label">체크아웃 대상(잔여)</div></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiCheckout">0</div><div class="kpi-label" id="kpiCheckoutLabel">체크아웃 대상(잔여)</div></div>
             </div>
             <div class="kpi-card purple">
                 <div class="kpi-icon"><i class="fa-solid fa-crown"></i></div>
@@ -137,7 +137,7 @@
             </div>
             <div class="kpi-card group">
                 <div class="kpi-icon"><i class="fa-solid fa-building"></i></div>
-                <div class="kpi-body"><div class="kpi-value" id="kpiB2B">0</div><div class="kpi-label">단체 고객</div></div>
+                <div class="kpi-body"><div class="kpi-value" id="kpiB2B">0</div><div class="kpi-label" id="kpiB2BLabel">단체 고객</div></div>
             </div>
         </div>
 
@@ -151,11 +151,11 @@
             </div>
             <div class="filter-right">
                 <div class="tl-legend">
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span>예약 확정</div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span>투숙 중</div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#F97316"></span>체크아웃 대상</div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#94A3B8"></span>이전 예약 / OOS</div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#111827"></span>단체 블록</div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span><span id="legendConfirmedLabel">예약 확정</span></div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span><span id="legendCheckedinLabel">투숙 중</span></div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#F97316"></span><span id="legendCheckoutLabel">체크아웃 대상</span></div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#94A3B8"></span><span id="legendPreviousLabel">이전 예약 / OOS</span></div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#111827"></span><span id="legendGroupLabel">단체 블록</span></div>
                 </div>
                 <button class="btn-primary-sm" onclick="openUnifiedResModal()"><i class="fa-solid fa-plus"></i> <span data-i18n-key="New Booking">New Booking</span></button>
             </div>
@@ -188,6 +188,102 @@ const DAYS = 14;
 const EPOCH = new Date(2026, 4, 12); // Base reference date
 let baseDate = new Date(); // Start view from actual today
 baseDate.setHours(0,0,0,0);
+
+const TL_TEXT = {
+    ko: {
+        pageTitle: '예약 타임라인 - Hotel PMS',
+        checkinTarget: '체크인 대상(잔여)',
+        inHouse: '투숙 중',
+        checkoutTarget: '체크아웃 대상(잔여)',
+        groupGuests: '단체 고객',
+        confirmed: '예약 확정',
+        checkoutLegend: '체크아웃 대상',
+        previous: '이전 예약 / OOS',
+        groupBlock: '단체 블록',
+        groupBooking: '단체 예약',
+        checkinDone: '체크인 완료',
+        checkoutDue: '체크아웃 예정',
+        completed: '완료',
+        group: '단체',
+        block: '블록',
+        booking: '예약',
+        occupied: '점유 중',
+        available: '공실',
+        nights: '박',
+        todayToast: '오늘 날짜로 이동했습니다.',
+        dayNames: ['일','월','화','수','목','금','토']
+    },
+    en: {
+        pageTitle: 'Reservations - Hotel PMS',
+        checkinTarget: 'Check-in Due',
+        inHouse: 'In-house',
+        checkoutTarget: 'Check-out Due',
+        groupGuests: 'Group Guests',
+        confirmed: 'Confirmed',
+        checkoutLegend: 'Check-out Due',
+        previous: 'Past / OOS',
+        groupBlock: 'Group Block',
+        groupBooking: 'Group Booking',
+        checkinDone: 'Checked in',
+        checkoutDue: 'Check-out Due',
+        completed: 'Completed',
+        group: 'Group',
+        block: 'Block',
+        booking: 'Booking',
+        occupied: 'Occupied',
+        available: 'Available',
+        nights: 'N',
+        todayToast: 'Moved to today.',
+        dayNames: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+    }
+};
+
+function timelineLang() {
+    return document.getElementById('langSelect')?.value || window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+}
+
+function timelineText(key) {
+    const lang = timelineLang() === 'en' ? 'en' : 'ko';
+    return (TL_TEXT[lang] && TL_TEXT[lang][key]) || TL_TEXT.ko[key] || key;
+}
+
+function formatTimelineRangeDate(date) {
+    if (timelineLang() === 'en') {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+}
+
+function formatTimelineShortDate(date) {
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function setTimelineText(id, key) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = timelineText(key);
+}
+
+function applyTimelineStaticLabels() {
+    document.title = timelineText('pageTitle');
+    setTimelineText('kpiConfirmedLabel', 'checkinTarget');
+    setTimelineText('kpiCheckedinLabel', 'inHouse');
+    setTimelineText('kpiCheckoutLabel', 'checkoutTarget');
+    setTimelineText('kpiB2BLabel', 'groupGuests');
+    setTimelineText('legendConfirmedLabel', 'confirmed');
+    setTimelineText('legendCheckedinLabel', 'inHouse');
+    setTimelineText('legendCheckoutLabel', 'checkoutLegend');
+    setTimelineText('legendPreviousLabel', 'previous');
+    setTimelineText('legendGroupLabel', 'groupBlock');
+}
+
+function applyTimelineLanguage() {
+    applyTimelineStaticLabels();
+    if (document.getElementById('tlRange')) updateDateRangeText();
+    if (rooms.length) {
+        buildTimeline();
+        buildMobileView();
+    }
+}
 
 function cleanTimelineGuestName(value) {
     const text = String(value || '').trim();
@@ -302,14 +398,14 @@ function timelineGuestName(res) {
 }
 
 function timelineCompanyLabel(res) {
-    if (!res) return '단체';
+    if (!res) return timelineText('group');
     const channel = String(res.channel || '').trim();
     const agency = String(res.agency || res.companyName || res.company || '').trim();
     const groupName = String(res.groupName || '').trim();
     if (channel && channel !== 'Group') return channel.split(' ')[0];
     if (agency) return agency;
     if (groupName) return groupName;
-    return '단체';
+    return timelineText('group');
 }
 
 function hasTimelineGroupGuest(res) {
@@ -325,14 +421,14 @@ function timelineDisplayName(res) {
     const guestName = timelineGuestName(res);
     if (res && res.groupId && guestName) return `${timelineCompanyLabel(res)} · ${guestName}`;
     if (res && res.groupId && (normalizeReservationStatus(res) === 'blocked' || res.isGroupPlaceholder)) {
-        return res.groupName || res.channel || '단체 블록';
+        return res.groupName || res.channel || timelineText('groupBlock');
     }
-    return guestName || (res && (res.guest || res.groupName)) || '예약';
+    return guestName || (res && (res.guest || res.groupName)) || timelineText('booking');
 }
 
 function timelineGroupBadge(res) {
     if (!res || !(res.groupId || res.isB2B || res.isGroupPlaceholder)) return '';
-    const label = res.groupId && !timelineGuestName(res) ? '블록' : '단체';
+    const label = res.groupId && !timelineGuestName(res) ? timelineText('block') : timelineText('group');
     return `<span class="tl-group-badge"><i class="fa-solid fa-users"></i>${label}</span>`;
 }
 
@@ -359,7 +455,7 @@ function buildTimeline() {
     for (let d = 0; d < DAYS; d++) {
         const date = new Date(baseDate);
         date.setDate(date.getDate() + d);
-        const dayName = ['일','월','화','수','목','금','토'][date.getDay()];
+        const dayName = timelineText('dayNames')[date.getDay()];
         const isToday = d === 0;
         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
         headerHTML += `<div class="tl-date-header ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}">${date.getDate()}<span class="tl-day-name">${dayName}</span></div>`;
@@ -496,16 +592,12 @@ function calcEstimate() {
     let nights = Math.max(1, Math.round((cout - cin) / 86400000));
     const total = rate * nights;
     document.getElementById('nrEstimate').textContent = `$${total.toLocaleString('en',{minimumFractionDigits:2})}`;
-    document.getElementById('nrCalcDetail').textContent = `${typeName} $${rate} × ${nights}박`;
+    document.getElementById('nrCalcDetail').textContent = `${typeName} $${rate} × ${nights}${timelineText('nights')}`;
 }
 function updateDateRangeText() {
     const end = new Date(baseDate);
     end.setDate(end.getDate() + DAYS - 1);
-    const m1 = baseDate.getMonth() + 1;
-    const d1 = baseDate.getDate();
-    const m2 = end.getMonth() + 1;
-    const d2 = end.getDate();
-    document.getElementById('tlRange').innerText = `${m1}월 ${d1}일 — ${m2}월 ${d2}일`;
+    document.getElementById('tlRange').innerText = `${formatTimelineRangeDate(baseDate)} — ${formatTimelineRangeDate(end)}`;
 }
 
 function shiftWeek(dir) {
@@ -520,7 +612,7 @@ function goToday() {
     updateDateRangeText();
     buildTimeline();
     buildMobileView();
-    if (window.showToast) showToast('오늘 날짜로 이동했습니다.', 'success');
+    if (window.showToast) showToast(timelineText('todayToast'), 'success');
 }
 
 function reservationWindow(res) {
@@ -586,10 +678,15 @@ function toggleMenu() {
 // ===== MOBILE ROOM LIST VIEW =====
 function buildMobileView() {
     const container = document.getElementById('tlMobileView');
-    const isEn = typeof window.currentLang !== 'undefined' ? window.currentLang === 'en' : false;
-    const statusMap = isEn ? 
-        {blocked:'Group Block','group-assigned':'Group Booking',confirmed:'Confirmed',checkedin:'Check-in',checkout:'Checkout',completed:'Completed',vip:'VIP'} :
-        {blocked:'단체 블록','group-assigned':'단체 예약',confirmed:'예약 확정',checkedin:'체크인 완료',checkout:'체크아웃 예정',completed:'완료',vip:'VIP'};
+    const statusMap = {
+        blocked: timelineText('groupBlock'),
+        'group-assigned': timelineText('groupBooking'),
+        confirmed: timelineText('confirmed'),
+        checkedin: timelineText('checkinDone'),
+        checkout: timelineText('checkoutDue'),
+        completed: timelineText('completed'),
+        vip: 'VIP'
+    };
     const colorMap = {blocked:'#111827','group-assigned':'#2563EB',confirmed:'#3B82F6',checkedin:'#10B981',checkout:'#F97316',completed:'#94A3B8',vip:'#8B5CF6'};
     const iconMap = {blocked:'fa-building','group-assigned':'fa-users',confirmed:'fa-check',checkedin:'fa-right-to-bracket',checkout:'fa-right-from-bracket',completed:'fa-check-double',vip:'fa-crown'};
 
@@ -622,7 +719,7 @@ function buildMobileView() {
                     <span class="room-tag">${room.id}</span>
                     <span class="m-room-type">${room.type}</span>
                 </div>
-                <span class="m-room-status ${hasToday ? 'occupied' : 'available'}">${hasToday ? (isEn?'Occupied':'점유 중') : (isEn?'Available':'공실')}</span>
+                <span class="m-room-status ${hasToday ? 'occupied' : 'available'}">${hasToday ? timelineText('occupied') : timelineText('available')}</span>
             </div>`;
 
         if (roomRes.length > 0) {
@@ -644,7 +741,7 @@ function buildMobileView() {
                         <span class="status-badge ${renderStatus === 'checkedin' ? 'checkin' : renderStatus}">${statusMap[renderStatus] || statusMap.confirmed}</span>
                     </div>
                     <div class="m-booking-meta">
-                        ${cin.getMonth()+1}/${cin.getDate()} → ${cout.getMonth()+1}/${cout.getDate()} (${res.len}박) · ${res.channel}
+                        ${formatTimelineShortDate(cin)} → ${formatTimelineShortDate(cout)} (${res.len}${timelineText('nights')}) · ${res.channel}
                     </div>
                 </div>`;
             });
@@ -654,6 +751,8 @@ function buildMobileView() {
     });
     container.innerHTML = html;
 }
+
+window.addEventListener('languagechange', applyTimelineLanguage);
 // Timeline will be built after data load
 // Removed conflicting local i18n logic
 </script>
@@ -674,14 +773,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.reservations = resData;
         alignTimelineToFirstGroupBlock();
 
+        applyTimelineStaticLabels();
         buildTimeline();
         buildMobileView();
         if(typeof updateDateRangeText === 'function') updateDateRangeText();
 
-        buildMobileView();
-
         if (typeof window.changeLang === 'function') {
-            window.changeLang(document.getElementById('langSelect')?.value || 'ko');
+            window.changeLang(document.getElementById('langSelect')?.value || localStorage.getItem('pms_lang') || 'ko');
+        } else {
+            applyTimelineLanguage();
         }
     } catch(e) { 
         console.error(e); 
