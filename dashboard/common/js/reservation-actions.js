@@ -522,7 +522,6 @@
             
             if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
-                window._editGuestWidget.showNewForm();
             }
             renderUnifiedFlowActions(null);
         } else {
