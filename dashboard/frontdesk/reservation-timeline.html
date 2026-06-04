@@ -65,7 +65,7 @@
 .tl-block.blocked { background: #111827 !important; }
 .tl-block.pending { background: #F59E0B !important; }
 .tl-block.checkedin { background: #10B981 !important; }
-.tl-block.checkout, .tl-block.checkedout { background: #64748B !important; }
+.tl-block.checkout, .tl-block.checkedout { background: #F97316 !important; }
 .tl-block.cancelled { background: #EF4444 !important; }
 .tl-block.completed { background: #94A3B8 !important; } /* Past reservations (gray) */
 .tl-block.group-assigned {
@@ -91,8 +91,8 @@
     background: rgba(255,255,255,.16);
     border: 1px solid rgba(255,255,255,.24);
 }
-.kpi-card.slate{border-left-color:#64748B}
-.kpi-card.slate .kpi-icon{background:#F1F5F9;color:#64748B}
+.kpi-card.checkout{border-left-color:#F97316}
+.kpi-card.checkout .kpi-icon{background:#FFF7ED;color:#F97316}
 .kpi-card.group{border-left-color:#111827}
 .kpi-card.group .kpi-icon{background:rgba(17,24,39,.1);color:#111827}
 </style>
@@ -127,7 +127,7 @@
                 <div class="kpi-icon"><i class="fa-solid fa-bed"></i></div>
                 <div class="kpi-body"><div class="kpi-value" id="kpiCheckedin">0</div><div class="kpi-label" data-i18n-key="투숙 중">투숙 중</div></div>
             </div>
-            <div class="kpi-card slate">
+            <div class="kpi-card checkout">
                 <div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
                 <div class="kpi-body"><div class="kpi-value" id="kpiCheckout">0</div><div class="kpi-label">체크아웃 대상(잔여)</div></div>
             </div>
@@ -153,7 +153,7 @@
                 <div class="tl-legend">
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span>예약 확정</div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span>투숙 중</div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#64748B"></span>체크아웃 대상</div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#F97316"></span>체크아웃 대상</div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#94A3B8"></span>이전 예약 / OOS</div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#111827"></span>단체 블록</div>
                 </div>
@@ -414,6 +414,11 @@ function buildTimeline() {
             renderEnd = renderStart + res.len;
         }
 
+        const visibilityStatus = effectiveTimelineStatus(res);
+        if (renderEnd <= 0 && visibilityStatus === 'checkout') {
+            renderStart = 0;
+            renderEnd = 1;
+        }
         if (renderEnd <= 0 || renderStart >= DAYS) return; // out of view
 
         // Find available level to avoid overlapping
@@ -585,7 +590,7 @@ function buildMobileView() {
     const statusMap = isEn ? 
         {blocked:'Group Block','group-assigned':'Group Booking',confirmed:'Confirmed',checkedin:'Check-in',checkout:'Checkout',completed:'Completed',vip:'VIP'} :
         {blocked:'단체 블록','group-assigned':'단체 예약',confirmed:'예약 확정',checkedin:'체크인 완료',checkout:'체크아웃 예정',completed:'완료',vip:'VIP'};
-    const colorMap = {blocked:'#111827','group-assigned':'#2563EB',confirmed:'#3B82F6',checkedin:'#10B981',checkout:'#64748B',completed:'#94A3B8',vip:'#8B5CF6'};
+    const colorMap = {blocked:'#111827','group-assigned':'#2563EB',confirmed:'#3B82F6',checkedin:'#10B981',checkout:'#F97316',completed:'#94A3B8',vip:'#8B5CF6'};
     const iconMap = {blocked:'fa-building','group-assigned':'fa-users',confirmed:'fa-check',checkedin:'fa-right-to-bracket',checkout:'fa-right-from-bracket',completed:'fa-check-double',vip:'fa-crown'};
 
     let html = '';

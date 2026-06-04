@@ -387,6 +387,46 @@ window.PmsFileFallbackPayloads = {
           "color": "#60A5FA"
         },
         {
+          "id": "RSV-CHKOUT-260604-01",
+          "reservationId": "RSV-CHKOUT-260604-01",
+          "tenantId": "TENANT-GRAND-SAIGON",
+          "roomId": "OT-1402",
+          "roomNo": "1402",
+          "room": "1402",
+          "fullRoom": "OT-1402",
+          "roomLabel": "Ocean Tower 1402",
+          "roomTypeId": "PRM",
+          "roomTypeName": "Premier",
+          "type": "Premier",
+          "guestId": "G-CHKOUT-260604",
+          "guestName": "Miller Grace",
+          "guest": "Miller Grace",
+          "initials": "MG",
+          "channel": "Direct",
+          "status": "checked-in",
+          "checkInDate": "2026-06-02",
+          "checkOutDate": "2026-06-04",
+          "cin": "6/2",
+          "cout": "6/4",
+          "start": 21,
+          "len": 2,
+          "nights": 2,
+          "rate": {
+            "amount": 280,
+            "currency": "USD"
+          },
+          "totalAmount": {
+            "amount": 560,
+            "currency": "USD"
+          },
+          "amount": 560,
+          "vip": "Standard",
+          "isVip": false,
+          "isB2B": false,
+          "isGroupPlaceholder": false,
+          "color": "#F97316"
+        },
+        {
           "id": "RSV-0002",
           "reservationId": "RSV-0002",
           "tenantId": "TENANT-GRAND-SAIGON",
@@ -4998,6 +5038,46 @@ window.PmsFileFallbackPayloads = {
           "isB2B": false,
           "isGroupPlaceholder": false,
           "color": "#60A5FA"
+        },
+        {
+          "id": "RSV-CHKOUT-260604-01",
+          "reservationId": "RSV-CHKOUT-260604-01",
+          "tenantId": "TENANT-GRAND-SAIGON",
+          "roomId": "OT-1402",
+          "roomNo": "1402",
+          "room": "1402",
+          "fullRoom": "OT-1402",
+          "roomLabel": "Ocean Tower 1402",
+          "roomTypeId": "PRM",
+          "roomTypeName": "Premier",
+          "type": "Premier",
+          "guestId": "G-CHKOUT-260604",
+          "guestName": "Miller Grace",
+          "guest": "Miller Grace",
+          "initials": "MG",
+          "channel": "Direct",
+          "status": "checked-in",
+          "checkInDate": "2026-06-02",
+          "checkOutDate": "2026-06-04",
+          "cin": "6/2",
+          "cout": "6/4",
+          "start": 21,
+          "len": 2,
+          "nights": 2,
+          "rate": {
+            "amount": 280,
+            "currency": "USD"
+          },
+          "totalAmount": {
+            "amount": 560,
+            "currency": "USD"
+          },
+          "amount": 560,
+          "vip": "Standard",
+          "isVip": false,
+          "isB2B": false,
+          "isGroupPlaceholder": false,
+          "color": "#F97316"
         },
         {
           "id": "RSV-0002",
