@@ -38,6 +38,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const md = `${d.getMonth() + 1}/${d.getDate()}`;
         return raw === md || raw.replace(/^0/, '').replace('/0', '/') === md;
     };
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
 
     let rooms = [];
     let reservations = [];
@@ -77,20 +84,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     const revpar = formatMoney(dailyRoomRevenue / totalRooms, currency);
 
     const today = localIso();
-    const todayCheckin = reservations.filter(r =>
+    const todayCheckinRes = reservations.filter(r =>
         dateMatches(r.checkInDate || r.checkin || r.cin, today) && normalizeStatus(r.status) === 'confirmed'
-    ).length;
-    const todayCheckout = reservations.filter(r => {
+    );
+    const todayCheckoutRes = reservations.filter(r => {
         const status = normalizeStatus(r.status);
         return dateMatches(r.checkOutDate || r.checkout || r.cout, today) && ['checked-in', 'checkedin', 'checked-out', 'checkout'].includes(status);
-    }).length;
+    });
+    const todayCheckin = todayCheckinRes.length;
+    const todayCheckout = todayCheckoutRes.length;
 
     const kpiVals = document.querySelectorAll('.kpi-value');
     if (kpiVals.length >= 4) {
         kpiVals[0].textContent = occupancy;
         kpiVals[1].textContent = adr;
         kpiVals[2].textContent = revpar;
-        kpiVals[3].textContent = `${summary?.arrivals ?? todayCheckin} / ${summary?.departures ?? todayCheckout}`;
+        kpiVals[3].textContent = `${todayCheckin || summary?.arrivals || 0} / ${todayCheckout || summary?.departures || 0}`;
         const kpiLabel = kpiVals[3].nextElementSibling;
         if (kpiLabel && kpiLabel.classList.contains('kpi-label')) {
             kpiLabel.textContent = '오늘 체크인 / 체크아웃';
@@ -109,25 +118,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     const checkinLink = document.querySelector('a.card-title-link[href="frontdesk/reservation-list.html?tab=checkin"]');
     const checkinBody = checkinLink ? checkinLink.closest('.card').querySelector('tbody') : null;
     if (checkinBody) {
-        const checkinRes = reservations.filter(r => normalizeStatus(r.status) === 'confirmed').slice(0, 5);
+        const checkinRes = (todayCheckinRes.length ? todayCheckinRes : reservations.filter(r => normalizeStatus(r.status) === 'confirmed')).slice(0, 5);
         if (checkinRes.length > 0) {
             checkinBody.innerHTML = checkinRes.map(r => {
                 const isVip = r.vip && (String(r.vip).includes('VIP') || String(r.vip).includes('Gold'));
-                const vipBadge = isVip ? `<span style="font-size:.62rem;color:#9CA3AF">${r.vip}</span>` : '';
-                return `<tr><td><div class="guest-cell"><div class="guest-avatar" style="background:${r.color || '#3B82F6'}">${r.initials || ''}</div><div>${r.guest || r.guestName || '-'} ${vipBadge}</div></div></td><td>${r.room || r.roomNo || '-'}</td><td>${r.type || r.roomTypeName || '-'}</td><td>${r.cin || r.checkInDate || '-'} - ${r.cout || r.checkOutDate || '-'} (${r.nights || r.len || 1}N)</td><td><span class="status-badge confirmed">Confirmed</span></td></tr>`;
+                const vipBadge = isVip ? `<span style="font-size:.62rem;color:#9CA3AF">${escapeHtml(r.vip)}</span>` : '';
+                const initials = escapeHtml(r.initials || String(r.guest || r.guestName || '-').slice(0, 2).toUpperCase());
+                const guest = escapeHtml(r.guest || r.guestName || '-');
+                const room = escapeHtml(r.room || r.roomNo || '-');
+                const type = escapeHtml(r.type || r.roomTypeName || '-');
+                const stay = `${escapeHtml(r.cin || r.checkInDate || '-')} - ${escapeHtml(r.cout || r.checkOutDate || '-')} (${escapeHtml(r.nights || r.len || 1)}N)`;
+                return `<tr><td><div class="guest-cell"><div class="guest-avatar" style="background:${escapeHtml(r.color || '#3B82F6')}">${initials}</div><div>${guest} ${vipBadge}</div></div></td><td>${room}</td><td>${type}</td><td>${stay}</td><td><span class="status-badge confirmed">Confirmed</span></td></tr>`;
             }).join('');
+        } else {
+            checkinBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:20px">오늘 예정된 체크인이 없습니다.</td></tr>';
         }
     }
 
     const activityList = document.querySelector('.activity-list');
     if (activityList) {
-        const firstReservation = reservations[0] || {};
-        const secondReservation = reservations[1] || {};
+        const firstReservation = todayCheckinRes[0] || reservations.find(r => normalizeStatus(r.status) === 'confirmed') || {};
+        const secondReservation = todayCheckoutRes[0] || reservations.find(r => ['checked-in', 'checkedin'].includes(normalizeStatus(r.status))) || {};
         const firstTask = tasks[0] || {};
         const activities = [
-            { icon: 'ci', iconClass: 'fa-right-to-bracket', text: `<b>${firstReservation.room || firstReservation.roomNo || '객실'}호</b> ${firstReservation.guest || firstReservation.guestName || 'Guest'} 체크인 완료`, time: '방금 전' },
-            { icon: 'hk', iconClass: 'fa-broom', text: `<b>${firstTask.room || firstTask.roomNo || '객실'}호</b> 하우스키핑 작업 업데이트`, time: '5분 전' },
-            { icon: 'co', iconClass: 'fa-right-from-bracket', text: `<b>${secondReservation.room || secondReservation.roomNo || '객실'}호</b> ${secondReservation.guest || secondReservation.guestName || 'Guest'} 체크아웃 예정`, time: '12분 전' }
+            { icon: 'ci', iconClass: 'fa-right-to-bracket', text: `<b>${escapeHtml(firstReservation.room || firstReservation.roomNo || '객실')}호</b> ${escapeHtml(firstReservation.guest || firstReservation.guestName || 'Guest')} 체크인 예정`, time: '오늘' },
+            { icon: 'hk', iconClass: 'fa-broom', text: `<b>${escapeHtml(firstTask.room || firstTask.roomNo || '객실')}호</b> 하우스키핑 작업 업데이트`, time: '5분 전' },
+            { icon: 'co', iconClass: 'fa-right-from-bracket', text: `<b>${escapeHtml(secondReservation.room || secondReservation.roomNo || '객실')}호</b> ${escapeHtml(secondReservation.guest || secondReservation.guestName || 'Guest')} 체크아웃 예정`, time: '오늘' }
         ];
         activityList.innerHTML = activities.map(a => `<div class="activity-item"><div class="activity-icon ${a.icon}"><i class="fa-solid ${a.iconClass}"></i></div><div><div class="activity-text">${a.text}</div><div class="activity-time">${a.time}</div></div></div>`).join('');
     }

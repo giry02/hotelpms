@@ -4,6 +4,7 @@ const path = require('path');
 const root = process.cwd();
 const dashboardApiRoot = path.join(root, 'dashboard', 'data', 'api', 'v1');
 const adminApiRoot = path.join(root, 'admin', 'data', 'api', 'v1');
+const AUDIT_DATE = process.env.PMS_AUDIT_DATE || '2026-06-09';
 
 const errors = [];
 const warnings = [];
@@ -58,7 +59,7 @@ function parseDate(value) {
 }
 
 function isTodayInStay(reservation) {
-  const today = parseDate('2026-05-29');
+  const today = parseDate(AUDIT_DATE);
   const checkIn = parseDate(reservation.checkInDate);
   const checkOut = parseDate(reservation.checkOutDate);
   return !!(today && checkIn && checkOut && checkIn <= today && today <= checkOut);
@@ -137,7 +138,7 @@ function auditCoreRelations() {
     if (reservation.companyId) assert(companyIds.has(reservation.companyId), `reservations/${id}: unknown companyId ${reservation.companyId}`);
     if (reservation.groupId) assert(groupIds.has(reservation.groupId), `reservations/${id}: unknown groupId ${reservation.groupId}`);
     if (reservation.status === 'checked-in') {
-      warn(isTodayInStay(reservation), `reservations/${id}: checked-in but 2026-05-29 is outside stay window`);
+      warn(isTodayInStay(reservation), `reservations/${id}: checked-in but ${AUDIT_DATE} is outside stay window`);
     }
     if (reservation.isGroupPlaceholder) {
       warn(
@@ -197,7 +198,7 @@ function auditCoreRelations() {
       .map(reservation => reservation.roomId)
   );
   inHouseRoomIds.forEach(roomId => {
-    warn(activeCheckedInRoomIds.has(roomId), `rooms/${roomId}: marked in-house without a checked-in reservation for 2026-05-29`);
+    warn(activeCheckedInRoomIds.has(roomId), `rooms/${roomId}: marked in-house without a checked-in reservation for ${AUDIT_DATE}`);
   });
 
   const statusCounts = rooms.reduce((acc, room) => {
