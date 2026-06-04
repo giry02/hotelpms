@@ -472,6 +472,22 @@ function stayoverFlagControls(res) {
     </div>`;
 }
 
+function reservationEmptyState() {
+    const isEn = (document.getElementById('langSelect')?.value || window.currentLang || localStorage.getItem('pms_lang')) === 'en';
+    const hasSearch = !!document.getElementById('searchInput')?.value.trim();
+    const labels = isEn
+        ? { all: 'reservations', checkin: "today's check-ins", inhouse: 'in-house stays', checkout: 'check-outs', completed: 'completed reservations', cancelled: 'cancelled/no-show reservations' }
+        : { all: '예약', checkin: '오늘 체크인 대상', inhouse: '투숙 중 예약', checkout: '체크아웃 대상', completed: '완료 예약', cancelled: '취소/노쇼 예약' };
+    const target = labels[currentFilter] || labels.all;
+    const title = isEn ? `No ${target} to display.` : `표시할 ${target}이 없습니다.`;
+    const desc = hasSearch
+        ? (isEn ? 'No results match the current search and filter.' : '현재 검색어와 필터 조건에 맞는 예약이 없습니다.')
+        : (isEn ? 'When matching bookings are created, they will appear here.' : '조건에 맞는 예약이 생성되면 이 영역에 표시됩니다.');
+    return (typeof window.renderEmptyState === 'function')
+        ? window.renderEmptyState({ icon: 'fa-calendar-xmark', title, desc })
+        : `<div style="padding:32px;text-align:center;color:var(--txt3)">${title}<br>${desc}</div>`;
+}
+
 function renderTable() {
     const tbody = document.getElementById('resBody');
     const mobileContainer = document.getElementById('resMobileCards');
@@ -501,6 +517,13 @@ function renderTable() {
     const paginated = filtered.slice(startIdx, startIdx + itemsPerPage);
 
     updatePagination(totalItems, startIdx, paginated.length, totalPages);
+
+    if (paginated.length === 0) {
+        const emptyState = reservationEmptyState();
+        tbody.innerHTML = `<tr><td colspan="11">${emptyState}</td></tr>`;
+        mobileContainer.innerHTML = emptyState;
+        return;
+    }
 
     // Desktop table
     tbody.innerHTML = paginated.map(r => {

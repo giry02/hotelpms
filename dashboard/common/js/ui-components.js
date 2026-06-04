@@ -96,4 +96,64 @@
             btnCancel.onclick = () => { cleanup(); resolve(false); };
         });
     };
+
+    function currentLang() {
+        return document.getElementById('langSelect')?.value || window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+    }
+
+    window.renderEmptyState = function(options = {}) {
+        const isEn = currentLang() === 'en';
+        const icon = options.icon || 'fa-inbox';
+        const title = options.title || (isEn ? 'No items to display.' : '표시할 항목이 없습니다.');
+        const desc = options.desc || (isEn
+            ? 'There is no data for the current filter. Change the filter or add a new item.'
+            : '현재 조건에 맞는 데이터가 없습니다. 필터를 변경하거나 새 항목을 등록해 주세요.');
+        const compact = options.compact ? ' compact' : '';
+        return `
+            <div class="pms-empty-state${compact}">
+                <div class="pms-empty-icon"><i class="fa-solid ${icon}"></i></div>
+                <div class="pms-empty-title">${title}</div>
+                <div class="pms-empty-desc">${desc}</div>
+            </div>`;
+    };
+
+    function tableColspan(table) {
+        return Math.max(1, table?.querySelectorAll('thead th').length || 1);
+    }
+
+    function hasVisibleNativeEmptyState(tbody) {
+        const scope = tbody.closest('.card, .content') || document.body;
+        return Array.from(scope.querySelectorAll('#emptyState, .empty-state:not(.pms-empty-state)')).some(el => {
+            const style = getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden' && el.textContent.trim();
+        });
+    }
+
+    function fillEmptyTables() {
+        document.querySelectorAll('table tbody').forEach(tbody => {
+            if (tbody.closest('[aria-hidden="true"], .template')) return;
+            if (hasVisibleNativeEmptyState(tbody)) return;
+            const rows = Array.from(tbody.children).filter(el => el.nodeType === 1);
+            const realRows = rows.filter(row => !row.hasAttribute('data-pms-empty-row'));
+            if (realRows.length > 0) {
+                rows.filter(row => row.hasAttribute('data-pms-empty-row')).forEach(row => row.remove());
+                return;
+            }
+            if (rows.some(row => row.hasAttribute('data-pms-empty-row'))) return;
+            const table = tbody.closest('table');
+            const row = document.createElement('tr');
+            row.setAttribute('data-pms-empty-row', 'true');
+            row.innerHTML = `<td colspan="${tableColspan(table)}">${window.renderEmptyState({ compact: true })}</td>`;
+            tbody.appendChild(row);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(fillEmptyTables, 250);
+        const observer = new MutationObserver(() => {
+            clearTimeout(window.__pmsEmptyStateTimer);
+            window.__pmsEmptyStateTimer = setTimeout(fillEmptyTables, 80);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
 })();
