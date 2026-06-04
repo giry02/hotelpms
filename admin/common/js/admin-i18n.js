@@ -397,6 +397,306 @@ function changeLang(l) {
     });
 
     if(typeof window.applyLocalI18n === 'function') window.applyLocalI18n(l);
+    applyVisibleTextI18nFallback(l, catalog);
+    window.dispatchEvent(new Event('languagechange'));
+}
+
+function buildReverseI18nMap(catalog) {
+    const reverse = {};
+    const add = (koText, enText) => {
+        if (!koText || !enText || koText === enText) return;
+        reverse[String(koText).trim()] = String(enText).trim();
+    };
+
+    Object.entries(window.translations.ko || {}).forEach(([key, koText]) => {
+        const enText = (window.translations.en && window.translations.en[key]) || key;
+        add(koText, enText);
+    });
+
+    const koCatalog = catalog.ko || {};
+    const enCatalog = catalog.en || {};
+    Object.entries(koCatalog).forEach(([key, koText]) => add(koText, enCatalog[key] || key));
+    Object.entries(getExactKoEnFallbackMap()).forEach(([koText, enText]) => add(koText, enText));
+
+    return reverse;
+}
+
+function getExactKoEnFallbackMap() {
+    return {
+        '플랫폼 운영자': 'Platform Operator',
+        '슈퍼 관리자': 'Super Admin',
+        '전체 호텔': 'Total Hotels',
+        'MRR (월 매출)': 'MRR',
+        '이탈률': 'Churn Rate',
+        '평균 가동률': 'Average Occupancy',
+        '최근 7일 차트': 'Last 7 Days',
+        '국가별 호텔 수': 'Hotels by Country',
+        '최근 입점 호텔': 'Recent Hotels',
+        '활성 캠페인 TOP 3': 'Top 3 Active Campaigns',
+        'CSV 내보내기': 'Export CSV',
+        'CSV 다운로드': 'Download CSV',
+        '총 청구액:': 'Total Billing:',
+        '캠페인': 'Campaign',
+        '캠페인명': 'Campaign',
+        '광고주': 'Advertiser',
+        '과금 방식': 'Billing Model',
+        '단가': 'Unit Price',
+        '노출수': 'Impressions',
+        '클릭수': 'Clicks',
+        '청구액 (USD)': 'Amount (USD)',
+        '청구액': 'Billing Amount',
+        '총 청구액': 'Total Billing',
+        '새 캠페인 등록': 'New Campaign',
+        '활성 캠페인': 'Active Campaigns',
+        '총 노출수': 'Total Impressions',
+        '진행 중': 'Active',
+        '종료': 'Ended',
+        '노출 / 클릭 추이': 'Impression / Click Trend',
+        '캠페인 상세 정보': 'Campaign Details',
+        '캠페인 기본 정보': 'Campaign Information',
+        '단가/방식': 'Rate / Model',
+        '시작일 (UTC)': 'Start Date (UTC)',
+        '종료일 (UTC)': 'End Date (UTC)',
+        '랜딩 URL': 'Landing URL',
+        '광고 배너 업로드': 'Ad Banner Upload',
+        '타겟팅 설정 (국가 > 도시)': 'Targeting Settings (Country > City)',
+        '타겟 추가': 'Add Target',
+        '국가': 'Country',
+        '도시': 'City',
+        '대상 호텔': 'Target Hotels',
+        '가중치 (1~10)': 'Weight (1-10)',
+        '가중치 분포': 'Weight Distribution',
+        '감사 이벤트': 'Audit Events',
+        '기기': 'Device',
+        '위험': 'Risk',
+        '로그 ID': 'Log ID',
+        '시간': 'Time',
+        '작업 유형': 'Action Type',
+        '상세': 'Details',
+        '접속 IP': 'Access IP',
+        '과금 현황 (Billing)': 'Billing Status',
+        '이번 달 결제 완료': 'Paid This Month',
+        '미납 및 연체': 'Unpaid / Overdue',
+        '정지된 테넌트 (이탈)': 'Suspended Tenants',
+        'All 결제 내역': 'All Payments',
+        '미납/연체': 'Unpaid / Overdue',
+        '만료 임박 (D-3)': 'Expiring Soon (D-3)',
+        '만료됨': 'Expired',
+        '호텔': 'Hotel',
+        '미처리 문의': 'Open Tickets',
+        '메시지 전송': 'Send Message',
+        '서드파티 연동 관리': 'Third-party Integrations',
+        '전체 연동': 'All Integrations',
+        '결제(PG)': 'Payment Gateway',
+        '메시징': 'Messaging',
+        '커스텀 연동 추가': 'Add Custom Integration',
+        'Stripe 결제': 'Stripe Payments',
+        'API 설정': 'API Settings',
+        '새 공지 작성': 'New Notice',
+        '발행됨': 'Published',
+        '미발행': 'Unpublished',
+        '제목': 'Title',
+        '대상 사용자': 'Target Users',
+        '국가/지역': 'Country / Region',
+        '조회 수': 'Views',
+        '전 지역': 'All Regions',
+        '프로필 설정': 'Profile Settings',
+        '비밀번호 변경': 'Change Password',
+        '이메일': 'Email',
+        '2단계 인증 (2FA)': 'Two-factor Authentication (2FA)',
+        '활성': 'Active',
+        '등록된 기기 관리': 'Trusted Devices',
+        '현재 기기': 'Current Device',
+        '사용자 관리': 'User Management',
+        '신규 관리자 초대': 'Invite Admin',
+        '사용자 목록': 'Users',
+        '이름': 'Name',
+        '역할': 'Role',
+        '최근 로그인': 'Last Login',
+        '플랫폼 최고 관리자': 'Platform Owner',
+        '호텔 입점 신청': 'Hotel Onboarding Application',
+        '관리자 로그인으로 돌아가기': 'Back to Admin Login',
+        '입점 신청서': 'Onboarding Application',
+        '신규 신청': 'New Application',
+        '호텔 정보': 'Hotel Information',
+        '호텔명': 'Hotel Name',
+        '객실 수': 'Room Count',
+        '객실 수 *': 'Room Count *',
+        '초기 관리자 계정': 'Initial Admin Account',
+        '운영 중': 'Active',
+        '서비스 정지': 'Suspend Service',
+        '전체 객실': 'Total Rooms',
+        '월 매출': 'Monthly Revenue',
+        '점유율': 'Occupancy',
+        '광고 매출': 'Ad Revenue',
+        '국가/도시': 'Country / City',
+        '입점 신청 페이지': 'Application Page',
+        '전체 (5)': 'All (5)',
+        '운영 중 (2)': 'Active (2)',
+        '심사 중 (0)': 'Under Review (0)',
+        '정지됨 (0)': 'Suspended (0)',
+        '반려 (0)': 'Rejected (0)',
+        '플랜': 'Plan',
+        '호텔 기본 정보': 'Hotel Information',
+        '타임존': 'Timezone',
+        '계약 정보': 'Contract Information',
+        '계약 기간': 'Contract Period',
+        '등록하기': 'Register',
+        '검색': 'Search',
+        '조회': 'Search',
+        '전체': 'All',
+        '총': 'Total',
+        '결제': 'Payment',
+        '객실': 'Room',
+        '투숙 중': 'In-house',
+        '체크아웃': 'Check-out',
+        '오늘 체크인': 'Today Check-ins',
+        '완료': 'Completed',
+        '수정': 'Edit',
+        '예정': 'Scheduled',
+        '접수': 'Received',
+        '처리중': 'In Progress',
+        '낮음': 'Low',
+        '오류': 'Error',
+        '배치 작업': 'Batch Job',
+        '메시지': 'Message',
+        '모듈': 'Module',
+        '상태 코드': 'Status Code',
+        '발생 시간': 'Occurred At',
+        '베트남': 'Vietnam',
+        '한국': 'South Korea',
+        '태국': 'Thailand',
+        '일본': 'Japan',
+        '심사 중': 'Under Review',
+        '글로벌 시스템 로그': 'Global System Logs',
+        '테넌트 (호텔)': 'Tenant (Hotel)',
+        'PG사 타임아웃 오류 발생': 'PG Timeout Error',
+        '권한: RBAC 정책 충돌': 'Permission: RBAC Policy Conflict',
+        '자동화 스크립트 오류 (메모리)': 'Automation Script Error (Memory)',
+        '합계': 'Total',
+        'CPC (클릭당 $0.45)': 'CPC ($0.45 per click)',
+        '광고 배너 소재': 'Ad Banner Creative',
+        '리조트 골프 패키지 $199부터': 'Resort Golf Package from $199',
+        '예약하기': 'Book Now',
+        '728 x 90 배너 (한국어 버전)': '728 x 90 Banner (Korean Version)',
+        '단가 (USD)': 'Rate (USD)',
+        '한국어 배너': 'Korean Banner',
+        '영어 배너': 'English Banner',
+        '일본어 배너': 'Japanese Banner',
+        '위험도': 'Risk Level',
+        '입점 승인': 'Tenant Approval',
+        '결제 주기': 'Billing Cycle',
+        '금액': 'Amount',
+        '갱신일': 'Renewal Date',
+        '월간': 'Monthly',
+        '결제 완료': 'Paid',
+        '연체': 'Overdue',
+        '2 items 처리 필요': '2 tickets need action',
+        '[TCK-1001] 요금 캘린더 저장 확인 요청': '[TCK-1001] Rate Calendar Save Request',
+        '[TCK-1002] 관리자 비밀번호 초기화': '[TCK-1002] Admin Password Reset',
+        '관리팀': 'Admin Team',
+        '안녕하세요. 결제창 호출 시 PG사 연동 에러(Error 502)가 발생했습니다. 확인 부탁드립니다.': 'Hello. A PG integration error (Error 502) occurred when opening the payment window. Please check it.',
+        '글로벌 신용카드 결제 및 디파짓(Pre-auth) 처리를 위한 Stripe 결제 모듈입니다. 테넌트들이 자신의 Stripe 계정을 연결할 수 있습니다.': 'Stripe module for global credit card payments and deposit pre-authorization. Tenants can connect their own Stripe accounts.',
+        '국내 고객을 위한 카카오톡 알림톡 발송 모듈입니다. 예약 확정, 체크인 안내, 웰컴 메시지 자동 발송을 지원합니다.': 'Kakao notification module for domestic guests. Supports reservation confirmations, check-in notices, and welcome messages.',
+        'NICE Pay (나이스페이)': 'NICE Pay',
+        '국내 신용카드, 가상계좌, 간편결제(네이버페이, 카카오페이 등)를 지원하는 국내 표준 결제 게이트웨이 연동 모듈입니다.': 'Domestic payment gateway integration supporting credit cards, virtual accounts, and simple payments such as Naver Pay and Kakao Pay.',
+        '시스템 점검 안내 (5/25 02:00~06:00 UTC)': 'System Maintenance Notice (5/25 02:00-06:00 UTC)',
+        '베트남 지역 정산 시스템 업데이트 안내': 'Vietnam Billing System Update',
+        '호텔 관리자': 'Hotel Admin',
+        '한국 지역 카카오 알림톡 연동 안내': 'Korea Kakao Notification Integration Notice',
+        'Jun 글로벌 프로모션 캠페인 신청 안내': 'June Global Promotion Campaign Application Notice',
+        '유럽 지역 개인정보 처리 방침 업데이트': 'Europe Privacy Policy Update',
+        '관리자 계정에 연결된 신뢰 기기 목록입니다. 분실했거나 더 이상 사용하지 않는 기기는 즉시 해제하세요.': 'Trusted devices connected to the admin account. Remove lost or unused devices immediately.',
+        '최근 활동: 현재 접속 중 | 등록일: 2026-05-10': 'Recent activity: Currently active | Added: 2026-05-10',
+        '최근 활동: 2026-05-21 08:30 | 등록일: 2026-05-12': 'Recent activity: 2026-05-21 08:30 | Added: 2026-05-12',
+        '최근 활동: 2026-04-10 14:20 | 등록일: 2026-03-05': 'Recent activity: 2026-04-10 14:20 | Added: 2026-03-05',
+        '기기 해제': 'Remove Device',
+        '운영 관리자': 'Operations Manager',
+        '월 이용료': 'Monthly Fee',
+        '로그인 이메일': 'Login Email',
+        '호텔 최고 관리자 계정입니다.': 'Primary hotel administrator account.',
+        '분실 시 임시 비밀번호 또는 재설정 링크를 이메일로 발송합니다.': 'If lost, send a temporary password or reset link by email.',
+        '재설정 메일 발송': 'Send Reset Email',
+        '매출 현황': 'Revenue Status',
+        '(최근 6개월)': '(Last 6 months)',
+        '호텔 정보와 담당자 계정을 입력합니다.': 'Enter hotel information and the manager account.',
+        'Super Admin에서 심사 후 승인/반려를 처리합니다.': 'Super Admin reviews and approves or rejects the application.',
+        '승인 시 로그인 안내와 임시 비밀번호 초기화 링크가 이메일로 발송됩니다.': 'When approved, login instructions and a temporary password reset link are sent by email.',
+        '신청이 접수되면 플랫폼 관리자가 계약/운영 정보를 확인한 뒤 승인 결과와 접속 안내를 이메일로 발송합니다.': 'After submission, the platform admin checks contract and operation details, then emails the approval result and access instructions.',
+        '로그인 ID는 담당자 이메일로 생성됩니다. 비밀번호는 승인 전까지 활성화되지 않습니다.': 'The login ID is created from the manager email. The password is not activated until approval.',
+        '운영 기준:': 'Operation Policy:',
+        '승인 이후 비밀번호 분실 시 호텔 담당자는 이메일 기반 재설정 링크를 받고, Super Admin은 호텔 상세 또는 관리자 계정 화면에서 임시 비밀번호 발송을 처리합니다.': 'After approval, hotel managers receive an email reset link for lost passwords, and Super Admin can send a temporary password from hotel detail or admin account pages.',
+        '사업자 등록번호': 'Business Registration No.',
+        '담당자 정보': 'Manager Information',
+        '담당자명 *': 'Manager Name *',
+        '담당자 이메일 *': 'Manager Email *',
+        '연락처 *': 'Phone *',
+        '희망 플랜': 'Preferred Plan',
+        '신청 접수': 'Submit Application',
+        '비밀번호 초기화': 'Password Reset',
+        '플랜 변경': 'Change Plan',
+        '호텔명 *': 'Hotel Name *',
+        '국가 *': 'Country *',
+        '도시 *': 'City *',
+        '기본 통화': 'Default Currency',
+        '담당자 이름 *': 'Manager Name *',
+        '로그인 이메일 *': 'Login Email *',
+        '초기 비밀번호 *': 'Initial Password *',
+        '비밀번호 확인 *': 'Confirm Password *',
+        '신청 경로': 'Application Source',
+        '요청 사항': 'Requests',
+        '특이사항': 'Notes',
+        '이미 계정이 있습니다': 'Already have an account'
+    };
+}
+
+function translateKoreanPattern(text) {
+    const dayMap = { '일': 'Sun', '월': 'Mon', '화': 'Tue', '수': 'Wed', '목': 'Thu', '금': 'Fri', '토': 'Sat' };
+    const monthMap = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let out = text;
+
+    out = out.replace(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일\s*([일월화수목금토])\s*(오전|오후)\s*(\d{1,2}):(\d{2})/g,
+        (_, y, m, d, day, ampm, hh, mm) => `${dayMap[day]}, ${monthMap[Number(m) - 1]} ${Number(d)}, ${y} ${hh}:${mm} ${ampm === '오전' ? 'AM' : 'PM'}`);
+    out = out.replace(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일\s*\(([일월화수목금토])\)/g,
+        (_, y, m, d, day) => `${monthMap[Number(m) - 1]} ${Number(d)}, ${y} (${dayMap[day]})`);
+    out = out.replace(/(\d{4})년\s*(\d{1,2})월/g, (_, y, m) => `${monthMap[Number(m) - 1]} ${y}`);
+    out = out.replace(/(\d{1,2})월/g, (_, m) => monthMap[Number(m) - 1] || `${m} mo`);
+    out = out.replace(/(\d{1,2})\/(\d{1,2})\s*\(([일월화수목금토])\)/g, (_, m, d, day) => `${m}/${d} (${dayMap[day]})`);
+    out = out.replace(/(\d{3,4})호/g, 'Room $1');
+    out = out.replace(/(\d+)층/g, 'Floor $1');
+    out = out.replace(/(\d+)회/g, '$1 visits');
+    out = out.replace(/(\d+)박/g, '$1N');
+    out = out.replace(/(\d+)건/g, '$1 items');
+    out = out.replace(/(\d+)개 권한/g, '$1 permissions');
+    out = out.replace(/\/\s*월/g, '/ mo');
+    if (dayMap[out]) out = dayMap[out];
+    return out;
+}
+
+function applyVisibleTextI18nFallback(lang, catalog) {
+    if (lang !== 'en' || !document.body) return;
+    const reverse = buildReverseI18nMap(catalog || {});
+    const skipTags = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'OPTION']);
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+            const parent = node.parentElement;
+            if (!parent || skipTags.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
+            if (parent.closest('[data-no-auto-i18n], .user-input, .guest-name, .timeline-user-data')) return NodeFilter.FILTER_REJECT;
+            const trimmed = node.nodeValue.replace(/\s+/g, ' ').trim();
+            return (reverse[trimmed] || /[가-힣]/.test(trimmed)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+    });
+
+    const pending = [];
+    let node;
+    while ((node = walker.nextNode())) pending.push(node);
+    pending.forEach(node => {
+        const leading = node.nodeValue.match(/^\s*/)[0];
+        const trailing = node.nodeValue.match(/\s*$/)[0];
+        const trimmed = node.nodeValue.replace(/\s+/g, ' ').trim();
+        const translated = reverse[trimmed] || translateKoreanPattern(trimmed);
+        node.nodeValue = `${leading}${translated}${trailing}`;
+    });
 }
 
 window.t = function(key, params) {
@@ -422,7 +722,42 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!document.querySelector('script[src*="sidebar.js"]')) {
         window.dispatchEvent(new Event('DataReady'));
     }
+    setTimeout(installChangeLangGuard, 0);
 });
+
+function installChangeLangGuard() {
+    const original = window.changeLang;
+    if (typeof original !== 'function' || original.__pmsI18nGuard) return;
+    window.changeLang = function guardedChangeLang(lang) {
+        const result = original.apply(this, arguments);
+        const nextLang = lang || window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+        window.currentLang = nextLang;
+        localStorage.setItem('pms_lang', nextLang);
+        const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
+        applyVisibleTextI18nFallback(nextLang, catalog);
+        window.dispatchEvent(new Event('languagechange'));
+        return result;
+    };
+    window.changeLang.__pmsI18nGuard = true;
+    const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+    window.changeLang(lang);
+    installI18nMutationObserver();
+}
+
+function installI18nMutationObserver() {
+    if (window.__pmsI18nObserver || !document.body) return;
+    let timer = null;
+    window.__pmsI18nObserver = new MutationObserver(() => {
+        const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+        if (lang !== 'en') return;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
+            applyVisibleTextI18nFallback('en', catalog);
+        }, 80);
+    });
+    window.__pmsI18nObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+}
 
 // --- Added Missing Sidebar Vocabulary ---
 Object.assign(window.translations.ko, {
