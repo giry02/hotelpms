@@ -319,6 +319,10 @@ function isLegacyGroupSeed(list) {
     return Array.isArray(list) && list.length === 1 && list[0]?.id === 'GRP-1001';
 }
 
+function isStaleSamsungGroup(item) {
+    return item?.id === 'GRP-2605-01' && item?.name === 'Samsung Tech Conference 2026';
+}
+
 function readPersistedGroups() {
     try {
         const stored = JSON.parse(localStorage.getItem('pms_groups') || '[]');
@@ -326,7 +330,10 @@ function readPersistedGroups() {
             localStorage.removeItem('pms_groups');
             return [];
         }
-        return Array.isArray(stored) ? stored : [];
+        if (!Array.isArray(stored)) return [];
+        const cleaned = stored.filter(item => !isStaleSamsungGroup(item));
+        if (cleaned.length !== stored.length) localStorage.setItem('pms_groups', JSON.stringify(cleaned));
+        return cleaned;
     } catch(e) {
         return [];
     }
@@ -335,6 +342,7 @@ function readPersistedGroups() {
 function mergeGroupsById(...lists) {
     const merged = new Map();
     lists.flat().forEach(item => {
+        if (isStaleSamsungGroup(item)) return;
         if (item?.id) merged.set(item.id, item);
     });
     return [...merged.values()];
@@ -345,7 +353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         if (window.PmsAPI?.getGroups) {
             const apiGroups = await window.PmsAPI.getGroups();
-            groups = mergeGroupsById(apiGroups, storedGroups);
+            groups = mergeGroupsById(storedGroups, apiGroups);
         }
     } catch(e) {
         console.warn('Group mock load failed', e);

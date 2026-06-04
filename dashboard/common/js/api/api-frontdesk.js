@@ -2555,7 +2555,12 @@ Object.assign(window.PmsAPI, {
     syncGroupsToReservations: async (reservations) => {
         const groupStr = localStorage.getItem('pms_groups');
         if (!groupStr) return reservations;
-        const groups = JSON.parse(groupStr);
+        let groups = JSON.parse(groupStr);
+        const beforeGroupCount = Array.isArray(groups) ? groups.length : 0;
+        groups = (Array.isArray(groups) ? groups : []).filter(g =>
+            !(g?.id === 'GRP-2605-01' && g?.name === 'Samsung Tech Conference 2026')
+        );
+        if (groups.length !== beforeGroupCount) localStorage.setItem('pms_groups', JSON.stringify(groups));
         
         let rooms = [];
         try { rooms = await window.PmsAPI.getAllRooms(); } catch(e) {}
@@ -2838,12 +2843,12 @@ Object.assign(window.PmsAPI, {
         } catch(e) {}
         return initStorage('pms_groups', [
             {
-                "id": "GRP-2605-01", "name": "Samsung Tech Conference 2026",
+                "id": "GRP-260527-01", "name": "Samsung Tech Conference 2026",
                 "type": "기업 행사 / 컨퍼런스", "status": "inhouse",
-                "checkin": "2026-05-20", "checkout": "2026-05-24",
-                "block": 50, "pickup": 45, "pax": 90,
-                "routing": "Master Account (Company)", "contact": "010-1234-5678 (김과장)",
-                "sales": "박민수", "note": "얼리 체크인 10객실 요청됨"
+                "checkin": "2026-06-09", "checkout": "2026-06-12",
+                "block": 4, "pickup": 2, "pax": 70,
+                "routing": "Master Folio", "contact": "+82 10 1234 5678 (Kim Jiwon)",
+                "sales": "Sarah Connor", "note": "VIP speaker rooms and breakfast coupons prepared."
             },
             {
                 "id": "GRP-2605-02", "name": "Wedding: Lee & Kim",

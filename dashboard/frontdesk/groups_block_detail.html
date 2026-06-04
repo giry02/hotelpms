@@ -175,6 +175,15 @@ let groups = [];
 let reservations = [];
 let rooms = [];
 
+function isStaleSamsungGroup(item) {
+    return item?.id === 'GRP-2605-01' && item?.name === 'Samsung Tech Conference 2026';
+}
+
+function cleanPersistedGroups(list) {
+    if (!Array.isArray(list)) return [];
+    return list.filter(item => !isStaleSamsungGroup(item));
+}
+
 const statusMap = {
     confirmed:{label:'확정', cls:'pill-confirmed'},
     inhouse:{label:'투숙 중', cls:'pill-inhouse'},
@@ -684,12 +693,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         rooms = await PmsAPI.getAllRooms();
         const stored = localStorage.getItem('pms_groups');
-        groups = stored ? JSON.parse(stored) : [];
+        const rawGroups = stored ? JSON.parse(stored) : [];
+        groups = cleanPersistedGroups(rawGroups);
+        if (groups.length !== rawGroups.length) localStorage.setItem('pms_groups', JSON.stringify(groups));
         try {
             if (window.PmsAPI?.getGroups) {
                 const apiGroups = await window.PmsAPI.getGroups();
                 const merged = new Map();
                 [...groups, ...apiGroups].forEach(item => {
+                    if (isStaleSamsungGroup(item)) return;
                     if (item?.id) merged.set(item.id, item);
                 });
                 groups = [...merged.values()];
@@ -726,7 +738,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         window.reservations = reservations = await PmsAPI.getReservations();
         try {
-            const syncedGroups = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+            const syncedGroups = cleanPersistedGroups(JSON.parse(localStorage.getItem('pms_groups') || '[]'));
             const syncedGroup = syncedGroups.find(g => g.id === id);
             if (syncedGroup) {
                 groups = syncedGroups;
