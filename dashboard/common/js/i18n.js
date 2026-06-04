@@ -752,7 +752,8 @@ Object.assign(window.translations.ko, {
     "Occupancy Rate": "가동률",
     "This Week": "금주 가동",
     "Last Week": "전주 가동",
-    "vs Last Week": "전주 대비"
+    "vs Last Week": "전주 대비",
+    "System / Booking": "시스템/예약"
 });
 
 Object.assign(window.translations.en, {
@@ -801,5 +802,6 @@ Object.assign(window.translations.en, {
     "Occupancy Rate": "Occupancy Rate",
     "This Week": "This Week",
     "Last Week": "Last Week",
-    "vs Last Week": "vs Last Week"
+    "vs Last Week": "vs Last Week",
+    "System / Booking": "System / Booking"
 });
