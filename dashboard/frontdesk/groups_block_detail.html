@@ -608,9 +608,10 @@ window.saveBasicInfo = function() {
     showToast(wasDraft ? '단체 관리가 시작되었습니다.' : '기본 정보가 저장되었습니다.');
 };
 
-function allocationOptions(selected = '') {
+function allocationOptions(selected = '', unavailable = new Set()) {
     return ['<option value="">호실 선택</option>'].concat((rooms || []).map(r => {
         const id = roomId(r);
+        if (id !== selected && unavailable.has(id)) return '';
         const label = `${r.bldgCode || r.building || ''} ${r.display || r.number || id}`.trim();
         return `<option value="${id}" ${id === selected ? 'selected' : ''}>${label} · ${r.type || 'Standard'}</option>`;
     })).join('');
@@ -1017,6 +1018,29 @@ window.addEventListener('DataReady', () => {
         if (baseInput) baseInput.value = base || '';
         if (finalInput && !keepFinal) finalInput.value = base ? Math.round(base * (100 - discount) / 100) : '';
     };
+    window.refreshAllocationRoomOptions = function() {
+        const rows = Array.from(document.querySelectorAll('.allocation-editor-row'));
+        const rawSelected = rows.map(row => row.querySelector('.detail-room')?.value || '');
+        const firstRowForValue = new Map();
+        rows.forEach((row, index) => {
+            const value = rawSelected[index];
+            if (value && !firstRowForValue.has(value)) firstRowForValue.set(value, row);
+        });
+        rows.forEach(row => {
+            const select = row.querySelector('.detail-room');
+            if (!select) return;
+            const rawCurrent = select.value || '';
+            const current = rawCurrent && firstRowForValue.get(rawCurrent) === row ? rawCurrent : '';
+            const unavailable = new Set(rawSelected.filter(value => value && value !== current));
+            select.innerHTML = allocationOptions(current, unavailable);
+            select.value = current;
+            if (rawCurrent && !current) window.recalcAllocationRow(row);
+        });
+    };
+    window.removeAllocationRow = function(button) {
+        button?.closest('.allocation-editor-row')?.remove();
+        window.refreshAllocationRoomOptions();
+    };
     window.addDetailAllocationRow = function(allocation = {}) {
         const wrap = document.getElementById('detailAllocationEditor');
         if (!wrap) return;
@@ -1043,10 +1067,14 @@ window.addEventListener('DataReady', () => {
                 <label>최종 단가</label>
                 <input type="number" class="form-input detail-final-rate" min="0" value="${finalRate}">
             </div>
-            <button class="mini-btn danger" type="button" title="삭제" onclick="this.closest('.allocation-editor-row').remove()"><i class="fa-solid fa-trash"></i></button>`;
-        row.querySelector('.detail-room').addEventListener('change', () => window.recalcAllocationRow(row));
+            <button class="mini-btn danger" type="button" title="삭제" onclick="removeAllocationRow(this)"><i class="fa-solid fa-trash"></i></button>`;
+        row.querySelector('.detail-room').addEventListener('change', () => {
+            window.recalcAllocationRow(row);
+            window.refreshAllocationRoomOptions();
+        });
         row.querySelector('.detail-discount').addEventListener('input', () => window.recalcAllocationRow(row));
         wrap.prepend(row);
+        window.refreshAllocationRoomOptions();
     };
     window.saveRoomAllocationsFromDetail = async function() {
         if (isDraftGroup()) { showToast('기본 정보를 먼저 저장해주세요.', 'error'); switchTabById('overview'); return; }
