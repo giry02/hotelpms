@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/crm.css">
 <style>
+.topbar-back-btn{height:32px;min-width:32px;padding:4px 8px;margin-right:8px;border:none;box-shadow:none;border-radius:6px;background:transparent;color:var(--txt);font-family:var(--font);font-size:.95rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .18s}
+.topbar-back-btn:hover{color:var(--primary);background:var(--border2)}
+
 /* Mobile filter trigger */
 .m-filter-trigger{display:none;height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;font-size:.75rem;font-weight:600;color:var(--txt);cursor:pointer;font-family:var(--font);align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;width:100px}
 .m-filter-trigger i{font-size:.65rem;color:var(--txt3)}
@@ -386,7 +389,22 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 
 
 <script>
+function ensureTopbarBackButton() {
+    const topbarLeft = document.querySelector('.topbar-left');
+    const title = topbarLeft?.querySelector('h1');
+    if (!topbarLeft || !title || topbarLeft.querySelector('.topbar-back-btn')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'topbar-back-btn';
+    button.title = 'Back';
+    button.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
+    button.onclick = () => { location.href = 'membership.html'; };
+    topbarLeft.insertBefore(button, title);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+    setTimeout(ensureTopbarBackButton, 0);
+    setTimeout(ensureTopbarBackButton, 200);
     try {
         history = await PmsAPI.getHistory();
         renderHistory();
