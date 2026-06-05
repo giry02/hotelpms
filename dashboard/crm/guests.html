@@ -140,6 +140,7 @@
     <script src="../common/js/api/api-crm.js"></script>
     <script src="../common/js/i18n-catalog.js"></script>
 <script src="../common/js/i18n.js"></script>
+<script src="../common/js/vip-criteria.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
@@ -173,7 +174,7 @@
                 <div class="kpi-body">
                     <div class="kpi-value" id="kpiVipGuests">0</div>
                     <div class="kpi-label">VIP Guests</div>
-                    <div class="kpi-sub">Gold/Platinum/Diamond</div>
+                    <div class="kpi-sub" id="kpiVipCriteriaText">Platinum 이상 등급</div>
                 </div>
             </div>
             <div class="kpi-card purple">
@@ -436,7 +437,10 @@ function updateFilterCounts() {
 
     const totalGuests = guests.length;
     const returnCount = guests.filter(g => g.visits >= 2).length;
-    const vipCount = guests.filter(g => g.tier === 'gold' || g.tier === 'platinum' || g.tier === 'diamond').length;
+    const vipConfig = window.PMS_VIP_CRITERIA ? window.PMS_VIP_CRITERIA.getConfig() : { vipMinimumTier: 'platinum' };
+    const vipCount = window.PMS_VIP_CRITERIA
+        ? window.PMS_VIP_CRITERIA.countVip(guests, vipConfig)
+        : guests.filter(g => g.tier === 'platinum' || g.tier === 'diamond').length;
     const totalSpend = guests.reduce((sum, g) => sum + (g.spend || 0), 0);
     const avgSpend = totalGuests > 0 ? Math.floor(totalSpend / totalGuests) : 0;
     const returnRate = totalGuests > 0 ? ((returnCount / totalGuests) * 100).toFixed(1) : 0;
@@ -444,12 +448,17 @@ function updateFilterCounts() {
     const elTotal = document.getElementById('kpiTotalGuests');
     const elReturn = document.getElementById('kpiReturnRate');
     const elVip = document.getElementById('kpiVipGuests');
+    const elVipCriteria = document.getElementById('kpiVipCriteriaText');
     const elSpend = document.getElementById('kpiAvgSpend');
     const elPageCount = document.getElementById('pageTotalCount');
 
     if(elTotal) elTotal.textContent = totalGuests.toLocaleString();
     if(elReturn) elReturn.textContent = returnRate + '%';
     if(elVip) elVip.textContent = vipCount.toLocaleString();
+    if(elVipCriteria && window.PMS_VIP_CRITERIA) {
+        const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+        elVipCriteria.textContent = window.PMS_VIP_CRITERIA.vipSubtitle(vipConfig, lang);
+    }
     if(elSpend) elSpend.textContent = '$' + avgSpend.toLocaleString();
     if(elPageCount) elPageCount.textContent = totalGuests.toLocaleString();
 }

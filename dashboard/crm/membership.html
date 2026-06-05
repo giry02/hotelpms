@@ -15,6 +15,7 @@
     <script src="../common/js/api/api-crm.js"></script>
     <script src="../common/js/i18n-catalog.js"></script>
 <script src="../common/js/i18n.js"></script>
+<script src="../common/js/vip-criteria.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
@@ -29,6 +30,13 @@
         .tier-benefits-modal .modal-body{padding:0}
         .tier-benefits-modal .benefits-table-wrap{max-height:62vh;overflow:auto}
         .tier-benefits-modal .benefits-table{min-width:760px}
+        .vip-criteria-note{font-size:.8rem;color:var(--txt2);line-height:1.5;margin:0}
+        .vip-criteria-box{border:1px solid var(--border);border-radius:7px;padding:16px;background:#fff}
+        .vip-criteria-box.highlight{background:#f8fafc;border-color:#dbeafe}
+        .vip-criteria-title{font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+        .vip-criteria-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .vip-criteria-grid label,.vip-criteria-box label{font-size:.75rem;color:var(--txt2);font-weight:700}
+        .vip-criteria-grid input,.vip-criteria-box select{width:100%;height:36px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);font-size:.82rem;background:#fff}
         @media(max-width:768px){
             .section-header.membership-toolbar{align-items:stretch;gap:10px}
             .section-header.membership-toolbar h3{width:100%}
@@ -52,7 +60,7 @@
                     <div class="tier-card-count" id="countDiamond">40</div>
                     <div class="tier-card-name">Diamond</div>
                 </div>
-                <div class="tier-card-criteria">20회 이상 투숙 · 연 $10,000+</div>
+                <div class="tier-card-criteria" id="criteriaTextDiamond">20회 이상 투숙 · 연 $10,000+</div>
             </div>
             <div class="tier-card platinum">
                 <div class="tier-card-icon"><i class="fa-solid fa-star"></i></div>
@@ -60,7 +68,7 @@
                     <div class="tier-card-count" id="countPlatinum">52</div>
                     <div class="tier-card-name">Platinum</div>
                 </div>
-                <div class="tier-card-criteria">10회 이상 투숙 · 연 $5,000+</div>
+                <div class="tier-card-criteria" id="criteriaTextPlatinum">10회 이상 투숙 · 연 $5,000+</div>
             </div>
             <div class="tier-card gold">
                 <div class="tier-card-icon"><i class="fa-solid fa-crown"></i></div>
@@ -68,7 +76,7 @@
                     <div class="tier-card-count" id="countGold">94</div>
                     <div class="tier-card-name">Gold</div>
                 </div>
-                <div class="tier-card-criteria">5회 이상 투숙 · 연 $2,000+</div>
+                <div class="tier-card-criteria" id="criteriaTextGold">5회 이상 투숙 · 연 $2,000+</div>
             </div>
             <div class="tier-card standard">
                 <div class="tier-card-icon"><i class="fa-solid fa-user"></i></div>
@@ -83,7 +91,7 @@
             <h3 style="margin:0;color:var(--txt)" data-i18n-key="Tier Member Status">등급별 회원 현황 및 기준</h3>
             <div class="membership-actions">
                 <button class="btn-outline membership-benefits-btn" onclick="openModal('tierBenefitsModal')"><i class="fa-solid fa-gift"></i> <span data-i18n-key="Tier Benefits">등급별 혜택</span></button>
-                <button class="btn-primary-sm" onclick="openModal('vipCriteriaModal')"><i class="fa-solid fa-sliders"></i> <span data-i18n-key="VIP Upgrade Criteria">승급 기준 관리</span></button>
+                <button class="btn-primary-sm" onclick="openVipCriteriaModal()"><i class="fa-solid fa-sliders"></i> <span data-i18n-key="VIP Upgrade Criteria">승급 기준 관리</span></button>
             </div>
         </div>
 
@@ -185,6 +193,78 @@
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
+function money(value) {
+    return '$' + Number(value || 0).toLocaleString();
+}
+
+function currentVipCriteria() {
+    return window.PMS_VIP_CRITERIA ? window.PMS_VIP_CRITERIA.getConfig() : null;
+}
+
+function updateCriteriaSummary() {
+    const config = currentVipCriteria();
+    if (!config) return;
+    const map = {
+        gold: document.getElementById('criteriaTextGold'),
+        platinum: document.getElementById('criteriaTextPlatinum'),
+        diamond: document.getElementById('criteriaTextDiamond')
+    };
+    Object.keys(map).forEach(tier => {
+        if (!map[tier]) return;
+        const threshold = config.thresholds[tier];
+        map[tier].textContent = `${threshold.stays}회 이상 투숙 · 연 ${money(threshold.spend)}+`;
+    });
+}
+
+function fillVipCriteriaModal() {
+    const config = currentVipCriteria();
+    if (!config) return;
+    const minSelect = document.getElementById('vipMinimumTier');
+    if (minSelect) minSelect.value = config.vipMinimumTier;
+    const fieldMap = [
+        ['criteriaGoldStays', config.thresholds.gold.stays],
+        ['criteriaGoldSpend', config.thresholds.gold.spend],
+        ['criteriaPlatinumStays', config.thresholds.platinum.stays],
+        ['criteriaPlatinumSpend', config.thresholds.platinum.spend],
+        ['criteriaDiamondStays', config.thresholds.diamond.stays],
+        ['criteriaDiamondSpend', config.thresholds.diamond.spend]
+    ];
+    fieldMap.forEach(([id, value]) => {
+        const input = document.getElementById(id);
+        if (input) input.value = value;
+    });
+}
+
+function openVipCriteriaModal() {
+    fillVipCriteriaModal();
+    openModal('vipCriteriaModal');
+}
+
+function saveVipCriteria() {
+    if (!window.PMS_VIP_CRITERIA) return;
+    const next = {
+        vipMinimumTier: document.getElementById('vipMinimumTier')?.value || 'platinum',
+        thresholds: {
+            gold: {
+                stays: Number(document.getElementById('criteriaGoldStays')?.value || 0),
+                spend: Number(document.getElementById('criteriaGoldSpend')?.value || 0)
+            },
+            platinum: {
+                stays: Number(document.getElementById('criteriaPlatinumStays')?.value || 0),
+                spend: Number(document.getElementById('criteriaPlatinumSpend')?.value || 0)
+            },
+            diamond: {
+                stays: Number(document.getElementById('criteriaDiamondStays')?.value || 0),
+                spend: Number(document.getElementById('criteriaDiamondSpend')?.value || 0)
+            }
+        }
+    };
+    window.PMS_VIP_CRITERIA.saveConfig(next);
+    updateCriteriaSummary();
+    showToast('승급 기준과 VIP 집계 기준이 업데이트되었습니다.', 'success');
+    closeModal('vipCriteriaModal');
+}
+
 // i18n
 let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 const translations={ko: {
@@ -249,6 +329,7 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
 document.addEventListener('DOMContentLoaded', async () => {
     setupI18n();
     changeLang(currentLang);
+    updateCriteriaSummary();
     
     // Add 상세보기
     document.querySelectorAll('.tc-item').forEach(el => {
@@ -328,52 +409,61 @@ document.addEventListener('DOMContentLoaded', async () => {
             <button class="modal-close" onclick="closeModal('vipCriteriaModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
-            <p style="font-size:0.85rem;color:var(--txt2)">자동 승급에 필요한 최소 투숙 횟수와 누적 결제 금액을 설정합니다.</p>
-            <div style="border:1px solid var(--border);border-radius:4px;padding:16px">
-                <div style="font-weight:700;color:#F59E0B;margin-bottom:12px"><i class="fa-solid fa-crown"></i> Gold 승급 기준</div>
-                <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <p class="vip-criteria-note">자동 승급에 필요한 최소 투숙 횟수와 누적 결제 금액을 설정합니다. VIP 고객 KPI는 아래의 VIP 집계 기준 등급 이상만 포함합니다.</p>
+            <div class="vip-criteria-box highlight">
+                <label for="vipMinimumTier">VIP 집계 기준</label>
+                <select id="vipMinimumTier" style="margin-top:6px">
+                    <option value="gold">Gold 이상</option>
+                    <option value="platinum">Platinum 이상</option>
+                    <option value="diamond">Diamond만</option>
+                </select>
+                <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-top:8px">투숙객 관리의 VIP 고객 KPI와 리텐션 기준에 적용됩니다.</div>
+            </div>
+            <div class="vip-criteria-box">
+                <div class="vip-criteria-title" style="color:#F59E0B"><i class="fa-solid fa-crown"></i> Gold 승급 기준</div>
+                <div class="vip-criteria-grid">
                     <div>
                         <label style="font-size:0.75rem;color:var(--txt2)">최소 투숙 횟수</label>
-                        <input type="number" style="width:100%;height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px" value="5">
+                        <input type="number" id="criteriaGoldStays" min="0" value="5">
                     </div>
                     <div>
                         <label style="font-size:0.75rem;color:var(--txt2)">최소 결제 금액 ($)</label>
-                        <input type="number" style="width:100%;height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px" value="2000">
+                        <input type="number" id="criteriaGoldSpend" min="0" value="2000">
                     </div>
                 </div>
             </div>
 
-            <div style="border:1px solid var(--border);border-radius:4px;padding:16px">
-                <div style="font-weight:700;color:#A78BFA;margin-bottom:12px"><i class="fa-solid fa-star"></i> Platinum 승급 기준</div>
-                <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="vip-criteria-box">
+                <div class="vip-criteria-title" style="color:#A78BFA"><i class="fa-solid fa-star"></i> Platinum 승급 기준</div>
+                <div class="vip-criteria-grid">
                     <div>
                         <label style="font-size:0.75rem;color:var(--txt2)">최소 투숙 횟수</label>
-                        <input type="number" style="width:100%;height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px" value="10">
+                        <input type="number" id="criteriaPlatinumStays" min="0" value="10">
                     </div>
                     <div>
                         <label style="font-size:0.75rem;color:var(--txt2)">최소 결제 금액 ($)</label>
-                        <input type="number" style="width:100%;height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px" value="5000">
+                        <input type="number" id="criteriaPlatinumSpend" min="0" value="5000">
                     </div>
                 </div>
             </div>
 
-            <div style="border:1px solid var(--border);border-radius:4px;padding:16px">
-                <div style="font-weight:700;color:#60A5FA;margin-bottom:12px"><i class="fa-solid fa-gem"></i> Diamond 승급 기준</div>
-                <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="vip-criteria-box">
+                <div class="vip-criteria-title" style="color:#60A5FA"><i class="fa-solid fa-gem"></i> Diamond 승급 기준</div>
+                <div class="vip-criteria-grid">
                     <div>
                         <label style="font-size:0.75rem;color:var(--txt2)">최소 투숙 횟수</label>
-                        <input type="number" style="width:100%;height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px" value="20">
+                        <input type="number" id="criteriaDiamondStays" min="0" value="20">
                     </div>
                     <div>
                         <label style="font-size:0.75rem;color:var(--txt2)">최소 결제 금액 ($)</label>
-                        <input type="number" style="width:100%;height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px" value="10000">
+                        <input type="number" id="criteriaDiamondSpend" min="0" value="10000">
                     </div>
                 </div>
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('vipCriteriaModal')">닫기</button>
-            <button class="btn-primary-sm" onclick="showToast('승급 기준이 업데이트되었습니다.', 'success');closeModal('vipCriteriaModal')"><i class="fa-solid fa-check"></i> 저장</button>
+            <button class="btn-primary-sm" onclick="saveVipCriteria()"><i class="fa-solid fa-check"></i> 저장</button>
         </div>
     </div>
 </div>
