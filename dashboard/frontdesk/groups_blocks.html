@@ -764,8 +764,9 @@ async function deleteGroup(id) {
         const now = today();
         const cin = parseDate(g.checkin);
         const cout = parseDate(g.checkout);
-        const unsettled = g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid';
-        if (unsettled && cout && cout < now) return { key:'settlement', label:'정산 필요', cls:'stage-settle' };
+        const departedOrPast = g.status === 'departed' || (cout && cout <= now);
+        const unsettled = g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid' || (departedOrPast && g.settlementStatus !== 'paid');
+        if (unsettled && departedOrPast) return { key:'settlement', label:'정산 필요', cls:'stage-settle' };
         if (cin && cin.getTime() === now.getTime()) return { key:'today', label:'오늘 체크인', cls:'stage-today' };
         if (cin && cout && cin <= now && cout > now) return { key:'active', label:'투숙 중', cls:'stage-live' };
         if (cin && cin > now) return { key:'upcoming', label:'예정', cls:'stage-upcoming' };
@@ -1617,8 +1618,9 @@ async function deleteGroup(id) {
         const now = today();
         const cin = parseDate(g.checkin);
         const cout = parseDate(g.checkout);
-        const unsettled = g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid';
-        if (unsettled && cout && cout < now) return { key:'settlement', label:'정산 필요', cls:'stage-settle' };
+        const departedOrPast = g.status === 'departed' || (cout && cout <= now);
+        const unsettled = g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid' || (departedOrPast && g.settlementStatus !== 'paid');
+        if (unsettled && departedOrPast) return { key:'settlement', label:'정산 필요', cls:'stage-settle' };
         if (cin && cin.getTime() === now.getTime()) return { key:'today', label:'오늘 체크인', cls:'stage-today' };
         if (cin && cout && cin <= now && cout > now) return { key:'active', label:'투숙 중', cls:'stage-live' };
         if (cin && cin > now) return { key:'upcoming', label:'예정', cls:'stage-upcoming' };
@@ -1804,8 +1806,9 @@ async function deleteGroup(id) {
         const now = todayDate();
         const checkin = parseDate(group.checkin);
         const checkout = parseDate(group.checkout);
-        const unsettled = group.settlementStatus === 'pending' || group.settlementStatus === 'unpaid';
-        if (unsettled && checkout && checkout < now) return { key: 'settlement', label: T.settlement, cls: 'stage-settle' };
+        const departedOrPast = group.status === 'departed' || (checkout && checkout <= now);
+        const unsettled = group.settlementStatus === 'pending' || group.settlementStatus === 'unpaid' || (departedOrPast && group.settlementStatus !== 'paid');
+        if (unsettled && departedOrPast) return { key: 'settlement', label: T.settlement, cls: 'stage-settle' };
         if (checkin && checkin.getTime() === now.getTime()) return { key: 'today', label: T.today, cls: 'stage-today' };
         if (checkin && checkout && checkin <= now && checkout > now) return { key: 'active', label: T.active, cls: 'stage-live' };
         if (checkin && checkin > now) return { key: 'upcoming', label: T.upcoming, cls: 'stage-upcoming' };
