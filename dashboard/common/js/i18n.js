@@ -236,7 +236,9 @@ window.translations = {
     "Apply": "적용",
     "Date": "날짜",
     "Day": "요일",
-    "Save": "저장"
+    "Save": "저장",
+    "Tier Change Reason": "등급 변경 사유",
+    "Tier Change Reason Hint": "등급이 변경되는 경우 이 사유와 변경자가 등급 변경 이력에 저장됩니다."
     },
     en: {
 
@@ -398,7 +400,9 @@ window.translations = {
     "Apply": "Apply",
     "Date": "Date",
     "Day": "Day",
-    "Save": "Save"
+    "Save": "Save",
+    "Tier Change Reason": "Tier Change Reason",
+    "Tier Change Reason Hint": "When the tier changes, this reason and the editor are saved in tier change history."
     }
 };
 

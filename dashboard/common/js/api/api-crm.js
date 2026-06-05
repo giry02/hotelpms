@@ -20,7 +20,7 @@ Object.assign(window.PmsAPI, {
                     tier: normalizeTier(guest.tier || guest.vip),
                     visits: guest.visits || 1,
                     last: guest.lastStayDate || guest.last || '',
-                    spend: window.PmsMockApi.amountValue(guest.totalSpend),
+                    spend: window.PmsMockApi.amountValue(guest.totalSpend ?? guest.spend),
                     vip: guest.vip || guest.tier || 'Standard',
                     docStatus: guest.document?.status || guest.docStatus || 'pending',
                     documentStatus: guest.document?.status || guest.documentStatus || 'pending',
