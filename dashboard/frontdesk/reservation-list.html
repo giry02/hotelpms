@@ -54,19 +54,19 @@
 .res-work-action.group{background:#111827}
 .res-work-action:disabled{opacity:.45;cursor:not-allowed}
 .res-submeta{font-size:.72rem;color:#9ca3af;margin-top:3px}
-#resTable{table-layout:fixed;min-width:1580px}
-#resTable th:nth-child(1),#resTable td:nth-child(1){width:168px}
-#resTable th:nth-child(2),#resTable td:nth-child(2){width:104px}
-#resTable th:nth-child(3),#resTable td:nth-child(3){width:330px}
-#resTable th:nth-child(4),#resTable td:nth-child(4){width:110px}
-#resTable th:nth-child(5),#resTable td:nth-child(5),#resTable th:nth-child(6),#resTable td:nth-child(6){width:82px}
-#resTable th:nth-child(7),#resTable td:nth-child(7){width:72px}
-#resTable th:nth-child(8),#resTable td:nth-child(8){width:92px}
-#resTable th:nth-child(9),#resTable td:nth-child(9){width:110px}
-#resTable th:nth-child(10),#resTable td:nth-child(10){width:100px}
-#resTable th:nth-child(11),#resTable td:nth-child(11){width:280px}
+#resTable{table-layout:fixed;min-width:1420px}
+#resTable th:nth-child(1),#resTable td:nth-child(1){width:150px}
+#resTable th:nth-child(2),#resTable td:nth-child(2){width:330px}
+#resTable th:nth-child(3),#resTable td:nth-child(3){width:110px}
+#resTable th:nth-child(4),#resTable td:nth-child(4),#resTable th:nth-child(5),#resTable td:nth-child(5){width:82px}
+#resTable th:nth-child(6),#resTable td:nth-child(6){width:72px}
+#resTable th:nth-child(7),#resTable td:nth-child(7){width:92px}
+#resTable th:nth-child(8),#resTable td:nth-child(8){width:110px}
+#resTable th:nth-child(9),#resTable td:nth-child(9){width:100px}
+#resTable th:nth-child(10),#resTable td:nth-child(10){width:280px}
 .res-room-cell{text-align:left}
-.res-id{display:inline-block;max-width:150px;white-space:normal;overflow:visible;line-height:1.25;word-break:break-word}
+.res-room-booking{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.res-id{display:block;max-width:132px;white-space:normal;overflow:visible;line-height:1.25;word-break:break-word}
 .reservation-room-tag{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:28px;padding:0 10px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;font-size:.78rem;font-weight:900;letter-spacing:.01em}
 .reservation-room-tag i{font-size:.72rem;margin-right:5px}
 .res-actions-cell{min-width:260px;text-align:right}
@@ -176,8 +176,7 @@
                     <table id="resTable">
                         <thead>
                             <tr>
-                                <th>Booking #</th>
-                                <th>Room</th>
+                                <th>Room / Booking #</th>
                                 <th>Guest / 주의사항</th>
                                 <th>Type</th>
                                 <th>Check-in</th>
@@ -771,7 +770,7 @@ function renderTable() {
 
     if (paginated.length === 0) {
         const emptyState = reservationEmptyState();
-        tbody.innerHTML = `<tr><td colspan="11">${emptyState}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10">${emptyState}</td></tr>`;
         mobileContainer.innerHTML = emptyState;
         return;
     }
@@ -785,8 +784,7 @@ function renderTable() {
         const initials = r.initials || displayGuest.substring(0,2).toUpperCase();
         return `
         <tr>
-            <td><span class="res-id">${r.id}</span></td>
-            <td class="res-room-cell"><span class="reservation-room-tag"><i class="fa-solid fa-door-open"></i>${escapeHtml(r.room)}</span></td>
+            <td class="res-room-cell"><div class="res-room-booking"><span class="reservation-room-tag"><i class="fa-solid fa-door-open"></i>${escapeHtml(r.room)}</span><span class="res-id">${r.id}</span></div></td>
             <td>
                 <div class="guest-cell">
                     <div class="guest-avatar" style="background:${r.color || '#3B82F6'}">${initials}</div>
@@ -1209,7 +1207,7 @@ const translations = {
         "Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리",
         "All":"전체","Confirmed":"확정","Check-in":"체크인","Check-out":"체크아웃","Cancel":"취소",
         "Export":"엑셀 다운","New Booking":"신규 예약",
-        "Booking #":"예약번호","Guest":"고객","Guest / 주의사항":"고객 / 주의사항","Room":"객실","Type":"유형",
+        "Booking #":"예약번호","Room / Booking #":"객실 / 예약번호","Guest":"고객","Guest / 주의사항":"고객 / 주의사항","Room":"객실","Type":"유형",
         "Stay":"숙박","Channel":"채널","Amount":"금액","Amount(USD)":"금액(USD)","Status":"상태","Actions":"관리","Recent Order":"최근순","Room Order":"호실순",
         "Main": "메인","Front Desk":"프론트 데스크","Guest & CRM": "투숙객 및 CRM",
         "Operations": "운영 관리","Settings": "설정"
@@ -1249,7 +1247,7 @@ const translations = {
         "Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt",
         "All":"All","Confirmed":"Confirmed","Check-in":"Check-in","Check-out":"Check-out","Cancel":"Cancelled",
         "Export":"Export Excel","New Booking":"New Booking",
-        "Booking #":"Booking #","Guest":"Guest","Guest / 주의사항":"Guest / Notes","Room":"Room","Type":"Type",
+        "Booking #":"Booking #","Room / Booking #":"Room / Booking #","Guest":"Guest","Guest / 주의사항":"Guest / Notes","Room":"Room","Type":"Type",
         "Stay":"Stay","Channel":"Channel","Amount":"Amount","Amount(USD)":"Amount(USD)","Status":"Status","Actions":"Actions","Recent Order":"Recent","Room Order":"Room Order",
         "Main":"Main","Front Desk":"Front Desk","Guest & CRM":"Guest & CRM",
         "Operations":"Operations","Settings":"Settings"
