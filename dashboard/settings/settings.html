@@ -68,6 +68,44 @@
                         </div>
                     </div>
                 </div>
+                <div class="form-section" id="sec-admin" style="margin-bottom: 0;">
+                    <div class="form-header">
+                        <div class="form-title" data-i18n-key="Administrator Info">관리자 정보</div>
+                        <div class="form-desc" data-i18n-key="Used for account recovery and primary admin contact updates.">비밀번호 찾기와 운영 관리자 변경 시 사용하는 계정 연락처입니다.</div>
+                    </div>
+                    <div class="form-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="adminName" data-i18n-key="Admin Name">관리자 이름</label>
+                                <input type="text" class="form-control" id="adminName" value="Nguyen Kim">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="adminRole" data-i18n-key="Admin Role">관리자 권한</label>
+                                <select class="form-control" id="adminRole">
+                                    <option value="sys_admin">Admin</option>
+                                    <option value="sys_gm">General Manager</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="adminEmail" data-i18n-key="Admin Email">관리자 이메일</label>
+                                <input type="email" class="form-control" id="adminEmail" value="kim@hotel.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="adminPhone" data-i18n-key="Admin Phone">관리자 연락처</label>
+                                <input type="text" class="form-control" id="adminPhone" value="+84 90 000 1000">
+                            </div>
+                            <div class="form-group full">
+                                <div class="switch-group compact-switch admin-switch">
+                                    <div class="switch-info">
+                                        <div class="switch-title" data-i18n-key="Use admin email for password recovery">비밀번호 찾기 메일 수신</div>
+                                        <div class="switch-desc" data-i18n-key="Password reset and security notices are sent to this email.">비밀번호 재설정과 보안 알림을 이 이메일로 발송합니다.</div>
+                                    </div>
+                                    <label class="toggle-switch"><input type="checkbox" id="adminRecoveryEnabled" checked><span class="toggle-slider"></span></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Column: Policy & Billing -->
@@ -287,7 +325,15 @@ Object.assign(translations.ko, {
     "Guest MUR always creates a task": "청소요청(MUR)은 항상 작업 생성",
     "Make Up Room requests override the regular long-stay schedule.": "투숙객의 청소요청은 정기 청소 주기보다 우선합니다.",
     "Skip DND and no-service rooms": "DND/청소거부 객실 제외",
-    "Do not create automatic tasks when the guest blocks service.": "게스트가 서비스를 막은 경우 자동 작업을 만들지 않습니다."
+    "Do not create automatic tasks when the guest blocks service.": "게스트가 서비스를 막은 경우 자동 작업을 만들지 않습니다.",
+    "Administrator Info": "관리자 정보",
+    "Used for account recovery and primary admin contact updates.": "비밀번호 찾기와 운영 관리자 변경 시 사용하는 계정 연락처입니다.",
+    "Admin Name": "관리자 이름",
+    "Admin Role": "관리자 권한",
+    "Admin Email": "관리자 이메일",
+    "Admin Phone": "관리자 연락처",
+    "Use admin email for password recovery": "비밀번호 찾기 메일 수신",
+    "Password reset and security notices are sent to this email.": "비밀번호 재설정과 보안 알림을 이 이메일로 발송합니다."
 });
 Object.assign(translations.en, {
     "Long-stay Cleaning Management": "Long-stay Cleaning Management",
@@ -312,7 +358,15 @@ Object.assign(translations.en, {
     "Guest MUR always creates a task": "Guest MUR always creates a task",
     "Make Up Room requests override the regular long-stay schedule.": "Make Up Room requests override the regular long-stay schedule.",
     "Skip DND and no-service rooms": "Skip DND and no-service rooms",
-    "Do not create automatic tasks when the guest blocks service.": "Do not create automatic tasks when the guest blocks service."
+    "Do not create automatic tasks when the guest blocks service.": "Do not create automatic tasks when the guest blocks service.",
+    "Administrator Info": "Administrator Info",
+    "Used for account recovery and primary admin contact updates.": "Used for account recovery and primary admin contact updates.",
+    "Admin Name": "Admin Name",
+    "Admin Role": "Admin Role",
+    "Admin Email": "Admin Email",
+    "Admin Phone": "Admin Phone",
+    "Use admin email for password recovery": "Use admin email for password recovery",
+    "Password reset and security notices are sent to this email.": "Password reset and security notices are sent to this email."
 });
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
@@ -392,6 +446,20 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         };
     }
 
+    function textValue(id, fallback = '') {
+        return (document.getElementById(id)?.value || fallback).trim();
+    }
+
+    function collectAdminContact() {
+        return {
+            name: textValue('adminName', 'Nguyen Kim'),
+            roleId: document.getElementById('adminRole')?.value || 'sys_admin',
+            email: textValue('adminEmail', 'kim@hotel.com'),
+            phone: textValue('adminPhone', '+84 90 000 1000'),
+            recoveryEnabled: !!document.getElementById('adminRecoveryEnabled')?.checked
+        };
+    }
+
     async function loadHotelSettings() {
         const sel = findCurrencySelect();
         if (sel) sel.id = 'defaultCurrencySelect';
@@ -400,6 +468,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             ? await window.PmsAPI.getHotelSettings()
             : {};
         const policy = currentHotelSettings.stayoverCleaningPolicy || {};
+        const admin = currentHotelSettings.adminContact || {};
 
         if (sel) {
             const saved = currentHotelSettings.defaultCurrency || localStorage.getItem('pms_default_currency') || 'USD';
@@ -425,6 +494,16 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         if (modeSelect) modeSelect.addEventListener('change', togglePolicyFields);
         togglePolicyFields();
 
+        const adminName = document.getElementById('adminName');
+        if (adminName) adminName.value = admin.name || 'Nguyen Kim';
+        setSelectValue('adminRole', admin.roleId || 'sys_admin');
+        const adminEmail = document.getElementById('adminEmail');
+        if (adminEmail) adminEmail.value = admin.email || 'kim@hotel.com';
+        const adminPhone = document.getElementById('adminPhone');
+        if (adminPhone) adminPhone.value = admin.phone || '+84 90 000 1000';
+        const recovery = document.getElementById('adminRecoveryEnabled');
+        if (recovery) recovery.checked = admin.recoveryEnabled !== false;
+
         const saveBtn = document.getElementById('hotelSettingsSaveBtn');
         if (saveBtn) {
             saveBtn.addEventListener('click', async () => {
@@ -433,6 +512,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 const next = {
                     ...(currentHotelSettings || {}),
                     defaultCurrency: currency,
+                    adminContact: collectAdminContact(),
                     stayoverCleaningPolicy: collectStayoverPolicy()
                 };
                 currentHotelSettings = window.PmsAPI && window.PmsAPI.saveHotelSettings

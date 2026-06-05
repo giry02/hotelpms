@@ -9657,6 +9657,13 @@ window.PmsFileFallbackPayloads = {
       "city": "Ho Chi Minh",
       "timezone": "Asia/Seoul",
       "defaultCurrency": "USD",
+      "adminContact": {
+        "name": "Nguyen Kim",
+        "roleId": "sys_admin",
+        "email": "kim@hotel.com",
+        "phone": "+84 90 000 1000",
+        "recoveryEnabled": true
+      },
       "stayoverCleaningPolicy": {
         "mode": "request_only",
         "longStayNights": 2,

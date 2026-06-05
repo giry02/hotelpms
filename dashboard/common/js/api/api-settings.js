@@ -55,6 +55,13 @@ const _DEFAULT_HOTEL_SETTINGS = {
     city: 'Ho Chi Minh',
     timezone: 'Asia/Seoul',
     defaultCurrency: 'USD',
+    adminContact: {
+        name: 'Nguyen Kim',
+        roleId: 'sys_admin',
+        email: 'kim@hotel.com',
+        phone: '+84 90 000 1000',
+        recoveryEnabled: true
+    },
     stayoverCleaningPolicy: {
         mode: 'request_only',
         longStayNights: 2,
@@ -77,6 +84,11 @@ function mergeHotelSettings(base, override) {
         ..._DEFAULT_HOTEL_SETTINGS.stayoverCleaningPolicy,
         ...(base && base.stayoverCleaningPolicy ? base.stayoverCleaningPolicy : {}),
         ...(override && override.stayoverCleaningPolicy ? override.stayoverCleaningPolicy : {})
+    };
+    next.adminContact = {
+        ..._DEFAULT_HOTEL_SETTINGS.adminContact,
+        ...(base && base.adminContact ? base.adminContact : {}),
+        ...(override && override.adminContact ? override.adminContact : {})
     };
     return next;
 }
