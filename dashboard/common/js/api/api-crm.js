@@ -149,6 +149,7 @@ Object.assign(window.PmsAPI, {
                 return window.PmsMockApi.items(env).map((item, index) => {
                     const from = normalizeTier(item.beforeTier || item.from);
                     const to = normalizeTier(item.afterTier || item.to);
+                    if (order[to] < order[from]) return null;
                     const name = item.guestName || item.name || item.guestId || 'Guest';
                     return {
                         ...item,
@@ -158,11 +159,11 @@ Object.assign(window.PmsAPI, {
                         color: item.color || ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'][index % 4],
                         from,
                         to,
-                        dir: order[to] >= order[from] ? 'up' : 'down',
+                        dir: 'up',
                         reason: item.reason || '',
                         by: item.by || item.changedBy || 'System'
                     };
-                });
+                }).filter(Boolean);
             }
         } catch(e) {
             console.warn('Mock tier history fallback', e);

@@ -71,15 +71,6 @@
                 </div>
                 <div class="tier-card-criteria">전월 대비 +5</div>
             </div>
-            <div class="tier-card" style="background:#fff;border:1px solid rgba(239,68,68,.2);box-shadow:var(--shadow)">
-                <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#DC2626,#EF4444)"></div>
-                <div class="tier-card-icon" style="background:rgba(239,68,68,.15);color:#DC2626"><i class="fa-solid fa-arrow-down"></i></div>
-                <div class="tier-card-info">
-                    <div class="tier-card-count">3</div>
-                    <div class="tier-card-name">Downgrades (Month)</div>
-                </div>
-                <div class="tier-card-criteria">12개월 미활동 기준</div>
-            </div>
             <div class="tier-card" style="background:#fff;border:1px solid rgba(59,130,246,.2);box-shadow:var(--shadow)">
                 <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#2563EB,#3B82F6)"></div>
                 <div class="tier-card-icon" style="background:rgba(59,130,246,.15);color:#2563EB"><i class="fa-solid fa-chart-line"></i></div>
@@ -110,7 +101,6 @@
                 <div class="filter-chips">
                     <button class="chip active" onclick="setDir(this,'all')">All</button>
                     <button class="chip" onclick="setDir(this,'up')"><i class="fa-solid fa-arrow-up" style="color:var(--success)"></i> Upgrade</button>
-                    <button class="chip" onclick="setDir(this,'down')"><i class="fa-solid fa-arrow-down" style="color:var(--danger)"></i> Downgrade</button>
                 </div>
                 <button class="m-filter-trigger" onclick="openBottomSheet()">
                     <i class="fa-solid fa-filter"></i>
@@ -170,17 +160,12 @@
     <div class="bottom-sheet-options">
         <button class="bs-option selected" onclick="selectFilter('all','전체')">
             <div class="bs-option-icon" style="background:var(--border2);color:var(--txt2)"><i class="fa-solid fa-list"></i></div>
-            <div class="bs-option-label">All<div class="bs-option-desc">Upgrade + Downgrade 모두 표시</div></div>
+            <div class="bs-option-label">All<div class="bs-option-desc">All tier upgrade changes</div></div>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
         <button class="bs-option" onclick="selectFilter('up','승급')">
             <div class="bs-option-icon" style="background:rgba(16,185,129,.1);color:#059669"><i class="fa-solid fa-arrow-up"></i></div>
             <div class="bs-option-label">Upgrade<div class="bs-option-desc">Tier이 올라간 변동만</div></div>
-            <i class="fa-solid fa-check bs-option-check"></i>
-        </button>
-        <button class="bs-option" onclick="selectFilter('down','강등')">
-            <div class="bs-option-icon" style="background:rgba(239,68,68,.1);color:#DC2626"><i class="fa-solid fa-arrow-down"></i></div>
-            <div class="bs-option-label">Downgrade<div class="bs-option-desc">Tier이 내려간 변동만</div></div>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
     </div>
@@ -204,6 +189,7 @@ function getFiltered() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const month = document.getElementById('monthFilter').value;
     return history.filter(h => {
+        if (h.dir !== 'up') return false;
         if (currentDir !== 'all' && h.dir !== currentDir) return false;
         if (search && !h.name.toLowerCase().includes(search)) return false;
         if (month !== 'all' && !h.date.startsWith(month)) return false;
@@ -225,9 +211,7 @@ function renderHistory() {
     // Desktop table
     document.getElementById('historyBody').innerHTML = paged.map(h => {
         const from = tierCfg[h.from], to = tierCfg[h.to];
-        const dirIcon = h.dir === 'up'
-            ? '<span style="color:var(--success);font-weight:700"><i class="fa-solid fa-arrow-up"></i> Upgrade</span>'
-            : '<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-arrow-down"></i> Downgrade</span>';
+        const dirIcon = '<span style="color:var(--success);font-weight:700"><i class="fa-solid fa-arrow-up"></i> Upgrade</span>';
         return `<tr>
             <td style="white-space:nowrap;font-size:.78rem;color:var(--txt2)">${h.date}</td>
             <td><div class="guest-cell"><div class="guest-avatar" style="background:${h.color}">${h.init}</div><strong>${h.name}</strong></div></td>
@@ -242,8 +226,8 @@ function renderHistory() {
     // Mobile cards
     document.getElementById('historyMobile').innerHTML = paged.map(h => {
         const from = tierCfg[h.from], to = tierCfg[h.to];
-        const dirLabel = h.dir === 'up' ? 'Upgrade' : 'Downgrade';
-        const dirColor = h.dir === 'up' ? 'var(--success)' : 'var(--danger)';
+        const dirLabel = 'Upgrade';
+        const dirColor = 'var(--success)';
         return `<div class="m-res-card" style="border-left-color:${dirColor}">
             <div class="m-res-top">
                 <div class="m-res-guest">
@@ -254,7 +238,7 @@ function renderHistory() {
                     </div>
                 </div>
                 <div style="text-align:right">
-                    <span style="font-size:.72rem;font-weight:700;color:${dirColor}"><i class="fa-solid fa-arrow-${h.dir === 'up' ? 'up' : 'down'}"></i> ${dirLabel}</span>
+                    <span style="font-size:.72rem;font-weight:700;color:${dirColor}"><i class="fa-solid fa-arrow-up"></i> ${dirLabel}</span>
                 </div>
             </div>
             <div class="m-res-details">
@@ -312,11 +296,11 @@ function selectFilter(dir, label) {
     // Update mobile trigger label
     document.getElementById('mFilterLabel').textContent = label;
     // Sync desktop chips
-    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    const chips = btn.closest('.filter-chips').querySelectorAll('.chip');
+    const chipWrap = document.querySelector('.filter-chips');
+    const chips = chipWrap ? chipWrap.querySelectorAll('.chip:not(.downgrade-filter)') : [];
+    chips.forEach(c => c.classList.remove('active'));
     if (dir === 'all') chips[0].classList.add('active');
     else if (dir === 'up') chips[1].classList.add('active');
-    else chips[2].classList.add('active');
     closeBottomSheet();
     renderHistory();
 }
@@ -353,7 +337,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"Tier Change History":"등급 변동 이력","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Upgrades (Month)":"이번 달 승급","Downgrades (Month)":"이번 달 강등","Retention Rate":"등급 유지율","New Diamond":"신규 다이아몬드","All":"전체","Upgrade":"승급","Downgrade":"강등"},en: {
+"Tier Change History":"등급 변동 이력","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Upgrades (Month)":"이번 달 승급","Retention Rate":"등급 유지율","New Diamond":"신규 다이아몬드","All":"전체","Upgrade":"승급"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -381,7 +365,7 @@ const translations={ko: {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
-"Tier Change History":"Tier Change History","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Upgrades (Month)":"Upgrades (Month)","Downgrades (Month)":"Downgrades (Month)","Retention Rate":"Retention Rate","New Diamond":"New Diamond","All":"All","Upgrade":"Upgrade","Downgrade":"Downgrade"}};
+"Tier Change History":"Tier Change History","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Upgrades (Month)":"Upgrades (Month)","Retention Rate":"Retention Rate","New Diamond":"New Diamond","All":"All","Upgrade":"Upgrade"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});document.getElementById('searchInput').placeholder=l==='en'?'Search guest name...':'Guest명 검색...';renderHistory();}
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
