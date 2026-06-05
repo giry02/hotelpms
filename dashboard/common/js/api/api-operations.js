@@ -402,6 +402,17 @@ Object.assign(window.PmsAPI, {
         }
         return window.initStorage ? window.initStorage('pms_rooms', _fallbackRooms) : _fallbackRooms;
     },
+
+    saveRooms: async (rooms) => {
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('PUT', '/rooms', { body: rooms || [] });
+        } catch(e) {
+            console.warn('Mock rooms save fallback', e);
+        }
+        localStorage.setItem('pms_rooms', JSON.stringify(rooms || []));
+        return true;
+    },
+
     getAllRoomTypes: async () => {
         try {
             if (window.PmsMockApi) {
