@@ -151,6 +151,18 @@
 }
 .btn-card-delete:hover { background: #FEE2E2; border-color: var(--danger, #DC2626); }
 .btn-card-delete:active { transform: scale(.95); }
+.btn-card-delete:disabled {
+    background: #F3F4F6;
+    border-color: #E5E7EB;
+    color: #9CA3AF;
+    cursor: not-allowed;
+    opacity: .8;
+}
+.btn-card-delete:disabled:hover {
+    background: #F3F4F6;
+    border-color: #E5E7EB;
+}
+.btn-card-delete:disabled:active { transform: none; }
 </style>
 </head>
 <body>
@@ -321,7 +333,13 @@ function companyText(key, params = {}) {
         updated: '업체 정보가 수정되었습니다.',
         created: '신규 업체가 등록되었습니다.',
         'delete.confirm': '[{name}] 업체를 삭제하시겠습니까?',
-        'delete.done': '업체가 삭제되었습니다.'
+        'delete.done': '업체가 삭제되었습니다.',
+        'delete.blocked': '진행/예정 또는 미정산 행사가 있는 업체는 삭제할 수 없습니다. 연결된 행사를 취소하거나 정산 완료 후 삭제해 주세요.',
+        'delete.disabledTitle': '진행/예정 또는 미정산 행사가 있어 삭제할 수 없습니다.',
+        active: '진행',
+        upcoming: '예정',
+        unsettled: '미정산',
+        pastEvents: '지난 행사'
     };
     let text = fallback[key] || key;
     Object.keys(params).forEach(name => {
@@ -518,6 +536,11 @@ async function saveCompany() {
 
 async function deleteCompany(id) {
     const c = companies.find(x => x.id === id);
+    const guard = typeof window.companyDeleteGuard === 'function' ? window.companyDeleteGuard(c) : { locked: false };
+    if (guard.locked) {
+        showToast(companyText('delete.blocked'), 'error');
+        return;
+    }
     if(await showConfirm(companyText('delete.confirm', { name: c.name }))) {
         companies = companies.filter(x => x.id !== id);
         await persistCompanies();
@@ -547,14 +570,26 @@ function openBlockModal(compId) {
         return [...merged.values()];
     }
 
+    function normalizeText(value) {
+        return String(value || '').toLowerCase().replace(/\s+/g, '').replace(/[()]/g, '');
+    }
+
     function companyGroups(company) {
         const groups = allGroupEvents();
-        return groups.filter(g => g.agencyId === company.id || g.agency === company.name || (g.agency || '').includes(company.name));
+        const companyId = String(company?.id || '');
+        const companyName = normalizeText(company?.name);
+        return groups.filter(g => {
+            const groupCompanyIds = [g.companyId, g.agencyId, g.company?.id].filter(Boolean).map(String);
+            if (companyId && groupCompanyIds.includes(companyId)) return true;
+            const groupCompanyNames = [g.companyName, g.agency, g.company?.name].map(normalizeText).filter(Boolean);
+            return companyName && groupCompanyNames.some(name => name === companyName || name.includes(companyName) || companyName.includes(name));
+        });
     }
 
     function parseDate(value) {
         if (!value) return null;
-        const d = value.includes('-') ? new Date(value) : new Date(`2026/${value}`);
+        const dateText = String(value);
+        const d = dateText.includes('-') ? new Date(dateText) : new Date(`2026/${dateText}`);
         if (Number.isNaN(d.getTime())) return null;
         d.setHours(0,0,0,0);
         return d;
@@ -563,17 +598,22 @@ function openBlockModal(compId) {
     function stageOf(g) {
         const now = new Date();
         now.setHours(0,0,0,0);
-        const cin = parseDate(g.checkin);
-        const cout = parseDate(g.checkout);
-        const departedOrPast = g.status === 'departed' || (cout && cout <= now);
-        const unsettled = g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid' || (departedOrPast && g.settlementStatus !== 'paid');
+        const status = String(g.status || '').toLowerCase();
+        const settlementStatus = String(g.settlementStatus || g.settlement || '').toLowerCase();
+        const cin = parseDate(g.checkin || g.checkInDate || g.cin);
+        const cout = parseDate(g.checkout || g.checkOutDate || g.cout);
+        const cancelled = ['cancelled', 'canceled', 'void'].includes(status);
+        const departedOrPast = ['departed', 'completed', 'checked-out', 'checkout'].includes(status) || (cout && cout <= now);
+        const unsettled = ['pending', 'unpaid', 'settlement', 'open'].includes(settlementStatus) || (departedOrPast && settlementStatus !== 'paid');
+        if (cancelled) return 'past';
         if (unsettled && departedOrPast) return 'settlement';
         if (cin && cin.getTime() === now.getTime()) return 'today';
         if (cin && cout && cin <= now && cout > now) return 'active';
         if (cin && cin > now) return 'upcoming';
         if (cout && cout <= now) return 'past';
-        if (g.status === 'inhouse') return 'active';
-        if (g.status === 'departed') return 'past';
+        if (['inhouse', 'in-house', 'checkedin', 'checked-in'].includes(status)) return 'active';
+        if (['confirmed', 'pending', 'reserved'].includes(status)) return 'upcoming';
+        if (['departed', 'completed'].includes(status)) return 'past';
         return 'upcoming';
     }
 
@@ -587,6 +627,14 @@ function openBlockModal(compId) {
             return acc;
         }, {active:0, upcoming:0, settlement:0, past:0});
     }
+
+    window.companyDeleteGuard = function(company) {
+        if (!company) return { locked: false, events: [], counts: { active: 0, upcoming: 0, settlement: 0, past: 0 } };
+        const events = companyGroups(company);
+        const counts = stageCounts(events);
+        const locked = counts.active + counts.upcoming + counts.settlement > 0;
+        return { locked, events, counts };
+    };
 
     window.renderCompanies = function(search = '') {
         const grid = document.getElementById('companyGrid');
@@ -615,6 +663,9 @@ function openBlockModal(compId) {
         grid.innerHTML = filtered.map(c => {
             const events = companyGroups(c);
             const cnt = stageCounts(events);
+            const deleteGuard = window.companyDeleteGuard(c);
+            const deleteDisabled = deleteGuard.locked ? 'disabled aria-disabled="true"' : '';
+            const deleteTitle = deleteGuard.locked ? companyText('delete.disabledTitle') : '삭제';
             const typeKey = companyFilterKey(c);
             const typeName = typeKey === 'Corporate' ? '일반 기업' : typeKey === 'Travel Agency' ? '여행사' : '기타';
             const badgeCls = c.status === 'active' ? 'pill-active' : 'pill-inactive';
@@ -633,14 +684,15 @@ function openBlockModal(compId) {
                     <div><i class="fa-solid fa-phone"></i> ${c.phone || '-'}</div>
                     <div><i class="fa-solid fa-percent"></i> ${c.rate || (c.groupDiscount ? `객실 ${c.groupDiscount}% 할인` : '-')}</div>
                     <div><i class="fa-solid fa-credit-card"></i> ${c.billing || '-'}</div>
-                    <div><i class="fa-solid fa-calendar-check"></i> 진행 ${cnt.active} · 예정 ${cnt.upcoming}</div>
-                    <div><i class="fa-solid fa-box-archive"></i> 지난 행사 ${cnt.past}</div>
+                    <div><i class="fa-solid fa-calendar-check"></i> ${companyText('active')} ${cnt.active} · ${companyText('upcoming')} ${cnt.upcoming}</div>
+                    <div><i class="fa-solid fa-file-invoice-dollar"></i> ${companyText('unsettled')} ${cnt.settlement}</div>
+                    <div><i class="fa-solid fa-box-archive"></i> ${companyText('pastEvents')} ${cnt.past}</div>
                 </div>
                 <div class="card-footer-btns">
                     <button class="btn-room-assign" onclick="openBlockModal('${c.id}')"><i class="fa-solid fa-calendar-plus"></i> 행사 생성</button>
                     <button class="btn-card-edit" onclick="location.href='groups_blocks.html?companyId=${encodeURIComponent(c.id)}'" title="행사 보기"><i class="fa-solid fa-list"></i></button>
                     <button class="btn-card-edit" onclick="editCompany('${c.id}')" title="업체 수정"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn-card-delete" onclick="deleteCompany('${c.id}')" title="삭제"><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn-card-delete" onclick="deleteCompany('${c.id}')" title="${deleteTitle}" ${deleteDisabled}><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>`;
         }).join('');
