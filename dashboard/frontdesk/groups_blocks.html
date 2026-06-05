@@ -1951,24 +1951,36 @@ async function deleteGroup(id) {
         return keys.size;
     }
 
-    function ensureToolbar() {
+    function matchesCompanyFilter(group) {
+        return companyStatus === 'all' || companyKey(group) === companyStatus || group.agency === companyStatus;
+    }
+
+    function matchesSearchFilter(group, query) {
+        if (!query) return true;
+        const roomText = assignedRooms(group).map(room => `${room.roomId} ${room.roomLabel} ${room.type}`).join(' ').toLowerCase();
+        const searchText = [group.name, group.agency, companyOf(group)?.name, group.sales, group.contact, group.id]
+            .filter(Boolean).join(' ').toLowerCase();
+        return searchText.includes(query) || roomText.includes(query);
+    }
+
+    function filterCounts(list, search = '') {
+        const query = String(search || '').toLowerCase();
+        const counts = { all: 0, today: 0, active: 0, upcoming: 0, past: 0, settlement: 0 };
+        list.forEach(group => {
+            if (!matchesCompanyFilter(group) || !matchesSearchFilter(group, query)) return;
+            counts.all += 1;
+            const key = stageOf(group).key;
+            if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key] += 1;
+        });
+        return counts;
+    }
+
+    function ensureToolbar(list = eventData(), search = '') {
         const title = document.querySelector('.topbar-left h1');
         if (title) title.textContent = T.title;
 
-        const chips = document.querySelector('.filter-chips');
-        if (chips) {
-            const chip = (key, label) => `<button class="chip ${eventStatus === key ? 'active' : ''}" onclick="filterGroups('${key}', this)">${label}</button>`;
-            chips.innerHTML = [
-                chip('all', T.all),
-                chip('today', T.today),
-                chip('active', T.active),
-                chip('upcoming', T.upcoming),
-                chip('past', T.past),
-                chip('settlement', T.settlement)
-            ].join('');
-        }
-
         const filterLeft = document.querySelector('.filter-left');
+        const chips = document.querySelector('.filter-chips');
         let select = document.getElementById('companyFilter');
         if (filterLeft && !select) {
             select = document.createElement('select');
@@ -1997,6 +2009,22 @@ async function deleteGroup(id) {
                     .join('');
             select.value = [...select.options].some(option => option.value === current) ? current : 'all';
             companyStatus = select.value;
+        }
+
+        if (chips) {
+            const counts = filterCounts(list, search);
+            const chip = (key, label) => `
+                <button class="chip ${eventStatus === key ? 'active' : ''}" data-filter="${key}" onclick="filterGroups('${key}', this)">
+                    ${label} <span class="chip-count">${counts[key] || 0}</span>
+                </button>`;
+            chips.innerHTML = [
+                chip('all', T.all),
+                chip('today', T.today),
+                chip('active', T.active),
+                chip('upcoming', T.upcoming),
+                chip('past', T.past),
+                chip('settlement', T.settlement)
+            ].join('');
         }
 
         const filterRight = document.querySelector('.filter-right');
@@ -2048,8 +2076,8 @@ async function deleteGroup(id) {
     };
 
     window.renderGroups = function(search = '') {
-        ensureToolbar();
         const list = eventData();
+        ensureToolbar(list, search);
         updateKpis(list);
 
         const grid = document.getElementById('groupGrid');
@@ -2060,11 +2088,7 @@ async function deleteGroup(id) {
         const filtered = list.filter(group => {
             const stage = stageOf(group);
             const statusMatches = eventStatus === 'all' || stage.key === eventStatus;
-            const companyMatches = companyStatus === 'all' || companyKey(group) === companyStatus || group.agency === companyStatus;
-            const roomText = assignedRooms(group).map(room => `${room.roomId} ${room.roomLabel} ${room.type}`).join(' ').toLowerCase();
-            const searchText = [group.name, group.agency, companyOf(group)?.name, group.sales, group.contact, group.id]
-                .filter(Boolean).join(' ').toLowerCase();
-            return statusMatches && companyMatches && (!query || searchText.includes(query) || roomText.includes(query));
+            return statusMatches && matchesCompanyFilter(group) && matchesSearchFilter(group, query);
         }).sort((a, b) => {
             const order = { today: 0, active: 1, settlement: 2, upcoming: 3, past: 4 };
             const stageA = stageOf(a);
