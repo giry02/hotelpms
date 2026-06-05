@@ -9647,5 +9647,34 @@ window.PmsFileFallbackPayloads = {
       "timezone": "Asia/Seoul",
       "currency": "USD"
     }
+  },
+  "settings/hotel.json": {
+    "success": true,
+    "data": {
+      "id": "TENANT-GRAND-SAIGON",
+      "name": "The Grand Saigon",
+      "country": "Vietnam",
+      "city": "Ho Chi Minh",
+      "timezone": "Asia/Seoul",
+      "defaultCurrency": "USD",
+      "stayoverCleaningPolicy": {
+        "mode": "request_only",
+        "longStayNights": 2,
+        "intervalDays": 2,
+        "weeklyDays": [1, 3, 5],
+        "createForMakeUpRequest": true,
+        "skipDndNoService": true,
+        "linenChangeIntervalDays": 3,
+        "towelChangeMode": "daily"
+      }
+    },
+    "meta": {
+      "requestId": "REQ-SETTINGS-HOTEL",
+      "tenantId": "TENANT-GRAND-SAIGON",
+      "apiVersion": "v8",
+      "generatedAt": "2026-06-09T09:00:00+09:00",
+      "timezone": "Asia/Seoul",
+      "currency": "USD"
+    }
   }
 };

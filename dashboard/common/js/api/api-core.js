@@ -270,6 +270,11 @@ window.PmsMockApi = window.PmsMockApi || (function() {
             return makeEnvelope({ items: body, page }, route);
         }
 
+        if (method === 'PUT' && !route.itemId && body && typeof body === 'object' && !Array.isArray(body) && !listEnvelope) {
+            saveOverlay(route.resource, { item: body });
+            return makeEnvelope(body, route);
+        }
+
         const itemId = route.itemId || body.id || body.roomId || body.reservationId || body.companyId || body.groupId;
         const idx = list.findIndex(item => [item.id, item.roomId, item.reservationId, item.companyId, item.groupId].includes(itemId));
         if (method === 'DELETE') {

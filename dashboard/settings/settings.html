@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/settings.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-settings.js"></script>
     <script src="../common/js/i18n-catalog.js"></script>
 <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
@@ -97,6 +99,84 @@
                     </div>
                 </div>
 
+                <div class="form-section" id="sec-stayover-cleaning" style="margin-bottom: 0;">
+                    <div class="form-header">
+                        <div class="form-title" data-i18n-key="Long-stay Cleaning Management">장기투숙 청소 관리</div>
+                        <div class="form-desc" data-i18n-key="Control how occupied rooms create stayover housekeeping tasks.">투숙 중 객실의 재실 청소 작업 생성 기준을 설정합니다.</div>
+                    </div>
+                    <div class="form-body">
+                        <div class="form-row">
+                            <div class="form-group full">
+                                <label class="form-label" for="stayoverCleaningMode" data-i18n-key="Stayover Cleaning Rule">재실 청소 생성 기준</label>
+                                <select class="form-control" id="stayoverCleaningMode">
+                                    <option value="request_only" data-i18n-key="Request only">요청 시만</option>
+                                    <option value="daily" data-i18n-key="Daily for long stays">장기투숙 매일</option>
+                                    <option value="every_other_day" data-i18n-key="Every other day">장기투숙 격일</option>
+                                    <option value="weekly_days" data-i18n-key="Selected weekdays">요일 지정</option>
+                                    <option value="disabled" data-i18n-key="Do not create automatically">자동 생성 안 함</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="longStayNights" data-i18n-key="Long-stay starts from">장기투숙 기준</label>
+                                <div class="input-with-unit">
+                                    <input type="number" min="1" max="30" class="form-control" id="longStayNights" value="2">
+                                    <span data-i18n-key="nights or more">박 이상</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="intervalDays" data-i18n-key="Cleaning interval">청소 주기</label>
+                                <div class="input-with-unit">
+                                    <input type="number" min="1" max="14" class="form-control" id="intervalDays" value="2">
+                                    <span data-i18n-key="days">일</span>
+                                </div>
+                            </div>
+                            <div class="form-group full" id="weeklyDaysGroup">
+                                <label class="form-label" data-i18n-key="Weekdays">요일</label>
+                                <div class="weekday-toggle-row">
+                                    <label><input type="checkbox" name="weeklyDays" value="1"> <span data-i18n-key="Mon">월</span></label>
+                                    <label><input type="checkbox" name="weeklyDays" value="2"> <span data-i18n-key="Tue">화</span></label>
+                                    <label><input type="checkbox" name="weeklyDays" value="3"> <span data-i18n-key="Wed">수</span></label>
+                                    <label><input type="checkbox" name="weeklyDays" value="4"> <span data-i18n-key="Thu">목</span></label>
+                                    <label><input type="checkbox" name="weeklyDays" value="5"> <span data-i18n-key="Fri">금</span></label>
+                                    <label><input type="checkbox" name="weeklyDays" value="6"> <span data-i18n-key="Sat">토</span></label>
+                                    <label><input type="checkbox" name="weeklyDays" value="0"> <span data-i18n-key="Sun">일</span></label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="linenChangeIntervalDays" data-i18n-key="Linen change">린넨 교체</label>
+                                <div class="input-with-unit">
+                                    <input type="number" min="1" max="14" class="form-control" id="linenChangeIntervalDays" value="3">
+                                    <span data-i18n-key="days">일</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="towelChangeMode" data-i18n-key="Towel change">타월 교체</label>
+                                <select class="form-control" id="towelChangeMode">
+                                    <option value="daily" data-i18n-key="Daily">매일</option>
+                                    <option value="on_request" data-i18n-key="On request">요청 시</option>
+                                    <option value="with_linen" data-i18n-key="With linen">린넨 교체 시</option>
+                                </select>
+                            </div>
+                            <div class="form-group full">
+                                <div class="switch-group compact-switch">
+                                    <div class="switch-info">
+                                        <div class="switch-title" data-i18n-key="Guest MUR always creates a task">청소요청(MUR)은 항상 작업 생성</div>
+                                        <div class="switch-desc" data-i18n-key="Make Up Room requests override the regular long-stay schedule.">투숙객의 청소요청은 정기 청소 주기보다 우선합니다.</div>
+                                    </div>
+                                    <label class="toggle-switch"><input type="checkbox" id="createForMakeUpRequest" checked><span class="toggle-slider"></span></label>
+                                </div>
+                                <div class="switch-group compact-switch">
+                                    <div class="switch-info">
+                                        <div class="switch-title" data-i18n-key="Skip DND and no-service rooms">DND/청소거부 객실 제외</div>
+                                        <div class="switch-desc" data-i18n-key="Do not create automatic tasks when the guest blocks service.">게스트가 서비스를 막은 경우 자동 작업을 만들지 않습니다.</div>
+                                    </div>
+                                    <label class="toggle-switch"><input type="checkbox" id="skipDndNoService" checked><span class="toggle-slider"></span></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-section" id="sec-billing" style="margin-bottom: 0;">
                     <div class="form-header">
                         <div class="form-title">결제 및 세금</div>
@@ -119,7 +199,7 @@
         </div>
 
         <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
-            <button class="btn-primary-sm" style="padding: 10px 24px; font-size: 0.95rem;"><i class="fa-solid fa-check"></i> 변경사항 All Save</button>
+            <button class="btn-primary-sm" id="hotelSettingsSaveBtn" style="padding: 10px 24px; font-size: 0.95rem;"><i class="fa-solid fa-check"></i> 변경사항 All Save</button>
         </div>
     </div>
 </div>
@@ -184,6 +264,56 @@ const translations={ko: {
         "Notices": "Notices",
         "Support": "Support",
 "Hotel Settings":"Hotel Settings","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Staff Mgmt":"Staff Mgmt","기본 정보":"Basic Info","Policies":"Policies","결제 및 세금":"Billing & Tax","호텔명":"Hotel Name","대표 전화번호":"Main Phone","대표 이메일":"Main Email","호텔 주소":"Hotel Address","Hotel Description (Multi)":"Hotel Description (Multi)","Default Multilingual Settings":"Default Multilingual Settings","Cancel":"Cancel","Save":"Save","운영 정책":"Operational Policies","기본 체크인 시간":"Default Check-in","기본 체크아웃 시간":"Default Check-out","취소 정책":"Cancellation Policy","오버부킹 허용":"Allow Overbooking","사전 보증금 필수 (Pre-auth)":"Require Deposit (Pre-auth)"}};
+Object.assign(translations.ko, {
+    "Long-stay Cleaning Management": "장기투숙 청소 관리",
+    "Control how occupied rooms create stayover housekeeping tasks.": "투숙 중 객실의 재실 청소 작업 생성 기준을 설정합니다.",
+    "Stayover Cleaning Rule": "재실 청소 생성 기준",
+    "Request only": "요청 시만",
+    "Daily for long stays": "장기투숙 매일",
+    "Every other day": "장기투숙 격일",
+    "Selected weekdays": "요일 지정",
+    "Do not create automatically": "자동 생성 안 함",
+    "Long-stay starts from": "장기투숙 기준",
+    "nights or more": "박 이상",
+    "Cleaning interval": "청소 주기",
+    "days": "일",
+    "Weekdays": "요일",
+    "Mon": "월", "Tue": "화", "Wed": "수", "Thu": "목", "Fri": "금", "Sat": "토", "Sun": "일",
+    "Linen change": "린넨 교체",
+    "Towel change": "타월 교체",
+    "Daily": "매일",
+    "On request": "요청 시",
+    "With linen": "린넨 교체 시",
+    "Guest MUR always creates a task": "청소요청(MUR)은 항상 작업 생성",
+    "Make Up Room requests override the regular long-stay schedule.": "투숙객의 청소요청은 정기 청소 주기보다 우선합니다.",
+    "Skip DND and no-service rooms": "DND/청소거부 객실 제외",
+    "Do not create automatic tasks when the guest blocks service.": "게스트가 서비스를 막은 경우 자동 작업을 만들지 않습니다."
+});
+Object.assign(translations.en, {
+    "Long-stay Cleaning Management": "Long-stay Cleaning Management",
+    "Control how occupied rooms create stayover housekeeping tasks.": "Control how occupied rooms create stayover housekeeping tasks.",
+    "Stayover Cleaning Rule": "Stayover Cleaning Rule",
+    "Request only": "Request only",
+    "Daily for long stays": "Daily for long stays",
+    "Every other day": "Every other day",
+    "Selected weekdays": "Selected weekdays",
+    "Do not create automatically": "Do not create automatically",
+    "Long-stay starts from": "Long-stay starts from",
+    "nights or more": "nights or more",
+    "Cleaning interval": "Cleaning interval",
+    "days": "days",
+    "Weekdays": "Weekdays",
+    "Mon": "Mon", "Tue": "Tue", "Wed": "Wed", "Thu": "Thu", "Fri": "Fri", "Sat": "Sat", "Sun": "Sun",
+    "Linen change": "Linen change",
+    "Towel change": "Towel change",
+    "Daily": "Daily",
+    "On request": "On request",
+    "With linen": "With linen",
+    "Guest MUR always creates a task": "Guest MUR always creates a task",
+    "Make Up Room requests override the regular long-stay schedule.": "Make Up Room requests override the regular long-stay schedule.",
+    "Skip DND and no-service rooms": "Skip DND and no-service rooms",
+    "Do not create automatic tasks when the guest blocks service.": "Do not create automatic tasks when the guest blocks service."
+});
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
@@ -206,6 +336,8 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 </script>
 <script>
 (function(){
+    let currentHotelSettings = null;
+
     function findCurrencySelect() {
         const selects = Array.from(document.querySelectorAll('select.form-control'));
         return selects.find(sel => Array.from(sel.options).some(o => /USD|KRW|VND/.test(o.textContent)));
@@ -216,24 +348,104 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         if (/KRW/.test(text)) return 'KRW';
         return 'USD';
     }
-    document.addEventListener('DOMContentLoaded', () => {
+
+    function setSelectValue(id, value) {
+        const el = document.getElementById(id);
+        if (el && value !== undefined && value !== null) el.value = String(value);
+    }
+
+    function setNumberValue(id, value, fallback) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = Number(value || fallback || 0);
+    }
+
+    function collectWeeklyDays() {
+        return Array.from(document.querySelectorAll('input[name="weeklyDays"]:checked')).map(el => Number(el.value));
+    }
+
+    function applyWeeklyDays(days) {
+        const selected = new Set((Array.isArray(days) ? days : [1, 3, 5]).map(Number));
+        document.querySelectorAll('input[name="weeklyDays"]').forEach(el => {
+            el.checked = selected.has(Number(el.value));
+        });
+    }
+
+    function togglePolicyFields() {
+        const mode = document.getElementById('stayoverCleaningMode')?.value || 'request_only';
+        const weekly = document.getElementById('weeklyDaysGroup');
+        const interval = document.getElementById('intervalDays');
+        if (weekly) weekly.style.display = mode === 'weekly_days' ? '' : 'none';
+        if (interval) interval.disabled = mode !== 'every_other_day';
+    }
+
+    function collectStayoverPolicy() {
+        return {
+            mode: document.getElementById('stayoverCleaningMode')?.value || 'request_only',
+            longStayNights: Math.max(1, Number(document.getElementById('longStayNights')?.value || 2)),
+            intervalDays: Math.max(1, Number(document.getElementById('intervalDays')?.value || 2)),
+            weeklyDays: collectWeeklyDays(),
+            createForMakeUpRequest: !!document.getElementById('createForMakeUpRequest')?.checked,
+            skipDndNoService: !!document.getElementById('skipDndNoService')?.checked,
+            linenChangeIntervalDays: Math.max(1, Number(document.getElementById('linenChangeIntervalDays')?.value || 3)),
+            towelChangeMode: document.getElementById('towelChangeMode')?.value || 'daily'
+        };
+    }
+
+    async function loadHotelSettings() {
         const sel = findCurrencySelect();
-        if (!sel) return;
-        sel.id = 'defaultCurrencySelect';
-        const saved = localStorage.getItem('pms_default_currency') || 'USD';
-        Array.from(sel.options).forEach((opt, idx) => {
-            if (normalizeCurrencyText(opt.textContent) === saved) sel.selectedIndex = idx;
-        });
-        sel.addEventListener('change', () => {
-            localStorage.setItem('pms_default_currency', normalizeCurrencyText(sel.options[sel.selectedIndex].textContent));
-        });
-        const saveBtn = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Save') || btn.textContent.includes('저장'));
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
+        if (sel) sel.id = 'defaultCurrencySelect';
+
+        currentHotelSettings = window.PmsAPI && window.PmsAPI.getHotelSettings
+            ? await window.PmsAPI.getHotelSettings()
+            : {};
+        const policy = currentHotelSettings.stayoverCleaningPolicy || {};
+
+        if (sel) {
+            const saved = currentHotelSettings.defaultCurrency || localStorage.getItem('pms_default_currency') || 'USD';
+            Array.from(sel.options).forEach((opt, idx) => {
+                if (normalizeCurrencyText(opt.textContent) === saved) sel.selectedIndex = idx;
+            });
+            sel.addEventListener('change', () => {
                 localStorage.setItem('pms_default_currency', normalizeCurrencyText(sel.options[sel.selectedIndex].textContent));
-                if (window.showToast) showToast('기본 통화 설정이 저장되었습니다.');
             });
         }
+
+        setSelectValue('stayoverCleaningMode', policy.mode || 'request_only');
+        setNumberValue('longStayNights', policy.longStayNights, 2);
+        setNumberValue('intervalDays', policy.intervalDays, 2);
+        setNumberValue('linenChangeIntervalDays', policy.linenChangeIntervalDays, 3);
+        setSelectValue('towelChangeMode', policy.towelChangeMode || 'daily');
+        applyWeeklyDays(policy.weeklyDays);
+        const mur = document.getElementById('createForMakeUpRequest');
+        if (mur) mur.checked = policy.createForMakeUpRequest !== false;
+        const skip = document.getElementById('skipDndNoService');
+        if (skip) skip.checked = policy.skipDndNoService !== false;
+        const modeSelect = document.getElementById('stayoverCleaningMode');
+        if (modeSelect) modeSelect.addEventListener('change', togglePolicyFields);
+        togglePolicyFields();
+
+        const saveBtn = document.getElementById('hotelSettingsSaveBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', async () => {
+                const currency = sel ? normalizeCurrencyText(sel.options[sel.selectedIndex].textContent) : 'USD';
+                localStorage.setItem('pms_default_currency', currency);
+                const next = {
+                    ...(currentHotelSettings || {}),
+                    defaultCurrency: currency,
+                    stayoverCleaningPolicy: collectStayoverPolicy()
+                };
+                currentHotelSettings = window.PmsAPI && window.PmsAPI.saveHotelSettings
+                    ? await window.PmsAPI.saveHotelSettings(next)
+                    : next;
+                localStorage.setItem('pms_hotel_settings', JSON.stringify(currentHotelSettings));
+                if (window.showToast) showToast('호텔 설정이 저장되었습니다.');
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadHotelSettings().catch(error => console.warn('Hotel settings load failed', error));
     });
 })();
 </script>

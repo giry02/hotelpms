@@ -214,6 +214,7 @@
     .flag-btn.active { border-color: #6366f1; background: #eef2ff; box-shadow: 0 0 0 2px rgba(99,102,241,.2); }
     </style>
     <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/api/api-settings.js"></script>
     <script src="../common/js/i18n-catalog.js"></script>
@@ -430,6 +431,17 @@
 <script>
 let tasks = [];
 let allRooms = [];
+let reservations = [];
+let stayoverCleaningPolicy = {
+    mode: 'request_only',
+    longStayNights: 2,
+    intervalDays: 2,
+    weeklyDays: [1, 3, 5],
+    createForMakeUpRequest: true,
+    skipDndNoService: true,
+    linenChangeIntervalDays: 3,
+    towelChangeMode: 'daily'
+};
 let currentFilter = 'all';
 let currentView = 'grid'; // 'grid' or 'list'
 
@@ -492,12 +504,71 @@ function displayRoomNo(room) {
     return room.id || room.roomNo || room.number || String(room.roomId || room.fullRoom || '').split('-').pop();
 }
 
+function reservationMatchesRoom(reservation, room) {
+    const roomValues = [room.id, room.roomId, room.fullRoom, room.number, room.display, room.roomNo];
+    const reservationValues = [reservation.room, reservation.roomId, reservation.fullRoom, reservation.roomNo];
+    return reservationValues.some(resValue => roomValues.some(roomValue => matchesRoomKey(resValue, roomValue)));
+}
+
+function activeReservationForRoom(room) {
+    return reservations.find(reservation => {
+        const status = String(reservation.status || '').toLowerCase();
+        const isActive = ['checked-in', 'in-house', 'inhouse'].includes(status);
+        return isActive && reservationMatchesRoom(reservation, room);
+    });
+}
+
+function nightsOfReservation(reservation) {
+    if (!reservation) return 0;
+    if (Number(reservation.nights) > 0) return Number(reservation.nights);
+    if (Number(reservation.len) > 0) return Number(reservation.len);
+    const checkin = new Date(reservation.checkInDate || reservation.checkin || reservation.cin);
+    const checkout = new Date(reservation.checkOutDate || reservation.checkout || reservation.cout);
+    if (!Number.isNaN(checkin.getTime()) && !Number.isNaN(checkout.getTime())) {
+        return Math.max(1, Math.round((checkout - checkin) / 86400000));
+    }
+    return 0;
+}
+
+function stayDayNumber(reservation) {
+    const checkin = new Date(reservation?.checkInDate || reservation?.checkin || reservation?.cin);
+    if (Number.isNaN(checkin.getTime())) return 1;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    checkin.setHours(0, 0, 0, 0);
+    return Math.max(1, Math.floor((today - checkin) / 86400000) + 1);
+}
+
+function shouldCreateScheduledStayoverTask(room) {
+    const policy = stayoverCleaningPolicy || {};
+    const mode = policy.mode || 'request_only';
+    if (mode === 'request_only' || mode === 'disabled') return false;
+    if (policy.skipDndNoService !== false && ['dnd', 'no_service', 'eco'].includes(room.guestFlag || 'none')) return false;
+
+    const reservation = activeReservationForRoom(room);
+    const longStayNights = Math.max(1, Number(policy.longStayNights || 2));
+    if (nightsOfReservation(reservation) < longStayNights) return false;
+
+    if (mode === 'daily') return true;
+    if (mode === 'every_other_day') {
+        const interval = Math.max(1, Number(policy.intervalDays || 2));
+        return stayDayNumber(reservation) % interval === 0;
+    }
+    if (mode === 'weekly_days') {
+        const days = Array.isArray(policy.weeklyDays) ? policy.weeklyDays.map(Number) : [];
+        return days.includes(new Date().getDay());
+    }
+    return false;
+}
+
 async function syncStayoverRequestsToTasks() {
     let changed = false;
     allRooms.forEach(room => {
         const isOccupied = room.status === 'occupied';
         const hasMakeUpRequest = (room.guestFlag || 'none') === 'mur';
-        if (!isOccupied || !hasMakeUpRequest) return;
+        const hasGuestRequest = hasMakeUpRequest && stayoverCleaningPolicy.createForMakeUpRequest !== false;
+        const hasScheduledRequest = shouldCreateScheduledStayoverTask(room);
+        if (!isOccupied || (!hasGuestRequest && !hasScheduledRequest)) return;
 
         const existing = tasks.find(task => (
             taskMatchesRoom(task, room) &&
@@ -515,7 +586,7 @@ async function syncStayoverRequestsToTasks() {
             type: 'stayover',
             status: 'dirty',
             priority: false,
-            note: '투숙객 청소 요청'
+            note: hasGuestRequest ? '투숙객 청소 요청' : '장기투숙 정기 재실 청소'
         });
         changed = true;
     });
@@ -1064,6 +1135,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         localStorage.removeItem('pms_tasks');
         tasks = await PmsAPI.getTasks();
+        if (window.PmsAPI && window.PmsAPI.getHotelSettings) {
+            const settings = await window.PmsAPI.getHotelSettings();
+            stayoverCleaningPolicy = {
+                ...stayoverCleaningPolicy,
+                ...(settings && settings.stayoverCleaningPolicy ? settings.stayoverCleaningPolicy : {})
+            };
+        }
+        if (window.PmsAPI && window.PmsAPI.getReservations) {
+            reservations = await window.PmsAPI.getReservations();
+        }
         
         let rawRooms = await PmsAPI.getAllRooms();
         allRooms = rawRooms.map(r => {

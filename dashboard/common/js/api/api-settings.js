@@ -48,7 +48,71 @@ const _MAINTENANCE_TYPES = [
     { id: 'mt7', name: '기타' }
 ];
 
+const _DEFAULT_HOTEL_SETTINGS = {
+    id: 'TENANT-GRAND-SAIGON',
+    name: 'The Grand Saigon',
+    country: 'Vietnam',
+    city: 'Ho Chi Minh',
+    timezone: 'Asia/Seoul',
+    defaultCurrency: 'USD',
+    stayoverCleaningPolicy: {
+        mode: 'request_only',
+        longStayNights: 2,
+        intervalDays: 2,
+        weeklyDays: [1, 3, 5],
+        createForMakeUpRequest: true,
+        skipDndNoService: true,
+        linenChangeIntervalDays: 3,
+        towelChangeMode: 'daily'
+    }
+};
+
+function mergeHotelSettings(base, override) {
+    const next = {
+        ..._DEFAULT_HOTEL_SETTINGS,
+        ...(base || {}),
+        ...(override || {})
+    };
+    next.stayoverCleaningPolicy = {
+        ..._DEFAULT_HOTEL_SETTINGS.stayoverCleaningPolicy,
+        ...(base && base.stayoverCleaningPolicy ? base.stayoverCleaningPolicy : {}),
+        ...(override && override.stayoverCleaningPolicy ? override.stayoverCleaningPolicy : {})
+    };
+    return next;
+}
+
 Object.assign(window.PmsAPI, {
+    getHotelSettings: async () => {
+        let apiSettings = {};
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/settings/hotel');
+                apiSettings = window.PmsMockApi.data(env) || {};
+            }
+        } catch(e) {
+            console.warn('Mock hotel settings fallback', e);
+        }
+
+        let stored = {};
+        try {
+            stored = JSON.parse(localStorage.getItem('pms_hotel_settings') || '{}');
+        } catch(e) {}
+
+        return mergeHotelSettings(apiSettings, stored);
+    },
+    saveHotelSettings: async (settings) => {
+        const merged = mergeHotelSettings(await window.PmsAPI.getHotelSettings(), settings || {});
+        localStorage.setItem('pms_hotel_settings', JSON.stringify(merged));
+        if (merged.defaultCurrency) localStorage.setItem('pms_default_currency', merged.defaultCurrency);
+        try {
+            if (window.PmsMockApi) {
+                await window.PmsMockApi.request('PUT', '/settings/hotel', { body: merged });
+            }
+        } catch(e) {
+            console.warn('Mock hotel settings save fallback', e);
+        }
+        return merged;
+    },
     getALL_MENUS: async () => {
         try {
             if (window.PmsMockApi) {
