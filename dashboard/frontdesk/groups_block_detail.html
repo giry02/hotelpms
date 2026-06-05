@@ -353,14 +353,13 @@ function renderHeader() {
 
 function renderSummary() {
     const assigned = getAssignedRooms(group);
-    const res = groupReservations();
     const guests = roomingList();
     const verified = guests.filter(g => g.docStatus === 'verified').length;
     const pax = Number(group.pax || 0);
     const guestPct = pax ? Math.round(guests.length / pax * 100) : 0;
     document.getElementById('summaryGrid').innerHTML = [
         ['배정 호실', `${assigned.length}실`],
-        ['예약/블록', `${res.length}/${assigned.length}`],
+        ['객실 일정', assigned.length ? `${group.checkin || '-'} ~ ${group.checkout || '-'}` : '-'],
         ['총 PAX', `${pax}명`],
         ['등록 투숙객', `${guests.length}명 (${guestPct}%)`],
         ['여권/신분증 확인', `${verified}명`]
@@ -381,26 +380,22 @@ function renderOverview() {
 
 function renderRooms() {
     const assigned = getAssignedRooms(group);
-    const res = groupReservations();
     const guests = roomingList();
     document.getElementById('rooms').innerHTML = `
-        <div class="section-title"><i class="fa-solid fa-bed"></i> 객실/예약</div>
+        <div class="section-title"><i class="fa-solid fa-bed"></i> 객실/투숙객 배정</div>
         <table class="data-table">
-            <thead><tr><th>호실</th><th>타입</th><th>요금</th><th>예약 상태</th><th>대표 투숙객</th><th></th></tr></thead>
+            <thead><tr><th>호실</th><th>타입</th><th>요금</th><th>대표 투숙객</th><th></th></tr></thead>
             <tbody>
                 ${assigned.map(a => {
-                    const r = res.find(x => x.room === a.roomId || x.fullRoom === a.roomId);
                     const primary = guests.find(g => g.roomId === a.roomId && g.role === 'primary');
-                    const state = r ? (r.status === 'blocked' || r.isGroupPlaceholder ? '단체 블록' : r.status) : '미생성';
                     return `<tr>
                         <td><span class="room-chip">${roomDisplayName(a)}</span></td>
                         <td>${a.type}</td>
                         <td>${money(a.rate)} <span style="color:var(--txt3);font-size:.7rem">(${a.discountPercent || 0}% 할인)</span></td>
-                        <td>${state}</td>
                         <td>${primary ? primary.name : '-'}</td>
-                        <td><button class="mini-btn primary" onclick="openRoomReservation('${a.roomId}')"><i class="fa-solid fa-calendar-plus"></i> 예약 관리</button></td>
+                        <td><button class="mini-btn primary" onclick="openRoomingModal('${a.roomId}', '${primary?.id || ''}')"><i class="fa-solid fa-user-plus"></i> ${primary ? '투숙객 수정' : '투숙객 등록'}</button></td>
                     </tr>`;
-                }).join('') || '<tr><td colspan="6">배정된 호실이 없습니다.</td></tr>'}
+                }).join('') || '<tr><td colspan="5">배정된 호실이 없습니다.</td></tr>'}
             </tbody>
         </table>`;
 }
@@ -565,7 +560,7 @@ function renderOverview() {
         <div class="section-title"><i class="fa-solid fa-circle-info"></i> 기본 정보</div>
         <div class="form-grid">
             <div class="wide">
-                <label class="form-label">행사(블록)명 <span style="color:var(--danger)">*</span></label>
+                <label class="form-label">행사명 <span style="color:var(--danger)">*</span></label>
                 <input id="detailName" class="form-input" style="width:100%" value="${group.name || ''}" placeholder="예: Samsung Tech Conference 2026">
             </div>
             <div><label class="form-label">주관 업체</label><input id="detailAgency" class="form-input" style="width:100%" value="${group.agency || ''}" placeholder="업체/여행사/기업명"></div>
@@ -664,35 +659,31 @@ window.saveRoomAllocationsFromDetail = async function() {
 
 function renderRooms() {
     if (isDraftGroup()) {
-        document.getElementById('rooms').innerHTML = `<div class="empty-guide">기본 정보를 저장하면 객실 배정과 예약 관리를 시작할 수 있습니다.</div>`;
+        document.getElementById('rooms').innerHTML = `<div class="empty-guide">기본 정보를 저장하면 객실 배정과 투숙객 등록을 시작할 수 있습니다.</div>`;
         return;
     }
     const assigned = getAssignedRooms(group);
-    const res = groupReservations();
     const guests = roomingList();
     document.getElementById('rooms').innerHTML = `
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px">
-            <div class="section-title" style="margin-bottom:0"><i class="fa-solid fa-bed"></i> 객실 배정 / 예약 관리</div>
+            <div class="section-title" style="margin-bottom:0"><i class="fa-solid fa-bed"></i> 객실 / 투숙객 배정</div>
             <button class="mini-btn primary" onclick="addDetailAllocationRow()"><i class="fa-solid fa-plus"></i> 호실 추가</button>
         </div>
         <div id="detailAllocationEditor" class="allocation-editor"></div>
         <div class="management-actions" style="margin-top:0;margin-bottom:16px"><button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button></div>
         <table class="data-table">
-            <thead><tr><th>호실</th><th>타입</th><th>요금</th><th>예약 상태</th><th>투숙객</th><th></th></tr></thead>
+            <thead><tr><th>호실</th><th>타입</th><th>요금</th><th>투숙객</th><th></th></tr></thead>
             <tbody>
                 ${assigned.map(a => {
-                    const r = res.find(x => x.room === a.roomId || x.fullRoom === a.roomId);
                     const primary = guests.find(g => g.roomId === a.roomId && g.role === 'primary');
-                    const state = r ? (r.status === 'blocked' || r.isGroupPlaceholder ? '단체 블록' : r.status) : '미생성';
                     return `<tr>
                         <td><span class="room-chip">${roomDisplayName(a)}</span></td>
                         <td>${a.type}</td>
                         <td>${money(a.rate)} <span style="color:var(--txt3);font-size:.7rem">(${a.discountPercent || 0}% 할인)</span></td>
-                        <td>${state}</td>
                         <td>${primary ? primary.name : '-'}</td>
-                        <td><button class="mini-btn primary" onclick="openRoomReservation('${a.roomId}')"><i class="fa-solid fa-calendar-plus"></i> 예약 관리</button></td>
+                        <td><button class="mini-btn primary" onclick="openRoomingModal('${a.roomId}', '${primary?.id || ''}')"><i class="fa-solid fa-user-plus"></i> ${primary ? '투숙객 수정' : '투숙객 등록'}</button></td>
                     </tr>`;
-                }).join('') || '<tr><td colspan="6">배정된 호실이 없습니다.</td></tr>'}
+                }).join('') || '<tr><td colspan="5">배정된 호실이 없습니다.</td></tr>'}
             </tbody>
         </table>`;
     assigned.forEach(a => addDetailAllocationRow(a));
@@ -770,7 +761,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch(e) {}
         }
         if (!group) {
-            document.querySelector('.detail-shell').innerHTML = `<div class="panel">단체 블록을 찾을 수 없습니다. <button class="mini-btn" onclick="location.href='groups_blocks.html'">목록으로</button></div>`;
+            document.querySelector('.detail-shell').innerHTML = `<div class="panel">단체/행사를 찾을 수 없습니다. <button class="mini-btn" onclick="location.href='groups_blocks.html'">목록으로</button></div>`;
             return;
         }
         window.reservations = reservations = await PmsAPI.getReservations();
@@ -1150,15 +1141,12 @@ window.addEventListener('DataReady', () => {
             </div>
             <div id="detailAllocationEditor" class="allocation-editor"></div>
             <table class="data-table room-assignment-table">
-                <thead><tr><th>호실</th><th>블록/예약</th><th>투숙객</th><th>등록</th><th>신분증</th><th>요금</th><th>관리</th></tr></thead>
+                <thead><tr><th>호실</th><th>투숙객</th><th>등록</th><th>신분증</th><th>요금</th><th>관리</th></tr></thead>
                 <tbody>
                     ${assigned.map(a => {
-                        const r = reservationForRoom(a.roomId);
                         const guest = primaryGuest(a.roomId);
-                        const blockState = r ? (r.status === 'blocked' || r.isGroupPlaceholder ? '단체 블록' : r.status) : '블록 미생성';
                         return `<tr>
                             <td><span class="room-chip">${roomDisplayName(a)}</span><div class="event-sub">${a.type}</div></td>
-                            <td><div class="event-metric">${blockState}</div><small style="color:var(--txt3);font-weight:800">${r?.id || '-'}</small></td>
                             <td><div class="event-metric">${guest ? guest.name : '미등록'}</div><small style="color:var(--txt3);font-weight:800">${guest ? (guest.nation || '-') : '투숙객을 등록하세요'}</small></td>
                             <td>${guestStatusCell(guest)}</td>
                             <td>${docStatusCell(guest)}</td>
@@ -1166,11 +1154,10 @@ window.addEventListener('DataReady', () => {
                             <td class="room-actions-cell">
                                 <div class="room-action-buttons">
                                     <button class="mini-btn primary" onclick="openRoomingModal('${a.roomId}', '${guest?.id || ''}')"><i class="fa-solid fa-user-plus"></i> ${guest ? '투숙객 수정' : '투숙객 등록'}</button>
-                                    <button class="mini-btn" onclick="openRoomReservation('${a.roomId}')"><i class="fa-solid fa-calendar-check"></i> 블록 관리</button>
                                 </div>
                             </td>
                         </tr>`;
-                    }).join('') || '<tr><td colspan="7">배정된 호실이 없습니다. 상단에서 호실을 추가하세요.</td></tr>'}
+                    }).join('') || '<tr><td colspan="6">배정된 호실이 없습니다. 상단에서 호실을 추가하세요.</td></tr>'}
                 </tbody>
             </table>`;
         assigned.forEach(a => addDetailAllocationRow(a));
@@ -1365,14 +1352,13 @@ window.addEventListener('DataReady', () => {
 
     window.renderSummary = function() {
         const assigned = getAssignedRooms(group);
-        const res = groupReservations();
         const guests = allGuestRows();
         const verified = guests.filter(guest => guest.docStatus === 'verified').length;
         const pax = Number(group.pax || 0);
         const guestPct = pax ? Math.round(guests.length / pax * 100) : 0;
         document.getElementById('summaryGrid').innerHTML = [
             ['배정 호실', `${assigned.length}실`],
-            ['예약/블록', `${res.length}/${assigned.length}`],
+            ['객실 일정', assigned.length ? `${group.checkin || '-'} ~ ${group.checkout || '-'}` : '-'],
             ['총 PAX', `${pax}명`],
             ['등록 투숙객', `${guests.length}명 (${guestPct}%)`],
             ['여권/신분증 확인', `${verified}명`]
@@ -1412,17 +1398,14 @@ window.addEventListener('DataReady', () => {
             </div>
             <div id="detailAllocationEditor" class="allocation-editor"></div>
             <table class="data-table room-assignment-table">
-                <thead><tr><th>호실</th><th>블록/예약</th><th>투숙객</th><th>등록</th><th>신분증</th><th>요금</th><th>관리</th></tr></thead>
+                <thead><tr><th>호실</th><th>투숙객</th><th>등록</th><th>신분증</th><th>요금</th><th>관리</th></tr></thead>
                 <tbody>
                     ${assigned.map(room => {
-                        const res = reservationForAssignedRoom(room.roomId);
                         const guest = guestForRoom(room.roomId);
                         const note = guest?.note || guest?.specialNotes || guest?.allergy || '';
                         const display = typeof roomDisplayName === 'function' ? roomDisplayName(room) : (room.roomLabel || room.roomId);
-                        const blockState = res ? (res.status === 'blocked' || res.isGroupPlaceholder ? '단체 블록' : res.status) : '블록 미생성';
                         return `<tr>
                             <td><span class="room-chip">${safe(display)}</span><div class="event-sub">${safe(room.type)}</div></td>
-                            <td><div class="event-metric">${safe(blockState)}</div><small style="color:var(--txt3);font-weight:800">${safe(res?.id || '-')}</small></td>
                             <td><div class="event-metric">${guest ? safe(guest.name) : '미등록'}</div><small style="color:var(--txt3);font-weight:800">${guest ? safe(guest.nation || '-') : '투숙객을 등록하세요'}</small>${note ? `<small style="display:block;margin-top:3px;color:#dc2626;font-weight:850"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(note)}</small>` : ''}</td>
                             <td>${guestStatusCell(guest)}</td>
                             <td>${docStatusCell(guest)}</td>
@@ -1430,11 +1413,10 @@ window.addEventListener('DataReady', () => {
                             <td class="room-actions-cell">
                                 <div class="room-action-buttons">
                                     <button class="mini-btn primary" onclick="openRoomingModal('${safe(room.roomId)}', '${safe(guest && !guest.sourceReservation ? guest.id : '')}')"><i class="fa-solid fa-user-plus"></i> ${guest ? '투숙객 수정' : '투숙객 등록'}</button>
-                                    <button class="mini-btn" onclick="openRoomReservation('${safe(room.roomId)}')"><i class="fa-solid fa-calendar-check"></i> 블록 관리</button>
                                 </div>
                             </td>
                         </tr>`;
-                    }).join('') || '<tr><td colspan="7">배정된 호실이 없습니다. 상단에서 호실을 추가하세요.</td></tr>'}
+                    }).join('') || '<tr><td colspan="6">배정된 호실이 없습니다. 상단에서 호실을 추가하세요.</td></tr>'}
                 </tbody>
             </table>
             ${unassignedHtml}`;
