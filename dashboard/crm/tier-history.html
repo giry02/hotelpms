@@ -46,6 +46,7 @@
 </style>
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-crm.js"></script>
+    <script src="../common/js/vip-criteria.js"></script>
     <script src="../common/js/i18n-catalog.js"></script>
 <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
@@ -66,28 +67,37 @@
                 <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#059669,#10B981)"></div>
                 <div class="tier-card-icon" style="background:rgba(16,185,129,.15);color:#059669"><i class="fa-solid fa-arrow-up"></i></div>
                 <div class="tier-card-info">
-                    <div class="tier-card-count">18</div>
+                    <div class="tier-card-count" id="kpiUpgrades">0</div>
                     <div class="tier-card-name">Upgrades (Month)</div>
                 </div>
                 <div class="tier-card-criteria">전월 대비 +5</div>
             </div>
             <div class="tier-card" style="background:#fff;border:1px solid rgba(59,130,246,.2);box-shadow:var(--shadow)">
                 <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#2563EB,#3B82F6)"></div>
-                <div class="tier-card-icon" style="background:rgba(59,130,246,.15);color:#2563EB"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="tier-card-icon" style="background:rgba(59,130,246,.15);color:#2563EB"><i class="fa-solid fa-users"></i></div>
                 <div class="tier-card-info">
-                    <div class="tier-card-count">86%</div>
-                    <div class="tier-card-name">Retention Rate</div>
+                    <div class="tier-card-count" id="kpiVipCustomers">0</div>
+                    <div class="tier-card-name">VIP Customers</div>
                 </div>
-                <div class="tier-card-criteria">All VIP 회원 기준</div>
+                <div class="tier-card-criteria" id="kpiVipCriteria">Configured VIP 기준</div>
             </div>
             <div class="tier-card" style="background:#fff;border:1px solid rgba(139,92,246,.2);box-shadow:var(--shadow)">
                 <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7C3AED,#8B5CF6)"></div>
-                <div class="tier-card-icon" style="background:rgba(139,92,246,.15);color:#7C3AED"><i class="fa-solid fa-gem"></i></div>
+                <div class="tier-card-icon" style="background:rgba(139,92,246,.15);color:#7C3AED"><i class="fa-solid fa-star"></i></div>
                 <div class="tier-card-info">
-                    <div class="tier-card-count">4</div>
-                    <div class="tier-card-name">New Diamond</div>
+                    <div class="tier-card-count" id="kpiNewVip">0</div>
+                    <div class="tier-card-name">New VIP</div>
                 </div>
-                <div class="tier-card-criteria">이번 분기 달성</div>
+                <div class="tier-card-criteria" data-i18n-key="New entries this month">이번 달 신규 진입</div>
+            </div>
+            <div class="tier-card" style="background:#fff;border:1px solid rgba(245,158,11,.2);box-shadow:var(--shadow)">
+                <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#D97706,#F59E0B)"></div>
+                <div class="tier-card-icon" style="background:rgba(245,158,11,.15);color:#D97706"><i class="fa-solid fa-user-pen"></i></div>
+                <div class="tier-card-info">
+                    <div class="tier-card-count" id="kpiManualChanges">0</div>
+                    <div class="tier-card-name">Manual Changes</div>
+                </div>
+                <div class="tier-card-criteria" data-i18n-key="Admin reason required">관리자 사유 필수</div>
             </div>
         </div>
 
@@ -101,6 +111,7 @@
                 <div class="filter-chips">
                     <button class="chip active" onclick="setDir(this,'all')">All</button>
                     <button class="chip" onclick="setDir(this,'up')"><i class="fa-solid fa-arrow-up" style="color:var(--success)"></i> Upgrade</button>
+                    <button class="chip" onclick="setDir(this,'manual')"><i class="fa-solid fa-user-pen" style="color:var(--warning)"></i> Manual Change</button>
                 </div>
                 <button class="m-filter-trigger" onclick="openBottomSheet()">
                     <i class="fa-solid fa-filter"></i>
@@ -160,12 +171,17 @@
     <div class="bottom-sheet-options">
         <button class="bs-option selected" onclick="selectFilter('all','전체')">
             <div class="bs-option-icon" style="background:var(--border2);color:var(--txt2)"><i class="fa-solid fa-list"></i></div>
-            <div class="bs-option-label">All<div class="bs-option-desc">All tier upgrade changes</div></div>
+            <div class="bs-option-label">All<div class="bs-option-desc">All tier changes</div></div>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
         <button class="bs-option" onclick="selectFilter('up','승급')">
             <div class="bs-option-icon" style="background:rgba(16,185,129,.1);color:#059669"><i class="fa-solid fa-arrow-up"></i></div>
             <div class="bs-option-label">Upgrade<div class="bs-option-desc">Tier이 올라간 변동만</div></div>
+            <i class="fa-solid fa-check bs-option-check"></i>
+        </button>
+        <button class="bs-option" onclick="selectFilter('manual','수동 변경')">
+            <div class="bs-option-icon" style="background:rgba(245,158,11,.1);color:#D97706"><i class="fa-solid fa-user-pen"></i></div>
+            <div class="bs-option-label">Manual Change<div class="bs-option-desc">관리자가 사유를 남긴 변경만</div></div>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
     </div>
@@ -180,6 +196,7 @@ const tierCfg = {
 };
 
 let history = [];
+let guests = [];
 
 let currentDir = 'all';
 let currentPage = 1;
@@ -189,12 +206,50 @@ function getFiltered() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const month = document.getElementById('monthFilter').value;
     return history.filter(h => {
-        if (h.dir !== 'up') return false;
-        if (currentDir !== 'all' && h.dir !== currentDir) return false;
+        if (currentDir === 'up' && h.dir !== 'up') return false;
+        if (currentDir === 'manual' && h.changeType !== 'manual') return false;
         if (search && !h.name.toLowerCase().includes(search)) return false;
         if (month !== 'all' && !h.date.startsWith(month)) return false;
         return true;
     });
+}
+
+function currentMonthItems() {
+    const selected = document.getElementById('monthFilter')?.value || 'all';
+    return history.filter(h => selected === 'all' || h.date.startsWith(selected));
+}
+
+function textFor(key) {
+    const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+    const localDict = typeof translations !== 'undefined' ? translations[lang] || {} : {};
+    const globalDict = window.translations ? window.translations[lang] || {} : {};
+    return localDict[key] || globalDict[key] || key;
+}
+
+function updateKpis() {
+    const config = window.PMS_VIP_CRITERIA?.getConfig?.();
+    const monthItems = currentMonthItems();
+    const upgrades = monthItems.filter(h => h.dir === 'up');
+    const manualChanges = monthItems.filter(h => h.changeType === 'manual');
+    const newVip = config
+        ? upgrades.filter(h => window.PMS_VIP_CRITERIA.isVipTier(h.to, config) && !window.PMS_VIP_CRITERIA.isVipTier(h.from, config))
+        : upgrades;
+    const vipCustomers = config && window.PMS_VIP_CRITERIA
+        ? window.PMS_VIP_CRITERIA.countVip(guests, config)
+        : 0;
+
+    const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    };
+    setText('kpiUpgrades', upgrades.length);
+    setText('kpiVipCustomers', vipCustomers);
+    setText('kpiNewVip', newVip.length);
+    setText('kpiManualChanges', manualChanges.length);
+    const criteria = document.getElementById('kpiVipCriteria');
+    if (criteria && config && window.PMS_VIP_CRITERIA) {
+        criteria.textContent = window.PMS_VIP_CRITERIA.vipSubtitle(config, localStorage.getItem('pms_lang') || window.currentLang || 'ko');
+    }
 }
 
 function renderHistory() {
@@ -207,18 +262,23 @@ function renderHistory() {
     const paged = filtered.slice(start, start + pageSize);
 
     document.getElementById('totalCount').textContent = total;
+    updateKpis();
 
     // Desktop table
     document.getElementById('historyBody').innerHTML = paged.map(h => {
         const from = tierCfg[h.from], to = tierCfg[h.to];
-        const dirIcon = '<span style="color:var(--success);font-weight:700"><i class="fa-solid fa-arrow-up"></i> Upgrade</span>';
+        const isManual = h.changeType === 'manual';
+        const changeColor = isManual ? 'var(--warning)' : 'var(--success)';
+        const changeIcon = isManual ? 'fa-user-pen' : 'fa-arrow-up';
+        const changeLabel = textFor(isManual ? 'Manual Change' : 'Upgrade');
+        const reason = h.reason || textFor('Reason Required');
         return `<tr>
             <td style="white-space:nowrap;font-size:.78rem;color:var(--txt2)">${h.date}</td>
             <td><div class="guest-cell"><div class="guest-avatar" style="background:${h.color}">${h.init}</div><strong>${h.name}</strong></div></td>
-            <td>${dirIcon}</td>
+            <td><span style="color:${changeColor};font-weight:700"><i class="fa-solid ${changeIcon}"></i> ${changeLabel}</span></td>
             <td><span class="tier-badge" style="background:${from.bg};color:${from.color}"><i class="fa-solid ${from.icon}"></i> ${from.label}</span></td>
             <td><span class="tier-badge" style="background:${to.bg};color:${to.color}"><i class="fa-solid ${to.icon}"></i> ${to.label}</span></td>
-            <td style="font-size:.78rem;color:var(--txt2);max-width:200px;white-space:normal">${h.reason}</td>
+            <td style="font-size:.78rem;color:var(--txt2);max-width:240px;white-space:normal">${reason}</td>
             <td style="font-size:.72rem;color:var(--txt3)">${h.by}</td>
         </tr>`;
     }).join('');
@@ -226,8 +286,11 @@ function renderHistory() {
     // Mobile cards
     document.getElementById('historyMobile').innerHTML = paged.map(h => {
         const from = tierCfg[h.from], to = tierCfg[h.to];
-        const dirLabel = 'Upgrade';
-        const dirColor = 'var(--success)';
+        const isManual = h.changeType === 'manual';
+        const dirLabel = textFor(isManual ? 'Manual Change' : 'Upgrade');
+        const dirColor = isManual ? 'var(--warning)' : 'var(--success)';
+        const dirIcon = isManual ? 'fa-user-pen' : 'fa-arrow-up';
+        const reason = h.reason || textFor('Reason Required');
         return `<div class="m-res-card" style="border-left-color:${dirColor}">
             <div class="m-res-top">
                 <div class="m-res-guest">
@@ -238,7 +301,7 @@ function renderHistory() {
                     </div>
                 </div>
                 <div style="text-align:right">
-                    <span style="font-size:.72rem;font-weight:700;color:${dirColor}"><i class="fa-solid fa-arrow-up"></i> ${dirLabel}</span>
+                    <span style="font-size:.72rem;font-weight:700;color:${dirColor}"><i class="fa-solid ${dirIcon}"></i> ${dirLabel}</span>
                 </div>
             </div>
             <div class="m-res-details">
@@ -247,7 +310,7 @@ function renderHistory() {
                     <i class="fa-solid fa-arrow-right" style="color:var(--txt3);font-size:.6rem"></i>
                     <span class="tier-badge" style="background:${to.bg};color:${to.color};font-size:.65rem"><i class="fa-solid ${to.icon}"></i> ${to.label}</span>
                 </div>
-                <div class="m-res-detail"><i class="fa-solid fa-clipboard-list"></i> ${h.reason}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-clipboard-list"></i> ${reason}</div>
                 <div class="m-res-detail"><i class="fa-solid fa-user-check"></i> ${h.by}</div>
             </div>
         </div>`;
@@ -297,15 +360,14 @@ function selectFilter(dir, label) {
     document.getElementById('mFilterLabel').textContent = label;
     // Sync desktop chips
     const chipWrap = document.querySelector('.filter-chips');
-    const chips = chipWrap ? chipWrap.querySelectorAll('.chip:not(.downgrade-filter)') : [];
+    const chips = chipWrap ? chipWrap.querySelectorAll('.chip') : [];
     chips.forEach(c => c.classList.remove('active'));
-    if (dir === 'all') chips[0].classList.add('active');
-    else if (dir === 'up') chips[1].classList.add('active');
+    if (dir === 'all' && chips[0]) chips[0].classList.add('active');
+    else if (dir === 'up' && chips[1]) chips[1].classList.add('active');
+    else if (dir === 'manual' && chips[2]) chips[2].classList.add('active');
     closeBottomSheet();
     renderHistory();
 }
-
-renderHistory();
 
 // i18n
 let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
@@ -337,7 +399,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"Tier Change History":"등급 변동 이력","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Upgrades (Month)":"이번 달 승급","Retention Rate":"등급 유지율","New Diamond":"신규 다이아몬드","All":"전체","Upgrade":"승급"},en: {
+"Tier Change History":"등급 변동 이력","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Upgrades (Month)":"이번 달 승급","VIP Customers":"VIP 고객","New VIP":"신규 VIP","Manual Changes":"수동 변경","Manual Change":"수동 변경","Reason Required":"사유 미입력","New entries this month":"이번 달 신규 진입","Admin reason required":"관리자 사유 필수","All":"전체","Upgrade":"승급"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -365,7 +427,7 @@ const translations={ko: {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
-"Tier Change History":"Tier Change History","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Upgrades (Month)":"Upgrades (Month)","Retention Rate":"Retention Rate","New Diamond":"New Diamond","All":"All","Upgrade":"Upgrade"}};
+"Tier Change History":"Tier Change History","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Upgrades (Month)":"Upgrades (Month)","VIP Customers":"VIP Customers","New VIP":"New VIP","Manual Changes":"Manual Changes","Manual Change":"Manual Change","Reason Required":"Reason required","New entries this month":"New entries this month","Admin reason required":"Admin reason required","All":"All","Upgrade":"Upgrade"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});document.getElementById('searchInput').placeholder=l==='en'?'Search guest name...':'Guest명 검색...';renderHistory();}
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
@@ -390,7 +452,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(ensureTopbarBackButton, 0);
     setTimeout(ensureTopbarBackButton, 200);
     try {
-        history = await PmsAPI.getHistory();
+        const [tierHistory, guestList] = await Promise.all([
+            PmsAPI.getHistory(),
+            PmsAPI.getGuests ? PmsAPI.getGuests() : Promise.resolve([])
+        ]);
+        history = tierHistory;
+        guests = guestList;
         renderHistory();
     } catch(e) { console.error(e); }
 });

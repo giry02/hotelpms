@@ -146,10 +146,20 @@ Object.assign(window.PmsAPI, {
                     if (value.includes('gold') || value === 'vip') return 'gold';
                     return 'standard';
                 };
+                const localized = (value) => {
+                    if (value && typeof value === 'object') {
+                        const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+                        return value[lang] || value.ko || value.en || '';
+                    }
+                    return value || '';
+                };
                 return window.PmsMockApi.items(env).map((item, index) => {
                     const from = normalizeTier(item.beforeTier || item.from);
                     const to = normalizeTier(item.afterTier || item.to);
-                    if (order[to] < order[from]) return null;
+                    const rawChangeType = String(item.changeType || item.type || '').toLowerCase();
+                    const changedBy = item.by || item.changedBy || 'System';
+                    const changeType = rawChangeType === 'manual' || (!rawChangeType && changedBy && changedBy !== 'System') ? 'manual' : 'auto';
+                    if (order[to] < order[from] && changeType !== 'manual') return null;
                     const name = item.guestName || item.name || item.guestId || 'Guest';
                     return {
                         ...item,
@@ -159,9 +169,10 @@ Object.assign(window.PmsAPI, {
                         color: item.color || ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'][index % 4],
                         from,
                         to,
-                        dir: 'up',
-                        reason: item.reason || '',
-                        by: item.by || item.changedBy || 'System'
+                        dir: order[to] > order[from] ? 'up' : 'change',
+                        changeType,
+                        reason: localized(item.reason),
+                        by: changedBy
                     };
                 }).filter(Boolean);
             }
