@@ -49,6 +49,8 @@
         .mini-btn{height:30px;padding:0 10px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--txt);font-family:var(--font);font-size:.74rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
         .mini-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
         .mini-btn.danger{border-color:#fecaca;color:#dc2626;background:#fff1f2}
+        .topbar-back-btn{height:34px;padding:0 12px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.82rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:all .18s}
+        .topbar-back-btn:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff}
         .rooming-tools{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
         .progress{height:7px;background:#eef2f7;border-radius:99px;overflow:hidden}.progress>div{height:100%;background:var(--primary)}
         .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
@@ -65,6 +67,7 @@
     <header class="topbar">
         <div class="topbar-left">
             <button class="mobile-menu-btn" onclick="PMS_Sidebar.toggleMenu()"><i class="fa-solid fa-bars"></i></button>
+            <button class="topbar-back-btn" onclick="location.href='groups_blocks.html'"><i class="fa-solid fa-chevron-left"></i> 목록</button>
             <h1>행사 등록/관리</h1>
         </div>
     </header>
@@ -74,7 +77,6 @@
                 <div class="breadcrumb">단체 관리 &gt; 행사 목록 &gt; <span id="bcName">상세</span></div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
                     <button class="mini-btn primary" onclick="switchTabById('rooms')"><i class="fa-solid fa-bed"></i> 객실/투숙객 배정</button>
-                    <button class="mini-btn" onclick="location.href='groups_blocks.html'"><i class="fa-solid fa-arrow-left"></i> 목록</button>
                 </div>
             </div>
 
@@ -169,6 +171,23 @@ function closeModal(id) {
     modal.classList.remove('active');
     document.body.style.overflow = '';
 }
+
+function ensureTopbarBackButton() {
+    const topbarLeft = document.querySelector('.topbar-left');
+    const title = topbarLeft?.querySelector('h1');
+    if (!topbarLeft || !title || topbarLeft.querySelector('.topbar-back-btn')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'topbar-back-btn';
+    button.innerHTML = '<i class="fa-solid fa-chevron-left"></i> 목록';
+    button.onclick = () => { location.href = 'groups_blocks.html'; };
+    topbarLeft.insertBefore(button, title);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(ensureTopbarBackButton, 0);
+    setTimeout(ensureTopbarBackButton, 200);
+});
 
 let group = null;
 let groups = [];
