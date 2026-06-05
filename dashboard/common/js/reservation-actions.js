@@ -17,6 +17,7 @@
             'edit.readonly': '체크인 이후 예약은 이 화면에서 수정할 수 없습니다.',
             'guest.required': '고객명을 입력하거나 선택해주세요.',
             'booking.dateRequired': '체크인/체크아웃 날짜를 선택해 주세요.',
+            'booking.pastCheckin': '체크인 시작일은 오늘 이후 날짜만 선택할 수 있습니다.',
             'booking.invalidDates': '체크아웃 날짜는 체크인 다음 날 이후여야 합니다.',
             'booking.roomRequired': '예약 가능한 객실을 선택해 주세요.',
             'booking.roomDateFirst': '날짜를 먼저 선택하면 예약 가능한 객실이 표시됩니다.',
@@ -43,6 +44,7 @@
             'edit.readonly': 'Reservations after check-in cannot be edited from this screen.',
             'guest.required': 'Enter or select a guest name.',
             'booking.dateRequired': 'Select check-in and check-out dates.',
+            'booking.pastCheckin': 'Check-in must be today or a future date.',
             'booking.invalidDates': 'Check-out must be later than check-in.',
             'booking.roomRequired': 'Select an available room.',
             'booking.roomDateFirst': 'Select dates first to see available rooms.',
@@ -169,7 +171,10 @@
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             ['unifiedCin', 'unifiedCout'].forEach(id => {
                 const input = document.getElementById(id);
-                if (input) input.addEventListener('change', () => window.updateUnifiedStayAndRooms());
+                if (input) input.addEventListener('change', () => {
+                    if (id === 'unifiedCin' && input.min && input.value && input.value < input.min) input.value = input.min;
+                    window.updateUnifiedStayAndRooms();
+                });
             });
             
             // Populate Groups when modal is created
@@ -188,6 +193,8 @@
                 }).catch(err => console.log('Error loading groups:', err));
             }
         }
+        const checkinInput = document.getElementById('unifiedCin');
+        if (checkinInput?.tagName === 'INPUT') checkinInput.min = todayInputValue();
     }
 
     function normalizedReservationStatus(value) {
@@ -281,6 +288,16 @@
 
     function padDatePart(value) {
         return String(value).padStart(2, '0');
+    }
+
+    function todayStart() {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+
+    function todayInputValue() {
+        return toDateInputValue(todayStart());
     }
 
     function toDateInputValue(value, fallback = null) {
@@ -902,6 +919,10 @@
         const dateRange = getUnifiedDateRange({ autoFix: false });
         if (!dateRange.checkin || !dateRange.checkout) {
             alert(actionText('booking.dateRequired'));
+            return;
+        }
+        if (dateRange.checkin < todayStart()) {
+            alert(actionText('booking.pastCheckin'));
             return;
         }
         if (!dateRange.valid) {
