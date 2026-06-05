@@ -25,11 +25,12 @@ const _fallbackRooms = [
 ];
 
 const _fallbackRoomTypes = [
-    { id: 'Standard',    name: 'Standard',    code: 'STD', count: 3 },
-    { id: 'Deluxe',      name: 'Deluxe',      code: 'DLX', count: 5 },
-    { id: 'Premier',     name: 'Premier',     code: 'PRM', count: 4 },
-    { id: 'Penthouse',   name: 'Penthouse',   code: 'PTH', count: 2 },
-    { id: 'Pool Villa',  name: 'Pool Villa',  code: 'VIL', count: 2 }
+    { id: 'STD', name: 'Standard', code: 'STD', view: 'City View', basePrice: 100, baseRate: 100, currency: 'USD', capacity: 2, count: 3 },
+    { id: 'DLX-CITY', name: 'Deluxe', code: 'DLX-CITY', view: 'City View', basePrice: 140, baseRate: 140, currency: 'USD', capacity: 3, count: 3 },
+    { id: 'DLX-OCEAN', name: 'Deluxe', code: 'DLX-OCEAN', view: 'Ocean View', basePrice: 180, baseRate: 180, currency: 'USD', capacity: 3, count: 2 },
+    { id: 'PRM', name: 'Premier', code: 'PRM', view: 'Ocean View', basePrice: 220, baseRate: 220, currency: 'USD', capacity: 3, count: 4 },
+    { id: 'PTH', name: 'Penthouse', code: 'PTH', view: 'Panoramic View', basePrice: 650, baseRate: 650, currency: 'USD', capacity: 4, count: 2 },
+    { id: 'VIL', name: 'Pool Villa', code: 'VIL', view: 'Poolside', basePrice: 380, baseRate: 380, currency: 'USD', capacity: 4, count: 2 }
 ];
 
 Object.assign(window.PmsAPI, {
@@ -463,8 +464,21 @@ Object.assign(window.PmsAPI, {
         if(existing >= 0) types[existing] = typeData;
         else types.push(typeData);
         localStorage.setItem('pms_room_types', JSON.stringify(types));
+        localStorage.setItem('pms_room_types_config', JSON.stringify(types));
         return true;
     },
+
+    saveRoomTypes: async (types) => {
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('PUT', '/room-types', { body: types || [] });
+        } catch(e) {
+            console.warn('Mock room types save fallback', e);
+        }
+        localStorage.setItem('pms_room_types', JSON.stringify(types || []));
+        localStorage.setItem('pms_room_types_config', JSON.stringify(types || []));
+        return true;
+    },
+
 
     deleteRoom: async (roomId) => {
         try {

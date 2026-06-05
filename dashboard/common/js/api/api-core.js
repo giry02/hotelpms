@@ -469,14 +469,19 @@ window.PmsMockApi = window.PmsMockApi || (function() {
     }
 
     function toLegacyRoomType(item) {
+        const typeId = item.id || item.typeId || item.code || item.name;
+        const base = item.baseRate ?? item.basePrice ?? item.rate;
         return {
             ...item,
-            id: item.name || item.id,
-            typeId: item.id,
+            id: typeId,
+            typeId,
             name: item.name,
             code: item.code,
-            basePrice: amountValue(item.baseRate),
-            baseRate: amountValue(item.baseRate)
+            view: item.view || item.viewType || '',
+            desc: item.desc || item.description || '',
+            basePrice: amountValue(base),
+            baseRate: amountValue(base),
+            currency: currencyOf(base)
         };
     }
 

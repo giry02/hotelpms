@@ -194,11 +194,12 @@
 <script>
 // --- 객실 유형 및 기본 요금 설정 ---
 let DEFAULT_ROOM_TYPES = [
-    { id: 'Standard', typeId: 'STD', name: 'Standard', basePrice: 100, currency: 'USD' },
-    { id: 'Deluxe', typeId: 'DLX', name: 'Deluxe', basePrice: 140, currency: 'USD' },
-    { id: 'Premier', typeId: 'PRM', name: 'Premier', basePrice: 100, currency: 'USD' },
-    { id: 'Penthouse', typeId: 'PTH', name: 'Penthouse', basePrice: 650, currency: 'USD' },
-    { id: 'Pool Villa', typeId: 'VIL', name: 'Pool Villa', basePrice: 380, currency: 'USD' }
+    { id: 'STD', typeId: 'STD', name: 'Standard', view: 'City View', basePrice: 100, currency: 'USD' },
+    { id: 'DLX-CITY', typeId: 'DLX-CITY', name: 'Deluxe', view: 'City View', basePrice: 140, currency: 'USD' },
+    { id: 'DLX-OCEAN', typeId: 'DLX-OCEAN', name: 'Deluxe', view: 'Ocean View', basePrice: 180, currency: 'USD' },
+    { id: 'PRM', typeId: 'PRM', name: 'Premier', view: 'Ocean View', basePrice: 220, currency: 'USD' },
+    { id: 'PTH', typeId: 'PTH', name: 'Penthouse', view: 'Panoramic View', basePrice: 650, currency: 'USD' },
+    { id: 'VIL', typeId: 'VIL', name: 'Pool Villa', view: 'Poolside', basePrice: 380, currency: 'USD' }
 ];
 
 function getRoomTypes() {
@@ -224,6 +225,35 @@ function formatRate(value) {
     return Number(value || 0).toLocaleString('ko-KR');
 }
 
+function roomTypeLabel(rt) {
+    return rt?.view ? `${rt.name} · ${rt.view}` : rt?.name || rt?.id || '-';
+}
+
+function normalizeRateRoomType(rt) {
+    const id = rt.id || rt.typeId || rt.code || rt.name;
+    const base = Number(rt.basePrice ?? rt.baseRate?.amount ?? rt.baseRate ?? 0);
+    return {
+        ...rt,
+        id,
+        typeId: id,
+        name: rt.name || id,
+        view: rt.view || rt.viewType || '',
+        basePrice: base,
+        baseRate: base,
+        currency: rt.currency || rt.baseRate?.currency || getCurrencyCode()
+    };
+}
+
+function populateBatchRoomTypes() {
+    const select = document.getElementById('batchRoomType');
+    if (!select) return;
+    const current = select.value || 'all';
+    select.innerHTML = `<option value="all">전체 (All Room Types)</option>` + roomTypes.map(rt => (
+        `<option value="${rt.id}">${roomTypeLabel(rt)}</option>`
+    )).join('');
+    select.value = current === 'all' || roomTypes.some(rt => rt.id === current) ? current : 'all';
+}
+
 function loadRates() {
     try {
         const saved = localStorage.getItem('pms_daily_rates');
@@ -243,7 +273,9 @@ async function loadMockRates() {
         if (!rows.length) return;
         rows.forEach(row => {
             const date = row.date;
-            const typeId = row.roomTypeName || row.roomTypeId;
+            const sourceType = row.roomTypeName || row.roomTypeId;
+            const matchedType = roomTypes.find(rt => rt.id === sourceType || rt.typeId === sourceType || rt.code === sourceType || rt.name === sourceType);
+            const typeId = matchedType?.id || sourceType;
             if (!date || !typeId) return;
             if (!dailyRates[date]) dailyRates[date] = {};
             dailyRates[date][typeId] = window.PmsMockApi.amountValue(row.publicRate || row.baseRate);
@@ -343,7 +375,7 @@ function renderCalendar() {
     let thHtml = `<th class="date-col">일자 (Date)</th>`;
     const currencyCode = getCurrencyCode();
     roomTypes.forEach(rt => {
-        thHtml += `<th>${rt.name}<br><span style="font-size:0.75rem;font-weight:400;color:var(--txt3)">Base: ${currencyCode} ${formatRate(rt.basePrice)}</span></th>`;
+        thHtml += `<th>${roomTypeLabel(rt)}<br><span style="font-size:0.75rem;font-weight:400;color:var(--txt3)">Base: ${currencyCode} ${formatRate(rt.basePrice)}</span></th>`;
     });
     header.innerHTML = thHtml;
     
@@ -441,13 +473,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         if (window.PmsAPI?.getAllRoomTypes) {
             const apiTypes = await window.PmsAPI.getAllRoomTypes();
-            if (Array.isArray(apiTypes) && apiTypes.length) roomTypes = apiTypes;
+            if (Array.isArray(apiTypes) && apiTypes.length) roomTypes = apiTypes.map(normalizeRateRoomType);
         } else {
-            roomTypes = getRoomTypes();
+            roomTypes = getRoomTypes().map(normalizeRateRoomType);
         }
         if (!Array.isArray(roomTypes) || roomTypes.length === 0) {
-            roomTypes = getRoomTypes();
+            roomTypes = getRoomTypes().map(normalizeRateRoomType);
         }
+        populateBatchRoomTypes();
         await loadMockRates();
         renderCalendar();
     } catch(e) { console.error(e); }
