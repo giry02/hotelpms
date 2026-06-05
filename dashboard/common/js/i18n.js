@@ -1277,6 +1277,226 @@ function installNativeDialogI18n() {
 
 installNativeDialogI18n();
 
+function searchLabelText() {
+    if (typeof window.t === 'function') {
+        const translated = window.t('common.search');
+        if (translated && translated !== 'common.search') return translated;
+    }
+    const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+    return lang === 'en' ? 'Search' : '검색';
+}
+
+function isSearchInput(input) {
+    if (!input || input.dataset.pmsNoSearchButton === 'true') return false;
+    if (!['INPUT'].includes(input.tagName)) return false;
+    const type = String(input.type || 'text').toLowerCase();
+    if (!['text', 'search'].includes(type)) return false;
+    const hint = [
+        input.id,
+        input.name,
+        input.className,
+        input.placeholder,
+        input.getAttribute('aria-label')
+    ].filter(Boolean).join(' ').toLowerCase();
+    return hint.includes('search') || hint.includes('검색');
+}
+
+const searchPlaceholderTranslations = {
+    en: {
+        '이름, 이메일 검색...': 'Search name or email...',
+        '이름, Contact, 이메일 검색...': 'Search name, contact, or email...',
+        '고객명 검색...': 'Search guest name...',
+        'Guest명 검색...': 'Search guest name...',
+        '이름/호실 검색...': 'Search name or room...',
+        '이름, Room번호, Booking # 검색...': 'Search name, room, or booking #...',
+        '행사(블록)명 검색...': 'Search group/block name...',
+        '업체명 검색...': 'Search company name...',
+        '객실번호, 고객명, Folio 검색...': 'Search room, guest, or folio...',
+        '객실번호, 고객명, 정산번호 검색...': 'Search room, guest, or folio...',
+        'Room번호, Guest명, Folio 번호 검색...': 'Search room, guest, or folio...',
+        'Room번호 검색...': 'Search room number...',
+        'Room 번호 검색...': 'Search room number...',
+        '객실번호 검색...': 'Search room number...',
+        '객실 번호 검색...': 'Search room number...',
+        '객실 번호, 타입 검색...': 'Search room number or type...'
+    },
+    ko: {
+        'Search name or email...': '이름, 이메일 검색...',
+        'Search name, contact, or email...': '이름, 연락처, 이메일 검색...',
+        'Search guest name...': '고객명 검색...',
+        'Search name or room...': '이름/객실번호 검색...',
+        'Search name, room, or booking #...': '이름, 객실번호, 예약번호 검색...',
+        'Search group/block name...': '행사/블록명 검색...',
+        'Search company name...': '업체명 검색...',
+        'Search room, guest, or folio...': '객실번호, 고객명, 정산번호 검색...',
+        'Search room number...': '객실번호 검색...',
+        'Search room number or type...': '객실번호, 타입 검색...',
+        '이름, Contact, 이메일 검색...': '이름, 연락처, 이메일 검색...',
+        'Guest명 검색...': '고객명 검색...',
+        '이름, Room번호, Booking # 검색...': '이름, 객실번호, 예약번호 검색...',
+        'Room번호, Guest명, Folio 번호 검색...': '객실번호, 고객명, 정산번호 검색...',
+        '객실번호, 고객명, Folio 검색...': '객실번호, 고객명, 정산번호 검색...',
+        'Room번호 검색...': '객실번호 검색...',
+        'Room 번호 검색...': '객실번호 검색...'
+    }
+};
+
+function normalizeSearchPlaceholder(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function searchPlaceholderText(input) {
+    if (!input.placeholder) return '';
+    const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+    const source = input.dataset.pmsSearchOriginalPlaceholder || input.placeholder;
+    const normalized = normalizeSearchPlaceholder(source);
+    const translated = (searchPlaceholderTranslations[lang] || {})[normalized];
+    if (translated) return translated;
+    if (lang === 'en' && typeof window.pmsRuntimeText === 'function') {
+        const runtime = window.pmsRuntimeText(source);
+        if (runtime && runtime !== source) return runtime;
+    }
+    return source;
+}
+
+function refreshSearchInputPlaceholder(input) {
+    if (!input.placeholder) return;
+    if (!input.dataset.pmsSearchOriginalPlaceholder) {
+        input.dataset.pmsSearchOriginalPlaceholder = input.placeholder;
+    }
+    input.placeholder = searchPlaceholderText(input);
+}
+
+function hasNearbySearchButton(anchor) {
+    return !!findNearbySearchButton(anchor);
+}
+
+function findNearbySearchButton(anchor) {
+    const scope = anchor.parentElement || anchor;
+    return Array.from(scope.querySelectorAll('button')).find(button => {
+        const text = button.textContent.trim().toLowerCase();
+        const icon = button.querySelector('.fa-search, .fa-magnifying-glass');
+        return button.dataset.pmsSearchButton === 'true'
+            || button.classList.contains('btn-search')
+            || text === 'search'
+            || text === '검색'
+            || !!icon;
+    }) || null;
+}
+
+function ensureSearchButtonStyles() {
+    if (document.getElementById('pmsSearchButtonStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'pmsSearchButtonStyles';
+    style.textContent = `
+        .pms-search-button{height:38px;padding:0 14px;background:var(--primary,#3B82F6);color:#fff;border:0;border-radius:var(--radius-sm,8px);font-family:var(--font,inherit);font-size:.78rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;cursor:pointer;transition:all .2s}
+        .pms-search-button:hover{background:var(--primary-dk,#2563EB);transform:translateY(-1px);box-shadow:0 2px 8px rgba(59,130,246,.28)}
+        .pms-search-button i{font-size:.78rem}
+        @media (max-width:768px){.pms-search-button{height:38px;min-width:82px}.search-container .pms-search-button{flex:0 0 auto}}
+    `;
+    document.head.appendChild(style);
+}
+
+function bindSearchInputForButton(input) {
+    if (input.dataset.pmsSearchHandlerBound === 'true') return;
+    const inlineInput = input.getAttribute('oninput') || '';
+    const inlineKeyup = input.getAttribute('onkeyup') || '';
+    const inlineKeydown = input.getAttribute('onkeydown') || '';
+    const inlineSearch = input.getAttribute('onsearch') || '';
+    const inlineHandler = inlineSearch || inlineInput || inlineKeyup || inlineKeydown;
+    if (inlineHandler) input.dataset.pmsSearchInlineHandler = inlineHandler;
+    if (inlineInput) {
+        input.removeAttribute('oninput');
+        input.oninput = null;
+    }
+    if (inlineKeyup) {
+        input.removeAttribute('onkeyup');
+        input.onkeyup = null;
+    }
+    if (inlineKeydown) {
+        input.removeAttribute('onkeydown');
+        input.onkeydown = null;
+    }
+    input.dataset.pmsSearchHandlerBound = 'true';
+}
+
+function runSearchInput(input) {
+    const inline = input.dataset.pmsSearchInlineHandler || input.getAttribute('onsearch');
+    if (inline) {
+        try {
+            new Function('event', inline).call(input, { key: 'Enter', target: input, currentTarget: input });
+        } catch(e) {
+            console.warn('Search handler failed', e);
+        }
+    } else {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function ensureSearchButtons() {
+    if (!document.body) return;
+    ensureSearchButtonStyles();
+    document.querySelectorAll('input').forEach(input => {
+        if (!isSearchInput(input)) return;
+        bindSearchInputForButton(input);
+        refreshSearchInputPlaceholder(input);
+        const anchor = input.closest('.search-box-mt, .search-box, .search-bar') || input;
+        if (hasNearbySearchButton(anchor)) {
+            if (!input.dataset.pmsSearchEnterBound) {
+                input.dataset.pmsSearchEnterBound = 'true';
+                input.addEventListener('keydown', event => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    const button = findNearbySearchButton(anchor);
+                    if (button) button.click();
+                    else runSearchInput(input);
+                });
+            }
+            return;
+        }
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'pms-search-button';
+        button.dataset.pmsSearchButton = 'true';
+        button.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i><span>${searchLabelText()}</span>`;
+        button.addEventListener('click', () => runSearchInput(input));
+        anchor.insertAdjacentElement('afterend', button);
+
+        if (!input.dataset.pmsSearchEnterBound) {
+            input.dataset.pmsSearchEnterBound = 'true';
+            input.addEventListener('keydown', event => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                button.click();
+            });
+        }
+    });
+}
+
+function refreshSearchButtonLabels() {
+    document.querySelectorAll('button[data-pms-search-button="true"] span').forEach(span => {
+        span.textContent = searchLabelText();
+    });
+}
+
+function refreshSearchPlaceholders() {
+    document.querySelectorAll('input').forEach(input => {
+        if (isSearchInput(input)) refreshSearchInputPlaceholder(input);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(ensureSearchButtons, 120);
+    setTimeout(ensureSearchButtons, 800);
+});
+window.addEventListener('DataReady', () => setTimeout(ensureSearchButtons, 120));
+window.addEventListener('languagechange', () => {
+    refreshSearchButtonLabels();
+    refreshSearchPlaceholders();
+});
+
 window.t = function(key, params) {
     const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
     const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
