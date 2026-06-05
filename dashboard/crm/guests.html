@@ -69,6 +69,13 @@
     .search-box-mt { flex: 1; min-width: 0; width: auto !important; }
 }
 
+/* Empty state */
+.empty-state { padding: 42px 24px; text-align: center; color: var(--txt2); }
+.empty-state-icon { width: 48px; height: 48px; margin: 0 auto 14px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(96,165,250,.1); color: #60A5FA; font-size: 1.25rem; }
+.empty-state-title { font-size: .95rem; font-weight: 800; color: var(--txt); margin-bottom: 6px; }
+.empty-state-desc { font-size: .8rem; line-height: 1.5; }
+.mobile-cards .empty-state { background: #fff; border: 1px solid var(--border); border-radius: 14px; }
+
 /* Guest Detail Panel (Center Modal PC / Bottom Sheet Mobile) */
 .guest-detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); z-index: 10000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
 .guest-detail-overlay.active { opacity: 1; pointer-events: auto; }
@@ -183,9 +190,9 @@
         <div class="filter-bar-mt">
             <div class="search-box-mt">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="searchInput" placeholder="이름, 이메일, 전화번호 검색..." oninput="renderGuests()">
+                <input type="text" id="searchInput" placeholder="이름, 이메일, 전화번호 검색..." oninput="currentPage=1;renderGuests()">
             </div>
-            <button class="btn-search" onclick="renderGuests()"><i class="fa-solid fa-magnifying-glass"></i> <span data-i18n-key="Search">검색</span></button>
+            <button class="btn-search" onclick="currentPage=1;renderGuests()"><i class="fa-solid fa-magnifying-glass"></i> <span data-i18n-key="Search">검색</span></button>
 
             <div style="width:1px; height:24px; background:var(--border); margin:0 4px;" class="desktop-only"></div>
 
@@ -226,12 +233,7 @@
 
         <div class="pagination" style="margin-top:16px">
             <span class="page-info">총 <b id="pageTotalCount">0</b>명 표시</span>
-            <div class="page-btns">
-                <button class="page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
-                <button class="page-btn active">1</button>
-                <button class="page-btn">2</button>
-                <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
+            <div class="page-btns" id="guestPageBtns"></div>
         </div>
     </div>
 </div>
@@ -272,6 +274,8 @@
 
 <script>
 let guests = [];
+let currentPage = 1;
+const guestPageSize = 10;
 PmsAPI.getGuests()
     .then(data => {
         guests = data.map(g => ({
@@ -312,11 +316,38 @@ function renderGuests() {
 
     const tbody = document.getElementById('guestBody');
     const mobile = document.getElementById('guestMobile');
+    const pageCount = document.getElementById('pageTotalCount');
+    const pageBtns = document.getElementById('guestPageBtns');
     const t = tierCfg;
+    const tierLabel = currentTier === 'all' ? '전체' : (t[currentTier] ? t[currentTier].label : currentTier);
+    const emptyTitle = search ? '검색 결과가 없습니다.' : `${tierLabel} 회원이 없습니다.`;
+    const emptyDesc = search
+        ? '입력한 검색어와 현재 등급 필터에 맞는 투숙객이 없습니다.'
+        : `${tierLabel} 조건에 해당하는 투숙객이 0명입니다. 다른 등급을 선택하거나 신규 투숙객을 등록해 주세요.`;
+    const emptyState = `<div class="empty-state">
+        <div class="empty-state-icon"><i class="fa-solid ${currentTier !== 'all' && t[currentTier] ? t[currentTier].icon : 'fa-users'}"></i></div>
+        <div class="empty-state-title">${emptyTitle}</div>
+        <div class="empty-state-desc">${emptyDesc}</div>
+    </div>`;
+
+    if (pageCount) pageCount.textContent = filtered.length.toLocaleString();
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8">${emptyState}</td></tr>`;
+        mobile.innerHTML = emptyState;
+        if (pageBtns) pageBtns.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / guestPageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    const pageStart = (currentPage - 1) * guestPageSize;
+    const pageItems = filtered.slice(pageStart, pageStart + guestPageSize);
 
     // Desktop table
-    tbody.innerHTML = filtered.map(g => {
-        const tc = t[g.tier];
+    tbody.innerHTML = pageItems.map(g => {
+        const tc = t[g.tier] || t.standard;
         return `<tr onclick="openGuestDetail('${g.email}')" style="cursor:pointer" class="guest-row">
             <td><div class="guest-cell"><div class="guest-avatar" style="background:${g.color}">${g.init}</div><div><strong>${g.name}</strong> <span style="font-size:.7rem;color:var(--txt3)">${g.email}</span></div></div></td>
             <td>${g.nation}</td>
@@ -332,8 +363,8 @@ function renderGuests() {
     }).join('');
 
     // Mobile cards
-    mobile.innerHTML = filtered.map(g => {
-        const tc = t[g.tier];
+    mobile.innerHTML = pageItems.map(g => {
+        const tc = t[g.tier] || t.standard;
         return `<div class="m-res-card" onclick="openGuestDetail('${g.email}')" style="cursor:pointer">
             <div class="m-res-top">
                 <div class="m-res-guest">
@@ -359,10 +390,31 @@ function renderGuests() {
             </div>
         </div>`;
     }).join('');
+
+    if (pageBtns) {
+        if (totalPages <= 1) {
+            pageBtns.innerHTML = '';
+        } else {
+            pageBtns.innerHTML = `
+                <button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="setGuestPage(${currentPage - 1})"><i class="fa-solid fa-chevron-left"></i></button>
+                ${Array.from({ length: totalPages }, (_, index) => {
+                    const page = index + 1;
+                    return `<button class="page-btn ${page === currentPage ? 'active' : ''}" onclick="setGuestPage(${page})">${page}</button>`;
+                }).join('')}
+                <button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="setGuestPage(${currentPage + 1})"><i class="fa-solid fa-chevron-right"></i></button>
+            `;
+        }
+    }
+}
+
+function setGuestPage(page) {
+    currentPage = page;
+    renderGuests();
 }
 
 function setTier(btn, tier) {
     currentTier = tier;
+    currentPage = 1;
     btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     renderGuests();
@@ -413,6 +465,7 @@ function closeBottomSheet() {
 }
 function selectFilter(tier, label) {
     currentTier = tier;
+    currentPage = 1;
     // Update bottom sheet selected state
     document.querySelectorAll('.bs-option').forEach(o => o.classList.remove('selected'));
     event.currentTarget.classList.add('selected');
