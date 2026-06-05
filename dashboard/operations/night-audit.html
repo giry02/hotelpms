@@ -229,7 +229,10 @@ async function loadAuditData() {
 function runNightAudit() {
     if(!document.getElementById('confirmCheck').checked) return;
 
-    if(confirm('정말 마감을 실행하시겠습니까? (되돌릴 수 없습니다)')) {
+    const confirmMessage = typeof window.t === 'function'
+        ? window.t('nightAudit.close.confirm')
+        : '정말 마감을 실행하시겠습니까? (되돌릴 수 없습니다)';
+    if(confirm(confirmMessage)) {
         const btn = document.getElementById('btnRunAudit');
         btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 마감 처리 중...';
         btn.disabled = true;

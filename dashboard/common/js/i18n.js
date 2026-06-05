@@ -1168,10 +1168,114 @@ function applyVisibleTextI18nFallback(lang, catalog) {
         const leading = node.nodeValue.match(/^\s*/)[0];
         const trailing = node.nodeValue.match(/\s*$/)[0];
         const trimmed = node.nodeValue.replace(/\s+/g, ' ').trim();
-        const translated = reverse[trimmed] || translateKoreanPattern(trimmed);
+        const translated = reverse[trimmed] || RUNTIME_MESSAGE_FALLBACKS[trimmed] || translateKoreanPattern(trimmed);
         node.nodeValue = `${leading}${translated}${trailing}`;
     });
 }
+
+const RUNTIME_MESSAGE_FALLBACKS = {
+    '검색어를 입력해 주세요.': 'Enter a search term.',
+    '다운로드 되었습니다.': 'Download completed.',
+    'Master Folio 정산 화면으로 이동합니다.': 'Opening the Master Folio settlement screen.',
+    '행사(블록)명을 입력하세요.': 'Enter an event/block name.',
+    '최소 1개 이상의 객실을 할당해야 합니다.': 'Allocate at least one room.',
+    '행사 정보가 수정되었습니다.': 'Event information has been updated.',
+    '신규 객실 배정이 등록되었습니다.': 'New room allocation has been registered.',
+    '이름을 입력하세요.': 'Enter a name.',
+    '투숙객이 Rooming List에 추가되었습니다.': 'Guest has been added to the rooming list.',
+    '예약 모달을 불러오지 못했습니다. 페이지를 새로고침 후 다시 시도해주세요.': 'Could not load the reservation modal. Refresh the page and try again.',
+    '예약 화면을 여는 중 오류가 발생했습니다.': 'An error occurred while opening the reservation screen.',
+    '행사명을 입력해주세요.': 'Enter an event name.',
+    '기본 정보를 먼저 저장해주세요.': 'Save the basic information first.',
+    '같은 호실이 중복되었습니다.': 'The same room is duplicated.',
+    '객실 배정이 저장되었습니다.': 'Room allocation has been saved.',
+    '호실을 선택하세요.': 'Select a room.',
+    '기존 회원을 선택하거나 신규 회원 이름을 입력하세요.': 'Select an existing member or enter a new guest name.',
+    '조회 조건이 적용되었습니다.': 'Search conditions have been applied.',
+    '결제가 성공적으로 승인되었습니다.': 'Payment has been approved successfully.',
+    '새 Ancillary Svcs 오더가 시스템에 등록되었습니다.': 'New ancillary service order has been registered.',
+    '객실 번호와 상세 내용을 입력해주세요.': 'Enter a room number and details.',
+    '시설 보수 요청이 등록되었습니다.': 'Maintenance request has been registered.',
+    '데이터를 불러오는데 실패했습니다.': 'Failed to load data.',
+    '일일 마감이 성공적으로 완료되었습니다. 다음 영업일로 전환됩니다.': 'Night audit has been completed successfully. Switching to the next business day.',
+    '상품 추가됨': 'Item added.',
+    '객실 원장(Folio)에 반영되었습니다.': 'Applied to the room folio.',
+    'Room 번호를 입력해주세요.': 'Enter a room number.',
+    '요금이 성공적으로 저장되었습니다.': 'Rates have been saved successfully.',
+    '기본 요금으로 초기화되었습니다. 변경사항을 저장하려면 요금 저장을 누르세요.': 'Rates have been reset to defaults. Click Save Rates to save the changes.',
+    '필수 항목을 모두 입력해주세요.': 'Enter all required fields.',
+    '요금이 일괄 적용되었습니다. 변경사항을 저장하려면 요금 저장을 누르세요.': 'Rates have been applied in bulk. Click Save Rates to save the changes.',
+    '업체별 단체 할인율이 저장되었습니다.': 'Company group discount rates have been saved.',
+    '업체 정보가 저장되었습니다.': 'Company information has been saved.',
+    '새 룸서비스 오더가 시스템에 등록되었습니다.': 'New room service order has been registered.',
+    '새 객실 유형 이름을 입력하세요:': 'Enter a new room type name:',
+    '객실 유형 설명을 입력하세요:': 'Enter a room type description:',
+    '객실 유형이 추가되었습니다.': 'Room type has been added.',
+    '객실 유형 이름을 입력하세요:': 'Enter a room type name:',
+    '객실 유형이 수정되었습니다.': 'Room type has been updated.',
+    '새 건물/구역의 이름을 입력하세요:': 'Enter a new building/area name:',
+    '건물/구역의 새 이름을 입력하세요:': 'Enter a new building/area name:',
+    '이미 존재하는 건물/구역명입니다.': 'This building/area name already exists.',
+    '투숙 중인 객실은 프론트데스크 예약 화면에서 체크아웃 처리를 해야 합니다.': 'Occupied rooms must be checked out from the front desk reservation screen.',
+    '신규 Room이 등록되었습니다.': 'New room has been registered.',
+    '오더가 전송되었습니다.': 'Order has been sent.',
+    '다운그레이드는 고객센터 문의가 필요합니다.': 'Downgrades require contacting support.',
+    '모든 카드 정보를 올바르게 입력해주세요.': 'Enter all card information correctly.',
+    '카드가 성공적으로 등록되었습니다.': 'Card has been registered successfully.',
+    '결제가 성공적으로 완료되었습니다.': 'Payment has been completed successfully.',
+    '역할 이름을 입력하세요.': 'Enter a role name.',
+    '최소 1개 이상의 권한을 선택하세요.': 'Select at least one permission.',
+    '새 역할이 생성되었습니다.': 'New role has been created.',
+    '역할이 수정되었습니다.': 'Role has been updated.',
+    '역할이 삭제되었습니다.': 'Role has been deleted.',
+    '기본 통화 설정이 저장되었습니다.': 'Default currency setting has been saved.',
+    '이름을 입력해 주세요.': 'Enter a name.',
+    '이메일을 입력해 주세요.': 'Enter an email address.',
+    '역할을 선택해 주세요.': 'Select a role.',
+    '임시 비밀번호를 입력해 주세요.': 'Enter a temporary password.',
+    '비밀번호가 성공적으로 초기화되었습니다.': 'Password has been reset successfully.',
+    '직원 정보가 수정되었습니다.': 'Staff information has been updated.',
+    '등록된 이메일로 임시 비밀번호가 발송되었습니다.': 'A temporary password has been sent to the registered email.',
+    '직원이 삭제되었습니다.': 'Staff member has been deleted.',
+    '접수되었습니다.': 'Submitted.'
+};
+
+function hasKoreanText(text) {
+    return Array.from(String(text || '')).some(ch => ch.charCodeAt(0) >= 0xAC00 && ch.charCodeAt(0) <= 0xD7A3);
+}
+
+function translateRuntimeLine(line, reverse) {
+    const leading = line.match(/^\s*/)[0];
+    const trailing = line.match(/\s*$/)[0];
+    const trimmed = line.replace(/\s+/g, ' ').trim();
+    const translated = reverse[trimmed] || RUNTIME_MESSAGE_FALLBACKS[trimmed] || translateKoreanPattern(trimmed);
+    return `${leading}${translated}${trailing}`;
+}
+
+function translateRuntimeMessageText(message) {
+    if (message == null) return message;
+    const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+    const text = String(message);
+    if (lang !== 'en' || !hasKoreanText(text)) return message;
+    const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
+    const reverse = buildReverseI18nMap(catalog || {});
+    return text.split('\n').map(line => translateRuntimeLine(line, reverse)).join('\n');
+}
+
+window.pmsRuntimeText = translateRuntimeMessageText;
+
+function installNativeDialogI18n() {
+    if (window.__pmsNativeDialogI18n) return;
+    window.__pmsNativeDialogI18n = true;
+    const nativeAlert = window.alert.bind(window);
+    const nativeConfirm = window.confirm.bind(window);
+    const nativePrompt = window.prompt.bind(window);
+    window.alert = message => nativeAlert(translateRuntimeMessageText(message));
+    window.confirm = message => nativeConfirm(translateRuntimeMessageText(message));
+    window.prompt = (message, defaultValue) => nativePrompt(translateRuntimeMessageText(message), defaultValue);
+}
+
+installNativeDialogI18n();
 
 window.t = function(key, params) {
     const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';

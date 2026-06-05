@@ -452,9 +452,13 @@ function editBuilding(oldName) {
 
 async function deleteBuilding(name) {
     const roomsInBuilding = allRooms.filter(r => r.building === name).length;
-    let msg = `'${name}'을(를) 삭제하시겠습니까?`;
+    let msg = typeof window.t === 'function'
+        ? window.t('roomSetup.building.delete.confirm', { name })
+        : `'${name}'을(를) 삭제하시겠습니까?`;
     if (roomsInBuilding > 0) {
-        msg = `'${name}'에 속한 Room이 ${roomsInBuilding}개 있습니다.\\n정말 삭제하시겠습니까? (Room의 건물 정보가 '건물 미지정'으로 변경됩니다)`;
+        msg = typeof window.t === 'function'
+            ? window.t('roomSetup.building.deleteWithRooms.confirm', { name, count: roomsInBuilding })
+            : `'${name}'에 속한 Room이 ${roomsInBuilding}개 있습니다.\\n정말 삭제하시겠습니까? (Room의 건물 정보가 '건물 미지정'으로 변경됩니다)`;
     }
     if (await showConfirm(msg)) {
         allBuildings = allBuildings.filter(b => b !== name);
@@ -575,7 +579,8 @@ function saveRoom() {
 }
 
 async function deleteRoom(idx) {
-    if (await showConfirm('이 Room을 삭제하시겠습니까?')) {
+    const msg = typeof window.t === 'function' ? window.t('roomSetup.room.delete.confirm') : '이 Room을 삭제하시겠습니까?';
+    if (await showConfirm(msg)) {
         allRooms.splice(idx, 1);
         if (window.PmsAPI) window.PmsAPI.saveRooms(allRooms);
         renderTabs();

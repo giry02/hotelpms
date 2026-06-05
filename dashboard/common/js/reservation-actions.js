@@ -2,6 +2,68 @@
 // Handles common Unified Reservation Modal (View & Edit combined) across Timeline and List views
 
 (function() {
+    const ACTION_MESSAGES = {
+        ko: {
+            'action.checkin': '체크인',
+            'action.checkout': '체크아웃',
+            'flow.alreadyCheckedIn': '이미 체크인 또는 투숙 중인 예약입니다. 체크인을 다시 처리할 수 없습니다.',
+            'flow.checkoutOnlyInhouse': '체크아웃은 투숙 중 예약에서만 처리할 수 있습니다.',
+            'flow.noRoom': '객실을 먼저 배정해야 체크인할 수 있습니다.',
+            'flow.dirtyRoom': '하우스키핑 청소 완료 후 체크인할 수 있습니다.',
+            'flow.maintenanceRoom': '점검/수리 중 객실은 체크인할 수 없습니다.',
+            'flow.occupiedRoom': '이미 투숙 중인 객실입니다.',
+            'flow.confirm': '{name} 예약을 {action} 처리하시겠습니까?',
+            'flow.completed': '{action} 처리가 완료되었습니다.',
+            'edit.readonly': '체크인 이후 예약은 이 화면에서 수정할 수 없습니다.',
+            'guest.required': '고객명을 입력하거나 선택해주세요.',
+            'booking.created': '신규 예약을 성공적으로 등록했습니다.',
+            'booking.updated': '예약이 성공적으로 수정되었습니다.',
+            'cancel.notAllowed': '체크인 이후 예약은 취소할 수 없습니다. 체크아웃, 조기퇴실, 환불/정산 정정으로 처리해주세요.',
+            'cancel.confirm': '[{name}] 고객의 예약을 취소하시겠습니까?',
+            'cancel.done': '예약이 취소되었습니다.'
+        },
+        en: {
+            'action.checkin': 'Check-in',
+            'action.checkout': 'Check-out',
+            'flow.alreadyCheckedIn': 'This reservation is already checked in or in-house. Check-in cannot be processed again.',
+            'flow.checkoutOnlyInhouse': 'Check-out can only be processed for in-house reservations.',
+            'flow.noRoom': 'Assign a room before check-in.',
+            'flow.dirtyRoom': 'Complete housekeeping cleaning before check-in.',
+            'flow.maintenanceRoom': 'Rooms under maintenance cannot be checked in.',
+            'flow.occupiedRoom': 'This room is already occupied.',
+            'flow.confirm': 'Process {action} for {name}?',
+            'flow.completed': '{action} has been completed.',
+            'edit.readonly': 'Reservations after check-in cannot be edited from this screen.',
+            'guest.required': 'Enter or select a guest name.',
+            'booking.created': 'New booking has been registered successfully.',
+            'booking.updated': 'Reservation has been updated successfully.',
+            'cancel.notAllowed': 'Reservations after check-in cannot be cancelled. Please handle it through check-out, early departure, refund, or settlement correction.',
+            'cancel.confirm': 'Cancel the reservation for {name}?',
+            'cancel.done': 'Reservation has been cancelled.'
+        }
+    };
+
+    function actionLang() {
+        return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en'
+            ? 'en'
+            : 'ko';
+    }
+
+    function actionText(key, params = {}) {
+        const catalogKey = `reservation.${key}`;
+        let text = '';
+        if (typeof window.t === 'function') {
+            text = window.t(catalogKey, params);
+            if (text && text !== catalogKey) return text;
+        }
+        const lang = actionLang();
+        text = ACTION_MESSAGES[lang]?.[key] || ACTION_MESSAGES.ko[key] || key;
+        Object.keys(params).forEach(name => {
+            text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+        });
+        return text;
+    }
+
     const modalHtml = `
     <!-- Unified Reservation Modal (View & Edit) -->
     <div class="modal-overlay" id="unifiedResModal" style="z-index: 9999;">
@@ -205,11 +267,11 @@
     }
 
     function checkinBlockReasonForRoom(room) {
-        if (!room) return '객실을 먼저 배정해야 체크인할 수 있습니다.';
+        if (!room) return actionText('flow.noRoom');
         const status = normalizedRoomOpsStatus(room);
-        if (['dirty', 'vacantdirty'].includes(status)) return '하우스키핑 청소 완료 후 체크인할 수 있습니다.';
-        if (['oos', 'outofservice', 'maintenance'].includes(status)) return '점검/수리 중 객실은 체크인할 수 없습니다.';
-        if (['occupied', 'inhouse', 'checkedin', 'checked-in'].includes(status)) return '이미 투숙 중인 객실입니다.';
+        if (['dirty', 'vacantdirty'].includes(status)) return actionText('flow.dirtyRoom');
+        if (['oos', 'outofservice', 'maintenance'].includes(status)) return actionText('flow.maintenanceRoom');
+        if (['occupied', 'inhouse', 'checkedin', 'checked-in'].includes(status)) return actionText('flow.occupiedRoom');
         return '';
     }
 
@@ -353,7 +415,7 @@
         }
         const currentStatus = effectiveReservationStatus(res);
         if (action === 'checkin' && ['checkedin', 'checkout', 'completed', 'cancelled'].includes(currentStatus)) {
-            const message = '이미 체크인 또는 투숙중인 예약입니다. 체크인은 다시 처리할 수 없습니다.';
+            const message = actionText('flow.alreadyCheckedIn');
             if (window.showToast) window.showToast(message, 'error');
             else alert(message);
             setUnifiedReservationReadonly(isReservationReadOnly(res), res);
@@ -361,7 +423,7 @@
             return;
         }
         if (action === 'checkout' && !['checkedin', 'checkout'].includes(currentStatus)) {
-            const message = '체크아웃은 투숙중 예약에서만 처리할 수 있습니다.';
+            const message = actionText('flow.checkoutOnlyInhouse');
             if (window.showToast) window.showToast(message, 'error');
             else alert(message);
             renderUnifiedFlowActions(res);
@@ -377,10 +439,11 @@
             }
         }
 
-        const label = action === 'checkin' ? '체크인' : '체크아웃';
+        const label = action === 'checkin' ? actionText('action.checkin') : actionText('action.checkout');
+        const confirmMessage = actionText('flow.confirm', { name: guestNameForReservation(res), action: label });
         const confirmed = window.showConfirm
-            ? await window.showConfirm(`${guestNameForReservation(res)} 예약을 ${label} 처리하시겠습니까?`)
-            : confirm(`${guestNameForReservation(res)} 예약을 ${label} 처리하시겠습니까?`);
+            ? await window.showConfirm(confirmMessage)
+            : confirm(confirmMessage);
         if (!confirmed) return;
 
         if (action === 'checkin') {
@@ -404,7 +467,7 @@
         await persistUnifiedReservation(res);
         await persistUnifiedRoom(room);
         if (action === 'checkout') await syncUnifiedHousekeeping(room, 'vacant-dirty', res);
-        if (window.showToast) window.showToast(`${label} 처리가 완료되었습니다.`, 'success');
+        if (window.showToast) window.showToast(actionText('flow.completed', { action: label }), 'success');
         if (typeof window.buildTimeline === 'function') window.buildTimeline();
         if (typeof window.buildMobileView === 'function') window.buildMobileView();
         if (typeof window.renderTable === 'function') window.renderTable();
@@ -640,8 +703,9 @@
         let guest = '';
         const currentRes = id ? allRes.find(r => r.id === id) : null;
         if (currentRes && isReservationReadOnly(currentRes)) {
-            if (window.showToast) window.showToast('체크인 이후 예약은 이 화면에서 수정할 수 없습니다.', 'error');
-            else alert('체크인 이후 예약은 이 화면에서 수정할 수 없습니다.');
+            const message = actionText('edit.readonly');
+            if (window.showToast) window.showToast(message, 'error');
+            else alert(message);
             return;
         }
         const isBlockSave = currentRes && (normalizedReservationStatus(currentRes.status) === 'blocked' || currentRes.isGroupPlaceholder) && document.getElementById('unifiedStatus').value === 'blocked';
@@ -652,7 +716,7 @@
             if (guestInput) guest = guestInput.value;
         }
         if (!isBlockSave && (!guest || !guest.trim())) {
-            alert('고객명을 입력하거나 선택해주세요.');
+            alert(actionText('guest.required'));
             return;
         }
         const room = document.getElementById('unifiedRoom').value;
@@ -697,7 +761,7 @@
             };
             allRes.unshift(newRes);
             savedRes = newRes;
-            if (window.showToast) window.showToast('신규 예약을 성공적으로 등록했습니다.', 'success');
+            if (window.showToast) window.showToast(actionText('booking.created'), 'success');
         } else {
             // EDIT BOOKING MODE
             const res = allRes.find(r => r.id === id);
@@ -715,7 +779,7 @@
                 res.groupId = groupId;
                 savedRes = res;
             }
-            if (window.showToast) window.showToast('예약이 성공적으로 수정되었습니다.', 'success');
+            if (window.showToast) window.showToast(actionText('booking.updated'), 'success');
         }
         
         localStorage.setItem('pms_reservations', JSON.stringify(allRes));
@@ -755,13 +819,14 @@
         }
         const currentStatus = effectiveReservationStatus(res);
         if (['checkedin', 'checkout', 'completed'].includes(currentStatus)) {
-            const message = '체크인 이후 예약은 취소할 수 없습니다. 체크아웃, 조기퇴실, 환불/정산 정정으로 처리해주세요.';
+            const message = actionText('cancel.notAllowed');
             if (window.showToast) window.showToast(message, 'error');
             else alert(message);
             return;
         }
         
-        const confirmed = window.showConfirm ? await window.showConfirm(`정말 [${res.guest}] 고객의 예약을 취소하시겠습니까?`) : confirm(`정말 [${res.guest}] 고객의 예약을 취소하시겠습니까?`);
+        const cancelMessage = actionText('cancel.confirm', { name: res.guest || guestNameForReservation(res) });
+        const confirmed = window.showConfirm ? await window.showConfirm(cancelMessage) : confirm(cancelMessage);
         if (confirmed) {
             res.status = 'cancelled';
             localStorage.setItem('pms_reservations', JSON.stringify(allRes));
@@ -772,7 +837,7 @@
             }
             if (typeof window.syncGroupData === 'function') window.syncGroupData();
             
-            if (window.showToast) window.showToast('예약이 취소되었습니다.', 'success');
+            if (window.showToast) window.showToast(actionText('cancel.done'), 'success');
             
             closeUnifiedResModal();
 

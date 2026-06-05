@@ -486,7 +486,10 @@ function sendTempPw() {
 }
 
 async function deleteStaff() {
-    if (!await showConfirm('이 직원을 삭제하시겠습니까?')) return;
+    const confirmMessage = typeof window.t === 'function'
+        ? window.t('staff.delete.confirm')
+        : '이 직원을 삭제하시겠습니까?';
+    if (!await showConfirm(confirmMessage)) return;
     staffData = staffData.filter(x => x.id !== editingId);
     saveStaffData(staffData);
     renderStaff();

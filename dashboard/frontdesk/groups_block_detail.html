@@ -477,7 +477,10 @@ window.saveRoomingGuest = function() {
 window.removeRoomingGuest = async function(id) {
     const guest = roomingList().find(g => g.id === id);
     if (!guest) return;
-    const ok = window.showConfirm ? await showConfirm(`[${guest.name}] 투숙객을 삭제하시겠습니까?`) : confirm(`[${guest.name}] 투숙객을 삭제하시겠습니까?`);
+    const message = typeof window.t === 'function'
+        ? window.t('group.guest.delete.confirm', { name: guest.name })
+        : `[${guest.name}] 투숙객을 삭제하시겠습니까?`;
+    const ok = window.showConfirm ? await showConfirm(message) : confirm(message);
     if (!ok) return;
     group.roomingList = roomingList().filter(g => g.id !== id);
     group.history = group.history || [];

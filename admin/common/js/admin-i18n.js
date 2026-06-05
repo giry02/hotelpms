@@ -694,10 +694,79 @@ function applyVisibleTextI18nFallback(lang, catalog) {
         const leading = node.nodeValue.match(/^\s*/)[0];
         const trailing = node.nodeValue.match(/\s*$/)[0];
         const trimmed = node.nodeValue.replace(/\s+/g, ' ').trim();
-        const translated = reverse[trimmed] || translateKoreanPattern(trimmed);
+        const translated = reverse[trimmed] || ADMIN_RUNTIME_MESSAGE_FALLBACKS[trimmed] || translateKoreanPattern(trimmed);
         node.nodeValue = `${leading}${translated}${trailing}`;
     });
 }
+
+const ADMIN_RUNTIME_MESSAGE_FALLBACKS = {
+    '광고 소재 수정 화면을 준비했습니다.': 'Ad creative edit screen is ready.',
+    '캠페인이 등록되었습니다.': 'Campaign has been registered.',
+    '타겟팅 설정이 저장되었습니다.': 'Targeting settings have been saved.',
+    '타겟팅 규칙이 추가되었습니다.': 'Targeting rule has been added.',
+    '등록된 이메일로 비밀번호 재설정 링크가 발송됩니다.': 'A password reset link will be sent to the registered email.',
+    '프로모션 메일이 발송되었습니다!': 'Promotional email has been sent.',
+    '안내 알림이 발송되었습니다.': 'Notification has been sent.',
+    'API 설정을 엽니다.': 'Opening API settings.',
+    '커스텀 연동 등록 화면을 준비했습니다.': 'Custom integration registration screen is ready.',
+    'API 설정 화면을 엽니다.': 'Opening API settings screen.',
+    'URL 입력:': 'Enter URL:',
+    '이미지 업로드 창이 열립니다.': 'Opening image upload dialog.',
+    '성공적으로 발행되었습니다.': 'Published successfully.',
+    '임시 저장되었습니다.': 'Draft has been saved.',
+    '신규 관리자 초대 메일을 발송하는 화면으로 연결됩니다.': 'Opening the new admin invitation email screen.',
+    '입점 신청이 접수되었습니다.': 'Onboarding application has been submitted.',
+    '사유를 입력해주세요.': 'Enter a reason.',
+    '호텔 서비스가 정지되었습니다.': 'Hotel service has been suspended.',
+    '호텔 관리자 이메일로 비밀번호 재설정 링크가 발송되었습니다.': 'A password reset link has been sent to the hotel admin email.',
+    '등록 완료! Hotel ID가 발급되었습니다.': 'Registration complete. Hotel ID has been issued.'
+};
+
+function hasKoreanText(text) {
+    return Array.from(String(text || '')).some(ch => ch.charCodeAt(0) >= 0xAC00 && ch.charCodeAt(0) <= 0xD7A3);
+}
+
+function translateAdminRuntimePattern(text) {
+    let out = translateKoreanPattern(text);
+    out = out.replace(/^(.+) 계정 편집 화면을 엽니다\.$/, 'Open edit screen for $1.');
+    out = out.replace(/^(.+)로 비밀번호 재설정 링크가 발송되었습니다\.$/, 'Password reset link has been sent to $1.');
+    out = out.replace(/^신청번호:\s*(.+)$/, 'Application No: $1');
+    out = out.replace(/^심사 결과는\s*(.+)로 안내됩니다\.$/, 'Review result will be sent to $1.');
+    return out;
+}
+
+function translateRuntimeLine(line, reverse) {
+    const leading = line.match(/^\s*/)[0];
+    const trailing = line.match(/\s*$/)[0];
+    const trimmed = line.replace(/\s+/g, ' ').trim();
+    const translated = reverse[trimmed] || ADMIN_RUNTIME_MESSAGE_FALLBACKS[trimmed] || translateAdminRuntimePattern(trimmed);
+    return `${leading}${translated}${trailing}`;
+}
+
+function translateRuntimeMessageText(message) {
+    if (message == null) return message;
+    const lang = window.currentLang || localStorage.getItem('admin_lang') || localStorage.getItem('pms_lang') || 'ko';
+    const text = String(message);
+    if (lang !== 'en' || !hasKoreanText(text)) return message;
+    const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
+    const reverse = buildReverseI18nMap(catalog || {});
+    return text.split('\n').map(line => translateRuntimeLine(line, reverse)).join('\n');
+}
+
+window.pmsRuntimeText = translateRuntimeMessageText;
+
+function installNativeDialogI18n() {
+    if (window.__pmsNativeDialogI18n) return;
+    window.__pmsNativeDialogI18n = true;
+    const nativeAlert = window.alert.bind(window);
+    const nativeConfirm = window.confirm.bind(window);
+    const nativePrompt = window.prompt.bind(window);
+    window.alert = message => nativeAlert(translateRuntimeMessageText(message));
+    window.confirm = message => nativeConfirm(translateRuntimeMessageText(message));
+    window.prompt = (message, defaultValue) => nativePrompt(translateRuntimeMessageText(message), defaultValue);
+}
+
+installNativeDialogI18n();
 
 window.t = function(key, params) {
     const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';

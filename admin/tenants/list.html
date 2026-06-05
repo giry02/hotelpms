@@ -145,8 +145,26 @@ window.addEventListener('DataReady', () => {
     updateFilterCounts();
 });
 
+function adminText(key, params = {}) {
+    if (typeof window.t === 'function') {
+        const translated = window.t(key, params);
+        if (translated && translated !== key) return translated;
+    }
+    const fallback = {
+        'tenant.approve.confirm': '승인하시겠습니까?',
+        'tenant.approve.done': '승인되었습니다.',
+        'tenant.reject.prompt': '반려 사유를 입력해주세요:',
+        'tenant.reject.done': '반려 처리되었습니다.'
+    };
+    let text = fallback[key] || key;
+    Object.keys(params).forEach(name => {
+        text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+    });
+    return text;
+}
+
 function approveTenant(btn) {
-	if(confirm('승인하시겠습니까?')) {
+	if(confirm(adminText('tenant.approve.confirm'))) {
 		const row = btn.closest('tr');
 		const badge = row.querySelector('.status-badge.pending');
 		if(badge) {
@@ -154,13 +172,13 @@ function approveTenant(btn) {
 			badge.textContent = '운영 중';
 		}
 		btn.parentElement.innerHTML = '<a href="detail.html" class="btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>';
-		alert('승인되었습니다.');
+		alert(adminText('tenant.approve.done'));
         updateFilterCounts();
 	}
 }
 
 function rejectTenant(btn) {
-	const reason = prompt('반려 사유를 입력해주세요:');
+	const reason = prompt(adminText('tenant.reject.prompt'));
 	if(reason) {
 		const row = btn.closest('tr');
 		const badge = row.querySelector('.status-badge.pending');
@@ -171,7 +189,7 @@ function rejectTenant(btn) {
 			badge.textContent = '반려';
 		}
 		btn.parentElement.innerHTML = '<a href="detail.html" class="btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>';
-		alert('반려 처리되었습니다.');
+		alert(adminText('tenant.reject.done'));
         updateFilterCounts();
 	}
 }

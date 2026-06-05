@@ -282,6 +282,26 @@ const COMPANY_FILTER_LABELS = {
     Other: '기타'
 };
 
+function companyText(key, params = {}) {
+    const catalogKey = `company.${key}`;
+    if (typeof window.t === 'function') {
+        const translated = window.t(catalogKey, params);
+        if (translated && translated !== catalogKey) return translated;
+    }
+    const fallback = {
+        nameRequired: '업체명을 입력하세요.',
+        updated: '업체 정보가 수정되었습니다.',
+        created: '신규 업체가 등록되었습니다.',
+        'delete.confirm': '[{name}] 업체를 삭제하시겠습니까?',
+        'delete.done': '업체가 삭제되었습니다.'
+    };
+    let text = fallback[key] || key;
+    Object.keys(params).forEach(name => {
+        text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+    });
+    return text;
+}
+
 function companyFilterKey(company) {
     const type = String(company?.type || '').trim().toLowerCase();
     if (['corporate', 'corporation', 'company', 'enterprise', '기업', '일반 기업'].includes(type)) return 'Corporate';
@@ -431,7 +451,7 @@ async function persistCompanies() {
 async function saveCompany() {
     const id = document.getElementById('compId').value;
     const name = document.getElementById('compName').value;
-    if(!name) { showToast('업체명을 입력하세요.', 'error'); return; }
+    if(!name) { showToast(companyText('nameRequired'), 'error'); return; }
     
     const data = {
         name: name,
@@ -447,11 +467,11 @@ async function saveCompany() {
     if(id) {
         const c = companies.find(x => x.id === id);
         Object.assign(c, data);
-        showToast('업체 정보가 수정되었습니다.');
+        showToast(companyText('updated'));
     } else {
         data.id = 'COMP-' + Math.floor(Math.random()*10000);
         companies.unshift(data);
-        showToast('신규 업체가 등록되었습니다.');
+        showToast(companyText('created'));
     }
     await persistCompanies();
     closeModal('companyModal');
@@ -460,10 +480,10 @@ async function saveCompany() {
 
 async function deleteCompany(id) {
     const c = companies.find(x => x.id === id);
-    if(await showConfirm(`정말 [${c.name}] 업체를 삭제하시겠습니까?`)) {
+    if(await showConfirm(companyText('delete.confirm', { name: c.name }))) {
         companies = companies.filter(x => x.id !== id);
         await persistCompanies();
-        showToast('업체가 삭제되었습니다.');
+        showToast(companyText('delete.done'));
         renderCompanies();
     }
 }

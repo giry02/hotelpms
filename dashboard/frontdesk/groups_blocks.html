@@ -312,6 +312,23 @@ const statusMap = {
     departed:  { label: '체크아웃',  cls: 'pill-departed' },
 };
 
+function groupText(key, params = {}) {
+    const catalogKey = `group.${key}`;
+    if (typeof window.t === 'function') {
+        const translated = window.t(catalogKey, params);
+        if (translated && translated !== catalogKey) return translated;
+    }
+    const fallback = {
+        'delete.confirm': '[{name}] 행사를 취소/삭제하시겠습니까? 관련 예약에 영향을 줄 수 있습니다.',
+        'delete.done': '행사가 취소/삭제되었습니다.'
+    };
+    let text = fallback[key] || key;
+    Object.keys(params).forEach(name => {
+        text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+    });
+    return text;
+}
+
 let groups = [];
 let currentFilter = 'all';
 
@@ -691,10 +708,10 @@ function editGroup(id) {
 async function deleteGroup(id) {
     const g = groups.find(x => x.id === id);
     if (!g) return;
-    if (await showConfirm(`정말 [${g.name}] 행사를 취소(삭제)하시겠습니까? 관련된 예약에 영향을 줄 수 있습니다.`)) {
+    if (await showConfirm(groupText('delete.confirm', { name: g.name }))) {
         groups = groups.filter(x => x.id !== id);
         localStorage.setItem('pms_groups', JSON.stringify(groups));
-        showToast('행사가 취소/삭제되었습니다.');
+        showToast(groupText('delete.done'));
         updateFilterCounts();
         renderGroups();
     }

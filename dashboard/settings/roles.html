@@ -425,7 +425,10 @@ function saveRole() {
 }
 
 function deleteRole() {
-    if (!confirm('정말 이 역할을 삭제하시겠습니까?\n해당 역할이 지정된 직원들은 권한을 잃게 됩니다.')) return;
+    const confirmMessage = typeof window.t === 'function'
+        ? window.t('role.delete.confirm')
+        : '정말 이 역할을 삭제하시겠습니까?\n해당 역할이 지정된 직원들은 권한을 잃게 됩니다.';
+    if (!confirm(confirmMessage)) return;
     
     customRoles = customRoles.filter(r => r.id !== currentRoleId);
     saveRoles(customRoles);

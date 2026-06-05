@@ -53,7 +53,7 @@
 <div class="profile-avatar">SA</div>
 <div class="profile-name">슈퍼 관리자</div>
 <div class="profile-role">플랫폼 운영자</div>
-<button class="btn-outline" style="width:100%;margin-bottom:20px;" onclick="alert('등록된 이메일로 비밀번호 변경 링크가 발송됩니다.')">비밀번호 변경</button>
+<button class="btn-outline" style="width:100%;margin-bottom:20px;" onclick="alert(adminText('profile.passwordChange.sent'))">비밀번호 변경</button>
 <div class="profile-info">
 <div class="pi-row"><span style="color:var(--txt3)"> ID</span><strong>ADM-001</strong></div>
 <div class="pi-row"><span style="color:var(--txt3)">이메일</span><strong>admin@platform.sys</strong></div>
@@ -79,6 +79,23 @@
 </div>
 </div>
 <script>
+	function adminText(key, params = {}) {
+		if (typeof window.t === 'function') {
+			const translated = window.t(key, params);
+			if (translated && translated !== key) return translated;
+		}
+		const fallback = {
+			'profile.passwordChange.sent': '등록된 이메일로 비밀번호 변경 링크가 발송됩니다.',
+			'profile.device.revoke.done': '연결이 해제되었습니다. 해당 기기에서 로그아웃됩니다.',
+			'profile.device.revoked': '해제됨'
+		};
+		let text = fallback[key] || key;
+		Object.keys(params).forEach(name => {
+			text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+		});
+		return text;
+	}
+
 	function renderProfileDevices() {
 		const devices = window.AdminData?.devices || [];
 		const listEl = document.getElementById('deviceList');
@@ -93,7 +110,7 @@
 			const revokeBtn = d.current 
 				? `<span class="badge green">현재 기기</span>`
 				: (d.status === 'active' 
-					? `<button class="btn-danger btn-sm" onclick="alert('연결이 해제되었습니다. 해당 기기에서 로그아웃됩니다.');this.parentElement.innerHTML='<span class=\\'badge gray\\'>해제됨</span>';"><i class="fa-solid fa-ban"></i> 기기 해제</button>`
+				? `<button class="btn-danger btn-sm" onclick="alert(adminText('profile.device.revoke.done'));this.parentElement.innerHTML='<span class=\\'badge gray\\'>'+adminText('profile.device.revoked')+'</span>';"><i class="fa-solid fa-ban"></i> 기기 해제</button>`
 					: `<span class="badge gray">만료됨</span>`);
 			
 			return `

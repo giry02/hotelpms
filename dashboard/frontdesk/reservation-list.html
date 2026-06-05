@@ -286,7 +286,20 @@ const reservationLabels = {
         'note.empty': '특이사항 없음',
         'stay.night': '박',
         'page.empty': '총 <b>0건</b>',
-        'toast.noData': '데이터가 없습니다.'
+        'confirm.docVerify': '{name} 고객의 신분증/여권 확인을 완료 처리할까요?',
+        'confirm.flow': '{name} 예약을 {action} 처리하시겠습니까?',
+        'toast.noData': '데이터가 없습니다.',
+        'toast.docVerified': '신분증/여권 확인 완료로 저장했습니다.',
+        'toast.roomMissing': '객실 정보를 찾을 수 없습니다.',
+        'toast.flagSaved': '{room} 상태: {flag}',
+        'toast.checkinNotAllowed': '체크인은 입실 예정일이 도래한 예약 확정/대기 상태에서만 처리할 수 있습니다.',
+        'toast.checkoutNotAllowed': '체크아웃은 투숙 중 예약에서만 처리할 수 있습니다.',
+        'toast.flowComplete': '{action} 처리가 완료되었습니다.',
+        'block.noRoom': '객실을 먼저 배정해야 체크인할 수 있습니다.',
+        'block.dirtyRoom': '하우스키핑 청소 완료 후 체크인할 수 있습니다.',
+        'block.maintenanceRoom': '점검/수리 중 객실은 체크인할 수 없습니다.',
+        'block.occupiedRoom': '이미 투숙 중인 객실입니다.',
+        'toast.bookingSaved': '새 예약이 성공적으로 저장되었습니다!'
     },
     en: {
         'status.blocked': 'Block',
@@ -327,17 +340,38 @@ const reservationLabels = {
         'note.empty': 'No notes',
         'stay.night': 'N',
         'page.empty': '<b>0</b> reservations',
-        'toast.noData': 'No data available.'
+        'confirm.docVerify': 'Mark ID/passport verification as complete for {name}?',
+        'confirm.flow': 'Process {action} for {name}?',
+        'toast.noData': 'No data available.',
+        'toast.docVerified': 'ID/passport verification has been saved.',
+        'toast.roomMissing': 'Room information could not be found.',
+        'toast.flagSaved': '{room} status: {flag}',
+        'toast.checkinNotAllowed': 'Check-in can only be processed for due confirmed or pending reservations.',
+        'toast.checkoutNotAllowed': 'Check-out can only be processed for in-house reservations.',
+        'toast.flowComplete': '{action} has been completed.',
+        'block.noRoom': 'Assign a room before check-in.',
+        'block.dirtyRoom': 'Complete housekeeping cleaning before check-in.',
+        'block.maintenanceRoom': 'Rooms under maintenance cannot be checked in.',
+        'block.occupiedRoom': 'This room is already occupied.',
+        'toast.bookingSaved': 'New booking has been saved successfully!'
     }
 };
 
 function reservationLang() {
-    return (document.getElementById('langSelect')?.value || window.currentLang || localStorage.getItem('pms_lang') || currentLang || 'ko') === 'en' ? 'en' : 'ko';
+    return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || currentLang || 'ko') === 'en' ? 'en' : 'ko';
 }
 
 function resText(key) {
     const lang = reservationLang();
     return reservationLabels[lang]?.[key] || reservationLabels.ko[key] || key;
+}
+
+function resMessage(key, params = {}) {
+    let text = resText(key);
+    Object.keys(params).forEach(name => {
+        text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+    });
+    return text;
 }
 
 function statusMeta(status) {
@@ -864,9 +898,10 @@ window.verifyReservationDocument = async function(resId, evt = null) {
     if (!res) return;
     const guest = guestForReservation(res);
     const name = displayGuestName(res);
+    const message = resMessage('confirm.docVerify', { name });
     const confirmed = window.showConfirm
-        ? await window.showConfirm(`${name} 고객의 신분증/여권 확인을 완료 처리할까요?`)
-        : confirm(`${name} 고객의 신분증/여권 확인을 완료 처리할까요?`);
+        ? await window.showConfirm(message)
+        : confirm(message);
     if (!confirmed) return;
     res.docStatus = 'verified';
     res.documentStatus = 'verified';
@@ -877,14 +912,14 @@ window.verifyReservationDocument = async function(resId, evt = null) {
     }
     await persistDocumentVerification(res, guest);
     renderTable();
-    if (window.showToast) window.showToast('신분증/여권 확인 완료로 저장했습니다.', 'success');
+    if (window.showToast) window.showToast(resText('toast.docVerified'), 'success');
 };
 
 window.setReservationStayoverFlag = async function(resId, flag, roomKey = '') {
     const res = reservations.find(item => item.id === resId);
     const room = roomForReservation(res) || rooms.find(item => sameRoomValue(item.id, roomKey) || sameRoomValue(item.roomId, roomKey) || sameRoomValue(item.fullRoom, roomKey));
     if (!room) {
-        if (window.showToast) window.showToast('객실 정보를 찾을 수 없습니다.', 'error');
+        if (window.showToast) window.showToast(resText('toast.roomMissing'), 'error');
         return;
     }
     room.guestFlag = flag;
@@ -899,9 +934,17 @@ window.setReservationStayoverFlag = async function(resId, flag, roomKey = '') {
     } catch(e) {
         console.warn('Guest flag save failed', e);
     }
-    const labels = { dnd: '방해금지', mur: '청소요청', away: '외출', none: '재실' };
+    const labels = {
+        dnd: resText('flag.dnd'),
+        mur: resText('flag.mur'),
+        away: resText('flag.away'),
+        none: resText('flag.none')
+    };
     renderTable();
-    if (window.showToast) window.showToast(`${room.id || room.number || roomKey} 상태: ${labels[flag] || flag}`, 'success');
+    if (window.showToast) window.showToast(resMessage('toast.flagSaved', {
+        room: room.id || room.number || roomKey,
+        flag: labels[flag] || flag
+    }), 'success');
 };
 
 async function persistReservationAndRoom(res, room) {
@@ -937,11 +980,11 @@ function normalizedRoomOpsStatus(room) {
 }
 
 function checkinBlockReasonForRoom(room) {
-    if (!room) return '객실을 먼저 배정해야 체크인할 수 있습니다.';
+    if (!room) return resText('block.noRoom');
     const status = normalizedRoomOpsStatus(room);
-    if (['dirty', 'vacantdirty'].includes(status)) return '하우스키핑 청소 완료 후 체크인할 수 있습니다.';
-    if (['oos', 'outofservice', 'maintenance'].includes(status)) return '점검/수리 중 객실은 체크인할 수 없습니다.';
-    if (['occupied', 'inhouse', 'checkedin', 'checked-in'].includes(status)) return '이미 투숙 중인 객실입니다.';
+    if (['dirty', 'vacantdirty'].includes(status)) return resText('block.dirtyRoom');
+    if (['oos', 'outofservice', 'maintenance'].includes(status)) return resText('block.maintenanceRoom');
+    if (['occupied', 'inhouse', 'checkedin', 'checked-in'].includes(status)) return resText('block.occupiedRoom');
     return '';
 }
 
@@ -950,11 +993,11 @@ window.processReservationRowFlow = async function(resId, action) {
     if (!res) return;
     const status = effectiveRowStatus(res);
     if (action === 'checkin' && (!['confirmed', 'pending'].includes(status) || !checkinDateIsDue(res))) {
-        if (window.showToast) window.showToast('체크인은 입실 예정일이 도래한 예약 확정/대기 상태에서만 처리할 수 있습니다.', 'error');
+        if (window.showToast) window.showToast(resText('toast.checkinNotAllowed'), 'error');
         return;
     }
     if (action === 'checkout' && !['checkedin', 'checkout'].includes(status)) {
-        if (window.showToast) window.showToast('체크아웃은 투숙 중 예약에서만 처리할 수 있습니다.', 'error');
+        if (window.showToast) window.showToast(resText('toast.checkoutNotAllowed'), 'error');
         return;
     }
 
@@ -967,11 +1010,12 @@ window.processReservationRowFlow = async function(resId, action) {
         }
     }
 
-    const label = action === 'checkin' ? '체크인' : '체크아웃';
+    const label = action === 'checkin' ? resText('action.checkin') : resText('action.checkout');
     const name = displayGuestName(res);
+    const message = resMessage('confirm.flow', { name, action: label });
     const confirmed = window.showConfirm
-        ? await window.showConfirm(`${name} 예약을 ${label} 처리하시겠습니까?`)
-        : confirm(`${name} 예약을 ${label} 처리하시겠습니까?`);
+        ? await window.showConfirm(message)
+        : confirm(message);
     if (!confirmed) return;
 
     if (action === 'checkin') {
@@ -996,7 +1040,7 @@ window.processReservationRowFlow = async function(resId, action) {
     if (action === 'checkout') await syncHousekeepingForReservation(room, 'vacant-dirty', res);
     updateChipCounts();
     renderTable();
-    if (window.showToast) window.showToast(`${label} 처리가 완료되었습니다.`, 'success');
+    if (window.showToast) window.showToast(resMessage('toast.flowComplete', { action: label }), 'success');
 };
 
 function exportReservationsToCSV() {
@@ -1184,7 +1228,7 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
 }
 function saveNewRes() {
-    showToast('새 예약이 성공적으로 저장되었습니다!', 'success');
+    showToast(resText('toast.bookingSaved'), 'success');
     closeModal('newResModal');
 }
 

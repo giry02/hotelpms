@@ -2,6 +2,61 @@
 // Provides global showToast and showConfirm for replacing native alert() and confirm()
 
 (function() {
+    const DEFAULT_MESSAGES = {
+        ko: {
+            'ui.confirm.title': '확인',
+            'ui.confirm.default': '계속 진행할까요?',
+            'ui.confirm.cancel': '취소',
+            'ui.confirm.ok': '확인',
+            'ui.empty.title': '표시할 항목이 없습니다.',
+            'ui.empty.desc': '새 항목을 등록해 주세요.'
+        },
+        en: {
+            'ui.confirm.title': 'Confirm',
+            'ui.confirm.default': 'Do you want to continue?',
+            'ui.confirm.cancel': 'Cancel',
+            'ui.confirm.ok': 'OK',
+            'ui.empty.title': 'No items to display.',
+            'ui.empty.desc': 'Register a new item to continue.'
+        }
+    };
+
+    function currentLang() {
+        return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en'
+            ? 'en'
+            : 'ko';
+    }
+
+    function formatText(value, params) {
+        let text = String(value || '');
+        if (params && typeof params === 'object') {
+            Object.keys(params).forEach(key => {
+                text = text.replace(new RegExp(`\\{${key}\\}`, 'g'), params[key]);
+            });
+        }
+        return text;
+    }
+
+    function uiText(key, params) {
+        if (typeof window.t === 'function') {
+            const translated = window.t(key, params);
+            if (translated && translated !== key) return translated;
+        }
+        const lang = currentLang();
+        const value = DEFAULT_MESSAGES[lang]?.[key] || DEFAULT_MESSAGES.en[key] || key;
+        return formatText(value, params);
+    }
+
+    function escapeHtml(text) {
+        return String(text || '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[ch]));
+    }
+
     // Inject HTML for Toast and Confirm Modal
     const uiHtml = `
     <div id="pms-toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;"></div>
@@ -18,8 +73,8 @@
                 Are you sure?
             </div>
             <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-                <button class="btn-outline" id="pms-confirm-cancel" style="padding:8px 16px;background:#fff;border:1px solid var(--border);color:var(--txt);border-radius:6px;font-weight:600;cursor:pointer;">취소 (Cancel)</button>
-                <button class="btn-primary" id="pms-confirm-ok" style="padding:8px 16px;background:var(--primary);border:none;color:#fff;border-radius:6px;font-weight:600;cursor:pointer;">확인 (OK)</button>
+                <button class="btn-outline" id="pms-confirm-cancel" style="padding:8px 16px;background:#fff;border:1px solid var(--border);color:var(--txt);border-radius:6px;font-weight:600;cursor:pointer;">Cancel</button>
+                <button class="btn-primary" id="pms-confirm-ok" style="padding:8px 16px;background:var(--primary);border:none;color:#fff;border-radius:6px;font-weight:600;cursor:pointer;">OK</button>
             </div>
         </div>
     </div>
@@ -58,6 +113,7 @@
     document.head.appendChild(style);
 
     window.showToast = function(msg, type = 'success') {
+        if (typeof window.pmsRuntimeText === 'function') msg = window.pmsRuntimeText(msg);
         const container = document.getElementById('pms-toast-container');
         if (!container) return alert(msg); // fallback
         
@@ -75,12 +131,15 @@
         }, 3000);
     };
 
-    window.showConfirm = function(msg) {
+    window.showConfirm = function(msg, options = {}) {
         return new Promise((resolve) => {
             const modal = document.getElementById('pms-confirm-modal');
             if (!modal) return resolve(confirm(msg)); // fallback
-            
-            document.getElementById('pms-confirm-message').innerHTML = msg.replace(/\n/g, '<br>');
+
+            document.getElementById('pms-confirm-title').textContent = options.title || uiText('ui.confirm.title');
+            document.getElementById('pms-confirm-message').innerHTML = escapeHtml(msg || uiText('ui.confirm.default')).replace(/\n/g, '<br>');
+            document.getElementById('pms-confirm-cancel').textContent = options.cancelText || uiText('ui.confirm.cancel');
+            document.getElementById('pms-confirm-ok').textContent = options.okText || uiText('ui.confirm.ok');
             modal.classList.add('active');
             
             const btnOk = document.getElementById('pms-confirm-ok');
@@ -97,17 +156,10 @@
         });
     };
 
-    function currentLang() {
-        return document.getElementById('langSelect')?.value || window.currentLang || localStorage.getItem('pms_lang') || 'ko';
-    }
-
     window.renderEmptyState = function(options = {}) {
-        const isEn = currentLang() === 'en';
         const icon = options.icon || 'fa-inbox';
-        const title = options.title || (isEn ? 'No items to display.' : '표시할 항목이 없습니다.');
-        const desc = options.desc || (isEn
-            ? 'There is no data for the current condition.'
-            : '현재 조건에 맞는 데이터가 없습니다.');
+        const title = options.title || uiText('ui.empty.title');
+        const desc = options.desc || uiText('ui.empty.desc');
         const compact = options.compact ? ' compact' : '';
         return `
             <div class="pms-empty-state${compact}">
