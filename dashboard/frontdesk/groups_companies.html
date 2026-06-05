@@ -300,6 +300,7 @@ function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 let companies = [];
+let groupEvents = [];
 let currentFilter = 'all';
 
 const COMPANY_FILTER_LABELS = {
@@ -364,6 +365,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch(e) {
         console.warn('companies load fallback', e);
         companies = JSON.parse(localStorage.getItem('pms_companies') || '[]');
+    }
+    try {
+        if (window.PmsAPI?.getGroups) {
+            groupEvents = await window.PmsAPI.getGroups();
+        } else {
+            groupEvents = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+        }
+    } catch(e) {
+        console.warn('groups load fallback', e);
+        try { groupEvents = JSON.parse(localStorage.getItem('pms_groups') || '[]'); } catch(_) { groupEvents = []; }
     }
     renderCompanies();
 });
@@ -521,11 +532,26 @@ function openBlockModal(compId) {
 </script>
 <script>
 (function(){
+    function allGroupEvents() {
+        const merged = new Map();
+        if (Array.isArray(groupEvents)) {
+            groupEvents.forEach(group => {
+                if (group?.id) merged.set(group.id, group);
+            });
+        }
+        try {
+            JSON.parse(localStorage.getItem('pms_groups') || '[]').forEach(group => {
+                if (group?.id && !merged.has(group.id)) merged.set(group.id, group);
+            });
+        } catch(e) {}
+        return [...merged.values()];
+    }
+
     function companyGroups(company) {
-        let groups = [];
-        try { groups = JSON.parse(localStorage.getItem('pms_groups') || '[]'); } catch(e) {}
+        const groups = allGroupEvents();
         return groups.filter(g => g.agencyId === company.id || g.agency === company.name || (g.agency || '').includes(company.name));
     }
+
     function parseDate(value) {
         if (!value) return null;
         const d = value.includes('-') ? new Date(value) : new Date(`2026/${value}`);
@@ -533,27 +559,44 @@ function openBlockModal(compId) {
         d.setHours(0,0,0,0);
         return d;
     }
-    function stageCounts(events) {
+
+    function stageOf(g) {
         const now = new Date();
         now.setHours(0,0,0,0);
-        return events.reduce((acc, g) => {
-            const cin = parseDate(g.checkin);
-            const cout = parseDate(g.checkout);
-            if (cin && cout && cin <= now && cout > now) acc.active++;
-            else if (cin && cin > now) acc.upcoming++;
-            else if (cout && cout <= now) acc.past++;
-            return acc;
-        }, {active:0, upcoming:0, past:0});
+        const cin = parseDate(g.checkin);
+        const cout = parseDate(g.checkout);
+        const departedOrPast = g.status === 'departed' || (cout && cout <= now);
+        const unsettled = g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid' || (departedOrPast && g.settlementStatus !== 'paid');
+        if (unsettled && departedOrPast) return 'settlement';
+        if (cin && cin.getTime() === now.getTime()) return 'today';
+        if (cin && cout && cin <= now && cout > now) return 'active';
+        if (cin && cin > now) return 'upcoming';
+        if (cout && cout <= now) return 'past';
+        if (g.status === 'inhouse') return 'active';
+        if (g.status === 'departed') return 'past';
+        return 'upcoming';
     }
+
+    function stageCounts(events) {
+        return events.reduce((acc, g) => {
+            const stage = stageOf(g);
+            if (stage === 'active') acc.active++;
+            else if (stage === 'upcoming' || stage === 'today') acc.upcoming++;
+            else if (stage === 'settlement') acc.settlement++;
+            else if (stage === 'past') acc.past++;
+            return acc;
+        }, {active:0, upcoming:0, settlement:0, past:0});
+    }
+
     window.renderCompanies = function(search = '') {
         const grid = document.getElementById('companyGrid');
         const empty = document.getElementById('emptyState');
         if (!grid) return;
         document.getElementById('kpiTotal').textContent = companies.length;
         document.getElementById('kpiActive').textContent = companies.filter(c => c.status === 'active').length;
-        const allEvents = companies.flatMap(c => companyGroups(c));
-        document.getElementById('kpiEvents').textContent = allEvents.filter(g => g.status === 'confirmed' || g.status === 'inhouse').length;
-        document.getElementById('kpiUnpaid').textContent = allEvents.filter(g => g.settlementStatus === 'pending' || g.settlementStatus === 'unpaid').length;
+        const eventCounts = stageCounts(allGroupEvents());
+        document.getElementById('kpiEvents').textContent = eventCounts.active + eventCounts.upcoming;
+        document.getElementById('kpiUnpaid').textContent = eventCounts.settlement;
         updateCompanyFilterCounts();
 
         const q = String(search || '').toLowerCase();
