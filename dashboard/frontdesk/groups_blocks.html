@@ -40,7 +40,6 @@
             .filter-left > div { width: 100%; }
             .filter-chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
             .filter-chips .chip { justify-content: center; min-width: 0; padding-inline: 8px; }
-            .company-filter { width: 100%; }
             .filter-right { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
             .filter-right .btn-outline,
             .filter-right .btn-primary-sm { justify-content: center; width: 100%; padding-inline: 10px !important; }
@@ -720,7 +719,6 @@ async function deleteGroup(id) {
 <script>
 (function(){
     let eventStatusFilter = 'all';
-    let eventCompanyFilter = 'all';
 
     function parseStored(key) {
         try {
@@ -795,9 +793,6 @@ async function deleteGroup(id) {
         }
         return null;
     }
-    function companyKeyOf(g) {
-        return g.agencyId || companyOf(g)?.id || g.agency || '';
-    }
     function ensureEventToolbar() {
         const title = document.querySelector('.topbar-left h1');
         if (title) title.textContent = '단체/행사 목록';
@@ -811,29 +806,9 @@ async function deleteGroup(id) {
                 <button class="chip ${eventStatusFilter === 'past' ? 'active' : ''}" onclick="filterGroups('past', this)">지난 행사</button>
                 <button class="chip ${eventStatusFilter === 'settlement' ? 'active' : ''}" onclick="filterGroups('settlement', this)">정산 필요</button>`;
         }
-        const filterLeft = document.querySelector('.filter-left');
-        if (filterLeft && !document.getElementById('companyFilter')) {
-            const select = document.createElement('select');
-            select.id = 'companyFilter';
-            select.className = 'company-filter';
-            select.onchange = () => {
-                eventCompanyFilter = select.value;
-                window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
-            };
-            const chipsEl = document.querySelector('.filter-chips');
-            filterLeft.insertBefore(select, chipsEl);
-        }
         const companySelect = document.getElementById('companyFilter');
         if (companySelect) {
-            const urlCompany = new URLSearchParams(location.search).get('companyId');
-            if (urlCompany && eventCompanyFilter === 'all') eventCompanyFilter = urlCompany;
-            const companies = companiesData();
-            const eventCompanies = [...new Set((groups || []).map(g => g.agency).filter(Boolean))];
-            companySelect.innerHTML = '<option value="all">전체 업체</option>' +
-                companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('') +
-                eventCompanies.filter(name => !companies.some(c => c.name === name)).map(name => `<option value="${name}">${name}</option>`).join('');
-            companySelect.value = [...companySelect.options].some(o => o.value === eventCompanyFilter) ? eventCompanyFilter : 'all';
-            eventCompanyFilter = companySelect.value;
+            companySelect.remove();
         }
         const filterRight = document.querySelector('.filter-right');
         if (filterRight) {
@@ -879,11 +854,9 @@ async function deleteGroup(id) {
         const list = (groups || []).filter(g => {
             const stage = stageOf(g);
             const statusMatch = eventStatusFilter === 'all' || stage.key === eventStatusFilter;
-            const cKey = companyKeyOf(g);
-            const companyMatch = eventCompanyFilter === 'all' || cKey === eventCompanyFilter || g.agency === eventCompanyFilter;
             const roomText = assignedRoomsOf(g).map(r => `${r.roomId} ${r.roomLabel}`).join(' ').toLowerCase();
             const text = [g.name, g.agency, companyOf(g)?.name, g.sales, g.contact, g.id].filter(Boolean).join(' ').toLowerCase();
-            return statusMatch && companyMatch && (!q || text.includes(q) || roomText.includes(q));
+            return statusMatch && (!q || text.includes(q) || roomText.includes(q));
         }).sort((a,b) => {
             const order = { today:0, active:1, settlement:2, upcoming:3, past:4 };
             const sa = stageOf(a);
@@ -1622,13 +1595,10 @@ async function deleteGroup(id) {
     .event-row>div:nth-child(7) .event-metric{font-weight:700;color:#0f172a}
     .event-metric small{display:block;color:#94a3b8;font-size:.68rem;font-weight:500;margin-top:2px}
     .event-row .btn-outline-sm{height:34px;border-radius:9px;font-weight:600;color:#475569}
-    .company-filter{height:38px;border:1.5px solid var(--border);border-radius:8px;background:#fff;padding:0 10px;font-family:var(--font);font-size:.8rem;font-weight:600;color:var(--txt2)}
     @media(max-width:1100px){.event-head{display:none}.event-row{grid-template-columns:1fr;gap:8px}.event-register{border-radius:10px}.event-row{padding:14px}.event-row>div{display:flex;justify-content:space-between;gap:12px}.event-row>div.event-main{display:block}.event-row>div::before{content:attr(data-label);font-size:.7rem;font-weight:700;color:var(--txt3)}.event-row>div.event-main::before{content:''}.event-row>div:nth-child(3) .event-metric{white-space:normal}}
 </style>
 <script>
 (function(){
-    let companyFilterValue = 'all';
-    let appliedUrlCompany = false;
     const originalSearchGroups = window.searchGroups;
 
     function parseDate(value) {
@@ -1662,17 +1632,7 @@ async function deleteGroup(id) {
         if (diff === 0) return 'D-Day';
         return diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
     }
-    function getCompaniesForFilter() {
-        try { return JSON.parse(localStorage.getItem('pms_companies') || '[]'); } catch(e) { return []; }
-    }
-    function companyIdOf(g) {
-        if (g.agencyId) return g.agencyId;
-        const companies = getCompaniesForFilter();
-        const match = companies.find(c => c.name === g.agency || (g.agency || '').includes(c.name) || c.name.includes(g.agency || ''));
-        return match?.id || '';
-    }
     function enhanceToolbar() {
-        const filterLeft = document.querySelector('.filter-left');
         const filterRight = document.querySelector('.filter-right');
         const chips = document.querySelector('.filter-chips');
         if (chips && !chips.dataset.operational) {
@@ -1685,41 +1645,14 @@ async function deleteGroup(id) {
                 <button class="chip" onclick="filterGroups('past', this)">지난 행사</button>
                 <button class="chip" onclick="filterGroups('settlement', this)">정산 필요</button>`;
         }
-        if (filterLeft && !document.getElementById('companyFilter')) {
-            const sel = document.createElement('select');
-            sel.id = 'companyFilter';
-            sel.className = 'company-filter';
-            sel.onchange = () => { companyFilterValue = sel.value; window.renderGroups(document.querySelector('.search-box-mt input')?.value || ''); };
-            filterLeft.insertBefore(sel, chips);
-        }
+        const companySelect = document.getElementById('companyFilter');
+        if (companySelect) companySelect.remove();
         if (filterRight && !filterRight.dataset.eventActions) {
             filterRight.dataset.eventActions = '1';
             filterRight.innerHTML = `
                 <button class="btn-outline" style="height:38px" onclick="location.href='groups_companies.html'"><i class="fa-solid fa-building"></i> 업체 관리</button>
                 <button class="btn-primary-sm" style="height:38px;padding:0 16px" onclick="location.href='groups_block_detail.html?mode=new'"><i class="fa-solid fa-plus"></i> 신규 행사 생성</button>`;
         }
-        refreshCompanyFilterOptions();
-        if (!appliedUrlCompany) {
-            appliedUrlCompany = true;
-            const companyFromUrl = new URLSearchParams(location.search).get('companyId');
-            const sel = document.getElementById('companyFilter');
-            if (companyFromUrl && sel && [...sel.options].some(o => o.value === companyFromUrl)) {
-                sel.value = companyFromUrl;
-                companyFilterValue = companyFromUrl;
-            }
-        }
-    }
-    function refreshCompanyFilterOptions() {
-        const sel = document.getElementById('companyFilter');
-        if (!sel) return;
-        const current = sel.value || companyFilterValue;
-        const companies = getCompaniesForFilter();
-        const fromGroups = [...new Set((groups || []).map(g => g.agency).filter(Boolean))];
-        sel.innerHTML = '<option value="all">전체 업체</option>' +
-            companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('') +
-            fromGroups.filter(name => !companies.some(c => c.name === name)).map(name => `<option value="${name}">${name}</option>`).join('');
-        sel.value = [...sel.options].some(o => o.value === current) ? current : 'all';
-        companyFilterValue = sel.value;
     }
     window.filterGroups = function(status, btn) {
         currentFilter = status;
@@ -1741,11 +1674,9 @@ async function deleteGroup(id) {
         const list = (groups || []).filter(g => {
             const stage = stageOf(g);
             const stageMatch = currentFilter === 'all' || stage.key === currentFilter;
-            const compId = companyIdOf(g);
-            const companyMatch = companyFilterValue === 'all' || compId === companyFilterValue || g.agency === companyFilterValue;
             const roomsText = getAssignedRooms(g).map(a => `${a.roomLabel} ${a.roomId}`).join(' ').toLowerCase();
             const searchMatch = !query || [g.name, g.agency, g.sales, g.contact, g.id].filter(Boolean).join(' ').toLowerCase().includes(query) || roomsText.includes(query);
-            return stageMatch && companyMatch && searchMatch;
+            return stageMatch && searchMatch;
         }).sort((a,b) => {
             const order = {today:0, active:1, settlement:2, upcoming:3, past:4};
             const sa = stageOf(a), sb = stageOf(b);
@@ -1791,12 +1722,9 @@ async function deleteGroup(id) {
 <script>
 (function(){
     let eventStatus = 'all';
-    let companyStatus = 'all';
-    let didApplyUrlCompany = false;
     const T = {
         title: '\uB2E8\uCCB4/\uD589\uC0AC \uBAA9\uB85D',
         all: '\uC804\uCCB4',
-        allCompanies: '\uC804\uCCB4 \uC5C5\uCCB4',
         today: '\uC624\uB298 \uCCB4\uD06C\uC778',
         active: '\uD22C\uC219 \uC911',
         upcoming: '\uC608\uC815',
@@ -1952,7 +1880,7 @@ async function deleteGroup(id) {
     }
 
     function matchesCompanyFilter(group) {
-        return companyStatus === 'all' || companyKey(group) === companyStatus || group.agency === companyStatus;
+        return true;
     }
 
     function matchesSearchFilter(group, query) {
@@ -1979,37 +1907,9 @@ async function deleteGroup(id) {
         const title = document.querySelector('.topbar-left h1');
         if (title) title.textContent = T.title;
 
-        const filterLeft = document.querySelector('.filter-left');
         const chips = document.querySelector('.filter-chips');
-        let select = document.getElementById('companyFilter');
-        if (filterLeft && !select) {
-            select = document.createElement('select');
-            select.id = 'companyFilter';
-            select.className = 'company-filter';
-            select.onchange = () => {
-                companyStatus = select.value;
-                window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
-            };
-            filterLeft.insertBefore(select, chips || null);
-        }
-        if (select) {
-            let current = companyStatus;
-            if (!didApplyUrlCompany) {
-                const companyFromUrl = new URLSearchParams(location.search).get('companyId');
-                if (companyFromUrl) current = companyFromUrl;
-                didApplyUrlCompany = true;
-            }
-            const companies = companyData();
-            const eventCompanies = [...new Set(eventData().map(group => group.agency).filter(Boolean))];
-            select.innerHTML = `<option value="all">${T.allCompanies}</option>` +
-                companies.map(company => `<option value="${html(company.id)}">${html(company.name)}</option>`).join('') +
-                eventCompanies
-                    .filter(name => !companies.some(company => company.name === name))
-                    .map(name => `<option value="${html(name)}">${html(name)}</option>`)
-                    .join('');
-            select.value = [...select.options].some(option => option.value === current) ? current : 'all';
-            companyStatus = select.value;
-        }
+        const select = document.getElementById('companyFilter');
+        if (select) select.remove();
 
         if (chips) {
             const counts = filterCounts(list, search);
@@ -2036,10 +1936,7 @@ async function deleteGroup(id) {
     }
 
     window.createGroupEvent = function() {
-        const companyPart = companyStatus && companyStatus !== 'all'
-            ? `&companyId=${encodeURIComponent(companyStatus)}`
-            : '';
-        location.href = `groups_block_detail.html?mode=new${companyPart}`;
+        location.href = 'groups_block_detail.html?mode=new';
     };
 
     function updateKpis(list = eventData()) {
