@@ -36,6 +36,10 @@
 .ops-tab .ops-count{min-width:20px;height:20px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:var(--border2);color:inherit;font-size:.68rem;padding:0 6px}
 .ops-tab.active .ops-count{background:rgba(255,255,255,.24)}
 .reservation-filter-bar{padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px}
+.reservation-sort-group{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding-left:10px;border-left:1px solid var(--border2)}
+.sort-btn{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.75rem;font-weight:800;cursor:pointer;white-space:nowrap;transition:.15s}
+.sort-btn:hover{border-color:var(--primary);color:var(--primary)}
+.sort-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .guest-alerts{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
 .guest-alert{display:inline-flex;align-items:center;gap:4px;max-width:220px;border-radius:999px;padding:2px 8px;font-size:.68rem;font-weight:800;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .guest-alert.warn{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
@@ -50,8 +54,8 @@
 .res-work-action.group{background:#111827}
 .res-work-action:disabled{opacity:.45;cursor:not-allowed}
 .res-submeta{font-size:.72rem;color:#9ca3af;margin-top:3px}
-#resTable{table-layout:fixed;min-width:1480px}
-#resTable th:nth-child(1),#resTable td:nth-child(1){width:108px}
+#resTable{table-layout:fixed;min-width:1580px}
+#resTable th:nth-child(1),#resTable td:nth-child(1){width:168px}
 #resTable th:nth-child(2),#resTable td:nth-child(2){width:104px}
 #resTable th:nth-child(3),#resTable td:nth-child(3){width:330px}
 #resTable th:nth-child(4),#resTable td:nth-child(4){width:110px}
@@ -62,6 +66,7 @@
 #resTable th:nth-child(10),#resTable td:nth-child(10){width:100px}
 #resTable th:nth-child(11),#resTable td:nth-child(11){width:280px}
 .res-room-cell{text-align:left}
+.res-id{display:inline-block;max-width:150px;white-space:normal;overflow:visible;line-height:1.25;word-break:break-word}
 .reservation-room-tag{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:28px;padding:0 10px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;font-size:.78rem;font-weight:900;letter-spacing:.01em}
 .reservation-room-tag i{font-size:.72rem;margin-right:5px}
 .res-actions-cell{min-width:260px;text-align:right}
@@ -90,8 +95,10 @@
 }
 @media(max-width:768px){
     .m-filter-trigger{display:flex}
-    .filter-left{flex-direction:row!important;gap:8px!important;flex-wrap:nowrap!important;align-items:center!important}
+    .filter-left{flex-direction:row!important;gap:8px!important;flex-wrap:wrap!important;align-items:center!important}
     .filter-left .search-box{flex:1;min-width:0;width:auto!important}
+    .reservation-sort-group{width:100%;margin-left:0;padding-left:0;border-left:0}
+    .sort-btn{flex:1;justify-content:center}
     .ops-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;overflow:visible;padding-bottom:0}
     .ops-tab{width:100%;justify-content:center;padding:0 10px}
     .stay-flag-panel{align-items:flex-start;width:100%}
@@ -138,6 +145,10 @@
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="searchInput" placeholder="이름, 객실번호, 예약번호 검색..." oninput="filterTable()">
+                </div>
+                <div class="reservation-sort-group" aria-label="예약 정렬">
+                    <button type="button" class="sort-btn active" data-sort="recent" onclick="setReservationSort('recent')"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n-key="Recent Order">최근순</span></button>
+                    <button type="button" class="sort-btn" data-sort="room" onclick="setReservationSort('room')"><i class="fa-solid fa-arrow-down-1-9"></i> <span data-i18n-key="Room Order">호실순</span></button>
                 </div>
                 <div class="filter-chips">
                     <button class="chip active" data-filter="all" onclick="setFilter(this,'all')">All <span class="chip-count">0</span></button>
@@ -622,7 +633,50 @@ function cancelActionButton(res, mobile = false) {
 
 let currentFilter = 'all';
 let currentPage = 1;
+let currentSort = 'recent';
 const itemsPerPage = 10;
+
+function reservationNumericId(res) {
+    const text = String(res?.id || res?.reservationId || '');
+    const nums = text.match(/\d+/g);
+    return nums ? Number(nums.join('').slice(-10)) : 0;
+}
+
+function reservationRecentValue(res) {
+    const dateValue = res?.createdAt || res?.createdDate || res?.updatedAt || res?.bookingDate || res?.date || '';
+    const parsed = Date.parse(dateValue);
+    if (!Number.isNaN(parsed)) return parsed;
+    return -(Number(res?._listOrder || 0));
+}
+
+function roomSortKey(res) {
+    const room = String(res?.roomNo || res?.room || res?.roomId || res?.fullRoom || '').toUpperCase();
+    const prefix = room.startsWith('PH') ? 0 : room.startsWith('V') ? 2 : 1;
+    const nums = room.match(/\d+/g);
+    const number = nums ? Number(nums.join('')) : 99999;
+    return { prefix, number, room };
+}
+
+function compareReservations(left, right) {
+    if (currentSort === 'room') {
+        const a = roomSortKey(left);
+        const b = roomSortKey(right);
+        if (a.prefix !== b.prefix) return a.prefix - b.prefix;
+        if (a.number !== b.number) return a.number - b.number;
+        return a.room.localeCompare(b.room);
+    }
+    const recentDiff = reservationRecentValue(right) - reservationRecentValue(left);
+    return recentDiff || (reservationNumericId(right) - reservationNumericId(left));
+}
+
+function setReservationSort(mode) {
+    currentSort = mode === 'room' ? 'room' : 'recent';
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.sort === currentSort);
+    });
+    currentPage = 1;
+    renderTable();
+}
 
 function rowMatchesFilter(res) {
     if (currentFilter === 'all') return true;
@@ -704,7 +758,7 @@ function renderTable() {
         ].join(' ').toLowerCase();
         if (search && !haystack.includes(search)) return false;
         return true;
-    });
+    }).sort(compareReservations);
 
     const totalItems = filtered.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
@@ -1156,7 +1210,7 @@ const translations = {
         "All":"전체","Confirmed":"확정","Check-in":"체크인","Check-out":"체크아웃","Cancel":"취소",
         "Export":"엑셀 다운","New Booking":"신규 예약",
         "Booking #":"예약번호","Guest":"고객","Guest / 주의사항":"고객 / 주의사항","Room":"객실","Type":"유형",
-        "Stay":"숙박","Channel":"채널","Amount":"금액","Amount(USD)":"금액(USD)","Status":"상태","Actions":"관리",
+        "Stay":"숙박","Channel":"채널","Amount":"금액","Amount(USD)":"금액(USD)","Status":"상태","Actions":"관리","Recent Order":"최근순","Room Order":"호실순",
         "Main": "메인","Front Desk":"프론트 데스크","Guest & CRM": "투숙객 및 CRM",
         "Operations": "운영 관리","Settings": "설정"
     },
@@ -1196,7 +1250,7 @@ const translations = {
         "All":"All","Confirmed":"Confirmed","Check-in":"Check-in","Check-out":"Check-out","Cancel":"Cancelled",
         "Export":"Export Excel","New Booking":"New Booking",
         "Booking #":"Booking #","Guest":"Guest","Guest / 주의사항":"Guest / Notes","Room":"Room","Type":"Type",
-        "Stay":"Stay","Channel":"Channel","Amount":"Amount","Amount(USD)":"Amount(USD)","Status":"Status","Actions":"Actions",
+        "Stay":"Stay","Channel":"Channel","Amount":"Amount","Amount(USD)":"Amount(USD)","Status":"Status","Actions":"Actions","Recent Order":"Recent","Room Order":"Room Order",
         "Main":"Main","Front Desk":"Front Desk","Guest & CRM":"Guest & CRM",
         "Operations":"Operations","Settings":"Settings"
     }
@@ -1262,8 +1316,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         rooms = rawRooms || [];
         guests = rawGuests || [];
         guestMap = new Map(guests.map(guest => [guest.id, guest]));
-        reservations = (rawRes || []).map(r => {
+        reservations = (rawRes || []).map((r, index) => {
             r.status = normalizeListStatus(r.status);
+            r._listOrder = index;
             return r;
         });
     }
