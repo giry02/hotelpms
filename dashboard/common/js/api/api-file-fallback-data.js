@@ -18,7 +18,7 @@ window.PmsFileFallbackPayloads = {
           "status": "in-house",
           "housekeepingStatus": "occupied",
           "frontStatus": "in-house",
-          "guestFlag": "dnd",
+          "guestFlag": "mur",
           "baseRate": {
             "amount": 650,
             "currency": "USD"

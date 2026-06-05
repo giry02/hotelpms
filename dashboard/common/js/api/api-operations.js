@@ -2,7 +2,7 @@
 window.PmsAPI = window.PmsAPI || {};
 
 const _fallbackRooms = [
-    {id:'PH01', floor:20, type:'Penthouse', status:'occupied', building:'Ocean Tower', guestFlag:'dnd'},
+    {id:'PH01', floor:20, type:'Penthouse', status:'occupied', building:'Ocean Tower', guestFlag:'mur'},
     {id:'PH02', floor:20, type:'Penthouse', status:'occupied', building:'Ocean Tower'},
     
     {id:'1401', floor:14, type:'Premier', status:'vacant-clean', building:'Ocean Tower'},

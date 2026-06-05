@@ -468,6 +468,63 @@ function renderAllViews() {
     renderGrid();
 }
 
+function roomKeySet(value) {
+    const text = String(value || '').trim();
+    const upper = text.toUpperCase();
+    const tail = upper.includes('-') ? upper.split('-').pop() : upper;
+    const digits = (upper.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
+    return new Set([upper, tail, digits].filter(Boolean));
+}
+
+function matchesRoomKey(left, right) {
+    const leftKeys = roomKeySet(left);
+    const rightKeys = roomKeySet(right);
+    return [...leftKeys].some(key => rightKeys.has(key));
+}
+
+function taskMatchesRoom(task, room) {
+    const roomValues = [room.id, room.roomId, room.fullRoom, room.number, room.display, room.roomNo];
+    const taskValues = [task.room, task.roomId, task.fullRoom, task.roomNo];
+    return taskValues.some(taskValue => roomValues.some(roomValue => matchesRoomKey(taskValue, roomValue)));
+}
+
+function displayRoomNo(room) {
+    return room.id || room.roomNo || room.number || String(room.roomId || room.fullRoom || '').split('-').pop();
+}
+
+async function syncStayoverRequestsToTasks() {
+    let changed = false;
+    allRooms.forEach(room => {
+        const isOccupied = room.status === 'occupied';
+        const hasMakeUpRequest = (room.guestFlag || 'none') === 'mur';
+        if (!isOccupied || !hasMakeUpRequest) return;
+
+        const existing = tasks.find(task => (
+            taskMatchesRoom(task, room) &&
+            task.type === 'stayover' &&
+            task.status !== 'clean'
+        ));
+        if (existing) return;
+
+        const roomNo = displayRoomNo(room);
+        tasks.push({
+            id: `stayover-${roomNo}-${Date.now()}`,
+            room: roomNo,
+            roomId: room.roomId || room.fullRoom || room.id,
+            roomNo,
+            type: 'stayover',
+            status: 'dirty',
+            priority: false,
+            note: '투숙객 청소 요청'
+        });
+        changed = true;
+    });
+
+    if (changed && window.PmsAPI && window.PmsAPI.saveTasks) {
+        await window.PmsAPI.saveTasks(tasks);
+    }
+}
+
 function renderGrid() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const container = document.getElementById('roomContainer');
@@ -477,10 +534,16 @@ function renderGrid() {
     const mappedRooms = allRooms.map(r => {
         let mapped = { ...r };
         // Find if there's an active housekeeping task for this room
-        const task = tasks.find(t => t.room === r.id);
+        const isOccupied = r.status === 'occupied';
+        const task = tasks.find(t => (
+            taskMatchesRoom(t, r) &&
+            t.status !== 'clean' &&
+            (!isOccupied || t.type === 'stayover')
+        ));
         if (task) {
             mapped.hkStatus = task.status; 
             mapped.taskId = task.id;
+            mapped.taskType = task.type;
         } else {
             // Default based on room status
             if (r.status === 'vacant-clean') mapped.hkStatus = 'clean';
@@ -575,9 +638,17 @@ function renderRoomBox(r, appendHtml) {
 
     let actionBtnHtml = '';
     let completedByHtml = '';
+    const activeTask = r.taskId ? tasks.find(t => t.id === r.taskId) : null;
 
-    if (!isOccupied && r.taskId) {
-        const task = tasks.find(t => t.id === r.taskId);
+    if (isOccupied && activeTask && activeTask.type === 'stayover') {
+        if (r.hkStatus === 'dirty') {
+            const btnText = isEn ? 'Start Stayover Clean' : '투숙중 청소시작';
+            actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'inspect'); event.stopPropagation();">${btnText}</button>`;
+        } else if (r.hkStatus === 'inspect') {
+            const btnText = isEn ? 'Pass Inspect' : '점검완료';
+            actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'clean'); event.stopPropagation();">${btnText}</button>`;
+        }
+    } else if (!isOccupied && r.taskId) {
         if (r.hkStatus === 'dirty') {
             const btnText = isEn ? 'Start Clean' : '청소시작';
             actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'inspect'); event.stopPropagation();">${btnText}</button>`;
@@ -717,24 +788,46 @@ function completeTask(id, nextStatus) {
     const task = tasks.find(t => t.id === id);
     if(task) {
         task.status = nextStatus;
+        const isStayoverTask = task.type === 'stayover';
         const currentUserName = 'Nguyen Kim'; // Mock user
         if(nextStatus === 'inspect') task.cleanedBy = currentUserName;
         if(nextStatus === 'clean') task.inspectedBy = currentUserName;
         
         if (window.PmsAPI && window.PmsAPI.saveTasks) window.PmsAPI.saveTasks(tasks);
         
-        // Sync back to room status if clean
+        // Stayover cleaning keeps the room occupied; only clear the guest cleaning request.
+        if (nextStatus === 'clean' && isStayoverTask) {
+            const localRIdx = allRooms.findIndex(r => taskMatchesRoom(task, r));
+            if (localRIdx > -1) allRooms[localRIdx].guestFlag = 'none';
+
+            const roomRef = task.roomId || task.fullRoom || task.roomNo || task.room;
+            if (window.PmsAPI && window.PmsAPI.setGuestFlag) {
+                window.PmsAPI.setGuestFlag(roomRef, 'none');
+            } else if (window.PmsAPI && window.PmsAPI.getAllRooms) {
+                window.PmsAPI.getAllRooms().then(rooms => {
+                    const rIdx = rooms.findIndex(r => matchesRoomKey(r.id, roomRef) || matchesRoomKey(r.roomId, roomRef) || matchesRoomKey(r.fullRoom, roomRef) || matchesRoomKey(r.roomNo, roomRef));
+                    if (rIdx > -1) {
+                        rooms[rIdx].guestFlag = 'none';
+                        if (window.PmsAPI.saveRooms) window.PmsAPI.saveRooms(rooms);
+                    }
+                });
+            }
+        }
+
+        // Sync checkout/deep cleaning back to vacant-clean when completed.
         if (nextStatus === 'clean' && window.PmsAPI && window.PmsAPI.getAllRooms) {
-            window.PmsAPI.getAllRooms().then(rooms => {
-                const rIdx = rooms.findIndex(r => r.id === task.room);
-                if (rIdx > -1) {
-                    rooms[rIdx].status = 'vacant-clean';
-                    if (window.PmsAPI.saveRooms) window.PmsAPI.saveRooms(rooms);
-                }
-            });
-            // Update local allRooms array instantly to reflect in Grid View without reload
-            const localRIdx = allRooms.findIndex(r => r.id === task.room);
-            if (localRIdx > -1) allRooms[localRIdx].status = 'vacant-clean';
+            if (!isStayoverTask) {
+                window.PmsAPI.getAllRooms().then(rooms => {
+                    const rIdx = rooms.findIndex(r => matchesRoomKey(r.id, task.room) || matchesRoomKey(r.roomId, task.roomId || task.room) || matchesRoomKey(r.fullRoom, task.roomId || task.room) || matchesRoomKey(r.roomNo, task.room));
+                    if (rIdx > -1) {
+                        rooms[rIdx].status = 'vacant-clean';
+                        if (window.PmsAPI.saveRooms) window.PmsAPI.saveRooms(rooms);
+                    }
+                });
+                // Update local allRooms array instantly to reflect in Grid View without reload
+                const localRIdx = allRooms.findIndex(r => taskMatchesRoom(task, r));
+                if (localRIdx > -1) allRooms[localRIdx].status = 'vacant-clean';
+            }
         }
         
         updateKpis();
@@ -986,6 +1079,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return r;
         });
 
+        await syncStayoverRequestsToTasks();
         updateKpis();
         switchView('grid'); // Default to Grid view for housekeepers
     } catch(e) { console.error(e); }
