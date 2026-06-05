@@ -81,14 +81,7 @@
         .search-container { width: 100%; display: flex; }
         .search-box-mt { flex: 1; width: auto; }
         .filter-right { width: 100%; display: flex; justify-content: flex-end; }
-        .view-toggle { width: 100%; display: flex; margin-bottom: 8px; }
-        .view-toggle-btn { flex: 1; justify-content: center; }
     }
-
-    /* Segmented Control (View Toggle) */
-    .view-toggle { display:flex; background:var(--bg-body); padding:4px; border-radius:8px; border:1px solid var(--border); margin-right:12px; }
-    .view-toggle-btn { padding:6px 12px; font-size:.8rem; font-weight:600; color:var(--txt2); cursor:pointer; border-radius:6px; transition:all .2s; border:none; background:transparent; display:flex; align-items:center; gap:6px; }
-    .view-toggle-btn.active { background:#fff; color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,.1); }
 
     /* Building section header (Grid View) */
     .building-section{margin-bottom:8px}
@@ -279,11 +272,6 @@
         <!-- FILTER -->
         <div class="filter-bar">
             <div class="filter-left">
-                <div class="view-toggle">
-                    <button class="view-toggle-btn active" id="btnViewGrid" onclick="switchView('grid')"><i class="fa-solid fa-table-cells-large"></i> <span data-i18n-key="Grid View">객실 현황</span></button>
-                    <button class="view-toggle-btn" id="btnViewList" onclick="switchView('list')"><i class="fa-solid fa-list-ul"></i> <span data-i18n-key="List View">작업 목록</span></button>
-                </div>
-                
                 <div class="search-container">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -314,10 +302,10 @@
         </div>
 
         <!-- TASK VIEW CONTAINERS -->
-        <div id="roomContainer" class="hk-task-grid">
+        <div id="roomContainer" class="hk-task-grid" style="display:none;">
             <!-- Generated Grid by JS -->
         </div>
-        <div class="hk-task-list" id="taskList" style="display:none;">
+        <div class="hk-task-list" id="taskList">
             <!-- Generated List by JS -->
         </div>
     </div>
@@ -443,7 +431,7 @@ let stayoverCleaningPolicy = {
     towelChangeMode: 'daily'
 };
 let currentFilter = 'all';
-let currentView = 'grid'; // 'grid' or 'list'
+let currentView = 'list';
 
 const typeMap = {
     'checkout': { label:'Check-out 청소', icon:'fa-person-walking-luggage', color:'var(--danger)' },
@@ -466,8 +454,10 @@ function toggleBuilding(el) {
 
 function switchView(view) {
     currentView = view;
-    document.getElementById('btnViewGrid').classList.toggle('active', view === 'grid');
-    document.getElementById('btnViewList').classList.toggle('active', view === 'list');
+    const gridBtn = document.getElementById('btnViewGrid');
+    const listBtn = document.getElementById('btnViewList');
+    if (gridBtn) gridBtn.classList.toggle('active', view === 'grid');
+    if (listBtn) listBtn.classList.toggle('active', view === 'list');
     
     document.getElementById('roomContainer').style.display = view === 'grid' ? 'block' : 'none';
     document.getElementById('taskList').style.display = view === 'list' ? 'flex' : 'none';
@@ -1162,7 +1152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         await syncStayoverRequestsToTasks();
         updateKpis();
-        switchView('grid'); // Default to Grid view for housekeepers
+        switchView('list');
     } catch(e) { console.error(e); }
 });
 </script>
