@@ -49,15 +49,25 @@
 .res-work-action.group{background:#111827}
 .res-work-action:disabled{opacity:.45;cursor:not-allowed}
 .res-submeta{font-size:.72rem;color:#9ca3af;margin-top:3px}
-.res-actions-cell{min-width:330px;text-align:right}
-.res-action-stack{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:nowrap}
-.stay-flag-panel{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:0}
+.res-actions-cell{min-width:260px;text-align:right}
+.res-action-stack{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-start;gap:6px;min-width:0}
+.stay-flag-panel{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:0;width:100%}
 .stay-flag-label{display:none}
-.stay-flag-buttons{display:flex;gap:5px;justify-content:flex-end;flex-wrap:nowrap}
+.stay-flag-buttons{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
 .stay-flag-btn{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.68rem;font-weight:850;cursor:pointer;transition:.15s;white-space:nowrap}
 .stay-flag-btn:hover{border-color:var(--primary);color:var(--primary)}
 .stay-flag-btn.active{border-color:#6366f1;background:#eef2ff;box-shadow:0 0 0 2px rgba(99,102,241,.14)}
 .stay-flag-btn.dnd i{color:#e11d48}.stay-flag-btn.mur i{color:#10b981}.stay-flag-btn.away i{color:#f59e0b}.stay-flag-btn.none i{color:#2563eb}
+.channel-tag.group{background:#111827;color:#fff}
+.channel-tag.corporate{background:#F3F4F6;color:#374151}
+.channel-tag.ota{background:#E0F2FE;color:#0369A1}
+.action-btns{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
+.res-work-action{min-width:82px;justify-content:center}
+@media(max-width:1200px){
+    .res-actions-cell{min-width:230px}
+    .stay-flag-btn{padding:0 7px}
+    .res-work-action{min-width:74px}
+}
 @media(min-width:769px){
     .bottom-sheet,.bottom-sheet-overlay{display:none!important}
     .filter-bar{align-items:center;margin-bottom:14px}
@@ -73,6 +83,7 @@
     .stay-flag-label{display:block}
     .stay-flag-buttons{justify-content:flex-start;flex-wrap:wrap}
     .res-action-stack{align-items:flex-start;justify-content:flex-start;flex-direction:column}
+    .action-btns{justify-content:flex-start}
     .res-actions-cell{min-width:0;text-align:left}
 }
 </style>
@@ -98,12 +109,12 @@
 
     <div class="content">
         <div class="ops-tabs" id="reservationOpsTabs">
-            <button class="ops-tab active" data-filter="all" onclick="setFilter(this,'all')"><i class="fa-solid fa-list"></i> 전체 <span class="ops-count">0</span></button>
-            <button class="ops-tab" data-filter="checkin" onclick="setFilter(this,'checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="ops-count">0</span></button>
-            <button class="ops-tab" data-filter="inhouse" onclick="setFilter(this,'inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="ops-count">0</span></button>
-            <button class="ops-tab" data-filter="checkout" onclick="setFilter(this,'checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 <span class="ops-count">0</span></button>
-            <button class="ops-tab" data-filter="completed" onclick="setFilter(this,'completed')"><i class="fa-solid fa-check-double"></i> 완료 <span class="ops-count">0</span></button>
-            <button class="ops-tab" data-filter="cancelled" onclick="setFilter(this,'cancelled')"><i class="fa-solid fa-ban"></i> 취소/노쇼 <span class="ops-count">0</span></button>
+            <button class="ops-tab active" data-filter="all" onclick="setFilter(this,'all')"><i class="fa-solid fa-list"></i> <span class="ops-label">전체</span> <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="checkin" onclick="setFilter(this,'checkin')"><i class="fa-solid fa-right-to-bracket"></i> <span class="ops-label">오늘 체크인</span> <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="inhouse" onclick="setFilter(this,'inhouse')"><i class="fa-solid fa-bed"></i> <span class="ops-label">투숙 중</span> <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="checkout" onclick="setFilter(this,'checkout')"><i class="fa-solid fa-right-from-bracket"></i> <span class="ops-label">체크아웃</span> <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="completed" onclick="setFilter(this,'completed')"><i class="fa-solid fa-check-double"></i> <span class="ops-label">완료</span> <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="cancelled" onclick="setFilter(this,'cancelled')"><i class="fa-solid fa-ban"></i> <span class="ops-label">취소/노쇼</span> <span class="ops-count">0</span></button>
         </div>
         <!-- FILTER & SEARCH BAR -->
         <div class="filter-bar">
@@ -180,36 +191,36 @@
 <div class="bottom-sheet-overlay" id="resBsOverlay" onclick="closeResBS()"></div>
 <div class="bottom-sheet" id="resBsPanel">
     <div class="bottom-sheet-handle"></div>
-    <div class="bottom-sheet-title">예약 Status 필터</div>
+    <div class="bottom-sheet-title" id="resBsTitle">예약 상태 필터</div>
     <div class="bottom-sheet-options">
         <button class="bs-option selected" onclick="selectResFilter(this,'all','전체')">
             <div class="bs-option-icon" style="background:var(--border2);color:var(--txt2)"><i class="fa-solid fa-list"></i></div>
-            All
+            <span class="bs-option-label">All</span>
             <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
         <button class="bs-option" onclick="selectResFilter(this,'checkin','오늘 체크인')">
             <div class="bs-option-icon" style="background:rgba(16,185,129,.1);color:#059669"><i class="fa-solid fa-circle-check"></i></div>
-            Today Check-in
+            <span class="bs-option-label">Today Check-in</span>
             <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
 
         <button class="bs-option" onclick="selectResFilter(this,'inhouse','투숙 중')">
             <div class="bs-option-icon" style="background:rgba(59,130,246,.1);color:#2563EB"><i class="fa-solid fa-right-to-bracket"></i></div>
-            In-house
+            <span class="bs-option-label">In-house</span>
             <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
         <button class="bs-option" onclick="selectResFilter(this,'checkout','체크아웃')">
             <div class="bs-option-icon" style="background:rgba(139,92,246,.1);color:#7C3AED"><i class="fa-solid fa-right-from-bracket"></i></div>
-            Check-out
+            <span class="bs-option-label">Check-out</span>
             <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
         <button class="bs-option" onclick="selectResFilter(this,'cancelled','취소')">
             <div class="bs-option-icon" style="background:rgba(239,68,68,.1);color:#DC2626"><i class="fa-solid fa-ban"></i></div>
-            Cancel
+            <span class="bs-option-label">Cancel</span>
             <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
@@ -224,14 +235,149 @@ let guests = [];
 let guestMap = new Map();
 
 const statusConfig = {
-    blocked: {label:'Block',cls:'pending'},
-    pending: {label:'Pending',cls:'pending'},
-    confirmed: {label:'Confirmed',cls:'confirmed'},
-    checkedin: {label:'In-house',cls:'checkin'},
-    checkout: {label:'Check-out',cls:'vip'},
-    completed: {label:'Completed',cls:'cancelled'},
-    cancelled: {label:'Cancel',cls:'cancelled'}
+    blocked: {cls:'pending'},
+    pending: {cls:'pending'},
+    confirmed: {cls:'confirmed'},
+    checkedin: {cls:'checkin'},
+    checkout: {cls:'vip'},
+    completed: {cls:'cancelled'},
+    cancelled: {cls:'cancelled'}
 };
+
+const reservationLabels = {
+    ko: {
+        'status.blocked': '블록',
+        'status.pending': '대기',
+        'status.confirmed': '예약 확정',
+        'status.checkedin': '투숙 중',
+        'status.checkout': '체크아웃',
+        'status.completed': '완료',
+        'status.cancelled': '취소',
+        'filter.all': '전체',
+        'filter.checkin': '오늘 체크인',
+        'filter.inhouse': '투숙 중',
+        'filter.checkout': '체크아웃',
+        'filter.completed': '완료',
+        'filter.cancelled': '취소/노쇼',
+        'filter.title': '예약 상태 필터',
+        'channel.direct': '직접',
+        'channel.walkin': '방문',
+        'channel.corporate': '기업',
+        'channel.group': 'B2B',
+        'action.group': '단체 관리',
+        'action.checkin': '체크인',
+        'action.checkout': '체크아웃',
+        'action.manage': '관리',
+        'action.cancel': '취소',
+        'action.cancelDisabled': '취소 불가',
+        'action.cancelDisabledTitle': '체크인 이후 취소 불가',
+        'flag.title': '상태 설정 (프론트 전용)',
+        'flag.dnd': '방해금지',
+        'flag.mur': '청소요청',
+        'flag.away': '외출',
+        'flag.none': '재실',
+        'doc.unassigned': '투숙객 미등록',
+        'doc.verified': '신분증 확인됨',
+        'doc.recheck': '신분증 재확인',
+        'doc.check': '신분증 확인',
+        'doc.actionTitle': '신분증/여권 확인 완료 처리',
+        'note.empty': '특이사항 없음',
+        'stay.night': '박',
+        'page.empty': '총 <b>0건</b>',
+        'toast.noData': '데이터가 없습니다.'
+    },
+    en: {
+        'status.blocked': 'Block',
+        'status.pending': 'Pending',
+        'status.confirmed': 'Confirmed',
+        'status.checkedin': 'In-house',
+        'status.checkout': 'Check-out',
+        'status.completed': 'Completed',
+        'status.cancelled': 'Cancelled',
+        'filter.all': 'All',
+        'filter.checkin': 'Today Check-in',
+        'filter.inhouse': 'In-house',
+        'filter.checkout': 'Check-out',
+        'filter.completed': 'Completed',
+        'filter.cancelled': 'Cancelled / No-show',
+        'filter.title': 'Reservation Status Filter',
+        'channel.direct': 'Direct',
+        'channel.walkin': 'Walk-in',
+        'channel.corporate': 'Corporate',
+        'channel.group': 'B2B',
+        'action.group': 'Rooming',
+        'action.checkin': 'Check-in',
+        'action.checkout': 'Check-out',
+        'action.manage': 'Manage',
+        'action.cancel': 'Cancel',
+        'action.cancelDisabled': 'Locked',
+        'action.cancelDisabledTitle': 'Cannot cancel after check-in',
+        'flag.title': 'Stay Status',
+        'flag.dnd': 'DND',
+        'flag.mur': 'MUR',
+        'flag.away': 'Away',
+        'flag.none': 'In Room',
+        'doc.unassigned': 'Guest not assigned',
+        'doc.verified': 'ID verified',
+        'doc.recheck': 'Recheck ID',
+        'doc.check': 'Check ID',
+        'doc.actionTitle': 'Mark ID/passport as verified',
+        'note.empty': 'No notes',
+        'stay.night': 'N',
+        'page.empty': '<b>0</b> reservations',
+        'toast.noData': 'No data available.'
+    }
+};
+
+function reservationLang() {
+    return (document.getElementById('langSelect')?.value || window.currentLang || localStorage.getItem('pms_lang') || currentLang || 'ko') === 'en' ? 'en' : 'ko';
+}
+
+function resText(key) {
+    const lang = reservationLang();
+    return reservationLabels[lang]?.[key] || reservationLabels.ko[key] || key;
+}
+
+function statusMeta(status) {
+    const key = normalizeListStatus(status);
+    const config = statusConfig[key] || statusConfig.confirmed;
+    return { cls: config.cls, label: resText(`status.${key}`) };
+}
+
+function filterLabel(filter) {
+    return resText(`filter.${filter}`);
+}
+
+function normalizedChannelKey(value) {
+    const raw = String(value || '').trim().toLowerCase().replace(/[_\s/.-]/g, '');
+    if (['direct', 'directbooking'].includes(raw)) return 'direct';
+    if (['walkin', 'walk'].includes(raw)) return 'walkin';
+    if (['corporate', 'corp'].includes(raw)) return 'corporate';
+    if (['group', 'b2b', 'b2bgroup'].includes(raw)) return 'group';
+    if (raw.includes('booking')) return 'booking';
+    if (raw.includes('agoda')) return 'agoda';
+    if (raw.includes('ota')) return 'ota';
+    return raw || 'direct';
+}
+
+function channelMeta(res) {
+    const key = (res?.isB2B || normalizedChannelKey(res?.channel) === 'group') ? 'group' : normalizedChannelKey(res?.channel);
+    const fixedLabels = { ota: 'OTA', agoda: 'Agoda', booking: 'Booking.com' };
+    return {
+        key,
+        cls: key,
+        label: fixedLabels[key] || resText(`channel.${key}`) || String(res?.channel || '-')
+    };
+}
+
+function channelBadge(res) {
+    const channel = channelMeta(res);
+    return `<span class="channel-tag ${escapeHtml(channel.cls)}">${escapeHtml(channel.label)}</span>`;
+}
+
+function stayLabel(nights) {
+    return reservationLang() === 'en' ? `${nights}${resText('stay.night')}` : `${nights}${resText('stay.night')}`;
+}
 
 function normalizeListStatus(status) {
     const key = String(status || '').replace(/[-_\s]/g, '').toLowerCase();
@@ -363,18 +509,18 @@ function documentStatus(res) {
 function documentBadge(res) {
     const guestName = displayGuestName(res);
     if ((res?.isGroupPlaceholder || normalizeListStatus(res?.status) === 'blocked') && (!guestName || guestName === res?.groupName)) {
-        return '<span class="guest-alert empty"><i class="fa-solid fa-user-plus"></i>투숙객 미등록</span>';
+        return `<span class="guest-alert empty"><i class="fa-solid fa-user-plus"></i>${resText('doc.unassigned')}</span>`;
     }
     const raw = String(documentStatus(res) || '').trim();
     const key = raw.toLowerCase();
     if (['verified', 'approved', 'confirmed', 'checked'].includes(key)) {
-        return '<span class="guest-alert doc"><i class="fa-solid fa-id-card"></i>신분증 확인됨</span>';
+        return `<span class="guest-alert doc"><i class="fa-solid fa-id-card"></i>${resText('doc.verified')}</span>`;
     }
     if (['rejected', 'expired', 'invalid'].includes(key)) {
-        return `<button type="button" class="guest-alert id-action" title="신분증/여권 확인 완료 처리" onclick="verifyReservationDocument('${res.id}', event)"><i class="fa-solid fa-id-card"></i>신분증 재확인</button>`;
+        return `<button type="button" class="guest-alert id-action" title="${resText('doc.actionTitle')}" onclick="verifyReservationDocument('${res.id}', event)"><i class="fa-solid fa-id-card"></i>${resText('doc.recheck')}</button>`;
     }
     if (!raw || ['pending', 'required', 'requested', 'unchecked'].includes(key)) {
-        return `<button type="button" class="guest-alert id-action" title="신분증/여권 확인 완료 처리" onclick="verifyReservationDocument('${res.id}', event)"><i class="fa-solid fa-id-card"></i>신분증 확인</button>`;
+        return `<button type="button" class="guest-alert id-action" title="${resText('doc.actionTitle')}" onclick="verifyReservationDocument('${res.id}', event)"><i class="fa-solid fa-id-card"></i>${resText('doc.check')}</button>`;
     }
     return `<span class="guest-alert doc"><i class="fa-solid fa-id-card"></i>${escapeHtml(raw)}</span>`;
 }
@@ -383,7 +529,7 @@ function alertBadges(res) {
     const notes = operationalNotes(res);
     const noteHtml = notes.length
         ? notes.slice(0, 2).map(note => `<span class="guest-alert warn" title="${escapeHtml(note)}"><i class="fa-solid fa-triangle-exclamation"></i>${escapeHtml(note)}</span>`).join('')
-        : '<span class="guest-alert empty"><i class="fa-regular fa-note-sticky"></i>특이사항 없음</span>';
+        : `<span class="guest-alert empty"><i class="fa-regular fa-note-sticky"></i>${resText('note.empty')}</span>`;
     const docHtml = documentBadge(res);
     return `<div class="guest-alerts">${noteHtml}${docHtml}</div>`;
 }
@@ -416,12 +562,12 @@ function canCancelReservationRow(res) {
 function cancelActionButton(res, mobile = false) {
     if (!canCancelReservationRow(res)) {
         return mobile
-            ? '<button class="act-btn danger" disabled title="체크인 이후 취소 불가" style="opacity:.45;cursor:not-allowed"><i class="fa-solid fa-lock"></i> 취소 불가</button>'
-            : '<button class="act-btn danger" disabled title="체크인 이후 취소 불가" style="opacity:.45;cursor:not-allowed"><i class="fa-solid fa-lock"></i></button>';
+            ? `<button class="act-btn danger" disabled title="${resText('action.cancelDisabledTitle')}" style="opacity:.45;cursor:not-allowed"><i class="fa-solid fa-lock"></i> ${resText('action.cancelDisabled')}</button>`
+            : `<button class="act-btn danger" disabled title="${resText('action.cancelDisabledTitle')}" style="opacity:.45;cursor:not-allowed"><i class="fa-solid fa-lock"></i></button>`;
     }
     return mobile
-        ? `<button class="act-btn danger" onclick="window.cancelResAction('${res.id}')"><i class="fa-solid fa-xmark"></i> Cancel</button>`
-        : `<button class="act-btn danger" title="Cancel" onclick="window.cancelResAction('${res.id}')"><i class="fa-solid fa-xmark"></i></button>`;
+        ? `<button class="act-btn danger" onclick="window.cancelResAction('${res.id}')"><i class="fa-solid fa-xmark"></i> ${resText('action.cancel')}</button>`
+        : `<button class="act-btn danger" title="${resText('action.cancel')}" onclick="window.cancelResAction('${res.id}')"><i class="fa-solid fa-xmark"></i></button>`;
 }
 
 let currentFilter = 'all';
@@ -440,13 +586,13 @@ function workActionButton(res, mobile = false) {
     const status = effectiveRowStatus(res);
     const bucket = operationalBucket(res);
     if ((res.isGroupPlaceholder || status === 'blocked') && res.groupId) {
-        return `<button class="res-work-action group" onclick="location.href='groups_block_detail.html?id=${encodeURIComponent(res.groupId)}&tab=rooms'"><i class="fa-solid fa-users"></i>${mobile ? '단체 관리' : 'Rooming'}</button>`;
+        return `<button class="res-work-action group" onclick="location.href='groups_block_detail.html?id=${encodeURIComponent(res.groupId)}&tab=rooms'"><i class="fa-solid fa-users"></i>${resText('action.group')}</button>`;
     }
     if (bucket === 'checkin') {
-        return `<button class="res-work-action checkin" onclick="processReservationRowFlow('${res.id}','checkin')"><i class="fa-solid fa-right-to-bracket"></i>체크인</button>`;
+        return `<button class="res-work-action checkin" onclick="processReservationRowFlow('${res.id}','checkin')"><i class="fa-solid fa-right-to-bracket"></i>${resText('action.checkin')}</button>`;
     }
     if (status === 'checkedin' || status === 'checkout') {
-        return `<button class="res-work-action checkout" onclick="processReservationRowFlow('${res.id}','checkout')"><i class="fa-solid fa-right-from-bracket"></i>체크아웃</button>`;
+        return `<button class="res-work-action checkout" onclick="processReservationRowFlow('${res.id}','checkout')"><i class="fa-solid fa-right-from-bracket"></i>${resText('action.checkout')}</button>`;
     }
     return '';
 }
@@ -459,13 +605,13 @@ function stayoverFlagControls(res) {
     const flag = room.guestFlag || res.guestFlag || 'none';
     const roomKey = room.roomId || room.fullRoom || room.id || res.room;
     const options = [
-        { key: 'dnd', label: '방해금지', icon: 'fa-circle', cls: 'dnd' },
-        { key: 'mur', label: '청소요청', icon: 'fa-circle', cls: 'mur' },
-        { key: 'away', label: '외출', icon: 'fa-person-walking', cls: 'away' },
-        { key: 'none', label: '재실', icon: 'fa-bed', cls: 'none' }
+        { key: 'dnd', label: resText('flag.dnd'), icon: 'fa-circle', cls: 'dnd' },
+        { key: 'mur', label: resText('flag.mur'), icon: 'fa-circle', cls: 'mur' },
+        { key: 'away', label: resText('flag.away'), icon: 'fa-person-walking', cls: 'away' },
+        { key: 'none', label: resText('flag.none'), icon: 'fa-bed', cls: 'none' }
     ];
     return `<div class="stay-flag-panel">
-        <div class="stay-flag-label">상태 설정 (프론트 전용)</div>
+        <div class="stay-flag-label">${resText('flag.title')}</div>
         <div class="stay-flag-buttons">
             ${options.map(opt => `<button type="button" class="stay-flag-btn ${opt.cls} ${flag === opt.key ? 'active' : ''}" title="${opt.label}" onclick="setReservationStayoverFlag('${res.id}','${opt.key}','${escapeHtml(roomKey)}')"><i class="fa-solid ${opt.icon}"></i>${opt.label}</button>`).join('')}
         </div>
@@ -501,6 +647,7 @@ function renderTable() {
             r.roomLabel,
             r.type,
             r.channel,
+            channelMeta(r).label,
             r.groupName,
             displayGuestName(r),
             operationalNotes(r).join(' ')
@@ -528,7 +675,7 @@ function renderTable() {
     // Desktop table
     tbody.innerHTML = paginated.map(r => {
         const status = effectiveRowStatus(r);
-        const st = statusConfig[status] || statusConfig.confirmed;
+        const st = statusMeta(status);
         const isVip = String(r.vip || '').includes('VIP') || String(r.vip || '').includes('Gold') || r.isVip;
         const displayGuest = displayGuestName(r);
         const initials = r.initials || displayGuest.substring(0,2).toUpperCase();
@@ -550,11 +697,8 @@ function renderTable() {
             <td>${escapeHtml(r.type)}</td>
             <td>${escapeHtml(r.cin)}</td>
             <td>${escapeHtml(r.cout)}</td>
-            <td>${r.nights}박</td>
-            <td>
-                <span class="channel-tag ${String(r.channel || '').toLowerCase().replace('-','')}">${escapeHtml(r.channel || '')}</span>
-                ${r.isB2B ? '<span style="background:#111827;color:#fff;font-size:0.6rem;padding:2px 4px;border-radius:4px;margin-left:4px"><i class="fa-solid fa-building"></i> B2B</span>' : ''}
-            </td>
+            <td>${stayLabel(r.nights)}</td>
+            <td>${channelBadge(r)}</td>
             <td style="font-weight:700">${formatMoney(r)}</td>
             <td><span class="status-badge ${st.cls}">${st.label}</span></td>
             <td class="res-actions-cell">
@@ -562,7 +706,7 @@ function renderTable() {
                     ${stayoverFlagControls(r)}
                     <div class="action-btns">
                     ${workActionButton(r)}
-                    <button class="act-btn" title="관리" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-gear"></i></button>
+                    <button class="act-btn" title="${resText('action.manage')}" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-gear"></i></button>
                     ${cancelActionButton(r)}
                     </div>
                 </div>
@@ -573,7 +717,7 @@ function renderTable() {
     // Mobile cards
     mobileContainer.innerHTML = paginated.map(r => {
         const status = effectiveRowStatus(r);
-        const st = statusConfig[status] || statusConfig.confirmed;
+        const st = statusMeta(status);
         const isVip = String(r.vip || '').includes('VIP') || String(r.vip || '').includes('Gold') || r.isVip;
         const displayGuest = displayGuestName(r);
         const initials = r.initials || displayGuest.substring(0,2).toUpperCase();
@@ -594,14 +738,14 @@ function renderTable() {
             </div>
             <div class="m-res-details">
                 <div class="m-res-detail"><i class="fa-solid fa-door-open"></i> <span class="room-tag">${escapeHtml(r.room)}</span> ${escapeHtml(r.type)}</div>
-                <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> ${escapeHtml(r.cin)} → ${escapeHtml(r.cout)} (${r.nights}박)</div>
-                <div class="m-res-detail"><i class="fa-solid fa-globe"></i> <span class="channel-tag ${String(r.channel || '').toLowerCase().replace('-','')}">${escapeHtml(r.channel || '')}</span></div>
+                <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> ${escapeHtml(r.cin)} → ${escapeHtml(r.cout)} (${stayLabel(r.nights)})</div>
+                <div class="m-res-detail"><i class="fa-solid fa-globe"></i> ${channelBadge(r)}</div>
                 ${alertBadges(r)}
             </div>
             <div class="m-res-actions">
                 ${stayoverFlagControls(r)}
                 ${workActionButton(r, true)}
-                <button class="act-btn" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-gear"></i> 관리</button>
+                <button class="act-btn" onclick="window.openUnifiedResModal('${r.id}')"><i class="fa-solid fa-gear"></i> ${resText('action.manage')}</button>
                 ${cancelActionButton(r, true)}
             </div>
         </div>`;
@@ -613,7 +757,7 @@ function updatePagination(totalItems, startIdx, currentCount, totalPages) {
     const pageBtns = document.getElementById('pageBtns');
     
     if (totalItems === 0) {
-        pageInfo.innerHTML = `총 <b>0건</b>`;
+        pageInfo.innerHTML = resText('page.empty');
         pageBtns.innerHTML = `
             <button class="page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
             <button class="page-btn active">1</button>
@@ -622,7 +766,9 @@ function updatePagination(totalItems, startIdx, currentCount, totalPages) {
         return;
     }
 
-    pageInfo.innerHTML = `총 <b>${totalItems}건</b> 중 ${startIdx + 1}–${startIdx + currentCount} 표시`;
+    pageInfo.innerHTML = reservationLang() === 'en'
+        ? `Showing ${startIdx + 1}–${startIdx + currentCount} of <b>${totalItems}</b>`
+        : `총 <b>${totalItems}건</b> 중 ${startIdx + 1}–${startIdx + currentCount} 표시`;
     
     let btnsHtml = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})"><i class="fa-solid fa-chevron-left"></i></button>`;
     
@@ -640,14 +786,31 @@ function changePage(page) {
     renderTable();
 }
 
+function refreshReservationLabels() {
+    document.querySelectorAll('.ops-tab').forEach(tab => {
+        const filter = tab.getAttribute('data-filter');
+        const label = tab.querySelector('.ops-label');
+        if (label) label.textContent = filterLabel(filter);
+    });
+    document.querySelectorAll('.bs-option').forEach(option => {
+        const click = option.getAttribute('onclick') || '';
+        const filter = ['all', 'checkin', 'inhouse', 'checkout', 'completed', 'cancelled'].find(key => click.includes(`'${key}'`));
+        const label = option.querySelector('.bs-option-label');
+        if (filter && label) label.textContent = filterLabel(filter);
+    });
+    const mobileLabel = document.getElementById('mResFilterLabel');
+    if (mobileLabel) mobileLabel.textContent = filterLabel(currentFilter);
+    const sheetTitle = document.getElementById('resBsTitle');
+    if (sheetTitle) sheetTitle.textContent = resText('filter.title');
+}
+
 function setFilter(btn, filter) {
     currentFilter = filter;
     currentPage = 1;
     document.querySelectorAll('.filter-chips .chip, .ops-tab').forEach(c => c.classList.toggle('active', c.getAttribute('data-filter') === filter));
     if (btn) btn.classList.add('active');
-    const labelMap = { all: 'All', checkin: 'Today Check-in', inhouse: 'In-house', checkout: 'Check-out', completed: 'Completed', cancelled: 'Cancel' };
     const mobileLabel = document.getElementById('mResFilterLabel');
-    if (mobileLabel) mobileLabel.textContent = labelMap[filter] || filter;
+    if (mobileLabel) mobileLabel.textContent = filterLabel(filter) || filter;
     renderTable();
 }
 
@@ -836,7 +999,7 @@ window.processReservationRowFlow = async function(resId, action) {
 
 function exportReservationsToCSV() {
     if (!reservations || reservations.length === 0) {
-        if(window.showToast) window.showToast('데이터가 없습니다.');
+        if(window.showToast) window.showToast(resText('toast.noData'));
         return;
     }
     const headers = ['Booking #', 'Guest', 'Room', 'Type', 'Check-in', 'Check-out', 'Stay', 'Channel', 'Amount', 'Status', 'Notes'];
@@ -848,9 +1011,9 @@ function exportReservationsToCSV() {
         r.cin, 
         r.cout, 
         r.nights, 
-        r.channel, 
+        channelMeta(r).label,
         formatMoney(r), 
-        effectiveRowStatus(r),
+        statusMeta(effectiveRowStatus(r)).label,
         '"' + operationalNotes(r).join(' / ') + '"'
     ]);
     const csvContent = [headers.join(',')].concat(rows.map(e => e.join(','))).join('\n');
@@ -886,7 +1049,7 @@ function selectResFilter(btn, filter, label) {
     currentPage = 1;
     document.querySelectorAll('.bs-option').forEach(o => o.classList.remove('selected'));
     btn.classList.add('selected');
-    document.getElementById('mResFilterLabel').textContent = label;
+    document.getElementById('mResFilterLabel').textContent = filterLabel(filter);
     document.querySelectorAll('.chip, .ops-tab').forEach(c => c.classList.toggle('active', c.getAttribute('data-filter') === filter));
     closeResBS();
     renderTable();
@@ -932,8 +1095,8 @@ const translations = {
         "Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리",
         "All":"전체","Confirmed":"확정","Check-in":"체크인","Check-out":"체크아웃","Cancel":"취소",
         "Export":"엑셀 다운","New Booking":"신규 예약",
-        "Booking #":"예약번호","Guest":"고객","Room":"객실","Type":"유형",
-        "Stay":"숙박","Channel":"채널","Amount(USD)":"금액(USD)","Status":"상태","Actions":"관리",
+        "Booking #":"예약번호","Guest":"고객","Guest / 주의사항":"고객 / 주의사항","Room":"객실","Type":"유형",
+        "Stay":"숙박","Channel":"채널","Amount":"금액","Amount(USD)":"금액(USD)","Status":"상태","Actions":"관리",
         "Main": "메인","Front Desk":"프론트 데스크","Guest & CRM": "투숙객 및 CRM",
         "Operations": "운영 관리","Settings": "설정"
     },
@@ -972,8 +1135,8 @@ const translations = {
         "Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt",
         "All":"All","Confirmed":"Confirmed","Check-in":"Check-in","Check-out":"Check-out","Cancel":"Cancelled",
         "Export":"Export Excel","New Booking":"New Booking",
-        "Booking #":"Booking #","Guest":"Guest","Room":"Room","Type":"Type",
-        "Stay":"Stay","Channel":"Channel","Amount(USD)":"Amount(USD)","Status":"Status","Actions":"Actions",
+        "Booking #":"Booking #","Guest":"Guest","Guest / 주의사항":"Guest / Notes","Room":"Room","Type":"Type",
+        "Stay":"Stay","Channel":"Channel","Amount":"Amount","Amount(USD)":"Amount(USD)","Status":"Status","Actions":"Actions",
         "Main":"Main","Front Desk":"Front Desk","Guest & CRM":"Guest & CRM",
         "Operations":"Operations","Settings":"Settings"
     }
@@ -1005,6 +1168,11 @@ function changeLang(lang){currentLang=lang;window.currentLang=lang;localStorage.
         if(dict[key])el.textContent=dict[key];
     });
     document.getElementById('searchInput').placeholder = lang==='en' ? 'Search by name, room, booking #...' : '이름, Room번호, Booking # 검색...';
+    refreshReservationLabels();
+    if (document.getElementById('resBody')) {
+        updateChipCounts();
+        renderTable();
+    }
 }
 // 모달 공통 함수
 function openModal(id) {
@@ -1049,6 +1217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             selectedSheet.classList.add('selected');
         }
     }
+    refreshReservationLabels();
     updateChipCounts();
     renderTable();
 });
