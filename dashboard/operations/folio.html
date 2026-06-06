@@ -32,6 +32,15 @@
 .search-box-mt:focus-within { border-color: var(--primary); }
 .search-box-mt i { color: var(--txt3); font-size: .85rem; }
 .search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
+.folio-table { table-layout: fixed; min-width: 980px; }
+.folio-table th, .folio-table td { overflow: hidden; text-overflow: ellipsis; }
+.folio-table .folio-actions { display: grid; grid-template-columns: 68px 58px; gap: 6px; justify-content: end; align-items: center; min-width: 132px; }
+.folio-table .folio-actions .btn-outline-sm,
+.folio-table .folio-actions .btn-primary-sm { width: 100%; height: 32px; padding: 0 10px; justify-content: center; }
+.folio-action-placeholder { visibility: hidden; pointer-events: none; }
+.folio-mobile-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 10px; min-height: 36px; }
+#folioMobile .m-res-top > div:first-child { min-width: 0; }
+#folioMobile .m-res-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 210px; }
 @media(max-width:768px){
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
     .filter-left { flex-direction: column; align-items: stretch; overflow: visible; gap: 10px; }
@@ -132,7 +141,19 @@
         <div class="card desktop-only">
             <div class="card-body" style="padding:0">
                 <div class="table-wrap">
-                    <table><thead><tr>
+                    <table class="folio-table">
+                        <colgroup>
+                            <col style="width:14%">
+                            <col style="width:8%">
+                            <col style="width:14%">
+                            <col style="width:11%">
+                            <col style="width:12%">
+                            <col style="width:12%">
+                            <col style="width:12%">
+                            <col style="width:9%">
+                            <col style="width:8%">
+                        </colgroup>
+                        <thead><tr>
                         <th>정산 번호(Folio)</th><th>객실</th><th>고객명</th><th>체크아웃</th><th>총 금액</th><th>결제액</th><th>미수금 잔액</th><th>상태</th><th>관리</th>
                     </tr></thead>
                     <tbody id="folioBody"></tbody></table>
@@ -442,9 +463,9 @@ function renderFolios() {
             <td style="color:${balColor};font-weight:700">${fmtMoney(f.bal, f.currency)}</td>
             <td><span class="status-badge ${s.badge}">${s.label}</span></td>
             <td>
-                <div style="display:flex;gap:4px">
+                <div class="folio-actions">
                     <button class="btn-outline-sm" onclick="openModal('invoiceModal')">명세서</button>
-                    ${f.bal > 0 ? `<button class="btn-primary-sm" onclick="openPaymentModal('${f.id}', ${f.bal})">결제</button>` : ''}
+                    ${f.bal > 0 ? `<button class="btn-primary-sm" onclick="openPaymentModal('${f.id}', ${f.bal})">결제</button>` : '<button class="btn-primary-sm folio-action-placeholder" tabindex="-1" aria-hidden="true">결제</button>'}
                 </div>
             </td>
         </tr>`;
@@ -467,9 +488,9 @@ function renderFolios() {
                 <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> Check-out: ${f.out}</div>
                 <div class="m-res-detail"><i class="fa-solid fa-money-bill"></i> ${fmtMoney(f.total, f.currency)} / ${fmtMoney(f.paid, f.currency)}</div>
             </div>
-            <div class="m-res-actions">
+            <div class="m-res-actions folio-mobile-actions">
                 <button class="act-btn" onclick="openModal('invoiceModal')"><i class="fa-solid fa-file-invoice"></i> 명세서</button>
-                ${f.bal > 0 ? `<button class="act-btn" style="background:var(--primary);color:#fff" onclick="openPaymentModal('${f.id}', ${f.bal})"><i class="fa-solid fa-credit-card"></i> 결제</button>` : ''}
+                ${f.bal > 0 ? `<button class="act-btn" style="background:var(--primary);color:#fff" onclick="openPaymentModal('${f.id}', ${f.bal})"><i class="fa-solid fa-credit-card"></i> 결제</button>` : '<button class="act-btn folio-action-placeholder" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-credit-card"></i> 결제</button>'}
             </div>
         </div>`;
     }).join('');
