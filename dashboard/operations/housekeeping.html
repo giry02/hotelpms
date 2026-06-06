@@ -586,6 +586,43 @@ async function syncStayoverRequestsToTasks() {
     }
 }
 
+function findActiveTaskForRoom(room) {
+    const isOccupied = room.status === 'occupied';
+    return tasks.find(task => (
+        taskMatchesRoom(task, room) &&
+        task.status !== 'clean' &&
+        (!isOccupied || task.type === 'stayover')
+    ));
+}
+
+function createRoomCleanTask(room, type) {
+    const roomNo = displayRoomNo(room);
+    const task = {
+        id: `${type || 'checkout'}-${roomNo}-${Date.now()}`,
+        room: roomNo,
+        roomId: room.roomId || room.fullRoom || room.id,
+        roomNo,
+        type: type || 'checkout',
+        status: 'dirty',
+        priority: false,
+        note: type === 'stayover' ? '투숙중 청소' : '청소 요망'
+    };
+    tasks.push(task);
+    if (window.PmsAPI && window.PmsAPI.saveTasks) window.PmsAPI.saveTasks(tasks);
+    return task;
+}
+
+function startRoomCleaning(roomId, type) {
+    const room = allRooms.find(r => matchesRoomKey(r.id, roomId) || matchesRoomKey(r.roomId, roomId) || matchesRoomKey(r.fullRoom, roomId) || matchesRoomKey(r.roomNo, roomId));
+    if (!room) return;
+    const task = findActiveTaskForRoom(room) || createRoomCleanTask(room, type);
+    completeTask(task.id, 'inspect');
+}
+
+function jsString(value) {
+    return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 function renderGrid() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const container = document.getElementById('roomContainer');
@@ -595,12 +632,7 @@ function renderGrid() {
     const mappedRooms = allRooms.map(r => {
         let mapped = { ...r };
         // Find if there's an active housekeeping task for this room
-        const isOccupied = r.status === 'occupied';
-        const task = tasks.find(t => (
-            taskMatchesRoom(t, r) &&
-            t.status !== 'clean' &&
-            (!isOccupied || t.type === 'stayover')
-        ));
+        const task = findActiveTaskForRoom(r);
         if (task) {
             mapped.hkStatus = task.status; 
             mapped.taskId = task.id;
@@ -682,7 +714,9 @@ function renderRoomBox(r, appendHtml) {
             'none': { emoji: '🛌', label: isEn ? 'In Room' : '재실 중', cls: 'flag-none' }
         };
         const fi = flagMap[gf] || flagMap['none'];
-        flagBadge = `<div class="guest-flag-badge ${fi.cls}">${fi.emoji} ${fi.label}</div>`;
+        if (gf !== 'none' && gf !== 'mur') {
+            flagBadge = `<div class="guest-flag-badge ${fi.cls}">${fi.emoji} ${fi.label}</div>`;
+        }
         
         // Flag toggle buttons (Moved to Front Desk / Check-in page per user request)
         flagButtons = ``;
@@ -717,6 +751,9 @@ function renderRoomBox(r, appendHtml) {
             const btnText = isEn ? 'Pass Inspect' : '점검완료';
             actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'clean'); event.stopPropagation();">${btnText}</button>`;
         }
+    } else if (!isOccupied && r.hkStatus === 'dirty') {
+        const btnText = isEn ? 'Start Clean' : '청소시작';
+        actionBtnHtml = `<button class="primary-action-btn" onclick="startRoomCleaning('${jsString(r.roomId || r.fullRoom || r.id)}', 'checkout'); event.stopPropagation();">${btnText}</button>`;
     }
 
     if (!isOccupied && r.hkStatus === 'clean') {
