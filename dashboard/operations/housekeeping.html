@@ -473,9 +473,13 @@ function renderAllViews() {
 function roomKeySet(value) {
     const text = String(value || '').trim();
     const upper = text.toUpperCase();
+    const compact = upper.replace(/[^A-Z0-9]/g, '');
     const tail = upper.includes('-') ? upper.split('-').pop() : upper;
+    const compactTail = tail.replace(/[^A-Z0-9]/g, '');
     const digits = (upper.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
-    return new Set([upper, tail, digits].filter(Boolean));
+    const keys = [upper, compact, tail, compactTail];
+    if (digits.length >= 3) keys.push(digits);
+    return new Set(keys.filter(Boolean));
 }
 
 function matchesRoomKey(left, right) {
@@ -715,7 +719,7 @@ function renderRoomBox(r, appendHtml) {
             'none': { emoji: '', label: isEn ? 'No clean request' : '청소 요청 없음', cls: 'flag-none' }
         };
         const fi = flagMap[gf] || flagMap['none'];
-        if (gf === 'none') {
+        if (gf === 'none' && !(activeTask && activeTask.type === 'stayover')) {
             flagBadge = `<div class="guest-flag-badge ${fi.cls}">${fi.label}</div>`;
         } else if (gf !== 'mur') {
             flagBadge = `<div class="guest-flag-badge ${fi.cls}">${fi.emoji} ${fi.label}</div>`;
