@@ -46,6 +46,9 @@
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .filter-label { font-size: .74rem; font-weight: 800; color: var(--txt3); white-space: nowrap; }
+.category-select { height: 36px; min-width: 180px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
+.category-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
+.pos-category-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; background: var(--bg); color: var(--txt); border: 1px solid var(--border2); font-size: .76rem; font-weight: 800; white-space: nowrap; }
 .pos-completion-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: .7rem; font-weight: 800; white-space: nowrap; }
 .pos-completion-badge.open { background: var(--warning-lt); color: var(--warning); }
 .pos-completion-badge.done { background: var(--success-lt); color: var(--success); }
@@ -64,6 +67,7 @@
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
     .filter-divider { display: none; }
     .filter-group { width: 100%; }
+    .category-select { width: 100%; }
     .filter-right { justify-content: flex-start; }
 }
 </style>
@@ -131,14 +135,9 @@
                 <div class="filter-divider"></div>
                 <div class="filter-group">
                     <span class="filter-label">카테고리</span>
-                    <div class="filter-chips" id="categoryFilterChips">
-                    <button class="chip active" onclick="setFilter(this,'all')">전체 오더</button>
-                    <button class="chip" onclick="setFilter(this,'fnb')"><i class="fa-solid fa-utensils" style="color:var(--txt2)"></i> 식음료/룸서비스</button>
-                    <button class="chip" onclick="setFilter(this,'minibar')"><i class="fa-solid fa-wine-bottle" style="color:var(--txt2)"></i> 미니바</button>
-                    <button class="chip" onclick="setFilter(this,'spa')"><i class="fa-solid fa-spa" style="color:var(--txt2)"></i> 스파</button>
-                    <button class="chip" onclick="setFilter(this,'laundry')"><i class="fa-solid fa-shirt" style="color:var(--txt2)"></i> 세탁</button>
-                    <button class="chip" onclick="setFilter(this,'other')"><i class="fa-solid fa-bag-shopping" style="color:var(--txt2)"></i> 리테일/기타</button>
-                    </div>
+                    <select id="categoryFilterSelect" class="category-select" onchange="setCategoryFilter(this.value)">
+                        <option value="all">전체 카테고리</option>
+                    </select>
                 </div>
             </div>
             <div class="filter-right">
@@ -162,28 +161,16 @@
 <script>
 let allOrders = [];
 
-const categoryMap = {
-    'roomservice': 'fnb',
-    'dining': 'fnb',
-    'breakfast': 'fnb',
-    'drink': 'fnb',
-    'minibar': 'minibar',
-    'spa': 'spa',
-    'laundry': 'laundry',
-    'retail': 'other',
-    'other': 'other'
-};
-
-const tMap = {
-    'roomservice': { label:'룸서비스', icon:'fa-bell-concierge', color:'var(--orange)' },
-    'dining': { label:'다이닝', icon:'fa-utensils', color:'var(--purple)' },
-    'breakfast': { label:'조식', icon:'fa-mug-saucer', color:'var(--orange)' },
-    'drink': { label:'음료/바', icon:'fa-martini-glass-citrus', color:'var(--purple)' },
-    'minibar': { label:'미니바', icon:'fa-wine-bottle', color:'var(--blue)' },
-    'spa': { label:'스파/마사지', icon:'fa-spa', color:'var(--success)' },
-    'laundry': { label:'세탁', icon:'fa-shirt', color:'var(--primary)' },
-    'retail': { label:'리테일', icon:'fa-bag-shopping', color:'var(--txt2)' },
-    'other': { label:'기타 비용', icon:'fa-receipt', color:'var(--txt2)' }
+const knownCategoryLabels = {
+    roomservice: '룸서비스',
+    dining: '다이닝',
+    breakfast: '조식',
+    drink: '음료/바',
+    minibar: '미니바',
+    spa: '스파/마사지',
+    laundry: '세탁',
+    retail: '리테일',
+    other: '기타 비용'
 };
 
 const statusInfo = {
@@ -212,17 +199,29 @@ function normalizeOrderStatus(status) {
     return 'new';
 }
 
-function normalizeOrderType(type) {
-    const value = String(type || 'other').replace(/[-_\s]/g, '').toLowerCase();
-    if (['roomservice', 'service'].includes(value)) return 'roomservice';
-    if (['dining', 'restaurant', 'fnb', 'food'].includes(value)) return 'dining';
-    if (['breakfast'].includes(value)) return 'breakfast';
-    if (['drink', 'bar', 'beverage'].includes(value)) return 'drink';
-    if (['minibar'].includes(value)) return 'minibar';
-    if (['spa', 'massage'].includes(value)) return 'spa';
-    if (['laundry', 'drycleaning'].includes(value)) return 'laundry';
-    if (['retail', 'shop'].includes(value)) return 'retail';
-    return 'other';
+function normalizeCategoryKey(category) {
+    const value = String(category || 'other').trim();
+    const compact = value.replace(/[-_\s]/g, '').toLowerCase();
+    const aliases = {
+        service: 'roomservice',
+        roomservice: 'roomservice',
+        restaurant: 'dining',
+        fnb: 'dining',
+        food: 'dining',
+        bar: 'drink',
+        beverage: 'drink',
+        massage: 'spa',
+        drycleaning: 'laundry',
+        shop: 'retail'
+    };
+    return aliases[compact] || compact || 'other';
+}
+
+function categoryLabelFor(rawCategory, categoryKey, order) {
+    return order.categoryLabel
+        || order.categoryName
+        || knownCategoryLabels[categoryKey]
+        || String(rawCategory || '기타 비용');
 }
 
 function normalizeOrder(order) {
@@ -230,12 +229,15 @@ function normalizeOrder(order) {
     const room = order.roomNo || String(fullRoom).split('-').pop() || fullRoom;
     const items = Array.isArray(order.items) ? order.items.join(', ') : (order.items || order.desc || '');
     const total = typeof order.total === 'object' ? order.total?.amount : order.total;
+    const rawCategory = order.category || order.type || 'other';
+    const categoryKey = normalizeCategoryKey(rawCategory);
     return {
         ...order,
         room: String(room || ''),
         fullRoom: String(fullRoom || room || ''),
         guest: order.guest || order.guestName || '',
-        type: normalizeOrderType(order.type || order.category),
+        categoryKey,
+        categoryLabel: categoryLabelFor(rawCategory, categoryKey, order),
         items,
         total: Number(total || 0),
         status: normalizeOrderStatus(order.status),
@@ -272,9 +274,45 @@ function orderMatchesSearch(order, query) {
         order.fullRoom,
         order.roomId,
         order.guest,
+        order.categoryLabel,
         order.items
     ].filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(query);
+}
+
+function categoryEntries() {
+    const map = new Map();
+    allOrders.forEach(order => {
+        if (!map.has(order.categoryKey)) {
+            map.set(order.categoryKey, { key: order.categoryKey, label: order.categoryLabel, count: 0 });
+        }
+        map.get(order.categoryKey).count++;
+    });
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'ko'));
+}
+
+function refreshCategoryControls() {
+    const entries = categoryEntries();
+    const filterSelect = document.getElementById('categoryFilterSelect');
+    if (filterSelect) {
+        const selectedExists = currentFilter === 'all' || entries.some(entry => entry.key === currentFilter);
+        if (!selectedExists) currentFilter = 'all';
+        filterSelect.innerHTML = [
+            `<option value="all">전체 카테고리 (${allOrders.length})</option>`,
+            ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)} (${entry.count})</option>`)
+        ].join('');
+        filterSelect.value = currentFilter;
+    }
+
+    const orderCategorySelect = document.getElementById('orderCategorySelect');
+    if (orderCategorySelect) {
+        orderCategorySelect.innerHTML = entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)}</option>`).join('');
+    }
+
+    const categoryDatalist = document.getElementById('categoryOptions');
+    if (categoryDatalist) {
+        categoryDatalist.innerHTML = entries.map(entry => `<option value="${escapeHtml(entry.label)}"></option>`).join('');
+    }
 }
 
 function renderOrders() {
@@ -282,8 +320,7 @@ function renderOrders() {
     const container = document.getElementById('orderList');
     
     const filtered = allOrders.filter(o => {
-        const cat = categoryMap[o.type] || 'fnb';
-        if (currentFilter !== 'all' && cat !== currentFilter) return false;
+        if (currentFilter !== 'all' && o.categoryKey !== currentFilter) return false;
         if (currentStatusFilter === 'open' && o.status === 'done') return false;
         if (currentStatusFilter === 'done' && o.status !== 'done') return false;
         if (!orderMatchesSearch(o, search)) return false;
@@ -306,7 +343,6 @@ function renderOrders() {
     }
 
     container.innerHTML = filtered.map(o => {
-        const info = tMap[o.type] || { label:'기타', icon:'fa-receipt', color:'var(--txt2)' };
         const state = statusInfo[o.status] || statusInfo.new;
         
         let actBtn;
@@ -327,7 +363,7 @@ function renderOrders() {
                 <div class="hk-task-room">${escapeHtml(o.room)}</div>
                 <div class="hk-task-info">
                     <div class="hk-task-title">
-                        <i class="fa-solid ${info.icon}" style="color:${info.color}"></i> ${info.label}
+                        <span class="pos-category-badge">${escapeHtml(o.categoryLabel)}</span>
                         <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:6px">${safeId}</span>
                         <span class="pos-completion-badge ${o.status === 'done' ? 'done' : 'open'}">${state.group}</span>
                     </div>
@@ -370,10 +406,8 @@ function updateKPIs() {
     document.getElementById('statusDoneCount').textContent = done;
 }
 
-function setFilter(btn, filter) {
+function setCategoryFilter(filter) {
     currentFilter = filter;
-    document.getElementById('categoryFilterChips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
     renderOrders();
 }
 
@@ -409,6 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const orders = await PmsAPI.getOrders();
         allOrders = orders.map(normalizeOrder).sort(orderSort);
         
+        refreshCategoryControls();
         updateKPIs();
         renderOrders();
         setupI18n();
@@ -431,13 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">카테고리 분류 <span style="color:var(--danger)">*</span></label>
-                    <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>식음료 / 룸서비스</option>
-                        <option>미니바</option>
-                        <option>스파</option>
-                        <option>세탁</option>
-                        <option>기타</option>
-                    </select>
+                    <select id="orderCategorySelect" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff"></select>
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
@@ -488,9 +517,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             <p style="font-size:0.85rem;color:var(--txt2)">호텔 내 모든 식음료 및 부가서비스 항목의 단가를 정의합니다.</p>
             
             <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-                <select style="flex:1;min-width:100px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
-                    <option>식음료</option><option>미니바</option><option>스파</option><option>세탁</option><option>기타</option>
-                </select>
+                <input type="text" list="categoryOptions" placeholder="카테고리명..." style="flex:1;min-width:130px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font)">
+                <datalist id="categoryOptions"></datalist>
                 <input type="text" placeholder="새 항목명..." style="flex:2;min-width:150px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font)">
                 <input type="number" placeholder="단가 ($)" style="width:80px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px">
                 <button class="btn-primary-sm" style="width:auto">추가</button>
