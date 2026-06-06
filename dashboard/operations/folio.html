@@ -54,24 +54,27 @@
         <div class="filter-bar-mt">
             <div class="filter-left" style="flex-wrap:wrap">
                 <div class="filter-chips" style="margin-right:10px">
-                    <button class="chip active" onclick="setKpiPeriod(this, 'day')">금일 (Today)</button>
-                    <button class="chip" onclick="setKpiPeriod(this, 'week')">주별 (Weekly)</button>
+                    <button class="chip" onclick="setKpiPeriod(this, 'day')">금일 (Today)</button>
+                    <button class="chip active" onclick="setKpiPeriod(this, 'week')">주별 (Weekly)</button>
                     <button class="chip" onclick="setKpiPeriod(this, 'month')">월별 (Monthly)</button>
                     <button class="chip" onclick="setKpiPeriod(this, 'year')">년도별 (Yearly)</button>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center">
-                    <select id="selYear" class="hotel-select" style="display:none;width:100px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
+                    <select id="selYear" class="hotel-select" onchange="handleFolioPeriodChange()" style="width:100px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
                         <option>2026년</option>
                         <option>2025년</option>
                     </select>
-                    <select id="selMonth" class="hotel-select" style="display:none;width:80px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
+                    <select id="selMonth" class="hotel-select" onchange="handleFolioPeriodChange()" style="width:80px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
+                        <option>6월</option>
                         <option>5월</option>
                         <option>4월</option>
                         <option>3월</option>
                     </select>
-                    <select id="selWeek" class="hotel-select" style="display:none;width:90px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
-                        <option>2주차</option>
+                    <select id="selWeek" class="hotel-select" onchange="handleFolioPeriodChange()" style="width:90px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
                         <option>1주차</option>
+                        <option selected>2주차</option>
+                        <option>3주차</option>
+                        <option>4주차</option>
                     </select>
                 </div>
             </div>
@@ -233,7 +236,7 @@ const stMap = {
 };
 
 let currentDept = 'all';
-let currentPeriod = 'day';
+let currentPeriod = 'week';
 
 const kpiData = {
     'day': { total:'$22,970', room:'$18,240', anc:'$3,450', diff:'+12.4%', label:'전일 대비' },
@@ -248,12 +251,68 @@ function fmtMoney(value, currency = 'USD') {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency,
-        maximumFractionDigits: currency === 'USD' ? 2 : 0
+        maximumFractionDigits: 0
     }).format(Number(value || 0));
 }
 
 function apiAmount(value) {
     return window.PmsMockApi ? window.PmsMockApi.amountValue(value) : Number(value?.amount || value || 0);
+}
+
+function selectedNumber(id, fallback) {
+    const el = document.getElementById(id);
+    const match = String(el?.value || '').match(/\d+/);
+    return match ? Number(match[0]) : fallback;
+}
+
+function folioDateParts(folio) {
+    const match = String(folio.out || '').match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return { year: 2026, month: 6, day: 1 };
+    return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
+}
+
+function folioWeekOfMonth(folio) {
+    return Math.floor((folioDateParts(folio).day - 1) / 7) + 1;
+}
+
+function periodMatchesFolio(folio) {
+    const parts = folioDateParts(folio);
+    const year = selectedNumber('selYear', 2026);
+    const month = selectedNumber('selMonth', 6);
+    const week = selectedNumber('selWeek', 2);
+    if (currentPeriod === 'year') return parts.year === year;
+    if (currentPeriod === 'month') return parts.year === year && parts.month === month;
+    if (currentPeriod === 'week') return parts.year === year && parts.month === month && folioWeekOfMonth(folio) === week;
+    return parts.year === year && parts.month === month && parts.day === 6;
+}
+
+function periodFolios() {
+    const source = apiFolios.length ? apiFolios : (foliosData[currentPeriod] || []);
+    return apiFolios.length ? source.filter(periodMatchesFolio) : source;
+}
+
+function comparePeriodFolios() {
+    if (!apiFolios.length) return [];
+    const year = selectedNumber('selYear', 2026);
+    const month = selectedNumber('selMonth', 6);
+    const week = selectedNumber('selWeek', 2);
+    return apiFolios.filter(folio => {
+        const parts = folioDateParts(folio);
+        if (currentPeriod === 'year') return parts.year === year - 1;
+        if (currentPeriod === 'month') return parts.year === year && parts.month === month - 1;
+        if (currentPeriod === 'week') return parts.year === year && parts.month === month && folioWeekOfMonth(folio) === week - 1;
+        return parts.year === year && parts.month === month && parts.day === 5;
+    });
+}
+
+function folioTotal(rows) {
+    return rows.reduce((sum, folio) => sum + Number(folio.total || 0), 0);
+}
+
+function formatDiffPercent(current, previous) {
+    if (!previous) return '-';
+    const diff = ((current - previous) / previous) * 100;
+    return `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%`;
 }
 
 function mapApiFolio(item) {
@@ -262,12 +321,18 @@ function mapApiFolio(item) {
     const total = charges.reduce((sum, charge) => sum + apiAmount(charge.amount), 0);
     const paid = payments.reduce((sum, payment) => sum + apiAmount(payment.amount), 0);
     const bal = apiAmount(item.balance) || Math.max(0, total - paid);
-    const roomRevenue = charges.filter(charge => charge.type === 'room').reduce((sum, charge) => sum + apiAmount(charge.amount), 0);
+    const typeTotals = charges.reduce((acc, charge) => {
+        const type = charge.type === 'fnb' ? 'pos' : (charge.type || 'pos');
+        acc[type] = (acc[type] || 0) + apiAmount(charge.amount);
+        return acc;
+    }, {});
+    const roomRevenue = typeTotals.room || 0;
     const ancillaryRevenue = total - roomRevenue;
+    const dept = Object.entries(typeTotals).sort((a, b) => b[1] - a[1])[0]?.[0] || 'pos';
     return {
         id: item.id,
         room: item.groupId ? 'Master' : (item.roomNo || '-'),
-        dept: roomRevenue >= ancillaryRevenue ? 'room' : 'pos',
+        dept,
         guest: item.ownerName || item.guestName || '-',
         out: item.closedAt ? item.closedAt.slice(0, 10) : '-',
         total,
@@ -282,7 +347,8 @@ function mapApiFolio(item) {
 
 function updateApiKpis() {
     if (!apiFolios.length) return false;
-    const totals = apiFolios.reduce((acc, folio) => {
+    const rows = periodFolios();
+    const totals = rows.reduce((acc, folio) => {
         acc.total += folio.total;
         acc.room += folio.roomRevenue || 0;
         acc.anc += folio.ancillaryRevenue || 0;
@@ -292,14 +358,15 @@ function updateApiKpis() {
     document.getElementById('kpiTotal').textContent = fmtMoney(totals.total, currency);
     document.getElementById('kpiRoom').textContent = fmtMoney(totals.room, currency);
     document.getElementById('kpiAnc').textContent = fmtMoney(totals.anc, currency);
-    document.getElementById('kpiDiff').textContent = '-';
-    document.getElementById('kpiDiff').nextElementSibling.textContent = 'API mock';
+    document.getElementById('kpiDiff').textContent = formatDiffPercent(totals.total, folioTotal(comparePeriodFolios()));
+    document.getElementById('kpiDiff').nextElementSibling.textContent = kpiData[currentPeriod]?.label || '전기 대비';
     return true;
 }
 
 async function loadApiFolios() {
     try {
         if (!window.PmsMockApi) return;
+        localStorage.removeItem('mockapi:v1:TENANT-GRAND-SAIGON:folios');
         const env = await window.PmsMockApi.request('GET', '/folios');
         apiFolios = window.PmsMockApi.items(env).map(mapApiFolio);
         updateApiKpis();
@@ -329,9 +396,14 @@ function setKpiPeriod(btn, period) {
     renderFolios();
 }
 
+function handleFolioPeriodChange() {
+    updateApiKpis();
+    renderFolios();
+}
+
 function renderFolios() {
     const search = document.getElementById('searchInput').value.toLowerCase();
-    const folios = apiFolios.length ? apiFolios : (foliosData[currentPeriod] || []);
+    const folios = periodFolios();
     const filtered = folios.filter(f => {
         const showUnpaidOnly = document.getElementById('chkUnpaid') ? document.getElementById('chkUnpaid').checked : false;
         if (typeof currentDept !== 'undefined' && currentDept !== 'all' && f.dept !== currentDept) return false;
