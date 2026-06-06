@@ -63,10 +63,10 @@
                 {
                     icon: 'fa-file-invoice-dollar', label: 'Folio & Billing', id: 'folio',
                     roles: ['sys_admin', 'sys_gm', 'sys_desk'],
-                    mainHref: BASE + 'operations/folio.html',
+                    mainHref: BASE + 'operations/reports.html',
                     children: [
-                        { label: 'Folio List',        href: BASE + 'operations/folio.html' },
                         { label: 'Revenue Analytics', href: BASE + 'operations/reports.html' },
+                        { label: 'Folio List',        href: BASE + 'operations/folio.html' },
                         { label: 'Night Audit',       href: BASE + 'operations/night-audit.html' },
                     ]
                 },
