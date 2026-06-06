@@ -701,6 +701,7 @@ function renderRoomBox(r, appendHtml) {
     
     // Check if room is occupied (guest currently staying)
     const isOccupied = (r.status === 'occupied');
+    const activeTask = r.taskId ? tasks.find(t => t.id === r.taskId) : null;
     
     if (isOccupied) {
         boxClass = 'occupied';
@@ -711,10 +712,12 @@ function renderRoomBox(r, appendHtml) {
             'dnd':  { emoji: '🔴', label: isEn ? 'DND' : '방해금지', cls: 'flag-dnd' },
             'mur':  { emoji: '🟢', label: isEn ? 'MUR' : '청소요청', cls: 'flag-mur' },
             'away': { emoji: '🚶', label: isEn ? 'Away' : '외출 중', cls: 'flag-away' },
-            'none': { emoji: '🛌', label: isEn ? 'In Room' : '재실 중', cls: 'flag-none' }
+            'none': { emoji: '', label: isEn ? 'No clean request' : '청소 요청 없음', cls: 'flag-none' }
         };
         const fi = flagMap[gf] || flagMap['none'];
-        if (gf !== 'none' && gf !== 'mur') {
+        if (gf === 'none') {
+            flagBadge = `<div class="guest-flag-badge ${fi.cls}">${fi.label}</div>`;
+        } else if (gf !== 'mur') {
             flagBadge = `<div class="guest-flag-badge ${fi.cls}">${fi.emoji} ${fi.label}</div>`;
         }
         
@@ -733,7 +736,6 @@ function renderRoomBox(r, appendHtml) {
 
     let actionBtnHtml = '';
     let completedByHtml = '';
-    const activeTask = r.taskId ? tasks.find(t => t.id === r.taskId) : null;
 
     if (isOccupied && activeTask && activeTask.type === 'stayover') {
         if (r.hkStatus === 'dirty') {
