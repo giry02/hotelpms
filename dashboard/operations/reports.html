@@ -164,22 +164,23 @@
         <div class="filter-bar-mt">
             <div class="filter-left" style="flex-wrap:wrap">
                 <div class="filter-chips" style="margin-right:10px">
-                    <button class="chip active" onclick="changeChartPeriod(this, 'week')">주별 (Weekly)</button>
+                    <button class="chip active" onclick="changeChartPeriod(this, 'day')">금일 (Today)</button>
+                    <button class="chip" onclick="changeChartPeriod(this, 'week')">주별 (Weekly)</button>
                     <button class="chip" onclick="changeChartPeriod(this, 'month')">월별 (Monthly)</button>
                     <button class="chip" onclick="changeChartPeriod(this, 'year')">년도별 (Yearly)</button>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center">
-                    <select id="selYear" class="hotel-select" onchange="handlePeriodFilterChange()" style="width:100px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
+                    <select id="selYear" class="hotel-select" onchange="handlePeriodFilterChange()" style="display:none;width:100px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
                         <option>2026년</option>
                         <option>2025년</option>
                     </select>
-                    <select id="selMonth" class="hotel-select" onchange="handlePeriodFilterChange()" style="width:80px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
+                    <select id="selMonth" class="hotel-select" onchange="handlePeriodFilterChange()" style="display:none;width:80px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
                         <option>6월</option>
                         <option>5월</option>
                         <option>4월</option>
                         <option>3월</option>
                     </select>
-                    <select id="selWeek" class="hotel-select" onchange="handlePeriodFilterChange()" style="width:90px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
+                    <select id="selWeek" class="hotel-select" onchange="handlePeriodFilterChange()" style="display:none;width:90px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
                         <option>1주차</option>
                         <option selected>2주차</option>
                         <option>3주차</option>
@@ -293,10 +294,10 @@ let selectedDailyIndex = null;
 function chartMoney(v){return '$' + Number(v || 0).toLocaleString();}
 const REPORT_TEXT = {
     ko: {
-        weekBtn:'주별 (Weekly)', monthBtn:'월별 (Monthly)', yearBtn:'년도별 (Yearly)',
-        weeklyTotal:'주별 총 매출', monthlyTotal:'월별 총 매출', yearlyTotal:'년도별 총 매출',
+        dayBtn:'금일 (Today)', weekBtn:'주별 (Weekly)', monthBtn:'월별 (Monthly)', yearBtn:'년도별 (Yearly)',
+        dailyTotal:'금일 총 매출', weeklyTotal:'주별 총 매출', monthlyTotal:'월별 총 매출', yearlyTotal:'년도별 총 매출',
         roomRevenue:'객실 매출', ancillaryRevenue:'부가서비스 매출',
-        vsLastWeek:'전주 대비', vsLastMonth:'전월 대비', vsLastYear:'전년 대비',
+        vsYesterday:'전일 대비', vsLastWeek:'전주 대비', vsLastMonth:'전월 대비', vsLastYear:'전년 대비',
         dailyTitle:'일별 매출 추이', monthlyTitle:'월별 매출 추이', yoyTitle:'작년 vs 올해 비교',
         lastYear:'작년', thisYear:'올해', currentYear:'올해', previousYear:'전년',
         weeklySummary:'해당 주차 총 매출', monthlySummary:'해당 월 총 매출', yearlySummary:'올해 누적 총 매출',
@@ -308,10 +309,10 @@ const REPORT_TEXT = {
         total:'합계', spa:'스파', other:'기타'
     },
     en: {
-        weekBtn:'Weekly', monthBtn:'Monthly', yearBtn:'Yearly',
-        weeklyTotal:'Weekly Total Revenue', monthlyTotal:'Monthly Total Revenue', yearlyTotal:'Yearly Total Revenue',
+        dayBtn:'Today', weekBtn:'Weekly', monthBtn:'Monthly', yearBtn:'Yearly',
+        dailyTotal:'Today Total Revenue', weeklyTotal:'Weekly Total Revenue', monthlyTotal:'Monthly Total Revenue', yearlyTotal:'Yearly Total Revenue',
         roomRevenue:'Room Revenue', ancillaryRevenue:'Ancillary Revenue',
-        vsLastWeek:'vs Last Week', vsLastMonth:'vs Last Month', vsLastYear:'vs Last Year',
+        vsYesterday:'vs Yesterday', vsLastWeek:'vs Last Week', vsLastMonth:'vs Last Month', vsLastYear:'vs Last Year',
         dailyTitle:'Daily Revenue Trend', monthlyTitle:'Monthly Revenue Trend', yoyTitle:'Last Year vs This Year',
         lastYear:'Last Year', thisYear:'This Year', currentYear:'This Year', previousYear:'Last Year',
         weeklySummary:'This Week Total Revenue', monthlySummary:'This Month Total Revenue', yearlySummary:'YTD Total Revenue',
@@ -363,9 +364,10 @@ function localizeDept(d){
 }
 function applyReportStaticI18n(){
     const chips = document.querySelectorAll('.filter-chips .chip');
-    if(chips[0]) chips[0].textContent = rt('weekBtn');
-    if(chips[1]) chips[1].textContent = rt('monthBtn');
-    if(chips[2]) chips[2].textContent = rt('yearBtn');
+    if(chips[0]) chips[0].textContent = rt('dayBtn');
+    if(chips[1]) chips[1].textContent = rt('weekBtn');
+    if(chips[2]) chips[2].textContent = rt('monthBtn');
+    if(chips[3]) chips[3].textContent = rt('yearBtn');
     const yearOptions = document.querySelectorAll('#selYear option');
     yearOptions.forEach(opt => { opt.textContent = currentLang === 'en' ? opt.textContent.replace(/[^\d]/g, '') : (opt.textContent.replace(/[^\d]/g, '') + '년'); });
     const monthOptions = document.querySelectorAll('#selMonth option');
@@ -595,7 +597,7 @@ function renderYoY(){
     renderYoyDetail(selectedYoyIndex);
 }
 let depts = [];
-let currentChartPeriod = 'week';
+let currentChartPeriod = 'day';
 let allTrendData = [];
 function parseMoneyValue(value){
     return Number(String(value || '').replace(/[^0-9.-]/g, '')) || 0;
@@ -622,7 +624,7 @@ function selectedNumber(id, fallback){
     const match = String(el?.value || el?.textContent || '').match(/\d+/);
     return match ? Number(match[0]) : fallback;
 }
-const CURRENT_REPORT_PERIOD = { year: 2026, month: 6, week: 2 };
+const CURRENT_REPORT_PERIOD = { year: 2026, month: 6, week: 2, day: 6 };
 function setSelectByNumber(id, number){
     const el = document.getElementById(id);
     if(!el) return;
@@ -647,21 +649,24 @@ function weekOfMonth(row){
     const { day } = monthAndDay(row);
     return Math.floor((day - 1) / 7) + 1;
 }
-function filterDailyRows(month, week){
+function filterDailyRows(month, week, day){
     return allDailyData.filter(row => {
         const parts = monthAndDay(row);
+        if(day) return parts.month === month && parts.day === day;
         return parts.month === month && (!week || weekOfMonth(row) === week);
     });
 }
 function syncSelectedPeriodData(){
     const month = selectedNumber('selMonth', 6);
     const week = selectedNumber('selWeek', 2);
-    const weekRows = filterDailyRows(month, week);
-    dailyData = weekRows.length ? weekRows : allDailyData.slice(-7);
+    const day = CURRENT_REPORT_PERIOD.day;
+    const rows = currentChartPeriod === 'day' ? filterDailyRows(month, null, day) : filterDailyRows(month, week);
+    dailyData = rows.length ? rows : allDailyData.slice(-7);
     selectedDailyIndex = dailyData.length ? Math.min(selectedDailyIndex ?? dailyData.length - 1, dailyData.length - 1) : null;
 
     const trendRows = allTrendData.filter(row => {
         const parts = monthAndDay(row);
+        if(currentChartPeriod === 'day') return parts.month === month && parts.day <= day && parts.day > day - 7;
         return parts.month === month && (!week || weekOfMonth(row) === week);
     });
     trendData = (trendRows.length ? trendRows : allTrendData.slice(-7)).slice(-7);
@@ -672,6 +677,14 @@ function getMonthlyRow(month){
 function getPeriodKpiData(type = currentChartPeriod){
     const month = selectedNumber('selMonth', 6);
     const week = selectedNumber('selWeek', 2);
+    const day = CURRENT_REPORT_PERIOD.day;
+    if(type === 'day'){
+        const currentRows = filterDailyRows(month, null, day);
+        const prevRows = filterDailyRows(month, null, day - 1);
+        const total = periodTotal(currentRows);
+        const room = periodRoomTotal(currentRows);
+        return { total: formatMoney(total), room: formatMoney(room), anc: formatMoney(total - room), diff: formatDiff(percentDiff(total, periodTotal(prevRows))), labelKey:'vsYesterday', titleKey:'dailyTotal' };
+    }
     if(type === 'week'){
         const currentRows = dailyData.length ? dailyData : filterDailyRows(month, week);
         const prevRows = filterDailyRows(month, Math.max(1, week - 1));
@@ -803,12 +816,13 @@ function changeLang(l){
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     applyReportStaticI18n();
-    const activeType = currentChartPeriod || 'week';
-    const activeChip = document.querySelector(`.filter-chips .chip:nth-child(${activeType==='week'?1:activeType==='month'?2:3})`);
+    const activeType = currentChartPeriod || 'day';
+    const activeChip = document.querySelector(`.filter-chips .chip:nth-child(${activeType==='day'?1:activeType==='week'?2:activeType==='month'?3:4})`);
     if(activeChip) changeChartPeriod(activeChip, activeType);
     renderBarChart(); renderMonthly(); renderYoY(); renderDepts(activeType); renderTrend();
 }
 const kpiData = {
+    'day': { total:'$50,500', room:'$38,200', anc:'$12,300', diff:'+15.2%', labelKey:'vsYesterday', titleKey:'dailyTotal' },
     'week': { total:'$164,250', room:'$131,000', anc:'$22,800', diff:'+5.8%', labelKey:'vsLastWeek', titleKey:'weeklyTotal' },
     'month': { total:'$690,000', room:'$560,000', anc:'$95,000', diff:'+18.2%', labelKey:'vsLastMonth', titleKey:'monthlyTotal' },
     'year': { total:'$3,140,000', room:'$2,450,000', anc:'$520,000', diff:'+18.2%', labelKey:'vsLastYear', titleKey:'yearlyTotal' }
@@ -820,10 +834,11 @@ function changeChartPeriod(btn, type, resetPeriod = true) {
     btn.classList.add('active');
     if(resetPeriod) resetToCurrentReportPeriod(type);
     
+    document.getElementById('selYear').style.display = (type === 'day') ? 'none' : 'inline-block';
     document.getElementById('selMonth').style.display = (type === 'week' || type === 'month') ? 'inline-block' : 'none';
     document.getElementById('selWeek').style.display = (type === 'week') ? 'inline-block' : 'none';
     
-    document.getElementById('cardDaily').style.display = (type === 'week') ? 'block' : 'none';
+    document.getElementById('cardDaily').style.display = (type === 'day' || type === 'week') ? 'block' : 'none';
     document.getElementById('cardMonthly').style.display = (type === 'month') ? 'block' : 'none';
     document.getElementById('cardYearly').style.display = (type === 'year') ? 'block' : 'none';
     
@@ -835,11 +850,19 @@ function changeChartPeriod(btn, type, resetPeriod = true) {
     document.getElementById('kpiAnc').textContent = periodKpi.anc;
     document.getElementById('kpiDiff').textContent = periodKpi.diff;
     document.getElementById('kpiDiff').nextElementSibling.textContent = rt(periodKpi.labelKey);
-    if(document.getElementById('summaryWeekTotal')) document.getElementById('summaryWeekTotal').textContent = getPeriodKpiData('week').total;
-    if(document.getElementById('summaryWeekDiff')) document.getElementById('summaryWeekDiff').innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${getPeriodKpiData('week').diff}`;
+    applyReportStaticI18n();
+    const dailySummaryType = type === 'day' ? 'day' : 'week';
+    const dailySummaryKpi = getPeriodKpiData(dailySummaryType);
+    if(document.getElementById('summaryWeekTotal')) {
+        document.getElementById('summaryWeekTotal').textContent = dailySummaryKpi.total;
+        document.getElementById('summaryWeekTotal').previousElementSibling.textContent = rt(dailySummaryKpi.titleKey);
+    }
+    if(document.getElementById('summaryWeekDiff')) {
+        document.getElementById('summaryWeekDiff').innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${dailySummaryKpi.diff}`;
+        document.getElementById('summaryWeekDiff').previousElementSibling.textContent = rt(dailySummaryKpi.labelKey);
+    }
     if(document.getElementById('summaryMonthTotal')) document.getElementById('summaryMonthTotal').textContent = getPeriodKpiData('month').total;
     if(document.getElementById('summaryMonthDiff')) document.getElementById('summaryMonthDiff').innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${getPeriodKpiData('month').diff}`;
-    applyReportStaticI18n();
     renderBarChart();
     renderTrend();
     renderDepts(type);
