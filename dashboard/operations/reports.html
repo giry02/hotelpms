@@ -130,7 +130,7 @@
     .filter-left { flex-direction: column; align-items: stretch; overflow: visible; gap: 10px; }
     .filter-left > div { width: 100%; min-width: 0; }
     .filter-left > div[style*="display:flex"]:not(.filter-chips) { display: flex !important; gap: 8px; }
-    .filter-chips { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; margin-right: 0 !important; }
+    .filter-chips { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px !important; margin-right: 0 !important; }
     .filter-chips .chip { justify-content: center; min-width: 0; padding-inline: 8px; }
     .rev-bar-chart { height: 180px; gap: 8px; }
     .rev-bar-group { min-width: 0; }
@@ -164,10 +164,9 @@
         <div class="filter-bar-mt">
             <div class="filter-left" style="flex-wrap:wrap">
                 <div class="filter-chips" style="margin-right:10px">
-                    <button class="chip active" onclick="changeChartPeriod(this, 'day')">금일</button>
-                    <button class="chip" onclick="changeChartPeriod(this, 'week')">주별</button>
+                    <button class="chip active" onclick="changeChartPeriod(this, 'week')">주별</button>
                     <button class="chip" onclick="changeChartPeriod(this, 'month')">월별</button>
-                    <button class="chip" onclick="changeChartPeriod(this, 'year')">년도별</button>
+                    <button class="chip" onclick="changeChartPeriod(this, 'year')">연도별</button>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center">
                     <select id="selYear" class="hotel-select" onchange="handlePeriodFilterChange()" style="display:none;width:100px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
@@ -294,8 +293,8 @@ let selectedDailyIndex = null;
 function chartMoney(v){return '$' + Number(v || 0).toLocaleString();}
 const REPORT_TEXT = {
     ko: {
-        dayBtn:'금일', weekBtn:'주별', monthBtn:'월별', yearBtn:'년도별',
-        dailyTotal:'금일 총 매출', weeklyTotal:'주별 총 매출', monthlyTotal:'월별 총 매출', yearlyTotal:'년도별 총 매출',
+        weekBtn:'주별', monthBtn:'월별', yearBtn:'연도별',
+        dailyTotal:'일별 총 매출', weeklyTotal:'주별 총 매출', monthlyTotal:'월별 총 매출', yearlyTotal:'연도별 총 매출',
         roomRevenue:'객실 매출', ancillaryRevenue:'부가서비스 매출',
         vsYesterday:'전일 대비', vsLastWeek:'전주 대비', vsLastMonth:'전월 대비', vsLastYear:'전년 대비',
         dailyTitle:'일별 매출 추이', monthlyTitle:'월별 매출 추이', yoyTitle:'작년 vs 올해 비교',
@@ -309,8 +308,8 @@ const REPORT_TEXT = {
         total:'합계', fnb:'식음료', spa:'스파', other:'기타'
     },
     en: {
-        dayBtn:'Today', weekBtn:'Weekly', monthBtn:'Monthly', yearBtn:'Yearly',
-        dailyTotal:'Today Total Revenue', weeklyTotal:'Weekly Total Revenue', monthlyTotal:'Monthly Total Revenue', yearlyTotal:'Yearly Total Revenue',
+        weekBtn:'Weekly', monthBtn:'Monthly', yearBtn:'Yearly',
+        dailyTotal:'Daily Total Revenue', weeklyTotal:'Weekly Total Revenue', monthlyTotal:'Monthly Total Revenue', yearlyTotal:'Yearly Total Revenue',
         roomRevenue:'Room Revenue', ancillaryRevenue:'Ancillary Revenue',
         vsYesterday:'vs Yesterday', vsLastWeek:'vs Last Week', vsLastMonth:'vs Last Month', vsLastYear:'vs Last Year',
         dailyTitle:'Daily Revenue Trend', monthlyTitle:'Monthly Revenue Trend', yoyTitle:'Last Year vs This Year',
@@ -364,10 +363,9 @@ function localizeDept(d){
 }
 function applyReportStaticI18n(){
     const chips = document.querySelectorAll('.filter-chips .chip');
-    if(chips[0]) chips[0].textContent = rt('dayBtn');
-    if(chips[1]) chips[1].textContent = rt('weekBtn');
-    if(chips[2]) chips[2].textContent = rt('monthBtn');
-    if(chips[3]) chips[3].textContent = rt('yearBtn');
+    if(chips[0]) chips[0].textContent = rt('weekBtn');
+    if(chips[1]) chips[1].textContent = rt('monthBtn');
+    if(chips[2]) chips[2].textContent = rt('yearBtn');
     const yearOptions = document.querySelectorAll('#selYear option');
     yearOptions.forEach(opt => { opt.textContent = currentLang === 'en' ? opt.textContent.replace(/[^\d]/g, '') : (opt.textContent.replace(/[^\d]/g, '') + '년'); });
     const monthOptions = document.querySelectorAll('#selMonth option');
@@ -597,7 +595,7 @@ function renderYoY(){
     renderYoyDetail(selectedYoyIndex);
 }
 let depts = [];
-let currentChartPeriod = 'day';
+let currentChartPeriod = 'week';
 let allTrendData = [];
 function parseMoneyValue(value){
     return Number(String(value || '').replace(/[^0-9.-]/g, '')) || 0;
@@ -816,8 +814,8 @@ function changeLang(l){
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     applyReportStaticI18n();
-    const activeType = currentChartPeriod || 'day';
-    const activeChip = document.querySelector(`.filter-chips .chip:nth-child(${activeType==='day'?1:activeType==='week'?2:activeType==='month'?3:4})`);
+    const activeType = currentChartPeriod || 'week';
+    const activeChip = document.querySelector(`.filter-chips .chip:nth-child(${activeType==='month'?2:activeType==='year'?3:1})`);
     if(activeChip) changeChartPeriod(activeChip, activeType);
     renderBarChart(); renderMonthly(); renderYoY(); renderDepts(activeType); renderTrend();
 }
@@ -834,7 +832,7 @@ function changeChartPeriod(btn, type, resetPeriod = true) {
     btn.classList.add('active');
     if(resetPeriod) resetToCurrentReportPeriod(type);
     
-    document.getElementById('selYear').style.display = (type === 'day') ? 'none' : 'inline-block';
+    document.getElementById('selYear').style.display = 'inline-block';
     document.getElementById('selMonth').style.display = (type === 'week' || type === 'month') ? 'inline-block' : 'none';
     document.getElementById('selWeek').style.display = (type === 'week') ? 'inline-block' : 'none';
     
