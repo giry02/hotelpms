@@ -44,12 +44,26 @@
 .btn-search:hover { background: #1D4ED8; }
 .filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.filter-label { font-size: .74rem; font-weight: 800; color: var(--txt3); white-space: nowrap; }
+.pos-completion-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: .7rem; font-weight: 800; white-space: nowrap; }
+.pos-completion-badge.open { background: var(--warning-lt); color: var(--warning); }
+.pos-completion-badge.done { background: var(--success-lt); color: var(--success); }
+.pos-status-detail { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; }
+.pos-status-detail.new { color: var(--danger); }
+.pos-status-detail.prep { color: var(--primary); }
+.pos-status-detail.done { color: var(--success); }
+.order-summary { padding: 12px 20px; border-bottom: 1px solid var(--border2); color: var(--txt2); font-size: .82rem; font-weight: 600; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.order-summary strong { color: var(--txt); }
+.kpi-card, .card { animation: none; opacity: 1; transform: none; }
 
 @media(max-width:768px){
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
     .filter-left { flex-wrap: wrap; gap: 10px; }
     .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
+    .filter-divider { display: none; }
+    .filter-group { width: 100%; }
     .filter-right { justify-content: flex-start; }
 }
 </style>
@@ -66,14 +80,14 @@
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-bell"></i></div></div>
                 <div class="kpi-body">
                     <div class="kpi-value" id="kpiNew">0</div>
-                    <div class="kpi-label">New Requests</div>
+                    <div class="kpi-label">신규 접수</div>
                 </div>
             </div>
             <div class="kpi-card blue">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-fire-burner"></i></div></div>
                 <div class="kpi-body">
                     <div class="kpi-value" id="kpiPrep">0</div>
-                    <div class="kpi-label">Preparing</div>
+                    <div class="kpi-label">처리 중</div>
                 </div>
             </div>
             <div class="kpi-card green">
@@ -87,7 +101,7 @@
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div></div>
                 <div class="kpi-body">
                     <div class="kpi-value" id="kpiRev">$0</div>
-                    <div class="kpi-label">Est. Revenue</div>
+                    <div class="kpi-label">누적 매출</div>
                 </div>
             </div>
         </div>
@@ -95,25 +109,36 @@
         <!-- FILTER -->
         <div class="filter-bar-mt">
             <div class="filter-left">
-                <div style="display:flex;align-items:center;gap:8px">
-                    <div class="search-container">
+                <div class="search-container">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="searchInput" placeholder="객실번호 검색..." oninput="renderOrders()">
+                        <input type="text" id="searchInput" data-pms-no-search-button="true" placeholder="객실번호, 고객명, 오더번호 검색..." oninput="renderOrders()" onkeydown="if(event.key==='Enter') renderOrders()">
                     </div>
-                </div>
-                <div class="filter-divider"></div>
                     <button onclick="renderOrders()" class="btn-primary-sm"
                         style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap">
                         <i class="fa-solid fa-magnifying-glass"></i> 검색
                     </button>
                 </div>
-                <div class="filter-chips">
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <span class="filter-label">처리 상태</span>
+                    <div class="filter-chips" id="statusFilterChips">
+                        <button class="chip active" onclick="setStatusFilter(this,'all')">전체 <span class="chip-count" id="statusAllCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'open')">미완료 <span class="chip-count" id="statusOpenCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'done')">완료 <span class="chip-count" id="statusDoneCount">0</span></button>
+                    </div>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <span class="filter-label">카테고리</span>
+                    <div class="filter-chips" id="categoryFilterChips">
                     <button class="chip active" onclick="setFilter(this,'all')">전체 오더</button>
                     <button class="chip" onclick="setFilter(this,'fnb')"><i class="fa-solid fa-utensils" style="color:var(--txt2)"></i> 식음료/룸서비스</button>
                     <button class="chip" onclick="setFilter(this,'minibar')"><i class="fa-solid fa-wine-bottle" style="color:var(--txt2)"></i> 미니바</button>
                     <button class="chip" onclick="setFilter(this,'spa')"><i class="fa-solid fa-spa" style="color:var(--txt2)"></i> 스파</button>
                     <button class="chip" onclick="setFilter(this,'laundry')"><i class="fa-solid fa-shirt" style="color:var(--txt2)"></i> 세탁</button>
+                    <button class="chip" onclick="setFilter(this,'other')"><i class="fa-solid fa-bag-shopping" style="color:var(--txt2)"></i> 리테일/기타</button>
+                    </div>
                 </div>
             </div>
             <div class="filter-right">
@@ -125,6 +150,7 @@
         <!-- ORDER LIST -->
         <div class="card">
             <div class="card-body" style="padding:0">
+                <div class="order-summary" id="orderSummary"></div>
                 <div class="hk-task-list" id="orderList">
                     <!-- Generated by JS -->
                 </div>
@@ -139,33 +165,140 @@ let allOrders = [];
 const categoryMap = {
     'roomservice': 'fnb',
     'dining': 'fnb',
+    'breakfast': 'fnb',
+    'drink': 'fnb',
     'minibar': 'minibar',
     'spa': 'spa',
     'laundry': 'laundry',
+    'retail': 'other',
     'other': 'other'
 };
 
 const tMap = {
     'roomservice': { label:'룸서비스', icon:'fa-bell-concierge', color:'var(--orange)' },
     'dining': { label:'다이닝', icon:'fa-utensils', color:'var(--purple)' },
+    'breakfast': { label:'조식', icon:'fa-mug-saucer', color:'var(--orange)' },
+    'drink': { label:'음료/바', icon:'fa-martini-glass-citrus', color:'var(--purple)' },
     'minibar': { label:'미니바', icon:'fa-wine-bottle', color:'var(--blue)' },
     'spa': { label:'스파/마사지', icon:'fa-spa', color:'var(--success)' },
     'laundry': { label:'세탁', icon:'fa-shirt', color:'var(--primary)' },
+    'retail': { label:'리테일', icon:'fa-bag-shopping', color:'var(--txt2)' },
     'other': { label:'기타 비용', icon:'fa-receipt', color:'var(--txt2)' }
 };
 
+const statusInfo = {
+    new: { label:'신규 접수', group:'미완료', cls:'new', icon:'fa-circle-exclamation', taskClass:'dirty' },
+    prep: { label:'처리 중', group:'미완료', cls:'prep', icon:'fa-fire-burner', taskClass:'inspect' },
+    done: { label:'완료', group:'완료', cls:'done', icon:'fa-check-circle', taskClass:'clean' }
+};
+
 let currentFilter = 'all';
+let currentStatusFilter = 'all';
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
+function normalizeOrderStatus(status) {
+    const value = String(status || '').replace(/[-_\s]/g, '').toLowerCase();
+    if (['done', 'complete', 'completed', 'closed', 'paid'].includes(value)) return 'done';
+    if (['prep', 'preparing', 'accepted', 'progress', 'processing', 'delivering'].includes(value)) return 'prep';
+    return 'new';
+}
+
+function normalizeOrderType(type) {
+    const value = String(type || 'other').replace(/[-_\s]/g, '').toLowerCase();
+    if (['roomservice', 'service'].includes(value)) return 'roomservice';
+    if (['dining', 'restaurant', 'fnb', 'food'].includes(value)) return 'dining';
+    if (['breakfast'].includes(value)) return 'breakfast';
+    if (['drink', 'bar', 'beverage'].includes(value)) return 'drink';
+    if (['minibar'].includes(value)) return 'minibar';
+    if (['spa', 'massage'].includes(value)) return 'spa';
+    if (['laundry', 'drycleaning'].includes(value)) return 'laundry';
+    if (['retail', 'shop'].includes(value)) return 'retail';
+    return 'other';
+}
+
+function normalizeOrder(order) {
+    const fullRoom = order.roomId || order.fullRoom || order.room || order.roomNo || '';
+    const room = order.roomNo || String(fullRoom).split('-').pop() || fullRoom;
+    const items = Array.isArray(order.items) ? order.items.join(', ') : (order.items || order.desc || '');
+    const total = typeof order.total === 'object' ? order.total?.amount : order.total;
+    return {
+        ...order,
+        room: String(room || ''),
+        fullRoom: String(fullRoom || room || ''),
+        guest: order.guest || order.guestName || '',
+        type: normalizeOrderType(order.type || order.category),
+        items,
+        total: Number(total || 0),
+        status: normalizeOrderStatus(order.status),
+        date: order.date || '2026-06-06',
+        time: order.time || '--:--'
+    };
+}
+
+function orderSort(a, b) {
+    const priority = { new: 0, prep: 1, done: 2 };
+    const statusDiff = (priority[a.status] ?? 3) - (priority[b.status] ?? 3);
+    if (statusDiff) return statusDiff;
+    return `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`);
+}
+
+function formatAmount(amount) {
+    const value = Number(amount || 0);
+    return '$' + value.toLocaleString(undefined, {
+        minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function formatOrderTime(order) {
+    const date = order.date ? order.date.slice(5).replace('-', '.') : '';
+    return [date, order.time].filter(Boolean).join(' ');
+}
+
+function orderMatchesSearch(order, query) {
+    if (!query) return true;
+    const haystack = [
+        order.id,
+        order.room,
+        order.fullRoom,
+        order.roomId,
+        order.guest,
+        order.items
+    ].filter(Boolean).join(' ').toLowerCase();
+    return haystack.includes(query);
+}
 
 function renderOrders() {
-    const search = document.getElementById('searchInput').value.toLowerCase();
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
     const container = document.getElementById('orderList');
     
     const filtered = allOrders.filter(o => {
         const cat = categoryMap[o.type] || 'fnb';
         if (currentFilter !== 'all' && cat !== currentFilter) return false;
-        if (search && !o.room.toLowerCase().includes(search)) return false;
+        if (currentStatusFilter === 'open' && o.status === 'done') return false;
+        if (currentStatusFilter === 'done' && o.status !== 'done') return false;
+        if (!orderMatchesSearch(o, search)) return false;
         return true;
     });
+
+    const summary = document.getElementById('orderSummary');
+    if (summary) {
+        const openCount = filtered.filter(o => o.status !== 'done').length;
+        const totalAmount = filtered.reduce((sum, o) => sum + Number(o.total || 0), 0);
+        summary.innerHTML = `
+            <span>표시 오더 <strong>${filtered.length}</strong>건 / 미완료 <strong>${openCount}</strong>건</span>
+            <span>표시 금액 <strong>${formatAmount(totalAmount)}</strong></span>
+        `;
+    }
 
     if (filtered.length === 0) {
         container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3)">해당하는 오더가 없습니다.</div>';
@@ -174,37 +307,37 @@ function renderOrders() {
 
     container.innerHTML = filtered.map(o => {
         const info = tMap[o.type] || { label:'기타', icon:'fa-receipt', color:'var(--txt2)' };
+        const state = statusInfo[o.status] || statusInfo.new;
         
-        let sHtml, actBtn;
+        let actBtn;
         if (o.status === 'new') {
-            sHtml = `<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> 신규 접수</span>`;
             actBtn = `<button class="btn-primary-sm" onclick="acceptOrder('${o.id}')"><i class="fa-solid fa-check"></i> 오더 수락</button>`;
         } else if (o.status === 'prep') {
-            sHtml = `<span style="color:var(--primary);font-weight:700"><i class="fa-solid fa-fire-burner"></i> Preparing</span>`;
             actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)" onclick="completeOrder('${o.id}')"><i class="fa-solid fa-check-double"></i> 처리 완료</button>`;
         } else {
-            sHtml = `<span style="color:var(--success)"><i class="fa-solid fa-check-circle"></i> 완료</span>`;
             actBtn = `<button class="btn-outline-sm" disabled>완료됨</button>`;
         }
 
-        const amtHtml = o.total > 0 ? `<span style="font-weight:700;color:var(--txt)">$${o.total.toFixed(2)}</span>` : `<span style="color:var(--txt3)">무료/안내</span>`;
+        const amtHtml = o.total > 0 ? `<span style="font-weight:700;color:var(--txt)">${formatAmount(o.total)}</span>` : `<span style="color:var(--txt3)">무료/안내</span>`;
+        const safeId = escapeHtml(o.id);
 
         return `
-        <div class="hk-task ${o.status === 'new' ? 'dirty' : (o.status === 'done' ? 'clean' : 'inspect')}">
+        <div class="hk-task ${state.taskClass}">
             <div class="hk-task-left">
-                <div class="hk-task-room">${o.room}</div>
+                <div class="hk-task-room">${escapeHtml(o.room)}</div>
                 <div class="hk-task-info">
                     <div class="hk-task-title">
                         <i class="fa-solid ${info.icon}" style="color:${info.color}"></i> ${info.label}
-                        <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:6px">${o.id}</span>
+                        <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:6px">${safeId}</span>
+                        <span class="pos-completion-badge ${o.status === 'done' ? 'done' : 'open'}">${state.group}</span>
                     </div>
                     <div class="hk-task-meta" style="color:var(--txt);font-weight:500">
-                        ${o.guest ? o.guest + ' - ' : ''}${o.items}
+                        ${o.guest ? escapeHtml(o.guest) + ' - ' : ''}${escapeHtml(o.items)}
                     </div>
                     <div class="hk-task-meta">
-                        ${sHtml}
+                        <span class="pos-status-detail ${state.cls}"><i class="fa-solid ${state.icon}"></i> ${state.label}</span>
                         <span style="color:var(--border)">|</span>
-                        <span><i class="fa-regular fa-clock"></i> 접수: ${o.time}</span>
+                        <span><i class="fa-regular fa-clock"></i> 접수: ${formatOrderTime(o)}</span>
                         <span style="color:var(--border)">|</span>
                         <span>청구액: ${amtHtml}</span>
                     </div>
@@ -223,33 +356,42 @@ function updateKPIs() {
     allOrders.forEach(o => {
         if(o.status === 'new') newReq++;
         else if(o.status === 'prep') prep++;
-        else if(o.status === 'done') {
-            done++;
-            rev += o.total;
-        }
+        else if(o.status === 'done') done++;
+        rev += Number(o.total || 0);
     });
     
     document.getElementById('kpiNew').textContent = newReq;
     document.getElementById('kpiPrep').textContent = prep;
     document.getElementById('kpiDone').textContent = done;
-    document.getElementById('kpiRev').textContent = '$' + rev.toFixed(0);
+    document.getElementById('kpiRev').textContent = formatAmount(rev);
+
+    document.getElementById('statusAllCount').textContent = allOrders.length;
+    document.getElementById('statusOpenCount').textContent = newReq + prep;
+    document.getElementById('statusDoneCount').textContent = done;
 }
 
 function setFilter(btn, filter) {
     currentFilter = filter;
-    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    document.getElementById('categoryFilterChips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    renderOrders();
+}
+
+function setStatusFilter(btn, filter) {
+    currentStatusFilter = filter;
+    document.getElementById('statusFilterChips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     renderOrders();
 }
 
 function acceptOrder(id) {
     const o = allOrders.find(x => x.id === id);
-    if(o) { o.status = 'prep'; renderOrders(); updateKPIs(); }
+    if(o) { o.status = 'prep'; allOrders.sort(orderSort); updateKPIs(); renderOrders(); }
 }
 
 function completeOrder(id) {
     const o = allOrders.find(x => x.id === id);
-    if(o) { o.status = 'done'; renderOrders(); updateKPIs(); }
+    if(o) { o.status = 'done'; allOrders.sort(orderSort); updateKPIs(); renderOrders(); }
 }
 
 function openModal(id) {
@@ -264,26 +406,8 @@ function closeModal(id) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const fnb = [
-            { id: "ORD-001", room: "1401", type: "roomservice", guest: "Steve T", items: "클럽 샌드위치, 콜라", total: 32, status: "new", time: "10:05" },
-            { id: "ORD-002", room: "0805", type: "dining", guest: "Maria G", items: "조식 뷔페 2인", total: 70, status: "done", time: "08:30" }
-        ];
-        const minibar = [
-            { id: "MB-001", room: "1205", type: "minibar", guest: "John D", items: "에비앙 2, 맥주 1", total: 24, status: "prep", time: "09:15" }
-        ];
-        const spa = [
-            { id: "SPA-001", room: "PH01", type: "spa", guest: "Kim H", items: "아로마 마사지 90분 2인", total: 380, status: "done", time: "11:00" }
-        ];
-        const laundry = [
-            { id: "LND-001", room: "1403", type: "laundry", guest: "Lee S", items: "셔츠 드라이클리닝 2", total: 30, status: "new", time: "10:30" }
-        ];
-        
-        allOrders = [...fnb, ...minibar, ...spa, ...laundry];
-        allOrders.sort((a,b) => {
-            if(a.status === 'new' && b.status !== 'new') return -1;
-            if(b.status === 'new' && a.status !== 'new') return 1;
-            return a.time.localeCompare(b.time);
-        });
+        const orders = await PmsAPI.getOrders();
+        allOrders = orders.map(normalizeOrder).sort(orderSort);
         
         updateKPIs();
         renderOrders();
@@ -347,7 +471,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-            <button class="btn-outline" onclick="closeModal('addOrderModal')">Cancel</button>
+            <button class="btn-outline" onclick="closeModal('addOrderModal')">취소</button>
             <button class="btn-primary-sm" onclick="closeModal('addOrderModal'); showToast('오더가 전송되었습니다.', 'success');"><i class="fa-solid fa-check"></i> 오더 전송</button>
         </div>
     </div>
