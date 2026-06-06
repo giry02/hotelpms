@@ -33,17 +33,27 @@
         .val-danger { color: var(--danger); }
         .val-success { color: var(--success); }
 
-        .rev-table { width: 100%; border-collapse: collapse; }
-        .rev-table td { padding: 16px 12px; border-bottom: 1px solid var(--border2); font-size: 0.95rem; font-weight: 500; }
-        .rev-table tr:last-child td { border-bottom: none; }
-        .rev-amount { text-align: right; font-size: 1.1rem; font-weight: 700; }
-        .rev-total { background: #f8fafc; }
-        .rev-total td { font-weight: 800; color: var(--primary); font-size: 1.2rem; border-top: 2px solid var(--border); }
+        .revenue-verification-body { padding: 18px 20px 20px; }
+        .revenue-list { display: flex; flex-direction: column; gap: 10px; }
+        .revenue-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px; padding: 14px 16px; border: 1px solid var(--border2); border-radius: 10px; background: #fff; }
+        .revenue-row-main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+        .revenue-row-icon { width: 34px; height: 34px; border-radius: 8px; background: #f8fafc; color: var(--txt3); display: flex; align-items: center; justify-content: center; flex: 0 0 34px; }
+        .revenue-row-title { font-weight: 700; color: var(--txt); font-size: 0.95rem; line-height: 1.35; }
+        .revenue-row-sub { font-size: 0.75rem; color: var(--txt3); margin-top: 3px; line-height: 1.35; }
+        .revenue-row-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; min-width: 180px; }
+        .revenue-link { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--primary); font-weight: 600; text-decoration: none; padding: 5px 9px; border: 1px solid var(--primary-lt); border-radius: 6px; background: rgba(37,99,235,0.05); white-space: nowrap; }
+        .rev-amount { text-align: right; font-size: 1.1rem; font-weight: 700; white-space: nowrap; }
+        .revenue-total { margin-top: 2px; background: #f8fafc; border-color: var(--border); }
+        .revenue-total .revenue-row-title,
+        .revenue-total .rev-amount { color: var(--primary); font-weight: 800; }
+        .revenue-total .rev-amount { font-size: 1.5rem; }
 
         .action-box { background: var(--bg); border: 1px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; }
         
         @media (max-width: 768px) {
             .check-grid { grid-template-columns: 1fr; }
+            .revenue-row { grid-template-columns: 1fr; gap: 12px; }
+            .revenue-row-actions { justify-content: space-between; min-width: 0; }
         }
     </style>
 </head>
@@ -107,47 +117,70 @@
             <div class="audit-header">
                 <i class="fa-solid fa-calculator" style="color:var(--success)"></i> 2. 금일 정산액 검증
             </div>
-            <div class="audit-body" style="padding:0">
-                <table class="rev-table">
-                    <tbody>
-                        <tr>
-                            <td>
-                                <i class="fa-solid fa-bed" style="color:var(--txt3); margin-right:8px; width:16px"></i> 
-                                객실 수익
-                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">총 <span id="revRoomCount">0</span> 객실 이용 요금 (Tax 포함)</div>
-                            </td>
-                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revRoomAmt">$0</span> <a href="folio.html?dept=room" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <i class="fa-solid fa-utensils" style="color:var(--txt3); margin-right:8px; width:16px"></i> 
-                                식음료 / 룸서비스
-                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">통합 주문 데이터 기준</div>
-                            </td>
-                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revFnbAmt">$0</span> <a href="folio.html?dept=pos" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <i class="fa-solid fa-golf-ball-tee" style="color:var(--txt3); margin-right:8px; width:16px"></i>
-                                골프장
-                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">그린피, 카트 이용료 기준</div>
-                            </td>
-                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revGolfAmt">$0</span> <a href="folio.html?dept=golf" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <i class="fa-solid fa-car" style="color:var(--txt3); margin-right:8px; width:16px"></i>
-                                렌트카
-                                <div style="font-size:0.75rem; color:var(--txt3); margin-top:4px">차량 렌탈 이용료 기준</div>
-                            </td>
-                            <td class="rev-amount" style="display:flex; justify-content:flex-end; align-items:center"><span id="revCarAmt">$0</span> <a href="folio.html?dept=car" target="_blank" style="font-size:0.75rem; color:var(--primary); font-weight:600; text-decoration:none; margin-left:8px; padding:4px 8px; border:1px solid var(--primary-lt); border-radius:4px; background:rgba(37,99,235,0.05)"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a></td>
-                        </tr>
-                        <tr class="rev-total">
-                            <td>일일 총 영업 이익</td>
-                            <td class="rev-amount" id="revTotalAmt" style="font-size:1.5rem">$0</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="audit-body revenue-verification-body">
+                <div class="revenue-list">
+                    <div class="revenue-row">
+                        <div class="revenue-row-main">
+                            <div class="revenue-row-icon"><i class="fa-solid fa-bed"></i></div>
+                            <div>
+                                <div class="revenue-row-title">객실 수익</div>
+                                <div class="revenue-row-sub">총 객실 이용 요금</div>
+                            </div>
+                        </div>
+                        <div class="revenue-row-actions">
+                            <span class="rev-amount" id="revRoomAmt">$0</span>
+                            <a href="folio.html?dept=room" target="_blank" class="revenue-link"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a>
+                        </div>
+                    </div>
+                    <div class="revenue-row">
+                        <div class="revenue-row-main">
+                            <div class="revenue-row-icon"><i class="fa-solid fa-utensils"></i></div>
+                            <div>
+                                <div class="revenue-row-title">식음료 / 룸서비스</div>
+                                <div class="revenue-row-sub">통합 주문 데이터 기준</div>
+                            </div>
+                        </div>
+                        <div class="revenue-row-actions">
+                            <span class="rev-amount" id="revFnbAmt">$0</span>
+                            <a href="folio.html?dept=pos" target="_blank" class="revenue-link"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a>
+                        </div>
+                    </div>
+                    <div class="revenue-row">
+                        <div class="revenue-row-main">
+                            <div class="revenue-row-icon"><i class="fa-solid fa-golf-ball-tee"></i></div>
+                            <div>
+                                <div class="revenue-row-title">골프장</div>
+                                <div class="revenue-row-sub">그린피, 카트 이용료 기준</div>
+                            </div>
+                        </div>
+                        <div class="revenue-row-actions">
+                            <span class="rev-amount" id="revGolfAmt">$0</span>
+                            <a href="folio.html?dept=golf" target="_blank" class="revenue-link"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a>
+                        </div>
+                    </div>
+                    <div class="revenue-row">
+                        <div class="revenue-row-main">
+                            <div class="revenue-row-icon"><i class="fa-solid fa-car"></i></div>
+                            <div>
+                                <div class="revenue-row-title">렌트카</div>
+                                <div class="revenue-row-sub">차량 렌탈 이용료 기준</div>
+                            </div>
+                        </div>
+                        <div class="revenue-row-actions">
+                            <span class="rev-amount" id="revCarAmt">$0</span>
+                            <a href="folio.html?dept=car" target="_blank" class="revenue-link"><i class="fa-solid fa-square-arrow-up-right"></i> 상세보기</a>
+                        </div>
+                    </div>
+                    <div class="revenue-row revenue-total">
+                        <div class="revenue-row-main">
+                            <div class="revenue-row-icon"><i class="fa-solid fa-chart-line"></i></div>
+                            <div class="revenue-row-title">일일 총 영업 이익</div>
+                        </div>
+                        <div class="revenue-row-actions">
+                            <span class="rev-amount" id="revTotalAmt">$0</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -208,7 +241,6 @@ async function loadAuditData() {
         // Revenue Data (Using last item in dailyData as "today")
         const todayData = dailyData[dailyData.length - 1] || { room:0, fnb:0, spa:0, other:0 };
         document.getElementById('revRoomAmt').textContent = '$' + todayData.room.toLocaleString();
-        document.getElementById('revRoomCount').textContent = Math.round(todayData.room / 184); // Mock count
         
         document.getElementById('revFnbAmt').textContent = '$' + todayData.fnb.toLocaleString();
         
