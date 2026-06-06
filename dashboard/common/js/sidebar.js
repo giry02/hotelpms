@@ -58,7 +58,7 @@
                         { label: 'Rates Calendar', href: BASE + 'operations/rates.html' },
                     ]
                 },
-                { icon: 'fa-broom', label: 'Housekeeping', href: BASE + 'operations/housekeeping.html', badge: '5', roles: ['sys_admin', 'sys_gm', 'sys_housekeeping'] },
+                { icon: 'fa-broom', label: 'Housekeeping', href: BASE + 'operations/housekeeping.html', roles: ['sys_admin', 'sys_gm', 'sys_housekeeping'] },
                 { icon: 'fa-wrench', label: 'Maintenance', href: BASE + 'operations/maintenance.html', roles: ['sys_admin', 'sys_gm', 'sys_maintenance'] },
                 {
                     icon: 'fa-file-invoice-dollar', label: 'Folio & Billing', id: 'folio',
