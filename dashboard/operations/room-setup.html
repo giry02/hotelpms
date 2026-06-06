@@ -192,8 +192,8 @@
             </div>
             <div class="filter-right top-actions-right">
                 <button class="btn-outline" onclick="openModal('buildingModal')"><i class="fa-solid fa-building"></i> 건물/구역 Actions</button>
-                <button class="btn-outline" onclick="openModal('roomTypeModal')"><i class="fa-solid fa-layer-group"></i> Room Types</button>
-                <button class="btn-primary-sm" onclick="openModal('addRoomModal')"><i class="fa-solid fa-plus"></i> Add Room</button>
+                <button class="btn-outline" onclick="openModal('roomTypeModal')"><i class="fa-solid fa-layer-group"></i> 객실 유형</button>
+                <button class="btn-primary-sm" onclick="openModal('addRoomModal')"><i class="fa-solid fa-plus"></i> 객실 등록</button>
             </div>
         </div>
 
@@ -260,7 +260,7 @@
 <div class="modal-overlay" id="addRoomModal" onclick="if(event.target===this) closeModal('addRoomModal')">
     <div class="modal-card" style="max-width:500px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title" id="roomModalTitle">Add Room</h3>
+            <h3 class="modal-title" id="roomModalTitle">객실 등록</h3>
             <button class="modal-close" onclick="closeModal('addRoomModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
@@ -273,7 +273,7 @@
             </div>
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">Room 번호 <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">객실 번호 <span style="color:var(--danger)">*</span></label>
                     <input type="text" id="addRoomId" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 1208">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
@@ -283,14 +283,14 @@
             </div>
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">Room Type <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">객실 유형 <span style="color:var(--danger)">*</span></label>
                     <select id="addRoomType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>Standard</option>
-                        <option>Deluxe</option>
-                        <option>Premier</option>
-                        <option>Penthouse</option>
-                        <option>Pool Villa</option>
-                        <option>Garden Villa</option>
+                        <option value="Standard">스탠다드</option>
+                        <option value="Deluxe">디럭스</option>
+                        <option value="Premier">프리미어</option>
+                        <option value="Penthouse">펜트하우스</option>
+                        <option value="Pool Villa">풀빌라</option>
+                        <option value="Garden Villa">가든빌라</option>
                     </select>
                 </div>
             </div>
@@ -302,7 +302,7 @@
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('addRoomModal')">Cancel</button>
-            <button class="btn-primary-sm" onclick="saveRoom()"><i class="fa-solid fa-check"></i> <span id="saveBtnText">Add Room</span></button>
+            <button class="btn-primary-sm" onclick="saveRoom()"><i class="fa-solid fa-check"></i> <span id="saveBtnText">객실 등록</span></button>
         </div>
     </div>
 </div>
@@ -313,10 +313,10 @@ let allRooms = [];
 let allRoomTypes = [];
 
 const statusConfig = {
-    'occupied': { label: 'Occupied' },
-    'vacant-clean': { label: 'Vacant Clean' },
-    'vacant-dirty': { label: 'Vacant Dirty' },
-    'oos': { label: 'Out of Order' }
+    'occupied': { label: '투숙 중' },
+    'vacant-clean': { label: '청결 공실' },
+    'vacant-dirty': { label: '오염 공실' },
+    'oos': { label: '점검 중' }
 };
 
 let currentTab = 'all';
@@ -349,12 +349,42 @@ function slugRoomType(name, view) {
 
 function roomTypeLabel(value) {
     const found = allRoomTypes.find(rt => rt.id === value || rt.typeId === value || rt.name === value);
-    if (!found) return value || '-';
-    return found.view ? `${found.name} · ${found.view}` : found.name;
+    if (!found) return localizeRoomTypeName(value) || '-';
+    const name = localizeRoomTypeName(found.name);
+    const view = localizeRoomTypeView(found.view);
+    return view ? `${name} · ${view}` : name;
+}
+
+function localizeRoomTypeName(value) {
+    const text = String(value || '').trim();
+    const lower = text.toLowerCase().replace(/\s+/g, ' ');
+    const map = {
+        standard: '스탠다드',
+        deluxe: '디럭스',
+        premier: '프리미어',
+        penthouse: '펜트하우스',
+        'pool villa': '풀빌라',
+        'garden villa': '가든빌라',
+        suite: '스위트'
+    };
+    return map[lower] || text;
+}
+
+function localizeRoomTypeView(value) {
+    const text = String(value || '').trim();
+    const lower = text.toLowerCase().replace(/\s+/g, ' ');
+    const map = {
+        'city view': '시티뷰',
+        'ocean view': '오션뷰',
+        'panoramic view': '파노라마뷰',
+        poolside: '풀사이드',
+        'garden view': '가든뷰'
+    };
+    return map[lower] || text;
 }
 
 function normalizeRoomType(raw) {
-    const name = raw?.name || raw?.id || 'Room Type';
+    const name = raw?.name || raw?.id || '객실 유형';
     const view = raw?.view || raw?.viewType || '';
     const id = raw?.id || raw?.typeId || raw?.code || slugRoomType(name, view);
     const base = Number(raw?.basePrice ?? raw?.baseRate?.amount ?? raw?.baseRate ?? 0);
@@ -388,7 +418,7 @@ function renderRoomTypes() {
         <div class="inline-manage-row roomtype-row" data-type-id="${escapeAttr(rt.id)}">
             <div class="inline-field">
                 <label>객실명</label>
-                <input class="inline-input" id="rtName${index}" value="${escapeAttr(rt.name)}" placeholder="예: Deluxe">
+                <input class="inline-input" id="rtName${index}" value="${escapeAttr(rt.name)}" placeholder="예: 디럭스">
             </div>
             <div class="inline-field">
                 <label>뷰 / 구분</label>
@@ -422,7 +452,7 @@ function renderRoomTypes() {
         <div class="inline-manage-list">
             ${rows || '<div style="padding:14px;color:var(--txt3);border:1px solid var(--border);border-radius:8px">등록된 객실 유형이 없습니다.</div>'}
             <div class="inline-manage-row roomtype-row new-row">
-                <div class="inline-field"><label>객실명</label><input class="inline-input" id="newRtName" placeholder="예: Deluxe"></div>
+                <div class="inline-field"><label>객실명</label><input class="inline-input" id="newRtName" placeholder="예: 디럭스"></div>
                 <div class="inline-field"><label>뷰 / 구분</label><input class="inline-input" id="newRtView" placeholder="예: City View"></div>
                 <div class="inline-field"><label>코드</label><input class="inline-input" id="newRtCode" placeholder="예: DLX-CITY"></div>
                 <div class="inline-field"><label>기준요금(USD)</label><input class="inline-input" id="newRtPrice" type="number" min="0" placeholder="예: 160"></div>
@@ -603,7 +633,7 @@ function renderTabs() {
     
         // Update Mobile Button Text
         const btn = document.getElementById('mobileBuildingBtn');
-        if (btn) btn.innerHTML = `<i class="fa-solid fa-filter" style="color:var(--txt3)"></i> ${currentTab === 'all' ? 'All' : currentTab} <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; margin-left:2px; color:var(--txt3)"></i>`;
+        if (btn) btn.innerHTML = `<i class="fa-solid fa-filter" style="color:var(--txt3)"></i> ${currentTab === 'all' ? '전체' : currentTab} <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem; margin-left:2px; color:var(--txt3)"></i>`;
     } catch (e) {
         document.getElementById('roomGrid').innerHTML = `<div style="color:red;padding:20px;grid-column:1/-1;">Error in renderTabs: ${e.message}</div>`;
         console.error(e);
@@ -729,7 +759,7 @@ function editRoom(idx) {
     editingIdx = idx;
     const r = allRooms[idx];
     document.getElementById('roomModalTitle').innerText = 'Room 정보 수정';
-    document.getElementById('saveBtnText').innerText = '수정 Completed';
+    document.getElementById('saveBtnText').innerText = '수정 완료';
     
     document.getElementById('addRoomId').value = r.id;
     document.getElementById('addRoomFloor').value = r.floor || '';
@@ -743,10 +773,10 @@ function editRoom(idx) {
 const originalOpenModal = openModal;
 openModal = function(id) {
     const trigger = typeof event !== 'undefined' ? event?.currentTarget : null;
-    if (id === 'addRoomModal' && trigger && trigger.innerText.includes('Add Room')) {
+    if (id === 'addRoomModal' && trigger && (trigger.innerText.includes('Add Room') || trigger.innerText.includes('객실 등록'))) {
         editingIdx = -1;
-        document.getElementById('roomModalTitle').innerText = 'Add Room';
-        document.getElementById('saveBtnText').innerText = 'Add Room';
+        document.getElementById('roomModalTitle').innerText = '객실 등록';
+        document.getElementById('saveBtnText').innerText = '객실 등록';
         document.getElementById('addRoomId').value = '';
         document.getElementById('addRoomFloor').value = '';
         setRoomTypeSelectValue(allRoomTypes[0]?.id || 'Standard');
@@ -762,7 +792,7 @@ function saveRoom() {
     const building = document.getElementById('addRoomBuilding').value || null;
 
     if (!id) {
-        showToast('Room 번호를 입력해주세요.', 'error');
+        showToast('객실 번호를 입력해주세요.', 'error');
         return;
     }
 

@@ -63,10 +63,10 @@
         <div class="filter-bar-mt">
             <div class="filter-left" style="flex-wrap:wrap">
                 <div class="filter-chips" style="margin-right:10px">
-                    <button class="chip active" onclick="setKpiPeriod(this, 'day')">금일 (Today)</button>
-                    <button class="chip" onclick="setKpiPeriod(this, 'week')">주별 (Weekly)</button>
-                    <button class="chip" onclick="setKpiPeriod(this, 'month')">월별 (Monthly)</button>
-                    <button class="chip" onclick="setKpiPeriod(this, 'year')">년도별 (Yearly)</button>
+                    <button class="chip active" onclick="setKpiPeriod(this, 'day')">금일</button>
+                    <button class="chip" onclick="setKpiPeriod(this, 'week')">주별</button>
+                    <button class="chip" onclick="setKpiPeriod(this, 'month')">월별</button>
+                    <button class="chip" onclick="setKpiPeriod(this, 'year')">년도별</button>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center">
                     <select id="selYear" class="hotel-select" onchange="handleFolioPeriodChange()" style="display:none;width:100px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
@@ -93,8 +93,8 @@
         <div style="font-weight:700; font-size:1.05rem; margin-bottom:12px;"><i class="fa-solid fa-chart-simple" style="color:var(--primary); margin-right:6px"></i>매출 요약</div>
         <div class="kpi-grid">
             <div class="kpi-card green"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-chart-line"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiTotal">$22,970</div><div class="kpi-label">총 매출</div></div></div>
-            <div class="kpi-card blue"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiRoom">$18,240</div><div class="kpi-label">Room 매출</div></div></div>
-            <div class="kpi-card purple"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiAnc">$3,450</div><div class="kpi-label">Ancillary Rev</div></div></div>
+            <div class="kpi-card blue"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiRoom">$18,240</div><div class="kpi-label">객실 매출</div></div></div>
+            <div class="kpi-card purple"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiAnc">$3,450</div><div class="kpi-label">부가서비스 매출</div></div></div>
             <div class="kpi-card orange"><div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-arrow-trend-up"></i></div></div><div class="kpi-body"><div class="kpi-value" id="kpiDiff">+12.4%</div><div class="kpi-label">전일 대비</div></div></div>
         </div>
 
@@ -104,7 +104,7 @@
                 <div style="display:flex;align-items:center;gap:8px">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="searchInput" placeholder="객실번호, 고객명, Folio 검색..." onkeydown="if(event.key==='Enter') renderFolios()">
+                        <input type="text" id="searchInput" placeholder="객실번호, 고객명, 정산번호 검색..." onkeydown="if(event.key==='Enter') renderFolios()">
                     </div>
                     <button class="btn-primary-sm" style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap" onclick="renderFolios()">
                         <i class="fa-solid fa-magnifying-glass"></i> 검색
@@ -113,7 +113,7 @@
                 <div class="filter-chips" style="display:flex; align-items:center; gap:8px">
                     <button class="chip active" onclick="setDept(this,'all')">전체</button>
                     <button class="chip" onclick="setDept(this,'room')">객실</button>
-                    <button class="chip" onclick="setDept(this,'pos')">통합 POS</button>
+                    <button class="chip" onclick="setDept(this,'pos')">통합 포스</button>
                     <button class="chip" onclick="setDept(this,'golf')">골프장</button>
                     <button class="chip" onclick="setDept(this,'car')">렌트카</button>
                     
@@ -154,7 +154,7 @@
                             <col style="width:15%">
                         </colgroup>
                         <thead><tr>
-                        <th>정산 번호(Folio)</th><th>객실</th><th>고객명</th><th>체크아웃</th><th>총 금액</th><th>결제액</th><th>미수금 잔액</th><th>상태</th><th>관리</th>
+                        <th>정산 번호</th><th>객실</th><th>고객명</th><th>체크아웃</th><th>총 금액</th><th>결제액</th><th>미수금 잔액</th><th>상태</th><th>관리</th>
                     </tr></thead>
                     <tbody id="folioBody"></tbody></table>
                 </div>
@@ -277,6 +277,15 @@ function apiAmount(value) {
     return window.PmsMockApi ? window.PmsMockApi.amountValue(value) : Number(value?.amount || value || 0);
 }
 
+function folioDisplayText(value) {
+    return String(value || '-')
+        .replace(/F&B/gi, '식음료')
+        .replace(/Retail Batch/gi, '리테일 일괄')
+        .replace(/Room Revenue/gi, '객실 매출')
+        .replace(/Room Charge/gi, '객실 요금')
+        .replace(/POS/gi, '포스');
+}
+
 function selectedNumber(id, fallback) {
     const el = document.getElementById(id);
     const match = String(el?.value || '').match(/\d+/);
@@ -367,7 +376,7 @@ function mapApiFolio(item) {
         id: item.id,
         room: item.groupId ? 'Master' : (item.roomNo || '-'),
         dept,
-        guest: item.ownerName || item.guestName || '-',
+        guest: folioDisplayText(item.ownerName || item.guestName || '-'),
         out: item.closedAt ? item.closedAt.slice(0, 10) : '-',
         total,
         paid,
@@ -523,7 +532,7 @@ let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 const translations={ko: {
         "Main": "메인",
         "Front Desk": "프론트 데스크",
-        "Guest & CRM": "투숙객 및 CRM",
+        "Guest & CRM": "투숙객 및 고객 관리",
         "Operations": "운영 관리",
         "Settings": "설정",
         "Dashboard": "대시보드",
@@ -531,7 +540,7 @@ const translations={ko: {
         "Booking List": "예약 목록",
         "Check-in/out": "체크인/아웃",
         "Guest CRM": "투숙객 관리",
-        "VIP Members": "VIP 멤버십",
+        "VIP Members": "우수 고객 멤버십",
         "Room Mgmt": "객실 관리",
         "Room Types": "객실 유형",
         "Rates Calendar": "요금 캘린더",
@@ -548,7 +557,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"객실 정산서":"통합 정산","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","정산 완료 Today":"금일 정산 완료","Outstanding Bal":"미수금 잔액","Ancillary Rev":"부가서비스 매출","Card Payment %":"카드 결제 비율","All":"전체","Export Transactions":"결제 내역 다운로드","Room":"객실","Guest":"고객","Check-out":"체크아웃","Total":"총 금액","Paid (Deposit)":"결제액 (보증금)","Status":"상태","Actions":"관리"},en: {
+"객실 정산서":"통합 정산","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","정산 완료 Today":"금일 정산 완료","Outstanding Bal":"미수금 잔액","Ancillary Rev":"부가서비스 매출","Card Payment %":"카드 결제 비율","All":"전체","Export Transactions":"결제 내역 다운로드","Room":"객실","Guest":"고객","Check-out":"체크아웃","Total":"총 금액","Paid (Deposit)":"결제액 (보증금)","Status":"상태","Actions":"관리"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -581,8 +590,8 @@ function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
-    document.getElementById('searchInput').placeholder=l==='en'?'Search room, guest, folio...':'Room번호, Guest명, Folio 번호 검색...';
-    stMap['paid'].label = l==='en'?'Paid':'정산 Completed';
+    document.getElementById('searchInput').placeholder=l==='en'?'Search room, guest, folio...':'객실번호, 고객명, 정산번호 검색...';
+    stMap['paid'].label = l==='en'?'Paid':'정산 완료';
     stMap['unpaid'].label = l==='en'?'Unpaid Bal':'미수금 존재';
     stMap['refund'].label = l==='en'?'Refunded':'환불 처리';
     renderFolios();
@@ -631,7 +640,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('paymentModal')">취소</button>
-            <button class="btn-primary-sm" onclick="processPayment()"><i class="fa-solid fa-credit-card"></i> 승인 및 Completed</button>
+            <button class="btn-primary-sm" onclick="processPayment()"><i class="fa-solid fa-credit-card"></i> 승인 및 완료</button>
         </div>
     </div>
 </div>
@@ -640,21 +649,21 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 <div class="modal-overlay" id="invoiceModal" onclick="if(event.target===this) closeModal('invoiceModal')">
     <div class="modal-card" style="max-width:500px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title">Folio 명세서</h3>
+            <h3 class="modal-title">정산 명세서</h3>
             <button class="modal-close" onclick="closeModal('invoiceModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:24px;font-family:monospace;font-size:0.9rem;line-height:1.6;color:var(--txt);background:#fff">
-            <div style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">HOTEL PMS RECEIPT</div>
-            <div>Folio No: FOL-10482</div>
-            <div>Guest Name: Tran Linh</div>
-            <div>Room: 1401</div>
+            <div style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">호텔 정산 영수증</div>
+            <div>정산 번호: FOL-10482</div>
+            <div>고객명: Tran Linh</div>
+            <div>객실: 1401</div>
             <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
-            <div style="display:flex;justify-content:space-between"><span>Room Charge (2 Nights)</span><span>$1,200.00</span></div>
-            <div style="display:flex;justify-content:space-between"><span>Room Service</span><span>$50.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span>객실 요금 (2박)</span><span>$1,200.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span>룸서비스</span><span>$50.00</span></div>
             <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
-            <div style="display:flex;justify-content:space-between;font-weight:700"><span>TOTAL</span><span>$1,250.00</span></div>
-            <div style="display:flex;justify-content:space-between"><span>Paid Deposit</span><span>-$100.00</span></div>
-            <div style="display:flex;justify-content:space-between;color:var(--danger);font-weight:700;margin-top:8px"><span>BALANCE DUE</span><span>$1,150.00</span></div>
+            <div style="display:flex;justify-content:space-between;font-weight:700"><span>합계</span><span>$1,250.00</span></div>
+            <div style="display:flex;justify-content:space-between"><span>결제된 보증금</span><span>-$100.00</span></div>
+            <div style="display:flex;justify-content:space-between;color:var(--danger);font-weight:700;margin-top:8px"><span>미수금 잔액</span><span>$1,150.00</span></div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('invoiceModal')">닫기</button>

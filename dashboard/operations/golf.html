@@ -75,15 +75,15 @@
                 <div class="kpi-body">
                     <div class="kpi-value">8</div>
                     <div class="kpi-label">금일 예약 건</div>
-                    <div class="kpi-sub">진행 예정 Pending건</div>
+                    <div class="kpi-sub">진행 예정 대기건</div>
                 </div>
             </div>
             <div class="kpi-card green">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-check"></i></div></div>
                 <div class="kpi-body">
                     <div class="kpi-value">12</div>
-                    <div class="kpi-label">금일 라운딩 Completed</div>
-                    <div class="kpi-sub">정산 Completed 대상</div>
+                    <div class="kpi-label">금일 라운딩 완료</div>
+                    <div class="kpi-sub">정산 완료 대상</div>
                 </div>
             </div>
             <div class="kpi-card purple">
@@ -160,13 +160,13 @@ function renderOrders() {
         
         let sHtml, actBtn;
         if (o.status === 'new') {
-            sHtml = `<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> 예약 Pending</span>`;
+            sHtml = `<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> 예약 대기</span>`;
             actBtn = `<button class="btn-primary-sm"><i class="fa-solid fa-check"></i> 예약 Confirmed</button>`;
         } else if (o.status === 'prep') {
             sHtml = `<span style="color:var(--primary);font-weight:700"><i class="fa-solid fa-car"></i> 진행 예정</span>`;
-            actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)"><i class="fa-solid fa-check-double"></i> Completed 처리</button>`;
+            actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)"><i class="fa-solid fa-check-double"></i> 완료 처리</button>`;
         } else {
-            sHtml = `<span style="color:var(--success)"><i class="fa-solid fa-check-circle"></i> 라운딩 Completed</span>`;
+            sHtml = `<span style="color:var(--success)"><i class="fa-solid fa-check-circle"></i> 라운딩 완료</span>`;
             actBtn = `<button class="btn-outline-sm" disabled>정산됨</button>`;
         }
 
@@ -215,7 +215,7 @@ let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
 const translations={ko: {
         "Main": "메인",
         "Front Desk": "프론트 데스크",
-        "Guest & CRM": "투숙객 및 CRM",
+        "Guest & CRM": "투숙객 및 고객 관리",
         "Operations": "운영 관리",
         "Settings": "설정",
         "Dashboard": "대시보드",
@@ -223,7 +223,7 @@ const translations={ko: {
         "Booking List": "예약 목록",
         "Check-in/out": "체크인/아웃",
         "Guest CRM": "투숙객 관리",
-        "VIP Members": "VIP 멤버십",
+        "VIP Members": "우수 고객 멤버십",
         "Room Mgmt": "객실 관리",
         "Room Types": "객실 유형",
         "Rates Calendar": "요금 캘린더",
@@ -240,7 +240,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"Ancillary Svcs":"부가서비스","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"VIP 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","New Requests":"신규 요청","Preparing":"준비/진행 중","Completed":"처리 완료","Est. Revenue":"금일 예상 매출","All Services":"전체 서비스","Room Service":"룸서비스","Spa & Massage":"스파/마사지","Concierge":"컨시어지","Manual Order":"수기 오더 등록"},en: {
+"Ancillary Svcs":"부가서비스","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","New Requests":"신규 요청","Preparing":"준비/진행 중","Completed":"처리 완료","Est. Revenue":"금일 예상 매출","All Services":"전체 서비스","Room Service":"룸서비스","Spa & Massage":"스파/마사지","Concierge":"컨시어지","Manual Order":"수기 오더 등록"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -322,13 +322,13 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 <div class="modal-overlay" id="addOrderModal" onclick="if(event.target===this) closeModal('addOrderModal')">
     <div class="modal-card" style="max-width:500px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title">골프장 New Booking</h3>
+            <h3 class="modal-title">골프장 신규 예약</h3>
             <button class="modal-close" onclick="closeModal('addOrderModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호실 선택 (Room) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호실 선택 <span style="color:var(--danger)">*</span></label>
                     <select id="golfRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="autoFillGuest('golf')">
                         <option value="">선택...</option>
                         <option value="1401">1401</option>
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                     </select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">고객명 (Guest) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">고객명 <span style="color:var(--danger)">*</span></label>
                     <input type="text" id="golfGuest" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="자동 입력">
                 </div>
             </div>
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <hr style="border:none;border-top:1px solid var(--border2)">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이용 일시 (Date) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이용 일시 <span style="color:var(--danger)">*</span></label>
                     <input type="date" id="golfDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
                     <select id="golf코스" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>썬밸리 CC (Sun Valley)</option>
+                        <option>썬밸리 CC</option>
                         <option>스카이72 (SKY72)</option>
                     </select>
                 </div>
@@ -400,7 +400,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호실 선택 (Room) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호실 선택 <span style="color:var(--danger)">*</span></label>
                     <select id="golfRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="autoFillGuest('golf')">
                         <option value="">선택...</option>
                         <option value="1401">1401</option>
@@ -409,7 +409,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                     </select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">고객명 (Guest) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">고객명 <span style="color:var(--danger)">*</span></label>
                     <input type="text" id="golfGuest" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="자동 입력">
                 </div>
             </div>
@@ -426,7 +426,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <hr style="border:none;border-top:1px solid var(--border2)">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이용 일시 (Date) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이용 일시 <span style="color:var(--danger)">*</span></label>
                     <input type="date" id="golfDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
                     <select id="golf코스" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>썬밸리 CC (Sun Valley)</option>
+                        <option>썬밸리 CC</option>
                         <option>스카이72 (SKY72)</option>
                     </select>
                 </div>

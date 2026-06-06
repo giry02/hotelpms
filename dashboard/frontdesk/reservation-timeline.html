@@ -154,7 +154,7 @@
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span><span id="legendConfirmedLabel">예약 확정</span></div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span><span id="legendCheckedinLabel">투숙 중</span></div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#F97316"></span><span id="legendCheckoutLabel">체크아웃 대상</span></div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#94A3B8"></span><span id="legendPreviousLabel">이전 예약 / OOS</span></div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#94A3B8"></span><span id="legendPreviousLabel">이전 예약 / 점검</span></div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#111827"></span><span id="legendGroupLabel">단체 블록</span></div>
                 </div>
                 <button class="btn-primary-sm" onclick="openUnifiedResModal()"><i class="fa-solid fa-plus"></i> <span data-i18n-key="New Booking">New Booking</span></button>
@@ -198,7 +198,7 @@ const TL_TEXT = {
         groupGuests: '단체 고객',
         confirmed: '예약 확정',
         checkoutLegend: '체크아웃 대상',
-        previous: '이전 예약 / OOS',
+        previous: '이전 예약 / 점검',
         groupBlock: '단체 블록',
         groupBooking: '단체 예약',
         checkinDone: '체크인 완료',
@@ -245,6 +245,22 @@ function timelineLang() {
 function timelineText(key) {
     const lang = timelineLang() === 'en' ? 'en' : 'ko';
     return (TL_TEXT[lang] && TL_TEXT[lang][key]) || TL_TEXT.ko[key] || key;
+}
+
+function timelineRoomType(type) {
+    const text = String(type || '').trim();
+    if (!text || timelineLang() === 'en') return text || '-';
+    const lower = text.toLowerCase().replace(/\s+/g, ' ');
+    const map = {
+        standard: '스탠다드',
+        deluxe: '디럭스',
+        premier: '프리미어',
+        penthouse: '펜트하우스',
+        'pool villa': '풀빌라',
+        'garden villa': '가든빌라',
+        suite: '스위트'
+    };
+    return map[lower] || text;
 }
 
 function formatTimelineRangeDate(date) {
@@ -464,7 +480,7 @@ function buildTimeline() {
 
     // Room rows
     rooms.forEach(room => {
-        let rowHTML = `<div class="tl-room-cell"><span class="tl-room-num">${room.id}</span><span class="tl-room-type">${room.type}</span></div>`;
+        let rowHTML = `<div class="tl-room-cell"><span class="tl-room-num">${room.id}</span><span class="tl-room-type">${timelineRoomType(room.type)}</span></div>`;
         
         // Create date cells
         for (let d = 0; d < DAYS; d++) {
@@ -717,7 +733,7 @@ function buildMobileView() {
             <div class="m-room-header">
                 <div class="m-room-id">
                     <span class="room-tag">${room.id}</span>
-                    <span class="m-room-type">${room.type}</span>
+                    <span class="m-room-type">${timelineRoomType(room.type)}</span>
                 </div>
                 <span class="m-room-status ${hasToday ? 'occupied' : 'available'}">${hasToday ? timelineText('occupied') : timelineText('available')}</span>
             </div>`;

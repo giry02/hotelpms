@@ -18,20 +18,33 @@
 
 // ===== 공통 게스트 DB =====
 const GUEST_DB = [
-    { id:'G-001', name:'Alexander',    phone:'+1 555-0102',      email:'alex@example.com',       country:'🇺🇸 USA',         tier:'Platinum', visits:5,  spend:4500 },
-    { id:'G-002', name:'Sophia Kim',   phone:'+82 10-1234-5678', email:'sophia@example.com',     country:'🇰🇷 South Korea', tier:'Standard', visits:1,  spend:0 },
+    { id:'G-001', name:'Alexander',    phone:'+1 555-0102',      email:'alex@example.com',       country:'🇺🇸 미국',         tier:'Platinum', visits:5,  spend:4500 },
+    { id:'G-002', name:'Sophia Kim',   phone:'+82 10-1234-5678', email:'sophia@example.com',     country:'🇰🇷 대한민국', tier:'Standard', visits:1,  spend:0 },
     { id:'G-003', name:'James Wilson', phone:'+44 20-7123-4567', email:'james@example.com',      country:'🇬🇧 UK',          tier:'Gold',     visits:12, spend:12000 },
-    { id:'G-004', name:'Tran Linh',    phone:'+84 90-123-4567',  email:'tran.linh@example.com',  country:'🇻🇳 Vietnam',     tier:'VIP',      visits:8,  spend:9200 },
-    { id:'G-005', name:'Tanaka Yuki',  phone:'+81 3-1234-5678',  email:'tanaka@example.com',     country:'🇯🇵 Japan',       tier:'Gold',     visits:6,  spend:7800 },
-    { id:'G-006', name:'Chen Wei',     phone:'+86 138-0000-0000',email:'chen.wei@example.com',   country:'🇨🇳 China',       tier:'Standard', visits:2,  spend:950 },
-    { id:'G-007', name:'Park Minjun',  phone:'+82 10-9876-5432', email:'park.mj@example.com',    country:'🇰🇷 South Korea', tier:'Platinum', visits:15, spend:18500 },
-    { id:'G-008', name:'Emma Laurent', phone:'+33 6-1234-5678',  email:'emma@example.com',       country:'🇫🇷 France',      tier:'Standard', visits:1,  spend:450 },
-    { id:'G-009', name:'Nguyen Hoa',   phone:'+84 91-234-5678',  email:'hoa.nguyen@example.com', country:'🇻🇳 Vietnam',     tier:'Gold',     visits:4,  spend:3200 },
-    { id:'G-010', name:'김서연',        phone:'+82 10-5555-1234', email:'seoyeon@example.com',    country:'🇰🇷 South Korea', tier:'Standard', visits:3,  spend:1800 }
+    { id:'G-004', name:'Tran Linh',    phone:'+84 90-123-4567',  email:'tran.linh@example.com',  country:'🇻🇳 베트남',     tier:'VIP',      visits:8,  spend:9200 },
+    { id:'G-005', name:'Tanaka Yuki',  phone:'+81 3-1234-5678',  email:'tanaka@example.com',     country:'🇯🇵 일본',       tier:'Gold',     visits:6,  spend:7800 },
+    { id:'G-006', name:'Chen Wei',     phone:'+86 138-0000-0000',email:'chen.wei@example.com',   country:'🇨🇳 중국',       tier:'Standard', visits:2,  spend:950 },
+    { id:'G-007', name:'Park Minjun',  phone:'+82 10-9876-5432', email:'park.mj@example.com',    country:'🇰🇷 대한민국', tier:'Platinum', visits:15, spend:18500 },
+    { id:'G-008', name:'Emma Laurent', phone:'+33 6-1234-5678',  email:'emma@example.com',       country:'🇫🇷 프랑스',      tier:'Standard', visits:1,  spend:450 },
+    { id:'G-009', name:'Nguyen Hoa',   phone:'+84 91-234-5678',  email:'hoa.nguyen@example.com', country:'🇻🇳 베트남',     tier:'Gold',     visits:4,  spend:3200 },
+    { id:'G-010', name:'김서연',        phone:'+82 10-5555-1234', email:'seoyeon@example.com',    country:'🇰🇷 대한민국', tier:'Standard', visits:3,  spend:1800 }
 ];
 
 const _tierColors = { VIP:'#8B5CF6', Platinum:'#3B82F6', Gold:'#F59E0B', Standard:'#6B7280' };
 const _tierIcons  = { VIP:'fa-crown', Platinum:'fa-gem', Gold:'fa-medal', Standard:'fa-user' };
+const _tierLabels = {
+    ko: { VIP:'우수 고객', Platinum:'플래티넘', Gold:'골드', Standard:'일반' },
+    en: { VIP:'VIP', Platinum:'Platinum', Gold:'Gold', Standard:'Standard' }
+};
+
+function _guestSearchLang() {
+    return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+}
+
+function _tierLabel(tier) {
+    const lang = _guestSearchLang();
+    return _tierLabels[lang]?.[tier] || tier || '';
+}
 
 class GuestSearchWidget {
     constructor(opts) {
@@ -88,7 +101,7 @@ class GuestSearchWidget {
             <div style="display:flex;align-items:center;gap:12px">
                 <div style="width:44px;height:44px;border-radius:50%;background:${tc}20;color:${tc};display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800">${g.name.charAt(0).toUpperCase()}</div>
                 <div>
-                    <div style="font-size:.88rem;font-weight:700;color:var(--txt)">${g.name} <span style="font-size:.65rem;padding:2px 7px;border-radius:10px;background:${tc};color:#fff;font-weight:700;margin-left:4px"><i class="fa-solid ${ti}" style="font-size:.55rem"></i> ${g.tier}</span></div>
+                    <div style="font-size:.88rem;font-weight:700;color:var(--txt)">${g.name} <span style="font-size:.65rem;padding:2px 7px;border-radius:10px;background:${tc};color:#fff;font-weight:700;margin-left:4px"><i class="fa-solid ${ti}" style="font-size:.55rem"></i> ${_tierLabel(g.tier)}</span></div>
                     <div style="font-size:.72rem;color:var(--txt3);margin-top:2px">${g.phone} · ${g.email}</div>
                     <div style="font-size:.68rem;color:var(--txt3);margin-top:1px">${g.country} · 방문 ${g.visits}회 · 누적 $${g.spend.toLocaleString()}</div>
                 </div>
@@ -152,7 +165,7 @@ class GuestSearchWidget {
                 <div style="display:flex;align-items:center;gap:10px">
                     <div style="width:36px;height:36px;border-radius:50%;background:${tc}15;color:${tc};display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700">${g.name.charAt(0).toUpperCase()}</div>
                     <div>
-                        <div style="font-size:.82rem;font-weight:600;color:var(--txt)">${g.name} <span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:${tc}18;color:${tc};font-weight:700;margin-left:4px"><i class="fa-solid ${ti}" style="font-size:.6rem"></i> ${g.tier}</span></div>
+                        <div style="font-size:.82rem;font-weight:600;color:var(--txt)">${g.name} <span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:${tc}18;color:${tc};font-weight:700;margin-left:4px"><i class="fa-solid ${ti}" style="font-size:.6rem"></i> ${_tierLabel(g.tier)}</span></div>
                         <div style="font-size:.72rem;color:var(--txt3);margin-top:1px">${g.phone} · ${g.email}</div>
                     </div>
                 </div>
@@ -230,8 +243,8 @@ function renderGuestSearchHTML(prefix) {
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             <div style="display:flex;flex-direction:column;gap:5px">
-                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">Guest 이름 <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="nrGuest${prefix}" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="예: John Doe">
+                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">고객명 <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="nrGuest${prefix}" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="예: 홍길동">
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
                 <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">연락처 <span style="color:var(--danger)">*</span></label>
@@ -245,8 +258,8 @@ function renderGuestSearchHTML(prefix) {
                 <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">국적</label>
                 <select id="nrNation${prefix}" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);font-size:.82rem;background:#fff">
                     <option value="">선택</option>
-                    <option>🇻🇳 Vietnam</option><option>🇰🇷 South Korea</option><option>🇯🇵 Japan</option>
-                    <option>🇺🇸 USA</option><option>🇨🇳 China</option><option>🇩🇪 Germany</option><option>🇫🇷 France</option>
+                    <option>🇻🇳 베트남</option><option>🇰🇷 대한민국</option><option>🇯🇵 일본</option>
+                    <option>🇺🇸 미국</option><option>🇨🇳 중국</option><option>🇩🇪 독일</option><option>🇫🇷 프랑스</option>
                     <option>🇬🇧 UK</option><option>🇦🇺 Australia</option><option>기타</option>
                 </select>
             </div>

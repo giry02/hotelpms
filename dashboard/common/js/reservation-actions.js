@@ -142,8 +142,8 @@
                             <option value="confirmed">예약 확정 (Confirmed)</option>
                             <option value="checkedin">체크인 완료 (Checked-in)</option>
                             <option value="checkout">체크아웃 (Check-out)</option>
-                            <option value="completed">체크아웃 완료 (Completed)</option>
-                            <option value="cancelled">취소 (Cancelled)</option>
+                            <option value="completed">체크아웃 완료</option>
+                            <option value="cancelled">취소</option>
                         </select>
                     </div>
                     <div class="md-item">
@@ -388,11 +388,27 @@
         return room?.id || room?.fullRoom || room?.number || room?.display || room?.roomNo || '';
     }
 
+    function roomTypeDisplay(type) {
+        const value = String(type || '').trim();
+        if (actionLang() === 'en') return value || 'Standard';
+        const normalized = value.toLowerCase().replace(/\s+/g, ' ');
+        const map = {
+            standard: '스탠다드',
+            deluxe: '디럭스',
+            premier: '프리미어',
+            penthouse: '펜트하우스',
+            'pool villa': '풀빌라',
+            'garden villa': '가든빌라',
+            suite: '스위트'
+        };
+        return map[normalized] || value || '스탠다드';
+    }
+
     function setUnifiedSelectedRoomType() {
         const roomSelect = document.getElementById('unifiedRoom');
         const selectedRoom = (window.rooms || []).find(r => roomLabel(r) === roomSelect?.value || r.id === roomSelect?.value || r.fullRoom === roomSelect?.value);
         const typeEl = document.getElementById('unifiedType');
-        if (typeEl) typeEl.textContent = selectedRoom?.type || '-';
+        if (typeEl) typeEl.textContent = selectedRoom ? roomTypeDisplay(selectedRoom.type) : '-';
     }
 
     function refreshUnifiedRoomOptions(preferredValue = '') {
@@ -436,7 +452,7 @@
             opt.value = value;
             opt.disabled = blocked;
             const suffix = conflict ? ` - ${actionText('booking.conflictSuffix')}` : '';
-            opt.textContent = `${value} (${room.type || 'Standard'})${suffix}`;
+            opt.textContent = `${value} (${roomTypeDisplay(room.type)})${suffix}`;
             roomSelect.appendChild(opt);
         };
         available.forEach(appendOption);
@@ -728,7 +744,7 @@
                         const roomState = normalizedReservationStatus(r.frontStatus || r.status || r.housekeepingStatus);
                         const occupied = !currentRes && roomState === 'checkedin';
                         opt.disabled = blocked || occupied;
-                        opt.textContent = `${r.id} (${r.type || 'Standard'})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
+                        opt.textContent = `${r.id} (${roomTypeDisplay(r.type)})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
                         group.appendChild(opt);
                     });
                     roomSelect.appendChild(group);
@@ -741,7 +757,7 @@
                     const roomState = normalizedReservationStatus(r.frontStatus || r.status || r.housekeepingStatus);
                     const occupied = !currentRes && roomState === 'checkedin';
                     opt.disabled = blocked || occupied;
-                    opt.textContent = `${r.id} (${r.type || 'Standard'})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
+                    opt.textContent = `${r.id} (${roomTypeDisplay(r.type)})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
                     roomSelect.appendChild(opt);
                 });
             }
@@ -749,7 +765,7 @@
         roomSelect.onchange = () => {
             const selectedRoom = (window.rooms || []).find(r => r.id === roomSelect.value || r.fullRoom === roomSelect.value || r.number === roomSelect.value || r.display === roomSelect.value);
             const typeEl = document.getElementById('unifiedType');
-            if (typeEl) typeEl.textContent = selectedRoom?.type || '-';
+            if (typeEl) typeEl.textContent = selectedRoom ? roomTypeDisplay(selectedRoom.type) : '-';
         };
 
         if (!resId) {
@@ -777,7 +793,7 @@
             setUnifiedDateValue('unifiedCout', prefill?.checkout || prefill?.cout || prefill?.checkOutDate, tomorrow);
             window.updateUnifiedStayAndRooms(prefill?.room || prefill?.fullRoom || '');
             if (prefill?.type && document.getElementById('unifiedType')?.textContent === '-') {
-                document.getElementById('unifiedType').textContent = prefill.type;
+                document.getElementById('unifiedType').textContent = roomTypeDisplay(prefill.type);
             }
             
             if (window._editGuestWidget) {
@@ -799,7 +815,8 @@
             const isB2B = res.isB2B;
             const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
             const b2bBadge = isB2B ? '<span style="background:#111827;color:#fff;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:600;vertical-align:middle;letter-spacing:0.5px"><i class="fa-solid fa-building"></i> B2B 고객</span>' : '';
-            const vipBadge = isVip ? '<span style="background:rgba(245,158,11,.15);color:#D97706;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:700;vertical-align:middle;"><i class="fa-solid fa-crown"></i> VIP</span>' : '';
+            const vipText = actionLang() === 'en' ? 'VIP' : '우수 고객';
+            const vipBadge = isVip ? `<span style="background:rgba(245,158,11,.15);color:#D97706;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:700;vertical-align:middle;"><i class="fa-solid fa-crown"></i> ${vipText}</span>` : '';
             
             document.getElementById('unifiedModalTitle').innerHTML = `${res.id} ${b2bBadge} ${vipBadge}`;
             document.getElementById('unifiedResId').value = res.id;
@@ -815,7 +832,7 @@
             if (targetRoomValue && !Array.from(roomSelect.options).some(o => o.value === targetRoomValue)) {
                 const opt = document.createElement('option');
                 opt.value = targetRoomValue;
-                opt.textContent = `${targetRoomValue} (${res.type || matchedRoom?.type || 'Standard'})`;
+                opt.textContent = `${targetRoomValue} (${roomTypeDisplay(res.type || matchedRoom?.type)})`;
                 roomSelect.appendChild(opt);
             }
             roomSelect.value = targetRoomValue;
@@ -872,7 +889,7 @@
             setUnifiedDateValue('unifiedCin', res.checkInDate || res.checkin || res.cin);
             setUnifiedDateValue('unifiedCout', res.checkOutDate || res.checkout || res.cout);
             window.updateUnifiedStayAndRooms(targetRoomValue);
-            document.getElementById('unifiedType').textContent = matchedRoom?.type || res.type || document.getElementById('unifiedType').textContent || '-';
+            document.getElementById('unifiedType').textContent = roomTypeDisplay(matchedRoom?.type || res.type || document.getElementById('unifiedType').textContent);
             setUnifiedReservationReadonly(isReadonlyReservation, res);
             renderUnifiedFlowActions(res);
         }

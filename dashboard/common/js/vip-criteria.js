@@ -2,6 +2,7 @@
     const STORAGE_KEY = 'pms_vip_criteria';
     const TIER_ORDER = { standard: 0, gold: 1, platinum: 2, diamond: 3 };
     const TIER_LABELS = { standard: 'Standard', gold: 'Gold', platinum: 'Platinum', diamond: 'Diamond' };
+    const TIER_LABELS_KO = { standard: '일반', gold: '골드', platinum: '플래티넘', diamond: '다이아몬드' };
     const DEFAULT_CONFIG = {
         vipMinimumTier: 'platinum',
         thresholds: {
@@ -64,17 +65,26 @@
 
     function vipSubtitle(config = getConfig(), lang = localStorage.getItem('pms_lang') || 'ko') {
         const tier = normalizeTier(config.vipMinimumTier);
-        const label = TIER_LABELS[tier] || 'Platinum';
-        if (tier === 'diamond') return lang === 'en' ? 'Diamond only' : 'Diamond만';
-        return lang === 'en' ? `${label}+ tiers` : `${label} 이상 등급`;
+        const isEn = lang === 'en';
+        const label = tierLabel(tier, lang);
+        if (tier === 'diamond') return isEn ? 'Diamond only' : `${label}만`;
+        return isEn ? `${label}+ tiers` : `${label} 이상 등급`;
+    }
+
+    function tierLabel(tier, lang = localStorage.getItem('pms_lang') || 'ko') {
+        const normalized = normalizeTier(tier);
+        const labels = lang === 'en' ? TIER_LABELS : TIER_LABELS_KO;
+        return labels[normalized] || (lang === 'en' ? 'Platinum' : '플래티넘');
     }
 
     window.PMS_VIP_CRITERIA = {
         STORAGE_KEY,
         TIER_ORDER,
         TIER_LABELS,
+        TIER_LABELS_KO,
         DEFAULT_CONFIG: cloneConfig(DEFAULT_CONFIG),
         normalizeTier,
+        tierLabel,
         getConfig,
         saveConfig,
         isVipTier,

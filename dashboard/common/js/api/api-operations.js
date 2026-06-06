@@ -339,8 +339,8 @@ Object.assign(window.PmsAPI, {
             console.warn('Mock departments report fallback', e);
         }
         return [
-            {name:'객실 (Rooms)',sub:'Room Revenue',pct:72,amt:118260,icon:'fa-bed',color:'var(--primary)',lt:'var(--primary-lt)'},
-            {name:'통합 POS',sub:'F&B, Retail',pct:15,amt:24630,icon:'fa-cash-register',color:'var(--success)',lt:'rgba(16,185,129,0.15)'},
+            {name:'객실',sub:'객실 매출',pct:72,amt:118260,icon:'fa-bed',color:'var(--primary)',lt:'var(--primary-lt)'},
+            {name:'통합 포스',sub:'식음료, 리테일',pct:15,amt:24630,icon:'fa-cash-register',color:'var(--success)',lt:'rgba(16,185,129,0.15)'},
             {name:'골프장 (Golf)',sub:'Green Fee, Cart',pct:8,amt:13140,icon:'fa-golf-ball-tee',color:'var(--purple)',lt:'rgba(139,92,246,0.15)'},
             {name:'렌트카 (Rent-a-car)',sub:'Car Rentals',pct:5,amt:8220,icon:'fa-car',color:'var(--orange)',lt:'rgba(245,158,11,0.15)'}
         ]; 
