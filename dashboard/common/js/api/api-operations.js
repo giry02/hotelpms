@@ -258,11 +258,12 @@ Object.assign(window.PmsAPI, {
             if (window.PmsMockApi) {
                 const env = await window.PmsMockApi.request('GET', '/reports/revenue-daily');
                 const rows = window.PmsMockApi.items(env).map(item => ({
+                    rawDate: item.date,
                     date: item.date ? item.date.slice(5).replace('-', '.') : item.date,
-                    room: Math.round(Number(item.room || 0) / 1000),
-                    fnb: Math.round(Number(item.fnb || 0) / 1000),
-                    spa: Math.round(Number(item.spa || 0) / 1000),
-                    other: Math.round(Number(item.other || 0) / 1000)
+                    room: Math.round(Number(item.room || 0)),
+                    fnb: Math.round(Number(item.fnb || 0)),
+                    spa: Math.round(Number(item.spa || 0)),
+                    other: Math.round(Number(item.other || 0))
                 }));
                 if (rows.length) return rows;
             }
@@ -277,11 +278,11 @@ Object.assign(window.PmsAPI, {
                 const env = await window.PmsMockApi.request('GET', '/reports/revenue-monthly');
                 const rows = window.PmsMockApi.items(env).map(item => ({
                     m: `${item.month}월`,
-                    v: Math.round(Number(item.value || 0) / 1000),
-                    room: Math.round(Number(item.room || 0) / 1000),
-                    fnb: Math.round(Number(item.fnb || 0) / 1000),
-                    spa: Math.round(Number(item.spa || 0) / 1000),
-                    other: Math.round(Number(item.other || 0) / 1000)
+                    v: Math.round(Number(item.value || 0)),
+                    room: Math.round(Number(item.room || 0)),
+                    fnb: Math.round(Number(item.fnb || 0)),
+                    spa: Math.round(Number(item.spa || 0)),
+                    other: Math.round(Number(item.other || 0))
                 }));
                 if (rows.length) return rows;
             }
@@ -299,16 +300,16 @@ Object.assign(window.PmsAPI, {
                     const tyBy = item.thisYearByCategory || {};
                     return {
                         m: item.month,
-                        ly: Math.round(Number(item.lastYear || 0) / 1000),
-                        ty: Math.round(Number(item.thisYear || 0) / 1000),
-                        lyRoom: Math.round(Number(lyBy.room || 0) / 1000),
-                        lyFnb: Math.round(Number(lyBy.fnb || 0) / 1000),
-                        lySpa: Math.round(Number(lyBy.spa || 0) / 1000),
-                        lyOther: Math.round(Number(lyBy.other || 0) / 1000),
-                        tyRoom: Math.round(Number(tyBy.room || 0) / 1000),
-                        tyFnb: Math.round(Number(tyBy.fnb || 0) / 1000),
-                        tySpa: Math.round(Number(tyBy.spa || 0) / 1000),
-                        tyOther: Math.round(Number(tyBy.other || 0) / 1000)
+                        ly: Math.round(Number(item.lastYear || 0)),
+                        ty: Math.round(Number(item.thisYear || 0)),
+                        lyRoom: Math.round(Number(lyBy.room || 0)),
+                        lyFnb: Math.round(Number(lyBy.fnb || 0)),
+                        lySpa: Math.round(Number(lyBy.spa || 0)),
+                        lyOther: Math.round(Number(lyBy.other || 0)),
+                        tyRoom: Math.round(Number(tyBy.room || 0)),
+                        tyFnb: Math.round(Number(tyBy.fnb || 0)),
+                        tySpa: Math.round(Number(tyBy.spa || 0)),
+                        tyOther: Math.round(Number(tyBy.other || 0))
                     };
                 });
                 if (rows.length) return rows;
@@ -324,7 +325,13 @@ Object.assign(window.PmsAPI, {
                 const env = await window.PmsMockApi.request('GET', '/reports/revenue-departments');
                 const rows = window.PmsMockApi.items(env).map(item => ({
                     ...item,
-                    amt: Math.round(Number(item.amt || 0) / 1000)
+                    name: item.name || item.department,
+                    sub: item.sub || item.subtitle || item.description || '',
+                    pct: Number(item.pct ?? item.percent ?? item.share ?? 0),
+                    amt: Math.round(Number(item.amt ?? item.value ?? item.amount ?? 0)),
+                    icon: item.icon || 'fa-circle-dollar-to-slot',
+                    color: item.color || 'var(--primary)',
+                    lt: item.lt || item.lightColor || 'var(--primary-lt)'
                 }));
                 if (rows.length) return rows;
             }
@@ -343,11 +350,12 @@ Object.assign(window.PmsAPI, {
             if (window.PmsMockApi) {
                 const env = await window.PmsMockApi.request('GET', '/reports/revenue-trend');
                 const rows = window.PmsMockApi.items(env).map(item => ({
+                    rawDate: item.date,
                     date: item.date,
-                    room: { v: Math.round(Number(item.room?.v || 0) / 1000), d: item.room?.d || 0 },
-                    pos: { v: Math.round(Number(item.pos?.v || 0) / 1000), d: item.pos?.d || 0 },
-                    golf: { v: Math.round(Number(item.golf?.v || 0) / 1000), d: item.golf?.d || 0 },
-                    car: { v: Math.round(Number(item.car?.v || 0) / 1000), d: item.car?.d || 0 }
+                    room: { v: Math.round(Number(item.room?.v || 0)), d: item.room?.d || 0 },
+                    pos: { v: Math.round(Number(item.pos?.v || 0)), d: item.pos?.d || 0 },
+                    golf: { v: Math.round(Number(item.golf?.v || 0)), d: item.golf?.d || 0 },
+                    car: { v: Math.round(Number(item.car?.v || 0)), d: item.car?.d || 0 }
                 }));
                 if (rows.length) return rows;
             }

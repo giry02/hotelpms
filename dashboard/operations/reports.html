@@ -162,14 +162,17 @@
                         <option>2026년</option>
                         <option>2025년</option>
                     </select>
-                    <select id="selMonth" class="hotel-select" style="width:80px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
+                    <select id="selMonth" class="hotel-select" onchange="handlePeriodFilterChange()" style="width:80px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
+                        <option>6월</option>
                         <option>5월</option>
                         <option>4월</option>
                         <option>3월</option>
                     </select>
-                    <select id="selWeek" class="hotel-select" style="width:90px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
-                        <option>2주차</option>
+                    <select id="selWeek" class="hotel-select" onchange="handlePeriodFilterChange()" style="width:90px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
                         <option>1주차</option>
+                        <option selected>2주차</option>
+                        <option>3주차</option>
+                        <option>4주차</option>
                     </select>
                 </div>
             </div>
@@ -273,6 +276,7 @@
 </div>
 
 <script>
+let allDailyData = [];
 let dailyData = [];
 let selectedDailyIndex = null;
 function chartMoney(v){return '$' + Number(v || 0).toLocaleString();}
@@ -581,13 +585,99 @@ function renderYoY(){
 }
 let depts = [];
 let currentChartPeriod = 'week';
+let allTrendData = [];
 function parseMoneyValue(value){
     return Number(String(value || '').replace(/[^0-9.-]/g, '')) || 0;
+}
+function periodTotal(rows){
+    return rows.reduce((sum, row) => sum + Number(row.room || 0) + Number(row.fnb || 0) + Number(row.spa || 0) + Number(row.other || 0), 0);
+}
+function periodRoomTotal(rows){
+    return rows.reduce((sum, row) => sum + Number(row.room || 0), 0);
+}
+function formatMoney(value){
+    return '$' + Math.round(Number(value || 0)).toLocaleString();
+}
+function formatDiff(value){
+    const num = Number.isFinite(value) ? value : 0;
+    return `${num >= 0 ? '+' : ''}${num.toFixed(1)}%`;
+}
+function percentDiff(current, previous){
+    if(!previous) return 0;
+    return ((Number(current || 0) - Number(previous || 0)) / previous) * 100;
+}
+function selectedNumber(id, fallback){
+    const el = document.getElementById(id);
+    const match = String(el?.value || el?.textContent || '').match(/\d+/);
+    return match ? Number(match[0]) : fallback;
+}
+function monthAndDay(row){
+    const raw = String(row.rawDate || row.date || '');
+    const iso = raw.match(/\d{4}-(\d{2})-(\d{2})/);
+    if(iso) return { month:Number(iso[1]), day:Number(iso[2]) };
+    const short = raw.match(/(\d{1,2})\.(\d{1,2})/);
+    if(short) return { month:Number(short[1]), day:Number(short[2]) };
+    return { month: selectedNumber('selMonth', 6), day: 1 };
+}
+function weekOfMonth(row){
+    const { day } = monthAndDay(row);
+    return Math.floor((day - 1) / 7) + 1;
+}
+function filterDailyRows(month, week){
+    return allDailyData.filter(row => {
+        const parts = monthAndDay(row);
+        return parts.month === month && (!week || weekOfMonth(row) === week);
+    });
+}
+function syncSelectedPeriodData(){
+    const month = selectedNumber('selMonth', 6);
+    const week = selectedNumber('selWeek', 2);
+    const weekRows = filterDailyRows(month, week);
+    dailyData = weekRows.length ? weekRows : allDailyData.slice(-7);
+    selectedDailyIndex = dailyData.length ? Math.min(selectedDailyIndex ?? dailyData.length - 1, dailyData.length - 1) : null;
+
+    const trendRows = allTrendData.filter(row => {
+        const parts = monthAndDay(row);
+        return parts.month === month && (!week || weekOfMonth(row) === week);
+    });
+    trendData = (trendRows.length ? trendRows : allTrendData.slice(-7)).slice(-7);
+}
+function getMonthlyRow(month){
+    return monthlyData.find(row => Number(String(row.m).match(/\d+/)?.[0] || row.month || 0) === month);
+}
+function getPeriodKpiData(type = currentChartPeriod){
+    const month = selectedNumber('selMonth', 6);
+    const week = selectedNumber('selWeek', 2);
+    if(type === 'week'){
+        const currentRows = dailyData.length ? dailyData : filterDailyRows(month, week);
+        const prevRows = filterDailyRows(month, Math.max(1, week - 1));
+        const total = periodTotal(currentRows);
+        const room = periodRoomTotal(currentRows);
+        return { total: formatMoney(total), room: formatMoney(room), anc: formatMoney(total - room), diff: formatDiff(percentDiff(total, periodTotal(prevRows))), labelKey:'vsLastWeek', titleKey:'weeklyTotal' };
+    }
+    if(type === 'month'){
+        const row = getMonthlyRow(month) || {};
+        const total = monthlyTotal(row);
+        const room = Number(row.room || 0);
+        const prev = getMonthlyRow(Math.max(1, month - 1));
+        return { total: formatMoney(total), room: formatMoney(room), anc: formatMoney(total - room), diff: formatDiff(percentDiff(total, prev ? monthlyTotal(prev) : 0)), labelKey:'vsLastMonth', titleKey:'monthlyTotal' };
+    }
+    const totals = yoyData.reduce((acc, row) => {
+        const current = yoySet(row, 'ty');
+        const last = yoySet(row, 'ly');
+        const currentTotal = yoyTotal(current) || Number(row.ty || 0);
+        const lastTotal = yoyTotal(last) || Number(row.ly || 0);
+        acc.total += currentTotal;
+        acc.room += Number(current.room || 0);
+        acc.lastTotal += lastTotal;
+        return acc;
+    }, { total:0, room:0, lastTotal:0 });
+    return { total: formatMoney(totals.total), room: formatMoney(totals.room), anc: formatMoney(totals.total - totals.room), diff: formatDiff(percentDiff(totals.total, totals.lastTotal)), labelKey:'vsLastYear', titleKey:'yearlyTotal' };
 }
 function getPeriodDeptRows(type = currentChartPeriod){
     if(!depts.length) return [];
     const baseTotal = depts.reduce((sum, d) => sum + Number(d.amt || 0), 0) || 1;
-    const targetTotal = parseMoneyValue(kpiData[type]?.total) || baseTotal;
+    const targetTotal = parseMoneyValue(getPeriodKpiData(type).total) || baseTotal;
     const scale = targetTotal / baseTotal;
     return depts.map(d => {
         const amt = Math.round(Number(d.amt || 0) * scale);
@@ -712,14 +802,26 @@ function changeChartPeriod(btn, type) {
     document.getElementById('cardMonthly').style.display = (type === 'month') ? 'block' : 'none';
     document.getElementById('cardYearly').style.display = (type === 'year') ? 'block' : 'none';
     
-    document.getElementById('kpiTotal').textContent = kpiData[type].total;
-    document.getElementById('kpiTotal').nextElementSibling.textContent = rt(kpiData[type].titleKey);
-    document.getElementById('kpiRoom').textContent = kpiData[type].room;
-    document.getElementById('kpiAnc').textContent = kpiData[type].anc;
-    document.getElementById('kpiDiff').textContent = kpiData[type].diff;
-    document.getElementById('kpiDiff').nextElementSibling.textContent = rt(kpiData[type].labelKey);
+    syncSelectedPeriodData();
+    const periodKpi = getPeriodKpiData(type);
+    document.getElementById('kpiTotal').textContent = periodKpi.total;
+    document.getElementById('kpiTotal').nextElementSibling.textContent = rt(periodKpi.titleKey);
+    document.getElementById('kpiRoom').textContent = periodKpi.room;
+    document.getElementById('kpiAnc').textContent = periodKpi.anc;
+    document.getElementById('kpiDiff').textContent = periodKpi.diff;
+    document.getElementById('kpiDiff').nextElementSibling.textContent = rt(periodKpi.labelKey);
+    if(document.getElementById('summaryWeekTotal')) document.getElementById('summaryWeekTotal').textContent = getPeriodKpiData('week').total;
+    if(document.getElementById('summaryWeekDiff')) document.getElementById('summaryWeekDiff').innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${getPeriodKpiData('week').diff}`;
+    if(document.getElementById('summaryMonthTotal')) document.getElementById('summaryMonthTotal').textContent = getPeriodKpiData('month').total;
+    if(document.getElementById('summaryMonthDiff')) document.getElementById('summaryMonthDiff').innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${getPeriodKpiData('month').diff}`;
     applyReportStaticI18n();
+    renderBarChart();
+    renderTrend();
     renderDepts(type);
+}
+function handlePeriodFilterChange(){
+    const activeChip = document.querySelector('.filter-chips .chip.active') || document.querySelector('.filter-chips .chip');
+    if(activeChip) changeChartPeriod(activeChip, currentChartPeriod);
 }
 
 renderBarChart();renderMonthly();renderYoY();renderDepts();renderTrend();
@@ -729,13 +831,16 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        dailyData = await PmsAPI.getDailyData();
+        allDailyData = await PmsAPI.getDailyData();
         monthlyData = await PmsAPI.getMonthlyData();
         yoyData = await PmsAPI.getYoyData();
         depts = await PmsAPI.getDepts();
-        trendData = await PmsAPI.getTrendData();
-        renderBarChart(); renderMonthly(); renderYoY(); renderDepts();
-    renderTrend();
+        allTrendData = await PmsAPI.getTrendData();
+        syncSelectedPeriodData();
+        const activeChip = document.querySelector('.filter-chips .chip.active') || document.querySelector('.filter-chips .chip');
+        if(activeChip) changeChartPeriod(activeChip, currentChartPeriod);
+        renderMonthly();
+        renderYoY();
     } catch(e) { console.error(e); }
 });
 </script>
