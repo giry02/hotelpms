@@ -14,6 +14,11 @@
 /* Chart page specific styles */
 .chart-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 20px; }
 .chart-grid-equal { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.filter-bar-mt {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px;
+    padding: 12px 20px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
+}
+.filter-left { display: flex; align-items: center; gap: 12px; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* Bar Chart */
 .rev-bar-chart { display: flex; align-items: flex-end; gap: 12px; height: 220px; padding: 20px 0 0; }
@@ -121,6 +126,12 @@
     .chart-grid-equal { grid-template-columns: 1fr; }
 }
 @media(max-width:768px) {
+    .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+    .filter-left { flex-direction: column; align-items: stretch; overflow: visible; gap: 10px; }
+    .filter-left > div { width: 100%; min-width: 0; }
+    .filter-left > div[style*="display:flex"]:not(.filter-chips) { display: flex !important; gap: 8px; }
+    .filter-chips { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; margin-right: 0 !important; }
+    .filter-chips .chip { justify-content: center; min-width: 0; padding-inline: 8px; }
     .rev-bar-chart { height: 180px; gap: 8px; }
     .rev-bar-group { min-width: 0; }
     .rev-bar-stack { height: 140px; }
@@ -150,7 +161,7 @@
 
     <div class="content">
         <!-- PERIOD SELECTOR -->
-        <div class="filter-bar" style="margin-bottom: 20px;">
+        <div class="filter-bar-mt">
             <div class="filter-left" style="flex-wrap:wrap">
                 <div class="filter-chips" style="margin-right:10px">
                     <button class="chip active" onclick="changeChartPeriod(this, 'week')">주별 (Weekly)</button>
@@ -158,7 +169,7 @@
                     <button class="chip" onclick="changeChartPeriod(this, 'year')">년도별 (Yearly)</button>
                 </div>
                 <div style="display:flex;gap:10px;align-items:center">
-                    <select id="selYear" class="hotel-select" style="width:100px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
+                    <select id="selYear" class="hotel-select" onchange="handlePeriodFilterChange()" style="width:100px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
                         <option>2026년</option>
                         <option>2025년</option>
                     </select>
@@ -611,6 +622,19 @@ function selectedNumber(id, fallback){
     const match = String(el?.value || el?.textContent || '').match(/\d+/);
     return match ? Number(match[0]) : fallback;
 }
+const CURRENT_REPORT_PERIOD = { year: 2026, month: 6, week: 2 };
+function setSelectByNumber(id, number){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const option = Array.from(el.options).find(opt => Number(String(opt.value || opt.textContent || '').match(/\d+/)?.[0]) === number);
+    if(option) el.value = option.value;
+}
+function resetToCurrentReportPeriod(type){
+    if(type === 'year') return;
+    setSelectByNumber('selYear', CURRENT_REPORT_PERIOD.year);
+    setSelectByNumber('selMonth', CURRENT_REPORT_PERIOD.month);
+    if(type === 'week') setSelectByNumber('selWeek', CURRENT_REPORT_PERIOD.week);
+}
 function monthAndDay(row){
     const raw = String(row.rawDate || row.date || '');
     const iso = raw.match(/\d{4}-(\d{2})-(\d{2})/);
@@ -790,10 +814,11 @@ const kpiData = {
     'year': { total:'$3,140,000', room:'$2,450,000', anc:'$520,000', diff:'+18.2%', labelKey:'vsLastYear', titleKey:'yearlyTotal' }
 };
 
-function changeChartPeriod(btn, type) {
+function changeChartPeriod(btn, type, resetPeriod = true) {
     currentChartPeriod = type;
     btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
+    if(resetPeriod) resetToCurrentReportPeriod(type);
     
     document.getElementById('selMonth').style.display = (type === 'week' || type === 'month') ? 'inline-block' : 'none';
     document.getElementById('selWeek').style.display = (type === 'week') ? 'inline-block' : 'none';
@@ -821,7 +846,7 @@ function changeChartPeriod(btn, type) {
 }
 function handlePeriodFilterChange(){
     const activeChip = document.querySelector('.filter-chips .chip.active') || document.querySelector('.filter-chips .chip');
-    if(activeChip) changeChartPeriod(activeChip, currentChartPeriod);
+    if(activeChip) changeChartPeriod(activeChip, currentChartPeriod, false);
 }
 
 renderBarChart();renderMonthly();renderYoY();renderDepts();renderTrend();

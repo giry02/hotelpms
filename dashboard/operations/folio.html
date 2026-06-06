@@ -78,9 +78,6 @@
                     </select>
                 </div>
             </div>
-            <div class="filter-right">
-                <button class="btn-primary-sm" onclick="renderFolios(); if(window.showToast) showToast('조회 조건이 적용되었습니다.', 'success');"><i class="fa-solid fa-magnifying-glass"></i> 조회</button>
-            </div>
         </div>
 
         <!-- KPI -->
@@ -265,6 +262,22 @@ function selectedNumber(id, fallback) {
     return match ? Number(match[0]) : fallback;
 }
 
+const CURRENT_FOLIO_PERIOD = { year: 2026, month: 6, week: 2 };
+
+function setSelectByNumber(id, number) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const option = Array.from(el.options).find(opt => Number(String(opt.value || opt.textContent || '').match(/\d+/)?.[0]) === number);
+    if (option) el.value = option.value;
+}
+
+function resetToCurrentFolioPeriod(period) {
+    if (period === 'year') return;
+    setSelectByNumber('selYear', CURRENT_FOLIO_PERIOD.year);
+    setSelectByNumber('selMonth', CURRENT_FOLIO_PERIOD.month);
+    if (period === 'week') setSelectByNumber('selWeek', CURRENT_FOLIO_PERIOD.week);
+}
+
 function folioDateParts(folio) {
     const match = String(folio.out || '').match(/(\d{4})-(\d{2})-(\d{2})/);
     if (!match) return { year: 2026, month: 6, day: 1 };
@@ -380,6 +393,7 @@ function setKpiPeriod(btn, period) {
     currentPeriod = period;
     btn.parentElement.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    resetToCurrentFolioPeriod(period);
     
     document.getElementById('selYear').style.display = (period === 'day') ? 'none' : 'inline-block';
     document.getElementById('selMonth').style.display = (period === 'week' || period === 'month') ? 'inline-block' : 'none';
