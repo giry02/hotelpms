@@ -765,6 +765,7 @@ function getExactKoEnFallbackMap() {
         '정의된 역할 수': 'Defined Roles',
         '오프라인': 'Offline',
         '직원 목록': 'Staff List',
+        '직원 계정과 역할, 상태를 확인하거나 등록 및 수정하세요.': 'View, register, or edit staff accounts, roles, and status.',
         '권한 설정': 'Permissions',
         '직원 등록': 'Add Staff',
         '직원': 'Staff',
@@ -2004,4 +2005,18 @@ Object.assign(window.translations.en, {
     "Last Week": "Last Week",
     "vs Last Week": "vs Last Week",
     "System / Booking": "System / Booking"
+});
+
+Object.assign(window.translations.ko, {
+    "staff.list.title": "직원 목록",
+    "staff.list.description": "직원 계정과 역할, 상태를 확인하거나 등록 및 수정하세요.",
+    "staff.action.permissions": "권한 설정",
+    "staff.action.add": "직원 등록"
+});
+
+Object.assign(window.translations.en, {
+    "staff.list.title": "Staff List",
+    "staff.list.description": "View, register, or edit staff accounts, roles, and status.",
+    "staff.action.permissions": "Permissions",
+    "staff.action.add": "Add Staff"
 });
