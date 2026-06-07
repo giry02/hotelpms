@@ -126,14 +126,8 @@
                     </div>
                     <div class="md-item">
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Group Booking Link">단체 예약 연결</div>
-                        <div style="display:flex;gap:16px;align-items:center;margin-bottom:10px;">
+                        <div style="display:flex;gap:16px;align-items:center;height:38px;">
                             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--txt);font-family:var(--font);font-size:0.82rem;font-weight:700;line-height:1.35"><input type="checkbox" id="unifiedIsB2B" value="true" onclick="toggleUnifiedGroupSelect()" style="width:16px;height:16px;accent-color:var(--primary);margin:0;"> <span data-i18n-key="Group Customer">단체 고객</span></label>
-                        </div>
-                        <div id="unifiedGroupSelectWrapper" style="display:none;background:#f8fafc;padding:12px;border:1px solid var(--border2);border-radius:8px;margin-bottom:10px;">
-                            <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:4px" data-i18n-key="Select Group Agency">소속 단체 / 여행사 선택</div>
-                            <select id="unifiedGroupId" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
-                                <option value="" data-i18n-key="Select a group...">단체를 선택하세요...</option>
-                            </select>
                         </div>
                     </div>
                     <div class="md-item">
@@ -145,6 +139,12 @@
                             <option value="checkout" data-i18n-key="Status Check Out">체크아웃</option>
                             <option value="completed" data-i18n-key="Status Completed">체크아웃 완료</option>
                             <option value="cancelled" data-i18n-key="Status Cancelled">취소</option>
+                        </select>
+                    </div>
+                    <div id="unifiedGroupSelectWrapper" style="grid-column:1 / -1;display:none;grid-template-columns:max-content minmax(0,1fr);align-items:center;gap:12px;background:#f8fafc;padding:12px;border:1px solid var(--border2);border-radius:8px;margin:0;">
+                        <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin:0" data-i18n-key="Select Group Agency">소속 단체 / 여행사 선택</div>
+                        <select id="unifiedGroupId" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
+                            <option value="" data-i18n-key="Select a group...">단체를 선택하세요...</option>
                         </select>
                     </div>
                 </div>
@@ -706,7 +706,7 @@
     
     window.toggleUnifiedGroupSelect = function() {
         const isB2B = document.getElementById('unifiedIsB2B').checked;
-        document.getElementById('unifiedGroupSelectWrapper').style.display = isB2B ? 'block' : 'none';
+        document.getElementById('unifiedGroupSelectWrapper').style.display = isB2B ? 'grid' : 'none';
     };
 
     window.openUnifiedResModal = async function(resId = null, prefillGroupId = null) {
