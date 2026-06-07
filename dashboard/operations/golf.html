@@ -61,7 +61,7 @@
 <body>
 
 <div class="main">
-        <header class="topbar"><h1 data-i18n-key="Golf">골프 예약</h1></header>
+        <header class="topbar"><h1 data-i18n-key="Golf Booking">골프 예약</h1></header>
 
     <div class="content">
         <!-- KPI -->
@@ -124,6 +124,11 @@
                 <select id="providerFilterSelect" class="provider-select" onchange="setProviderFilter(this.value)">
                     <option value="all">전체 업체</option>
                 </select>
+                <div class="filter-chips" id="statusFilterChips">
+                    <button class="chip active" onclick="setStatusFilter(this,'all')">전체 <span class="chip-count" id="statusAllCount">0</span></button>
+                    <button class="chip" onclick="setStatusFilter(this,'open')">미완료 <span class="chip-count" id="statusOpenCount">0</span></button>
+                    <button class="chip" onclick="setStatusFilter(this,'done')">완료 <span class="chip-count" id="statusDoneCount">0</span></button>
+                </div>
             </div>
             <div class="filter-right">
                 <button class="btn-outline" onclick="openModal('partnerModal')"><i class="fa-solid fa-building"></i> 업체 관리</button>
@@ -148,6 +153,7 @@ const tMap = {
 
 let currentFilter = 'all';
 let currentPeriodFilter = 'week';
+let currentStatusFilter = 'all';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -249,12 +255,19 @@ function orderDateValue(order) {
 }
 
 function orderMatchesPeriod(order) {
-    if (String(order.status || '') !== 'done') return true;
+    if (orderStatusKey(order) !== 'done') return true;
     const range = periodRange(currentPeriodFilter);
     if (!range) return true;
     const date = parseOrderDate(orderDateValue(order));
     if (!date) return true;
     return date >= range.start && date <= range.end;
+}
+
+function orderStatusKey(order) {
+    const value = String(order?.status || 'new').replace(/[-_\s]/g, '').toLowerCase();
+    if (['done', 'complete', 'completed', 'closed', 'paid'].includes(value)) return 'done';
+    if (['prep', 'preparing', 'accepted', 'progress', 'processing'].includes(value)) return 'prep';
+    return 'new';
 }
 
 function formatOrderTime(order) {
@@ -295,13 +308,29 @@ function updateRevenueKpi() {
     el.textContent = formatMoney(total, currency);
 }
 
+function updateStatusCounts() {
+    const all = orders.length;
+    const done = orders.filter(order => orderStatusKey(order) === 'done').length;
+    const open = all - done;
+    const allEl = document.getElementById('statusAllCount');
+    const openEl = document.getElementById('statusOpenCount');
+    const doneEl = document.getElementById('statusDoneCount');
+    if (allEl) allEl.textContent = all;
+    if (openEl) openEl.textContent = open;
+    if (doneEl) doneEl.textContent = done;
+}
+
 function renderOrders() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const container = document.getElementById('orderList');
     updateRevenueKpi();
+    updateStatusCounts();
     
     const filtered = orders.filter(o => {
         if (currentFilter !== 'all' && providerKeyFor(o) !== currentFilter) return false;
+        const status = orderStatusKey(o);
+        if (currentStatusFilter === 'open' && status === 'done') return false;
+        if (currentStatusFilter === 'done' && status !== 'done') return false;
         if (!orderMatchesPeriod(o)) return false;
         const haystack = [o.room, o.guest, o.id, o.items, providerLabelFor(o)].join(' ').toLowerCase();
         if (search && !haystack.includes(search)) return false;
@@ -315,12 +344,13 @@ function renderOrders() {
 
     container.innerHTML = filtered.map(o => {
         const info = providerMetaFor(o);
+        const status = orderStatusKey(o);
         
         let sHtml, actBtn;
-        if (o.status === 'new') {
+        if (status === 'new') {
             sHtml = `<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> 예약 대기</span>`;
             actBtn = `<button class="btn-primary-sm"><i class="fa-solid fa-check"></i> 예약 확정</button>`;
-        } else if (o.status === 'prep') {
+        } else if (status === 'prep') {
             sHtml = `<span style="color:var(--primary);font-weight:700"><i class="fa-solid fa-car"></i> 진행 예정</span>`;
             actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)"><i class="fa-solid fa-check-double"></i> 완료 처리</button>`;
         } else {
@@ -331,7 +361,7 @@ function renderOrders() {
         const amtHtml = `<span style="font-weight:700;color:var(--txt)">${formatMoney(o.total, orderCurrency(o))}</span> (예상 수수료)`;
 
         return `
-        <div class="hk-task ${o.status === 'new' ? 'dirty' : (o.status === 'done' ? 'clean' : 'inspect')}">
+        <div class="hk-task ${status === 'new' ? 'dirty' : (status === 'done' ? 'clean' : 'inspect')}">
             <div class="hk-task-left">
                 <div class="hk-task-room">${escapeHtml(o.room)}</div>
                 <div class="hk-task-info">
@@ -374,6 +404,13 @@ function setPeriodFilter(filter) {
     renderOrders();
 }
 
+function setStatusFilter(btn, filter) {
+    currentStatusFilter = filter || 'all';
+    document.getElementById('statusFilterChips')?.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn?.classList.add('active');
+    renderOrders();
+}
+
 /* renderOrders(); */
 
 // i18n
@@ -400,6 +437,8 @@ const translations={ko: {
         "Ancillary Svcs": "부가서비스",
         "Room Service": "룸서비스",
         "Golf": "골프",
+        "Golf Booking": "골프 예약",
+        "Rent-a-car Booking": "렌터카 예약",
         "Rent-a-car": "렌터카",
         "Hotel Settings": "호텔 설정",
         "Staff Mgmt": "직원 관리",
@@ -428,6 +467,8 @@ const translations={ko: {
         "Ancillary Svcs": "Ancillary Svcs",
         "Room Service": "Room Service",
         "Golf": "Golf",
+        "Golf Booking": "Golf Booking",
+        "Rent-a-car Booking": "Rent-a-car Booking",
         "Rent-a-car": "Rent-a-car",
         "Hotel Settings": "Hotel Settings",
         "Staff Mgmt": "Staff Mgmt",
