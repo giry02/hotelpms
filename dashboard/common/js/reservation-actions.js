@@ -98,8 +98,9 @@
                 <div class="modal-title" id="unifiedModalTitle">예약 상세 및 수정</div>
                 <button class="modal-close" onclick="closeUnifiedResModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                <input type="hidden" id="unifiedResId">
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                  <input type="hidden" id="unifiedResId">
+                  <input type="hidden" id="unifiedChannel" value="Walk-in">
                 
                 <div id="unifiedGuestSection" style="margin-bottom:20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border2);">
                     ${typeof renderGuestSearchHTML === 'function' ? renderGuestSearchHTML('Edit') : '<div style="color:red">guest-search.js missing</div>'}
@@ -124,36 +125,26 @@
                         <div id="unifiedRoomHelp" style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;"></div>
                     </div>
                     <div class="md-item" style="grid-column: 1 / -1;">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Reservation Source">예약 채널 및 소속 단체</div>
+                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Group Booking Link">단체 예약 연결</div>
                         <div style="display:flex;gap:16px;align-items:center;margin-bottom:10px;">
-                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="unifiedIsB2B" value="true" onclick="toggleUnifiedGroupSelect()"> 단체 고객</label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="unifiedIsB2B" value="true" onclick="toggleUnifiedGroupSelect()"> <span data-i18n-key="Group Customer">단체 고객</span></label>
                         </div>
                         <div id="unifiedGroupSelectWrapper" style="display:none;background:#f8fafc;padding:12px;border:1px solid var(--border2);border-radius:8px;margin-bottom:10px;">
-                            <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:4px">소속 단체 / 여행사 선택</div>
+                            <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:4px" data-i18n-key="Select Group Agency">소속 단체 / 여행사 선택</div>
                             <select id="unifiedGroupId" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
-                                <option value="">단체를 선택하세요...</option>
-                            </select>
-                        </div>
-                        <div id="unifiedFitChannelWrapper">
-                            <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:4px">채널 (Channel)</div>
-                            <select id="unifiedChannel" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
-                                <option value="Walk-in">Walk-in</option>
-                                <option value="Phone">Phone (Direct)</option>
-                                <option value="Homepage">Website</option>
-                                <option value="Agoda">Agoda</option>
-                                <option value="Booking.com">Booking.com</option>
+                                <option value="" data-i18n-key="Select a group...">단체를 선택하세요...</option>
                             </select>
                         </div>
                     </div>
                     <div class="md-item">
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Status">상태</div>
                         <select id="unifiedStatus" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
-                            <option value="blocked">단체 블록 (Blocked)</option>
-                            <option value="confirmed">예약 확정 (Confirmed)</option>
-                            <option value="checkedin">체크인 완료 (Checked-in)</option>
-                            <option value="checkout">체크아웃 (Check-out)</option>
-                            <option value="completed">체크아웃 완료</option>
-                            <option value="cancelled">취소</option>
+                            <option value="blocked" data-i18n-key="Status Blocked">단체 블록</option>
+                            <option value="confirmed" data-i18n-key="Status Confirmed">예약 확정</option>
+                            <option value="checkedin" data-i18n-key="Status Checked In">체크인 완료</option>
+                            <option value="checkout" data-i18n-key="Status Check Out">체크아웃</option>
+                            <option value="completed" data-i18n-key="Status Completed">체크아웃 완료</option>
+                            <option value="cancelled" data-i18n-key="Status Cancelled">취소</option>
                         </select>
                     </div>
                     <div class="md-item">
@@ -566,7 +557,7 @@
                         <i class="fa-solid fa-lock" style="color:var(--primary);margin-top:3px"></i>
                         <div>
                             <div style="color:var(--txt);font-size:.9rem;margin-bottom:4px">체크인 이후 예약은 조회 전용입니다.</div>
-                            <div>투숙객 변경, 신규 회원 등록, 객실/채널/상태 변경은 이 화면에서 처리하지 않습니다.</div>
+                            <div>투숙객 변경, 신규 회원 등록, 객실/상태 변경은 이 화면에서 처리하지 않습니다.</div>
                             <div style="margin-top:8px;color:var(--txt)">투숙객: ${guestNameForReservation(res)} · 객실: ${roomLabel}</div>
                         </div>
                     </div>`;
@@ -730,7 +721,6 @@
     window.toggleUnifiedGroupSelect = function() {
         const isB2B = document.getElementById('unifiedIsB2B').checked;
         document.getElementById('unifiedGroupSelectWrapper').style.display = isB2B ? 'block' : 'none';
-        document.getElementById('unifiedFitChannelWrapper').style.display = isB2B ? 'none' : 'block';
     };
 
     window.openUnifiedResModal = async function(resId = null, prefillGroupId = null) {
@@ -809,7 +799,8 @@
             document.getElementById('unifiedResId').value = '';
             document.getElementById('unifiedStatus').value = 'confirmed';
             document.getElementById('unifiedIsB2B').checked = false;
-            document.getElementById('unifiedChannel').value = 'Walk-in';
+            const channelEl = document.getElementById('unifiedChannel');
+            if (channelEl) channelEl.value = 'Walk-in';
             if (prefillGroupId) {
                 document.getElementById('unifiedIsB2B').checked = true;
                 setTimeout(() => document.getElementById('unifiedGroupId').value = prefillGroupId, 200);
@@ -908,15 +899,8 @@
             } else {
                 document.getElementById('unifiedIsB2B').checked = false;
             }
-            const chanSelect = document.getElementById('unifiedChannel');
-            let foundOption = Array.from(chanSelect.options).find(o => o.value === res.channel);
-            if (!foundOption && res.channel) {
-                const opt = document.createElement('option');
-                opt.value = res.channel;
-                opt.textContent = res.channel;
-                chanSelect.appendChild(opt);
-            }
-            chanSelect.value = res.channel || 'Walk-in';
+            const channelEl = document.getElementById('unifiedChannel');
+            if (channelEl) channelEl.value = res.channel || 'Walk-in';
 
             toggleUnifiedGroupSelect();
             setUnifiedDateValue('unifiedCin', res.checkInDate || res.checkin || res.cin);
@@ -995,7 +979,7 @@
         }
         const status = document.getElementById('unifiedStatus').value;
         const isB2B = document.getElementById('unifiedIsB2B').checked;
-        let channel = document.getElementById('unifiedChannel').value;
+        let channel = document.getElementById('unifiedChannel')?.value || 'Walk-in';
         let groupId = null;
         let savedRes = null;
         const cinText = toReservationDateText(getUnifiedDateInputValue('unifiedCin'));
