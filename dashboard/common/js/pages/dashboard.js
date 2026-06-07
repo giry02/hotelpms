@@ -316,27 +316,36 @@
 
     function renderServiceBreakdown(data) {
         const list = document.getElementById("svcBreakdown");
+        const shareGrid = document.getElementById("svcShareGrid");
         if (!list) return;
         list.innerHTML = "";
+        if (shareGrid) shareGrid.innerHTML = "";
         data.forEach((service) => {
             const row = document.createElement("div");
             row.className = "svc-row";
-            row.style.cursor = "pointer";
             const label = serviceLabel(service, data.indexOf(service));
             const tooltipTitle = `${tr("Ancillary Rev")} - ${label}`;
             const tooltipContent = `
                 <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Revenue Amount")}:</span><strong style="color:${service.color}">$${service.val.toLocaleString()}</strong></div>
                 <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Share")}:</span><strong>${service.pct}%</strong></div>`;
             row.innerHTML = `
-                <div class="svc-top">
-                    <div class="svc-icon" style="background:${service.color}1A;color:${service.color}"><i class="fa-solid ${service.icon}"></i></div>
-                    <div class="svc-share">${service.pct}%</div>
-                </div>
+                <div class="svc-icon" style="background:${service.color}1A;color:${service.color}"><i class="fa-solid ${service.icon}"></i></div>
                 <div class="svc-name">${label}</div>
-                <div class="svc-val">$${service.val.toLocaleString()}</div>
-                <div class="svc-bar-bg"><div class="svc-bar" style="width:${service.pct}%;background:${service.color}"></div></div>`;
+                <div class="svc-bar-bg"><div class="svc-bar" style="width:${service.pct}%;background:${service.color}"></div></div>
+                <div class="svc-val">$${service.val.toLocaleString()}</div>`;
             attachChartTooltip(row, tooltipTitle, tooltipContent);
             list.appendChild(row);
+
+            if (shareGrid) {
+                const summary = document.createElement("div");
+                summary.className = "svc-share-card";
+                summary.innerHTML = `
+                    <div class="svc-icon" style="background:${service.color}1A;color:${service.color}"><i class="fa-solid ${service.icon}"></i></div>
+                    <div class="svc-share-name">${label}</div>
+                    <div class="svc-share">${service.pct}%</div>`;
+                attachChartTooltip(summary, tooltipTitle, tooltipContent);
+                shareGrid.appendChild(summary);
+            }
         });
     }
 
