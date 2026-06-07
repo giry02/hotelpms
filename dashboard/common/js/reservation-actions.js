@@ -124,10 +124,10 @@
                         <select id="unifiedRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;"></select>
                         <div id="unifiedRoomHelp" style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;"></div>
                     </div>
-                    <div class="md-item" style="grid-column: 1 / -1;">
+                    <div class="md-item">
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Group Booking Link">단체 예약 연결</div>
                         <div style="display:flex;gap:16px;align-items:center;margin-bottom:10px;">
-                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="unifiedIsB2B" value="true" onclick="toggleUnifiedGroupSelect()"> <span data-i18n-key="Group Customer">단체 고객</span></label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--txt);font-family:var(--font);font-size:0.82rem;font-weight:700;line-height:1.35"><input type="checkbox" id="unifiedIsB2B" value="true" onclick="toggleUnifiedGroupSelect()" style="width:16px;height:16px;accent-color:var(--primary);margin:0;"> <span data-i18n-key="Group Customer">단체 고객</span></label>
                         </div>
                         <div id="unifiedGroupSelectWrapper" style="display:none;background:#f8fafc;padding:12px;border:1px solid var(--border2);border-radius:8px;margin-bottom:10px;">
                             <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:4px" data-i18n-key="Select Group Agency">소속 단체 / 여행사 선택</div>
@@ -146,10 +146,6 @@
                             <option value="completed" data-i18n-key="Status Completed">체크아웃 완료</option>
                             <option value="cancelled" data-i18n-key="Status Cancelled">취소</option>
                         </select>
-                    </div>
-                    <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Room Type">객실 타입</div>
-                        <div class="md-value" id="unifiedType" style="font-size:0.9rem;"></div>
                     </div>
                 </div>
             </div>
@@ -405,13 +401,6 @@
         return map[normalized] || value || '스탠다드';
     }
 
-    function setUnifiedSelectedRoomType() {
-        const roomSelect = document.getElementById('unifiedRoom');
-        const selectedRoom = (window.rooms || []).find(r => roomLabel(r) === roomSelect?.value || r.id === roomSelect?.value || r.fullRoom === roomSelect?.value);
-        const typeEl = document.getElementById('unifiedType');
-        if (typeEl) typeEl.textContent = selectedRoom ? roomTypeDisplay(selectedRoom.type) : '-';
-    }
-
     function refreshUnifiedRoomOptions(preferredValue = '') {
         const roomSelect = document.getElementById('unifiedRoom');
         const help = document.getElementById('unifiedRoomHelp');
@@ -425,7 +414,6 @@
             roomSelect.disabled = true;
             roomSelect.innerHTML = `<option value="">${actionText('booking.roomDateFirst')}</option>`;
             if (help) help.textContent = actionText('booking.roomDateFirst');
-            setUnifiedSelectedRoomType();
             return;
         }
 
@@ -444,7 +432,6 @@
             roomSelect.disabled = true;
             roomSelect.innerHTML = `<option value="">${actionText('booking.noRooms')}</option>`;
             if (help) help.textContent = actionText('booking.noRooms');
-            setUnifiedSelectedRoomType();
             return;
         }
 
@@ -468,7 +455,6 @@
                 ? `${enabledValues.length}${actionLang() === 'en' ? ' available rooms' : '개 객실 예약 가능'}`
                 : actionText('booking.noRooms');
         }
-        setUnifiedSelectedRoomType();
     }
 
     window.updateUnifiedStayAndRooms = function(preferredValue = '') {
@@ -785,12 +771,6 @@
                 });
             }
         }
-        roomSelect.onchange = () => {
-            const selectedRoom = (window.rooms || []).find(r => r.id === roomSelect.value || r.fullRoom === roomSelect.value || r.number === roomSelect.value || r.display === roomSelect.value);
-            const typeEl = document.getElementById('unifiedType');
-            if (typeEl) typeEl.textContent = selectedRoom ? roomTypeDisplay(selectedRoom.type) : '-';
-        };
-
         if (!resId) {
             // NEW BOOKING MODE
             const cancelBtn = document.getElementById('unifiedBtnCancel');
@@ -816,10 +796,6 @@
             setUnifiedDateValue('unifiedCin', prefill?.checkin || prefill?.cin || prefill?.checkInDate, today);
             setUnifiedDateValue('unifiedCout', prefill?.checkout || prefill?.cout || prefill?.checkOutDate, tomorrow);
             window.updateUnifiedStayAndRooms(prefill?.room || prefill?.fullRoom || '');
-            if (prefill?.type && document.getElementById('unifiedType')?.textContent === '-') {
-                document.getElementById('unifiedType').textContent = roomTypeDisplay(prefill.type);
-            }
-            
             if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
             }
@@ -906,7 +882,6 @@
             setUnifiedDateValue('unifiedCin', res.checkInDate || res.checkin || res.cin);
             setUnifiedDateValue('unifiedCout', res.checkOutDate || res.checkout || res.cout);
             window.updateUnifiedStayAndRooms(targetRoomValue);
-            document.getElementById('unifiedType').textContent = roomTypeDisplay(matchedRoom?.type || res.type || document.getElementById('unifiedType').textContent);
             setUnifiedReservationReadonly(isReadonlyReservation, res);
             renderUnifiedFlowActions(res);
         }
@@ -1018,7 +993,7 @@
                 nights: nights,
                 len: nights,
 
-                type: selectedRoom?.type || document.getElementById('unifiedType').textContent || 'Standard',
+                type: selectedRoom?.type || currentRes?.type || 'Standard',
                 fullRoom: selectedRoom?.id || room,
                 amount: 0,
                 color: '#3B82F6',
