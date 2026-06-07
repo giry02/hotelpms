@@ -28,11 +28,6 @@ const _tierIcons = {
     Standard: 'fa-user'
 };
 
-const _tierLabels = {
-    ko: { diamond: '다이아몬드', platinum: '플래티넘', gold: '골드', standard: '일반', VIP: 'VIP', Platinum: '플래티넘', Gold: '골드', Standard: '일반' },
-    en: { diamond: 'Diamond', platinum: 'Platinum', gold: 'Gold', standard: 'Standard', VIP: 'VIP', Platinum: 'Platinum', Gold: 'Gold', Standard: 'Standard' }
-};
-
 let _guestDbPromise = null;
 
 function _guestText(key, fallback) {
@@ -63,8 +58,7 @@ function _guestSearchLang() {
 }
 
 function _tierLabel(tier) {
-    const lang = _guestSearchLang();
-    return _tierLabels[lang]?.[tier] || tier || '';
+    return String(tier || '');
 }
 
 function _escapeGuestHtml(value) {

@@ -217,9 +217,9 @@
                     </div>
                     <div class="filter-chips">
                         <button class="chip active" data-filter="all" data-label="전체" onclick="filterCompanies('all', this)">전체</button>
-                        <button class="chip" data-filter="Corporate" data-label="일반 기업" onclick="filterCompanies('Corporate', this)">일반 기업</button>
-                        <button class="chip" data-filter="Travel Agency" data-label="여행사" onclick="filterCompanies('Travel Agency', this)">여행사</button>
-                        <button class="chip" data-filter="Other" data-label="기타" onclick="filterCompanies('Other', this)">기타</button>
+                        <button class="chip" data-filter="Corporate" data-label="Corporate" onclick="filterCompanies('Corporate', this)">Corporate</button>
+                        <button class="chip" data-filter="Travel Agency" data-label="Travel Agency" onclick="filterCompanies('Travel Agency', this)">Travel Agency</button>
+                        <button class="chip" data-filter="Other" data-label="Other" onclick="filterCompanies('Other', this)">Other</button>
                     </div>
                 </div>
                 <div class="filter-right">
@@ -256,10 +256,10 @@
                 <div>
                     <label class="form-label">업체 유형</label>
                     <select id="compType" class="form-input" style="width:100%">
-                        <option value="Corporate">일반 기업 (Corporate)</option>
-                        <option value="Travel Agency">여행사 (Travel Agency)</option>
-                        <option value="Government">정부/공공기관</option>
-                        <option value="Other">기타 단체 (스포츠팀, 종교 등)</option>
+                        <option value="Corporate">Corporate</option>
+                        <option value="Travel Agency">Travel Agency</option>
+                        <option value="Government">Government</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
                 <div>
@@ -317,9 +317,9 @@ let currentFilter = 'all';
 
 const COMPANY_FILTER_LABELS = {
     all: '전체',
-    Corporate: '일반 기업',
-    'Travel Agency': '여행사',
-    Other: '기타'
+    Corporate: 'Corporate',
+    'Travel Agency': 'Travel Agency',
+    Other: 'Other'
 };
 
 function companyText(key, params = {}) {
@@ -353,6 +353,10 @@ function companyFilterKey(company) {
     if (['corporate', 'corporation', 'company', 'enterprise', '기업', '일반 기업'].includes(type)) return 'Corporate';
     if (['agency', 'travel agency', 'travel_agency', 'ota', '여행사'].includes(type)) return 'Travel Agency';
     return 'Other';
+}
+
+function companyTypeDisplay(company) {
+    return String(company?.type || companyFilterKey(company) || '').trim() || 'Other';
 }
 
 function companyMatchesFilter(company) {
@@ -436,8 +440,7 @@ function renderCompanies(search = '') {
     grid.style.display = 'grid'; empty.style.display = 'none';
 
     grid.innerHTML = filtered.map(c => {
-        const typeKey = companyFilterKey(c);
-        const typeName = typeKey === 'Corporate' ? '일반 기업' : typeKey === 'Travel Agency' ? '여행사' : '기타 단체';
+        const typeName = companyTypeDisplay(c);
         const badgeCls = c.status==='active'?'pill-active':'pill-inactive';
         const badgeTxt = c.status==='active'?'계약 활성':'계약 비활성';
         return `
@@ -666,8 +669,7 @@ function openBlockModal(compId) {
             const deleteGuard = window.companyDeleteGuard(c);
             const deleteDisabled = deleteGuard.locked ? 'disabled aria-disabled="true"' : '';
             const deleteTitle = deleteGuard.locked ? companyText('delete.disabledTitle') : '삭제';
-            const typeKey = companyFilterKey(c);
-            const typeName = typeKey === 'Corporate' ? '일반 기업' : typeKey === 'Travel Agency' ? '여행사' : '기타';
+            const typeName = companyTypeDisplay(c);
             const badgeCls = c.status === 'active' ? 'pill-active' : 'pill-inactive';
             const badgeTxt = c.status === 'active' ? '계약 활성' : '비활성';
             return `

@@ -387,18 +387,7 @@
 
     function roomTypeDisplay(type) {
         const value = String(type || '').trim();
-        if (actionLang() === 'en') return value || 'Standard';
-        const normalized = value.toLowerCase().replace(/\s+/g, ' ');
-        const map = {
-            standard: '스탠다드',
-            deluxe: '디럭스',
-            premier: '프리미어',
-            penthouse: '펜트하우스',
-            'pool villa': '풀빌라',
-            'garden villa': '가든빌라',
-            suite: '스위트'
-        };
-        return map[normalized] || value || '스탠다드';
+        return value || 'Standard';
     }
 
     function refreshUnifiedRoomOptions(preferredValue = '') {
