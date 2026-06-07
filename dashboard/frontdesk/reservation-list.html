@@ -38,6 +38,7 @@
 .reservation-filter-bar{padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px}
 .reservation-sort-group{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding-left:10px;border-left:1px solid var(--border2)}
 .sort-btn{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.75rem;font-weight:800;cursor:pointer;white-space:nowrap;transition:.15s}
+.sort-btn i{width:14px;text-align:center}
 .sort-btn:hover{border-color:var(--primary);color:var(--primary)}
 .sort-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .period-select{height:36px;min-width:132px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.75rem;font-weight:800;padding:0 30px 0 10px;outline:none;flex-shrink:0}
@@ -159,8 +160,8 @@
                     <option value="all">전체 기간</option>
                 </select>
                 <div class="reservation-sort-group" aria-label="예약 정렬">
-                    <button type="button" class="sort-btn active" data-sort="recent" onclick="setReservationSort('recent')"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n-key="Recent Order">최근순</span></button>
-                    <button type="button" class="sort-btn" data-sort="room" onclick="setReservationSort('room')"><i class="fa-solid fa-arrow-down-1-9"></i> <span data-i18n-key="Room Order">호실순</span></button>
+                    <button type="button" class="sort-btn active" data-sort="recent" onclick="setReservationSort('recent')" aria-label="최근순 정렬"><i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i> <span class="sort-label">최근순</span></button>
+                    <button type="button" class="sort-btn" data-sort="room" onclick="setReservationSort('room')" aria-label="호실 오름차순 정렬"><i class="fa-solid fa-arrow-up-1-9" aria-hidden="true"></i> <span class="sort-label">호실 오름</span></button>
                 </div>
                 <div class="filter-chips">
                     <button class="chip active" data-filter="all" onclick="setFilter(this,'all')">전체 <span class="chip-count">0</span></button>
@@ -705,6 +706,7 @@ let currentFilter = 'all';
 let currentPeriodFilter = 'week';
 let currentPage = 1;
 let currentSort = 'recent';
+let currentSortDirection = 'desc';
 const itemsPerPage = 10;
 
 function reservationNumericId(res) {
@@ -729,22 +731,65 @@ function roomSortKey(res) {
 }
 
 function compareReservations(left, right) {
+    let result;
     if (currentSort === 'room') {
         const a = roomSortKey(left);
         const b = roomSortKey(right);
-        if (a.prefix !== b.prefix) return a.prefix - b.prefix;
-        if (a.number !== b.number) return a.number - b.number;
-        return a.room.localeCompare(b.room);
+        if (a.prefix !== b.prefix) result = a.prefix - b.prefix;
+        else if (a.number !== b.number) result = a.number - b.number;
+        else result = a.room.localeCompare(b.room);
+    } else {
+        result = reservationRecentValue(left) - reservationRecentValue(right);
+        if (!result) result = reservationNumericId(left) - reservationNumericId(right);
     }
-    const recentDiff = reservationRecentValue(right) - reservationRecentValue(left);
-    return recentDiff || (reservationNumericId(right) - reservationNumericId(left));
+    return currentSortDirection === 'asc' ? result : -result;
+}
+
+function defaultSortDirection(mode) {
+    return mode === 'room' ? 'asc' : 'desc';
+}
+
+function sortButtonMeta(mode, direction) {
+    const en = reservationLang() === 'en';
+    const labels = {
+        recent: {
+            asc: { label: en ? 'Oldest' : '오래된순', icon: 'fa-arrow-up-wide-short', title: en ? 'Sort by oldest booking first' : '오래된 예약부터 정렬' },
+            desc: { label: en ? 'Newest' : '최근순', icon: 'fa-arrow-down-wide-short', title: en ? 'Sort by newest booking first' : '최근 예약부터 정렬' }
+        },
+        room: {
+            asc: { label: en ? 'Room asc' : '호실 오름', icon: 'fa-arrow-up-1-9', title: en ? 'Sort rooms ascending' : '호실 오름차순 정렬' },
+            desc: { label: en ? 'Room desc' : '호실 내림', icon: 'fa-arrow-down-9-1', title: en ? 'Sort rooms descending' : '호실 내림차순 정렬' }
+        }
+    };
+    return labels[mode]?.[direction] || labels.recent.desc;
+}
+
+function updateSortButtons() {
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+        const mode = btn.dataset.sort === 'room' ? 'room' : 'recent';
+        const active = mode === currentSort;
+        const direction = active ? currentSortDirection : defaultSortDirection(mode);
+        const meta = sortButtonMeta(mode, direction);
+        btn.classList.toggle('active', active);
+        btn.dataset.direction = direction;
+        btn.setAttribute('aria-label', meta.title);
+        btn.setAttribute('title', meta.title);
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = `fa-solid ${meta.icon}`;
+        const label = btn.querySelector('.sort-label');
+        if (label) label.textContent = meta.label;
+    });
 }
 
 function setReservationSort(mode) {
-    currentSort = mode === 'room' ? 'room' : 'recent';
-    document.querySelectorAll('.sort-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.sort === currentSort);
-    });
+    const nextSort = mode === 'room' ? 'room' : 'recent';
+    if (currentSort === nextSort) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort = nextSort;
+        currentSortDirection = defaultSortDirection(nextSort);
+    }
+    updateSortButtons();
     currentPage = 1;
     renderTable();
 }
@@ -974,6 +1019,7 @@ function changePage(page) {
 }
 
 function refreshReservationLabels() {
+    updateSortButtons();
     document.querySelectorAll('.ops-tab').forEach(tab => {
         const filter = tab.getAttribute('data-filter');
         const label = tab.querySelector('.ops-label');
