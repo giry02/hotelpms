@@ -1536,8 +1536,13 @@ function installChangeLangGuard() {
         window.currentLang = nextLang;
         localStorage.setItem('pms_lang', nextLang);
         const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
+        applyKeyedI18nFallback(nextLang, catalog);
         applyVisibleTextI18nFallback(nextLang, catalog);
         window.dispatchEvent(new Event('languagechange'));
+        setTimeout(() => {
+            applyKeyedI18nFallback(nextLang, catalog);
+            applyVisibleTextI18nFallback(nextLang, catalog);
+        }, 120);
         return result;
     };
     window.changeLang.__pmsI18nGuard = true;
@@ -1546,16 +1551,49 @@ function installChangeLangGuard() {
     installI18nMutationObserver();
 }
 
+function applyKeyedI18nFallback(lang, catalog) {
+    if (!document.body) return;
+    const legacy = (window.translations && (window.translations[lang] || window.translations.en)) || {};
+    const catalogDict = (catalog && (catalog[lang] || catalog.en)) || {};
+    document.querySelectorAll('[data-i18n-key]').forEach(element => {
+        const key = element.getAttribute('data-i18n-key');
+        const translated = catalogDict[key] || legacy[key];
+        if (translated && element.textContent !== translated) element.textContent = translated;
+    });
+    document.querySelectorAll('[data-i18n]').forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        const translated = catalogDict[key] || legacy[key];
+        if (translated && element.textContent !== translated) element.textContent = translated;
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        const translated = catalogDict[key] || legacy[key];
+        if (translated && element.getAttribute('placeholder') !== translated) element.setAttribute('placeholder', translated);
+    });
+    const langSelects = document.querySelectorAll('#langSelect, .lang-select, select[onchange*="changeLang"]');
+    langSelects.forEach(select => {
+        if (select.value !== lang) select.value = lang;
+    });
+    if (typeof window.applyLocalI18n === 'function' && !window.__pmsApplyingLocalI18n) {
+        try {
+            window.__pmsApplyingLocalI18n = true;
+            window.applyLocalI18n(lang);
+        } finally {
+            window.__pmsApplyingLocalI18n = false;
+        }
+    }
+}
+
 function installI18nMutationObserver() {
     if (window.__pmsI18nObserver || !document.body) return;
     let timer = null;
     window.__pmsI18nObserver = new MutationObserver(() => {
         const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
-        if (lang !== 'en') return;
         clearTimeout(timer);
         timer = setTimeout(() => {
             const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
-            applyVisibleTextI18nFallback('en', catalog);
+            applyKeyedI18nFallback(lang, catalog);
+            applyVisibleTextI18nFallback(lang, catalog);
         }, 80);
     });
     window.__pmsI18nObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
