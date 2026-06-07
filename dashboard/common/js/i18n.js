@@ -1152,6 +1152,10 @@ function translateKoreanPattern(text) {
 }
 
 function applyVisibleTextI18nFallback(lang, catalog) {
+    if (lang === 'ko') {
+        applyEnglishUiTextFallback();
+        return;
+    }
     if (lang !== 'en' || !document.body) return;
     const reverse = buildReverseI18nMap(catalog || {});
     const skipTags = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'OPTION']);
@@ -1176,6 +1180,151 @@ function applyVisibleTextI18nFallback(lang, catalog) {
         node.nodeValue = `${leading}${translated}${trailing}`;
     });
 }
+
+function buildEnglishUiI18nMap() {
+    const map = {};
+    const add = (enText, koText) => {
+        if (!enText || !koText || enText === koText) return;
+        map[String(enText).trim()] = String(koText).trim();
+    };
+
+    Object.entries(window.translations.en || {}).forEach(([key, enText]) => {
+        const koText = window.translations.ko && window.translations.ko[key];
+        add(enText, koText);
+    });
+
+    Object.entries(EN_TO_KO_UI_FALLBACKS).forEach(([enText, koText]) => add(enText, koText));
+    return map;
+}
+
+function translateEnglishUiPattern(text) {
+    if (!text) return text;
+    const trimmed = String(text).replace(/\s+/g, ' ').trim();
+    const exact = EN_TO_KO_UI_FALLBACKS[trimmed];
+    if (exact) return exact;
+    const completed = trimmed.match(/^Completed\s+(\d+)$/i);
+    if (completed) return `완료 ${completed[1]}`;
+    const todayCheckins = trimmed.match(/^Today Check-ins\s+(\d+)$/i);
+    if (todayCheckins) return `금일 체크인 ${todayCheckins[1]}`;
+    const urgentPending = trimmed.match(/^Urgent Pending\s+(\d+)$/i);
+    if (urgentPending) return `긴급 대기 ${urgentPending[1]}`;
+    const nightAuditClose = trimmed.match(/^I have reviewed the settlement details above and ([0-9-]+) will close the business day\.$/i);
+    if (nightAuditClose) return `위 정산 세부 내역을 확인했으며 ${nightAuditClose[1]} 영업일을 마감합니다.`;
+    return null;
+}
+
+function applyEnglishUiTextFallback() {
+    if (!document.body) return;
+    const forward = buildEnglishUiI18nMap();
+    const skipTags = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'OPTION']);
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+            const parent = node.parentElement;
+            if (!parent || skipTags.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
+            if (parent.closest('[data-no-auto-i18n], .user-input, .guest-name, .timeline-user-data')) return NodeFilter.FILTER_REJECT;
+            const trimmed = node.nodeValue.replace(/\s+/g, ' ').trim();
+            return (forward[trimmed] || translateEnglishUiPattern(trimmed)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+    });
+
+    const pending = [];
+    let node;
+    while ((node = walker.nextNode())) pending.push(node);
+    pending.forEach(node => {
+        const leading = node.nodeValue.match(/^\s*/)[0];
+        const trailing = node.nodeValue.match(/\s*$/)[0];
+        const trimmed = node.nodeValue.replace(/\s+/g, ' ').trim();
+        const translated = forward[trimmed] || translateEnglishUiPattern(trimmed);
+        if (translated) node.nodeValue = `${leading}${translated}${trailing}`;
+    });
+
+    document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(input => {
+        const current = input.getAttribute('placeholder');
+        const translated = forward[current] || KO_PLACEHOLDER_FALLBACKS[current];
+        if (translated) input.setAttribute('placeholder', translated);
+    });
+}
+
+const KO_PLACEHOLDER_FALLBACKS = {
+    'Room번호 검색...': '객실번호 검색...'
+};
+
+const EN_TO_KO_UI_FALLBACKS = {
+    'Total Guests': '총 고객 수',
+    'Return Rate': '재방문율',
+    'Avg. Spend/Guest': '고객당 평균 지출',
+    'Guest': '고객',
+    'Country': '국적',
+    'Tier': '등급',
+    'Total Spend': '총 지출',
+    'Contact': '연락처',
+    'Actions': '관리',
+    'First Name *': '이름 *',
+    'First Name': '이름',
+    'Last Name *': '성 *',
+    'Last Name': '성',
+    'Contact *': '연락처 *',
+    'Email': '이메일',
+    'Room Type': '객실 유형',
+    'Payment Amount': '결제 금액',
+    'Status': '상태',
+    'Tier Member Status and Criteria': '등급 멤버 현황 및 기준',
+    'Recent Tier Changes': '최근 등급 변동',
+    'Today': '오늘',
+    'Check-in': '체크인',
+    'Check-out': '체크아웃',
+    'Channel': '채널',
+    'Amount': '금액',
+    'Unsettled Groups': '미정산 단체',
+    'Today Check-ins': '금일 체크인',
+    'Room Service Orders': '룸서비스 주문',
+    'Golf Reservations': '골프 예약',
+    'Rent-a-car Reservations': '렌터카 예약',
+    'Ancillary Services Dashboard': '부가서비스 대시보드',
+    'Weekly Total Revenue': '주간 총 매출',
+    'Total Revenue': '총 매출',
+    'Room Revenue': '객실 매출',
+    'Ancillary Revenue': '부가서비스 매출',
+    'Daily Revenue Trend': '일별 매출 추이',
+    'Revenue by Department': '부서별 매출',
+    'Room': '객실',
+    'Search': '검색',
+    'Guest Name': '고객명',
+    'Total': '총 금액',
+    'Paid Amount': '결제액',
+    'Today Reservations': '금일 예약',
+    'Maintenance Request': '시설 보수 요청',
+    'Completed': '완료',
+    'Urgent Pending': '긴급 대기',
+    'I have reviewed the settlement details above and': '위 정산 세부 내역을 확인했으며',
+    'will close the business day.': '영업일을 마감합니다.',
+    'Run Daily Close': '일일 마감 실행',
+    'Payment Method': '결제 방식',
+    'Verify Guest': '투숙객 확인',
+    'Complete Payment / Charge': '결제/청구 완료',
+    'Bulk Rate Edit': '일괄 요금 수정',
+    'Reset to Default Rates': '기본 요금으로 초기화',
+    'Item Actions': '항목 관리',
+    'Building / Area Actions': '건물/구역 관리',
+    'Add Room': '객실 등록',
+    'Manual Order': '수기 오더 등록',
+    'Accept Order': '주문 접수',
+    'Service Restriction Warning: Unpaid Billing': '미납 요금 서비스 제한 경고',
+    'Billing and Payment History': '요금 및 결제 내역',
+    'Download Total Summary': '전체 요약 다운로드',
+    'Billing Date': '청구일',
+    'Payment Status': '결제 상태',
+    'Saved Payment Methods': '저장된 결제 수단',
+    'Add Card': '카드 추가',
+    'Super Admin System Notices': '슈퍼 관리자 시스템 공지',
+    'Add': '추가',
+    'Total Staff': '전체 직원',
+    'Add Staff': '직원 등록',
+    'Staff': '직원',
+    'Role': '권한',
+    'Edit': '수정',
+    'Contact Support': '고객지원 문의'
+};
 
 const RUNTIME_MESSAGE_FALLBACKS = {
     '검색어를 입력해 주세요.': 'Enter a search term.',
