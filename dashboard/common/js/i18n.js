@@ -2020,3 +2020,11 @@ Object.assign(window.translations.en, {
     "staff.action.permissions": "Permissions",
     "staff.action.add": "Add Staff"
 });
+
+Object.assign(window.translations.ko, {
+    "folio.filter.hasOutstanding": "미수금 있음"
+});
+
+Object.assign(window.translations.en, {
+    "folio.filter.hasOutstanding": "Outstanding"
+});
