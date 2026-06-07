@@ -149,7 +149,8 @@ Object.assign(window.PmsAPI, {
                 const orders = window.PmsMockApi.items(env).map(item => ({
                     ...item,
                     room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
-                    total: window.PmsMockApi.amountValue(item.total)
+                    total: window.PmsMockApi.amountValue(item.total),
+                    currency: window.PmsMockApi.currencyOf(item.total, env?.meta?.currency || 'USD')
                 }));
                 if (orders.length) return orders;
             }
@@ -179,7 +180,8 @@ Object.assign(window.PmsAPI, {
                 const orders = window.PmsMockApi.items(env).map(item => ({
                     ...item,
                     room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
-                    total: window.PmsMockApi.amountValue(item.total)
+                    total: window.PmsMockApi.amountValue(item.total),
+                    currency: window.PmsMockApi.currencyOf(item.total, env?.meta?.currency || 'USD')
                 }));
                 if (orders.length) return orders;
             }

@@ -93,7 +93,7 @@
             <div class="kpi-card purple">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">₩150,000</div>
+                    <div class="kpi-value" id="kpiCommission">$0</div>
                     <div class="kpi-label">예상 수수료 수익</div>
                     <div class="kpi-sub">예약 수수료 (별도 통계)</div>
                 </div>
@@ -264,9 +264,42 @@ function formatOrderTime(order) {
     return [date, order.time].filter(Boolean).join(' ');
 }
 
+function defaultCurrency() {
+    return localStorage.getItem('pms_default_currency') || 'USD';
+}
+
+function orderCurrency(order) {
+    return order?.currency || order?.totalCurrency || order?.total?.currency || defaultCurrency();
+}
+
+function formatMoney(amount, currency = defaultCurrency()) {
+    const code = String(currency || 'USD').toUpperCase();
+    const value = Number(amount || 0);
+    try {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: code,
+            minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+            maximumFractionDigits: code === 'USD' ? 2 : 0
+        }).format(value);
+    } catch(e) {
+        const symbols = { USD: '$', KRW: '₩', VND: '₫', THB: '฿', JPY: '¥' };
+        return `${symbols[code] || `${code} `}${value.toLocaleString()}`;
+    }
+}
+
+function updateRevenueKpi() {
+    const el = document.getElementById('kpiCommission');
+    if (!el) return;
+    const currency = orders.length ? orderCurrency(orders[0]) : defaultCurrency();
+    const total = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    el.textContent = formatMoney(total, currency);
+}
+
 function renderOrders() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const container = document.getElementById('orderList');
+    updateRevenueKpi();
     
     const filtered = orders.filter(o => {
         if (currentFilter !== 'all' && providerKeyFor(o) !== currentFilter) return false;
@@ -296,7 +329,7 @@ function renderOrders() {
             actBtn = `<button class="btn-outline-sm" disabled>정산됨</button>`;
         }
 
-        const amtHtml = `<span style="font-weight:700;color:var(--txt)">₩${o.total.toLocaleString()}</span> (예상 수수료)`;
+        const amtHtml = `<span style="font-weight:700;color:var(--txt)">${formatMoney(o.total, orderCurrency(o))}</span> (예상 수수료)`;
 
         return `
         <div class="hk-task ${o.status === 'new' ? 'dirty' : (o.status === 'done' ? 'clean' : 'inspect')}">
@@ -607,6 +640,7 @@ function autoFillGuest(type) {
 <script>
 function updateFilterCounts() {
     refreshProviderFilterOptions();
+    updateRevenueKpi();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
