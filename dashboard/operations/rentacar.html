@@ -44,6 +44,7 @@
 .btn-search:hover { background: #1D4ED8; }
 .filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .period-select, .provider-select { height: 36px; min-width: 150px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
 .provider-select { min-width: 190px; }
 .period-select:focus, .provider-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
@@ -53,6 +54,8 @@
     .filter-left { flex-wrap: wrap; gap: 10px; }
     .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
+    .filter-divider { display: none; }
+    .filter-group { width: 100%; }
     .period-select, .provider-select { width: 100%; }
     .filter-right { justify-content: flex-start; }
 }
@@ -103,32 +106,38 @@
         <!-- FILTER -->
         <div class="filter-bar-mt">
             <div class="filter-left">
-                <div style="display:flex;align-items:center;gap:8px">
-                    <div class="search-container">
+                <div class="search-container">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <input type="text" id="searchInput" data-pms-no-search-button="true" placeholder="객실번호 검색..." oninput="renderOrders()" onkeydown="if(event.key==='Enter') renderOrders()">
                     </div>
-                </div>
-                <div class="filter-divider"></div>
                     <button onclick="renderOrders()" class="btn-primary-sm"
                         style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap">
                         <i class="fa-solid fa-magnifying-glass"></i> 검색
                     </button>
                 </div>
-                <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
-                    <option value="week">최근 7일</option>
-                    <option value="today">오늘</option>
-                    <option value="month">이번 달</option>
-                    <option value="all">전체 기간</option>
-                </select>
-                <select id="providerFilterSelect" class="provider-select" onchange="setProviderFilter(this.value)">
-                    <option value="all">전체 업체</option>
-                </select>
-                <div class="filter-chips" id="statusFilterChips">
-                    <button class="chip active" onclick="setStatusFilter(this,'all')">전체 <span class="chip-count" id="statusAllCount">0</span></button>
-                    <button class="chip" onclick="setStatusFilter(this,'open')">미완료 <span class="chip-count" id="statusOpenCount">0</span></button>
-                    <button class="chip" onclick="setStatusFilter(this,'done')">완료 <span class="chip-count" id="statusDoneCount">0</span></button>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
+                        <option value="week">최근 7일</option>
+                        <option value="today">오늘</option>
+                        <option value="month">이번 달</option>
+                        <option value="all">전체 기간</option>
+                    </select>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <div class="filter-chips" id="statusFilterChips">
+                        <button class="chip active" onclick="setStatusFilter(this,'all')">전체 <span class="chip-count" id="statusAllCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'open')">미완료 <span class="chip-count" id="statusOpenCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'done')">완료 <span class="chip-count" id="statusDoneCount">0</span></button>
+                    </div>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <select id="providerFilterSelect" class="provider-select" onchange="setProviderFilter(this.value)">
+                        <option value="all">전체 업체</option>
+                    </select>
                 </div>
             </div>
             <div class="filter-right">
