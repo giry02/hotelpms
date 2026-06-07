@@ -28,6 +28,7 @@
             'booking.roomUnavailable': '선택한 기간에 이미 예약된 객실입니다.',
             'booking.noRooms': '선택한 기간에 예약 가능한 객실이 없습니다.',
             'booking.conflictSuffix': '예약 중',
+            'booking.newTitle': '신규 예약 등록',
             'booking.created': '신규 예약을 성공적으로 등록했습니다.',
             'booking.updated': '예약이 성공적으로 수정되었습니다.',
             'cancel.notAllowed': '체크인 이후 예약은 취소할 수 없습니다. 체크아웃, 조기퇴실, 환불/정산 정정으로 처리해주세요.',
@@ -59,6 +60,7 @@
             'booking.roomUnavailable': 'This room is already booked for the selected dates.',
             'booking.noRooms': 'No rooms are available for the selected dates.',
             'booking.conflictSuffix': 'Booked',
+            'booking.newTitle': 'New Booking',
             'booking.created': 'New booking has been registered successfully.',
             'booking.updated': 'Reservation has been updated successfully.',
             'cancel.notAllowed': 'Reservations after check-in cannot be cancelled. Please handle it through check-out, early departure, refund, or settlement correction.',
@@ -803,7 +805,7 @@
             // NEW BOOKING MODE
             const cancelBtn = document.getElementById('unifiedBtnCancel');
             if (cancelBtn) cancelBtn.style.display = 'none';
-            document.getElementById('unifiedModalTitle').innerHTML = `신규 예약 등록 (New Booking)`;
+            document.getElementById('unifiedModalTitle').textContent = actionText('booking.newTitle');
             document.getElementById('unifiedResId').value = '';
             document.getElementById('unifiedStatus').value = 'confirmed';
             document.getElementById('unifiedIsB2B').checked = false;

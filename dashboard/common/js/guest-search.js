@@ -36,8 +36,27 @@ const _tierLabels = {
 let _guestDbPromise = null;
 
 function _guestText(key, fallback) {
-    return typeof window.t === 'function' ? window.t(key) : fallback;
+    if (typeof window.t !== 'function') return fallback;
+    const translated = window.t(key);
+    return translated && translated !== key ? translated : fallback;
 }
+
+function _refreshGuestSearchI18n(root) {
+    const scope = root || document;
+    scope.querySelectorAll('[data-guest-text]').forEach(el => {
+        const key = el.getAttribute('data-guest-text');
+        const fallback = el.getAttribute('data-guest-fallback') || el.textContent || key;
+        el.textContent = _guestText(key, fallback);
+    });
+    scope.querySelectorAll('[data-guest-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-guest-placeholder');
+        const fallback = el.getAttribute('data-guest-fallback') || el.getAttribute('placeholder') || key;
+        el.setAttribute('placeholder', _guestText(key, fallback));
+    });
+}
+
+window.refreshGuestSearchI18n = _refreshGuestSearchI18n;
+window.addEventListener('languagechange', () => _refreshGuestSearchI18n());
 
 function _guestSearchLang() {
     return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
@@ -255,18 +274,18 @@ function renderGuestSearchHTML(prefix) {
     return `
     <div style="display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:2px solid var(--primary);margin-bottom:12px">
         <i class="fa-solid fa-magnifying-glass" style="color:var(--primary);font-size:.8rem"></i>
-        <span style="font-weight:700;font-size:.82rem;color:var(--primary)">${_guestText('guest.search.title', '고객 검색')}</span>
+        <span data-guest-text="guest.search.title" data-guest-fallback="고객 검색" style="font-weight:700;font-size:.82rem;color:var(--primary)">${_guestText('guest.search.title', '고객 검색')}</span>
     </div>
     <div style="display:flex;gap:8px;align-items:flex-end">
         <div style="display:flex;flex-direction:column;gap:5px;flex:1">
-            <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">${_guestText('guest.search.label', '이름 / 연락처 / 이메일')}</label>
-            <input type="text" id="nrSearchGuest${prefix}" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.search.placeholder', '기존 고객 검색...')}">
+            <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.search.label" data-guest-fallback="이름 / 연락처 / 이메일">${_guestText('guest.search.label', '이름 / 연락처 / 이메일')}</span></label>
+            <input type="text" id="nrSearchGuest${prefix}" data-guest-placeholder="guest.search.placeholder" data-guest-fallback="기존 고객 검색..." style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.search.placeholder', '기존 고객 검색...')}">
         </div>
         <button type="button" id="nrSearchBtn${prefix}" style="height:38px;padding:0 16px;border:none;border-radius:6px;background:var(--primary);color:#fff;font-family:var(--font);font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px">
-            <i class="fa-solid fa-search"></i> ${_guestText('Search', '검색')}
+            <i class="fa-solid fa-search"></i> <span data-guest-text="Search" data-guest-fallback="검색">${_guestText('Search', '검색')}</span>
         </button>
         <button type="button" id="nrNewGuestBtn${prefix}" style="height:38px;padding:0 16px;border:none;border-radius:6px;background:#8B5CF6;color:#fff;font-family:var(--font);font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px">
-            <i class="fa-solid fa-user-plus"></i> ${_guestText('guest.new', '신규 등록')}
+            <i class="fa-solid fa-user-plus"></i> <span data-guest-text="guest.new.short" data-guest-fallback="신규 등록">${_guestText('guest.new.short', '신규 등록')}</span>
         </button>
     </div>
     <div id="guestSearchResults${prefix}" style="display:none; margin-top: 16px;"></div>
@@ -274,24 +293,24 @@ function renderGuestSearchHTML(prefix) {
     <div id="newGuestForm${prefix}" style="display:none; margin-top: 20px;">
         <div style="display:flex;align-items:center;gap:8px;padding-bottom:4px;border-bottom:2px solid #8B5CF6;margin-bottom:10px">
             <i class="fa-solid fa-user-plus" style="color:#8B5CF6;font-size:.8rem"></i>
-            <span style="font-weight:700;font-size:.82rem;color:#8B5CF6">${_guestText('guest.new.title', '신규 고객 등록')}</span>
+            <span data-guest-text="guest.new.title" data-guest-fallback="신규 고객 등록" style="font-weight:700;font-size:.82rem;color:#8B5CF6">${_guestText('guest.new.title', '신규 고객 등록')}</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             <div style="display:flex;flex-direction:column;gap:5px">
-                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">${_guestText('guest.name', '고객명')} <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="nrGuest${prefix}" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="Guest name">
+                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.name" data-guest-fallback="고객명">${_guestText('guest.name', '고객명')}</span> <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="nrGuest${prefix}" data-guest-placeholder="guest.name.placeholder" data-guest-fallback="고객명 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.name.placeholder', '고객명 입력')}">
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
-                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">${_guestText('guest.phone', '연락처')} <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="nrPhone${prefix}" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="+84 000 0000">
+                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.phone" data-guest-fallback="연락처">${_guestText('guest.phone', '연락처')}</span> <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="nrPhone${prefix}" data-guest-placeholder="guest.phone.placeholder" data-guest-fallback="연락처 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.phone.placeholder', '연락처 입력')}">
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
-                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">${_guestText('guest.email', '이메일')}</label>
-                <input type="email" id="nrEmail${prefix}" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="guest@email.com">
+                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.email" data-guest-fallback="이메일">${_guestText('guest.email', '이메일')}</span></label>
+                <input type="email" id="nrEmail${prefix}" data-guest-placeholder="guest.email.placeholder" data-guest-fallback="이메일 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.email.placeholder', '이메일 입력')}">
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
-                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">${_guestText('guest.nationality', '국적')}</label>
-                <input type="text" id="nrNation${prefix}" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="Nationality">
+                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.nationality" data-guest-fallback="국적">${_guestText('guest.nationality', '국적')}</span></label>
+                <input type="text" id="nrNation${prefix}" data-guest-placeholder="guest.nationality.placeholder" data-guest-fallback="국적 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.nationality.placeholder', '국적 입력')}">
             </div>
         </div>
     </div>`;
@@ -313,5 +332,6 @@ function initGuestSearch(prefix) {
     const newBtn = document.getElementById('nrNewGuestBtn' + prefix);
     if (newBtn) newBtn.onclick = () => widget.showNewForm();
 
+    _refreshGuestSearchI18n(document);
     return widget;
 }
