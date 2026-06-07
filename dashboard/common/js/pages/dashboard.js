@@ -330,7 +330,6 @@
                 <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Share")}:</span><strong>${service.pct}%</strong></div>`;
             row.innerHTML = `
                 <div class="svc-icon" style="background:${service.color}1A;color:${service.color}"><i class="fa-solid ${service.icon}"></i></div>
-                <div class="svc-name">${label}</div>
                 <div class="svc-bar-bg"><div class="svc-bar" style="width:${service.pct}%;background:${service.color}"></div></div>
                 <div class="svc-val">$${service.val.toLocaleString()}</div>`;
             attachChartTooltip(row, tooltipTitle, tooltipContent);
