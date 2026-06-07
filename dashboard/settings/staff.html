@@ -282,18 +282,54 @@ function isSettingsManagedAdmin(staff) {
     return staff?.roleId === 'sys_admin';
 }
 
+function adminFallbackRoleId() {
+    const roles = getAssignableRoles();
+    if (roles.some(role => role.id === 'sys_gm')) return 'sys_gm';
+    return roles[0]?.id || 'sys_gm';
+}
+
+function normalizeSingleAdminStaff(data) {
+    const fallbackRoleId = adminFallbackRoleId();
+    let adminSeen = false;
+    let changed = false;
+    const items = (Array.isArray(data) ? data : []).map(staff => {
+        if (staff?.roleId !== 'sys_admin') return staff;
+        if (!adminSeen) {
+            adminSeen = true;
+            return staff;
+        }
+        changed = true;
+        const fallbackRole = getRoleById(fallbackRoleId);
+        return {
+            ...staff,
+            roleId: fallbackRoleId,
+            color: fallbackRole?.color || staff.color,
+            adminConflictResolvedAt: new Date().toISOString()
+        };
+    });
+    return { items, changed };
+}
+
 // ─── 직원 데이터 (localStorage) ────────────────────────────────
 let DEFAULT_STAFF = [];
 
 function loadStaff() {
-    try { return JSON.parse(localStorage.getItem('pms_staff') || 'null') || DEFAULT_STAFF; } catch { return DEFAULT_STAFF; }
+    try {
+        const data = JSON.parse(localStorage.getItem('pms_staff') || 'null') || DEFAULT_STAFF;
+        return normalizeSingleAdminStaff(data).items;
+    } catch { return normalizeSingleAdminStaff(DEFAULT_STAFF).items; }
 }
-function saveStaffData(data) {
-    localStorage.setItem('pms_staff', JSON.stringify(data));
+function saveStaffData(data, options = {}) {
+    const normalized = normalizeSingleAdminStaff(data);
+    localStorage.setItem('pms_staff', JSON.stringify(normalized.items));
     if (window.PmsMockApi) {
-        window.PmsMockApi.request('PUT', '/settings/staff', { body: data })
+        window.PmsMockApi.request('PUT', '/settings/staff', { body: normalized.items })
             .catch(e => console.warn('Mock staff save failed', e));
     }
+    if (normalized.changed && !options.silent && typeof showToast === 'function') {
+        showToast('Admin 권한은 한 명만 유지됩니다. 중복 Admin은 General Manager로 조정했습니다.', 'info');
+    }
+    return normalized.items;
 }
 
 let staffData = loadStaff();
@@ -447,7 +483,7 @@ function saveStaff() {
         passwordChangeRequired: false
     });
 
-    saveStaffData(staffData);
+    staffData = saveStaffData(staffData);
     renderStaff();
     closeModal('addStaffModal');
     resetAddForm();
@@ -511,7 +547,7 @@ function saveEdit() {
 
     const role = getRoleById(s.roleId);
     if (role) s.color = role.color;
-    saveStaffData(staffData);
+    staffData = saveStaffData(staffData);
     renderStaff();
     closeModal('editStaffModal');
     showToast(newPw ? '직원 정보와 비밀번호가 수정되었습니다.' : '직원 정보가 수정되었습니다.', 'success');
@@ -527,7 +563,7 @@ function sendTempPw() {
     s.passwordUpdatedAt = new Date().toISOString();
     s.passwordChangeRequired = true;
     s.passwordMethod = 'temporary_email';
-    saveStaffData(staffData);
+    staffData = saveStaffData(staffData);
     document.getElementById('editNewPw').value = '';
     document.getElementById('editNewPwConfirm').value = '';
     showToast(`${s.email}로 임시 비밀번호 이메일을 발송 처리했습니다.`, 'success');
@@ -544,7 +580,7 @@ async function deleteStaff() {
         : '이 직원을 삭제하시겠습니까?';
     if (!await showConfirm(confirmMessage)) return;
     staffData = staffData.filter(x => x.id !== editingId);
-    saveStaffData(staffData);
+    staffData = saveStaffData(staffData);
     renderStaff();
     closeModal('editStaffModal');
     showToast('직원이 삭제되었습니다.', 'info');
@@ -588,7 +624,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         DEFAULT_STAFF = await PmsAPI.getDEFAULT_STAFF();
         
         const savedStaff = localStorage.getItem('pms_staff');
-        staffData = savedStaff ? JSON.parse(savedStaff) : DEFAULT_STAFF;
+        const loadedStaff = savedStaff ? JSON.parse(savedStaff) : DEFAULT_STAFF;
+        const normalizedStaff = normalizeSingleAdminStaff(loadedStaff);
+        staffData = normalizedStaff.items;
+        if (normalizedStaff.changed) {
+            staffData = saveStaffData(staffData, { silent: true });
+            showToast('Admin 권한은 한 명만 유지됩니다. 중복 Admin은 General Manager로 조정했습니다.', 'info');
+        }
 
         buildRoleFilter();
         populateEditRoleOptions();
