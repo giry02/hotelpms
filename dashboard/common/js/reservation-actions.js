@@ -9,11 +9,15 @@
             'flow.alreadyCheckedIn': '이미 체크인 또는 투숙 중인 예약입니다. 체크인을 다시 처리할 수 없습니다.',
             'flow.checkoutOnlyInhouse': '체크아웃은 투숙 중 예약에서만 처리할 수 있습니다.',
             'flow.noRoom': '객실을 먼저 배정해야 체크인할 수 있습니다.',
-            'flow.dirtyRoom': '하우스키핑 청소 완료 후 체크인할 수 있습니다.',
+            'flow.dirtyRoom': '배정 객실 청소가 아직 완료되지 않았습니다.',
+            'flow.dirtyRoomWarning': '배정 객실 청소가 아직 완료되지 않았습니다.\n체크인은 진행할 수 있지만 객실 준비 상태는 하우스키핑 확인 대상으로 남습니다.',
+            'flow.dirtyRoomTitle': '객실 청소 미완료',
+            'flow.continueCheckin': '체크인 진행',
             'flow.maintenanceRoom': '점검/수리 중 객실은 체크인할 수 없습니다.',
             'flow.occupiedRoom': '이미 투숙 중인 객실입니다.',
             'flow.confirm': '{name} 예약을 {action} 처리하시겠습니까?',
             'flow.completed': '{action} 처리가 완료되었습니다.',
+            'flow.completedRoomNotReady': '{action} 처리가 완료되었습니다. 객실 청소 상태를 하우스키핑에서 확인하세요.',
             'edit.readonly': '체크인 이후 예약은 이 화면에서 수정할 수 없습니다.',
             'guest.required': '고객명을 입력하거나 선택해주세요.',
             'booking.dateRequired': '체크인/체크아웃 날짜를 선택해 주세요.',
@@ -36,11 +40,15 @@
             'flow.alreadyCheckedIn': 'This reservation is already checked in or in-house. Check-in cannot be processed again.',
             'flow.checkoutOnlyInhouse': 'Check-out can only be processed for in-house reservations.',
             'flow.noRoom': 'Assign a room before check-in.',
-            'flow.dirtyRoom': 'Complete housekeeping cleaning before check-in.',
+            'flow.dirtyRoom': 'The assigned room has not been cleaned yet.',
+            'flow.dirtyRoomWarning': 'The assigned room has not been cleaned yet.\nYou can continue check-in, but the room readiness remains flagged for housekeeping.',
+            'flow.dirtyRoomTitle': 'Room Not Ready',
+            'flow.continueCheckin': 'Continue Check-in',
             'flow.maintenanceRoom': 'Rooms under maintenance cannot be checked in.',
             'flow.occupiedRoom': 'This room is already occupied.',
             'flow.confirm': 'Process {action} for {name}?',
             'flow.completed': '{action} has been completed.',
+            'flow.completedRoomNotReady': '{action} has been completed. Check the room cleaning status with housekeeping.',
             'edit.readonly': 'Reservations after check-in cannot be edited from this screen.',
             'guest.required': 'Enter or select a guest name.',
             'booking.dateRequired': 'Select check-in and check-out dates.',
@@ -481,17 +489,29 @@
         return roomStatus === 'checkedin';
     }
 
-    function normalizedRoomOpsStatus(room) {
-        return String(room?.housekeepingStatus || room?.status || room?.frontStatus || '').replace(/[-_\s]/g, '').toLowerCase();
+    function normalizedRoomOpsValue(value) {
+        return String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+    }
+
+    function roomOpsStatuses(room) {
+        return [room?.frontStatus, room?.status, room?.housekeepingStatus]
+            .map(normalizedRoomOpsValue)
+            .filter(Boolean);
     }
 
     function checkinBlockReasonForRoom(room) {
         if (!room) return actionText('flow.noRoom');
-        const status = normalizedRoomOpsStatus(room);
-        if (['dirty', 'vacantdirty'].includes(status)) return actionText('flow.dirtyRoom');
-        if (['oos', 'outofservice', 'maintenance'].includes(status)) return actionText('flow.maintenanceRoom');
-        if (['occupied', 'inhouse', 'checkedin', 'checked-in'].includes(status)) return actionText('flow.occupiedRoom');
+        const statuses = roomOpsStatuses(room);
+        if (statuses.some(status => ['oos', 'outofservice', 'outoforder', 'maintenance'].includes(status))) return actionText('flow.maintenanceRoom');
+        if (statuses.some(status => ['occupied', 'inhouse', 'checkedin'].includes(status))) return actionText('flow.occupiedRoom');
         return '';
+    }
+
+    function checkinWarningForRoom(room) {
+        const statuses = roomOpsStatuses(room);
+        return statuses.some(status => ['dirty', 'vacantdirty', 'needscleaning'].includes(status))
+            ? actionText('flow.dirtyRoomWarning')
+            : '';
     }
 
     function checkoutDateIsTodayOrPast(res) {
@@ -649,6 +669,7 @@
             return;
         }
         const room = roomForReservation(res);
+        let checkinWarning = '';
         if (action === 'checkin') {
             const blockReason = checkinBlockReasonForRoom(room);
             if (blockReason) {
@@ -656,12 +677,19 @@
                 else alert(blockReason);
                 return;
             }
+            checkinWarning = checkinWarningForRoom(room);
         }
 
         const label = action === 'checkin' ? actionText('action.checkin') : actionText('action.checkout');
-        const confirmMessage = actionText('flow.confirm', { name: guestNameForReservation(res), action: label });
+        let confirmMessage = actionText('flow.confirm', { name: guestNameForReservation(res), action: label });
+        const confirmOptions = {};
+        if (checkinWarning) {
+            confirmMessage = `${checkinWarning}\n\n${confirmMessage}`;
+            confirmOptions.title = actionText('flow.dirtyRoomTitle');
+            confirmOptions.okText = actionText('flow.continueCheckin');
+        }
         const confirmed = window.showConfirm
-            ? await window.showConfirm(confirmMessage)
+            ? await window.showConfirm(confirmMessage, confirmOptions)
             : confirm(confirmMessage);
         if (!confirmed) return;
 
@@ -670,7 +698,7 @@
             if (room) {
                 room.status = 'occupied';
                 room.frontStatus = 'in-house';
-                room.housekeepingStatus = 'occupied';
+                room.housekeepingStatus = checkinWarning ? 'dirty' : 'occupied';
                 room.guest = guestNameForReservation(res);
             }
         } else {
@@ -686,7 +714,10 @@
         await persistUnifiedReservation(res);
         await persistUnifiedRoom(room);
         if (action === 'checkout') await syncUnifiedHousekeeping(room, 'vacant-dirty', res);
-        if (window.showToast) window.showToast(actionText('flow.completed', { action: label }), 'success');
+        if (window.showToast) {
+            const toastKey = checkinWarning ? 'flow.completedRoomNotReady' : 'flow.completed';
+            window.showToast(actionText(toastKey, { action: label }), 'success');
+        }
         if (typeof window.buildTimeline === 'function') window.buildTimeline();
         if (typeof window.buildMobileView === 'function') window.buildMobileView();
         if (typeof window.renderTable === 'function') window.renderTable();

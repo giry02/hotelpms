@@ -332,10 +332,14 @@ const reservationLabels = {
         'toast.checkinNotAllowed': '체크인은 입실 예정일이 도래한 예약 확정/대기 상태에서만 처리할 수 있습니다.',
         'toast.checkoutNotAllowed': '체크아웃은 투숙 중 예약에서만 처리할 수 있습니다.',
         'toast.flowComplete': '{action} 처리가 완료되었습니다.',
+        'toast.flowCompleteRoomNotReady': '{action} 처리가 완료되었습니다. 객실 청소 상태를 하우스키핑에서 확인하세요.',
         'block.noRoom': '객실을 먼저 배정해야 체크인할 수 있습니다.',
-        'block.dirtyRoom': '하우스키핑 청소 완료 후 체크인할 수 있습니다.',
+        'block.dirtyRoom': '배정 객실 청소가 아직 완료되지 않았습니다.',
         'block.maintenanceRoom': '점검/수리 중 객실은 체크인할 수 없습니다.',
         'block.occupiedRoom': '이미 투숙 중인 객실입니다.',
+        'warn.dirtyRoomTitle': '객실 청소 미완료',
+        'warn.dirtyRoom': '배정 객실 청소가 아직 완료되지 않았습니다.\n체크인은 진행할 수 있지만 객실 준비 상태는 하우스키핑 확인 대상으로 남습니다.',
+        'action.continueCheckin': '체크인 진행',
         'toast.bookingSaved': '새 예약이 성공적으로 저장되었습니다!'
     },
     en: {
@@ -386,10 +390,14 @@ const reservationLabels = {
         'toast.checkinNotAllowed': 'Check-in can only be processed for due confirmed or pending reservations.',
         'toast.checkoutNotAllowed': 'Check-out can only be processed for in-house reservations.',
         'toast.flowComplete': '{action} has been completed.',
+        'toast.flowCompleteRoomNotReady': '{action} has been completed. Check the room cleaning status with housekeeping.',
         'block.noRoom': 'Assign a room before check-in.',
-        'block.dirtyRoom': 'Complete housekeeping cleaning before check-in.',
+        'block.dirtyRoom': 'The assigned room has not been cleaned yet.',
         'block.maintenanceRoom': 'Rooms under maintenance cannot be checked in.',
         'block.occupiedRoom': 'This room is already occupied.',
+        'warn.dirtyRoomTitle': 'Room Not Ready',
+        'warn.dirtyRoom': 'The assigned room has not been cleaned yet.\nYou can continue check-in, but the room readiness remains flagged for housekeeping.',
+        'action.continueCheckin': 'Continue Check-in',
         'toast.bookingSaved': 'New booking has been saved successfully!'
     }
 };
@@ -1172,17 +1180,29 @@ async function syncHousekeepingForReservation(room, status, res) {
     }
 }
 
-function normalizedRoomOpsStatus(room) {
-    return String(room?.housekeepingStatus || room?.status || room?.frontStatus || '').replace(/[-_\s]/g, '').toLowerCase();
+function normalizedRoomOpsValue(value) {
+    return String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+}
+
+function roomOpsStatuses(room) {
+    return [room?.frontStatus, room?.status, room?.housekeepingStatus]
+        .map(normalizedRoomOpsValue)
+        .filter(Boolean);
 }
 
 function checkinBlockReasonForRoom(room) {
     if (!room) return resText('block.noRoom');
-    const status = normalizedRoomOpsStatus(room);
-    if (['dirty', 'vacantdirty'].includes(status)) return resText('block.dirtyRoom');
-    if (['oos', 'outofservice', 'maintenance'].includes(status)) return resText('block.maintenanceRoom');
-    if (['occupied', 'inhouse', 'checkedin', 'checked-in'].includes(status)) return resText('block.occupiedRoom');
+    const statuses = roomOpsStatuses(room);
+    if (statuses.some(status => ['oos', 'outofservice', 'outoforder', 'maintenance'].includes(status))) return resText('block.maintenanceRoom');
+    if (statuses.some(status => ['occupied', 'inhouse', 'checkedin'].includes(status))) return resText('block.occupiedRoom');
     return '';
+}
+
+function checkinWarningForRoom(room) {
+    const statuses = roomOpsStatuses(room);
+    return statuses.some(status => ['dirty', 'vacantdirty', 'needscleaning'].includes(status))
+        ? resText('warn.dirtyRoom')
+        : '';
 }
 
 window.processReservationRowFlow = async function(resId, action) {
@@ -1199,19 +1219,27 @@ window.processReservationRowFlow = async function(resId, action) {
     }
 
     const room = roomForReservation(res);
+    let checkinWarning = '';
     if (action === 'checkin') {
         const blockReason = checkinBlockReasonForRoom(room);
         if (blockReason) {
             if (window.showToast) window.showToast(blockReason, 'error');
             return;
         }
+        checkinWarning = checkinWarningForRoom(room);
     }
 
     const label = action === 'checkin' ? resText('action.checkin') : resText('action.checkout');
     const name = displayGuestName(res);
-    const message = resMessage('confirm.flow', { name, action: label });
+    let message = resMessage('confirm.flow', { name, action: label });
+    const confirmOptions = {};
+    if (checkinWarning) {
+        message = `${checkinWarning}\n\n${message}`;
+        confirmOptions.title = resText('warn.dirtyRoomTitle');
+        confirmOptions.okText = resText('action.continueCheckin');
+    }
     const confirmed = window.showConfirm
-        ? await window.showConfirm(message)
+        ? await window.showConfirm(message, confirmOptions)
         : confirm(message);
     if (!confirmed) return;
 
@@ -1220,7 +1248,7 @@ window.processReservationRowFlow = async function(resId, action) {
         if (room) {
             room.status = 'occupied';
             room.frontStatus = 'in-house';
-            room.housekeepingStatus = 'occupied';
+            room.housekeepingStatus = checkinWarning ? 'dirty' : 'occupied';
             room.guest = name;
         }
     } else {
@@ -1237,7 +1265,10 @@ window.processReservationRowFlow = async function(resId, action) {
     if (action === 'checkout') await syncHousekeepingForReservation(room, 'vacant-dirty', res);
     updateChipCounts();
     renderTable();
-    if (window.showToast) window.showToast(resMessage('toast.flowComplete', { action: label }), 'success');
+    if (window.showToast) {
+        const toastKey = checkinWarning ? 'toast.flowCompleteRoomNotReady' : 'toast.flowComplete';
+        window.showToast(resMessage(toastKey, { action: label }), 'success');
+    }
 };
 
 function exportReservationsToCSV() {
