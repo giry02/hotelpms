@@ -132,25 +132,10 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         localStorage.setItem(overlayKey(resource), JSON.stringify(data));
     }
 
-    function fileFallbackEnvelope(route) {
-        const payload = window.PmsFileFallbackPayloads && window.PmsFileFallbackPayloads[route.file];
-        return payload ? clone(payload) : null;
-    }
-
     async function fetchEnvelope(route) {
-        let payload;
-        if (location.protocol === 'file:') {
-            payload = fileFallbackEnvelope(route);
-            if (payload) return payload;
-        }
-        try {
-            const res = await fetch(new URL(route.file, apiRoot).href, { cache: 'no-store' });
-            if (!res.ok) throw new Error(`Mock API JSON not found: ${route.file}`);
-            payload = await res.json();
-        } catch (error) {
-            payload = fileFallbackEnvelope(route);
-            if (!payload) throw error;
-        }
+        const res = await fetch(new URL(route.file, apiRoot).href, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Mock API JSON not found: ${route.file}`);
+        const payload = await res.json();
         if (!payload || payload.success !== true || !payload.data || !payload.meta) {
             throw new Error(`Mock API invalid envelope: ${route.file}`);
         }

@@ -1,94 +1,185 @@
-// Dashboard chart renderer. Kept as a classic script so dashboard.html also works from file://.
+// Dashboard chart renderer. Data is derived from the same API resources used by the operational screens.
 (function () {
     const DAY_LABELS = {
         Mon: "월", Tue: "화", Wed: "수", Thu: "목", Fri: "금", Sat: "토", Sun: "일"
     };
-    const SERVICE_LABELS = {
-        spa: { ko: "스파", en: "Spa" },
-        golf: { ko: "골프 예약", en: "Golf Booking" },
-        roomService: { ko: "룸서비스", en: "Room Service" },
-        minibar: { ko: "미니바", en: "Minibar" },
-        laundry: { ko: "세탁", en: "Laundry" }
+    const DAY_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const SERVICE_META = {
+        pos: { ko: "통합 POS", en: "POS", icon: "fa-cash-register", color: "#10B981" },
+        golf: { ko: "골프장", en: "Golf", icon: "fa-golf-ball-tee", color: "#8B5CF6" },
+        car: { ko: "렌트카", en: "Rent-a-car", icon: "fa-car", color: "#F59E0B" }
     };
-    const SERVICE_NAME_TO_KEY = {
-        "스파": "spa",
-        "Spa": "spa",
-        "골프 예약": "golf",
-        "Golf Booking": "golf",
-        "룸서비스": "roomService",
-        "Room Service": "roomService",
-        "미니바": "minibar",
-        "Minibar": "minibar",
-        "세탁": "laundry",
-        "Laundry": "laundry"
-    };
-
-    const DEFAULT_SERVICE_DATA = [];
-
-    const WEEKLY_SERVICE_DATA = [];
-
-    const FALLBACK_DASHBOARD_DATA = { weekData: [], monthData: [], svcData: [] };
 
     let weekData = [];
     let monthData = [];
+    let weeklySvcData = [];
     let currentLang = window.currentLang || localStorage.getItem("pms_lang") || "ko";
     window.svcData = [];
-
-    function clone(value) {
-        return JSON.parse(JSON.stringify(value));
-    }
-
-    function isBrokenText(value) {
-        return !value || /[?�]/.test(String(value));
-    }
 
     function tr(key) {
         return typeof window.t === "function" ? window.t(key) : key;
     }
 
-    function serviceKey(service, index) {
-        return service.key || SERVICE_NAME_TO_KEY[service.name] || DEFAULT_SERVICE_DATA[index]?.key || "roomService";
+    function serviceKey(service) {
+        return service.key || "pos";
     }
 
-    function serviceLabel(service, index) {
-        const key = serviceKey(service, index);
-        return SERVICE_LABELS[key]?.[currentLang === "en" ? "en" : "ko"] || service.name;
+    function serviceLabel(service) {
+        const key = serviceKey(service);
+        return SERVICE_META[key]?.[currentLang === "en" ? "en" : "ko"] || service.name || key;
     }
 
-    function normalizeDashboardData(data) {
-        const fallback = clone(FALLBACK_DASHBOARD_DATA);
-        const next = data && typeof data === "object" ? data : fallback;
-        const serviceDefaults = DEFAULT_SERVICE_DATA;
+    function formatMoney(amount) {
+        return `$${Math.round(Number(amount || 0)).toLocaleString("en-US")}`;
+    }
 
+    function apiItems(envelope) {
+        if (Array.isArray(envelope)) return envelope;
+        if (Array.isArray(envelope?.data?.items)) return envelope.data.items;
+        if (Array.isArray(envelope?.data)) return envelope.data;
+        return [];
+    }
+
+    function localIso(date = new Date()) {
+        const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return shifted.toISOString().slice(0, 10);
+    }
+
+    function parseIso(value) {
+        if (!value) return null;
+        const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function addDays(isoDate, days) {
+        const date = parseIso(isoDate) || new Date();
+        date.setDate(date.getDate() + days);
+        return localIso(date);
+    }
+
+    function latestIso(values) {
+        return values
+            .map(parseIso)
+            .filter(Boolean)
+            .sort((a, b) => b - a)[0];
+    }
+
+    function dayKey(isoDate) {
+        const date = parseIso(isoDate) || new Date();
+        return DAY_KEYS[date.getDay()];
+    }
+
+    function roomIdOf(reservation) {
+        return reservation.roomId || reservation.fullRoom || reservation.roomNo || reservation.room || reservation.id;
+    }
+
+    function isActiveStayOn(reservation, isoDate) {
+        const status = String(reservation.status || "").toLowerCase();
+        if (["cancelled", "canceled", "no-show"].includes(status)) return false;
+        const checkIn = parseIso(reservation.checkInDate || reservation.checkin || reservation.cin);
+        const checkOut = parseIso(reservation.checkOutDate || reservation.checkout || reservation.cout);
+        const target = parseIso(isoDate);
+        if (!checkIn || !checkOut || !target) return false;
+        return checkIn <= target && target < checkOut;
+    }
+
+    function occupiedCountOn(reservations, isoDate) {
+        const rooms = new Set();
+        reservations.forEach((reservation) => {
+            if (isActiveStayOn(reservation, isoDate)) rooms.add(roomIdOf(reservation));
+        });
+        return rooms.size;
+    }
+
+    function buildWeekData(reservations, anchorIso) {
+        return Array.from({ length: 7 }, (_, index) => {
+            const iso = addDays(anchorIso, index - 6);
+            const key = dayKey(iso);
+            return {
+                day: key,
+                label: DAY_LABELS[key],
+                occ: occupiedCountOn(reservations, iso),
+                prev: occupiedCountOn(reservations, addDays(iso, -7))
+            };
+        });
+    }
+
+    function buildMonthData(reservations, anchorIso) {
+        const anchor = parseIso(anchorIso) || new Date();
+        const year = anchor.getFullYear();
+        const month = anchor.getMonth();
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        return Array.from({ length: lastDay }, (_, index) => {
+            const date = new Date(year, month, index + 1);
+            const iso = localIso(date);
+            return {
+                day: `${month + 1}/${index + 1}`,
+                occ: occupiedCountOn(reservations, iso)
+            };
+        });
+    }
+
+    function trendValue(row, key) {
+        const value = row?.[key];
+        if (value && typeof value === "object") return Number(value.v || 0);
+        return Number(value || 0);
+    }
+
+    function normalizeServices(totals) {
+        const sum = Object.values(totals).reduce((total, value) => total + Number(value || 0), 0);
+        return Object.keys(SERVICE_META).map((key) => ({
+            key,
+            name: SERVICE_META[key].ko,
+            val: Number(totals[key] || 0),
+            pct: sum ? Math.round(Number(totals[key] || 0) / sum * 100) : 0,
+            icon: SERVICE_META[key].icon,
+            color: SERVICE_META[key].color
+        }));
+    }
+
+    function buildAncillaryServices(trendItems, anchorIso, isWeekly) {
+        const dates = new Set(Array.from({ length: isWeekly ? 7 : 1 }, (_, index) => addDays(anchorIso, isWeekly ? index - 6 : 0)));
+        const totals = { pos: 0, golf: 0, car: 0 };
+        trendItems.forEach((item) => {
+            if (!dates.has(item.date)) return;
+            Object.keys(totals).forEach((key) => {
+                totals[key] += trendValue(item, key);
+            });
+        });
+        return normalizeServices(totals);
+    }
+
+    function emptyDashboardData() {
+        weeklySvcData = normalizeServices({ pos: 0, golf: 0, car: 0 });
         return {
-            weekData: (next.weekData && next.weekData.length ? next.weekData : fallback.weekData).map((item) => ({
-                day: item.day,
-                label: isBrokenText(item.label) ? (DAY_LABELS[item.day] || item.day) : item.label,
-                occ: Number(item.occ || 0),
-                prev: Number(item.prev || 0)
-            })),
-            monthData: (next.monthData && next.monthData.length ? next.monthData : fallback.monthData).map((item) => ({
-                day: item.day,
-                occ: Number(item.occ || 0)
-            })),
-            svcData: (next.svcData && next.svcData.length ? next.svcData : fallback.svcData).map((item, index) => ({
-                key: item.key || SERVICE_NAME_TO_KEY[item.name] || serviceDefaults[index]?.key || "roomService",
-                name: isBrokenText(item.name) ? serviceDefaults[index]?.name || `서비스 ${index + 1}` : item.name,
-                val: Number(item.val || 0),
-                pct: Number(item.pct || 0),
-                icon: item.icon || serviceDefaults[index]?.icon || "fa-circle",
-                color: item.color || serviceDefaults[index]?.color || "#2563EB"
-            }))
+            weekData: [],
+            monthData: [],
+            svcData: normalizeServices({ pos: 0, golf: 0, car: 0 })
         };
     }
 
     async function loadDashboardData() {
-        if (location.protocol === "file:") {
-            return normalizeDashboardData(null);
-        }
-        const response = await fetch("data/dashboard/dashboard.json", { cache: "no-store" });
-        if (!response.ok) throw new Error(`Dashboard data load failed: ${response.status}`);
-        return normalizeDashboardData(await response.json());
+        if (!window.PmsMockApi && !window.PmsAPI) return emptyDashboardData();
+        const [reservationsResult, trendEnvelope] = await Promise.all([
+            window.PmsAPI?.getReservations
+                ? window.PmsAPI.getReservations()
+                : window.PmsMockApi.request("GET", "/reservations").then(apiItems),
+            window.PmsMockApi.request("GET", "/reports/revenue-trend")
+        ]);
+        const reservations = apiItems(reservationsResult);
+        const trendItems = apiItems(trendEnvelope);
+        const latestTrendDate = latestIso(trendItems.map((item) => item.date));
+        const latestReservationDate = latestIso(reservations.flatMap((reservation) => [
+            reservation.checkInDate,
+            reservation.checkOutDate
+        ]));
+        const anchorIso = latestTrendDate ? localIso(latestTrendDate) : latestReservationDate ? localIso(latestReservationDate) : localIso();
+        weeklySvcData = buildAncillaryServices(trendItems, anchorIso, true);
+        return {
+            weekData: buildWeekData(reservations, anchorIso),
+            monthData: buildMonthData(reservations, anchorIso),
+            svcData: buildAncillaryServices(trendItems, anchorIso, false)
+        };
     }
 
     function renderRoomChart(data, isMonthly) {
@@ -237,8 +328,11 @@
     function toggleAncillary(isWeekly) {
         const total = document.getElementById("ancillaryTotal");
         const label = document.getElementById("ancillaryLabel");
-        const data = isWeekly ? WEEKLY_SERVICE_DATA : window.svcData;
-        if (total) total.textContent = isWeekly ? "$8,450" : "$1,285";
+        const data = isWeekly ? weeklySvcData : window.svcData;
+        document.querySelectorAll("#ancillaryBtns button").forEach((button, index) => {
+            button.classList.toggle("active", index === (isWeekly ? 1 : 0));
+        });
+        if (total) total.textContent = formatMoney(data.reduce((sum, service) => sum + service.val, 0));
         if (label) label.textContent = isWeekly ? tr("Weekly Ancillary Revenue") : tr("Today's Ancillary Revenue");
         renderServiceBreakdown(data);
     }
@@ -281,15 +375,15 @@
             monthData = data.monthData;
             window.svcData = data.svcData;
         } catch (error) {
-            console.warn("Dashboard data fallback used", error);
-            const fallback = normalizeDashboardData(FALLBACK_DASHBOARD_DATA);
+            console.warn("Dashboard API data load failed", error);
+            const fallback = emptyDashboardData();
             weekData = fallback.weekData;
             monthData = fallback.monthData;
             window.svcData = fallback.svcData;
         }
 
         renderRoomChart(weekData, false);
-        renderServiceBreakdown(window.svcData);
+        toggleAncillary(false);
 
         document.querySelectorAll("#roomChartBtns button").forEach((button, index) => {
             button.addEventListener("click", () => {
