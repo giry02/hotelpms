@@ -20,7 +20,6 @@
         let ALL_MENUS = [];
     </script>
     <style>
-        .staff-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; color: #fff; flex-shrink: 0; }
         .role-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
 
         /* 역할 선택 카드 */
@@ -343,7 +342,6 @@ function renderStaff() {
         return `<tr>
             <td>
                 <div class="guest-cell">
-                    <div class="staff-avatar" style="background:${s.color || roleColor}">${s.init}</div>
                     <div>
                         <strong>${s.name}</strong><br>
                         <span style="font-size:.72rem;color:var(--txt3)">${s.email}</span>
@@ -423,14 +421,10 @@ function saveStaff() {
     if (!selectedRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
     if (!pw)             { showToast('임시 비밀번호를 입력해 주세요.', 'error'); return; }
 
-    const role     = getRoleById(selectedRoleId);
-    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-
     staffData.push({
         id: 'staff_' + Date.now(),
-        name, init: initials, email, phone: '-',
-        roleId: selectedRoleId, status: 'offline', last: '방금 등록',
-        color: role ? role.color : '#6B7280'
+        name, email, phone: '-',
+        roleId: selectedRoleId, status: 'offline', last: '방금 등록'
     });
 
     saveStaffData(staffData);

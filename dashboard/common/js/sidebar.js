@@ -140,11 +140,11 @@
         }).filter(Boolean).join('');
 
         const userProfiles = {
-            'sys_admin': { name: 'Nguyen Kim', init: 'NK', color: '#6D28D9' },
-            'sys_gm': { name: 'Robert Ford', init: 'RF', color: '#111827' },
-            'sys_desk': { name: 'Sarah Connor', init: 'SC', color: '#2563EB' },
-            'sys_housekeeping': { name: 'Maria Garcia', init: 'MG', color: '#059669' },
-            'sys_maintenance': { name: 'James Bond', init: 'JB', color: '#D97706' }
+            'sys_admin': { name: 'Nguyen Kim' },
+            'sys_gm': { name: 'Robert Ford' },
+            'sys_desk': { name: 'Sarah Connor' },
+            'sys_housekeeping': { name: 'Maria Garcia' },
+            'sys_maintenance': { name: 'James Bond' }
         };
         const activeProfile = userProfiles[window.currentUserRole] || userProfiles['sys_admin'];
 
@@ -161,7 +161,6 @@
     <nav class="sidebar-nav">${groups}</nav>
     <div class="sidebar-bottom">
         <div class="sidebar-user">
-            <div class="user-avatar" style="background:${activeProfile.color}">${activeProfile.init}</div>
             <div class="user-info">
                 <div class="user-name">${activeProfile.name}</div>
                 <select class="user-role-select" onchange="window.switchRole(this.value)">
