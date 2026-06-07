@@ -6,19 +6,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (value && typeof value === 'object') return Number(value.amount || 0);
         return Number(value || 0);
     };
-    const defaultRateByType = {
-        standard: 100,
-        deluxe: 140,
-        premier: 100,
-        penthouse: 650,
-        'pool villa': 380
-    };
     const roomRate = (room) => {
         const explicit = amountValue(room.baseRate ?? room.rate ?? room.price);
-        if (explicit > 0) return explicit;
-        const type = String(room.roomTypeName || room.type || room.roomTypeId || '').toLowerCase();
-        const match = Object.keys(defaultRateByType).find(key => type.includes(key));
-        return match ? defaultRateByType[match] : 0;
+        return explicit > 0 ? explicit : 0;
     };
     const currencyOf = (value) => (value && typeof value === 'object' && value.currency) || 'USD';
     const formatMoney = (amount, currency = 'USD') => new Intl.NumberFormat('en-US', {
@@ -49,19 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tr = (key) => typeof window.t === 'function' ? window.t(key) : key;
     function roomTypeText(value) {
         const text = String(value || '').trim();
-        if (!text || lang() === 'en') return text || '-';
-        const lower = text.toLowerCase();
-        if (lower.includes('penthouse')) return '펜트하우스';
-        if (lower.includes('premier')) return '프리미어';
-        if (lower.includes('pool villa')) return '풀빌라';
-        if (lower.includes('garden villa')) return '가든빌라';
-        if (lower.includes('executive')) return '이그제큐티브 스위트';
-        if (lower.includes('suite')) return '스위트';
-        if (lower.includes('deluxe')) return '디럭스';
-        if (lower.includes('standard')) return '스탠다드';
-        if (lower.includes('family')) return '패밀리룸';
-        if (lower.includes('ocean')) return '오션뷰';
-        return text;
+        return text || '-';
     }
     const roomText = (roomNo) => {
         const room = escapeHtml(roomNo || tr('Room'));

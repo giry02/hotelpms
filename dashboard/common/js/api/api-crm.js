@@ -34,7 +34,7 @@ function normalizeCrmGuest(guest, index) {
         visits: guest.visits || 1,
         last: guest.lastStayDate || guest.last || '',
         spend: crmAmount(guest.totalSpend || guest.spend),
-        vip: guest.vip || guest.tier || '일반',
+        vip: guest.vip || guest.tier || 'standard',
         docStatus: (guest.document && guest.document.status) || guest.docStatus || 'pending',
         documentStatus: (guest.document && guest.document.status) || guest.documentStatus || 'pending',
         specialNotes: guest.specialNotes || ''

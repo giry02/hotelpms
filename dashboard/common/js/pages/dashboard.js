@@ -23,43 +23,16 @@
         "Laundry": "laundry"
     };
 
-    const DEFAULT_SERVICE_DATA = [
-        { key: "spa", name: "스파", val: 540, pct: 42, icon: "fa-spa", color: "#EC4899" },
-        { key: "golf", name: "골프 예약", val: 320, pct: 25, icon: "fa-golf-ball-tee", color: "#10B981" },
-        { key: "roomService", name: "룸서비스", val: 215, pct: 17, icon: "fa-utensils", color: "#F59E0B" },
-        { key: "minibar", name: "미니바", val: 120, pct: 9, icon: "fa-wine-glass", color: "#8B5CF6" },
-        { key: "laundry", name: "세탁", val: 90, pct: 7, icon: "fa-shirt", color: "#3B82F6" }
-    ];
+    const DEFAULT_SERVICE_DATA = [];
 
-    const WEEKLY_SERVICE_DATA = [
-        { key: "spa", name: "스파", val: 3200, pct: 38, icon: "fa-spa", color: "#EC4899" },
-        { key: "golf", name: "골프 예약", val: 2400, pct: 28, icon: "fa-golf-ball-tee", color: "#10B981" },
-        { key: "roomService", name: "룸서비스", val: 1500, pct: 18, icon: "fa-utensils", color: "#F59E0B" },
-        { key: "minibar", name: "미니바", val: 850, pct: 10, icon: "fa-wine-glass", color: "#8B5CF6" },
-        { key: "laundry", name: "세탁", val: 500, pct: 6, icon: "fa-shirt", color: "#3B82F6" }
-    ];
+    const WEEKLY_SERVICE_DATA = [];
 
-    const FALLBACK_DASHBOARD_DATA = {
-        weekData: [
-            { day: "Mon", label: "월", occ: 102, prev: 96 },
-            { day: "Tue", label: "화", occ: 94, prev: 88 },
-            { day: "Wed", label: "수", occ: 110, prev: 101 },
-            { day: "Thu", label: "목", occ: 106, prev: 99 },
-            { day: "Fri", label: "금", occ: 114, prev: 105 },
-            { day: "Sat", label: "토", occ: 118, prev: 112 },
-            { day: "Sun", label: "일", occ: 98, prev: 95 }
-        ],
-        monthData: Array.from({ length: 31 }, (_, index) => ({
-            day: `5/${index + 1}`,
-            occ: [88, 91, 95, 105, 108, 112, 98, 90, 93, 97, 102, 106, 114, 118, 98, 85, 89, 94, 100, 107, 115, 119, 96, 88, 92, 97, 103, 110, 116, 120, 99][index]
-        })),
-        svcData: DEFAULT_SERVICE_DATA
-    };
+    const FALLBACK_DASHBOARD_DATA = { weekData: [], monthData: [], svcData: [] };
 
     let weekData = [];
     let monthData = [];
     let currentLang = window.currentLang || localStorage.getItem("pms_lang") || "ko";
-    window.svcData = DEFAULT_SERVICE_DATA.slice();
+    window.svcData = [];
 
     function clone(value) {
         return JSON.parse(JSON.stringify(value));
@@ -111,7 +84,7 @@
 
     async function loadDashboardData() {
         if (location.protocol === "file:") {
-            return normalizeDashboardData(FALLBACK_DASHBOARD_DATA);
+            return normalizeDashboardData(null);
         }
         const response = await fetch("data/dashboard/dashboard.json", { cache: "no-store" });
         if (!response.ok) throw new Error(`Dashboard data load failed: ${response.status}`);
