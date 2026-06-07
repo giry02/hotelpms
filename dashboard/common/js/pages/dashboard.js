@@ -64,6 +64,45 @@
             .sort((a, b) => b - a)[0];
     }
 
+    function latestOccupiedIso(reservations) {
+        const dates = [];
+        reservations.forEach((reservation) => {
+            const status = String(reservation.status || "").toLowerCase();
+            if (["cancelled", "canceled", "no-show"].includes(status)) return;
+            const checkIn = parseIso(reservation.checkInDate || reservation.checkin || reservation.cin);
+            const checkOut = parseIso(reservation.checkOutDate || reservation.checkout || reservation.cout);
+            if (!checkIn || !checkOut) return;
+            const current = new Date(checkIn);
+            let guard = 0;
+            while (current < checkOut && guard < 370) {
+                dates.push(localIso(current));
+                current.setDate(current.getDate() + 1);
+                guard += 1;
+            }
+        });
+        const latest = latestIso(dates);
+        return latest ? localIso(latest) : "";
+    }
+
+    function chooseRoomAnchorIso(reservations) {
+        const today = localIso();
+        if (occupiedCountOn(reservations, today) > 0) return today;
+        const latestOccupied = latestOccupiedIso(reservations);
+        if (latestOccupied) return latestOccupied;
+        const latestReservation = latestIso(reservations.flatMap((reservation) => [
+            reservation.checkInDate,
+            reservation.checkOutDate
+        ]));
+        return latestReservation ? localIso(latestReservation) : today;
+    }
+
+    function weekStartIso(anchorIso) {
+        const date = parseIso(anchorIso) || new Date();
+        const daysSinceMonday = (date.getDay() + 6) % 7;
+        date.setDate(date.getDate() - daysSinceMonday);
+        return localIso(date);
+    }
+
     function dayKey(isoDate) {
         const date = parseIso(isoDate) || new Date();
         return DAY_KEYS[date.getDay()];
@@ -92,8 +131,9 @@
     }
 
     function buildWeekData(reservations, anchorIso) {
+        const weekStart = weekStartIso(anchorIso);
         return Array.from({ length: 7 }, (_, index) => {
-            const iso = addDays(anchorIso, index - 6);
+            const iso = addDays(weekStart, index);
             const key = dayKey(iso);
             return {
                 day: key,
@@ -168,17 +208,14 @@
         ]);
         const reservations = apiItems(reservationsResult);
         const trendItems = apiItems(trendEnvelope);
+        const roomAnchorIso = chooseRoomAnchorIso(reservations);
         const latestTrendDate = latestIso(trendItems.map((item) => item.date));
-        const latestReservationDate = latestIso(reservations.flatMap((reservation) => [
-            reservation.checkInDate,
-            reservation.checkOutDate
-        ]));
-        const anchorIso = latestTrendDate ? localIso(latestTrendDate) : latestReservationDate ? localIso(latestReservationDate) : localIso();
-        weeklySvcData = buildAncillaryServices(trendItems, anchorIso, true);
+        const revenueAnchorIso = latestTrendDate ? localIso(latestTrendDate) : roomAnchorIso;
+        weeklySvcData = buildAncillaryServices(trendItems, revenueAnchorIso, true);
         return {
-            weekData: buildWeekData(reservations, anchorIso),
-            monthData: buildMonthData(reservations, anchorIso),
-            svcData: buildAncillaryServices(trendItems, anchorIso, false)
+            weekData: buildWeekData(reservations, roomAnchorIso),
+            monthData: buildMonthData(reservations, roomAnchorIso),
+            svcData: buildAncillaryServices(trendItems, revenueAnchorIso, false)
         };
     }
 
