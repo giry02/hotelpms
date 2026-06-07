@@ -44,12 +44,15 @@
 .btn-search:hover { background: #1D4ED8; }
 .filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.period-select { height: 36px; min-width: 150px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
+.period-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
 
 @media(max-width:768px){
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
     .filter-left { flex-wrap: wrap; gap: 10px; }
     .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
+    .period-select { width: 100%; }
     .filter-right { justify-content: flex-start; }
 }
 </style>
@@ -103,7 +106,7 @@
                     <div class="search-container">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="searchInput" placeholder="객실번호, 고객명 검색..." oninput="renderOrders()">
+                        <input type="text" id="searchInput" data-pms-no-search-button="true" placeholder="객실번호, 고객명 검색..." oninput="renderOrders()" onkeydown="if(event.key==='Enter') renderOrders()">
                     </div>
                 </div>
                 <div class="filter-divider"></div>
@@ -111,6 +114,12 @@
                         <i class="fa-solid fa-magnifying-glass"></i> 검색
                     </button>
                 </div>
+                <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
+                    <option value="week">최근 7일</option>
+                    <option value="today">오늘</option>
+                    <option value="month">이번 달</option>
+                    <option value="all">전체 기간</option>
+                </select>
                 <div class="filter-chips">
                     <button class="chip active" onclick="setFilter(this,'all')" id="chip-all">All 예약</button>
                     <button class="chip" onclick="setFilter(this,'club_a')" id="chip-club_a"><i class="fa-solid fa-golf-ball-tee" style="color:var(--txt2)"></i> 썬밸리 CC</button>
@@ -139,6 +148,50 @@ const tMap = {
 };
 
 let currentFilter = 'all';
+let currentPeriodFilter = 'week';
+
+function parseOrderDate(value) {
+    if (!value) return null;
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function periodRange(filter) {
+    if (filter === 'all') return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (filter === 'today') return { start: today, end: today };
+    if (filter === 'month') {
+        return {
+            start: new Date(today.getFullYear(), today.getMonth(), 1),
+            end: new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        };
+    }
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+    return { start, end: today };
+}
+
+function orderDateValue(order) {
+    return order.date || order.reservationDate || order.scheduledDate || order.playDate || order.roundDate;
+}
+
+function orderMatchesPeriod(order) {
+    if (String(order.status || '') !== 'done') return true;
+    const range = periodRange(currentPeriodFilter);
+    if (!range) return true;
+    const date = parseOrderDate(orderDateValue(order));
+    if (!date) return true;
+    return date >= range.start && date <= range.end;
+}
+
+function formatOrderTime(order) {
+    const rawDate = orderDateValue(order);
+    const date = rawDate ? String(rawDate).slice(5).replace('-', '.') : '';
+    return [date, order.time].filter(Boolean).join(' ');
+}
 
 function renderOrders() {
     const search = document.getElementById('searchInput').value.toLowerCase();
@@ -146,7 +199,9 @@ function renderOrders() {
     
     const filtered = orders.filter(o => {
         if (currentFilter !== 'all' && o.type !== currentFilter) return false;
-        if (search && !o.room.toLowerCase().includes(search)) return false;
+        if (!orderMatchesPeriod(o)) return false;
+        const haystack = [o.room, o.guest, o.id, o.items].join(' ').toLowerCase();
+        if (search && !haystack.includes(search)) return false;
         return true;
     });
 
@@ -187,7 +242,7 @@ function renderOrders() {
                     <div class="hk-task-meta">
                         ${sHtml}
                         <span style="color:var(--border)">|</span>
-                        <span><i class="fa-regular fa-clock"></i> 접수: ${o.time}</span>
+                        <span><i class="fa-regular fa-clock"></i> 접수: ${formatOrderTime(o)}</span>
                         <span style="color:var(--border)">|</span>
                         <span>청구액: ${amtHtml}</span>
                     </div>
@@ -205,6 +260,11 @@ function setFilter(btn, filter) {
     currentFilter = filter;
     btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
+    renderOrders();
+}
+
+function setPeriodFilter(filter) {
+    currentPeriodFilter = filter;
     renderOrders();
 }
 

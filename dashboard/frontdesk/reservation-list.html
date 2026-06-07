@@ -40,6 +40,8 @@
 .sort-btn{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.75rem;font-weight:800;cursor:pointer;white-space:nowrap;transition:.15s}
 .sort-btn:hover{border-color:var(--primary);color:var(--primary)}
 .sort-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.period-select{height:36px;min-width:132px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.75rem;font-weight:800;padding:0 30px 0 10px;outline:none;flex-shrink:0}
+.period-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
 .guest-alerts{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
 .guest-alert{display:inline-flex;align-items:center;gap:4px;max-width:220px;border-radius:999px;padding:2px 8px;font-size:.68rem;font-weight:800;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .guest-alert.warn{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
@@ -97,6 +99,7 @@
     .m-filter-trigger{display:flex}
     .filter-left{flex-direction:row!important;gap:8px!important;flex-wrap:wrap!important;align-items:center!important}
     .filter-left .search-box{flex:1;min-width:0;width:auto!important}
+    .period-select{min-width:128px}
     .reservation-sort-group{width:100%;margin-left:0;padding-left:0;border-left:0}
     .sort-btn{flex:1;justify-content:center}
     .ops-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;overflow:visible;padding-bottom:0}
@@ -108,6 +111,9 @@
     .action-btns{justify-content:flex-start}
     .res-actions-cell{min-width:0;text-align:left}
     .reservation-filter-bar{padding:12px;gap:10px}
+    .pagination{width:100%;max-width:100%;overflow:hidden}
+    .page-btns{width:100%;max-width:100%;flex-wrap:wrap;justify-content:center}
+    .page-btn{width:34px;height:34px}
 }
 </style>
     <script src="../common/js/api/api-core.js"></script>
@@ -146,6 +152,12 @@
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input type="text" id="searchInput" placeholder="이름, 객실번호, 예약번호 검색..." oninput="filterTable()">
                 </div>
+                <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
+                    <option value="week">최근 7일</option>
+                    <option value="today">오늘</option>
+                    <option value="month">이번 달</option>
+                    <option value="all">전체 기간</option>
+                </select>
                 <div class="reservation-sort-group" aria-label="예약 정렬">
                     <button type="button" class="sort-btn active" data-sort="recent" onclick="setReservationSort('recent')"><i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n-key="Recent Order">최근순</span></button>
                     <button type="button" class="sort-btn" data-sort="room" onclick="setReservationSort('room')"><i class="fa-solid fa-arrow-down-1-9"></i> <span data-i18n-key="Room Order">호실순</span></button>
@@ -510,6 +522,36 @@ function todayDate() {
     return today;
 }
 
+function periodRange(filter) {
+    if (filter === 'all') return null;
+    const today = todayDate();
+    if (filter === 'today') return { start: today, end: today };
+    if (filter === 'month') {
+        return {
+            start: new Date(today.getFullYear(), today.getMonth(), 1),
+            end: new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        };
+    }
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+    return { start, end: today };
+}
+
+function dateInRange(date, range) {
+    return !!(date && range && date >= range.start && date <= range.end);
+}
+
+function stayOverlapsRange(res, range) {
+    const start = parseListDate(res?.checkInDate || res?.checkin || res?.cin);
+    const end = parseListDate(res?.checkOutDate || res?.checkout || res?.cout);
+    if (start && end) return start <= range.end && end >= range.start;
+    return dateInRange(start || end, range);
+}
+
+function reservationFallbackDate(res) {
+    return parseListDate(res?.createdAt || res?.createdDate || res?.updatedAt || res?.bookingDate || res?.date);
+}
+
 function normalizeRoomValue(value) {
     const text = String(value || '').trim().toLowerCase();
     const digits = (text.match(/\d+/g) || []).join('');
@@ -660,6 +702,7 @@ function cancelActionButton(res, mobile = false) {
 }
 
 let currentFilter = 'all';
+let currentPeriodFilter = 'week';
 let currentPage = 1;
 let currentSort = 'recent';
 const itemsPerPage = 10;
@@ -706,12 +749,28 @@ function setReservationSort(mode) {
     renderTable();
 }
 
+function setPeriodFilter(filter) {
+    currentPeriodFilter = filter || 'week';
+    currentPage = 1;
+    renderTable();
+}
+
 function rowMatchesFilter(res) {
     if (currentFilter === 'all') return true;
     if (['checkin', 'inhouse', 'checkout', 'completed', 'cancelled'].includes(currentFilter)) {
         return operationalBucket(res) === currentFilter;
     }
     return effectiveRowStatus(res) === currentFilter;
+}
+
+function rowMatchesPeriod(res) {
+    const range = periodRange(currentPeriodFilter);
+    if (!range) return true;
+    const bucket = operationalBucket(res);
+    if (['checkin', 'inhouse', 'checkout'].includes(bucket)) return true;
+    if (stayOverlapsRange(res, range)) return true;
+    const fallback = reservationFallbackDate(res);
+    return fallback ? dateInRange(fallback, range) : true;
 }
 
 function workActionButton(res, mobile = false) {
@@ -773,6 +832,7 @@ function renderTable() {
     
     const filtered = reservations.filter(r => {
         if (!rowMatchesFilter(r)) return false;
+        if (!rowMatchesPeriod(r)) return false;
         const haystack = [
             r.id,
             r.room,

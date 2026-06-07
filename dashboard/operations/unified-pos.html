@@ -45,8 +45,9 @@
 .filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.category-select { height: 36px; min-width: 180px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
-.category-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
+.period-select, .category-select { height: 36px; min-width: 150px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
+.category-select { min-width: 180px; }
+.period-select:focus, .category-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
 .pos-category-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; background: var(--bg); color: var(--txt); border: 1px solid var(--border2); font-size: .76rem; font-weight: 800; white-space: nowrap; }
 .pos-completion-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: .7rem; font-weight: 800; white-space: nowrap; }
 .pos-completion-badge.open { background: var(--warning-lt); color: var(--warning); }
@@ -66,6 +67,7 @@
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
     .filter-divider { display: none; }
     .filter-group { width: 100%; }
+    .period-select,
     .category-select { width: 100%; }
     .filter-right { justify-content: flex-start; }
 }
@@ -124,6 +126,15 @@
                 </div>
                 <div class="filter-divider"></div>
                 <div class="filter-group">
+                    <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
+                        <option value="week">최근 7일</option>
+                        <option value="today">오늘</option>
+                        <option value="month">이번 달</option>
+                        <option value="all">전체 기간</option>
+                    </select>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
                     <div class="filter-chips" id="statusFilterChips">
                         <button class="chip active" onclick="setStatusFilter(this,'all')">전체 <span class="chip-count" id="statusAllCount">0</span></button>
                         <button class="chip" onclick="setStatusFilter(this,'open')">미완료 <span class="chip-count" id="statusOpenCount">0</span></button>
@@ -178,6 +189,7 @@ const statusInfo = {
 
 let currentFilter = 'all';
 let currentStatusFilter = 'all';
+let currentPeriodFilter = 'week';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -263,6 +275,39 @@ function formatOrderTime(order) {
     return [date, order.time].filter(Boolean).join(' ');
 }
 
+function parseOrderDate(value) {
+    if (!value) return null;
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function periodRange(filter) {
+    if (filter === 'all') return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (filter === 'today') return { start: today, end: today };
+    if (filter === 'month') {
+        return {
+            start: new Date(today.getFullYear(), today.getMonth(), 1),
+            end: new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        };
+    }
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+    return { start, end: today };
+}
+
+function orderMatchesPeriod(order) {
+    if (order.status !== 'done') return true;
+    const range = periodRange(currentPeriodFilter);
+    if (!range) return true;
+    const date = parseOrderDate(order.date);
+    if (!date) return true;
+    return date >= range.start && date <= range.end;
+}
+
 function orderMatchesSearch(order, query) {
     if (!query) return true;
     const haystack = [
@@ -320,6 +365,7 @@ function renderOrders() {
         if (currentFilter !== 'all' && o.categoryKey !== currentFilter) return false;
         if (currentStatusFilter === 'open' && o.status === 'done') return false;
         if (currentStatusFilter === 'done' && o.status !== 'done') return false;
+        if (!orderMatchesPeriod(o)) return false;
         if (!orderMatchesSearch(o, search)) return false;
         return true;
     });
@@ -405,6 +451,11 @@ function updateKPIs() {
 
 function setCategoryFilter(filter) {
     currentFilter = filter;
+    renderOrders();
+}
+
+function setPeriodFilter(filter) {
+    currentPeriodFilter = filter;
     renderOrders();
 }
 
