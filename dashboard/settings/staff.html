@@ -45,6 +45,8 @@
         .password-change-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .password-action-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
         .password-helper { font-size: .74rem; color: var(--txt3); line-height: 1.45; flex: 1 1 220px; }
+        .settings-managed-link { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+        .managed-admin-hint { font-size: .72rem; color: var(--txt3); margin-top: 4px; }
         @media (max-width: 768px) {
             .staff-filter-row .search-box,
             .staff-filter-row .hotel-select { width: 100%; flex: 1 1 100%; max-width: none; }
@@ -268,8 +270,16 @@ function getAllRoles() {
     return [...SYSTEM_ROLES, ...loadCustomRoles()];
 }
 
+function getAssignableRoles() {
+    return getAllRoles().filter(role => role.id !== 'sys_admin');
+}
+
 function getRoleById(id) {
     return getAllRoles().find(r => r.id === id);
+}
+
+function isSettingsManagedAdmin(staff) {
+    return staff?.roleId === 'sys_admin';
 }
 
 // ─── 직원 데이터 (localStorage) ────────────────────────────────
@@ -300,7 +310,7 @@ function buildRoleFilter() {
 function populateEditRoleOptions(selectedRoleId = '') {
     const editSel = document.getElementById('editRole');
     if (!editSel) return;
-    const roles = getAllRoles();
+    const roles = getAssignableRoles();
     editSel.innerHTML = roles.length
         ? roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('')
         : '<option value="">등록된 역할 없음</option>';
@@ -337,6 +347,17 @@ function renderStaff() {
         const roleName  = role ? role.name  : '역할 없음';
         const roleColor = role ? role.color : '#9CA3AF';
         const permCount = role ? role.perms.length : 0;
+        const managedAdmin = isSettingsManagedAdmin(s);
+        const manageAction = managedAdmin
+            ? `<div>
+                    <a class="btn-outline-sm settings-managed-link" href="settings.html">
+                        <i class="fa-solid fa-gear"></i> 설정에서 관리
+                    </a>
+                    <div class="managed-admin-hint">관리자 정보</div>
+               </div>`
+            : `<button class="btn-outline-sm" onclick="openEdit('${s.id}')">
+                    <i class="fa-solid fa-pen"></i> 편집
+               </button>`;
         const dot = s.status === 'online'
             ? `<span class="status-dot" style="background:var(--success)"></span> 근무 중`
             : `<span class="status-dot" style="background:var(--txt3)"></span> 오프라인`;
@@ -360,11 +381,7 @@ function renderStaff() {
             </td>
             <td>${dot}</td>
             <td style="font-size:.82rem;color:var(--txt2)">${s.last}</td>
-            <td>
-                <button class="btn-outline-sm" onclick="openEdit('${s.id}')">
-                    <i class="fa-solid fa-pen"></i> 편집
-                </button>
-            </td>
+            <td>${manageAction}</td>
         </tr>`;
     }).join('');
 }
@@ -372,7 +389,7 @@ function renderStaff() {
 // ─── 역할 선택 카드 렌더링 ────────────────────────────────────
 function renderRolePickGrid() {
     const grid = document.getElementById('rolePickGrid');
-    const roles = getAllRoles();
+    const roles = getAssignableRoles();
     grid.innerHTML = roles.map(r => `
         <div class="role-pick-card${selectedRoleId === r.id ? ' selected' : ''}"
              onclick="selectRole('${r.id}', this)"
@@ -419,6 +436,7 @@ function saveStaff() {
     if (!name)           { showToast('이름을 입력해 주세요.', 'error'); return; }
     if (!email)          { showToast('이메일을 입력해 주세요.', 'error'); return; }
     if (!selectedRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
+    if (selectedRoleId === 'sys_admin') { showToast('Admin 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error'); return; }
     if (!pw)             { showToast('임시 비밀번호를 입력해 주세요.', 'error'); return; }
 
     staffData.push({
@@ -450,6 +468,10 @@ function resetAddForm() {
 function openEdit(id) {
     const s = staffData.find(x => x.id === id);
     if (!s) return;
+    if (isSettingsManagedAdmin(s)) {
+        showToast('Admin 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'info');
+        return;
+    }
     editingId = id;
     populateEditRoleOptions(s.roleId);
     document.getElementById('editName').value   = s.name;
@@ -464,10 +486,15 @@ function openEdit(id) {
 function saveEdit() {
     const s = staffData.find(x => x.id === editingId);
     if (!s) return;
+    if (isSettingsManagedAdmin(s)) {
+        showToast('Admin 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error');
+        return;
+    }
     s.name   = document.getElementById('editName').value.trim();
     s.empId  = document.getElementById('editEmpId').value.trim();
     const nextRoleId = document.getElementById('editRole').value;
     if (!nextRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
+    if (nextRoleId === 'sys_admin') { showToast('Admin 역할은 직원 관리에서 부여할 수 없습니다.', 'error'); return; }
     s.roleId = nextRoleId;
     s.status = document.getElementById('editStatus').value;
     
@@ -493,6 +520,10 @@ function saveEdit() {
 function sendTempPw() {
     const s = staffData.find(x => x.id === editingId);
     if (!s) return;
+    if (isSettingsManagedAdmin(s)) {
+        showToast('Admin 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error');
+        return;
+    }
     s.passwordUpdatedAt = new Date().toISOString();
     s.passwordChangeRequired = true;
     s.passwordMethod = 'temporary_email';
@@ -503,6 +534,11 @@ function sendTempPw() {
 }
 
 async function deleteStaff() {
+    const s = staffData.find(x => x.id === editingId);
+    if (isSettingsManagedAdmin(s)) {
+        showToast('Admin 계정은 직원 관리에서 삭제할 수 없습니다.', 'error');
+        return;
+    }
     const confirmMessage = typeof window.t === 'function'
         ? window.t('staff.delete.confirm')
         : '이 직원을 삭제하시겠습니까?';
