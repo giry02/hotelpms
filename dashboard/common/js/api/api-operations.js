@@ -158,19 +158,22 @@ Object.assign(window.PmsAPI, {
             console.warn('Mock golf orders fallback', e);
         }
         try {
-            let res = await fetch('../data/operations/golf.json');
-            if (res.ok) return await res.json();
+            let res = await fetch('../data/api/v1/ancillaries/golf-orders.json', { cache: 'no-store' });
+            if (res.ok) {
+                const env = await res.json();
+                const items = Array.isArray(env?.data?.items) ? env.data.items : [];
+                return items.map(item => ({
+                    ...item,
+                    room: item.roomNo || String(item.roomId || '').split('-').pop(),
+                    total: item.total && typeof item.total === 'object' ? Number(item.total.amount || 0) : Number(item.total || 0),
+                    currency: item.currency || item.total?.currency || env?.meta?.currency || 'USD'
+                }));
+            }
         } catch(e) {}
         
         let cached = localStorage.getItem('pms_golf_orders');
         if (cached) return JSON.parse(cached);
-
-        const items = [];
-        for(let i=1; i<=8; i++) items.push({ id:`GLF-P${i.toString().padStart(3,'0')}`, room:`${1000+i}`, type: i%2===0?'club_a':'club_b', guest:'Guest '+i, items:'18홀 / 4인', total:450000, status:'new', time:'14:00' });
-        for(let i=1; i<=12; i++) items.push({ id:`GLF-C${i.toString().padStart(3,'0')}`, room:`${800+i}`, type: i%2===0?'club_b':'club_a', guest:'Guest '+(i+8), items:'9홀 / 2인', total:150000, status:'done', time:'09:00' });
-        
-        localStorage.setItem('pms_golf_orders', JSON.stringify(items));
-        return items;
+        return [];
     },
 
     getRentacarOrders: async () => { 
@@ -189,19 +192,22 @@ Object.assign(window.PmsAPI, {
             console.warn('Mock rentacar orders fallback', e);
         }
         try {
-            let res = await fetch('../data/operations/rentacar.json');
-            if (res.ok) return await res.json();
+            let res = await fetch('../data/api/v1/ancillaries/rentacar-orders.json', { cache: 'no-store' });
+            if (res.ok) {
+                const env = await res.json();
+                const items = Array.isArray(env?.data?.items) ? env.data.items : [];
+                return items.map(item => ({
+                    ...item,
+                    room: item.roomNo || String(item.roomId || '').split('-').pop(),
+                    total: item.total && typeof item.total === 'object' ? Number(item.total.amount || 0) : Number(item.total || 0),
+                    currency: item.currency || item.total?.currency || env?.meta?.currency || 'USD'
+                }));
+            }
         } catch(e) {}
         
         let cached = localStorage.getItem('pms_rentacar_orders');
         if (cached) return JSON.parse(cached);
-
-        const items = [];
-        for(let i=1; i<=5; i++) items.push({ id:`RNT-P${i.toString().padStart(3,'0')}`, room:`${1200+i}`, type:'lotte', guest:'Guest '+i, items:'그랜저 IG / 2일', total:180000, status:'new', time:'10:00' });
-        for(let i=1; i<=8; i++) items.push({ id:`RNT-C${i.toString().padStart(3,'0')}`, room:`${300+i}`, type:'sk', guest:'Guest '+(i+5), items:'아반떼 / 1일', total:60000, status:'done', time:'08:30' });
-        
-        localStorage.setItem('pms_rentacar_orders', JSON.stringify(items));
-        return items;
+        return [];
     },
 
     getRequests: async () => {
@@ -220,14 +226,19 @@ Object.assign(window.PmsAPI, {
             console.warn('Mock requests fallback', e);
         }
         try {
-            let res = await fetch('../data/operations/requests.json');
-            if (res.ok) return await res.json();
+            let res = await fetch('../data/api/v1/operations/maintenance-requests.json', { cache: 'no-store' });
+            if (res.ok) {
+                const env = await res.json();
+                const items = Array.isArray(env?.data?.items) ? env.data.items : [];
+                if (items.length) return items.map(item => ({
+                    ...item,
+                    room: item.roomNo || String(item.roomId || '').split('-').pop(),
+                    time: item.time || (item.createdAt ? item.createdAt.slice(11, 16) : ''),
+                    type: item.type || 'maintenance'
+                }));
+            }
         } catch(e) {}
-        return initStorage('pms_requests', [
-            { "id": "REQ-1001", "room": "0807", "type": "amenity", "desc": "수건 2장, 생수 2병 추가", "status": "pending", "time": "10:15", "assignee": "" },
-            { "id": "REQ-1002", "room": "1205", "type": "maintenance", "desc": "에어컨 온도 조절기 불량", "status": "progress", "time": "09:30", "assignee": "엔지니어 김" },
-            { "id": "REQ-1003", "room": "PH01", "type": "cleaning", "desc": "와인잔 파손으로 인한 긴급 청소", "status": "done", "time": "08:45", "assignee": "하우스키핑 박" }
-        ]);
+        return [];
     },
 
     getOrders: async () => {
@@ -237,7 +248,8 @@ Object.assign(window.PmsAPI, {
                 const orders = window.PmsMockApi.items(env).map(item => ({
                     ...item,
                     room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
-                    total: window.PmsMockApi.amountValue(item.total)
+                    total: window.PmsMockApi.amountValue(item.total),
+                    currency: window.PmsMockApi.currencyOf(item.total, env?.meta?.currency || 'USD')
                 }));
                 if (orders.length) return orders;
             }
@@ -245,14 +257,19 @@ Object.assign(window.PmsAPI, {
             console.warn('Mock POS orders fallback', e);
         }
         try {
-            let res = await fetch('../data/operations/orders.json');
-            if (res.ok) return await res.json();
+            let res = await fetch('../data/api/v1/pos/orders.json', { cache: 'no-store' });
+            if (res.ok) {
+                const env = await res.json();
+                const items = Array.isArray(env?.data?.items) ? env.data.items : [];
+                return items.map(item => ({
+                    ...item,
+                    room: item.roomNo || String(item.roomId || '').split('-').pop(),
+                    total: item.total && typeof item.total === 'object' ? Number(item.total.amount || 0) : Number(item.total || 0),
+                    currency: item.currency || item.total?.currency || env?.meta?.currency || 'USD'
+                }));
+            }
         } catch(e) {}
-        return initStorage('pms_orders', [
-            { "id": "ORD-5001", "room": "1002", "items": ["클럽 샌드위치", "아이스 아메리카노 2"], "total": 45000, "status": "preparing", "time": "11:05" },
-            { "id": "ORD-5002", "room": "0501", "items": ["해물 파스타", "화이트 와인 1잔"], "total": 68000, "status": "delivering", "time": "10:40" },
-            { "id": "ORD-5003", "room": "1401", "items": ["조식 세트 A", "과일 플래터"], "total": 85000, "status": "done", "time": "07:30" }
-        ]);
+        return [];
     },
 
     getDailyData: async () => {

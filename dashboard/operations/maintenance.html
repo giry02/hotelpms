@@ -517,28 +517,32 @@ const typeIcons = {
     '전기/조명':'fa-lightbulb', '배관/수도':'fa-faucet-drip', '에어컨/냉난방':'fa-temperature-arrow-down',
     '가구/비품':'fa-couch', '도어/잠금장치':'fa-door-closed', '엘리베이터':'fa-elevator', '기타':'fa-toolbox'
 };
+const typeLabels = {
+    electrical: '전기/조명',
+    electric: '전기/조명',
+    lighting: '전기/조명',
+    plumbing: '배관/수도',
+    water: '배관/수도',
+    aircon: '에어컨/냉난방',
+    hvac: '에어컨/냉난방',
+    furniture: '가구/비품',
+    fixture: '가구/비품',
+    door: '도어/잠금장치',
+    lock: '도어/잠금장치',
+    elevator: '엘리베이터',
+    lift: '엘리베이터',
+    other: '기타',
+    maintenance: '기타'
+};
 const priorityLabel = { urgent:'긴급', high:'높음', normal:'일반', low:'낮음' };
 const priorityClass = { urgent:'priority-urgent', high:'priority-high', normal:'priority-normal', low:'priority-low' };
 const statusLabel   = { open:'신규 요청', 'in-progress':'진행 중', done:'완료' };
 
-let requests = [
-    { id:'MT-101', room:'1205', type:'에어컨/냉난방', desc:'온도 조절기 작동 불량 — 객실 좌측 벽면 조절 패널에서 반응 없음', priority:'urgent', assignee:'최동훈', status:'open', date:'2026-05-22' },
-    { id:'MT-102', room:'0807', type:'배관/수도', desc:'세면대 배수구 막힘 — 물이 빠지지 않음', priority:'urgent', assignee:'박미래', status:'in-progress', date:'2026-05-22' },
-    { id:'MT-103', room:'1401', type:'전기/조명', desc:'거실 메인 조명 깜빡임 현상 반복', priority:'high', assignee:'이영호', status:'open', date:'2026-05-21' },
-    { id:'MT-104', room:'0505', type:'가구/비품', desc:'옷장 우측 문 경첩 파손 — 닫히지 않음', priority:'normal', assignee:'김철수', status:'done', date:'2026-05-20' },
-    { id:'MT-105', room:'0901', type:'도어/잠금장치', desc:'객실 메인 도어 카드키 인식 오류 — 반복적으로 3~4회 시도 필요', priority:'high', assignee:'김철수', status:'in-progress', date:'2026-05-21' },
-    { id:'MT-106', room:'1102', type:'배관/수도', desc:'욕조 수전 온수 나오지 않음', priority:'high', assignee:'박미래', status:'open', date:'2026-05-22' },
-    { id:'MT-107', room:'0304', type:'전기/조명', desc:'화장실 환풍기 소음 발생', priority:'normal', assignee:'이영호', status:'in-progress', date:'2026-05-20' },
-    { id:'MT-108', room:'0602', type:'에어컨/냉난방', desc:'냉방 작동 시 이상 소음 및 진동', priority:'normal', assignee:'최동훈', status:'open', date:'2026-05-22' },
-    { id:'MT-109', room:'1301', type:'가구/비품', desc:'침대 프레임 삐걱거림', priority:'low', assignee:'김철수', status:'done', date:'2026-05-19' },
-    { id:'MT-110', room:'0405', type:'도어/잠금장치', desc:'발코니 슬라이딩 도어 레일 걸림', priority:'normal', assignee:'김철수', status:'done', date:'2026-05-18' },
-    { id:'MT-111', room:'0710', type:'전기/조명', desc:'콘센트 2구 작동 불량 (침대 좌측)', priority:'normal', assignee:'이영호', status:'done', date:'2026-05-17' },
-    { id:'MT-112', room:'1003', type:'에어컨/냉난방', desc:'실외기 이상 소음 — 인접 객실 민원 발생', priority:'high', assignee:'최동훈', status:'open', date:'2026-05-22' },
-];
+let requests = [];
 
 let currentStatusFilter = 'all';
 let isUrgentOnly = false;
-let nextId = 113;
+let nextId = 1001;
 
 function persistMaintenanceRequests() {
     localStorage.setItem('pms_maintenance', JSON.stringify(requests));
@@ -559,7 +563,54 @@ function hydrateMaintenanceRequests() {
     }
 }
 
-hydrateMaintenanceRequests();
+function normalizeMaintenanceStatus(status) {
+    const value = String(status || 'open').replace(/[-_\s]/g, '').toLowerCase();
+    if (['done', 'complete', 'completed', 'closed'].includes(value)) return 'done';
+    if (['progress', 'inprogress', 'processing', 'assigned', 'working'].includes(value)) return 'in-progress';
+    return 'open';
+}
+
+function normalizeMaintenanceType(type) {
+    const raw = String(type || '').trim();
+    const key = raw.replace(/[-\s]/g, '').toLowerCase();
+    if (typeIcons[raw]) return raw;
+    return typeLabels[key] || typeLabels[raw.toLowerCase()] || '기타';
+}
+
+function normalizeMaintenanceRequest(item) {
+    const createdAt = item.createdAt || item.requestedAt || item.updatedAt || item.date || '';
+    return {
+        id: item.id || `MT-${nextId++}`,
+        room: String(item.roomNo || item.room || (item.roomId ? String(item.roomId).split('-').pop() : '') || '-'),
+        type: normalizeMaintenanceType(item.type),
+        desc: item.desc || item.description || item.title || '상세 내용 미입력',
+        priority: priorityLabel[item.priority] ? item.priority : 'normal',
+        assignee: item.assignee || item.assigneeName || '미배정',
+        status: normalizeMaintenanceStatus(item.status),
+        date: item.date || (createdAt ? String(createdAt).slice(0, 10) : new Date().toISOString().slice(0, 10))
+    };
+}
+
+function refreshNextMaintenanceId() {
+    const numericIds = requests
+        .map(item => Number(String(item.id || '').replace(/\D/g, '')))
+        .filter(Number.isFinite);
+    if (numericIds.length) nextId = Math.max(1001, Math.max(...numericIds) + 1);
+}
+
+async function loadMaintenanceRequests() {
+    try {
+        const data = window.PmsAPI?.getRequests ? await PmsAPI.getRequests() : [];
+        requests = Array.isArray(data) ? data.map(normalizeMaintenanceRequest) : [];
+    } catch(e) {
+        console.warn('Maintenance API load failed', e);
+        requests = [];
+    }
+    hydrateMaintenanceRequests();
+    refreshNextMaintenanceId();
+    updateKPI();
+    render();
+}
 
 function toggleUrgentOnly(btn) {
     isUrgentOnly = !isUrgentOnly;
@@ -605,7 +656,8 @@ function getFiltered() {
     const search = (document.getElementById('searchMt').value || '').toLowerCase();
     return requests.filter(r => {
         // 검색어 필터는 항상 적용
-        if (search && !r.room.includes(search) && !r.desc.toLowerCase().includes(search) && !r.id.toLowerCase().includes(search) && !r.type.toLowerCase().includes(search)) return false;
+        const haystack = [r.room, r.desc, r.id, r.type, r.assignee].join(' ').toLowerCase();
+        if (search && !haystack.includes(search)) return false;
         
         // 긴급대기 모드일 경우: 긴급(urgent)이면서 완료가 아닌 것만 무조건 통과 (나머지 탭 무시)
         if (isUrgentOnly) {
@@ -789,7 +841,7 @@ function addTicket() {
     showToast('시설 보수 요청이 등록되었습니다.');
 }
 
-document.addEventListener('DOMContentLoaded', () => { updateKPI(); render(); });
+document.addEventListener('DOMContentLoaded', loadMaintenanceRequests);
 </script>
 <script>
 (function(){

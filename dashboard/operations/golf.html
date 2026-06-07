@@ -72,7 +72,7 @@
             <div class="kpi-card orange">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-handshake"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">3</div>
+                    <div class="kpi-value" id="kpiProviderCount">0</div>
                     <div class="kpi-label">제휴 업체 수</div>
                     <div class="kpi-sub">계약된 골프장</div>
                 </div>
@@ -80,7 +80,7 @@
             <div class="kpi-card blue">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">8</div>
+                    <div class="kpi-value" id="kpiOpenToday">0</div>
                     <div class="kpi-label">금일 예약 건</div>
                     <div class="kpi-sub">진행 예정 대기건</div>
                 </div>
@@ -88,7 +88,7 @@
             <div class="kpi-card green">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-check"></i></div></div>
                 <div class="kpi-body">
-                    <div class="kpi-value">12</div>
+                    <div class="kpi-value" id="kpiDoneToday">0</div>
                     <div class="kpi-label">금일 라운딩 완료</div>
                     <div class="kpi-sub">정산 완료 대상</div>
                 </div>
@@ -263,6 +263,11 @@ function orderDateValue(order) {
     return order.date || order.reservationDate || order.scheduledDate || order.playDate || order.roundDate;
 }
 
+function currentDataDate() {
+    const dates = orders.map(orderDateValue).filter(Boolean).sort();
+    return dates[dates.length - 1] || new Date().toISOString().slice(0, 10);
+}
+
 function orderMatchesPeriod(order) {
     if (orderStatusKey(order) !== 'done') return true;
     const range = periodRange(currentPeriodFilter);
@@ -321,12 +326,22 @@ function updateStatusCounts() {
     const all = orders.length;
     const done = orders.filter(order => orderStatusKey(order) === 'done').length;
     const open = all - done;
+    const dataDate = currentDataDate();
+    const openToday = orders.filter(order => orderDateValue(order) === dataDate && orderStatusKey(order) !== 'done').length;
+    const doneToday = orders.filter(order => orderDateValue(order) === dataDate && orderStatusKey(order) === 'done').length;
+    const providerCount = providerEntries().filter(entry => entry.count > 0).length;
     const allEl = document.getElementById('statusAllCount');
     const openEl = document.getElementById('statusOpenCount');
     const doneEl = document.getElementById('statusDoneCount');
     if (allEl) allEl.textContent = all;
     if (openEl) openEl.textContent = open;
     if (doneEl) doneEl.textContent = done;
+    const providerEl = document.getElementById('kpiProviderCount');
+    const openTodayEl = document.getElementById('kpiOpenToday');
+    const doneTodayEl = document.getElementById('kpiDoneToday');
+    if (providerEl) providerEl.textContent = providerCount;
+    if (openTodayEl) openTodayEl.textContent = openToday;
+    if (doneTodayEl) doneTodayEl.textContent = doneToday;
 }
 
 function renderOrders() {
@@ -677,25 +692,19 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 </div>
 
 <script>
-// Mock guest registry for auto-fill based on room
-const dummyGuests = {
-    '1401': { name: 'Tran Linh', nation: 'Vietnam', agency: 'Agoda' },
-    '0807': { name: 'John Smith', nation: 'USA', agency: 'Booking.com' },
-    '1205': { name: 'Park Soo', nation: 'Korea', agency: 'Direct' }
-};
-
 function autoFillGuest(type) {
     const roomEl = document.getElementById(type + 'Room');
     const guestEl = document.getElementById(type + 'Guest');
     const nationEl = document.getElementById(type + 'Nation');
     const agencyEl = document.getElementById(type + '에이전시');
     const phoneEl = document.getElementById(type + 'Phone');
+    const room = String(roomEl?.value || '').trim();
+    const info = orders.find(order => String(order.room || order.roomNo || '').trim() === room);
     
-    if(roomEl && roomEl.value && dummyGuests[roomEl.value]) {
-        const info = dummyGuests[roomEl.value];
-        if(guestEl) guestEl.value = info.name;
-        if(nationEl) nationEl.value = info.nation;
-        if(agencyEl) agencyEl.value = info.agency;
+    if(room && info) {
+        if(guestEl) guestEl.value = info.guest || info.guestName || info.name || '';
+        if(nationEl) nationEl.value = info.nation || info.nationality || '';
+        if(agencyEl) agencyEl.value = info.agency || info.channel || '';
         if(phoneEl && info.phone) phoneEl.value = info.phone;
     } else {
         if(guestEl) guestEl.value = '';
