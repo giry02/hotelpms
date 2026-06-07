@@ -44,15 +44,16 @@
 .btn-search:hover { background: #1D4ED8; }
 .filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.period-select { height: 36px; min-width: 150px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
-.period-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
+.period-select, .provider-select { height: 36px; min-width: 150px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
+.provider-select { min-width: 190px; }
+.period-select:focus, .provider-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
 
 @media(max-width:768px){
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
     .filter-left { flex-wrap: wrap; gap: 10px; }
     .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
-    .period-select { width: 100%; }
+    .period-select, .provider-select { width: 100%; }
     .filter-right { justify-content: flex-start; }
 }
 </style>
@@ -120,11 +121,9 @@
                     <option value="month">이번 달</option>
                     <option value="all">전체 기간</option>
                 </select>
-                <div class="filter-chips">
-                    <button class="chip active" onclick="setFilter(this,'all')" id="chip-all">All 예약</button>
-                    <button class="chip" onclick="setFilter(this,'club_a')" id="chip-club_a"><i class="fa-solid fa-golf-ball-tee" style="color:var(--txt2)"></i> 썬밸리 CC</button>
-                    <button class="chip" onclick="setFilter(this,'club_b')" id="chip-club_b"><i class="fa-solid fa-golf-ball-tee" style="color:var(--txt2)"></i> 스카이72</button>
-                </div>
+                <select id="providerFilterSelect" class="provider-select" onchange="setProviderFilter(this.value)">
+                    <option value="all">전체 업체</option>
+                </select>
             </div>
             <div class="filter-right">
                 <button class="btn-outline" onclick="openModal('partnerModal')"><i class="fa-solid fa-building"></i> 업체 관리</button>
@@ -149,6 +148,77 @@ const tMap = {
 
 let currentFilter = 'all';
 let currentPeriodFilter = 'week';
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
+function providerKeyFor(order) {
+    return String(order?.type || order?.providerType || order?.partnerId || order?.providerName || order?.partnerName || 'other').trim() || 'other';
+}
+
+function providerLabelFor(order, key = providerKeyFor(order)) {
+    return order?.providerLabel
+        || order?.providerName
+        || order?.partnerName
+        || order?.companyName
+        || order?.courseName
+        || tMap[key]?.label
+        || String(key || '기타 업체').replace(/[-_]/g, ' ');
+}
+
+function providerMetaFor(order) {
+    const key = providerKeyFor(order);
+    const known = tMap[key] || {};
+    return {
+        key,
+        label: providerLabelFor(order, key),
+        icon: known.icon || 'fa-golf-ball-tee',
+        color: known.color || 'var(--txt2)'
+    };
+}
+
+function providerEntries() {
+    const map = new Map();
+    orders.forEach(order => {
+        const meta = providerMetaFor(order);
+        if (!map.has(meta.key)) {
+            map.set(meta.key, { key: meta.key, label: meta.label, count: 0 });
+        }
+        map.get(meta.key).count++;
+    });
+    if (!map.size) {
+        Object.entries(tMap).forEach(([key, meta]) => map.set(key, { key, label: meta.label, count: 0 }));
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'ko'));
+}
+
+function refreshProviderFilterOptions() {
+    const select = document.getElementById('providerFilterSelect');
+    const entries = providerEntries();
+    if (currentFilter !== 'all' && !entries.some(entry => entry.key === currentFilter)) currentFilter = 'all';
+    if (select) {
+        select.innerHTML = [
+            `<option value="all">전체 업체 (${orders.length})</option>`,
+            ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)} (${entry.count})</option>`)
+        ].join('');
+        select.value = currentFilter;
+    }
+    document.querySelectorAll('.provider-order-select').forEach(orderSelect => {
+        const selected = orderSelect.value;
+        orderSelect.innerHTML = [
+            `<option value="">업체 선택...</option>`,
+            ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)}</option>`)
+        ].join('');
+        if (entries.some(entry => entry.key === selected)) orderSelect.value = selected;
+    });
+}
 
 function parseOrderDate(value) {
     if (!value) return null;
@@ -198,9 +268,9 @@ function renderOrders() {
     const container = document.getElementById('orderList');
     
     const filtered = orders.filter(o => {
-        if (currentFilter !== 'all' && o.type !== currentFilter) return false;
+        if (currentFilter !== 'all' && providerKeyFor(o) !== currentFilter) return false;
         if (!orderMatchesPeriod(o)) return false;
-        const haystack = [o.room, o.guest, o.id, o.items].join(' ').toLowerCase();
+        const haystack = [o.room, o.guest, o.id, o.items, providerLabelFor(o)].join(' ').toLowerCase();
         if (search && !haystack.includes(search)) return false;
         return true;
     });
@@ -211,12 +281,12 @@ function renderOrders() {
     }
 
     container.innerHTML = filtered.map(o => {
-        const info = tMap[o.type];
+        const info = providerMetaFor(o);
         
         let sHtml, actBtn;
         if (o.status === 'new') {
             sHtml = `<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> 예약 대기</span>`;
-            actBtn = `<button class="btn-primary-sm"><i class="fa-solid fa-check"></i> 예약 Confirmed</button>`;
+            actBtn = `<button class="btn-primary-sm"><i class="fa-solid fa-check"></i> 예약 확정</button>`;
         } else if (o.status === 'prep') {
             sHtml = `<span style="color:var(--primary);font-weight:700"><i class="fa-solid fa-car"></i> 진행 예정</span>`;
             actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)"><i class="fa-solid fa-check-double"></i> 완료 처리</button>`;
@@ -230,14 +300,14 @@ function renderOrders() {
         return `
         <div class="hk-task ${o.status === 'new' ? 'dirty' : (o.status === 'done' ? 'clean' : 'inspect')}">
             <div class="hk-task-left">
-                <div class="hk-task-room">${o.room}</div>
+                <div class="hk-task-room">${escapeHtml(o.room)}</div>
                 <div class="hk-task-info">
                     <div class="hk-task-title">
-                        <i class="fa-solid ${info.icon}" style="color:${info.color}"></i> ${info.label}
-                        <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:6px">${o.id}</span>
+                        <i class="fa-solid ${escapeHtml(info.icon)}" style="color:${escapeHtml(info.color)}"></i> ${escapeHtml(info.label)}
+                        <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:6px">${escapeHtml(o.id)}</span>
                     </div>
                     <div class="hk-task-meta" style="color:var(--txt);font-weight:500">
-                        ${o.items}
+                        ${escapeHtml(o.items)}
                     </div>
                     <div class="hk-task-meta">
                         ${sHtml}
@@ -257,9 +327,12 @@ function renderOrders() {
 }
 
 function setFilter(btn, filter) {
-    currentFilter = filter;
-    btn.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
+    setProviderFilter(filter);
+}
+
+function setProviderFilter(filter) {
+    currentFilter = filter || 'all';
+    refreshProviderFilterOptions();
     renderOrders();
 }
 
@@ -336,6 +409,7 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
     document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room번호 검색...';
     if(tMap['club_a']) tMap['club_a'].label = l==='en'?'Sun Valley CC':'썬밸리 CC';
     if(tMap['club_b']) tMap['club_b'].label = l==='en'?'SKY72':'스카이72';
+    refreshProviderFilterOptions();
     /* renderOrders(); */
 }
 
@@ -425,9 +499,8 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
-                    <select id="golf코스" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>썬밸리 CC</option>
-                        <option>스카이72 (SKY72)</option>
+                    <select class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="">업체 선택...</option>
                     </select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
@@ -454,7 +527,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 <div class="modal-overlay" id="partnerModal" onclick="if(event.target===this) closeModal('partnerModal')">
     <div class="modal-card" style="max-width:600px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title">제휴 골프장 업체 Actions</h3>
+            <h3 class="modal-title">제휴 골프장 업체 관리</h3>
             <button class="modal-close" onclick="closeModal('partnerModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
@@ -497,9 +570,8 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
-                    <select id="golf코스" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>썬밸리 CC</option>
-                        <option>스카이72 (SKY72)</option>
+                    <select class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="">업체 선택...</option>
                     </select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
@@ -553,9 +625,7 @@ function autoFillGuest(type) {
 
 <script>
 function updateFilterCounts() {
-    document.getElementById('chip-all').innerHTML = `All 예약 (${orders.length})`;
-    document.getElementById('chip-club_a').innerHTML = `<i class="fa-solid fa-golf-ball-tee"></i> 썬밸리 CC (${orders.filter(o=>o.type==='club_a').length})`;
-    document.getElementById('chip-club_b').innerHTML = `<i class="fa-solid fa-golf-ball-tee"></i> 스카이72 (${orders.filter(o=>o.type==='club_b').length})`;
+    refreshProviderFilterOptions();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
