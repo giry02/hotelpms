@@ -54,15 +54,18 @@
         .room-assignment-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
         .room-assignment-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
         .room-assignment-table{table-layout:fixed}
+        .room-assignment-table td{overflow:hidden}
         .room-assignment-table th:last-child,.room-assignment-table td:last-child{text-align:right}
-        .room-assignment-table th:nth-child(1){width:13%}
-        .room-assignment-table th:nth-child(2){width:15%}
-        .room-assignment-table th:nth-child(3){width:22%}
-        .room-assignment-table th:nth-child(4){width:10%}
-        .room-assignment-table th:nth-child(5){width:10%}
-        .room-assignment-table th:nth-child(6){width:11%}
-        .room-assignment-table th:nth-child(7){width:19%}
+        .room-assignment-table th:nth-child(1){width:16%}
+        .room-assignment-table th:nth-child(2){width:34%}
+        .room-assignment-table th:nth-child(3){width:9%}
+        .room-assignment-table th:nth-child(4){width:11%}
+        .room-assignment-table th:nth-child(5){width:12%}
+        .room-assignment-table th:nth-child(6){width:18%}
+        .room-assignment-table td:nth-child(2),.room-assignment-table .event-metric{white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+        .room-note{display:block;margin-top:3px;color:#dc2626;font-weight:850;line-height:1.35;overflow-wrap:anywhere}
         .room-action-buttons{display:inline-flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+        .room-action-buttons .mini-btn{white-space:nowrap}
         .rooming-tools{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
         .progress{height:7px;background:#eef2f7;border-radius:99px;overflow:hidden}.progress>div{height:100%;background:var(--primary)}
         .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
@@ -152,7 +155,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
                     <label class="form-label">국적</label>
-                    <input id="guestNationInput" class="form-input" style="width:100%" placeholder="Korea">
+                    <input id="guestNationInput" class="form-input" style="width:100%" placeholder="한국">
                 </div>
                 <div>
                     <label class="form-label">여권/신분증 확인</label>
@@ -232,6 +235,73 @@ function roomId(room) {
     return room.id || room.roomId || room.fullRoom || room.display || room.number || '';
 }
 
+function currentDetailLang() {
+    const lang = window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko';
+    return String(lang).toLowerCase().startsWith('en') ? 'en' : 'ko';
+}
+
+function isKoreanDetail() {
+    return currentDetailLang() !== 'en';
+}
+
+function roomTypeLabel(value) {
+    const text = String(value || '').trim();
+    if (!text || !isKoreanDetail()) return text || '-';
+    const key = text.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+    const labels = {
+        standard: '스탠다드',
+        deluxe: '디럭스',
+        premier: '프리미어',
+        premium: '프리미엄',
+        suite: '스위트',
+        penthouse: '펜트하우스',
+        'pool villa': '풀빌라',
+        'garden villa': '가든 빌라',
+        twin: '트윈',
+        double: '더블'
+    };
+    return labels[key] || text;
+}
+
+function countryLabel(value) {
+    const text = String(value || '').trim();
+    if (!text || !isKoreanDetail()) return text || '-';
+    const labels = {
+        korea: '한국',
+        'south korea': '한국',
+        vietnam: '베트남',
+        usa: '미국',
+        'united states': '미국',
+        japan: '일본',
+        china: '중국'
+    };
+    return labels[text.toLowerCase()] || text;
+}
+
+function roomNameLabel(value) {
+    const text = String(value || '').trim();
+    if (!text || !isKoreanDetail()) return text || '-';
+    return text
+        .replace(/\bOcean Tower\b/g, '오션 타워')
+        .replace(/\bForest Tower\b/g, '포레스트 타워')
+        .replace(/\bPool Villa\b/g, '풀빌라');
+}
+
+function localizedGuestNote(value) {
+    const text = String(value || '').trim();
+    if (!text || !isKoreanDetail()) return text;
+    const key = text.toLowerCase().replace(/\s+/g, ' ');
+    const labels = {
+        'speaker room, extra pillows requested.': '스피커룸 요청, 여분 베개 요청',
+        'late arrival after 21:00.': '21:00 이후 늦은 도착 예정'
+    };
+    return labels[key] || text;
+}
+
+function isPendingAssignmentName(value) {
+    return /pending assignment/i.test(String(value || ''));
+}
+
 function getAssignedRooms(g) {
     const source = Array.isArray(g?.roomAllocations) && g.roomAllocations.length ? g.roomAllocations : (g?.allocations || []);
     return source.filter(a => a && (a.roomId || a.room || a.id)).map(a => {
@@ -241,7 +311,7 @@ function getAssignedRooms(g) {
             roomId: id,
             roomLabel: a.roomLabel || rm.display || rm.number || id,
             type: a.type || rm.type || 'Standard',
-            building: a.building || rm.building || rm.bldgCode || '',
+            building: a.buildingName || a.building || rm.buildingName || rm.building || rm.bldgCode || '',
             baseRate: Number(a.baseRate || 0),
             discountPercent: Number(a.discountPercent || 0),
             rate: Number(a.rate || 0)
@@ -251,7 +321,8 @@ function getAssignedRooms(g) {
 
 function roomDisplayName(a) {
     const label = a.roomLabel || a.roomId || '';
-    return a.building && !label.includes(a.building) ? `${a.building} ${label}` : label;
+    const display = a.building && !label.includes(a.building) ? `${a.building} ${label}` : label;
+    return roomNameLabel(display);
 }
 
 function getCurrency() {
@@ -407,7 +478,7 @@ function renderRooming() {
     document.getElementById('rooming').innerHTML = `
         <div class="rooming-tools">
             <div>
-                <div class="section-title" style="margin-bottom:6px"><i class="fa-solid fa-users"></i> Rooming List</div>
+                <div class="section-title" style="margin-bottom:6px"><i class="fa-solid fa-users"></i> 투숙객 명단</div>
                 <div style="font-size:.76rem;color:var(--txt3);font-weight:700">${guests.length}/${pax || 0}명 등록</div>
             </div>
             <button class="mini-btn primary" onclick="openRoomingModal()"><i class="fa-solid fa-user-plus"></i> 투숙객 추가</button>
@@ -464,7 +535,7 @@ function renderAll() {
 
 function populateGuestRooms() {
     const sel = document.getElementById('guestRoomInput');
-    sel.innerHTML = '<option value="">호실 선택</option>' + getAssignedRooms(group).map(a => `<option value="${a.roomId}">${a.roomLabel} · ${a.type}</option>`).join('');
+    sel.innerHTML = '<option value="">호실 선택</option>' + getAssignedRooms(group).map(a => `<option value="${a.roomId}">${roomDisplayName(a)} · ${roomTypeLabel(a.type)}</option>`).join('');
 }
 
 window.openRoomingModal = function() {
@@ -499,7 +570,7 @@ window.saveRoomingGuest = function() {
     saveGroup();
     closeModal('roomingModal');
     renderAll();
-    showToast('투숙객이 Rooming List에 추가되었습니다.');
+    showToast('투숙객이 명단에 추가되었습니다.');
 };
 
 window.removeRoomingGuest = async function(id) {
@@ -608,7 +679,7 @@ function allocationOptions(selected = '', unavailable = new Set()) {
         const id = roomId(r);
         if (id !== selected && unavailable.has(id)) return '';
         const label = `${r.bldgCode || r.building || ''} ${r.display || r.number || id}`.trim();
-        return `<option value="${id}" ${id === selected ? 'selected' : ''}>${label} · ${r.type || 'Standard'}</option>`;
+        return `<option value="${id}" ${id === selected ? 'selected' : ''}>${label} · ${roomTypeLabel(r.type || 'Standard')}</option>`;
     })).join('');
 }
 
@@ -691,7 +762,7 @@ function renderRooms() {
 
 function renderRooming() {
     if (isDraftGroup()) {
-        document.getElementById('rooming').innerHTML = `<div class="empty-guide">기본 정보를 저장한 뒤 Rooming List를 등록할 수 있습니다.</div>`;
+        document.getElementById('rooming').innerHTML = `<div class="empty-guide">기본 정보를 저장한 뒤 투숙객 명단을 등록할 수 있습니다.</div>`;
         return;
     }
     const guests = roomingList();
@@ -700,7 +771,7 @@ function renderRooming() {
     document.getElementById('rooming').innerHTML = `
         <div class="rooming-tools">
             <div>
-                <div class="section-title" style="margin-bottom:6px"><i class="fa-solid fa-users"></i> Rooming List</div>
+                <div class="section-title" style="margin-bottom:6px"><i class="fa-solid fa-users"></i> 투숙객 명단</div>
                 <div style="font-size:.76rem;color:var(--txt3);font-weight:700">${guests.length}/${pax || 0}명 등록</div>
             </div>
             <button class="mini-btn primary" onclick="openRoomingModal()"><i class="fa-solid fa-user-plus"></i> 투숙객 추가</button>
@@ -1254,14 +1325,15 @@ window.addEventListener('DataReady', () => {
 
     function reservationGuestName(res) {
         if (!res) return '';
-        if (res.roomingGuestName) return res.roomingGuestName;
+        if (res.roomingGuestName && !isPendingAssignmentName(res.roomingGuestName)) return res.roomingGuestName;
         if (res.isGroupPlaceholder && !res.guest && !res.guestName) return '';
-        return res.guestName || res.guest || '';
+        const name = res.guestName || res.guest || '';
+        return isPendingAssignmentName(name) ? '' : name;
     }
 
     function guestForRoom(roomIdValue) {
-        const direct = roomingList().find(guest => guest.roomId === roomIdValue && guest.role === 'primary') ||
-            roomingList().find(guest => guest.roomId === roomIdValue);
+        const direct = roomingList().find(guest => guest.roomId === roomIdValue && guest.role === 'primary' && !isPendingAssignmentName(guest.name)) ||
+            roomingList().find(guest => guest.roomId === roomIdValue && !isPendingAssignmentName(guest.name));
         if (direct) return direct;
 
         const res = reservationForAssignedRoom(roomIdValue);
@@ -1285,6 +1357,7 @@ window.addEventListener('DataReady', () => {
         const guests = new Map();
         roomingList().forEach(guest => {
             if (!guest?.name && !guest?.id) return;
+            if (isPendingAssignmentName(guest?.name)) return;
             guests.set(guest.id || `${guest.name}-${guest.roomId || ''}`, guest);
         });
         groupReservations().forEach(res => {
@@ -1345,7 +1418,7 @@ window.addEventListener('DataReady', () => {
         if (!select) return;
         const assigned = getAssignedRooms(group);
         select.innerHTML = '<option value="">호실 선택</option>' + assigned.map(room =>
-            `<option value="${safe(room.roomId)}">${safe(room.roomLabel)} · ${safe(room.type)}</option>`
+            `<option value="${safe(room.roomId)}">${safe(roomDisplayName(room))} · ${safe(roomTypeLabel(room.type))}</option>`
         ).join('');
     };
     try { populateGuestRooms = window.populateGuestRooms; } catch(e) {}
@@ -1402,11 +1475,11 @@ window.addEventListener('DataReady', () => {
                 <tbody>
                     ${assigned.map(room => {
                         const guest = guestForRoom(room.roomId);
-                        const note = guest?.note || guest?.specialNotes || guest?.allergy || '';
+                        const note = localizedGuestNote(guest?.note || guest?.specialNotes || guest?.allergy || '');
                         const display = typeof roomDisplayName === 'function' ? roomDisplayName(room) : (room.roomLabel || room.roomId);
                         return `<tr>
-                            <td><span class="room-chip">${safe(display)}</span><div class="event-sub">${safe(room.type)}</div></td>
-                            <td><div class="event-metric">${guest ? safe(guest.name) : '미등록'}</div><small style="color:var(--txt3);font-weight:800">${guest ? safe(guest.nation || '-') : '투숙객을 등록하세요'}</small>${note ? `<small style="display:block;margin-top:3px;color:#dc2626;font-weight:850"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(note)}</small>` : ''}</td>
+                            <td><span class="room-chip">${safe(display)}</span><div class="event-sub">${safe(roomTypeLabel(room.type))}</div></td>
+                            <td><div class="event-metric">${guest ? safe(guest.name) : '미등록'}</div><small style="color:var(--txt3);font-weight:800">${guest ? safe(countryLabel(guest.nation || guest.nationality || guest.country || '-')) : '투숙객을 등록하세요'}</small>${note ? `<small class="room-note"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(note)}</small>` : ''}</td>
                             <td>${guestStatusCell(guest)}</td>
                             <td>${docStatusCell(guest)}</td>
                             <td>${money(room.rate)} <small style="display:block;color:var(--txt3);font-weight:800">할인 ${safe(room.discountPercent || 0)}%</small></td>
@@ -1529,7 +1602,8 @@ window.addEventListener('DataReady', () => {
         const res = typeof groupReservations === 'function'
             ? groupReservations().find(item => item.room === roomIdValue || item.fullRoom === roomIdValue || item.roomId === roomIdValue)
             : null;
-        const name = res?.roomingGuestName || res?.guestName || (!res?.isGroupPlaceholder ? res?.guest : '');
+        const rawName = res?.roomingGuestName || res?.guestName || (!res?.isGroupPlaceholder ? res?.guest : '');
+        const name = isPendingAssignmentName(rawName) ? '' : rawName;
         if (!name) return null;
         return {
             id: res.roomingGuestId || res.guestId || '',
@@ -1549,7 +1623,7 @@ window.addEventListener('DataReady', () => {
 
     function roomOptions(selectedRoomId = '') {
         const options = assignedRoomList().map(room => {
-            const label = [room.roomLabel || room.roomId, room.type].filter(Boolean).join(' · ');
+            const label = [roomDisplayName(room), roomTypeLabel(room.type)].filter(Boolean).join(' · ');
             return `<option value="${escapeText(room.roomId)}" ${room.roomId === selectedRoomId ? 'selected' : ''}>${escapeText(label)}</option>`;
         }).join('');
         return `<option value="">호실 선택</option>${options}`;
@@ -1560,8 +1634,8 @@ window.addEventListener('DataReady', () => {
             <div id="newGuestForm${ROOMING_PREFIX}" style="display:block">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
                     <div style="display:flex;flex-direction:column;gap:5px">
-                        <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">Guest 이름 <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="nrGuest${ROOMING_PREFIX}" class="form-input" placeholder="예: John Doe">
+                        <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">투숙객 이름 <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="nrGuest${ROOMING_PREFIX}" class="form-input" placeholder="예: 홍길동">
                     </div>
                     <div style="display:flex;flex-direction:column;gap:5px">
                         <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">연락처</label>
@@ -1573,7 +1647,7 @@ window.addEventListener('DataReady', () => {
                     </div>
                     <div style="display:flex;flex-direction:column;gap:5px">
                         <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">국적</label>
-                        <input type="text" id="nrNation${ROOMING_PREFIX}" class="form-input" placeholder="Korea">
+                        <input type="text" id="nrNation${ROOMING_PREFIX}" class="form-input" placeholder="한국">
                     </div>
                 </div>
             </div>`;
@@ -1658,8 +1732,8 @@ window.addEventListener('DataReady', () => {
         if (nameInput) nameInput.value = guest?.name || '';
         if (phoneInput) phoneInput.value = guest?.phone || '';
         if (emailInput) emailInput.value = guest?.email || '';
-        if (nationInput) nationInput.value = guest?.nation || guest?.country || '';
-        if (noteInput) noteInput.value = guest?.note || guest?.specialNotes || guest?.allergy || '';
+        if (nationInput) nationInput.value = countryLabel(guest?.nation || guest?.country || '');
+        if (noteInput) noteInput.value = localizedGuestNote(guest?.note || guest?.specialNotes || guest?.allergy || '');
 
         document.getElementById('guestEditId').value = guest && !guest.sourceReservation ? (guest.id || '') : '';
         document.getElementById('guestRoomInput').innerHTML = roomOptions(guest?.roomId || roomIdValue || '');
