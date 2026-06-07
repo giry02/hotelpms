@@ -41,9 +41,14 @@
         .staff-filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .staff-filter-row .search-box { flex: 0 0 280px; width: 280px; min-width: 220px; }
         .staff-filter-row .hotel-select { flex: 0 0 auto; max-width: none; height: 38px; }
+        .password-change-box { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border2); }
+        .password-change-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .password-action-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+        .password-helper { font-size: .74rem; color: var(--txt3); line-height: 1.45; flex: 1 1 220px; }
         @media (max-width: 768px) {
             .staff-filter-row .search-box,
             .staff-filter-row .hotel-select { width: 100%; flex: 1 1 100%; max-width: none; }
+            .password-change-grid { grid-template-columns: 1fr; }
         }
     </style>
     <script src="../common/js/ui-components.js"></script>
@@ -214,10 +219,14 @@
                 </div>
             </div>
 
-            <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--border2)">
-                <label class="form-label">비밀번호 초기화</label>
-                <div style="display:flex; gap:8px;">
-                    <input type="text" class="form-control" id="editResetPw" placeholder="새 비밀번호 입력 (또는 발송 클릭)" style="flex:1;">
+            <div class="password-change-box">
+                <label class="form-label">비밀번호 변경</label>
+                <div class="password-change-grid">
+                    <input type="password" class="form-control" id="editNewPw" placeholder="새 비밀번호">
+                    <input type="password" class="form-control" id="editNewPwConfirm" placeholder="새 비밀번호 확인">
+                </div>
+                <div class="password-action-row">
+                    <div class="password-helper">직접 변경은 새 비밀번호를 입력하고 저장하세요. 분실 대응은 임시 비밀번호 이메일 발송으로 처리합니다.</div>
                     <button class="btn-outline" style="white-space:nowrap;" onclick="sendTempPw()"><i class="fa-solid fa-envelope"></i> 임시 비밀번호 이메일 발송</button>
                 </div>
             </div>
@@ -269,7 +278,13 @@ let DEFAULT_STAFF = [];
 function loadStaff() {
     try { return JSON.parse(localStorage.getItem('pms_staff') || 'null') || DEFAULT_STAFF; } catch { return DEFAULT_STAFF; }
 }
-function saveStaffData(data) { localStorage.setItem('pms_staff', JSON.stringify(data)); }
+function saveStaffData(data) {
+    localStorage.setItem('pms_staff', JSON.stringify(data));
+    if (window.PmsMockApi) {
+        window.PmsMockApi.request('PUT', '/settings/staff', { body: data })
+            .catch(e => console.warn('Mock staff save failed', e));
+    }
+}
 
 let staffData = loadStaff();
 let editingId = null;
@@ -280,6 +295,18 @@ function buildRoleFilter() {
     const sel = document.getElementById('roleFilter');
     sel.innerHTML = '<option value="all">전체 역할</option>' +
         getAllRoles().map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+}
+
+function populateEditRoleOptions(selectedRoleId = '') {
+    const editSel = document.getElementById('editRole');
+    if (!editSel) return;
+    const roles = getAllRoles();
+    editSel.innerHTML = roles.length
+        ? roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('')
+        : '<option value="">등록된 역할 없음</option>';
+    editSel.disabled = roles.length === 0;
+    if (selectedRoleId && roles.some(r => r.id === selectedRoleId)) editSel.value = selectedRoleId;
+    else if (roles.length) editSel.value = roles[0].id;
 }
 
 // ─── 직원 목록 렌더링 ──────────────────────────────────────────
@@ -357,8 +384,7 @@ function renderRolePickGrid() {
     `).join('');
 
     // edit modal role options
-    const editSel = document.getElementById('editRole');
-    editSel.innerHTML = roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    populateEditRoleOptions();
 }
 
 function selectRole(id, el) {
@@ -397,8 +423,10 @@ function saveStaff() {
 
     staffData.push({
         id: 'staff_' + Date.now(),
-        name, email, phone: '-',
-        roleId: selectedRoleId, status: 'offline', last: '방금 등록'
+        name, email, empId: document.getElementById('newEmpId').value.trim(), phone: '-',
+        roleId: selectedRoleId, status: 'offline', last: '방금 등록',
+        passwordUpdatedAt: new Date().toISOString(),
+        passwordChangeRequired: false
     });
 
     saveStaffData(staffData);
@@ -423,12 +451,13 @@ function openEdit(id) {
     const s = staffData.find(x => x.id === id);
     if (!s) return;
     editingId = id;
+    populateEditRoleOptions(s.roleId);
     document.getElementById('editName').value   = s.name;
     document.getElementById('editEmpId').value  = s.empId || '';
     document.getElementById('editEmail').value  = s.email;
-    document.getElementById('editRole').value   = s.roleId;
     document.getElementById('editStatus').value = s.status;
-    document.getElementById('editResetPw').value = '';
+    document.getElementById('editNewPw').value = '';
+    document.getElementById('editNewPwConfirm').value = '';
     openModal('editStaffModal');
 }
 
@@ -437,12 +466,20 @@ function saveEdit() {
     if (!s) return;
     s.name   = document.getElementById('editName').value.trim();
     s.empId  = document.getElementById('editEmpId').value.trim();
-    s.roleId = document.getElementById('editRole').value;
+    const nextRoleId = document.getElementById('editRole').value;
+    if (!nextRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
+    s.roleId = nextRoleId;
     s.status = document.getElementById('editStatus').value;
     
-    const newPw = document.getElementById('editResetPw').value.trim();
-    if (newPw) {
-        showToast('비밀번호가 성공적으로 초기화되었습니다.', 'success');
+    const newPw = document.getElementById('editNewPw').value.trim();
+    const newPwConfirm = document.getElementById('editNewPwConfirm').value.trim();
+    if (newPw || newPwConfirm) {
+        if (!newPw || !newPwConfirm) { showToast('새 비밀번호와 확인값을 모두 입력해 주세요.', 'error'); return; }
+        if (newPw !== newPwConfirm) { showToast('새 비밀번호가 서로 일치하지 않습니다.', 'error'); return; }
+        if (newPw.length < 8) { showToast('비밀번호는 8자 이상으로 입력해 주세요.', 'error'); return; }
+        s.passwordUpdatedAt = new Date().toISOString();
+        s.passwordChangeRequired = false;
+        s.passwordMethod = 'manual';
     }
 
     const role = getRoleById(s.roleId);
@@ -450,13 +487,19 @@ function saveEdit() {
     saveStaffData(staffData);
     renderStaff();
     closeModal('editStaffModal');
-    showToast('직원 정보가 수정되었습니다.', 'success');
+    showToast(newPw ? '직원 정보와 비밀번호가 수정되었습니다.' : '직원 정보가 수정되었습니다.', 'success');
 }
 
 function sendTempPw() {
-    const pw = Math.random().toString(36).slice(-8);
-    document.getElementById('editResetPw').value = pw;
-    showToast('등록된 이메일로 임시 비밀번호가 발송되었습니다.', 'success');
+    const s = staffData.find(x => x.id === editingId);
+    if (!s) return;
+    s.passwordUpdatedAt = new Date().toISOString();
+    s.passwordChangeRequired = true;
+    s.passwordMethod = 'temporary_email';
+    saveStaffData(staffData);
+    document.getElementById('editNewPw').value = '';
+    document.getElementById('editNewPwConfirm').value = '';
+    showToast(`${s.email}로 임시 비밀번호 이메일을 발송 처리했습니다.`, 'success');
 }
 
 async function deleteStaff() {
@@ -474,6 +517,7 @@ async function deleteStaff() {
 // ─── 모달 ─────────────────────────────────────────────────────
 function openModal(id) {
     if (id === 'addStaffModal') renderRolePickGrid();
+    if (id === 'editStaffModal') populateEditRoleOptions(document.getElementById('editRole')?.value);
     document.getElementById(id).classList.add('active');
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -511,6 +555,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         staffData = savedStaff ? JSON.parse(savedStaff) : DEFAULT_STAFF;
 
         buildRoleFilter();
+        populateEditRoleOptions();
         renderStaff();
     } catch(e) { console.error(e); }
 });
