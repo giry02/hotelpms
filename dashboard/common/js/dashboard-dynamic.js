@@ -45,10 +45,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         const room = escapeHtml(roomNo || tr('Room'));
         return lang() === 'en' ? `${tr('Room')} ${room}` : `${room}${tr('room')}`;
     };
+    const orderDateValue = (order) => String(order?.date || order?.serviceDate || order?.createdAt || '').slice(0, 10);
+    const orderDateSortValue = (order) => `${orderDateValue(order)}T${String(order?.time || '00:00').padStart(5, '0')}`;
+    const orderStatusKey = (status) => {
+        const value = normalizeStatus(status).replace(/-/g, '');
+        if (['done', 'complete', 'completed', 'closed', 'paid', 'served'].includes(value)) return 'done';
+        if (['prep', 'preparing', 'accepted', 'progress', 'processing', 'delivering', 'inprogress'].includes(value)) return 'prep';
+        return 'new';
+    };
+    const orderStatusLabel = (status) => {
+        const key = orderStatusKey(status);
+        if (lang() === 'en') return key === 'done' ? 'Completed' : key === 'prep' ? 'Preparing' : 'New';
+        return key === 'done' ? '완료' : key === 'prep' ? '준비 중' : '신규';
+    };
+    const orderStatusClass = (status) => {
+        const key = orderStatusKey(status);
+        return key === 'done' ? 'confirmed' : key === 'prep' ? 'checkout' : 'checkin';
+    };
+    const serviceLabel = (serviceKey, type) => {
+        const isEn = lang() === 'en';
+        const posTypes = {
+            roomservice: isEn ? 'Room Service' : '룸서비스',
+            minibar: isEn ? 'Minibar' : '미니바',
+            spa: isEn ? 'Spa' : '스파',
+            laundry: isEn ? 'Laundry' : '세탁',
+            retail: isEn ? 'Retail' : '리테일'
+        };
+        if (serviceKey === 'golf') return isEn ? 'Golf' : '골프장';
+        if (serviceKey === 'rentacar') return isEn ? 'Rent-a-car' : '렌트카';
+        return posTypes[String(type || '').toLowerCase()] || (isEn ? 'POS' : '통합 POS');
+    };
+    const orderItemsText = (items) => {
+        if (Array.isArray(items)) return items.join(', ');
+        return String(items || '-');
+    };
+    const normalizeOrder = (order, serviceKey) => ({
+        ...order,
+        serviceKey,
+        room: order.room || order.roomNo || String(order.roomId || '').split('-').pop() || '-',
+        itemText: orderItemsText(order.items || order.item || order.name),
+        amount: amountValue(order.total ?? order.amount ?? order.price),
+        currency: order.currency || order.total?.currency || 'USD'
+    });
 
     let rooms = [];
     let reservations = [];
     let tasks = [];
+    let posOrders = [];
+    let golfOrders = [];
+    let rentacarOrders = [];
     let summary = null;
     if (window.PmsMockApi) {
         try {
@@ -57,10 +102,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch(e) {}
     }
     if (window.PmsAPI) {
-        [rooms, reservations, tasks] = await Promise.all([
+        [rooms, reservations, tasks, posOrders, golfOrders, rentacarOrders] = await Promise.all([
             window.PmsAPI.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
             window.PmsAPI.getReservations ? window.PmsAPI.getReservations().catch(() => []) : [],
-            window.PmsAPI.getTasks ? window.PmsAPI.getTasks().catch(() => []) : []
+            window.PmsAPI.getTasks ? window.PmsAPI.getTasks().catch(() => []) : [],
+            window.PmsAPI.getOrders ? window.PmsAPI.getOrders().catch(() => []) : [],
+            window.PmsAPI.getGolfOrders ? window.PmsAPI.getGolfOrders().catch(() => []) : [],
+            window.PmsAPI.getRentacarOrders ? window.PmsAPI.getRentacarOrders().catch(() => []) : []
         ]);
     }
 
@@ -135,6 +183,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             }).join('');
         } else {
             checkinBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:20px">${tr('No scheduled check-ins for today.')}</td></tr>`;
+        }
+    }
+
+    const ancillaryLink = document.querySelector('a.card-title-link[href="operations/ancillary.html"]');
+    const ancillaryBody = ancillaryLink ? ancillaryLink.closest('.card')?.querySelector('tbody') : null;
+    if (ancillaryBody) {
+        const combinedOrders = [
+            ...posOrders.map(order => normalizeOrder(order, 'pos')),
+            ...golfOrders.map(order => normalizeOrder(order, 'golf')),
+            ...rentacarOrders.map(order => normalizeOrder(order, 'rentacar'))
+        ];
+        const orderDates = combinedOrders.map(orderDateValue).filter(Boolean).sort();
+        const targetDate = combinedOrders.some(order => dateMatches(orderDateValue(order), today))
+            ? today
+            : orderDates[orderDates.length - 1];
+        const todayOrders = combinedOrders
+            .filter(order => !targetDate || dateMatches(orderDateValue(order), targetDate))
+            .sort((a, b) => orderDateSortValue(b).localeCompare(orderDateSortValue(a)))
+            .slice(0, 6);
+
+        if (todayOrders.length > 0) {
+            ancillaryBody.innerHTML = todayOrders.map(order => `
+                <tr>
+                    <td>${escapeHtml(order.time || '-')}</td>
+                    <td>${escapeHtml(order.room)}</td>
+                    <td>${escapeHtml(serviceLabel(order.serviceKey, order.type))}</td>
+                    <td>${escapeHtml(order.itemText)}</td>
+                    <td>${formatMoney(order.amount, order.currency)}</td>
+                    <td><span class="status-badge ${orderStatusClass(order.status)}">${escapeHtml(orderStatusLabel(order.status))}</span></td>
+                </tr>`).join('');
+        } else {
+            const emptyText = lang() === 'en' ? 'No ancillary orders for today.' : '오늘 부가서비스 주문이 없습니다.';
+            ancillaryBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:20px">${emptyText}</td></tr>`;
         }
     }
 
