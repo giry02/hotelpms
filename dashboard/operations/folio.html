@@ -636,7 +636,7 @@ function renderFolios() {
     tbody.innerHTML = filtered.map((f, index) => {
         const s = stMap[f.status];
         const balColor = f.bal > 0 ? 'var(--danger)' : 'var(--txt)';
-        return `<tr>
+        return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
             <td style="color:var(--txt2)">${f.id}</td>
             <td><strong>${f.room}</strong></td>
             <td>${f.guest}</td>
@@ -647,8 +647,8 @@ function renderFolios() {
             <td><span class="status-badge ${s.badge}">${s.label}</span></td>
             <td>
                 <div class="folio-actions">
-                    <button class="btn-outline-sm" onclick="openInvoiceModal(${index})">명세서</button>
-                    ${f.bal > 0 ? `<button class="btn-primary-sm" onclick="openPaymentModal('${f.id}', ${f.bal})">결제</button>` : '<button class="btn-primary-sm folio-action-placeholder" tabindex="-1" aria-hidden="true">결제</button>'}
+                    <button class="btn-outline-sm" onclick="event.stopPropagation(); openInvoiceModal(${index})">명세서</button>
+                    ${f.bal > 0 ? `<button class="btn-primary-sm" onclick="event.stopPropagation(); openPaymentModal('${f.id}', ${f.bal})">결제</button>` : '<button class="btn-primary-sm folio-action-placeholder" tabindex="-1" aria-hidden="true">결제</button>'}
                 </div>
             </td>
         </tr>`;
@@ -656,7 +656,7 @@ function renderFolios() {
 
     mobile.innerHTML = filtered.map((f, index) => {
         const s = stMap[f.status];
-        return `<div class="m-res-card">
+        return `<div class="m-res-card" role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
             <div class="m-res-top">
                 <div>
                     <div style="font-size:0.7rem;color:var(--txt3);font-family:monospace">${f.id}</div>
@@ -672,8 +672,8 @@ function renderFolios() {
                 <div class="m-res-detail"><i class="fa-solid fa-money-bill"></i> ${fmtMoney(f.total, f.currency)} / ${fmtMoney(f.paid, f.currency)}</div>
             </div>
             <div class="m-res-actions folio-mobile-actions">
-                <button class="act-btn" onclick="openInvoiceModal(${index})"><i class="fa-solid fa-file-invoice"></i> 명세서</button>
-                ${f.bal > 0 ? `<button class="act-btn" style="background:var(--primary);color:#fff" onclick="openPaymentModal('${f.id}', ${f.bal})"><i class="fa-solid fa-credit-card"></i> 결제</button>` : '<button class="act-btn folio-action-placeholder" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-credit-card"></i> 결제</button>'}
+                <button class="act-btn" onclick="event.stopPropagation(); openInvoiceModal(${index})"><i class="fa-solid fa-file-invoice"></i> 명세서</button>
+                ${f.bal > 0 ? `<button class="act-btn" style="background:var(--primary);color:#fff" onclick="event.stopPropagation(); openPaymentModal('${f.id}', ${f.bal})"><i class="fa-solid fa-credit-card"></i> 결제</button>` : '<button class="act-btn folio-action-placeholder" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-credit-card"></i> 결제</button>'}
             </div>
         </div>`;
     }).join('');

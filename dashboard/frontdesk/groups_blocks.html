@@ -475,7 +475,7 @@ function renderGroups(search = '') {
         const pct = g.block > 0 ? Math.round((g.pickup / g.block) * 100) : 0;
         const s = statusMap[g.status];
         return `
-        <div class="group-card">
+        <div class="group-card" role="button" tabindex="0" style="cursor:pointer" onclick="openGroupDetail('${g.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGroupDetail('${g.id}')}">
             <div class="group-card-header">
                 <div>
                     <div class="group-name">${g.name}</div>
@@ -508,7 +508,7 @@ function renderGroups(search = '') {
             <div class="group-card-footer">
                 <div style="font-size:0.78rem;color:var(--txt3)">담당: ${g.sales}</div>
                 <div style="display:flex;gap:8px">
-                    <button class="btn-outline-sm" onclick="openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button>
+                    <button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button>
                 </div>
             </div>
         </div>`;
@@ -886,7 +886,7 @@ async function deleteGroup(id) {
                     const guests = Array.isArray(g.roomingList) ? g.roomingList.length : 0;
                     const stage = stageOf(g);
                     const settlement = g.settlementStatus === 'paid' ? '완료' : (stage.key === 'past' || stage.key === 'settlement' ? '확인 필요' : '진행 전');
-                    return `<div class="event-row">
+                    return `<div class="event-row" role="button" tabindex="0" style="cursor:pointer" onclick="openGroupDetail('${g.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGroupDetail('${g.id}')}">
                         <div data-label="운영 상태"><span class="stage-pill ${stage.cls}">${stage.label}</span></div>
                         <div class="event-main"><div class="event-name">${g.name || '-'}</div><div class="event-company">${g.agency || '업체 미지정'} · ${g.id || '-'}</div></div>
                         <div data-label="기간"><div class="event-metric">${g.checkin || '-'} ~ ${g.checkout || '-'}</div><div class="event-sub">${g.type || '-'}</div></div>
@@ -894,7 +894,7 @@ async function deleteGroup(id) {
                         <div data-label="객실"><div class="event-metric">${reservations.length}/${assigned.length}실<small>예약/배정</small></div></div>
                         <div data-label="투숙객"><div class="event-metric">${guests}/${g.pax || 0}명<small>등록/PAX</small></div></div>
                         <div data-label="정산"><div class="event-metric">${settlement}</div></div>
-                        <div><button class="btn-outline-sm" onclick="openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button></div>
+                        <div><button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button></div>
                     </div>`;
                 }).join('')}
             </div>`;
@@ -1412,7 +1412,7 @@ async function deleteGroup(id) {
             const pct = assigned.length ? Math.round((resCount / assigned.length) * 100) : 0;
             const s = statusMap[g.status] || statusMap.confirmed;
             return `
-            <div class="group-card">
+            <div class="group-card" role="button" tabindex="0" style="cursor:pointer" onclick="openGroupDetail('${g.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGroupDetail('${g.id}')}">
                 <div class="group-card-header">
                     <div>
                         <div class="group-name">${g.name}</div>
@@ -1447,7 +1447,7 @@ async function deleteGroup(id) {
                 <div class="group-card-footer">
                     <div style="font-size:.78rem;color:var(--txt3)">담당: ${g.sales || '-'}</div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-                        <button class="btn-outline-sm" onclick="openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button>
+                        <button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button>
                     </div>
                 </div>
             </div>`;
@@ -1702,7 +1702,7 @@ async function deleteGroup(id) {
                     const guests = Array.isArray(g.roomingList) ? g.roomingList.length : 0;
                     const stage = stageOf(g);
                     const settlement = g.settlementStatus === 'paid' ? '완료' : (stage.key === 'past' || stage.key === 'settlement' ? '확인 필요' : '진행 전');
-                    return `<div class="event-row">
+                    return `<div class="event-row" role="button" tabindex="0" style="cursor:pointer" onclick="openGroupDetail('${g.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGroupDetail('${g.id}')}">
                         <div data-label="운영 상태"><span class="stage-pill ${stage.cls}">${stage.label}</span></div>
                         <div class="event-main"><div class="event-name">${g.name || '-'}</div><div class="event-company">${g.agency || '업체 미지정'} · ${g.id || '-'}</div></div>
                         <div data-label="기간"><div class="event-metric">${g.checkin || '-'} ~ ${g.checkout || '-'}</div><div class="event-sub">${g.type || '-'}</div></div>
@@ -1710,7 +1710,7 @@ async function deleteGroup(id) {
                         <div data-label="객실"><div class="event-metric">${resCount}/${assigned.length}실<small>예약/배정</small></div></div>
                         <div data-label="Rooming"><div class="event-metric">${guests}/${g.pax || 0}명<small>투숙객</small></div></div>
                         <div data-label="정산"><div class="event-metric">${settlement}</div></div>
-                        <div><button class="btn-outline-sm" onclick="openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button></div>
+                        <div><button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button></div>
                     </div>`;
                 }).join('')}
             </div>`;
@@ -2021,7 +2021,7 @@ async function deleteGroup(id) {
                     const settlement = group.settlementStatus === 'paid'
                         ? T.paid
                         : (stage.key === 'past' || stage.key === 'settlement' ? T.needCheck : T.inProgress);
-                    return `<div class="event-row">
+                    return `<div class="event-row" role="button" tabindex="0" style="cursor:pointer" onclick="openGroupDetail('${html(group.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGroupDetail('${html(group.id)}')}">
                         <div data-label="${T.state}"><span class="stage-pill ${stage.cls}">${stage.label}</span></div>
                         <div class="event-main"><div class="event-name">${html(group.name || '-')}</div><div class="event-company">${html(group.agency || T.noCompany)} · ${html(group.id || '-')}</div></div>
                         <div data-label="${T.period}"><div class="event-metric">${html(group.checkin || '-')} ~ ${html(group.checkout || '-')}</div><div class="event-sub">${html(group.type || '-')}</div></div>
@@ -2029,7 +2029,7 @@ async function deleteGroup(id) {
                         <div data-label="${T.rooms}"><div class="event-metric">${reservations.length}/${rooms.length}<small>${T.bookedAssigned}</small></div></div>
                         <div data-label="${T.guests}"><div class="event-metric">${guests}/${html(group.pax || 0)}<small>${T.registeredPax}</small></div></div>
                         <div data-label="${T.billing}"><div class="event-metric">${settlement}</div></div>
-                        <div><button class="btn-outline-sm" onclick="openGroupDetail('${html(group.id)}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> ${T.manage}</button></div>
+                        <div><button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${html(group.id)}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> ${T.manage}</button></div>
                     </div>`;
                 }).join('')}
             </div>`;

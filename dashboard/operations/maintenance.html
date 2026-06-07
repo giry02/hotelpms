@@ -709,7 +709,7 @@ function render() {
 
 function ticketCard(r) {
     const icon = typeIcons[r.type] || 'fa-toolbox';
-    return `<div class="mt-ticket" onclick="showDetail('${r.id}')">
+    return `<div class="mt-ticket" role="button" tabindex="0" onclick="showDetail('${r.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${r.id}')}">
         <div class="mt-ticket-top">
             <span class="mt-ticket-id">${r.id}</span>
             <span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span>
@@ -741,8 +741,8 @@ function renderKanban(data) {
 function renderTable(data) {
     document.getElementById('mtTableBody').innerHTML = data.map(r => {
         const stClass = r.status === 'open' ? 'priority-high' : r.status === 'in-progress' ? 'priority-normal' : 'priority-low';
-        return `<tr>
-            <td data-label="요청 번호"><strong style="cursor:pointer; color:var(--primary);" onclick="showDetail('${r.id}')">${r.id}</strong></td>
+        return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="showDetail('${r.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${r.id}')}">
+            <td data-label="요청 번호"><strong style="cursor:pointer; color:var(--primary);" onclick="event.stopPropagation(); showDetail('${r.id}')">${r.id}</strong></td>
             <td data-label="객실">${r.room}호</td>
             <td data-label="유형"><span class="type-tag"><i class="fa-solid ${typeIcons[r.type]||'fa-toolbox'}" style="font-size:.65rem;"></i> ${r.type}</span></td>
             <td data-label="상세 내용" style="max-width:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.desc}</td>
@@ -752,9 +752,9 @@ function renderTable(data) {
             <td data-label="등록일" style="color:var(--txt3); font-size:.8rem;">${r.date}</td>
             <td data-label="액션" style="text-align:right;">
                 <div style="display:flex; gap:4px; justify-content:flex-end; width:100%;">
-                    ${r.status === 'open' ? `<button class="action-btn" onclick="changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> 착수</button>` : ''}
-                    ${r.status === 'in-progress' ? `<button class="action-btn" onclick="changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> 완료</button>` : ''}
-                    <button class="action-btn" onclick="showDetail('${r.id}')"><i class="fa-solid fa-eye"></i></button>
+                    ${r.status === 'open' ? `<button class="action-btn" onclick="event.stopPropagation(); changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> 착수</button>` : ''}
+                    ${r.status === 'in-progress' ? `<button class="action-btn" onclick="event.stopPropagation(); changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> 완료</button>` : ''}
+                    <button class="action-btn" onclick="event.stopPropagation(); showDetail('${r.id}')"><i class="fa-solid fa-eye"></i></button>
                 </div>
             </td>
         </tr>`;

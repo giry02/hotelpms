@@ -444,7 +444,7 @@ function renderCompanies(search = '') {
         const badgeCls = c.status==='active'?'pill-active':'pill-inactive';
         const badgeTxt = c.status==='active'?'계약 활성':'계약 비활성';
         return `
-        <div class="company-card">
+        <div class="company-card" role="button" tabindex="0" style="cursor:pointer" onclick="location.href='groups_blocks.html?companyId=${encodeURIComponent(c.id)}'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();location.href='groups_blocks.html?companyId=${encodeURIComponent(c.id)}'}">
             <div class="company-header">
                 <div>
                     <div class="company-name">${c.name}</div>
@@ -459,12 +459,12 @@ function renderCompanies(search = '') {
                 <div><i class="fa-solid fa-credit-card"></i> ${c.billing || '-'}</div>
             </div>
             <div class="card-footer-btns">
-                <button class="btn-room-assign" onclick="openBlockModal('${c.id}')">
+                <button class="btn-room-assign" onclick="event.stopPropagation(); openBlockModal('${c.id}')">
                     <i class="fa-solid fa-bed"></i> 객실 배정
                 </button>
                 <div style="display:flex;gap:6px;">
-                    <button class="btn-card-edit" onclick="editCompany('${c.id}')" title="수정"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn-card-delete" onclick="deleteCompany('${c.id}')" title="삭제"><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn-card-edit" onclick="event.stopPropagation(); editCompany('${c.id}')" title="수정"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-card-delete" onclick="event.stopPropagation(); deleteCompany('${c.id}')" title="삭제"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>
         </div>`;
@@ -673,7 +673,7 @@ function openBlockModal(compId) {
             const badgeCls = c.status === 'active' ? 'pill-active' : 'pill-inactive';
             const badgeTxt = c.status === 'active' ? '계약 활성' : '비활성';
             return `
-            <div class="company-card">
+            <div class="company-card" role="button" tabindex="0" style="cursor:pointer" onclick="location.href='groups_blocks.html?companyId=${encodeURIComponent(c.id)}'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();location.href='groups_blocks.html?companyId=${encodeURIComponent(c.id)}'}">
                 <div class="company-header">
                     <div>
                         <div class="company-name">${c.name}</div>
@@ -691,10 +691,10 @@ function openBlockModal(compId) {
                     <div><i class="fa-solid fa-box-archive"></i> ${companyText('pastEvents')} ${cnt.past}</div>
                 </div>
                 <div class="card-footer-btns">
-                    <button class="btn-room-assign" onclick="openBlockModal('${c.id}')"><i class="fa-solid fa-calendar-plus"></i> 행사 생성</button>
-                    <button class="btn-card-edit" onclick="location.href='groups_blocks.html?companyId=${encodeURIComponent(c.id)}'" title="행사 보기"><i class="fa-solid fa-list"></i></button>
-                    <button class="btn-card-edit" onclick="editCompany('${c.id}')" title="업체 수정"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn-card-delete" onclick="deleteCompany('${c.id}')" title="${deleteTitle}" ${deleteDisabled}><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn-room-assign" onclick="event.stopPropagation(); openBlockModal('${c.id}')"><i class="fa-solid fa-calendar-plus"></i> 행사 생성</button>
+                    <button class="btn-card-edit" onclick="event.stopPropagation(); location.href='groups_blocks.html?companyId=${encodeURIComponent(c.id)}'" title="행사 보기"><i class="fa-solid fa-list"></i></button>
+                    <button class="btn-card-edit" onclick="event.stopPropagation(); editCompany('${c.id}')" title="업체 수정"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-card-delete" onclick="event.stopPropagation(); deleteCompany('${c.id}')" title="${deleteTitle}" ${deleteDisabled}><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>`;
         }).join('');
