@@ -195,9 +195,9 @@ window.PmsFileFallbackPayloads = {
           "floor": 12,
           "roomTypeId": "DLX",
           "roomTypeName": "Deluxe",
-          "status": "vacant-dirty",
-          "housekeepingStatus": "dirty",
-          "frontStatus": "vacant-dirty",
+          "status": "vacant-clean",
+          "housekeepingStatus": "clean",
+          "frontStatus": "vacant-clean",
           "guestFlag": "none",
           "baseRate": {
             "amount": 140,

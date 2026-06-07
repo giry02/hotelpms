@@ -1,9 +1,9 @@
 // api-core.js
-const API_VERSION = 'v2.0'; // Bumped to force reset system roles
+const API_VERSION = 'v2.1'; // Bumped to refresh room readiness sample data
 
 if (localStorage.getItem('pms_api_version') !== API_VERSION) {
     Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('pms_')) localStorage.removeItem(key);
+        if (key.startsWith('pms_') || key.startsWith('mockapi:v1:')) localStorage.removeItem(key);
     });
     localStorage.setItem('pms_api_version', API_VERSION);
 }
