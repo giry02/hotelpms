@@ -102,6 +102,7 @@
                   <input type="hidden" id="unifiedResId">
                   <input type="hidden" id="unifiedChannel" value="Walk-in">
                   <input type="hidden" id="unifiedGroupId" value="">
+                  <input type="hidden" id="unifiedStatus" value="confirmed">
                 
                 <div id="unifiedGuestSection" style="margin-bottom:20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border2);">
                     ${typeof renderGuestSearchHTML === 'function' ? renderGuestSearchHTML('Edit') : '<div style="color:red">guest-search.js missing</div>'}
@@ -124,17 +125,6 @@
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Room">객실 배정</div>
                         <select id="unifiedRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;"></select>
                         <div id="unifiedRoomHelp" style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;"></div>
-                    </div>
-                    <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Status">상태</div>
-                        <select id="unifiedStatus" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
-                            <option value="blocked" data-i18n-key="Status Blocked">단체 블록</option>
-                            <option value="confirmed" data-i18n-key="Status Confirmed">예약 확정</option>
-                            <option value="checkedin" data-i18n-key="Status Checked In">체크인 완료</option>
-                            <option value="checkout" data-i18n-key="Status Check Out">체크아웃</option>
-                            <option value="completed" data-i18n-key="Status Completed">체크아웃 완료</option>
-                            <option value="cancelled" data-i18n-key="Status Cancelled">취소</option>
-                        </select>
                     </div>
                     <div id="unifiedGroupLinkNotice" style="grid-column:1 / -1;display:none;background:#f8fafc;padding:12px;border:1px solid var(--border2);border-radius:8px;margin:0;">
                         <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin:0 0 4px 0">단체 연결</div>
@@ -538,6 +528,7 @@
         const guestSection = document.getElementById('unifiedGuestSection');
         if (!modal) return;
         modal.dataset.readonlyReservation = locked ? 'true' : 'false';
+        const isBlock = !!(res && (res.isGroupPlaceholder || normalizedReservationStatus(res.status) === 'blocked'));
 
         let notice = document.getElementById('unifiedReadonlyNotice');
         if (!notice && guestSection) {
@@ -563,10 +554,10 @@
             }
         }
 
-        if (guestSection) guestSection.style.display = locked ? 'none' : 'block';
+        if (guestSection) guestSection.style.display = (locked || isBlock) ? 'none' : 'block';
         const blockNotice = document.getElementById('unifiedBlockNotice');
-        if (!locked && blockNotice) blockNotice.style.display = 'none';
-        ['unifiedCin', 'unifiedCout', 'unifiedRoom', 'unifiedChannel', 'unifiedStatus'].forEach(id => {
+        if (blockNotice) blockNotice.style.display = (!locked && isBlock) ? 'block' : 'none';
+        ['unifiedCin', 'unifiedCout', 'unifiedRoom', 'unifiedChannel'].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.disabled = locked;
@@ -871,7 +862,7 @@
                 window._editGuestWidget.reset();
             }
         
-            document.getElementById('unifiedStatus').value = isReadonlyReservation ? effectiveStatus : normalizedReservationStatus(res.status);
+            document.getElementById('unifiedStatus').value = isEditingBlock ? 'blocked' : (isReadonlyReservation ? effectiveStatus : normalizedReservationStatus(res.status));
             
             await setUnifiedGroupLink(linkedGroupId);
             const channelEl = document.getElementById('unifiedChannel');
@@ -950,7 +941,7 @@
             alert(actionText('booking.roomUnavailable'));
             return;
         }
-        const status = document.getElementById('unifiedStatus').value;
+        const status = id ? (document.getElementById('unifiedStatus')?.value || normalizedReservationStatus(currentRes?.status)) : 'confirmed';
         let channel = document.getElementById('unifiedChannel')?.value || 'Walk-in';
         const groupId = document.getElementById('unifiedGroupId')?.value || '';
         const isB2B = !!groupId;
@@ -999,14 +990,16 @@
             // EDIT BOOKING MODE
             const res = allRes.find(r => r.id === id);
             if (res) {
-                res.guest = guest;
-                if (guest.trim()) res.initials = guest.split(' ').map(n => n[0]).join('');
+                if (!isBlockSave) {
+                    res.guest = guest;
+                    if (guest.trim()) res.initials = guest.split(' ').map(n => n[0]).join('');
+                    if (res.isGroupPlaceholder && status !== 'blocked' && guest.trim()) {
+                        res.isGroupPlaceholder = false;
+                        res.status = 'confirmed';
+                    }
+                }
                 res.room = room;
                 res.status = status;
-                if (res.isGroupPlaceholder && status !== 'blocked' && guest.trim()) {
-                    res.isGroupPlaceholder = false;
-                    res.status = 'confirmed';
-                }
                 res.channel = channel;
                 res.isB2B = isB2B;
                 res.groupId = groupId;
