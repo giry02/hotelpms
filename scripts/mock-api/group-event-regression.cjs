@@ -188,6 +188,36 @@ function assert(condition, message, details = null) {
     assert(result.counts.settlement === 1, 'Settlement-needed count must include only past unsettled events.', result);
     assert(result.past.overlap && result.past.paidPast && !result.past.futurePending, 'Past filter membership is wrong.', result);
     assert(result.settlement.overlap && !result.settlement.paidPast && !result.settlement.futurePending, 'Settlement filter membership is wrong.', result);
+
+    await page.goto(`${base}/dashboard/frontdesk/groups_block_detail.html?mode=new`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => typeof window.renderRooms === 'function', null, { timeout: 15000 });
+
+    const detailResult = await page.evaluate(() => {
+      group.id = 'GRP-EMPTY-ALIGN';
+      group.name = 'Empty Align Event';
+      group.roomAllocations = [];
+      group.allocations = [];
+      group.roomingList = [];
+      window.renderRooms();
+      const roomsTab = Array.from(document.querySelectorAll('.local-tab')).find(button => (button.getAttribute('onclick') || '').includes("'rooms'"));
+      if (typeof switchTab === 'function') switchTab('rooms', roomsTab);
+      const emptyCell = document.querySelector('.room-assignment-table td[colspan="6"]');
+      const table = document.querySelector('.room-assignment-table');
+      const cellRect = emptyCell?.getBoundingClientRect();
+      const tableRect = table?.getBoundingClientRect();
+      return {
+        text: emptyCell?.textContent.trim() || '',
+        textAlign: emptyCell ? getComputedStyle(emptyCell).textAlign : null,
+        cellWidth: Math.round(cellRect?.width || 0),
+        tableWidth: Math.round(tableRect?.width || 0),
+        visible: !!emptyCell && cellRect.width > 0 && cellRect.height > 0
+      };
+    });
+
+    assert(detailResult.visible, 'Group detail empty assignment row must be visible.', detailResult);
+    assert(detailResult.textAlign === 'center', 'Group detail empty assignment row must be centered.', detailResult);
+    assert(detailResult.cellWidth === detailResult.tableWidth, 'Group detail empty assignment row must span the full table.', detailResult);
     assert(consoleIssues.length === 0, 'Console warnings/errors during group event regression.', consoleIssues);
 
     console.log(JSON.stringify({
@@ -195,7 +225,8 @@ function assert(condition, message, details = null) {
       checks: [
         'past and settlement-needed filters can overlap',
         'past count includes paid and unsettled past events',
-        'settlement-needed count excludes paid past and future pending events'
+        'settlement-needed count excludes paid past and future pending events',
+        'group detail empty room assignment message is centered'
       ]
     }, null, 2));
   } catch (error) {
