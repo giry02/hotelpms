@@ -600,6 +600,16 @@ function findActiveTaskForRoom(room) {
     ));
 }
 
+function normalizeHousekeepingStatus(value) {
+    const status = String(value || '').replace(/[_\s]/g, '-').toLowerCase();
+    if (['clean', 'vacant-clean', 'completed', 'complete', 'done', 'ready'].includes(status)) return 'clean';
+    if (['dirty', 'vacant-dirty', 'pending', 'pending-clean', 'needs-cleaning', 'need-cleaning'].includes(status)) return 'dirty';
+    if (['inspect', 'inspection', 'to-inspect', 'needs-inspection'].includes(status)) return 'inspect';
+    if (['occupied', 'in-house', 'inhouse', 'checked-in', 'checkedin'].includes(status)) return 'occupied';
+    if (['oos', 'out-of-service', 'outofservice'].includes(status)) return 'oos';
+    return '';
+}
+
 function housekeepingStatusForRoom(room) {
     const task = findActiveTaskForRoom(room);
     if (task) {
@@ -610,11 +620,10 @@ function housekeepingStatusForRoom(room) {
             taskType: task.type
         };
     }
-    if (room.status === 'vacant-clean' || room.status === 'clean') return { ...room, hkStatus: 'clean' };
-    if (room.status === 'vacant-dirty' || room.status === 'dirty') return { ...room, hkStatus: 'dirty' };
-    if (room.status === 'inspect') return { ...room, hkStatus: 'inspect' };
-    if (room.status === 'occupied') return { ...room, hkStatus: 'occupied' };
-    return { ...room, hkStatus: 'clean' };
+    const hkStatus = normalizeHousekeepingStatus(
+        room.housekeepingStatus || room.hkStatus || room.cleaningStatus || room.status || room.frontStatus
+    ) || 'clean';
+    return { ...room, hkStatus };
 }
 
 function housekeepingRoomSummary() {
