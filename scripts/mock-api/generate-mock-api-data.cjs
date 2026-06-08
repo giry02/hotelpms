@@ -364,6 +364,7 @@ const guests = [
   guest('G-1002', 'Kim Thi', 'Vietnam', 'Silver', '+84 90 000 1002', 'kim.thi@example.com', 'verified', 'Late checkout 선호'),
   guest('G-1003', 'Pham David', 'Vietnam', 'Standard', '+84 90 000 1003', 'david.pham@example.com', 'pending', ''),
   guest('G-1004', 'Martinez Charles', 'USA', 'Gold', '+1 415 000 1004', 'charles.martinez@example.com', 'verified', 'VIP welcome amenity'),
+  guest('G-0015', 'Robert Ford', 'USA', 'Gold', '+1 415 000 0015', 'g-0015@example.com', 'pending', ''),
   guest('G-9001', 'Alexander Kim', 'Korea', 'Group', '+82 10 9900 1401', 'alexander.kim@example.com', 'verified', '견과류 알러지, 저자극 베개 요청'),
   guest('G-9002', 'Lee Hannah', 'Korea', 'Group', '+82 10 9900 0801', 'hannah.lee@example.com', 'verified', '')
 ];
