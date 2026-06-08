@@ -1,5 +1,5 @@
 // api-core.js
-const API_VERSION = 'v2.2'; // Bumped to refresh guest nationality sample data
+const API_VERSION = 'v2.3'; // Bumped to refresh membership benefit policy data
 
 if (localStorage.getItem('pms_api_version') !== API_VERSION) {
     Object.keys(localStorage).forEach(key => {

@@ -50,6 +50,28 @@ function crmItems(env) {
 }
 
 Object.assign(window.PmsAPI, {
+    getMembershipTiers: async () => {
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/crm/membership-tiers');
+                const tiers = crmItems(env);
+                if (tiers.length) return tiers;
+            }
+        } catch(e) {
+            console.warn('Mock membership tiers fallback', e);
+        }
+        try {
+            const res = await fetch('../data/api/v1/crm/membership-tiers.json', { cache: 'no-store' });
+            if (res.ok) {
+                const env = await res.json();
+                return crmItems(env);
+            }
+        } catch(e) {
+            console.warn('Fetch failed for membership tiers', e);
+        }
+        return [];
+    },
+
     getGuests: async () => {
         try {
             if (window.PmsMockApi) {

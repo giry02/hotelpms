@@ -183,11 +183,68 @@
 </div>
 
 <script>
-function openModal(id) { document.getElementById(id).classList.add('active'); }
+let membershipTiers = [];
+
+function openModal(id) {
+    if (id === 'tierBenefitsModal') renderTierBenefits();
+    document.getElementById(id).classList.add('active');
+}
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function money(value) {
     return '$' + Number(value || 0).toLocaleString();
+}
+
+function membershipEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+function localizedValue(value) {
+    const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value[lang] || value.ko || value.en || '';
+    return value ?? '';
+}
+
+function benefitsMessage(message) {
+    return `<tbody><tr><td style="text-align:center;padding:32px;color:var(--txt3)">${membershipEscape(localizedValue(message))}</td></tr></tbody>`;
+}
+
+const benefitRows = [
+    { key: 'roomDiscountPercent', label: { ko: '객실 할인', en: 'Room Discount' }, format: value => Number(value || 0) ? `${Number(value)}%` : '-' },
+    { key: 'earlyCheckIn', label: { ko: '얼리 체크인', en: 'Early Check-in' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
+    { key: 'lateCheckOut', label: { ko: '레이트 체크아웃', en: 'Late Check-out' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
+    { key: 'freeBreakfast', label: { ko: '무료 조식', en: 'Free Breakfast' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
+    { key: 'roomUpgrade', label: { ko: '객실 업그레이드', en: 'Room Upgrade' }, format: value => localizedValue(value) ? membershipEscape(localizedValue(value)) : '-' },
+    { key: 'loungeAccess', label: { ko: '라운지 이용', en: 'Lounge Access' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
+    { key: 'airportPickup', label: { ko: '공항 픽업', en: 'Airport Pickup' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
+    { key: 'welcomeAmenity', label: { ko: '환영 어메니티', en: 'Welcome Amenity' }, format: value => localizedValue(value) ? membershipEscape(localizedValue(value)) : '-' },
+    { key: 'pointEarnRate', label: { ko: '포인트 적립률', en: 'Point Earn Rate' }, format: value => membershipEscape(value || '-') }
+];
+
+function tierSortValue(tier) {
+    const order = { standard: 10, gold: 20, platinum: 30, diamond: 40 };
+    return Number(tier.sortOrder || order[String(tier.id || '').toLowerCase()] || 999);
+}
+
+function renderTierBenefits(tiers = membershipTiers) {
+    const table = document.querySelector('#tierBenefitsModal .benefits-table');
+    if (!table) return;
+    const activeTiers = (tiers || [])
+        .filter(tier => tier && tier.id && tier.benefits)
+        .sort((a, b) => tierSortValue(a) - tierSortValue(b));
+    if (!activeTiers.length) {
+        table.innerHTML = benefitsMessage({ ko: '등급 혜택 데이터가 없습니다.', en: 'No tier benefit data available.' });
+        return;
+    }
+    const header = `<thead><tr>
+        <th>${membershipEscape(localizedValue({ ko: '혜택', en: 'Benefit' }))}</th>
+        ${activeTiers.map(tier => `<th class="tc"><i class="fa-solid ${membershipEscape(tier.icon || 'fa-user')}" style="color:${membershipEscape(tier.color || '#9CA3AF')}"></i> ${membershipEscape(localizedValue(tier.label) || tier.name || tier.id)}</th>`).join('')}
+    </tr></thead>`;
+    const rows = benefitRows.map(row => `<tr>
+        <td>${membershipEscape(localizedValue(row.label))}</td>
+        ${activeTiers.map(tier => `<td class="tc">${row.format(tier.benefits?.[row.key], tier)}</td>`).join('')}
+    </tr>`).join('');
+    table.innerHTML = `${header}<tbody>${rows}</tbody>`;
 }
 
 function currentVipCriteria() {
@@ -318,7 +375,7 @@ const translations={ko: {
         "Support": "Support",
 "VIP Members":"VIP Members","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Tier Benefits":"Tier Benefits","Recent Tier Changes":"Recent Tier Changes","This Month":"This Month","Last Month":"Last Month","Benefit":"Benefit","Room Discount":"Room Discount","Early Check-in":"Early Check-in","Late Check-out":"Late Check-out","Free Breakfast":"Free Breakfast","Room Upgrade":"Room Upgrade","Lounge Access":"Lounge Access","Airport Pickup":"Airport Pickup","Welcome Amenity":"Welcome Amenity","Point Earn Rate":"Point Earn Rate"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]})}
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});renderTierBenefits()}
 document.addEventListener('DOMContentLoaded', async () => {
     setupI18n();
     changeLang(currentLang);
@@ -333,7 +390,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (window.PmsAPI) {
         try {
-            const guests = await PmsAPI.getGuests();
+            const [guests, tiers] = await Promise.all([
+                PmsAPI.getGuests(),
+                PmsAPI.getMembershipTiers ? PmsAPI.getMembershipTiers() : Promise.resolve([])
+            ]);
+            membershipTiers = tiers;
+            renderTierBenefits();
             let d=0, p=0, g=0, s=0;
             guests.forEach(guest => {
                 if(guest.tier === 'diamond') d++;
@@ -367,24 +429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="modal-body">
             <div class="table-wrap benefits-table-wrap">
                 <table class="benefits-table">
-                    <thead><tr>
-                        <th data-i18n-key="Benefit">혜택</th>
-                        <th class="tc"><i class="fa-solid fa-user" style="color:#9CA3AF"></i> 일반</th>
-                        <th class="tc"><i class="fa-solid fa-crown" style="color:#F59E0B"></i> 골드</th>
-                        <th class="tc"><i class="fa-solid fa-star" style="color:#A78BFA"></i> 플래티넘</th>
-                        <th class="tc"><i class="fa-solid fa-gem" style="color:#60A5FA"></i> 다이아몬드</th>
-                    </tr></thead>
-                    <tbody>
-                        <tr><td data-i18n-key="Room Discount">객실 할인</td><td class="tc">-</td><td class="tc">5%</td><td class="tc">10%</td><td class="tc">15%</td></tr>
-                        <tr><td data-i18n-key="Early Check-in">얼리 체크인</td><td class="tc">-</td><td class="tc">-</td><td class="tc"><i class="fa-solid fa-check c-green"></i></td><td class="tc"><i class="fa-solid fa-check c-green"></i></td></tr>
-                        <tr><td data-i18n-key="Late Check-out">레이트 체크아웃</td><td class="tc">-</td><td class="tc"><i class="fa-solid fa-check c-green"></i></td><td class="tc"><i class="fa-solid fa-check c-green"></i></td><td class="tc"><i class="fa-solid fa-check c-green"></i></td></tr>
-                        <tr><td data-i18n-key="Free Breakfast">무료 조식</td><td class="tc">-</td><td class="tc">-</td><td class="tc"><i class="fa-solid fa-check c-green"></i></td><td class="tc"><i class="fa-solid fa-check c-green"></i></td></tr>
-                        <tr><td data-i18n-key="Room Upgrade">객실 업그레이드</td><td class="tc">-</td><td class="tc">-</td><td class="tc">가능 시</td><td class="tc"><i class="fa-solid fa-check c-green"></i> 우선</td></tr>
-                        <tr><td data-i18n-key="Lounge Access">라운지 이용</td><td class="tc">-</td><td class="tc">-</td><td class="tc">-</td><td class="tc"><i class="fa-solid fa-check c-green"></i></td></tr>
-                        <tr><td data-i18n-key="Airport Pickup">공항 픽업</td><td class="tc">-</td><td class="tc">-</td><td class="tc">-</td><td class="tc"><i class="fa-solid fa-check c-green"></i></td></tr>
-                        <tr><td data-i18n-key="Welcome Amenity">환영 어메니티</td><td class="tc">-</td><td class="tc">과일</td><td class="tc">과일+와인</td><td class="tc">풀 패키지</td></tr>
-                        <tr><td data-i18n-key="Point Earn Rate">포인트 적립률</td><td class="tc">1x</td><td class="tc">1.5x</td><td class="tc">2x</td><td class="tc">3x</td></tr>
-                    </tbody>
+                    <tbody><tr><td style="text-align:center;padding:32px;color:var(--txt3)">등급 혜택 데이터를 불러오는 중입니다.</td></tr></tbody>
                 </table>
             </div>
         </div>

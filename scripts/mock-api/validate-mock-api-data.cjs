@@ -62,6 +62,7 @@ const groups = items('dashboard/data/api/v1/groups/events.json');
 const allocations = items('dashboard/data/api/v1/groups/room-allocations/GRP-260527-01.json');
 const rooming = items('dashboard/data/api/v1/groups/rooming-list/GRP-260527-01.json');
 const guests = items('dashboard/data/api/v1/crm/guests.json');
+const membershipTiers = items('dashboard/data/api/v1/crm/membership-tiers.json');
 const adminBilling = items('admin/data/api/v1/admin/billing.json');
 const tickets = items('admin/data/api/v1/admin/support-tickets.json');
 
@@ -106,6 +107,33 @@ guests.forEach(guest => {
   if (!String(guest.nationality || guest.nation || guest.country || '').trim()) {
     errors.push(`guest/${guest.id}: nationality is required for demo list display`);
   }
+});
+
+const requiredBenefitKeys = [
+  'roomDiscountPercent',
+  'earlyCheckIn',
+  'lateCheckOut',
+  'freeBreakfast',
+  'roomUpgrade',
+  'loungeAccess',
+  'airportPickup',
+  'welcomeAmenity',
+  'pointEarnRate'
+];
+['standard', 'gold', 'platinum', 'diamond'].forEach(tierId => {
+  const tier = membershipTiers.find(item => item.id === tierId);
+  if (!tier) {
+    errors.push(`membership-tier/${tierId}: required tier is missing`);
+    return;
+  }
+  if (!tier.label?.ko || !tier.label?.en) errors.push(`membership-tier/${tierId}: localized label is required`);
+  if (!tier.benefits || typeof tier.benefits !== 'object') {
+    errors.push(`membership-tier/${tierId}: benefits object is required`);
+    return;
+  }
+  requiredBenefitKeys.forEach(key => {
+    if (!Object.prototype.hasOwnProperty.call(tier.benefits, key)) errors.push(`membership-tier/${tierId}: missing benefit ${key}`);
+  });
 });
 
 adminBilling.forEach(invoice => {

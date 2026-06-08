@@ -369,6 +369,93 @@ const guests = [
   guest('G-9002', 'Lee Hannah', 'Korea', 'Group', '+82 10 9900 0801', 'hannah.lee@example.com', 'verified', '')
 ];
 
+const membershipTiers = [
+  {
+    id: 'standard',
+    name: 'Standard',
+    label: { ko: '일반', en: 'Standard' },
+    icon: 'fa-user',
+    color: '#9CA3AF',
+    sortOrder: 10,
+    minSpend: 0,
+    minStays: 0,
+    benefits: {
+      roomDiscountPercent: 0,
+      earlyCheckIn: false,
+      lateCheckOut: false,
+      freeBreakfast: false,
+      roomUpgrade: '',
+      loungeAccess: false,
+      airportPickup: false,
+      welcomeAmenity: '',
+      pointEarnRate: '1x'
+    }
+  },
+  {
+    id: 'gold',
+    name: 'Gold',
+    label: { ko: '골드', en: 'Gold' },
+    icon: 'fa-crown',
+    color: '#F59E0B',
+    sortOrder: 20,
+    minSpend: 2000,
+    minStays: 5,
+    benefits: {
+      roomDiscountPercent: 5,
+      earlyCheckIn: false,
+      lateCheckOut: true,
+      freeBreakfast: false,
+      roomUpgrade: '',
+      loungeAccess: false,
+      airportPickup: false,
+      welcomeAmenity: { ko: '과일', en: 'Fruit' },
+      pointEarnRate: '1.5x'
+    }
+  },
+  {
+    id: 'platinum',
+    name: 'Platinum',
+    label: { ko: '플래티넘', en: 'Platinum' },
+    icon: 'fa-star',
+    color: '#A78BFA',
+    sortOrder: 30,
+    minSpend: 5000,
+    minStays: 10,
+    benefits: {
+      roomDiscountPercent: 10,
+      earlyCheckIn: true,
+      lateCheckOut: true,
+      freeBreakfast: true,
+      roomUpgrade: { ko: '가능 시', en: 'When available' },
+      loungeAccess: false,
+      airportPickup: false,
+      welcomeAmenity: { ko: '과일+와인', en: 'Fruit + Wine' },
+      pointEarnRate: '2x'
+    }
+  },
+  {
+    id: 'diamond',
+    name: 'Diamond',
+    label: { ko: '다이아몬드', en: 'Diamond' },
+    icon: 'fa-gem',
+    color: '#60A5FA',
+    sortOrder: 40,
+    minSpend: 10000,
+    minStays: 20,
+    benefits: {
+      roomDiscountPercent: 15,
+      earlyCheckIn: true,
+      lateCheckOut: true,
+      freeBreakfast: true,
+      roomUpgrade: { ko: '우선', en: 'Priority' },
+      loungeAccess: true,
+      airportPickup: true,
+      welcomeAmenity: { ko: '풀 패키지', en: 'Full Package' },
+      pointEarnRate: '3x'
+    }
+  }
+];
+
 function guest(id, name, nationality, tier, phone, email, docStatus, specialNotes) {
   return {
     id,
@@ -533,12 +620,7 @@ function writeDashboardData() {
   writeJson(DASH_API, 'groups/room-allocations-save.sample.json', envelope({ status: 'saved' }, 'REQ-GROUP-ALLOCATIONS-SAVE'));
   writeJson(DASH_API, 'groups/rooming-list-create.sample.json', envelope({ status: 'saved' }, 'REQ-GROUP-ROOMING-CREATE'));
   writeJson(DASH_API, 'crm/guests.json', listEnvelope(guests, 'REQ-GUESTS-LIST'));
-  writeJson(DASH_API, 'crm/membership-tiers.json', listEnvelope([
-    { id: 'standard', name: 'Standard', minSpend: 0 },
-    { id: 'silver', name: 'Silver', minSpend: 300000 },
-    { id: 'gold', name: 'Gold', minSpend: 800000 },
-    { id: 'group', name: 'Group', minSpend: 0 }
-  ], 'REQ-MEMBERSHIP-TIERS'));
+  writeJson(DASH_API, 'crm/membership-tiers.json', listEnvelope(membershipTiers, 'REQ-MEMBERSHIP-TIERS'));
   writeJson(DASH_API, 'crm/tier-history.json', listEnvelope([
     { id: 'TH-1', guestId: 'G-1004', beforeTier: 'Silver', afterTier: 'Gold', reason: '누적 매출 기준 도달', changedAt: '2026-05-27' }
   ], 'REQ-TIER-HISTORY'));
