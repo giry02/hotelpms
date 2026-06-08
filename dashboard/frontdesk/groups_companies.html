@@ -137,7 +137,13 @@
     box-shadow: none;
     box-sizing: border-box;
 }
-.btn-room-assign:hover { background: #1d4ed8; box-shadow: none; }
+.btn-room-assign:hover,
+.btn-room-assign:focus {
+    background: var(--primary, #2563EB);
+    color: #fff;
+    box-shadow: none;
+    outline: none;
+}
 .btn-room-assign:active { transform: none; }
 
 .btn-card-edit {
@@ -149,7 +155,13 @@
     transition: none;
     box-sizing: border-box;
 }
-.btn-card-edit:hover { border-color: var(--primary, #2563EB); color: var(--primary, #2563EB); background: #EFF6FF; }
+.btn-card-edit:hover,
+.btn-card-edit:focus {
+    border-color: var(--border, #E5E7EB);
+    color: var(--txt2, #6B7280);
+    background: #fff;
+    outline: none;
+}
 .btn-card-edit:active { transform: none; }
 
 .btn-card-delete {
@@ -161,7 +173,13 @@
     transition: none;
     box-sizing: border-box;
 }
-.btn-card-delete:hover { background: #FEE2E2; border-color: var(--danger, #DC2626); }
+.btn-card-delete:hover,
+.btn-card-delete:focus {
+    background: #FFF1F2;
+    border-color: #FECACA;
+    color: var(--danger, #DC2626);
+    outline: none;
+}
 .btn-card-delete:active { transform: none; }
 .btn-card-delete:disabled {
     background: #F3F4F6;
@@ -737,7 +755,7 @@ function openBlockModal(compId) {
         }
         grid.style.display = 'grid';
         if (empty) empty.style.display = 'none';
-        grid.innerHTML = filtered.map(c => {
+        const companyCardHtml = filtered.map(c => {
             const events = companyGroups(c);
             const cnt = stageCounts(events);
             const deleteGuard = window.companyDeleteGuard(c);
@@ -772,10 +790,9 @@ function openBlockModal(compId) {
                 </div>
             </div>`;
         }).join('');
+        if (grid.innerHTML !== companyCardHtml) grid.innerHTML = companyCardHtml;
     };
-    document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
-        if (typeof renderCompanies === 'function') renderCompanies();
-    }, 0));
+    try { renderCompanies = window.renderCompanies; } catch(e) {}
 })();
 </script>
 <script>
@@ -854,7 +871,6 @@ function openBlockModal(compId) {
     document.addEventListener('DOMContentLoaded', () => {
         ensureCompanyDiscountField();
         normalizeCompanies();
-        if (typeof renderCompanies === 'function') renderCompanies();
     });
 })();
 </script>

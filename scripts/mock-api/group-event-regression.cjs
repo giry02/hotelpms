@@ -215,6 +215,29 @@ function assert(condition, message, details = null) {
     await page.waitForTimeout(250);
     const cardBoxAfterButtonHover = await firstCompanyCard.boundingBox();
     const stableBox = (a, b) => !!a && !!b && ['x', 'y', 'width', 'height'].every(key => Math.abs(a[key] - b[key]) < 0.5);
+    const visualStyleKeys = [
+      'backgroundColor',
+      'color',
+      'borderTopColor',
+      'borderRightColor',
+      'borderBottomColor',
+      'borderLeftColor',
+      'boxShadow',
+      'outlineStyle'
+    ];
+    const readButtonStyle = (index) => firstCompanyCard.locator('button').nth(index).evaluate((button, keys) => {
+      const style = getComputedStyle(button);
+      return Object.fromEntries(keys.map(key => [key, style[key]]));
+    }, visualStyleKeys);
+    const buttonHoverStyles = [];
+    const buttonCount = await firstCompanyCard.locator('button').count();
+    for (let index = 0; index < buttonCount; index += 1) {
+      const before = await readButtonStyle(index);
+      await firstCompanyCard.locator('button').nth(index).hover();
+      await page.waitForTimeout(100);
+      const after = await readButtonStyle(index);
+      buttonHoverStyles.push({ index, before, after });
+    }
 
     assert(
       companyHoverResult.transform === 'none' || companyHoverResult.transform === 'matrix(1, 0, 0, 1, 0, 0)',
@@ -227,6 +250,7 @@ function assert(condition, message, details = null) {
     assert(companyHoverResult.childTransforms.every(item => item.transform === 'none' || item.transform === 'matrix(1, 0, 0, 1, 0, 0)'), 'Company card buttons must not move on hover or active states.', companyHoverResult);
     assert(companyHoverResult.childTransforms.every(item => item.transitionProperty === 'none' && item.transitionDuration === '0s'), 'Company card buttons must use stable, non-animated hover styles.', companyHoverResult);
     assert(stableBox(cardBoxBeforeHover, cardBoxAfterHover) && stableBox(cardBoxBeforeHover, cardBoxAfterButtonHover), 'Company card bounding box must stay stable across card and button hover.', { cardBoxBeforeHover, cardBoxAfterHover, cardBoxAfterButtonHover });
+    assert(buttonHoverStyles.every(item => JSON.stringify(item.before) === JSON.stringify(item.after)), 'Company card action buttons must not visually flicker on hover.', buttonHoverStyles);
 
     await page.evaluate(() => {
       localStorage.removeItem('pms_companies');
