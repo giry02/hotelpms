@@ -107,6 +107,31 @@ function assert(condition, message, details = null) {
     await page.goto(`${base}/dashboard/frontdesk/groups_blocks.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForFunction(() => typeof window.renderGroups === 'function' && typeof window.filterGroups === 'function', null, { timeout: 15000 });
+    await page.waitForSelector('.filter-left .pms-search-button', { timeout: 5000 });
+    await page.waitForSelector('.filter-left .pms-search-divider', { timeout: 5000 });
+
+    const groupFilterLayout = await page.evaluate(() => {
+      const button = document.querySelector('.filter-left .pms-search-button');
+      const divider = document.querySelector('.filter-left .pms-search-divider');
+      const chips = document.querySelector('.filter-left .filter-chips');
+      const buttonRect = button?.getBoundingClientRect();
+      const dividerRect = divider?.getBoundingClientRect();
+      const chipRect = chips?.getBoundingClientRect();
+      return {
+        hasButton: !!button,
+        hasDivider: !!divider,
+        hasChips: !!chips,
+        buttonRight: buttonRect?.right || 0,
+        dividerLeft: dividerRect?.left || 0,
+        dividerRight: dividerRect?.right || 0,
+        chipLeft: chipRect?.left || 0,
+        gap: Math.round((chipRect?.left || 0) - (buttonRect?.right || 0))
+      };
+    });
+
+    assert(groupFilterLayout.hasButton && groupFilterLayout.hasDivider && groupFilterLayout.hasChips, 'Group list filter bar must include search button, divider, and filter chips.', groupFilterLayout);
+    assert(groupFilterLayout.buttonRight < groupFilterLayout.dividerLeft && groupFilterLayout.dividerRight < groupFilterLayout.chipLeft, 'Group list filter divider must sit between search and filter chips.', groupFilterLayout);
+    assert(groupFilterLayout.gap >= 20, 'Group list search button and filter chips must have guest-list style separation.', groupFilterLayout);
 
     const result = await page.evaluate(() => {
       const fmt = (date) => date.toISOString().slice(0, 10);
@@ -386,6 +411,7 @@ function assert(condition, message, details = null) {
       ok: true,
       checks: [
         'past and settlement-needed filters can overlap',
+        'group list search and filter controls use guest-list spacing',
         'past count includes paid and unsettled past events',
         'settlement-needed count excludes paid past and future pending events',
         'company card hover does not move the pointer hit area',

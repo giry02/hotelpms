@@ -1546,9 +1546,24 @@ function ensureSearchButtonStyles() {
         .pms-search-button{height:38px;padding:0 14px;background:var(--primary,#3B82F6);color:#fff;border:0;border-radius:var(--radius-sm,8px);font-family:var(--font,inherit);font-size:.78rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;cursor:pointer;transition:all .2s}
         .pms-search-button:hover{background:var(--primary-dk,#2563EB);transform:translateY(-1px);box-shadow:0 2px 8px rgba(59,130,246,.28)}
         .pms-search-button i{font-size:.78rem}
-        @media (max-width:768px){.pms-search-button{height:38px;min-width:82px}.search-container .pms-search-button{flex:0 0 auto}}
+        .pms-search-divider{width:1px;height:24px;background:var(--border,#E5E7EB);flex:0 0 auto;margin:0 4px}
+        @media (max-width:768px){.pms-search-button{height:38px;min-width:82px}.search-container .pms-search-button{flex:0 0 auto}.pms-search-divider{display:none}}
     `;
     document.head.appendChild(style);
+}
+
+function ensureFilterSearchDivider(anchor) {
+    const filterLeft = anchor?.closest?.('.filter-left');
+    if (!filterLeft) return;
+    const chips = Array.from(filterLeft.children).find(child => child.classList?.contains('filter-chips'));
+    if (!chips) return;
+    const previous = chips.previousElementSibling;
+    if (previous?.classList?.contains('pms-search-divider') || previous?.classList?.contains('filter-divider')) return;
+    if (previous && previous.classList?.contains('desktop-only') && previous.getBoundingClientRect?.().height >= 20) return;
+    const divider = document.createElement('div');
+    divider.className = 'pms-search-divider desktop-only';
+    divider.setAttribute('aria-hidden', 'true');
+    filterLeft.insertBefore(divider, chips);
 }
 
 function bindSearchInputForButton(input) {
@@ -1597,6 +1612,7 @@ function ensureSearchButtons() {
         refreshSearchInputPlaceholder(input);
         const anchor = input.closest('.search-box-mt, .search-box, .search-bar') || input;
         if (hasNearbySearchButton(anchor)) {
+            ensureFilterSearchDivider(anchor);
             if (!input.dataset.pmsSearchEnterBound) {
                 input.dataset.pmsSearchEnterBound = 'true';
                 input.addEventListener('keydown', event => {
@@ -1617,6 +1633,7 @@ function ensureSearchButtons() {
         button.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i><span>${searchLabelText()}</span>`;
         button.addEventListener('click', () => runSearchInput(input));
         anchor.insertAdjacentElement('afterend', button);
+        ensureFilterSearchDivider(anchor);
 
         if (!input.dataset.pmsSearchEnterBound) {
             input.dataset.pmsSearchEnterBound = 'true';
