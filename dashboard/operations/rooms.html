@@ -333,6 +333,26 @@ function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
+const roomTypeCollator = new Intl.Collator(['ko', 'en'], { numeric: true, sensitivity: 'base' });
+
+function roomTypeSearchKey(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFKC')
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function compareRoomTypes(a, b) {
+    const byName = roomTypeCollator.compare(roomTypeSearchKey(a?.name || a?.id || ''), roomTypeSearchKey(b?.name || b?.id || ''));
+    if (byName) return byName;
+    const byView = roomTypeCollator.compare(roomTypeSearchKey(a?.view || ''), roomTypeSearchKey(b?.view || ''));
+    if (byView) return byView;
+    return roomTypeCollator.compare(String(a?.id || ''), String(b?.id || ''));
+}
+
 function displayRoomType(type) {
     const value = String(type || '').trim();
     const found = allRoomTypes.find(rt => rt.id === value || rt.typeId === value || rt.code === value || rt.name === value);
@@ -660,6 +680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (PmsAPI.getAllRoomTypes) {
             allRoomTypes = await PmsAPI.getAllRoomTypes();
             if (!Array.isArray(allRoomTypes)) allRoomTypes = [];
+            allRoomTypes.sort(compareRoomTypes);
         }
         renderRoomTypeOptions();
         let rawRooms = await PmsAPI.getAllRooms();

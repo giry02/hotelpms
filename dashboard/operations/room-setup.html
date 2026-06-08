@@ -371,6 +371,26 @@ function roomTypeSearchKey(value) {
         .trim();
 }
 
+const roomTypeCollator = new Intl.Collator(['ko', 'en'], { numeric: true, sensitivity: 'base' });
+
+function compareRoomTypes(a, b) {
+    const aName = roomTypeSearchKey(a?.name || a?.id || '');
+    const bName = roomTypeSearchKey(b?.name || b?.id || '');
+    const byName = roomTypeCollator.compare(aName, bName);
+    if (byName) return byName;
+
+    const aView = roomTypeSearchKey(a?.view || '');
+    const bView = roomTypeSearchKey(b?.view || '');
+    const byView = roomTypeCollator.compare(aView, bView);
+    if (byView) return byView;
+
+    return roomTypeCollator.compare(String(a?.id || ''), String(b?.id || ''));
+}
+
+function sortRoomTypes() {
+    allRoomTypes.sort(compareRoomTypes);
+}
+
 function findRoomTypeByInput(value) {
     const text = String(value || '').trim();
     const exactText = text.toLowerCase();
@@ -406,6 +426,7 @@ function normalizeRoomType(raw) {
 }
 
 function persistRoomTypes() {
+    sortRoomTypes();
     if (window.PmsAPI?.saveRoomTypes) return window.PmsAPI.saveRoomTypes(allRoomTypes);
     localStorage.setItem('pms_room_types', JSON.stringify(allRoomTypes));
     localStorage.setItem('pms_room_types_config', JSON.stringify(allRoomTypes));
@@ -836,6 +857,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!Array.isArray(allRooms)) allRooms = [];
         if (!Array.isArray(allRoomTypes)) allRoomTypes = [];
         allRoomTypes = allRoomTypes.map(normalizeRoomType);
+        sortRoomTypes();
         
         renderRoomTypeOptions();
         renderTabs();
