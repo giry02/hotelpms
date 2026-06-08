@@ -194,11 +194,23 @@ function assert(condition, message, details = null) {
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForSelector('.company-card', { timeout: 15000 });
     const firstCompanyCard = page.locator('.company-card').first();
+    const cardBoxBeforeHover = await firstCompanyCard.boundingBox();
     await firstCompanyCard.hover();
+    await page.waitForTimeout(250);
+    const cardBoxAfterHover = await firstCompanyCard.boundingBox();
     const companyHoverResult = await firstCompanyCard.evaluate(el => ({
       transform: getComputedStyle(el).transform,
-      transitionProperty: getComputedStyle(el).transitionProperty
+      transitionProperty: getComputedStyle(el).transitionProperty,
+      childTransforms: Array.from(el.querySelectorAll('button')).map(button => ({
+        className: button.className,
+        transform: getComputedStyle(button).transform,
+        transitionProperty: getComputedStyle(button).transitionProperty
+      }))
     }));
+    await firstCompanyCard.locator('.btn-room-assign').first().hover();
+    await page.waitForTimeout(250);
+    const cardBoxAfterButtonHover = await firstCompanyCard.boundingBox();
+    const stableBox = (a, b) => !!a && !!b && ['x', 'y', 'width', 'height'].every(key => Math.abs(a[key] - b[key]) < 0.5);
 
     assert(
       companyHoverResult.transform === 'none' || companyHoverResult.transform === 'matrix(1, 0, 0, 1, 0, 0)',
@@ -206,6 +218,9 @@ function assert(condition, message, details = null) {
       companyHoverResult
     );
     assert(!companyHoverResult.transitionProperty.split(',').map(item => item.trim()).includes('transform'), 'Company card transition must not animate transform.', companyHoverResult);
+    assert(companyHoverResult.childTransforms.every(item => item.transform === 'none' || item.transform === 'matrix(1, 0, 0, 1, 0, 0)'), 'Company card buttons must not move on hover or active states.', companyHoverResult);
+    assert(companyHoverResult.childTransforms.every(item => !item.transitionProperty.split(',').map(part => part.trim()).includes('transform')), 'Company card buttons must not animate transform.', companyHoverResult);
+    assert(stableBox(cardBoxBeforeHover, cardBoxAfterHover) && stableBox(cardBoxBeforeHover, cardBoxAfterButtonHover), 'Company card bounding box must stay stable across card and button hover.', { cardBoxBeforeHover, cardBoxAfterHover, cardBoxAfterButtonHover });
 
     await page.evaluate(() => {
       localStorage.removeItem('pms_companies');
