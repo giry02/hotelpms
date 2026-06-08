@@ -254,13 +254,87 @@ function roomTypeLabel(rt) {
     return view ? `${name} · ${view}` : name || '-';
 }
 
+const roomTypeCollator = new Intl.Collator(['ko', 'en'], { numeric: true, sensitivity: 'base' });
+const knownViewLabels = [
+    'City View', 'Ocean View', 'Sea View', 'Partial Ocean View', 'Mountain View',
+    'Garden View', 'River View', 'Lake View', 'Harbor View', 'Harbour View',
+    'Pool View', 'Poolside', 'Panoramic View',
+    '시티뷰', '오션뷰', '씨뷰', '마운틴뷰', '가든뷰', '리버뷰', '레이크뷰', '하버뷰', '풀뷰', '파노라마뷰'
+];
+
+function sortKey(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFKC')
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function stripViewFromName(name, view) {
+    let result = String(name || '').trim();
+    const viewText = String(view || '').trim();
+    if (!result || !viewText) return result;
+    const pattern = new RegExp(`(?:\\s*(?:·|•|/|-|–|—)\\s*)?${escapeRegExp(viewText)}\\s*$`, 'i');
+    return result.replace(pattern, '').trim() || result;
+}
+
+function inferRoomTypeParts(rt) {
+    let name = String(rt?.name || rt?.typeName || rt?.roomTypeName || rt?.id || '').trim();
+    let view = String(rt?.view || rt?.viewType || rt?.category || '').trim();
+
+    if (view) {
+        name = stripViewFromName(name, view);
+    } else {
+        const delimited = name.split(/\s*(?:·|•|\||\/|–|—|\s-\s)\s*/).filter(Boolean);
+        if (delimited.length > 1) {
+            view = delimited.pop().trim();
+            name = delimited.join(' ').trim();
+        } else {
+            const matchedView = knownViewLabels.find(label => new RegExp(`(?:^|\\s)${escapeRegExp(label)}\\s*$`, 'i').test(name));
+            if (matchedView) {
+                view = matchedView;
+                name = stripViewFromName(name, matchedView);
+            }
+        }
+    }
+
+    return {
+        group: sortKey(name),
+        view: sortKey(view),
+        id: sortKey(rt?.id || rt?.typeId || rt?.code || '')
+    };
+}
+
+function roomTypeBaseAmount(rt) {
+    const value = Number(rt?.basePrice ?? rt?.baseRate?.amount ?? rt?.baseRate ?? 0);
+    return Number.isFinite(value) && value > 0 ? value : Number.POSITIVE_INFINITY;
+}
+
 function sortedRoomTypes(list = roomTypes) {
-    return [...(list || [])].sort((a, b) => {
-        const nameCompare = String(a?.name || a?.id || '').localeCompare(String(b?.name || b?.id || ''), ['ko', 'en'], { numeric: true, sensitivity: 'base' });
-        if (nameCompare !== 0) return nameCompare;
-        const viewCompare = String(a?.view || '').localeCompare(String(b?.view || ''), ['ko', 'en'], { numeric: true, sensitivity: 'base' });
+    const source = [...(list || [])];
+    const groupRanks = source.reduce((map, rt) => {
+        const group = inferRoomTypeParts(rt).group;
+        const amount = roomTypeBaseAmount(rt);
+        map.set(group, Math.min(map.get(group) ?? Number.POSITIVE_INFINITY, amount));
+        return map;
+    }, new Map());
+
+    return source.sort((a, b) => {
+        const left = inferRoomTypeParts(a);
+        const right = inferRoomTypeParts(b);
+        const rankCompare = (groupRanks.get(left.group) ?? Number.POSITIVE_INFINITY) - (groupRanks.get(right.group) ?? Number.POSITIVE_INFINITY);
+        if (rankCompare !== 0) return rankCompare;
+        const groupCompare = roomTypeCollator.compare(left.group, right.group);
+        if (groupCompare !== 0) return groupCompare;
+        const viewCompare = roomTypeCollator.compare(left.view, right.view);
         if (viewCompare !== 0) return viewCompare;
-        return String(a?.id || '').localeCompare(String(b?.id || ''), ['ko', 'en'], { numeric: true, sensitivity: 'base' });
+        return roomTypeCollator.compare(left.id, right.id);
     });
 }
 
