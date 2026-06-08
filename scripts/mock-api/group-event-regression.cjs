@@ -284,7 +284,9 @@ function assert(condition, message, details = null) {
       group.allocations = [];
       group.roomingList = [];
       window.renderRooms();
+      window.renderRooming();
       const roomsTab = Array.from(document.querySelectorAll('.local-tab')).find(button => (button.getAttribute('onclick') || '').includes("'rooms'"));
+      const roomingTab = Array.from(document.querySelectorAll('.local-tab')).find(button => (button.getAttribute('onclick') || '').includes("'rooming'"));
       if (typeof switchTab === 'function') switchTab('rooms', roomsTab);
       const emptyCell = document.querySelector('.room-assignment-table td[colspan="6"]');
       const table = document.querySelector('.room-assignment-table');
@@ -292,6 +294,10 @@ function assert(condition, message, details = null) {
       const tableRect = table?.getBoundingClientRect();
       return {
         text: emptyCell?.textContent.trim() || '',
+        roomsTabText: roomsTab?.textContent.trim() || '',
+        roomingTabText: roomingTab?.textContent.trim() || '',
+        roomingTabVisible: !!roomingTab && getComputedStyle(roomingTab).display !== 'none',
+        roomsPanelText: document.getElementById('rooms')?.textContent || '',
         textAlign: emptyCell ? getComputedStyle(emptyCell).textAlign : null,
         cellWidth: Math.round(cellRect?.width || 0),
         tableWidth: Math.round(tableRect?.width || 0),
@@ -302,6 +308,9 @@ function assert(condition, message, details = null) {
     assert(detailResult.visible, 'Group detail empty assignment row must be visible.', detailResult);
     assert(detailResult.textAlign === 'center', 'Group detail empty assignment row must be centered.', detailResult);
     assert(detailResult.cellWidth === detailResult.tableWidth, 'Group detail empty assignment row must span the full table.', detailResult);
+    assert(detailResult.roomsTabText === '객실 배정', 'Group detail rooms tab must only represent room allocation.', detailResult);
+    assert(detailResult.roomingTabText === '투숙객 명단' && detailResult.roomingTabVisible, 'Group detail rooming tab must be visible as a separate guest list.', detailResult);
+    assert(!detailResult.roomsPanelText.includes('투숙객 등록'), 'Room allocation tab must not include guest registration actions.', detailResult);
     assert(consoleIssues.length === 0, 'Console warnings/errors during group event regression.', consoleIssues);
 
     console.log(JSON.stringify({
@@ -313,7 +322,8 @@ function assert(condition, message, details = null) {
         'group detail hydrates company data for existing events',
         'group detail separates company baseline and event discount',
         'group detail requires registered company selection',
-        'group detail empty room assignment message is centered'
+        'group detail empty room assignment message is centered',
+        'group detail splits room allocation and rooming list tabs'
       ]
     }, null, 2));
   } catch (error) {

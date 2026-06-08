@@ -64,6 +64,13 @@
         .room-assignment-table th:nth-child(5){width:12%}
         .room-assignment-table th:nth-child(6){width:18%}
         .room-assignment-table td:nth-child(2),.room-assignment-table .event-metric{white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+        .rooming-list-table th:nth-child(1){width:14%}
+        .rooming-list-table th:nth-child(2){width:18%}
+        .rooming-list-table th:nth-child(3){width:12%}
+        .rooming-list-table th:nth-child(4){width:11%}
+        .rooming-list-table th:nth-child(5){width:13%}
+        .rooming-list-table th:nth-child(6){width:20%}
+        .rooming-list-table th:nth-child(7){width:12%}
         .room-note{display:block;margin-top:3px;color:#dc2626;font-weight:850;line-height:1.35;overflow-wrap:anywhere}
         .room-action-buttons{display:inline-flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
         .room-action-buttons .mini-btn{white-space:nowrap}
@@ -77,6 +84,13 @@
         .allocation-editor-row>.mini-btn.danger{width:40px;height:40px;min-width:40px;padding:0;justify-content:center;align-self:end}
         .empty-guide{border:1px dashed var(--border);border-radius:10px;padding:18px;text-align:center;color:var(--txt2);font-size:.86rem;font-weight:700;background:#f8fafc}
         @media(max-width:900px){.detail-hero{grid-template-columns:1fr}.summary-grid{grid-template-columns:repeat(2,1fr)}.info-grid{grid-template-columns:1fr}.panel{overflow-x:auto}.room-assignment-toolbar{flex-direction:column}.room-assignment-actions{width:100%;justify-content:flex-start}.room-assignment-table{min-width:920px}.allocation-editor-row>.mini-btn.danger{width:40px}}
+        .detail-sticky-actions{position:sticky;bottom:0;z-index:20;margin-top:14px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.97);box-shadow:0 -8px 24px rgba(15,23,42,.08);display:flex;align-items:center;justify-content:space-between;gap:12px}
+        .detail-sticky-actions .hint{font-size:.76rem;color:var(--txt2);font-weight:800}
+        .rooming-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+        .rooming-summary-item{border:1px solid var(--border2);border-radius:8px;background:#f8fafc;padding:11px 12px}
+        .rooming-summary-item .k{font-size:.7rem;color:var(--txt3);font-weight:850;margin-bottom:4px}
+        .rooming-summary-item .v{font-size:1rem;color:var(--txt);font-weight:900}
+        @media(max-width:900px){.detail-sticky-actions{align-items:stretch;flex-direction:column}.detail-sticky-actions .mini-btn{justify-content:center}.rooming-summary-grid{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
@@ -93,7 +107,7 @@
             <div class="breadcrumb-row">
                 <div class="breadcrumb">단체 관리 &gt; 행사 목록 &gt; <span id="bcName">상세</span></div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-                    <button class="mini-btn primary" onclick="switchTabById('rooms')"><i class="fa-solid fa-bed"></i> 객실/투숙객 배정</button>
+                    <button class="mini-btn primary" onclick="switchTabById('rooms')"><i class="fa-solid fa-bed"></i> 객실 배정</button>
                 </div>
             </div>
 
@@ -113,7 +127,7 @@
 
             <div class="local-tabs">
                 <button class="local-tab active" onclick="switchTab('overview', this)">개요</button>
-                <button class="local-tab" onclick="switchTab('rooms', this)">객실/투숙객 배정</button>
+                <button class="local-tab" onclick="switchTab('rooms', this)">객실 배정</button>
                 <button class="local-tab" onclick="switchTab('rooming', this)">투숙객 명단</button>
                 <button class="local-tab" onclick="switchTab('folio', this)">정산</button>
                 <button class="local-tab" onclick="switchTab('history', this)">변경 이력</button>
@@ -1367,7 +1381,7 @@ window.addEventListener('DataReady', () => {
         }
         closeModal('roomingModal');
         renderAll();
-        switchTabById('rooms');
+        switchTabById('rooming');
         showToast(editId ? '투숙객 정보가 수정되었습니다.' : '투숙객이 등록되었습니다.');
     };
     document.addEventListener('DOMContentLoaded', () => setTimeout(() => {
@@ -1587,6 +1601,135 @@ window.addEventListener('DataReady', () => {
     };
     try { renderRooming = window.renderRooming; } catch(e) {}
 
+    function ensureSplitRoomingTabs() {
+        const roomingTab = Array.from(document.querySelectorAll('.local-tab'))
+            .find(btn => (btn.getAttribute('onclick') || '').includes("'rooming'"));
+        if (roomingTab) {
+            roomingTab.style.display = '';
+            roomingTab.textContent = '투숙객 명단';
+        }
+        const roomsTab = Array.from(document.querySelectorAll('.local-tab'))
+            .find(btn => (btn.getAttribute('onclick') || '').includes("'rooms'"));
+        if (roomsTab) roomsTab.textContent = '객실 배정';
+    }
+
+    window.renderRooms = function() {
+        ensureSplitRoomingTabs();
+        const roomsPanel = document.getElementById('rooms');
+        if (!roomsPanel) return;
+        if (isDraftGroup()) {
+            roomsPanel.innerHTML = '<div class="empty-guide">기본 정보를 저장하면 객실 배정을 시작할 수 있습니다.</div>';
+            return;
+        }
+
+        const assigned = getAssignedRooms(group);
+        const discount = group.eventDiscountPercent ?? group.discountPercent ?? group.discount ?? 0;
+        roomsPanel.innerHTML = `
+            <div class="room-assignment-toolbar">
+                <div>
+                    <div class="section-title" style="margin-bottom:4px"><i class="fa-solid fa-bed"></i> 객실 배정</div>
+                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">배정 ${assigned.length}실 · 행사 적용 할인 ${safe(discount || 0)}%</div>
+                </div>
+                <div class="room-assignment-actions">
+                    <button class="mini-btn" onclick="addDetailAllocationRow()"><i class="fa-solid fa-plus"></i> 호실 추가</button>
+                    <button class="mini-btn" onclick="switchTabById('rooming')"><i class="fa-solid fa-list-check"></i> 투숙객 명단</button>
+                </div>
+            </div>
+            <div id="detailAllocationEditor" class="allocation-editor"></div>
+            <table class="data-table room-assignment-table">
+                <thead><tr><th>객실</th><th>타입</th><th>기준 단가</th><th>할인</th><th>최종 단가</th><th>상태</th></tr></thead>
+                <tbody>
+                    ${assigned.map(room => {
+                        const display = typeof roomDisplayName === 'function' ? roomDisplayName(room) : (room.roomLabel || room.roomId);
+                        return `<tr>
+                            <td><span class="room-chip">${safe(display)}</span></td>
+                            <td><div class="event-metric">${safe(room.type || '-')}</div></td>
+                            <td>${money(room.baseRate || 0)}</td>
+                            <td>${safe(room.discountPercent || 0)}%</td>
+                            <td>${money(room.rate || 0)}</td>
+                            <td><span class="stage-pill stage-live">배정됨</span></td>
+                        </tr>`;
+                    }).join('') || '<tr><td colspan="6">배정된 객실이 없습니다. 상단에서 호실을 추가하세요.</td></tr>'}
+                </tbody>
+            </table>
+            <div class="detail-sticky-actions">
+                <div class="hint"><i class="fa-solid fa-floppy-disk"></i> 객실과 행사별 요금 변경사항을 저장합니다.</div>
+                <button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button>
+            </div>`;
+        assigned.forEach(room => addDetailAllocationRow(room));
+    };
+    try { renderRooms = window.renderRooms; } catch(e) {}
+
+    window.renderRooming = function() {
+        ensureSplitRoomingTabs();
+        const panel = document.getElementById('rooming');
+        if (!panel) return;
+        if (isDraftGroup()) {
+            panel.innerHTML = '<div class="empty-guide">기본 정보를 저장한 뒤 투숙객 명단을 등록할 수 있습니다.</div>';
+            return;
+        }
+
+        const assigned = getAssignedRooms(group);
+        const assignedIds = new Set(assigned.map(room => room.roomId));
+        const guests = typeof allGuestRows === 'function' ? allGuestRows() : roomingList();
+        const registered = assigned.filter(room => guestForRoom(room.roomId)).length;
+        const missingDoc = assigned.filter(room => {
+            const guest = guestForRoom(room.roomId);
+            return guest && guest.docStatus !== 'verified';
+        }).length;
+        const unassignedGuests = guests.filter(guest => guest.roomId && !assignedIds.has(guest.roomId));
+        const unassignedHtml = unassignedGuests.length ? `
+            <div class="empty-guide" style="margin-top:12px;text-align:left">
+                <strong>객실 미연결 투숙객</strong>
+                <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                    ${unassignedGuests.map(guest => `<span class="room-chip">${safe(guest.name)} · ${safe(guest.roomId || '객실 미정')}</span>`).join('')}
+                </div>
+            </div>` : '';
+
+        panel.innerHTML = `
+            <div class="rooming-tools">
+                <div>
+                    <div class="section-title" style="margin-bottom:4px"><i class="fa-solid fa-users"></i> 투숙객 명단</div>
+                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">등록 ${registered}/${assigned.length}실 · 전체 ${guests.length}/${group.pax || 0}명</div>
+                </div>
+                <button class="mini-btn primary" onclick="openRoomingModal()"><i class="fa-solid fa-user-plus"></i> 투숙객 등록</button>
+            </div>
+            <div class="rooming-summary-grid">
+                <div class="rooming-summary-item"><div class="k">배정 객실</div><div class="v">${assigned.length}실</div></div>
+                <div class="rooming-summary-item"><div class="k">미등록 객실</div><div class="v">${Math.max(assigned.length - registered, 0)}실</div></div>
+                <div class="rooming-summary-item"><div class="k">신분증 미확인</div><div class="v">${missingDoc}건</div></div>
+            </div>
+            <table class="data-table room-assignment-table rooming-list-table">
+                <thead><tr><th>객실</th><th>투숙객</th><th>역할</th><th>국적</th><th>신분증</th><th>특이사항</th><th>관리</th></tr></thead>
+                <tbody>
+                    ${assigned.map(room => {
+                        const guest = guestForRoom(room.roomId);
+                        const note = guest?.note || guest?.specialNotes || guest?.allergy || '';
+                        const display = typeof roomDisplayName === 'function' ? roomDisplayName(room) : (room.roomLabel || room.roomId);
+                        return `<tr>
+                            <td><span class="room-chip">${safe(display)}</span><div class="event-sub">${safe(room.type || '-')}</div></td>
+                            <td><div class="event-metric">${guest ? safe(guest.name) : '미등록'}</div></td>
+                            <td>${guest ? `<span class="stage-pill stage-live">${guest.role === 'companion' ? '동반' : '대표'}</span>` : '<span class="stage-pill stage-past">미등록</span>'}</td>
+                            <td>${guest ? safe(guest.nation || guest.nationality || guest.country || '-') : '-'}</td>
+                            <td>${docStatusCell(guest)}</td>
+                            <td>${note ? `<small class="room-note"><i class="fa-solid fa-triangle-exclamation"></i> ${safe(note)}</small>` : '-'}</td>
+                            <td class="room-actions-cell">
+                                <button class="mini-btn primary" onclick="openRoomingModal('${safe(room.roomId)}', '${safe(guest && !guest.sourceReservation ? guest.id : '')}')"><i class="fa-solid fa-user-plus"></i> ${guest ? '투숙객 수정' : '투숙객 등록'}</button>
+                            </td>
+                        </tr>`;
+                    }).join('') || '<tr><td colspan="7">먼저 객실 배정을 저장하세요.</td></tr>'}
+                </tbody>
+            </table>
+            ${unassignedHtml}
+            <div class="detail-sticky-actions">
+                <div class="hint"><i class="fa-solid fa-user-check"></i> 투숙객 등록 후 변경사항은 즉시 저장됩니다.</div>
+                <button class="mini-btn" onclick="switchTabById('rooms')"><i class="fa-solid fa-bed"></i> 객실 배정으로 이동</button>
+            </div>`;
+    };
+    try { renderRooming = window.renderRooming; } catch(e) {}
+
+    document.addEventListener('DOMContentLoaded', () => setTimeout(ensureSplitRoomingTabs, 0));
+
     window.openRoomingModal = function(roomIdValue = '', guestId = '') {
         populateGuestRooms();
         const select = document.getElementById('guestRoomInput');
@@ -1649,7 +1792,7 @@ window.addEventListener('DataReady', () => {
         }
         closeModal('roomingModal');
         renderAll();
-        switchTabById('rooms');
+        switchTabById('rooming');
         showToast(editId ? '투숙객 정보가 수정되었습니다.' : '투숙객이 등록되었습니다.');
     };
     try { saveRoomingGuest = window.saveRoomingGuest; } catch(e) {}
@@ -1925,7 +2068,7 @@ window.addEventListener('DataReady', () => {
         }
         closeModal('roomingModal');
         renderAll();
-        switchTabById('rooms');
+        switchTabById('rooming');
         showToast(editId ? '투숙객 정보가 수정되었습니다.' : '투숙객이 등록되었습니다.');
     };
     try { saveRoomingGuest = window.saveRoomingGuest; } catch(e) {}
