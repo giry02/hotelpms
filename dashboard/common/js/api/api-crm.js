@@ -6,6 +6,7 @@ function normalizeCrmTier(tier) {
     if (value.includes('diamond')) return 'diamond';
     if (value.includes('platinum')) return 'platinum';
     if (value.includes('gold') || value === 'vip') return 'gold';
+    if (value.includes('silver')) return 'silver';
     return 'standard';
 }
 
@@ -95,42 +96,55 @@ Object.assign(window.PmsAPI, {
     },
 
     getHistory: async () => {
+        const normalizeHistory = (env) => {
+            const order = { standard: 0, silver: 1, gold: 2, platinum: 3, diamond: 4 };
+            const localized = (value) => {
+                if (value && typeof value === 'object') {
+                    const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+                    return value[lang] || value.ko || value.en || '';
+                }
+                return value || '';
+            };
+            return crmItems(env).map((item, index) => {
+                const from = normalizeCrmTier(item.beforeTier || item.from);
+                const to = normalizeCrmTier(item.afterTier || item.to);
+                const rawChangeType = String(item.changeType || item.type || '').toLowerCase();
+                const changedBy = item.by || item.changedBy || 'System';
+                const changeType = rawChangeType === 'manual' || (!rawChangeType && changedBy && changedBy !== 'System') ? 'manual' : 'auto';
+                if (order[to] < order[from] && changeType !== 'manual') return null;
+                const name = item.guestName || item.name || item.guestId || 'Guest';
+                return {
+                    ...item,
+                    date: item.changedAt || item.date || '',
+                    name,
+                    init: item.init || crmInitial(name),
+                    color: item.color || ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'][index % 4],
+                    from,
+                    to,
+                    dir: order[to] > order[from] ? 'up' : 'change',
+                    changeType,
+                    reason: localized(item.reason),
+                    by: changedBy
+                };
+            }).filter(Boolean);
+        };
         try {
             if (window.PmsMockApi) {
                 const env = await window.PmsMockApi.request('GET', '/crm/tier-history');
-                const order = { standard: 0, gold: 1, platinum: 2, diamond: 3 };
-                const localized = (value) => {
-                    if (value && typeof value === 'object') {
-                        const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
-                        return value[lang] || value.ko || value.en || '';
-                    }
-                    return value || '';
-                };
-                return crmItems(env).map((item, index) => {
-                    const from = normalizeCrmTier(item.beforeTier || item.from);
-                    const to = normalizeCrmTier(item.afterTier || item.to);
-                    const rawChangeType = String(item.changeType || item.type || '').toLowerCase();
-                    const changedBy = item.by || item.changedBy || 'System';
-                    const changeType = rawChangeType === 'manual' || (!rawChangeType && changedBy && changedBy !== 'System') ? 'manual' : 'auto';
-                    if (order[to] < order[from] && changeType !== 'manual') return null;
-                    const name = item.guestName || item.name || item.guestId || 'Guest';
-                    return {
-                        ...item,
-                        date: item.changedAt || item.date || '',
-                        name,
-                        init: item.init || crmInitial(name),
-                        color: item.color || ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'][index % 4],
-                        from,
-                        to,
-                        dir: order[to] > order[from] ? 'up' : 'change',
-                        changeType,
-                        reason: localized(item.reason),
-                        by: changedBy
-                    };
-                }).filter(Boolean);
+                const history = normalizeHistory(env);
+                if (history.length) return history;
             }
         } catch(e) {
             console.warn('Mock tier history fallback', e);
+        }
+        try {
+            const res = await fetch('../data/api/v1/crm/tier-history.json', { cache: 'no-store' });
+            if (res.ok) {
+                const env = await res.json();
+                return normalizeHistory(env);
+            }
+        } catch(e) {
+            console.warn('Fetch failed for tier history', e);
         }
         return [];
     }

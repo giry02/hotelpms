@@ -62,6 +62,7 @@ const groups = items('dashboard/data/api/v1/groups/events.json');
 const allocations = items('dashboard/data/api/v1/groups/room-allocations/GRP-260527-01.json');
 const rooming = items('dashboard/data/api/v1/groups/rooming-list/GRP-260527-01.json');
 const guests = items('dashboard/data/api/v1/crm/guests.json');
+const tierHistory = items('dashboard/data/api/v1/crm/tier-history.json');
 const membershipTiers = items('dashboard/data/api/v1/crm/membership-tiers.json');
 const adminBilling = items('admin/data/api/v1/admin/billing.json');
 const tickets = items('admin/data/api/v1/admin/support-tickets.json');
@@ -106,6 +107,18 @@ guests.forEach(guest => {
   if (rawDoc && !String(rawDoc).includes('*')) errors.push(`guest/${guest.id}: document number must be masked`);
   if (!String(guest.nationality || guest.nation || guest.country || '').trim()) {
     errors.push(`guest/${guest.id}: nationality is required for demo list display`);
+  }
+});
+
+const guestsById = new Map(guests.map(guest => [guest.id, guest]));
+tierHistory.forEach(change => {
+  const guest = guestsById.get(change.guestId);
+  if (!guest) {
+    errors.push(`tier-history/${change.id}: missing guestId ${change.guestId}`);
+    return;
+  }
+  if (change.guestName && guest.name !== change.guestName) {
+    errors.push(`tier-history/${change.id}: guestName ${change.guestName} does not match ${change.guestId} (${guest.name})`);
   }
 });
 

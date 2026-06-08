@@ -1,5 +1,5 @@
 // api-core.js
-const API_VERSION = 'v2.4'; // Bumped to clear invented membership benefit policy data
+const API_VERSION = 'v2.5'; // Bumped to refresh linked membership tier history data
 
 if (localStorage.getItem('pms_api_version') !== API_VERSION) {
     Object.keys(localStorage).forEach(key => {

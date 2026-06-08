@@ -542,7 +542,7 @@ function writeDashboardData() {
   writeJson(DASH_API, 'crm/guests.json', listEnvelope(guests, 'REQ-GUESTS-LIST'));
   writeJson(DASH_API, 'crm/membership-tiers.json', listEnvelope(membershipTiers, 'REQ-MEMBERSHIP-TIERS'));
   writeJson(DASH_API, 'crm/tier-history.json', listEnvelope([
-    { id: 'TH-1', guestId: 'G-1004', beforeTier: 'Silver', afterTier: 'Gold', reason: '누적 매출 기준 도달', changedAt: '2026-05-27' }
+    { id: 'TH-1', guestId: 'G-1004', guestName: 'Martinez Charles', beforeTier: 'Silver', afterTier: 'Gold', reason: '누적 매출 기준 도달', changedAt: '2026-05-27' }
   ], 'REQ-TIER-HISTORY'));
   writeJson(DASH_API, 'crm/documents.sample.json', envelope({ status: 'uploaded', maskedNumber: 'P****789' }, 'REQ-GUEST-DOCUMENT'));
   writeJson(DASH_API, 'crm/notes.sample.json', envelope({ status: 'saved' }, 'REQ-GUEST-NOTE'));
