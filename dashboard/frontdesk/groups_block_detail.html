@@ -1628,7 +1628,7 @@ window.addEventListener('DataReady', () => {
             <div class="room-assignment-toolbar">
                 <div>
                     <div class="section-title" style="margin-bottom:4px"><i class="fa-solid fa-bed"></i> 객실 배정</div>
-                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">배정 ${assigned.length}실 · 행사 적용 할인 ${safe(discount || 0)}%</div>
+                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">배정 ${assigned.length}실 · 행사 적용 할인 ${safe(discount || 0)}% · 아래 편집 영역에서 추가/삭제 후 저장</div>
                 </div>
                 <div class="room-assignment-actions">
                     <button class="mini-btn" onclick="addDetailAllocationRow()"><i class="fa-solid fa-plus"></i> 호실 추가</button>
@@ -1636,22 +1636,6 @@ window.addEventListener('DataReady', () => {
                 </div>
             </div>
             <div id="detailAllocationEditor" class="allocation-editor"></div>
-            <table class="data-table room-assignment-table">
-                <thead><tr><th>객실</th><th>타입</th><th>기준 단가</th><th>할인</th><th>최종 단가</th><th>상태</th></tr></thead>
-                <tbody>
-                    ${assigned.map(room => {
-                        const display = typeof roomDisplayName === 'function' ? roomDisplayName(room) : (room.roomLabel || room.roomId);
-                        return `<tr>
-                            <td><span class="room-chip">${safe(display)}</span></td>
-                            <td><div class="event-metric">${safe(room.type || '-')}</div></td>
-                            <td>${money(room.baseRate || 0)}</td>
-                            <td>${safe(room.discountPercent || 0)}%</td>
-                            <td>${money(room.rate || 0)}</td>
-                            <td><span class="stage-pill stage-live">배정됨</span></td>
-                        </tr>`;
-                    }).join('') || '<tr><td colspan="6">배정된 객실이 없습니다. 상단에서 호실을 추가하세요.</td></tr>'}
-                </tbody>
-            </table>
             <div class="detail-sticky-actions">
                 <div class="hint"><i class="fa-solid fa-floppy-disk"></i> 객실과 행사별 요금 변경사항을 저장합니다.</div>
                 <button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button>

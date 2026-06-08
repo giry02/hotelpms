@@ -288,26 +288,21 @@ function assert(condition, message, details = null) {
       const roomsTab = Array.from(document.querySelectorAll('.local-tab')).find(button => (button.getAttribute('onclick') || '').includes("'rooms'"));
       const roomingTab = Array.from(document.querySelectorAll('.local-tab')).find(button => (button.getAttribute('onclick') || '').includes("'rooming'"));
       if (typeof switchTab === 'function') switchTab('rooms', roomsTab);
-      const emptyCell = document.querySelector('.room-assignment-table td[colspan="6"]');
-      const table = document.querySelector('.room-assignment-table');
-      const cellRect = emptyCell?.getBoundingClientRect();
-      const tableRect = table?.getBoundingClientRect();
+      const roomsPanel = document.getElementById('rooms');
+      const editor = roomsPanel?.querySelector('#detailAllocationEditor');
+      const duplicateTable = roomsPanel?.querySelector('.room-assignment-table');
       return {
-        text: emptyCell?.textContent.trim() || '',
         roomsTabText: roomsTab?.textContent.trim() || '',
         roomingTabText: roomingTab?.textContent.trim() || '',
         roomingTabVisible: !!roomingTab && getComputedStyle(roomingTab).display !== 'none',
-        roomsPanelText: document.getElementById('rooms')?.textContent || '',
-        textAlign: emptyCell ? getComputedStyle(emptyCell).textAlign : null,
-        cellWidth: Math.round(cellRect?.width || 0),
-        tableWidth: Math.round(tableRect?.width || 0),
-        visible: !!emptyCell && cellRect.width > 0 && cellRect.height > 0
+        roomsPanelText: roomsPanel?.textContent || '',
+        editorVisible: !!editor && editor.getBoundingClientRect().width > 0,
+        duplicateTableExists: !!duplicateTable
       };
     });
 
-    assert(detailResult.visible, 'Group detail empty assignment row must be visible.', detailResult);
-    assert(detailResult.textAlign === 'center', 'Group detail empty assignment row must be centered.', detailResult);
-    assert(detailResult.cellWidth === detailResult.tableWidth, 'Group detail empty assignment row must span the full table.', detailResult);
+    assert(detailResult.editorVisible, 'Group detail room allocation editor must remain visible.', detailResult);
+    assert(!detailResult.duplicateTableExists, 'Group detail room allocation tab must not duplicate selected rooms in a second table.', detailResult);
     assert(detailResult.roomsTabText === '객실 배정', 'Group detail rooms tab must only represent room allocation.', detailResult);
     assert(detailResult.roomingTabText === '투숙객 명단' && detailResult.roomingTabVisible, 'Group detail rooming tab must be visible as a separate guest list.', detailResult);
     assert(!detailResult.roomsPanelText.includes('투숙객 등록'), 'Room allocation tab must not include guest registration actions.', detailResult);
@@ -322,7 +317,7 @@ function assert(condition, message, details = null) {
         'group detail hydrates company data for existing events',
         'group detail separates company baseline and event discount',
         'group detail requires registered company selection',
-        'group detail empty room assignment message is centered',
+        'group detail avoids duplicate selected-room summary in allocation tab',
         'group detail splits room allocation and rooming list tabs'
       ]
     }, null, 2));
