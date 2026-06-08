@@ -1844,19 +1844,38 @@ async function deleteGroup(id) {
         return date;
     }
 
+    function normalizedGroupStatus(group) {
+        return String(group?.status || '').toLowerCase().replace(/[_\s]/g, '-');
+    }
+
+    function normalizedSettlementStatus(group) {
+        return String(group?.settlementStatus || group?.settlement || '').toLowerCase().replace(/[_\s]/g, '-');
+    }
+
+    function isPastEvent(group) {
+        const checkout = parseDate(group.checkout);
+        const status = normalizedGroupStatus(group);
+        return ['departed', 'completed', 'checked-out', 'checkout'].includes(status) || !!(checkout && checkout <= todayDate());
+    }
+
+    function isSettlementNeeded(group) {
+        const settlement = normalizedSettlementStatus(group);
+        if (['paid', 'settled', 'complete', 'completed'].includes(settlement)) return false;
+        return isPastEvent(group);
+    }
+
     function stageOf(group) {
         const now = todayDate();
         const checkin = parseDate(group.checkin);
         const checkout = parseDate(group.checkout);
-        const departedOrPast = group.status === 'departed' || (checkout && checkout <= now);
-        const unsettled = group.settlementStatus === 'pending' || group.settlementStatus === 'unpaid' || (departedOrPast && group.settlementStatus !== 'paid');
-        if (unsettled && departedOrPast) return { key: 'settlement', label: T.settlement, cls: 'stage-settle' };
+        const status = normalizedGroupStatus(group);
+        if (isSettlementNeeded(group) && isPastEvent(group)) return { key: 'settlement', label: T.settlement, cls: 'stage-settle' };
         if (checkin && checkin.getTime() === now.getTime()) return { key: 'today', label: T.today, cls: 'stage-today' };
         if (checkin && checkout && checkin <= now && checkout > now) return { key: 'active', label: T.active, cls: 'stage-live' };
         if (checkin && checkin > now) return { key: 'upcoming', label: T.upcoming, cls: 'stage-upcoming' };
         if (checkout && checkout <= now) return { key: 'past', label: T.past, cls: 'stage-past' };
-        if (group.status === 'inhouse') return { key: 'active', label: T.active, cls: 'stage-live' };
-        if (group.status === 'departed') return { key: 'past', label: T.past, cls: 'stage-past' };
+        if (status === 'inhouse' || status === 'in-house') return { key: 'active', label: T.active, cls: 'stage-live' };
+        if (['departed', 'completed', 'checked-out', 'checkout'].includes(status)) return { key: 'past', label: T.past, cls: 'stage-past' };
         return { key: 'upcoming', label: T.upcoming, cls: 'stage-upcoming' };
     }
 
@@ -1944,6 +1963,8 @@ async function deleteGroup(id) {
             counts.all += 1;
             const key = stageOf(group).key;
             if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key] += 1;
+            if (key !== 'past' && isPastEvent(group)) counts.past += 1;
+            if (key !== 'settlement' && isSettlementNeeded(group)) counts.settlement += 1;
         });
         return counts;
     }
@@ -1987,10 +2008,7 @@ async function deleteGroup(id) {
     function updateKpis(list = eventData()) {
         const activeCount = list.filter(group => stageOf(group).key === 'active').length;
         const roomCount = list.reduce((sum, group) => sum + assignedRooms(group).length, 0);
-        const settlementCount = list.filter(group => {
-            const stage = stageOf(group).key;
-            return stage === 'settlement' || (stage === 'past' && group.settlementStatus !== 'paid');
-        }).length;
+        const settlementCount = list.filter(isSettlementNeeded).length;
         const total = document.getElementById('kpiTotalGroups');
         const live = document.getElementById('kpiInhouse');
         const blocks = document.getElementById('kpiBlocks');
@@ -2029,7 +2047,10 @@ async function deleteGroup(id) {
         const query = String(search || '').toLowerCase();
         const filtered = list.filter(group => {
             const stage = stageOf(group);
-            const statusMatches = eventStatus === 'all' || stage.key === eventStatus;
+            const statusMatches = eventStatus === 'all'
+                || stage.key === eventStatus
+                || (eventStatus === 'past' && isPastEvent(group))
+                || (eventStatus === 'settlement' && isSettlementNeeded(group));
             return statusMatches && matchesCompanyFilter(group) && matchesSearchFilter(group, query);
         }).sort((a, b) => {
             const order = { today: 0, active: 1, settlement: 2, upcoming: 3, past: 4 };
