@@ -808,27 +808,109 @@ window.addEventListener('DataReady', () => {
 <script>
 (function(){
     let detailCompanies = [];
+    let detailCompaniesHydrating = null;
     function safeAttr(value) {
         return String(value || '').replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
     }
-    function loadDetailCompanies() {
-        try { detailCompanies = JSON.parse(localStorage.getItem('pms_companies') || '[]'); } catch(e) { detailCompanies = []; }
-        if (!Array.isArray(detailCompanies)) detailCompanies = [];
+    function normalizeCompanyRecord(company = {}) {
+        const contact = company.contact || {};
+        const rawBilling = company.billing && typeof company.billing === 'object'
+            ? company.billing.paymentTerm
+            : company.billing;
+        const billing = {
+            'master-folio': 'Master Folio',
+            'agency-credit': '업체 후불',
+            'company-card': '법인카드',
+            individual: '개별 결제'
+        }[rawBilling] || rawBilling || '';
+        const discount = Number(company.groupDiscount ?? company.discountPercent ?? 0);
+        const id = company.id || company.companyId || '';
+        const name = company.name || company.companyName || company.displayName || company.label || id;
+        return {
+            ...company,
+            id,
+            name,
+            displayName: company.displayName || company.label || name,
+            label: company.label || company.displayName || name,
+            contactName: company.contactName || contact.name || '',
+            phone: company.phone || contact.phone || '',
+            email: company.email || contact.email || '',
+            billing,
+            groupDiscount: company.groupDiscount ?? discount,
+            discountPercent: company.discountPercent ?? discount,
+            rate: company.rate || (discount ? `객실 ${discount}% 할인` : '')
+        };
+    }
+    function setDetailCompanies(list) {
+        detailCompanies = (Array.isArray(list) ? list : []).map(normalizeCompanyRecord).filter(c => c.id);
+        if (detailCompanies.length) localStorage.setItem('pms_companies', JSON.stringify(detailCompanies));
         return detailCompanies;
     }
+    function loadDetailCompanies() {
+        try {
+            const stored = JSON.parse(localStorage.getItem('pms_companies') || '[]');
+            if (Array.isArray(stored) && stored.length) return setDetailCompanies(stored);
+        } catch(e) {}
+        if (!detailCompanies.length && !detailCompaniesHydrating) hydrateDetailCompanies();
+        return detailCompanies;
+    }
+    async function fetchStaticCompanies() {
+        try {
+            const response = await fetch('../data/api/v1/b2b/companies.json', { cache: 'no-store' });
+            if (!response.ok) return [];
+            const payload = await response.json();
+            return payload?.data?.items || payload?.items || [];
+        } catch(e) {
+            return [];
+        }
+    }
+    async function hydrateDetailCompanies() {
+        if (detailCompaniesHydrating) return detailCompaniesHydrating;
+        detailCompaniesHydrating = (async () => {
+            let companies = [];
+            try {
+                if (window.PmsAPI?.getCompanies) companies = await window.PmsAPI.getCompanies();
+            } catch(e) {}
+            if (!Array.isArray(companies) || !companies.length) companies = await fetchStaticCompanies();
+            const normalized = setDetailCompanies(companies);
+            reconcileGroupCompany();
+            return normalized;
+        })().finally(() => { detailCompaniesHydrating = null; });
+        return detailCompaniesHydrating;
+    }
     function companyById(id) {
-        return loadDetailCompanies().find(c => c.id === id);
+        if (!id) return null;
+        return loadDetailCompanies().find(c => String(c.id) === String(id || '') || String(c.companyId || '') === String(id || ''));
+    }
+    function companyNames(company) {
+        return [company?.name, company?.displayName, company?.label, company?.companyName].filter(Boolean).map(value => String(value).toLowerCase());
     }
     function companyForGroup() {
         const companies = loadDetailCompanies();
-        if (group?.agencyId) {
-            const byId = companies.find(c => c.id === group.agencyId);
+        const groupCompanyId = group?.agencyId || group?.companyId;
+        if (groupCompanyId) {
+            const byId = companies.find(c => String(c.id) === String(groupCompanyId) || String(c.companyId || '') === String(groupCompanyId));
             if (byId) return byId;
         }
-        if (group?.agency) {
-            return companies.find(c => c.name === group.agency || group.agency.includes(c.name) || c.name.includes(group.agency));
+        const agency = String(group?.agency || group?.companyName || '').toLowerCase();
+        if (agency) {
+            return companies.find(c => companyNames(c).some(name => name === agency || agency.includes(name) || name.includes(agency)));
         }
         return null;
+    }
+    function reconcileGroupCompany() {
+        if (!group) return null;
+        const params = new URLSearchParams(location.search);
+        const paramCompanyId = params.get('companyId') || '';
+        const company = companyById(group.agencyId || group.companyId || paramCompanyId) || companyForGroup();
+        if (!company) return null;
+        group.agencyId = company.id;
+        group.companyId = group.companyId || company.id;
+        group.agency = group.agency || group.companyName || company.name || company.displayName || '';
+        group.companyName = group.companyName || group.agency;
+        if ((!group.routing || group.routing === 'Master Folio') && company.billing) group.routing = company.billing;
+        if (!group.contact) group.contact = [company.contactName, company.phone].filter(Boolean).join(' / ');
+        return company;
     }
     function companyDiscount() {
         const c = companyForGroup();
@@ -838,7 +920,7 @@ window.addEventListener('DataReady', () => {
         return m ? Number(m[1]) : 0;
     }
     function companyDisplayName(company) {
-        return [company?.name, company?.type].filter(Boolean).join(' · ') || company?.id || '';
+        return [company?.displayName || company?.name, company?.type].filter(Boolean).join(' · ') || company?.id || '';
     }
     function companyInfoHtml(company) {
         if (!company) {
@@ -856,7 +938,7 @@ window.addEventListener('DataReady', () => {
         </div>`;
     }
     function companySelectOptions(selectedId = '') {
-        const selectedCompany = companyById(selectedId) || companyForGroup();
+        const selectedCompany = companyById(selectedId || group?.agencyId || group?.companyId) || companyForGroup();
         const selected = selectedCompany?.id || '';
         const companies = loadDetailCompanies();
         const placeholder = companies.length ? '등록 업체를 선택하세요' : '등록된 업체가 없습니다';
@@ -888,7 +970,7 @@ window.addEventListener('DataReady', () => {
         };
     };
     window.renderOverview = function() {
-        const c = companyForGroup();
+        const c = reconcileGroupCompany() || companyForGroup();
         document.getElementById('overview').innerHTML = `
             <div class="section-title"><i class="fa-solid fa-circle-info"></i> 행사 기본 정보</div>
             <div class="form-grid">
@@ -921,6 +1003,15 @@ window.addEventListener('DataReady', () => {
                 <button class="mini-btn primary" onclick="saveBasicInfo()"><i class="fa-solid fa-check"></i> 행사 저장</button>
             </div>`;
     };
+    function refreshAfterCompanyHydration() {
+        hydrateDetailCompanies().then(() => {
+            if (!group) return;
+            reconcileGroupCompany();
+            if (typeof renderAll === 'function') renderAll();
+        });
+    }
+    document.addEventListener('DOMContentLoaded', () => setTimeout(refreshAfterCompanyHydration, 0));
+    window.addEventListener('DataReady', refreshAfterCompanyHydration);
     window.syncSelectedCompanyInfo = function() {
         const c = companyById(document.getElementById('detailAgencyId')?.value);
         if (!c) return;

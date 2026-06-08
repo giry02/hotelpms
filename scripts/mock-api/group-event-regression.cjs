@@ -101,6 +101,7 @@ function assert(condition, message, details = null) {
       localStorage.setItem('pms_lang', 'ko');
       localStorage.removeItem('pms_groups');
       localStorage.removeItem('pms_reservations');
+      localStorage.removeItem('pms_companies');
     });
 
     await page.goto(`${base}/dashboard/frontdesk/groups_blocks.html`, { waitUntil: 'domcontentloaded' });
@@ -189,6 +190,37 @@ function assert(condition, message, details = null) {
     assert(result.past.overlap && result.past.paidPast && !result.past.futurePending, 'Past filter membership is wrong.', result);
     assert(result.settlement.overlap && !result.settlement.paidPast && !result.settlement.futurePending, 'Settlement filter membership is wrong.', result);
 
+    await page.evaluate(() => {
+      localStorage.removeItem('pms_companies');
+      localStorage.removeItem('mockapi:v1:TENANT-GRAND-SAIGON:companies');
+    });
+    await page.goto(`${base}/dashboard/frontdesk/groups_block_detail.html?id=GRP-260604-01`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => {
+      const select = document.getElementById('detailAgencyId');
+      return !!select && Array.from(select.options).some(option => option.value === 'COMP-1002');
+    }, null, { timeout: 15000 });
+
+    const hydratedCompanyResult = await page.evaluate(() => {
+      const select = document.getElementById('detailAgencyId');
+      const options = Array.from(select?.options || []).map(option => ({ value: option.value, text: option.textContent || '' }));
+      let storedCount = 0;
+      try { storedCount = JSON.parse(localStorage.getItem('pms_companies') || '[]').length; } catch (e) {}
+      return {
+        value: select?.value || '',
+        optionValues: options.map(option => option.value),
+        optionText: options.map(option => option.text).join(' | '),
+        agencyId: group?.agencyId || '',
+        agency: group?.agency || '',
+        storedCount,
+        overviewText: document.getElementById('overview')?.innerText || ''
+      };
+    });
+
+    assert(hydratedCompanyResult.storedCount >= 3, 'Group detail must hydrate registered companies from API data.', hydratedCompanyResult);
+    assert(hydratedCompanyResult.optionValues.includes('COMP-1002'), 'Group detail company select must include Hana Tour company option.', hydratedCompanyResult);
+    assert(hydratedCompanyResult.value === 'COMP-1002' && hydratedCompanyResult.agencyId === 'COMP-1002', 'Group detail must auto-select the event company linkage.', hydratedCompanyResult);
+
     await page.goto(`${base}/dashboard/frontdesk/groups_block_detail.html?mode=new`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForFunction(() => typeof window.renderRooms === 'function', null, { timeout: 15000 });
@@ -267,6 +299,7 @@ function assert(condition, message, details = null) {
         'past and settlement-needed filters can overlap',
         'past count includes paid and unsettled past events',
         'settlement-needed count excludes paid past and future pending events',
+        'group detail hydrates company data for existing events',
         'group detail requires registered company selection',
         'group detail empty room assignment message is centered'
       ]
