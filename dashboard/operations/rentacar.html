@@ -161,6 +161,17 @@ const tMap = {
     'sk': { label:'SK렌터카', icon:'fa-car', color:'var(--purple)' },
 };
 
+const VEHICLE_CLASSES = [
+    { value: 'compact', label: '\uCEF4\uD329\uD2B8', icon: 'fa-car-side' },
+    { value: 'sedan', label: '\uC138\uB2E8', icon: 'fa-car' },
+    { value: 'suv', label: 'SUV', icon: 'fa-truck-monster' },
+    { value: 'van', label: '\uBC34/\uC2B9\uD569', icon: 'fa-van-shuttle' },
+    { value: 'electric', label: '\uC804\uAE30\uCC28', icon: 'fa-bolt' },
+    { value: 'hybrid', label: '\uD558\uC774\uBE0C\uB9AC\uB4DC', icon: 'fa-leaf' },
+    { value: 'luxury', label: '\uB7ED\uC154\uB9AC', icon: 'fa-gem' },
+    { value: 'chauffeur', label: '\uAE30\uC0AC \uD3EC\uD568', icon: 'fa-user-tie' }
+];
+
 let currentFilter = 'all';
 let currentPeriodFilter = 'week';
 let currentStatusFilter = 'all';
@@ -198,6 +209,50 @@ function providerMetaFor(order) {
         icon: known.icon || 'fa-car',
         color: known.color || 'var(--txt2)'
     };
+}
+
+function vehicleClassOf(order) {
+    const raw = String(order?.vehicleClass || order?.carClass || order?.vehicleType || order?.carType || '').trim();
+    if (raw) return raw;
+    const itemText = String(order?.items || '').toLowerCase();
+    if (/ev|electric|tesla|ioniq/.test(itemText)) return 'electric';
+    if (/hybrid/.test(itemText)) return 'hybrid';
+    if (/van|carnival|staria/.test(itemText)) return 'van';
+    if (/suv|sorento|palisade/.test(itemText)) return 'suv';
+    if (/g80|bmw|benz|mercedes|premium/.test(itemText)) return 'luxury';
+    if (/chauffeur/.test(itemText)) return 'chauffeur';
+    if (/k3|compact/.test(itemText)) return 'compact';
+    return 'sedan';
+}
+
+function vehicleClassMeta(value) {
+    const key = String(value || '').trim();
+    return VEHICLE_CLASSES.find(item => item.value === key || item.label === key) || {
+        value: key || 'sedan',
+        label: key || '\uC138\uB2E8',
+        icon: 'fa-car'
+    };
+}
+
+function vehicleClassLabel(order) {
+    return vehicleClassMeta(vehicleClassOf(order)).label;
+}
+
+function refreshVehicleClassOptions() {
+    const select = document.getElementById('rentCarType');
+    if (!select) return;
+    select.innerHTML = [
+        '<option value="">\uCC28\uC885 \uC120\uD0DD...</option>',
+        ...VEHICLE_CLASSES.map(item => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`),
+        '<option value="custom">\uC9C1\uC811 \uC785\uB825</option>'
+    ].join('');
+    toggleVehicleClassCustom();
+}
+
+function toggleVehicleClassCustom() {
+    const select = document.getElementById('rentCarType');
+    const custom = document.getElementById('rentCarTypeCustom');
+    if (custom) custom.style.display = select?.value === 'custom' ? 'block' : 'none';
 }
 
 function providerEntries() {
@@ -356,7 +411,7 @@ function renderOrders() {
         if (currentStatusFilter === 'open' && status === 'done') return false;
         if (currentStatusFilter === 'done' && status !== 'done') return false;
         if (!orderMatchesPeriod(o)) return false;
-        const haystack = [o.room, o.guest, o.id, o.items, providerLabelFor(o)].join(' ').toLowerCase();
+        const haystack = [o.room, o.guest, o.id, o.items, providerLabelFor(o), vehicleClassLabel(o)].join(' ').toLowerCase();
         if (search && !haystack.includes(search)) return false;
         return true;
     });
@@ -368,6 +423,7 @@ function renderOrders() {
 
     container.innerHTML = filtered.map(o => {
         const info = providerMetaFor(o);
+        const vehicle = vehicleClassMeta(vehicleClassOf(o));
         const status = orderStatusKey(o);
         
         let sHtml, actBtn;
@@ -394,6 +450,9 @@ function renderOrders() {
                         <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:6px">${escapeHtml(o.id)}</span>
                     </div>
                     <div class="hk-task-meta" style="color:var(--txt);font-weight:500">
+                        <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:999px;background:rgba(59,130,246,.08);color:var(--primary);font-size:.72rem;font-weight:800;margin-right:6px">
+                            <i class="fa-solid ${escapeHtml(vehicle.icon)}"></i> ${escapeHtml(vehicle.label)}
+                        </span>
                         ${escapeHtml(o.items)}
                     </div>
                     <div class="hk-task-meta">
@@ -512,7 +571,10 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
 }
 
 // 모달 및 오더 등록 로직
-function openModal(id) { document.getElementById(id).classList.add('active'); }
+function openModal(id) {
+    if (id === 'addOrderModal') refreshVehicleClassOptions();
+    document.getElementById(id).classList.add('active');
+}
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function saveOrder() {
     showToast('새 Ancillary Svcs 오더가 시스템에 등록되었습니다.');
@@ -580,11 +642,12 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">차량 등급 (차종) <span style="color:var(--danger)">*</span></label>
-                    <select id="rentCarType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                    <select id="rentCarType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="toggleVehicleClassCustom()">
                         <option>세단</option>
                         <option>패밀리 SUV</option>
                         <option>럭셔리 밴</option>
                     </select>
+                    <input type="text" id="rentCarTypeCustom" style="display:none;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="&#50696;: &#54589;&#50629;&#53944;&#47085;, &#47532;&#47924;&#51652;, &#51204;&#44592; SUV">
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
@@ -703,6 +766,7 @@ function updateFilterCounts() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        refreshVehicleClassOptions();
         orders = await PmsAPI.getRentacarOrders();
         updateFilterCounts();
         renderOrders();
