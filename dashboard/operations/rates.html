@@ -254,6 +254,16 @@ function roomTypeLabel(rt) {
     return view ? `${name} · ${view}` : name || '-';
 }
 
+function sortedRoomTypes(list = roomTypes) {
+    return [...(list || [])].sort((a, b) => {
+        const nameCompare = String(a?.name || a?.id || '').localeCompare(String(b?.name || b?.id || ''), ['ko', 'en'], { numeric: true, sensitivity: 'base' });
+        if (nameCompare !== 0) return nameCompare;
+        const viewCompare = String(a?.view || '').localeCompare(String(b?.view || ''), ['ko', 'en'], { numeric: true, sensitivity: 'base' });
+        if (viewCompare !== 0) return viewCompare;
+        return String(a?.id || '').localeCompare(String(b?.id || ''), ['ko', 'en'], { numeric: true, sensitivity: 'base' });
+    });
+}
+
 function normalizeRateRoomType(rt) {
     const id = rt.id || rt.typeId || rt.code || rt.name;
     const base = Number(rt.basePrice ?? rt.baseRate?.amount ?? rt.baseRate ?? 0);
@@ -273,7 +283,8 @@ function populateBatchRoomTypes() {
     const select = document.getElementById('batchRoomType');
     if (!select) return;
     const current = select.value || 'all';
-    select.innerHTML = `<option value="all">전체 객실 유형</option>` + roomTypes.map(rt => (
+    const sortedTypes = sortedRoomTypes();
+    select.innerHTML = `<option value="all">전체 객실 유형</option>` + sortedTypes.map(rt => (
         `<option value="${rt.id}">${roomTypeLabel(rt)}</option>`
     )).join('');
     select.value = current === 'all' || roomTypes.some(rt => rt.id === current) ? current : 'all';
@@ -316,7 +327,7 @@ function ratesToApiRows() {
     const rows = [];
     Object.keys(dailyRates).sort().forEach(date => {
         const byType = dailyRates[date] || {};
-        roomTypes.forEach(rt => {
+        sortedRoomTypes().forEach(rt => {
             if (byType[rt.id] === undefined) return;
             const amount = Number(byType[rt.id] || 0);
             rows.push({
@@ -427,7 +438,8 @@ function renderCalendar() {
     // 1. 헤더 생성
     let thHtml = `<th class="date-col">일자</th>`;
     const currencyCode = getCurrencyCode();
-    roomTypes.forEach(rt => {
+    const displayRoomTypes = sortedRoomTypes();
+    displayRoomTypes.forEach(rt => {
         thHtml += `<th>${roomTypeLabel(rt)}<br><span style="font-size:0.75rem;font-weight:400;color:var(--txt3)">기준: ${currencyCode} ${formatRate(rt.basePrice)}</span></th>`;
     });
     header.innerHTML = thHtml;
@@ -458,7 +470,7 @@ function renderCalendar() {
         trHtml += `<tr class="${rowClass}">`;
         trHtml += `<td class="date-col ${textClass}">${parseInt(month)}/${day} (${dayNames[dayOfWeek]})</td>`;
         
-        roomTypes.forEach(rt => {
+        displayRoomTypes.forEach(rt => {
             // 저장된 요금이 있으면 사용, 없으면 기본 요금 사용
             let price = rt.basePrice;
             if (dailyRates[dateStr] && dailyRates[dateStr][rt.id] !== undefined) {
