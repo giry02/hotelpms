@@ -16,7 +16,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         currency,
         maximumFractionDigits: currency === 'USD' ? 2 : 0
     }).format(Number(amount || 0));
-    const localIso = (date = new Date()) => {
+    const localIso = (date) => {
+        if (!date && window.PmsDate?.todayIso) return window.PmsDate.todayIso();
+        date = date || new Date();
         const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
         return shifted.toISOString().slice(0, 10);
     };
@@ -131,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const adr = occupiedRooms.length ? formatMoney(dailyRoomRevenue / occupiedRooms.length, currency) : formatMoney(0, currency);
     const revpar = formatMoney(dailyRoomRevenue / totalRooms, currency);
 
-    const today = localIso();
+    const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : localIso();
     const todayCheckinRes = reservations.filter(r =>
         dateMatches(r.checkInDate || r.checkin || r.cin, today) && normalizeStatus(r.status) === 'confirmed'
     );

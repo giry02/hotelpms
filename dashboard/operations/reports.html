@@ -618,7 +618,7 @@ function selectedNumber(id, fallback){
     const match = String(el?.value || el?.textContent || '').match(/\d+/);
     return match ? Number(match[0]) : fallback;
 }
-const CURRENT_REPORT_PERIOD = { year: 2026, month: 6, week: 2, day: 6 };
+const CURRENT_REPORT_PERIOD = { year: 2026, month: 6, week: 2, day: 10 };
 function setSelectByNumber(id, number){
     const el = document.getElementById(id);
     if(!el) return;
@@ -650,18 +650,25 @@ function filterDailyRows(month, week, day){
         return parts.month === month && (!week || weekOfMonth(row) === week);
     });
 }
+function isCurrentReportWeek(month, week){
+    return month === CURRENT_REPORT_PERIOD.month && (!week || week === CURRENT_REPORT_PERIOD.week);
+}
+function currentWeekToDateRows(rows, month, week){
+    if(!isCurrentReportWeek(month, week)) return rows;
+    return rows.filter(row => monthAndDay(row).day <= CURRENT_REPORT_PERIOD.day);
+}
 function syncSelectedPeriodData(){
     const month = selectedNumber('selMonth', 6);
     const week = selectedNumber('selWeek', 2);
     const day = CURRENT_REPORT_PERIOD.day;
-    const rows = currentChartPeriod === 'day' ? filterDailyRows(month, null, day) : filterDailyRows(month, week);
+    const rows = currentChartPeriod === 'day' ? filterDailyRows(month, null, day) : currentWeekToDateRows(filterDailyRows(month, week), month, week);
     dailyData = rows.length ? rows : allDailyData.slice(-7);
     selectedDailyIndex = dailyData.length ? Math.min(selectedDailyIndex ?? dailyData.length - 1, dailyData.length - 1) : null;
 
     const trendRows = allTrendData.filter(row => {
         const parts = monthAndDay(row);
         if(currentChartPeriod === 'day') return parts.month === month && parts.day <= day && parts.day > day - 7;
-        return parts.month === month && (!week || weekOfMonth(row) === week);
+        return parts.month === month && (!week || weekOfMonth(row) === week) && (!isCurrentReportWeek(month, week) || parts.day <= day);
     });
     trendData = (trendRows.length ? trendRows : allTrendData.slice(-7)).slice(-7);
 }
@@ -713,7 +720,7 @@ function getPeriodBreakdown(type = currentChartPeriod){
     const week = selectedNumber('selWeek', 2);
     const day = CURRENT_REPORT_PERIOD.day;
     if(type === 'day') return sumRevenueBreakdown(filterDailyRows(month, null, day));
-    if(type === 'week') return sumRevenueBreakdown(filterDailyRows(month, week));
+    if(type === 'week') return sumRevenueBreakdown(currentWeekToDateRows(filterDailyRows(month, week), month, week));
     if(type === 'month') return monthlyBreakdown(getMonthlyRow(month));
     return yoyBreakdown(yoyData);
 }

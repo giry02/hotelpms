@@ -1,6 +1,35 @@
 document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.15rem !important; font-weight: 700 !important; margin: 0 !important; line-height: 1.2 !important; display: block !important; }</style>');
 
 (function() {
+    window.PmsDate = window.PmsDate || (function() {
+        const DEMO_ISO_DATE = '2026-06-10';
+        function fromIso(isoDate) {
+            const [year, month, day] = String(isoDate || DEMO_ISO_DATE).slice(0, 10).split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            date.setHours(0, 0, 0, 0);
+            return date;
+        }
+        function now() {
+            const clock = new Date();
+            const date = fromIso(DEMO_ISO_DATE);
+            date.setHours(clock.getHours(), clock.getMinutes(), clock.getSeconds(), clock.getMilliseconds());
+            return date;
+        }
+        function localIso(date) {
+            if (!date) return DEMO_ISO_DATE;
+            const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+            return shifted.toISOString().slice(0, 10);
+        }
+        function pad(value) {
+            return String(value).padStart(2, '0');
+        }
+        function nowIso() {
+            const clock = new Date();
+            return `${DEMO_ISO_DATE}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}+09:00`;
+        }
+        return { demoIsoDate: DEMO_ISO_DATE, todayIso: () => DEMO_ISO_DATE, today: () => fromIso(DEMO_ISO_DATE), now, nowIso, localIso };
+    })();
+
     const pathParts = window.location.pathname.split('/').filter(Boolean);
     const parentDir = pathParts[pathParts.length - 2] || '';
     const subDirs = ['frontdesk', 'operations', 'crm', 'settings'];
@@ -176,7 +205,7 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
     window.updateClock = function() {
         const clockEl = document.querySelector('.date-badge .live-clock');
         if (clockEl) {
-            const now = new Date();
+            const now = window.PmsDate?.now ? window.PmsDate.now() : new Date();
             const locale = currentLang() === 'en' ? 'en-US' : 'ko-KR';
             const dateStr = now.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
             const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });

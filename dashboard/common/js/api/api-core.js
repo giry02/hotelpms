@@ -1,5 +1,47 @@
 // api-core.js
-const API_VERSION = 'v2.5'; // Bumped to refresh linked membership tier history data
+const API_VERSION = 'v2.6'; // Bumped to refresh Wednesday demo date data
+
+window.PmsDate = window.PmsDate || (function() {
+    const DEMO_ISO_DATE = '2026-06-10';
+
+    function fromIso(isoDate) {
+        const [year, month, day] = String(isoDate || DEMO_ISO_DATE).slice(0, 10).split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+
+    function localIso(date) {
+        if (!date) return DEMO_ISO_DATE;
+        const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return shifted.toISOString().slice(0, 10);
+    }
+
+    function now() {
+        const clock = new Date();
+        const date = fromIso(DEMO_ISO_DATE);
+        date.setHours(clock.getHours(), clock.getMinutes(), clock.getSeconds(), clock.getMilliseconds());
+        return date;
+    }
+
+    function pad(value, size = 2) {
+        return String(value).padStart(size, '0');
+    }
+
+    function nowIso() {
+        const clock = new Date();
+        return `${DEMO_ISO_DATE}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}+09:00`;
+    }
+
+    return {
+        demoIsoDate: DEMO_ISO_DATE,
+        todayIso: () => DEMO_ISO_DATE,
+        today: () => fromIso(DEMO_ISO_DATE),
+        now,
+        nowIso,
+        localIso
+    };
+})();
 
 if (localStorage.getItem('pms_api_version') !== API_VERSION) {
     Object.keys(localStorage).forEach(key => {
@@ -19,7 +61,7 @@ function initStorage(key, fallbackData) {
 
 window.PmsMockApi = window.PmsMockApi || (function() {
     const TENANT_ID = 'TENANT-GRAND-SAIGON';
-    const API_VERSION = 'v8';
+    const API_VERSION = 'v9';
     const scriptUrl = document.currentScript ? document.currentScript.src : location.href;
     const dashboardRoot = new URL('../../../', scriptUrl);
     const apiRoot = new URL('data/api/v1/', dashboardRoot);
@@ -207,7 +249,7 @@ window.PmsMockApi = window.PmsMockApi || (function() {
                 tenantId: TENANT_ID,
                 apiVersion: API_VERSION,
                 route: route.path,
-                generatedAt: new Date().toISOString()
+                generatedAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString()
             }
         };
     }

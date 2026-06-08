@@ -245,7 +245,7 @@ function parseOrderDate(value) {
 
 function periodRange(filter) {
     if (filter === 'all') return null;
-    const today = new Date();
+    const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
     today.setHours(0, 0, 0, 0);
     if (filter === 'today') return { start: today, end: today };
     if (filter === 'month') {
@@ -265,7 +265,7 @@ function orderDateValue(order) {
 
 function currentDataDate() {
     const dates = orders.map(orderDateValue).filter(Boolean).sort();
-    return dates[dates.length - 1] || new Date().toISOString().slice(0, 10);
+    return dates[dates.length - 1] || (window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10));
 }
 
 function orderMatchesPeriod(order) {

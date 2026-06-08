@@ -40,7 +40,9 @@
         return [];
     }
 
-    function localIso(date = new Date()) {
+    function localIso(date) {
+        if (!date && window.PmsDate?.todayIso) return window.PmsDate.todayIso();
+        date = date || new Date();
         const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
         return shifted.toISOString().slice(0, 10);
     }
@@ -85,7 +87,7 @@
     }
 
     function chooseRoomAnchorIso(reservations) {
-        const today = localIso();
+        const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : localIso();
         if (occupiedCountOn(reservations, today) > 0) return today;
         const latestOccupied = latestOccupiedIso(reservations);
         if (latestOccupied) return latestOccupied;
@@ -210,7 +212,9 @@
         const trendItems = apiItems(trendEnvelope);
         const roomAnchorIso = chooseRoomAnchorIso(reservations);
         const latestTrendDate = latestIso(trendItems.map((item) => item.date));
-        const revenueAnchorIso = latestTrendDate ? localIso(latestTrendDate) : roomAnchorIso;
+        const todayIso = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : localIso();
+        const hasTodayRevenue = trendItems.some((item) => item.date === todayIso);
+        const revenueAnchorIso = hasTodayRevenue ? todayIso : (latestTrendDate ? localIso(latestTrendDate) : roomAnchorIso);
         weeklySvcData = buildAncillaryServices(trendItems, revenueAnchorIso, true);
         return {
             weekData: buildWeekData(reservations, roomAnchorIso),

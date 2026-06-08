@@ -484,7 +484,8 @@ function parseListDate(value) {
     const text = String(value).trim();
     const md = text.match(/^(\d{1,2})\/(\d{1,2})$/);
     if (md) {
-        const date = new Date(new Date().getFullYear(), Number(md[1]) - 1, Number(md[2]));
+        const base = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+        const date = new Date(base.getFullYear(), Number(md[1]) - 1, Number(md[2]));
         date.setHours(0, 0, 0, 0);
         return date;
     }
@@ -495,7 +496,7 @@ function parseListDate(value) {
 }
 
 function todayDate() {
-    const today = new Date();
+    const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
     today.setHours(0, 0, 0, 0);
     return today;
 }

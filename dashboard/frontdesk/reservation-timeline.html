@@ -185,7 +185,12 @@ window.reservations = [];
 
 const DAYS = 14;
 const EPOCH = new Date(2026, 4, 12); // Base reference date
-let baseDate = new Date(); // Start view from actual today
+function timelineTodayDate() {
+    const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+let baseDate = timelineTodayDate();
 baseDate.setHours(0,0,0,0);
 
 const TL_TEXT = {
@@ -353,7 +358,8 @@ function parseTimelineDate(value) {
     const text = String(value).trim();
     const parts = text.split('/');
     if (parts.length === 2) {
-        const date = new Date(new Date().getFullYear(), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
+        const base = timelineTodayDate();
+        const date = new Date(base.getFullYear(), parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
         date.setHours(0, 0, 0, 0);
         return date;
     }
@@ -369,8 +375,7 @@ function isTimelineCurrentStay(res) {
     const start = parseTimelineDate(res?.checkInDate || res?.checkin || res?.cin);
     const end = parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
     if (!start || !end) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = timelineTodayDate();
     return start <= today && today < end;
 }
 
@@ -384,8 +389,7 @@ function effectiveTimelineStatus(res) {
     let safeStatus = normalizeReservationStatus(res);
     if (safeStatus === 'confirmed' && isTimelineRoomInHouse(res) && isTimelineCurrentStay(res)) safeStatus = 'checkedin';
     const checkoutDate = parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = timelineTodayDate();
     if (checkoutDate && safeStatus === 'checkedin') {
         if (checkoutDate < today) return 'completed';
         if (checkoutDate.getTime() === today.getTime()) return 'checkout';
@@ -610,8 +614,7 @@ function shiftWeek(dir) {
     buildMobileView();
 }
 function goToday() {
-    baseDate = new Date();
-    baseDate.setHours(0,0,0,0);
+    baseDate = timelineTodayDate();
     updateDateRangeText();
     buildTimeline();
     buildMobileView();

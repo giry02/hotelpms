@@ -224,7 +224,8 @@
         const text = String(value).trim();
         const match = text.match(/^(\d{1,2})\/(\d{1,2})$/);
         if (match) {
-            const date = new Date(new Date().getFullYear(), Number(match[1]) - 1, Number(match[2]));
+            const base = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+            const date = new Date(base.getFullYear(), Number(match[1]) - 1, Number(match[2]));
             date.setHours(0, 0, 0, 0);
             return date;
         }
@@ -240,8 +241,7 @@
         const start = parseReservationDate(res?.checkInDate || res?.checkin || res?.cin);
         const end = parseReservationDate(res?.checkOutDate || res?.checkout || res?.cout);
         if (!start || !end) return false;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = todayStart();
         return start <= today && today < end;
     }
 
@@ -302,7 +302,7 @@
     }
 
     function todayStart() {
-        const date = new Date();
+        const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
         date.setHours(0, 0, 0, 0);
         return date;
     }
@@ -499,8 +499,7 @@
     function checkoutDateIsTodayOrPast(res) {
         const end = parseReservationDate(res?.checkOutDate || res?.checkout || res?.cout);
         if (!end) return false;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = todayStart();
         return end <= today;
     }
 
@@ -785,7 +784,7 @@
             await setUnifiedGroupLink(prefillGroupId || '');
             
             // Set default dates to today and tomorrow
-            const today = new Date();
+            const today = todayStart();
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
             setUnifiedDateValue('unifiedCin', prefill?.checkin || prefill?.cin || prefill?.checkInDate, today);
@@ -957,7 +956,7 @@
         
         if (!id) {
             // NEW BOOKING MODE
-            const newId = 'RSV-' + new Date().toISOString().replace(/\D/g,'').slice(0,14) + '-' + Math.floor(Math.random()*1000);
+            const newId = 'RSV-' + (window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString()).replace(/\D/g,'').slice(0,14) + '-' + Math.floor(Math.random()*1000);
             const newRes = {
                 id: newId,
                 guest: guest,
