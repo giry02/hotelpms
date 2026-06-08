@@ -55,15 +55,16 @@
     border-color: var(--danger);
 }
 
-.inline-manage-list{display:flex;flex-direction:column;gap:8px}
+.inline-manage-list{display:flex;flex-direction:column;gap:8px;overflow-x:hidden}
 .inline-manage-row{display:grid;grid-template-columns:minmax(150px,1fr) auto;gap:8px;align-items:end;border:1px solid var(--border);border-radius:8px;padding:10px;background:#fff}
 .inline-manage-row.new-row{background:#f8fafc;border-style:dashed}
-.inline-field{display:flex;flex-direction:column;gap:5px}
+.inline-field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .inline-field label{font-size:.72rem;font-weight:700;color:var(--txt3);text-transform:uppercase}
-.inline-input{height:36px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);font-size:.85rem;background:#fff}
+.inline-input{height:36px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);font-size:.85rem;background:#fff;min-width:0;width:100%}
 .inline-actions{display:flex;gap:6px;justify-content:flex-end}
-.roomtype-row{grid-template-columns:1.05fr .95fr .75fr .75fr .65fr auto}
-.roomtype-row .inline-actions{align-self:end}
+.roomtype-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 8px}
+.roomtype-row .inline-actions{grid-column:1/-1;align-self:end}
+.roomtype-row .roomtype-desc{grid-column:1/-1}
 .inline-subtext{font-size:.72rem;color:var(--txt3);margin-top:4px}
 @media(max-width:900px){
     .roomtype-row{grid-template-columns:1fr 1fr}
@@ -426,22 +427,14 @@ function renderRoomTypes() {
                 <label>코드</label>
                 <input class="inline-input" id="rtCode${index}" value="${escapeAttr(rt.code || rt.id)}" placeholder="예: DLX-OCN">
             </div>
-            <div class="inline-field">
-                <label>기준요금(USD)</label>
-                <input class="inline-input" id="rtPrice${index}" type="number" min="0" value="${Number(rt.basePrice || 0)}">
-            </div>
-            <div class="inline-field">
-                <label>정원</label>
-                <input class="inline-input" id="rtCapacity${index}" type="number" min="1" value="${Number(rt.capacity || 2)}">
-            </div>
-            <div class="inline-actions">
-                <button class="btn-outline-sm" onclick="saveRoomTypeRow(${index})"><i class="fa-solid fa-check"></i> 저장</button>
-                <button class="btn-outline-sm" style="color:var(--danger);border-color:var(--danger)" onclick="deleteRoomType(${index})"><i class="fa-solid fa-trash"></i></button>
-            </div>
-            <div class="inline-field" style="grid-column:1/-1">
+            <div class="inline-field roomtype-desc">
                 <label>설명</label>
                 <input class="inline-input" id="rtDesc${index}" value="${escapeAttr(rt.desc)}" placeholder="예: 최대 2인, 킹베드 1개">
                 <div class="inline-subtext">요금표 기준 항목: ${escapeHtml(roomTypeLabel(rt.id))}</div>
+            </div>
+            <div class="inline-actions">
+                <button class="btn-outline-sm" onclick="saveRoomTypeRow(${index})"><i class="fa-solid fa-check"></i> 저장</button>
+                <button class="btn-outline-sm" style="color:var(--danger);border-color:var(--danger)" onclick="deleteRoomType(${index})"><i class="fa-solid fa-trash"></i> 삭제</button>
             </div>
         </div>
     `).join('');
@@ -453,10 +446,8 @@ function renderRoomTypes() {
                 <div class="inline-field"><label>객실명</label><input class="inline-input" id="newRtName" placeholder="예: Deluxe"></div>
                 <div class="inline-field"><label>뷰 / 구분</label><input class="inline-input" id="newRtView" placeholder="예: City View"></div>
                 <div class="inline-field"><label>코드</label><input class="inline-input" id="newRtCode" placeholder="예: DLX-CITY"></div>
-                <div class="inline-field"><label>기준요금(USD)</label><input class="inline-input" id="newRtPrice" type="number" min="0" placeholder="예: 160"></div>
-                <div class="inline-field"><label>정원</label><input class="inline-input" id="newRtCapacity" type="number" min="1" value="2"></div>
+                <div class="inline-field roomtype-desc"><label>설명</label><input class="inline-input" id="newRtDesc" placeholder="예: 최대 2인, 킹베드 1개"></div>
                 <div class="inline-actions"><button class="btn-primary-sm" onclick="addRoomType()"><i class="fa-solid fa-plus"></i> 추가</button></div>
-                <div class="inline-field" style="grid-column:1/-1"><label>설명</label><input class="inline-input" id="newRtDesc" placeholder="예: 최대 2인, 킹베드 1개"></div>
             </div>
         </div>
     `;
@@ -479,9 +470,6 @@ async function saveRoomTypeRow(index) {
         code,
         name,
         view,
-        basePrice: Number(document.getElementById(`rtPrice${index}`).value || 0),
-        baseRate: Number(document.getElementById(`rtPrice${index}`).value || 0),
-        capacity: Number(document.getElementById(`rtCapacity${index}`).value || 2),
         desc: document.getElementById(`rtDesc${index}`).value.trim()
     });
     allRoomTypes[index] = updated;
@@ -505,9 +493,6 @@ async function addRoomType() {
         code,
         name,
         view,
-        basePrice: Number(document.getElementById('newRtPrice').value || 0),
-        baseRate: Number(document.getElementById('newRtPrice').value || 0),
-        capacity: Number(document.getElementById('newRtCapacity').value || 2),
         desc: document.getElementById('newRtDesc').value.trim()
     }));
     await persistRoomTypes();
