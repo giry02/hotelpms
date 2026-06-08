@@ -431,7 +431,7 @@ function timelineDisplayName(res) {
 }
 
 function timelineGroupBadge(res) {
-    if (!res || !(res.groupId || res.isB2B || res.isGroupPlaceholder)) return '';
+    if (!res || !(res.groupId || res.isGroupPlaceholder)) return '';
     const label = res.groupId && !timelineGuestName(res) ? timelineText('block') : timelineText('group');
     return `<span class="tl-group-badge"><i class="fa-solid fa-users"></i>${label}</span>`;
 }
@@ -444,7 +444,7 @@ function buildTimeline() {
 
     // Count assigned group guests only; unassigned group block rooms are inventory, not guests.
     reservations.forEach(res => {
-        const isB2BGuest = (res.groupId || res.isB2B) && !!timelineGuestName(res);
+        const isB2BGuest = !!(res.groupId && timelineGuestName(res));
         const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
         const effectiveStatus = effectiveTimelineStatus(res);
         if(isVip) cntVip++;
@@ -553,7 +553,6 @@ function buildTimeline() {
             row.style.height = `${requiredHeight}px`;
         }
         
-        const isB2B = res.isB2B;
         const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
 
         const displayName = timelineDisplayName(res);

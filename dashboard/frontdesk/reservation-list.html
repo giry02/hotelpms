@@ -199,7 +199,7 @@
                                 <th>체크인</th>
                                 <th>체크아웃</th>
                                 <th>숙박</th>
-                                <th onclick="sortTable('channel')" style="cursor:pointer" title="클릭하여 채널/B2B 정렬">채널 <i class="fa-solid fa-sort" style="font-size:0.7em; opacity:0.5"></i></th>
+                                <th onclick="sortTable('channel')" style="cursor:pointer" title="클릭하여 채널/단체 정렬">채널 <i class="fa-solid fa-sort" style="font-size:0.7em; opacity:0.5"></i></th>
                                 <th>금액</th>
                                 <th>상태</th>
                                 <th>관리</th>
@@ -306,7 +306,7 @@ const reservationLabels = {
         'channel.direct': '직접',
         'channel.walkin': '방문',
         'channel.corporate': '기업',
-        'channel.group': 'B2B',
+        'channel.group': '단체',
         'action.group': '단체 관리',
         'action.checkin': '체크인',
         'action.checkout': '체크아웃',
@@ -364,7 +364,7 @@ const reservationLabels = {
         'channel.direct': 'Direct',
         'channel.walkin': 'Walk-in',
         'channel.corporate': 'Corporate',
-        'channel.group': 'B2B',
+        'channel.group': 'Group',
         'action.group': 'Rooming',
         'action.checkin': 'Check-in',
         'action.checkout': 'Check-out',
@@ -438,7 +438,7 @@ function normalizedChannelKey(value) {
     if (['direct', 'directbooking'].includes(raw)) return 'direct';
     if (['walkin', 'walk'].includes(raw)) return 'walkin';
     if (['corporate', 'corp'].includes(raw)) return 'corporate';
-    if (['group', 'b2b', 'b2bgroup'].includes(raw)) return 'group';
+    if (['group', 'b2b', 'b2bgroup'].includes(raw)) return 'corporate';
     if (raw.includes('booking')) return 'booking';
     if (raw.includes('agoda')) return 'agoda';
     if (raw.includes('ota')) return 'ota';
@@ -446,7 +446,7 @@ function normalizedChannelKey(value) {
 }
 
 function channelMeta(res) {
-    const key = (res?.isB2B || normalizedChannelKey(res?.channel) === 'group') ? 'group' : normalizedChannelKey(res?.channel);
+    const key = (res?.groupId || res?.isGroupPlaceholder) ? 'group' : normalizedChannelKey(res?.channel);
     const fixedLabels = { ota: 'OTA', agoda: 'Agoda', booking: 'Booking.com' };
     return {
         key,

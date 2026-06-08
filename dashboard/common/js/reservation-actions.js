@@ -101,6 +101,7 @@
                 <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
                   <input type="hidden" id="unifiedResId">
                   <input type="hidden" id="unifiedChannel" value="Walk-in">
+                  <input type="hidden" id="unifiedGroupId" value="">
                 
                 <div id="unifiedGuestSection" style="margin-bottom:20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border2);">
                     ${typeof renderGuestSearchHTML === 'function' ? renderGuestSearchHTML('Edit') : '<div style="color:red">guest-search.js missing</div>'}
@@ -125,12 +126,6 @@
                         <div id="unifiedRoomHelp" style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;"></div>
                     </div>
                     <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Group Booking Link">단체 예약 연결</div>
-                        <div style="display:flex;gap:16px;align-items:center;height:38px;">
-                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--txt);font-family:var(--font);font-size:0.82rem;font-weight:700;line-height:1.35"><input type="checkbox" id="unifiedIsB2B" value="true" onclick="toggleUnifiedGroupSelect()" style="width:16px;height:16px;accent-color:var(--primary);margin:0;"> <span data-i18n-key="Group Customer">단체 고객</span></label>
-                        </div>
-                    </div>
-                    <div class="md-item">
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Status">상태</div>
                         <select id="unifiedStatus" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
                             <option value="blocked" data-i18n-key="Status Blocked">단체 블록</option>
@@ -141,11 +136,9 @@
                             <option value="cancelled" data-i18n-key="Status Cancelled">취소</option>
                         </select>
                     </div>
-                    <div id="unifiedGroupSelectWrapper" style="grid-column:1 / -1;display:none;grid-template-columns:max-content minmax(0,1fr);align-items:center;gap:12px;background:#f8fafc;padding:12px;border:1px solid var(--border2);border-radius:8px;margin:0;">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin:0" data-i18n-key="Select Group Agency">소속 단체 / 여행사 선택</div>
-                        <select id="unifiedGroupId" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
-                            <option value="" data-i18n-key="Select a group...">단체를 선택하세요...</option>
-                        </select>
+                    <div id="unifiedGroupLinkNotice" style="grid-column:1 / -1;display:none;background:#f8fafc;padding:12px;border:1px solid var(--border2);border-radius:8px;margin:0;">
+                        <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin:0 0 4px 0">단체 연결</div>
+                        <div id="unifiedGroupLinkText" style="font-size:0.82rem;font-weight:700;color:var(--txt)"></div>
                     </div>
                 </div>
             </div>
@@ -173,25 +166,56 @@
                     window.updateUnifiedStayAndRooms();
                 });
             });
-            
-            // Populate Groups when modal is created
-            if (typeof window.PmsAPI !== 'undefined' && window.PmsAPI.getGroups) {
-                window.PmsAPI.getGroups().then(groups => {
-                    if (groups && groups.length > 0) {
-                        const sel = document.getElementById('unifiedGroupId');
-                        sel.innerHTML = '<option value="">단체를 선택하세요...</option>';
-                        groups.forEach(g => {
-                            const opt = document.createElement('option');
-                            opt.value = g.id;
-                            opt.textContent = g.name;
-                            sel.appendChild(opt);
-                        });
-                    }
-                }).catch(err => console.log('Error loading groups:', err));
-            }
         }
         const checkinInput = document.getElementById('unifiedCin');
         if (checkinInput?.tagName === 'INPUT') checkinInput.min = todayInputValue();
+    }
+
+    async function unifiedGroups() {
+        const merged = new Map();
+        try {
+            JSON.parse(localStorage.getItem('pms_groups') || '[]').forEach(group => {
+                if (group?.id) merged.set(group.id, group);
+            });
+        } catch(e) {}
+        try {
+            if (window.PmsAPI?.getGroups) {
+                const groups = await window.PmsAPI.getGroups();
+                if (Array.isArray(groups)) {
+                    groups.forEach(group => {
+                        if (group?.id) merged.set(group.id, { ...merged.get(group.id), ...group });
+                    });
+                }
+            }
+        } catch(e) {
+            console.warn('Group lookup failed', e);
+        }
+        return [...merged.values()];
+    }
+
+    async function unifiedGroupName(groupId) {
+        if (!groupId) return '';
+        const groups = await unifiedGroups();
+        const group = groups.find(item => item.id === groupId);
+        return group?.name || groupId;
+    }
+
+    async function setUnifiedGroupLink(groupId) {
+        const input = document.getElementById('unifiedGroupId');
+        const notice = document.getElementById('unifiedGroupLinkNotice');
+        const text = document.getElementById('unifiedGroupLinkText');
+        if (input) input.value = groupId || '';
+        if (!notice || !text) return;
+        if (!groupId) {
+            notice.style.display = 'none';
+            text.textContent = '';
+            return;
+        }
+        const label = await unifiedGroupName(groupId);
+        notice.style.display = 'block';
+        text.textContent = actionLang() === 'en'
+            ? `Linked from group management: ${label}`
+            : `단체관리에서 연결된 예약: ${label}`;
     }
 
     function normalizedReservationStatus(value) {
@@ -542,12 +566,11 @@
         if (guestSection) guestSection.style.display = locked ? 'none' : 'block';
         const blockNotice = document.getElementById('unifiedBlockNotice');
         if (!locked && blockNotice) blockNotice.style.display = 'none';
-        ['unifiedCin', 'unifiedCout', 'unifiedRoom', 'unifiedIsB2B', 'unifiedGroupId', 'unifiedChannel', 'unifiedStatus'].forEach(id => {
+        ['unifiedCin', 'unifiedCout', 'unifiedRoom', 'unifiedChannel', 'unifiedStatus'].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.disabled = locked;
             if (el.tagName === 'SELECT' || el.tagName === 'INPUT') el.style.background = locked ? '#f1f5f9' : '#fff';
-            if (el.type === 'checkbox') el.closest('label')?.style.setProperty('opacity', locked ? '.55' : '1');
         });
 
         const saveBtn = modal.querySelector('button[onclick="saveUnifiedRes()"]');
@@ -694,8 +717,7 @@
     };
     
     window.toggleUnifiedGroupSelect = function() {
-        const isB2B = document.getElementById('unifiedIsB2B').checked;
-        document.getElementById('unifiedGroupSelectWrapper').style.display = isB2B ? 'grid' : 'none';
+        setUnifiedGroupLink(document.getElementById('unifiedGroupId')?.value || '');
     };
 
     window.openUnifiedResModal = async function(resId = null, prefillGroupId = null) {
@@ -767,16 +789,9 @@
             document.getElementById('unifiedModalTitle').textContent = actionText('booking.newTitle');
             document.getElementById('unifiedResId').value = '';
             document.getElementById('unifiedStatus').value = 'confirmed';
-            document.getElementById('unifiedIsB2B').checked = false;
             const channelEl = document.getElementById('unifiedChannel');
             if (channelEl) channelEl.value = 'Walk-in';
-            if (prefillGroupId) {
-                document.getElementById('unifiedIsB2B').checked = true;
-                setTimeout(() => document.getElementById('unifiedGroupId').value = prefillGroupId, 200);
-            } else {
-                document.getElementById('unifiedGroupId').value = '';
-            }
-            toggleUnifiedGroupSelect();
+            await setUnifiedGroupLink(prefillGroupId || '');
             
             // Set default dates to today and tomorrow
             const today = new Date();
@@ -801,9 +816,11 @@
             const effectiveStatus = effectiveReservationStatus(res);
             const isReadonlyReservation = isReservationReadOnly(res);
             
-            const isB2B = res.isB2B;
+            const linkedGroupId = res.groupId || '';
+            const isB2B = !!linkedGroupId;
             const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
-            const b2bBadge = isB2B ? '<span style="background:#111827;color:#fff;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:600;vertical-align:middle;letter-spacing:0.5px"><i class="fa-solid fa-building"></i> B2B 고객</span>' : '';
+            const groupBadgeText = actionLang() === 'en' ? 'Group linked' : '단체 연결';
+            const b2bBadge = isB2B ? `<span style="background:#111827;color:#fff;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:600;vertical-align:middle;letter-spacing:0.5px"><i class="fa-solid fa-building"></i> ${groupBadgeText}</span>` : '';
             const vipText = actionLang() === 'en' ? 'VIP' : '우수 고객';
             const vipBadge = isVip ? `<span style="background:rgba(245,158,11,.15);color:#D97706;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:700;vertical-align:middle;"><i class="fa-solid fa-crown"></i> ${vipText}</span>` : '';
             
@@ -856,18 +873,10 @@
         
             document.getElementById('unifiedStatus').value = isReadonlyReservation ? effectiveStatus : normalizedReservationStatus(res.status);
             
-            if (res.groupId || res.isB2B) {
-                document.getElementById('unifiedIsB2B').checked = true;
-                setTimeout(() => {
-                    document.getElementById('unifiedGroupId').value = res.groupId || '';
-                }, 200);
-            } else {
-                document.getElementById('unifiedIsB2B').checked = false;
-            }
+            await setUnifiedGroupLink(linkedGroupId);
             const channelEl = document.getElementById('unifiedChannel');
             if (channelEl) channelEl.value = res.channel || 'Walk-in';
 
-            toggleUnifiedGroupSelect();
             setUnifiedDateValue('unifiedCin', res.checkInDate || res.checkin || res.cin);
             setUnifiedDateValue('unifiedCout', res.checkOutDate || res.checkout || res.cout);
             window.updateUnifiedStayAndRooms(targetRoomValue);
@@ -942,9 +951,10 @@
             return;
         }
         const status = document.getElementById('unifiedStatus').value;
-        const isB2B = document.getElementById('unifiedIsB2B').checked;
         let channel = document.getElementById('unifiedChannel')?.value || 'Walk-in';
-        let groupId = null;
+        const groupId = document.getElementById('unifiedGroupId')?.value || '';
+        const isB2B = !!groupId;
+        const linkedGroupName = isB2B ? (await unifiedGroupName(groupId) || currentRes?.groupName || '') : '';
         let savedRes = null;
         const cinText = toReservationDateText(getUnifiedDateInputValue('unifiedCin'));
         const coutText = toReservationDateText(getUnifiedDateInputValue('unifiedCout'));
@@ -952,15 +962,7 @@
         const coutIso = getUnifiedDateInputValue('unifiedCout');
         const nights = updateUnifiedNightsLabel() || 1;
         
-        if (isB2B) {
-            const grpSel = document.getElementById('unifiedGroupId');
-            if (grpSel.value) {
-                groupId = grpSel.value;
-                channel = grpSel.options[grpSel.selectedIndex].text;
-            } else {
-                channel = 'B2B/Group';
-            }
-        }
+        if (isB2B) channel = linkedGroupName || channel || 'Group';
         
         if (!id) {
             // NEW BOOKING MODE
@@ -973,6 +975,7 @@
                 channel: channel,
                 isB2B: isB2B,
                 groupId: groupId,
+                groupName: linkedGroupName,
                 cin: cinText,
                 cout: coutText,
                 checkin: cinIso,
@@ -1007,6 +1010,7 @@
                 res.channel = channel;
                 res.isB2B = isB2B;
                 res.groupId = groupId;
+                res.groupName = linkedGroupName;
                 res.cin = cinText;
                 res.cout = coutText;
                 res.checkin = cinIso;
