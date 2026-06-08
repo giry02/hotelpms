@@ -101,10 +101,21 @@
         .color-dot {
             width: 32px; height: 32px; border-radius: 50%;
             cursor: pointer; border: 3px solid transparent;
+            position: relative;
             transition: transform .15s, border-color .15s;
         }
         .color-dot:hover { transform: scale(1.1); }
         .color-dot.selected { border-color: var(--txt); }
+        .color-dot.unavailable { cursor: not-allowed; opacity: .38; }
+        .color-dot.unavailable:hover { transform: none; }
+        .color-dot.unavailable::after {
+            content: "";
+            position: absolute;
+            left: 5px; right: 5px; top: 50%;
+            border-top: 2px solid rgba(255,255,255,.9);
+            transform: rotate(-35deg);
+            box-shadow: 0 0 0 1px rgba(0,0,0,.18);
+        }
         
         /* 권한 체크박스 그리드 */
         .perm-grid {
@@ -193,10 +204,53 @@ let SYSTEM_ROLES = [];
 let DEFAULT_CUSTOM_ROLES = [];
 
 const COLORS = [
-    '#6D28D9','#1D4ED8','#0891B2','#065F46',
-    '#B45309','#DC2626','#9D174D','#374151',
-    '#7C3AED','#2563EB','#0E7490','#047857',
+    '#6D28D9','#111827','#2563EB','#059669',
+    '#D97706','#0EA5E9','#7C3AED','#1D4ED8',
+    '#0891B2','#065F46','#B45309','#DC2626',
+    '#9D174D','#374151','#9333EA','#4F46E5',
+    '#0284C7','#0D9488','#16A34A','#65A30D',
+    '#CA8A04','#EA580C','#BE123C','#475569'
 ];
+
+function normalizeColor(color) {
+    return String(color || '').trim().toUpperCase();
+}
+
+function allRoles() {
+    return [...SYSTEM_ROLES, ...customRoles];
+}
+
+function usedRoleColors(excludeRoleId = null) {
+    return new Set(
+        allRoles()
+            .filter(role => role.id !== excludeRoleId)
+            .map(role => normalizeColor(role.color))
+            .filter(Boolean)
+    );
+}
+
+function colorUsedByAnotherRole(color, excludeRoleId = null) {
+    return usedRoleColors(excludeRoleId).has(normalizeColor(color));
+}
+
+function firstAvailableColor(excludeRoleId = null) {
+    const used = usedRoleColors(excludeRoleId);
+    return COLORS.find(color => !used.has(normalizeColor(color))) || '';
+}
+
+function colorOptions(selectedColor) {
+    const seen = new Set();
+    return [
+        selectedColor,
+        ...allRoles().map(role => role.color),
+        ...COLORS
+    ].filter(color => {
+        const key = normalizeColor(color);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
 
 function loadRoles() {
     try { 
@@ -224,9 +278,9 @@ let isCreating = false;
 
 function renderRolesList() {
     const list = document.getElementById('rolesList');
-    const allRoles = [...SYSTEM_ROLES, ...customRoles];
+    const roleList = allRoles();
     
-    list.innerHTML = allRoles.map(r => {
+    list.innerHTML = roleList.map(r => {
         const activeCls = (currentRoleId === r.id) ? ' active' : '';
         return `
             <div class="role-list-item${activeCls}" onclick="selectRole('${r.id}')">
@@ -264,7 +318,7 @@ function renderEditor() {
     
     if (isCreating) {
         editor.innerHTML = buildEditorHtml(null);
-        renderColorPicker(COLORS[0]);
+        renderColorPicker(firstAvailableColor());
         renderPermChecks([]);
         return;
     }
@@ -278,7 +332,7 @@ function renderEditor() {
         return;
     }
     
-    const role = [...SYSTEM_ROLES, ...customRoles].find(r => r.id === currentRoleId);
+    const role = allRoles().find(r => r.id === currentRoleId);
     if (!role) return;
     
     editor.innerHTML = buildEditorHtml(role);
@@ -347,22 +401,39 @@ function buildEditorHtml(role) {
 // ─── 편집기 부속 요소 렌더링 ──────────────────────────────────
 function renderColorPicker(selectedColor, disabled=false) {
     const picker = document.getElementById('colorPicker');
-    picker.innerHTML = COLORS.map(c => `
-        <div class="color-dot${c === selectedColor ? ' selected' : ''}"
-             style="background:${c};${disabled ? 'cursor:not-allowed;opacity:0.6' : ''}"
+    const selected = normalizeColor(selectedColor) || normalizeColor(firstAvailableColor());
+    const excludeRoleId = isCreating ? null : currentRoleId;
+    picker.innerHTML = colorOptions(selected || COLORS[0]).map(c => {
+        const colorKey = normalizeColor(c);
+        const isSelected = colorKey === selected;
+        const isUsed = colorUsedByAnotherRole(c, excludeRoleId);
+        const isUnavailable = disabled || isUsed;
+        const title = disabled
+            ? '\uC2DC\uC2A4\uD15C \uAE30\uBCF8 \uC5ED\uD560\uC740 \uC0C9\uC0C1\uC744 \uC218\uC815\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.'
+            : (isUsed ? '\uC774\uBBF8 \uB2E4\uB978 \uC5ED\uD560\uC5D0\uC11C \uC0AC\uC6A9 \uC911\uC778 \uC0C9\uC0C1\uC785\uB2C8\uB2E4.' : '\uC0C9\uC0C1 \uC120\uD0DD');
+        return `
+        <div class="color-dot${isSelected ? ' selected' : ''}${isUnavailable ? ' unavailable' : ''}"
+             style="background:${c}"
              data-color="${c}"
-             onclick="${disabled ? '' : 'selectColor(this)'}"></div>
-    `).join('');
+             title="${title}"
+             aria-label="${title}"
+             onclick="${isUnavailable ? '' : 'selectColor(this)'}"></div>`;
+    }).join('');
+    if (!picker.querySelector('.color-dot.selected')) {
+        const firstAvailable = [...picker.querySelectorAll('.color-dot:not(.unavailable)')][0];
+        if (firstAvailable) firstAvailable.classList.add('selected');
+    }
 }
 
 function selectColor(el) {
+    if (!el || el.classList.contains('unavailable')) return;
     document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
     el.classList.add('selected');
 }
 
 function getSelectedColor() {
     const dot = document.querySelector('.color-dot.selected');
-    return dot ? dot.getAttribute('data-color') : COLORS[0];
+    return dot ? dot.getAttribute('data-color') : firstAvailableColor(isCreating ? null : currentRoleId);
 }
 
 function renderPermChecks(selectedPerms, disabled=false) {
@@ -406,6 +477,11 @@ function saveRole() {
     
     if (!name) { showToast('역할 이름을 입력하세요.', 'error'); return; }
     if (perms.length === 0) { showToast('최소 1개 이상의 권한을 선택하세요.', 'error'); return; }
+    if (!color) { showToast('사용 가능한 역할 색상이 없습니다.', 'error'); return; }
+    if (colorUsedByAnotherRole(color, isCreating ? null : currentRoleId)) {
+        showToast('이미 다른 역할에서 사용 중인 색상입니다.', 'error');
+        return;
+    }
     
     if (isCreating) {
         const newId = 'role_' + Date.now();
