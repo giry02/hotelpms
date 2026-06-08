@@ -837,10 +837,30 @@ window.addEventListener('DataReady', () => {
         const m = String(c.rate || '').match(/(\d+(?:\.\d+)?)\s*%/);
         return m ? Number(m[1]) : 0;
     }
+    function companyDisplayName(company) {
+        return [company?.name, company?.type].filter(Boolean).join(' · ') || company?.id || '';
+    }
+    function companyInfoHtml(company) {
+        if (!company) {
+            return `<div class="empty-guide wide" id="detailCompanyInfo" style="text-align:left">
+                등록 업체를 선택해야 행사 저장이 가능합니다. 업체가 없다면 업체 관리에서 먼저 등록해 주세요.
+            </div>`;
+        }
+        const discount = company.groupDiscount !== undefined ? `${Number(company.groupDiscount || 0)}%` : (company.rate || '-');
+        const contact = [company.contactName, company.phone, company.email].filter(Boolean).join(' / ') || '-';
+        return `<div class="wide" id="detailCompanyInfo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;background:#f8fafc;border:1px solid var(--border2);border-radius:10px;padding:12px">
+            <div><div class="form-label" style="margin-bottom:3px">업체 유형</div><div style="font-weight:850">${safeAttr(company.type || '-')}</div></div>
+            <div><div class="form-label" style="margin-bottom:3px">기본 할인</div><div style="font-weight:850">${safeAttr(discount)}</div></div>
+            <div><div class="form-label" style="margin-bottom:3px">정산 방식</div><div style="font-weight:850">${safeAttr(company.billing || '-')}</div></div>
+            <div><div class="form-label" style="margin-bottom:3px">담당/연락처</div><div style="font-weight:850">${safeAttr(contact)}</div></div>
+        </div>`;
+    }
     function companySelectOptions(selectedId = '') {
-        const selectedCompany = selectedId ? companyById(selectedId) : companyForGroup();
+        const selectedCompany = companyById(selectedId) || companyForGroup();
         const selected = selectedCompany?.id || '';
-        return '<option value="">업체 미지정 / 직접 입력</option>' + loadDetailCompanies().map(c => `<option value="${safeAttr(c.id)}" ${c.id === selected ? 'selected' : ''}>${safeAttr(c.name)} · ${safeAttr(c.type || '')}</option>`).join('');
+        const companies = loadDetailCompanies();
+        const placeholder = companies.length ? '등록 업체를 선택하세요' : '등록된 업체가 없습니다';
+        return `<option value="">${placeholder}</option>` + companies.map(c => `<option value="${safeAttr(c.id)}" ${c.id === selected ? 'selected' : ''}>${safeAttr(companyDisplayName(c))}</option>`).join('');
     }
     window.createDraftGroup = function() {
         const params = new URLSearchParams(location.search);
@@ -877,13 +897,10 @@ window.addEventListener('DataReady', () => {
                     <input id="detailName" class="form-input" style="width:100%" value="${safeAttr(group.name)}" placeholder="예: Samsung Tech Conference 2026">
                 </div>
                 <div>
-                    <label class="form-label">등록 업체</label>
+                    <label class="form-label">등록 업체 <span style="color:var(--danger)">*</span></label>
                     <select id="detailAgencyId" class="form-input" style="width:100%" onchange="syncSelectedCompanyInfo()">${companySelectOptions(group.agencyId)}</select>
                 </div>
-                <div>
-                    <label class="form-label">업체명 직접 입력</label>
-                    <input id="detailAgencyManual" class="form-input" style="width:100%" value="${safeAttr(c ? '' : group.agency)}" placeholder="등록 업체가 없을 때만 입력">
-                </div>
+                ${companyInfoHtml(c)}
                 <div><label class="form-label">행사 유형</label><select id="detailType" class="form-input" style="width:100%">${['기업 행사 / 컨퍼런스','여행사 단체','웨딩 / 연회','스포츠팀','기타'].map(v => `<option ${group.type === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
                 <div><label class="form-label">체크인</label><input type="date" id="detailCheckin" class="form-input" style="width:100%" value="${safeAttr(group.checkin)}"></div>
                 <div><label class="form-label">체크아웃</label><input type="date" id="detailCheckout" class="form-input" style="width:100%" value="${safeAttr(group.checkout)}"></div>
@@ -909,10 +926,10 @@ window.addEventListener('DataReady', () => {
         if (!c) return;
         const routing = document.getElementById('detailRouting');
         const contact = document.getElementById('detailContact');
-        const manual = document.getElementById('detailAgencyManual');
+        const info = document.getElementById('detailCompanyInfo');
         if (routing && c.billing) routing.value = [...routing.options].some(o => o.value === c.billing) ? c.billing : routing.value;
-        if (contact && !contact.value) contact.value = [c.contactName, c.phone].filter(Boolean).join(' / ');
-        if (manual) manual.value = '';
+        if (contact) contact.value = [c.contactName, c.phone].filter(Boolean).join(' / ');
+        if (info) info.outerHTML = companyInfoHtml(c);
     };
     window.saveBasicInfo = function() {
         const name = document.getElementById('detailName').value.trim();
@@ -920,11 +937,15 @@ window.addEventListener('DataReady', () => {
         const wasDraft = isDraftGroup();
         const companyId = document.getElementById('detailAgencyId').value;
         const company = companyById(companyId);
+        if (!company) {
+            showToast('등록 업체를 선택해야 행사를 저장할 수 있습니다.', 'error');
+            return;
+        }
         Object.assign(group, {
             id: group.id || nextGroupId(),
             name,
-            agencyId: company?.id || '',
-            agency: company?.name || document.getElementById('detailAgencyManual').value.trim(),
+            agencyId: company.id,
+            agency: company.name,
             type: document.getElementById('detailType').value,
             checkin: document.getElementById('detailCheckin').value,
             checkout: document.getElementById('detailCheckout').value,

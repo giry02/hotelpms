@@ -193,6 +193,47 @@ function assert(condition, message, details = null) {
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForFunction(() => typeof window.renderRooms === 'function', null, { timeout: 15000 });
 
+    const companySelectionResult = await page.evaluate(() => {
+      const companies = [{
+        id: 'COMP-HANA',
+        name: 'Hana Tour',
+        type: 'Travel Agency',
+        groupDiscount: 10,
+        billing: 'Master Folio (단체 일괄)',
+        contactName: 'Kim Manager',
+        phone: '010-1000-2000'
+      }];
+      localStorage.setItem('pms_companies', JSON.stringify(companies));
+      group = createDraftGroup();
+      renderOverview();
+      const manualExists = !!document.getElementById('detailAgencyManual');
+      const initialText = document.getElementById('overview')?.innerText || '';
+      document.getElementById('detailName').value = 'No Company Event';
+      document.getElementById('detailAgencyId').value = '';
+      saveBasicInfo();
+      const blockedWithoutCompany = !group.id && !group.agencyId;
+      document.getElementById('detailAgencyId').value = 'COMP-HANA';
+      syncSelectedCompanyInfo();
+      document.getElementById('detailName').value = 'Hana Linked Event';
+      document.getElementById('detailCheckin').value = '2026-06-10';
+      document.getElementById('detailCheckout').value = '2026-06-12';
+      saveBasicInfo();
+      return {
+        manualExists,
+        initialText,
+        blockedWithoutCompany,
+        savedAgencyId: group.agencyId,
+        savedAgency: group.agency,
+        companyInfoText: document.getElementById('detailCompanyInfo')?.innerText || ''
+      };
+    });
+
+    assert(!companySelectionResult.manualExists, 'Group detail must not expose manual company input.', companySelectionResult);
+    assert(!/직접 입력|미지정/.test(companySelectionResult.initialText), 'Group detail must not show direct/unassigned company options.', companySelectionResult);
+    assert(companySelectionResult.blockedWithoutCompany, 'Group detail must block saving without a registered company.', companySelectionResult);
+    assert(companySelectionResult.savedAgencyId === 'COMP-HANA' && companySelectionResult.savedAgency === 'Hana Tour', 'Group detail must save the selected company linkage.', companySelectionResult);
+    assert(companySelectionResult.companyInfoText.includes('Travel Agency') && companySelectionResult.companyInfoText.includes('10'), 'Group detail must show selected company metadata.', companySelectionResult);
+
     const detailResult = await page.evaluate(() => {
       group.id = 'GRP-EMPTY-ALIGN';
       group.name = 'Empty Align Event';
@@ -226,6 +267,7 @@ function assert(condition, message, details = null) {
         'past and settlement-needed filters can overlap',
         'past count includes paid and unsettled past events',
         'settlement-needed count excludes paid past and future pending events',
+        'group detail requires registered company selection',
         'group detail empty room assignment message is centered'
       ]
     }, null, 2));
