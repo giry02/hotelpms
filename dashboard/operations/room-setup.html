@@ -62,7 +62,7 @@
 .inline-field label{font-size:.72rem;font-weight:700;color:var(--txt3);text-transform:uppercase}
 .inline-input{height:36px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);font-size:.85rem;background:#fff;min-width:0;width:100%}
 .inline-actions{display:flex;gap:6px;justify-content:flex-end}
-.roomtype-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 8px}
+.roomtype-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 8px}
 .roomtype-row .inline-actions{grid-column:1/-1;align-self:end}
 .roomtype-row .roomtype-desc{grid-column:1/-1}
 .inline-subtext{font-size:.72rem;color:var(--txt3);margin-top:4px}
@@ -285,7 +285,9 @@
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">객실 유형 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" id="addRoomType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" placeholder="객실 유형 입력">
+                    <select id="addRoomType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="">객실 유형 선택</option>
+                    </select>
                 </div>
             </div>
 
@@ -423,14 +425,9 @@ function renderRoomTypes() {
                 <label>뷰 / 구분</label>
                 <input class="inline-input" id="rtView${index}" value="${escapeAttr(rt.view)}" placeholder="예: Ocean View">
             </div>
-            <div class="inline-field">
-                <label>코드</label>
-                <input class="inline-input" id="rtCode${index}" value="${escapeAttr(rt.code || rt.id)}" placeholder="예: DLX-OCN">
-            </div>
             <div class="inline-field roomtype-desc">
                 <label>설명</label>
                 <input class="inline-input" id="rtDesc${index}" value="${escapeAttr(rt.desc)}" placeholder="예: 최대 2인, 킹베드 1개">
-                <div class="inline-subtext">요금표 기준 항목: ${escapeHtml(roomTypeLabel(rt.id))}</div>
             </div>
             <div class="inline-actions">
                 <button class="btn-outline-sm" onclick="saveRoomTypeRow(${index})"><i class="fa-solid fa-check"></i> 저장</button>
@@ -445,7 +442,6 @@ function renderRoomTypes() {
             <div class="inline-manage-row roomtype-row new-row">
                 <div class="inline-field"><label>객실명</label><input class="inline-input" id="newRtName" placeholder="예: Deluxe"></div>
                 <div class="inline-field"><label>뷰 / 구분</label><input class="inline-input" id="newRtView" placeholder="예: City View"></div>
-                <div class="inline-field"><label>코드</label><input class="inline-input" id="newRtCode" placeholder="예: DLX-CITY"></div>
                 <div class="inline-field roomtype-desc"><label>설명</label><input class="inline-input" id="newRtDesc" placeholder="예: 최대 2인, 킹베드 1개"></div>
                 <div class="inline-actions"><button class="btn-primary-sm" onclick="addRoomType()"><i class="fa-solid fa-plus"></i> 추가</button></div>
             </div>
@@ -456,24 +452,23 @@ function renderRoomTypes() {
 async function saveRoomTypeRow(index) {
     const current = allRoomTypes[index];
     if (!current) return;
-    const oldId = current.id;
     const name = document.getElementById(`rtName${index}`).value.trim();
     const view = document.getElementById(`rtView${index}`).value.trim();
-    const code = document.getElementById(`rtCode${index}`).value.trim() || slugRoomType(name, view);
-    const id = code;
+    const id = current.id;
     if (!name) return showToast('객실명을 입력해 주세요.', 'error');
-    if (allRoomTypes.some((rt, i) => i !== index && rt.id === id)) return showToast('이미 사용 중인 객실유형 코드입니다.', 'error');
+    if (allRoomTypes.some((rt, i) => i !== index && roomTypeSearchKey(roomTypeLabel(rt.id)) === roomTypeSearchKey([name, view].filter(Boolean).join(' ')))) {
+        return showToast('이미 등록된 객실 유형입니다.', 'error');
+    }
     const updated = normalizeRoomType({
         ...current,
         id,
         typeId: id,
-        code,
+        code: current.code || id,
         name,
         view,
         desc: document.getElementById(`rtDesc${index}`).value.trim()
     });
     allRoomTypes[index] = updated;
-    if (oldId !== id) migrateRoomTypeId(oldId, id);
     await persistRoomTypes();
     renderRoomTypeOptions();
     renderRoomTypes();
@@ -484,13 +479,21 @@ async function saveRoomTypeRow(index) {
 async function addRoomType() {
     const name = document.getElementById('newRtName').value.trim();
     const view = document.getElementById('newRtView').value.trim();
-    const code = document.getElementById('newRtCode').value.trim() || slugRoomType(name, view);
     if (!name) return showToast('객실명을 입력해 주세요.', 'error');
-    if (allRoomTypes.some(rt => rt.id === code)) return showToast('이미 사용 중인 객실유형 코드입니다.', 'error');
+    if (allRoomTypes.some(rt => roomTypeSearchKey(roomTypeLabel(rt.id)) === roomTypeSearchKey([name, view].filter(Boolean).join(' ')))) {
+        return showToast('이미 등록된 객실 유형입니다.', 'error');
+    }
+    const baseId = slugRoomType(name, view);
+    let id = baseId;
+    let suffix = 2;
+    while (allRoomTypes.some(rt => rt.id === id)) {
+        id = `${baseId}-${suffix}`;
+        suffix += 1;
+    }
     allRoomTypes.push(normalizeRoomType({
-        id: code,
-        typeId: code,
-        code,
+        id,
+        typeId: id,
+        code: id,
         name,
         view,
         desc: document.getElementById('newRtDesc').value.trim()
@@ -547,36 +550,26 @@ function removeRateType(typeId) {
 }
 
 function renderRoomTypeOptions() {
-    const input = document.getElementById('addRoomType');
-    if (!input) return;
+    const select = document.getElementById('addRoomType');
+    if (!select) return;
+    const current = select.value;
+    const options = allRoomTypes
+        .filter(rt => rt && rt.active !== false)
+        .map(rt => `<option value="${escapeAttr(rt.id)}">${escapeHtml(roomTypeLabel(rt.id))}</option>`)
+        .join('');
+    select.innerHTML = `<option value="">객실 유형 선택</option>${options}`;
+    setRoomTypeSelectValue(current);
 }
 
 function setRoomTypeSelectValue(value) {
     const input = document.getElementById('addRoomType');
     if (!input) return;
     const match = findRoomTypeByInput(value);
-    input.value = match ? roomTypeLabel(match.id) : String(value || '');
-}
-
-async function ensureRoomTypeFromInput(value) {
-    const text = String(value || '').trim();
-    if (!text) return '';
-    const existing = findRoomTypeByInput(text);
-    if (existing) return existing.id;
-
-    const baseId = slugRoomType(text, '');
-    let id = baseId;
-    let suffix = 2;
-    while (allRoomTypes.some(rt => rt.id === id)) {
-        id = `${baseId}-${suffix}`;
-        suffix += 1;
+    if (match) {
+        input.value = match.id;
+        return;
     }
-
-    const created = normalizeRoomType({ id, typeId: id, code: id, name: text, view: '' });
-    allRoomTypes.push(created);
-    await persistRoomTypes();
-    renderRoomTypeOptions();
-    return created.id;
+    input.value = '';
 }
 
 function renderTabs() {
@@ -796,7 +789,7 @@ openModal = function(id) {
 async function saveRoom() {
     const id = document.getElementById('addRoomId').value.trim();
     const floor = document.getElementById('addRoomFloor').value;
-    const type = await ensureRoomTypeFromInput(document.getElementById('addRoomType').value);
+    const type = document.getElementById('addRoomType').value;
     const building = document.getElementById('addRoomBuilding').value || null;
 
     if (!id) {

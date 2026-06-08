@@ -235,7 +235,9 @@
             <div style="display:grid;grid-template-columns:1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">객실 유형 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" id="addRoomType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" placeholder="객실 유형 입력">
+                    <select id="addRoomType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="">객실 유형 선택</option>
+                    </select>
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
@@ -316,6 +318,7 @@
 <script>
 // Mock Room Data — building field is optional (null = no building)
 let allRooms = [];
+let allRoomTypes = [];
 
 const statusConfig = {
     'occupied': { label: '투숙 중' },
@@ -326,9 +329,25 @@ const statusConfig = {
 
 let currentStatus = 'all';
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
 function displayRoomType(type) {
     const value = String(type || '').trim();
-    return value;
+    const found = allRoomTypes.find(rt => rt.id === value || rt.typeId === value || rt.code === value || rt.name === value);
+    if (!found) return value;
+    return [found.name, found.view].filter(Boolean).join(' · ');
+}
+
+function renderRoomTypeOptions() {
+    const select = document.getElementById('addRoomType');
+    if (!select) return;
+    select.innerHTML = '<option value="">객실 유형 선택</option>' + allRoomTypes.map(rt => {
+        const id = rt.id || rt.typeId || rt.code || rt.name || '';
+        const label = [rt.name || id, rt.view].filter(Boolean).join(' · ');
+        return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
+    }).join('');
 }
 
 function toggleBuilding(el) {
@@ -638,6 +657,11 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        if (PmsAPI.getAllRoomTypes) {
+            allRoomTypes = await PmsAPI.getAllRoomTypes();
+            if (!Array.isArray(allRoomTypes)) allRoomTypes = [];
+        }
+        renderRoomTypeOptions();
         let rawRooms = await PmsAPI.getAllRooms();
         allRooms = rawRooms.map(r => {
             if (!r.floor) {
