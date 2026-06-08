@@ -217,9 +217,9 @@
                     </div>
                     <div class="filter-chips">
                         <button class="chip active" data-filter="all" data-label="전체" onclick="filterCompanies('all', this)">전체</button>
-                        <button class="chip" data-filter="Corporate" data-label="Corporate" onclick="filterCompanies('Corporate', this)">Corporate</button>
-                        <button class="chip" data-filter="Travel Agency" data-label="Travel Agency" onclick="filterCompanies('Travel Agency', this)">Travel Agency</button>
-                        <button class="chip" data-filter="Other" data-label="Other" onclick="filterCompanies('Other', this)">Other</button>
+                        <button class="chip" data-filter="Corporate" onclick="filterCompanies('Corporate', this)">일반 기업</button>
+                        <button class="chip" data-filter="Travel Agency" onclick="filterCompanies('Travel Agency', this)">여행사</button>
+                        <button class="chip" data-filter="Other" onclick="filterCompanies('Other', this)">기타</button>
                     </div>
                 </div>
                 <div class="filter-right">
@@ -256,10 +256,10 @@
                 <div>
                     <label class="form-label">업체 유형</label>
                     <select id="compType" class="form-input" style="width:100%">
-                        <option value="Corporate">Corporate</option>
-                        <option value="Travel Agency">Travel Agency</option>
-                        <option value="Government">Government</option>
-                        <option value="Other">Other</option>
+                        <option value="Corporate">일반 기업</option>
+                        <option value="Travel Agency">여행사</option>
+                        <option value="Government">정부/공공기관</option>
+                        <option value="Other">기타 단체</option>
                     </select>
                 </div>
                 <div>
@@ -315,12 +315,51 @@ let companies = [];
 let groupEvents = [];
 let currentFilter = 'all';
 
-const COMPANY_FILTER_LABELS = {
-    all: '전체',
-    Corporate: 'Corporate',
-    'Travel Agency': 'Travel Agency',
-    Other: 'Other'
+const COMPANY_TYPE_LABELS = {
+    ko: {
+        all: '전체',
+        Corporate: '일반 기업',
+        'Travel Agency': '여행사',
+        Government: '정부/공공기관',
+        Other: '기타'
+    },
+    en: {
+        all: 'All',
+        Corporate: 'Corporate',
+        'Travel Agency': 'Travel Agency',
+        Government: 'Government',
+        Other: 'Other'
+    }
 };
+
+const COMPANY_TYPE_OPTION_LABELS = {
+    ko: {
+        Corporate: '일반 기업',
+        'Travel Agency': '여행사',
+        Government: '정부/공공기관',
+        Other: '기타 단체'
+    },
+    en: COMPANY_TYPE_LABELS.en
+};
+
+function companyLang() {
+    return window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+}
+
+function companyTypeKey(value) {
+    const type = String(value || '').trim().toLowerCase();
+    if (['corporate', 'corporation', 'company', 'enterprise', '기업', '일반 기업'].includes(type)) return 'Corporate';
+    if (['agency', 'travel agency', 'travel_agency', 'ota', '여행사'].includes(type)) return 'Travel Agency';
+    if (['government', 'gov', 'public', 'government/public', '정부', '공공기관', '정부/공공기관'].includes(type)) return 'Government';
+    if (['other', '기타', '기타 단체'].includes(type)) return 'Other';
+    return '';
+}
+
+function companyTypeLabel(key, option = false) {
+    const lang = companyLang();
+    const labels = option ? COMPANY_TYPE_OPTION_LABELS : COMPANY_TYPE_LABELS;
+    return (labels[lang] && labels[lang][key]) || labels.en[key] || key;
+}
 
 function companyText(key, params = {}) {
     const catalogKey = `company.${key}`;
@@ -349,14 +388,15 @@ function companyText(key, params = {}) {
 }
 
 function companyFilterKey(company) {
-    const type = String(company?.type || '').trim().toLowerCase();
-    if (['corporate', 'corporation', 'company', 'enterprise', '기업', '일반 기업'].includes(type)) return 'Corporate';
-    if (['agency', 'travel agency', 'travel_agency', 'ota', '여행사'].includes(type)) return 'Travel Agency';
-    return 'Other';
+    const key = companyTypeKey(company?.type);
+    return key && key !== 'Government' ? key : 'Other';
 }
 
 function companyTypeDisplay(company) {
-    return String(company?.type || companyFilterKey(company) || '').trim() || 'Other';
+    const raw = String(company?.type || '').trim();
+    const key = companyTypeKey(raw);
+    if (key) return companyTypeLabel(key);
+    return raw || companyTypeLabel('Other');
 }
 
 function companyMatchesFilter(company) {
@@ -372,8 +412,19 @@ function updateCompanyFilterCounts() {
     }, { all: 0, Corporate: 0, 'Travel Agency': 0, Other: 0 });
     document.querySelectorAll('.filter-chips .chip[data-filter]').forEach(chip => {
         const filter = chip.dataset.filter;
-        const label = chip.dataset.label || COMPANY_FILTER_LABELS[filter] || filter;
+        const label = companyTypeLabel(filter);
         chip.innerHTML = `${label} <span class="chip-count">${counts[filter] || 0}</span>`;
+    });
+}
+
+function localizeCompanyTypeControls() {
+    document.querySelectorAll('.filter-chips .chip[data-filter]').forEach(chip => {
+        const filter = chip.dataset.filter;
+        chip.dataset.label = companyTypeLabel(filter);
+        if (!chip.querySelector('.chip-count')) chip.textContent = companyTypeLabel(filter);
+    });
+    document.querySelectorAll('#compType option').forEach(option => {
+        option.textContent = companyTypeLabel(option.value, true);
     });
 }
 
@@ -398,7 +449,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.warn('groups load fallback', e);
         try { groupEvents = JSON.parse(localStorage.getItem('pms_groups') || '[]'); } catch(_) { groupEvents = []; }
     }
+    localizeCompanyTypeControls();
     renderCompanies();
+});
+
+window.applyLocalI18n = function() {
+    localizeCompanyTypeControls();
+    renderCompanies(document.querySelector('.search-box-mt input')?.value || '');
+};
+
+window.addEventListener('languagechange', () => {
+    localizeCompanyTypeControls();
+    renderCompanies(document.querySelector('.search-box-mt input')?.value || '');
 });
 
 function filterCompanies(type, btn) {

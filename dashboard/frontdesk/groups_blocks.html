@@ -331,6 +331,39 @@ function groupText(key, params = {}) {
 let groups = [];
 let currentFilter = 'all';
 
+function groupCompanyLang() {
+    return window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+}
+
+function groupCompanyTypeKey(value) {
+    const type = String(value || '').trim().toLowerCase();
+    if (['corporate', 'corporation', 'company', 'enterprise', '기업', '일반 기업'].includes(type)) return 'Corporate';
+    if (['agency', 'travel agency', 'travel_agency', 'ota', '여행사'].includes(type)) return 'Travel Agency';
+    if (['government', 'gov', 'public', 'government/public', '정부', '공공기관', '정부/공공기관'].includes(type)) return 'Government';
+    if (['other', '기타', '기타 단체'].includes(type)) return 'Other';
+    return '';
+}
+
+function groupCompanyTypeLabel(value) {
+    const key = groupCompanyTypeKey(value);
+    const labels = {
+        ko: {
+            Corporate: '일반 기업',
+            'Travel Agency': '여행사',
+            Government: '정부/공공기관',
+            Other: '기타'
+        },
+        en: {
+            Corporate: 'Corporate',
+            'Travel Agency': 'Travel Agency',
+            Government: 'Government',
+            Other: 'Other'
+        }
+    };
+    if (!key) return String(value || '').trim() || labels[groupCompanyLang()]?.Other || labels.en.Other;
+    return (labels[groupCompanyLang()] && labels[groupCompanyLang()][key]) || labels.en[key] || key;
+}
+
 function isLegacyGroupSeed(list) {
     return Array.isArray(list) && list.length === 1 && list[0]?.id === 'GRP-1001';
 }
@@ -387,6 +420,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+window.addEventListener('languagechange', () => {
+    const agencySelect = document.getElementById('ngAgency');
+    if (agencySelect && document.getElementById('newGroupModal')?.classList.contains('active')) {
+        loadCompaniesForDropdown();
+    }
+});
+
 async function loadCompaniesForDropdown() {
     const stored = localStorage.getItem('pms_companies');
     const sel = document.getElementById('ngAgency');
@@ -400,7 +440,8 @@ async function loadCompaniesForDropdown() {
                 comps.forEach(c => {
                     const opt = document.createElement('option');
                     opt.value = c.id;
-                    opt.textContent = c.displayName || c.label || c.name;
+                    const companyName = c.name || c.displayName || c.label || c.id;
+                    opt.textContent = c.type ? `${companyName} (${groupCompanyTypeLabel(c.type)})` : companyName;
                     sel.appendChild(opt);
                 });
                 return;
@@ -415,7 +456,7 @@ async function loadCompaniesForDropdown() {
         comps.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
-            opt.textContent = `${c.name} (${c.type || 'Other'})`;
+            opt.textContent = `${c.name} (${groupCompanyTypeLabel(c.type)})`;
             sel.appendChild(opt);
         });
     }
@@ -1056,7 +1097,8 @@ async function deleteGroup(id) {
         getCompanies().forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
-            opt.textContent = `${c.name} (${c.type || 'Other'}) · 할인 ${parseDiscount(c)}%`;
+            const discountLabel = groupCompanyLang() === 'en' ? 'Discount' : '할인';
+            opt.textContent = `${c.name} (${groupCompanyTypeLabel(c.type)}) · ${discountLabel} ${parseDiscount(c)}%`;
             sel.appendChild(opt);
         });
     };
