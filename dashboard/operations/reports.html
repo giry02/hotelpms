@@ -207,9 +207,9 @@
                     <div class="rev-bar-chart" id="barChart"></div>
                     <div style="display:flex;gap:16px;justify-content:center;margin-top:14px;flex-wrap:wrap">
                         <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--primary)"></span> 객실</div>
-                        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--success)"></span> 식음료</div>
-                        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--purple)"></span> 스파</div>
-                        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--warning)"></span> 기타</div>
+                        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--success)"></span> 통합 포스</div>
+                        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--purple)"></span> 골프장</div>
+                        <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2)"><span style="width:10px;height:10px;border-radius:2px;background:var(--warning)"></span> 렌트카</div>
                     </div>
                     <div class="chart-click-detail" id="dailyChartDetail"></div>
                     <div style="display:flex;justify-content:center;align-items:center;gap:30px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border2)">
@@ -260,12 +260,12 @@
                     <div style="display:flex;justify-content:center;align-items:center;gap:30px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border2)">
                         <div style="text-align:center">
                             <div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">올해 누적 총 매출</div>
-                            <div style="font-size:1.3rem;font-weight:800;color:var(--txt)">$3,140,000</div>
+                            <div style="font-size:1.3rem;font-weight:800;color:var(--txt)" id="summaryYearTotal">$3,140,000</div>
                         </div>
                         <div style="width:1px;height:35px;background:var(--border2)"></div>
                         <div style="text-align:center">
                             <div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">작년 대비</div>
-                            <div style="font-size:1.1rem;font-weight:700;color:var(--success)"><i class="fa-solid fa-arrow-trend-up"></i> +18.2%</div>
+                            <div style="font-size:1.1rem;font-weight:700;color:var(--success)" id="summaryYearDiff"><i class="fa-solid fa-arrow-trend-up"></i> +18.2%</div>
                         </div>
                     </div>
                 </div>
@@ -305,7 +305,7 @@ const REPORT_TEXT = {
         roomsName:'객실', roomsSub:'객실 매출', posName:'통합 포스', posSub:'식음료, 리테일',
         golfName:'골프장', golfSub:'그린피, 카트', carName:'렌트카', carSub:'차량 대여',
         revenueDetail:'매출 상세', yearlyRevenue:'연도별 매출', totalRevenue:'총 매출',
-        total:'합계', fnb:'식음료', spa:'스파', other:'기타'
+        total:'합계', fnb:'통합 포스', spa:'골프장', other:'렌트카'
     },
     en: {
         weekBtn:'Weekly', monthBtn:'Monthly', yearBtn:'Yearly',
@@ -320,7 +320,7 @@ const REPORT_TEXT = {
         roomsName:'Rooms', roomsSub:'Room Revenue', posName:'Unified POS', posSub:'F&B, Retail',
         golfName:'Golf', golfSub:'Green Fee, Cart', carName:'Rent-a-car', carSub:'Car Rentals',
         revenueDetail:'Revenue Detail', yearlyRevenue:'Yearly Revenue', totalRevenue:'Total Revenue',
-        total:'Total', fnb:'F&B', spa:'Spa', other:'Other'
+        total:'Total', fnb:'Unified POS', spa:'Golf', other:'Rent-a-car'
     }
 };
 function rt(key){
@@ -353,7 +353,6 @@ function setCardTitle(selector, iconClass, text){
     if(el) el.innerHTML = `<i class="${iconClass}"></i> ${text}`;
 }
 function localizeDept(d){
-    if(currentLang === 'en') return d;
     const icon = d.icon || '';
     if(icon.includes('bed')) return {...d, name:rt('roomsName'), sub:rt('roomsSub')};
     if(icon.includes('cash-register')) return {...d, name:rt('posName'), sub:rt('posSub')};
@@ -597,9 +596,6 @@ function renderYoY(){
 let depts = [];
 let currentChartPeriod = 'week';
 let allTrendData = [];
-function parseMoneyValue(value){
-    return Number(String(value || '').replace(/[^0-9.-]/g, '')) || 0;
-}
 function periodTotal(rows){
     return rows.reduce((sum, row) => sum + Number(row.room || 0) + Number(row.fnb || 0) + Number(row.spa || 0) + Number(row.other || 0), 0);
 }
@@ -672,54 +668,105 @@ function syncSelectedPeriodData(){
 function getMonthlyRow(month){
     return monthlyData.find(row => Number(String(row.m).match(/\d+/)?.[0] || row.month || 0) === month);
 }
+function emptyRevenueBreakdown(){
+    return { room:0, fnb:0, spa:0, other:0, total:0 };
+}
+function sumRevenueBreakdown(rows){
+    const totals = rows.reduce((acc, row) => {
+        acc.room += Number(row.room || 0);
+        acc.fnb += Number(row.fnb || 0);
+        acc.spa += Number(row.spa || 0);
+        acc.other += Number(row.other || 0);
+        return acc;
+    }, emptyRevenueBreakdown());
+    totals.total = totals.room + totals.fnb + totals.spa + totals.other;
+    return totals;
+}
+function monthlyBreakdown(row){
+    if(!row) return emptyRevenueBreakdown();
+    const totals = {
+        room: Number(row.room || 0),
+        fnb: Number(row.fnb || 0),
+        spa: Number(row.spa || 0),
+        other: Number(row.other || 0)
+    };
+    totals.total = totals.room + totals.fnb + totals.spa + totals.other;
+    if(!totals.total && Number(row.v || 0)) totals.total = Number(row.v || 0);
+    return totals;
+}
+function yoyBreakdown(rows){
+    const totals = rows.reduce((acc, row) => {
+        const current = yoySet(row, 'ty');
+        acc.room += Number(current.room || 0);
+        acc.fnb += Number(current.fnb || 0);
+        acc.spa += Number(current.spa || 0);
+        acc.other += Number(current.other || 0);
+        acc.lastTotal += yoyTotal(yoySet(row, 'ly')) || Number(row.ly || 0);
+        return acc;
+    }, { ...emptyRevenueBreakdown(), lastTotal:0 });
+    totals.total = totals.room + totals.fnb + totals.spa + totals.other;
+    if(!totals.total) totals.total = rows.reduce((sum, row) => sum + Number(row.ty || 0), 0);
+    return totals;
+}
+function getPeriodBreakdown(type = currentChartPeriod){
+    const month = selectedNumber('selMonth', 6);
+    const week = selectedNumber('selWeek', 2);
+    const day = CURRENT_REPORT_PERIOD.day;
+    if(type === 'day') return sumRevenueBreakdown(filterDailyRows(month, null, day));
+    if(type === 'week') return sumRevenueBreakdown(filterDailyRows(month, week));
+    if(type === 'month') return monthlyBreakdown(getMonthlyRow(month));
+    return yoyBreakdown(yoyData);
+}
 function getPeriodKpiData(type = currentChartPeriod){
     const month = selectedNumber('selMonth', 6);
     const week = selectedNumber('selWeek', 2);
     const day = CURRENT_REPORT_PERIOD.day;
     if(type === 'day'){
-        const currentRows = filterDailyRows(month, null, day);
+        const current = getPeriodBreakdown('day');
         const prevRows = filterDailyRows(month, null, day - 1);
-        const total = periodTotal(currentRows);
-        const room = periodRoomTotal(currentRows);
-        return { total: formatMoney(total), room: formatMoney(room), anc: formatMoney(total - room), diff: formatDiff(percentDiff(total, periodTotal(prevRows))), labelKey:'vsYesterday', titleKey:'dailyTotal' };
+        return { total: formatMoney(current.total), room: formatMoney(current.room), anc: formatMoney(current.fnb + current.spa + current.other), diff: formatDiff(percentDiff(current.total, periodTotal(prevRows))), labelKey:'vsYesterday', titleKey:'dailyTotal' };
     }
     if(type === 'week'){
-        const currentRows = dailyData.length ? dailyData : filterDailyRows(month, week);
+        const current = getPeriodBreakdown('week');
         const prevRows = filterDailyRows(month, Math.max(1, week - 1));
-        const total = periodTotal(currentRows);
-        const room = periodRoomTotal(currentRows);
-        return { total: formatMoney(total), room: formatMoney(room), anc: formatMoney(total - room), diff: formatDiff(percentDiff(total, periodTotal(prevRows))), labelKey:'vsLastWeek', titleKey:'weeklyTotal' };
+        return { total: formatMoney(current.total), room: formatMoney(current.room), anc: formatMoney(current.fnb + current.spa + current.other), diff: formatDiff(percentDiff(current.total, periodTotal(prevRows))), labelKey:'vsLastWeek', titleKey:'weeklyTotal' };
     }
     if(type === 'month'){
-        const row = getMonthlyRow(month) || {};
-        const total = monthlyTotal(row);
-        const room = Number(row.room || 0);
+        const current = getPeriodBreakdown('month');
         const prev = getMonthlyRow(Math.max(1, month - 1));
-        return { total: formatMoney(total), room: formatMoney(room), anc: formatMoney(total - room), diff: formatDiff(percentDiff(total, prev ? monthlyTotal(prev) : 0)), labelKey:'vsLastMonth', titleKey:'monthlyTotal' };
+        return { total: formatMoney(current.total), room: formatMoney(current.room), anc: formatMoney(current.fnb + current.spa + current.other), diff: formatDiff(percentDiff(current.total, prev ? monthlyBreakdown(prev).total : 0)), labelKey:'vsLastMonth', titleKey:'monthlyTotal' };
     }
-    const totals = yoyData.reduce((acc, row) => {
-        const current = yoySet(row, 'ty');
-        const last = yoySet(row, 'ly');
-        const currentTotal = yoyTotal(current) || Number(row.ty || 0);
-        const lastTotal = yoyTotal(last) || Number(row.ly || 0);
-        acc.total += currentTotal;
-        acc.room += Number(current.room || 0);
-        acc.lastTotal += lastTotal;
-        return acc;
-    }, { total:0, room:0, lastTotal:0 });
-    return { total: formatMoney(totals.total), room: formatMoney(totals.room), anc: formatMoney(totals.total - totals.room), diff: formatDiff(percentDiff(totals.total, totals.lastTotal)), labelKey:'vsLastYear', titleKey:'yearlyTotal' };
+    const totals = getPeriodBreakdown('year');
+    return { total: formatMoney(totals.total), room: formatMoney(totals.room), anc: formatMoney(totals.fnb + totals.spa + totals.other), diff: formatDiff(percentDiff(totals.total, totals.lastTotal)), labelKey:'vsLastYear', titleKey:'yearlyTotal' };
+}
+function setSummaryDiff(id, diff){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const isDown = String(diff).trim().startsWith('-');
+    el.innerHTML = `<i class="fa-solid ${isDown ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'}"></i> ${diff}`;
+    el.style.color = isDown ? 'var(--danger)' : 'var(--success)';
 }
 function getPeriodDeptRows(type = currentChartPeriod){
-    if(!depts.length) return [];
-    const baseTotal = depts.reduce((sum, d) => sum + Number(d.amt || 0), 0) || 1;
-    const targetTotal = parseMoneyValue(getPeriodKpiData(type).total) || baseTotal;
-    const scale = targetTotal / baseTotal;
-    return depts.map(d => {
-        const amt = Math.round(Number(d.amt || 0) * scale);
+    const totals = getPeriodBreakdown(type);
+    const total = totals.total || 0;
+    const defaults = {
+        room: { name:'객실', sub:'객실 매출', icon:'fa-bed', color:'var(--primary)', lt:'var(--primary-lt)' },
+        fnb: { name:'통합 포스', sub:'식음료, 리테일', icon:'fa-cash-register', color:'var(--success)', lt:'rgba(16,185,129,0.15)' },
+        spa: { name:'골프장', sub:'그린피, 카트', icon:'fa-golf-ball-tee', color:'var(--purple)', lt:'rgba(139,92,246,0.15)' },
+        other: { name:'렌트카', sub:'차량 대여', icon:'fa-car', color:'var(--orange)', lt:'rgba(245,158,11,0.15)' }
+    };
+    const metaByIcon = key => depts.find(d => String(d.icon || '').includes(defaults[key].icon.replace('fa-', '').split('-')[0])) || {};
+    return ['room', 'fnb', 'spa', 'other'].map(key => {
+        const fallback = defaults[key];
+        const meta = metaByIcon(key);
+        const amt = Math.round(Number(totals[key] || 0));
         return {
-            ...d,
+            ...fallback,
+            ...meta,
+            name: fallback.name,
+            sub: fallback.sub,
             amt,
-            pct: targetTotal ? Math.max(2, Math.round((amt / targetTotal) * 100)) : Number(d.pct || 0)
+            pct: total ? Math.round((amt / total) * 1000) / 10 : 0
         };
     });
 }
@@ -819,13 +866,6 @@ function changeLang(l){
     if(activeChip) changeChartPeriod(activeChip, activeType);
     renderBarChart(); renderMonthly(); renderYoY(); renderDepts(activeType); renderTrend();
 }
-const kpiData = {
-    'day': { total:'$50,500', room:'$38,200', anc:'$12,300', diff:'+15.2%', labelKey:'vsYesterday', titleKey:'dailyTotal' },
-    'week': { total:'$164,250', room:'$131,000', anc:'$22,800', diff:'+5.8%', labelKey:'vsLastWeek', titleKey:'weeklyTotal' },
-    'month': { total:'$690,000', room:'$560,000', anc:'$95,000', diff:'+18.2%', labelKey:'vsLastMonth', titleKey:'monthlyTotal' },
-    'year': { total:'$3,140,000', room:'$2,450,000', anc:'$520,000', diff:'+18.2%', labelKey:'vsLastYear', titleKey:'yearlyTotal' }
-};
-
 function changeChartPeriod(btn, type, resetPeriod = true) {
     currentChartPeriod = type;
     btn.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
@@ -856,11 +896,13 @@ function changeChartPeriod(btn, type, resetPeriod = true) {
         document.getElementById('summaryWeekTotal').previousElementSibling.textContent = rt(dailySummaryKpi.titleKey);
     }
     if(document.getElementById('summaryWeekDiff')) {
-        document.getElementById('summaryWeekDiff').innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${dailySummaryKpi.diff}`;
+        setSummaryDiff('summaryWeekDiff', dailySummaryKpi.diff);
         document.getElementById('summaryWeekDiff').previousElementSibling.textContent = rt(dailySummaryKpi.labelKey);
     }
     if(document.getElementById('summaryMonthTotal')) document.getElementById('summaryMonthTotal').textContent = getPeriodKpiData('month').total;
-    if(document.getElementById('summaryMonthDiff')) document.getElementById('summaryMonthDiff').innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> ${getPeriodKpiData('month').diff}`;
+    if(document.getElementById('summaryMonthDiff')) setSummaryDiff('summaryMonthDiff', getPeriodKpiData('month').diff);
+    if(document.getElementById('summaryYearTotal')) document.getElementById('summaryYearTotal').textContent = getPeriodKpiData('year').total;
+    if(document.getElementById('summaryYearDiff')) setSummaryDiff('summaryYearDiff', getPeriodKpiData('year').diff);
     renderBarChart();
     renderTrend();
     renderDepts(type);
