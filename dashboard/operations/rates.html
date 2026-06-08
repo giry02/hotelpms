@@ -58,11 +58,7 @@
     <div class="content">
         <div class="filter-bar-mt">
             <div class="filter-left">
-                <select class="form-control" style="height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);outline:none;" id="monthSelector" onchange="changeMonth()">
-                    <option value="2026-05">2026년 5월</option>
-                    <option value="2026-06" selected>2026년 6월</option>
-                    <option value="2026-07">2026년 7월</option>
-                </select>
+                <select class="form-control" style="height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);outline:none;" id="monthSelector" onchange="changeMonth()"></select>
             </div>
             <div class="filter-right">
                 <button class="btn-outline-sm" onclick="openModal('batchEditModal')"><i class="fa-solid fa-pen-to-square"></i> 요금 일괄 수정</button>
@@ -208,7 +204,41 @@ function getRoomTypes() {
 // --- 요금 데이터 관리 ---
 let roomTypes = getRoomTypes();
 let dailyRates = {}; // { '2026-05-01': { 'STD': 120, 'DLX-CITY': 180, ... } }
-let currentYearMonth = '2026-06';
+let currentYearMonth = monthKey(new Date());
+
+function monthKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+}
+
+function addMonths(date, offset) {
+    return new Date(date.getFullYear(), date.getMonth() + offset, 1);
+}
+
+function monthOptionLabel(value) {
+    const [year, month] = value.split('-');
+    return `${year}년 ${Number(month)}월`;
+}
+
+function populateMonthSelector() {
+    const selector = document.getElementById('monthSelector');
+    if (!selector) return;
+    const previousValue = selector.value || currentYearMonth || monthKey(new Date());
+    const anchor = new Date();
+    anchor.setDate(1);
+    const values = [];
+    for (let offset = -1; offset <= 24; offset++) {
+        values.push(monthKey(addMonths(anchor, offset)));
+    }
+    if (!values.includes(previousValue)) values.push(previousValue);
+    selector.innerHTML = values
+        .sort()
+        .map(value => `<option value="${value}">${monthOptionLabel(value)}</option>`)
+        .join('');
+    selector.value = values.includes(previousValue) ? previousValue : monthKey(anchor);
+    currentYearMonth = selector.value;
+}
 
 function getCurrencyCode() {
     return localStorage.getItem('pms_default_currency') || 'USD';
@@ -486,6 +516,7 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    populateMonthSelector();
     loadRates();
     renderCalendar();
 });
@@ -503,6 +534,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!Array.isArray(roomTypes) || roomTypes.length === 0) {
             roomTypes = getRoomTypes().map(normalizeRateRoomType);
         }
+        populateMonthSelector();
         populateBatchRoomTypes();
         await loadMockRates();
         renderCalendar();
