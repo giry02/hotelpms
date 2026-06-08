@@ -339,6 +339,10 @@ function jsArg(value) {
     return JSON.stringify(value ?? '');
 }
 
+function jsAttrArg(value) {
+    return escapeAttr(jsArg(value));
+}
+
 function slugRoomType(name, view) {
     return String([name, view].filter(Boolean).join('-') || 'ROOM-TYPE')
         .toUpperCase()
@@ -555,11 +559,11 @@ function renderTabs() {
         
         // Desktop Chips
         const chipContainer = document.getElementById('buildingChips');
-        let chipHtml = `<button class="chip ${currentTab === 'all' ? 'active' : ''}" onclick="setTab('all')">All <span class="chip-count">${allRooms.length}</span></button>`;
+        let chipHtml = `<button class="chip ${currentTab === 'all' ? 'active' : ''}" onclick='setTab(${jsAttrArg('all')})'>All <span class="chip-count">${allRooms.length}</span></button>`;
     
     // Mobile List
     const mobileContainer = document.getElementById('mobileBuildingList');
-    let mobileHtml = `<button class="mobile-bldg-item ${currentTab === 'all' ? 'active' : ''}" onclick="setTab('all')">All <span>${currentTab === 'all' ? '<i class="fa-solid fa-check"></i>' : ''}</span></button>`;
+    let mobileHtml = `<button class="mobile-bldg-item ${currentTab === 'all' ? 'active' : ''}" onclick='setTab(${jsAttrArg('all')})'>All <span>${currentTab === 'all' ? '<i class="fa-solid fa-check"></i>' : ''}</span></button>`;
     
     // Building Management Select & List
     const bldgSelect = document.getElementById('addRoomBuilding');
@@ -569,8 +573,8 @@ function renderTabs() {
 
     buildings.forEach((b, index) => {
         const count = allRooms.filter(r => r && r.building === b).length;
-        chipHtml += `<button class="chip ${currentTab === b ? 'active' : ''}" onclick="setTab(${jsArg(b)})">${escapeHtml(b)} <span class="chip-count">${count}</span></button>`;
-        mobileHtml += `<button class="mobile-bldg-item ${currentTab === b ? 'active' : ''}" onclick="setTab(${jsArg(b)})">${escapeHtml(b)} <span>${currentTab === b ? '<i class="fa-solid fa-check"></i>' : ''}</span></button>`;
+        chipHtml += `<button class="chip ${currentTab === b ? 'active' : ''}" onclick='setTab(${jsAttrArg(b)})'>${escapeHtml(b)} <span class="chip-count">${count}</span></button>`;
+        mobileHtml += `<button class="mobile-bldg-item ${currentTab === b ? 'active' : ''}" onclick='setTab(${jsAttrArg(b)})'>${escapeHtml(b)} <span>${currentTab === b ? '<i class="fa-solid fa-check"></i>' : ''}</span></button>`;
         
         selectHtml += `<option value="${escapeAttr(b)}">${escapeHtml(b)}</option>`;
         manageHtml += `
@@ -581,8 +585,8 @@ function renderTabs() {
                     <div class="inline-subtext">배정 객실 ${count}개</div>
                 </div>
                 <div class="inline-actions">
-                    <button class="btn-outline-sm" onclick="saveBuildingRow(${index}, ${jsArg(b)})"><i class="fa-solid fa-check"></i> 저장</button>
-                    <button class="btn-outline-sm" style="color:var(--danger);border-color:var(--danger)" onclick="deleteBuilding(${jsArg(b)})">삭제</button>
+                    <button class="btn-outline-sm" onclick='saveBuildingRow(${index}, ${jsAttrArg(b)})'><i class="fa-solid fa-check"></i> 저장</button>
+                    <button class="btn-outline-sm" style="color:var(--danger);border-color:var(--danger)" onclick='deleteBuilding(${jsAttrArg(b)})'>삭제</button>
                 </div>
             </div>`;
     });
@@ -699,7 +703,8 @@ function renderTable() {
         return;
     }
 
-    filtered.forEach((r, idx) => {
+    filtered.forEach((r) => {
+        const sourceIdx = allRooms.indexOf(r);
         const bldgStr = r.building || '건물 미지정';
         const floorStr = r.floor ? `${r.floor}층` : '-';
         container.innerHTML += `
@@ -713,8 +718,8 @@ function renderTable() {
                     <div class="room-info-row"><i class="fa-solid fa-layer-group"></i> ${floorStr}</div>
                 </div>
                 <div class="room-card-actions">
-                    <button class="btn-icon" onclick="editRoom(${idx})" title="수정"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn-icon delete" onclick="deleteRoom(${idx})" title="삭제"><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn-icon" onclick="editRoom(${sourceIdx})" title="수정"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-icon delete" onclick="deleteRoom(${sourceIdx})" title="삭제"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>
         `;
