@@ -1153,13 +1153,14 @@ function addTicketFromHK() {
 
     if (!room || !desc) { showToast('객실과 상세 내용을 선택/입력해주세요.'); return; }
 
-    var today = new Date().toISOString().split('T')[0];
+    var issuedAt = new Date().toISOString();
+    var today = issuedAt.split('T')[0];
     var id    = 'MT-' + Date.now().toString().slice(-6);
 
     // pms_maintenance localStorage 에 저장 (시설보수 페이지와 동일한 저장소)
     var list = [];
     try { list = JSON.parse(localStorage.getItem('pms_maintenance') || '[]'); } catch(e) {}
-    list.unshift({ id: id, room: room, roomId: roomId, type: type, desc: desc, priority: priority, assignee: assignee, status: 'open', date: today, source: 'housekeeping' });
+    list.unshift({ id: id, room: room, roomId: roomId, type: type, desc: desc, priority: priority, assignee: assignee, status: 'open', date: today, issuedAt: issuedAt, createdAt: issuedAt, requestedAt: issuedAt, startedAt: '', completedAt: '', source: 'housekeeping' });
     localStorage.setItem('pms_maintenance', JSON.stringify(list));
 
     closeModal('newRequestModal');

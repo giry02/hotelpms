@@ -87,8 +87,16 @@
         }
 
         /* ── Table ── */
-        .mt-table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .mt-table-wrap table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        .mt-table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+        .mt-table-wrap table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .mt-table-wrap thead th:nth-child(1) { width: 88px; }
+        .mt-table-wrap thead th:nth-child(2) { width: 78px; }
+        .mt-table-wrap thead th:nth-child(3) { width: 116px; }
+        .mt-table-wrap thead th:nth-child(5) { width: 82px; }
+        .mt-table-wrap thead th:nth-child(6) { width: 86px; }
+        .mt-table-wrap thead th:nth-child(7) { width: 82px; }
+        .mt-table-wrap thead th:nth-child(8) { width: 176px; }
+        .mt-table-wrap thead th:nth-child(9) { width: 108px; }
         .mt-table-wrap thead th {
             padding: 12px 16px; font-size: .78rem; font-weight: 700; color: var(--txt3);
             background: #f8fafc; text-align: left; border-bottom: 1px solid var(--border);
@@ -265,7 +273,7 @@
             }
             .mt-table-wrap td[data-label="상세 내용"]::before { margin-bottom: 6px; }
             
-            .mt-table-wrap td[data-label="등록일"] {
+            .mt-table-wrap td[data-label="처리 일시"] {
                 order: 8; justify-content: flex-end;
                 padding-top: 12px; border-top: 1px dashed var(--border) !important; margin-top: 4px;
             }
@@ -394,7 +402,7 @@
                             <th>우선순위</th>
                             <th>담당자</th>
                             <th>상태</th>
-                            <th>등록일</th>
+                            <th>처리 일시</th>
                             <th style="text-align:right;">관리</th>
                         </tr>
                     </thead>
@@ -593,6 +601,48 @@ let currentStatusFilter = 'all';
 let isUrgentOnly = false;
 let nextId = 1001;
 
+function normalizeMaintenanceTimestamp(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return `${text}T00:00:00+09:00`;
+    return text;
+}
+
+function maintenanceDateOnly(value) {
+    const timestamp = normalizeMaintenanceTimestamp(value);
+    return timestamp ? String(timestamp).slice(0, 10) : new Date().toISOString().slice(0, 10);
+}
+
+function formatMaintenanceDateTime(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '-';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.replace(/-/g, '. ');
+    const parsed = new Date(normalizeMaintenanceTimestamp(raw));
+    if (!Number.isNaN(parsed.getTime())) {
+        const parts = new Intl.DateTimeFormat('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).formatToParts(parsed).reduce((acc, part) => {
+            acc[part.type] = part.value;
+            return acc;
+        }, {});
+        return `${parts.year}. ${parts.month}. ${parts.day}. ${parts.hour}:${parts.minute}`;
+    }
+    return raw.replace('T', ' ').slice(0, 16);
+}
+
+function maintenanceElapsedHours(value) {
+    const timestamp = normalizeMaintenanceTimestamp(value);
+    if (!timestamp) return '-';
+    const started = new Date(timestamp).getTime();
+    if (!Number.isFinite(started)) return '-';
+    return `${Math.max(0, Math.floor((Date.now() - started) / (1000 * 60 * 60)))}시간`;
+}
+
 function persistMaintenanceRequests() {
     localStorage.setItem('pms_maintenance', JSON.stringify(requests));
 }
@@ -601,8 +651,9 @@ function hydrateMaintenanceRequests() {
     try {
         const stored = JSON.parse(localStorage.getItem('pms_maintenance') || '[]');
         if (!Array.isArray(stored) || !stored.length) return;
-        const storedIds = new Set(stored.map(item => item.id));
-        requests = [...stored, ...requests.filter(item => !storedIds.has(item.id))];
+        const normalizedStored = stored.map(normalizeMaintenanceRequest);
+        const storedIds = new Set(normalizedStored.map(item => item.id));
+        requests = [...normalizedStored, ...requests.filter(item => !storedIds.has(item.id))];
         const numericIds = requests
             .map(item => Number(String(item.id || '').replace(/\D/g, '')))
             .filter(Number.isFinite);
@@ -627,8 +678,11 @@ function normalizeMaintenanceType(type) {
 }
 
 function normalizeMaintenanceRequest(item) {
-    const createdAt = item.createdAt || item.requestedAt || item.updatedAt || item.date || '';
+    const issuedAt = normalizeMaintenanceTimestamp(item.issuedAt || item.createdAt || item.requestedAt || item.date || item.updatedAt || '');
+    const startedAt = normalizeMaintenanceTimestamp(item.startedAt || item.workStartedAt || item.inProgressAt || '');
+    const completedAt = normalizeMaintenanceTimestamp(item.completedAt || item.doneAt || item.closedAt || '');
     return {
+        ...item,
         id: item.id || `MT-${nextId++}`,
         room: String(item.roomNo || item.room || (item.roomId ? String(item.roomId).split('-').pop() : '') || '-'),
         type: normalizeMaintenanceType(item.type),
@@ -636,7 +690,12 @@ function normalizeMaintenanceRequest(item) {
         priority: priorityLabel[item.priority] ? item.priority : 'normal',
         assignee: item.assignee || item.assigneeName || '미배정',
         status: normalizeMaintenanceStatus(item.status),
-        date: item.date || (createdAt ? String(createdAt).slice(0, 10) : new Date().toISOString().slice(0, 10))
+        issuedAt,
+        createdAt: item.createdAt || issuedAt,
+        requestedAt: item.requestedAt || issuedAt,
+        startedAt,
+        completedAt,
+        date: item.date || maintenanceDateOnly(issuedAt)
     };
 }
 
@@ -798,7 +857,12 @@ function renderTable(data) {
             <td data-label="우선순위"><span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span></td>
             <td data-label="담당자">${r.assignee}</td>
             <td data-label="상태"><span class="priority-badge ${stClass}">${statusLabel[r.status]}</span></td>
-            <td data-label="등록일" style="color:var(--txt3); font-size:.8rem;">${r.date}</td>
+            <td data-label="처리 일시" style="color:var(--txt3); font-size:.78rem;">
+                <div style="display:flex; flex-direction:column; gap:3px; line-height:1.35;">
+                    <span><strong style="color:var(--txt2); font-weight:700;">발행</strong> ${formatMaintenanceDateTime(r.issuedAt || r.createdAt || r.requestedAt || r.date)}</span>
+                    <span><strong style="color:var(--txt2); font-weight:700;">시작</strong> ${formatMaintenanceDateTime(r.startedAt)}</span>
+                </div>
+            </td>
             <td data-label="액션" style="text-align:right;">
                 <div style="display:flex; gap:4px; justify-content:flex-end; width:100%;">
                     ${r.status === 'open' ? `<button class="action-btn" onclick="event.stopPropagation(); changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> 착수</button>` : ''}
@@ -819,7 +883,19 @@ function switchView(btn, view) {
 
 function changeStatus(id, newStatus) {
     const r = requests.find(x => x.id === id);
-    if (r) { r.status = newStatus; persistMaintenanceRequests(); updateKPI(); render(); showToast(`${id} 상태가 '${statusLabel[newStatus]}'(으)로 변경되었습니다.`); }
+    if (r) {
+        const now = new Date().toISOString();
+        if (newStatus === 'in-progress' && !r.startedAt) r.startedAt = now;
+        if (newStatus === 'done') {
+            if (!r.startedAt) r.startedAt = now;
+            r.completedAt = now;
+        }
+        r.status = newStatus;
+        persistMaintenanceRequests();
+        updateKPI();
+        render();
+        showToast(`${id} 상태가 '${statusLabel[newStatus]}'(으)로 변경되었습니다.`);
+    }
 }
 
 window.changeAssignee = function(id, newAssignee) {
@@ -837,6 +913,10 @@ async function showDetail(id) {
     if (!r) return;
     document.getElementById('detailId').textContent = r.id;
     const icon = typeIcons[r.type] || 'fa-toolbox';
+    const issuedText = formatMaintenanceDateTime(r.issuedAt || r.createdAt || r.requestedAt || r.date);
+    const startedText = formatMaintenanceDateTime(r.startedAt);
+    const completedText = formatMaintenanceDateTime(r.completedAt);
+    const elapsedBase = r.startedAt || r.issuedAt || r.createdAt || r.requestedAt || r.date;
     
     let assigneeHtml = `<div style="font-weight:700; margin-top:4px;">${r.assignee}</div>`;
     
@@ -862,8 +942,10 @@ async function showDetail(id) {
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
             <div style="font-size:.82rem;"><span style="color:var(--txt3);">객실</span><div style="font-weight:700; margin-top:4px;">${r.room}호</div></div>
             <div style="font-size:.82rem;"><span style="color:var(--txt3);">담당자</span>${assigneeHtml}</div>
-            <div style="font-size:.82rem;"><span style="color:var(--txt3);">등록일</span><div style="font-weight:700; margin-top:4px;">${r.date}</div></div>
-            <div style="font-size:.82rem;"><span style="color:var(--txt3);">경과 시간</span><div style="font-weight:700; margin-top:4px;">${Math.floor((Date.now() - new Date(r.date).getTime())/(1000*60*60))}시간</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">발행 일시</span><div style="font-weight:700; margin-top:4px;">${issuedText}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">작업 시작</span><div style="font-weight:700; margin-top:4px;">${startedText}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">완료 일시</span><div style="font-weight:700; margin-top:4px;">${completedText}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">경과 시간</span><div style="font-weight:700; margin-top:4px;">${maintenanceElapsedHours(elapsedBase)}</div></div>
         </div>
     `;
     let footerHtml = '<button class="btn-outline" onclick="closeModal(\'detailModal\')">닫기</button>';
@@ -882,8 +964,9 @@ function addTicket() {
     const priority = document.getElementById('newPriority').value;
     const assignee = document.getElementById('newAssignee').value;
     if (!room || !desc) { showToast('객실과 상세 내용을 선택/입력해주세요.'); return; }
-    const today = new Date().toISOString().split('T')[0];
-    requests.unshift({ id: 'MT-' + (nextId++), room, roomId, type, desc, priority, assignee, status: 'open', date: today });
+    const issuedAt = new Date().toISOString();
+    const today = issuedAt.split('T')[0];
+    requests.unshift({ id: 'MT-' + (nextId++), room, roomId, type, desc, priority, assignee, status: 'open', date: today, issuedAt, createdAt: issuedAt, requestedAt: issuedAt, startedAt: '', completedAt: '' });
     persistMaintenanceRequests();
     updateKPI(); render();
     closeModal('newRequestModal');
