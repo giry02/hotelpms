@@ -81,9 +81,9 @@
 .stay-flag-btn:hover{border-color:var(--primary);color:var(--primary)}
 .stay-flag-btn.active{border-color:#6366f1;background:#eef2ff;box-shadow:0 0 0 2px rgba(99,102,241,.14)}
 .stay-flag-btn.dnd i{color:#e11d48}.stay-flag-btn.mur i{color:#10b981}.stay-flag-btn.away i{color:#f59e0b}.stay-flag-btn.none i{color:#2563eb}
-.channel-tag.group{background:#111827;color:#fff}
-.channel-tag.corporate{background:#F3F4F6;color:#374151}
-.channel-tag.ota{background:#E0F2FE;color:#0369A1}
+.reservation-kind-tag{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:46px;height:24px;padding:0 9px;border-radius:8px;font-size:.72rem;font-weight:850;white-space:nowrap}
+.reservation-kind-tag.individual{background:#eef2ff;color:#4338ca}
+.reservation-kind-tag.group{background:#111827;color:#fff}
 .action-btns{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
 .res-work-action{min-width:82px;justify-content:center}
 #resTable tbody tr.res-click-row{cursor:pointer}
@@ -199,7 +199,7 @@
                                 <th>체크인</th>
                                 <th>체크아웃</th>
                                 <th>숙박</th>
-                                <th onclick="sortTable('channel')" style="cursor:pointer" title="클릭하여 채널/단체 정렬">채널 <i class="fa-solid fa-sort" style="font-size:0.7em; opacity:0.5"></i></th>
+                                <th data-i18n-key="Reservation Kind">구분</th>
                                 <th>금액</th>
                                 <th>상태</th>
                                 <th>관리</th>
@@ -303,10 +303,8 @@ const reservationLabels = {
         'filter.completed': '완료',
         'filter.cancelled': '취소/노쇼',
         'filter.title': '예약 상태 필터',
-        'channel.direct': '직접',
-        'channel.walkin': '방문',
-        'channel.corporate': '기업',
-        'channel.group': '단체',
+        'kind.individual': '개인',
+        'kind.group': '단체',
         'action.group': '단체 관리',
         'action.checkin': '체크인',
         'action.checkout': '체크아웃',
@@ -361,10 +359,8 @@ const reservationLabels = {
         'filter.completed': 'Completed',
         'filter.cancelled': 'Cancelled / No-show',
         'filter.title': 'Reservation Status Filter',
-        'channel.direct': 'Direct',
-        'channel.walkin': 'Walk-in',
-        'channel.corporate': 'Corporate',
-        'channel.group': 'Group',
+        'kind.individual': 'Individual',
+        'kind.group': 'Group',
         'action.group': 'Rooming',
         'action.checkin': 'Check-in',
         'action.checkout': 'Check-out',
@@ -433,31 +429,19 @@ function filterLabel(filter) {
     return resText(`filter.${filter}`);
 }
 
-function normalizedChannelKey(value) {
-    const raw = String(value || '').trim().toLowerCase().replace(/[_\s/.-]/g, '');
-    if (['direct', 'directbooking'].includes(raw)) return 'direct';
-    if (['walkin', 'walk'].includes(raw)) return 'walkin';
-    if (['corporate', 'corp'].includes(raw)) return 'corporate';
-    if (['group', 'b2b', 'b2bgroup'].includes(raw)) return 'corporate';
-    if (raw.includes('booking')) return 'booking';
-    if (raw.includes('agoda')) return 'agoda';
-    if (raw.includes('ota')) return 'ota';
-    return raw || 'direct';
-}
-
-function channelMeta(res) {
-    const key = (res?.groupId || res?.isGroupPlaceholder) ? 'group' : normalizedChannelKey(res?.channel);
-    const fixedLabels = { ota: 'OTA', agoda: 'Agoda', booking: 'Booking.com' };
+function reservationKindMeta(res) {
+    const key = (res?.groupId || res?.isGroupPlaceholder) ? 'group' : 'individual';
     return {
         key,
         cls: key,
-        label: fixedLabels[key] || resText(`channel.${key}`) || String(res?.channel || '-')
+        icon: key === 'group' ? 'fa-users' : 'fa-user',
+        label: resText(`kind.${key}`)
     };
 }
 
-function channelBadge(res) {
-    const channel = channelMeta(res);
-    return `<span class="channel-tag ${escapeHtml(channel.cls)}">${escapeHtml(channel.label)}</span>`;
+function reservationKindBadge(res) {
+    const kind = reservationKindMeta(res);
+    return `<span class="reservation-kind-tag ${escapeHtml(kind.cls)}"><i class="fa-solid ${escapeHtml(kind.icon)}"></i>${escapeHtml(kind.label)}</span>`;
 }
 
 function stayLabel(nights) {
@@ -610,7 +594,7 @@ function reservationGuestName(res) {
 
 function displayGuestName(res) {
     if (normalizeListStatus(res?.status) === 'blocked' || res?.isGroupPlaceholder) {
-        return res?.roomingGuestName || res?.guestName || res?.groupName || res?.channel || '단체 블록';
+        return res?.roomingGuestName || res?.guestName || res?.groupName || '단체 블록';
     }
     return reservationGuestName(res) || '-';
 }
@@ -896,8 +880,7 @@ function renderTable() {
             r.room,
             r.roomLabel,
             r.type,
-            r.channel,
-            channelMeta(r).label,
+            reservationKindMeta(r).label,
             r.groupName,
             displayGuestName(r),
             operationalNotes(r).join(' ')
@@ -945,7 +928,7 @@ function renderTable() {
             <td>${escapeHtml(r.cin)}</td>
             <td>${escapeHtml(r.cout)}</td>
             <td>${stayLabel(r.nights)}</td>
-            <td>${channelBadge(r)}</td>
+            <td>${reservationKindBadge(r)}</td>
             <td style="font-weight:700">${formatMoney(r)}</td>
             <td><span class="status-badge ${st.cls}">${st.label}</span></td>
             <td class="res-actions-cell">
@@ -984,7 +967,7 @@ function renderTable() {
             <div class="m-res-details">
                 <div class="m-res-detail"><i class="fa-solid fa-door-open"></i> <span class="room-tag">${escapeHtml(r.room)}</span> ${escapeHtml(roomTypeDisplay(r.type))}</div>
                 <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> ${escapeHtml(r.cin)} → ${escapeHtml(r.cout)} (${stayLabel(r.nights)})</div>
-                <div class="m-res-detail"><i class="fa-solid fa-globe"></i> ${channelBadge(r)}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-user-tag"></i> ${reservationKindBadge(r)}</div>
                 ${alertBadges(r)}
             </div>
             <div class="m-res-actions">
@@ -1281,7 +1264,7 @@ function exportReservationsToCSV() {
         if(window.showToast) window.showToast(resText('toast.noData'));
         return;
     }
-    const headers = ['예약번호', '고객', '객실', '유형', '체크인', '체크아웃', '숙박', '채널', '금액', '상태', '메모'];
+    const headers = ['예약번호', '고객', '객실', '유형', '체크인', '체크아웃', '숙박', '구분', '금액', '상태', '메모'];
     const rows = reservations.map(r => [
         r.id, 
         '"' + displayGuestName(r) + '"', 
@@ -1290,7 +1273,7 @@ function exportReservationsToCSV() {
         r.cin, 
         r.cout, 
         r.nights, 
-        channelMeta(r).label,
+        reservationKindMeta(r).label,
         formatMoney(r), 
         statusMeta(effectiveRowStatus(r)).label,
         '"' + operationalNotes(r).join(' / ') + '"'
@@ -1375,7 +1358,7 @@ const translations = {
         "All":"전체","Confirmed":"확정","Check-in":"체크인","Check-out":"체크아웃","Cancel":"취소",
         "Export":"엑셀 다운","New Booking":"신규 예약",
         "Booking #":"예약번호","Room / Booking #":"객실 / 예약번호","Guest":"고객","Guest / 주의사항":"고객 / 주의사항","Room":"객실","Type":"유형",
-        "Stay":"숙박","Channel":"채널","Amount":"금액","Amount(USD)":"금액(USD)","Status":"상태","Actions":"관리","Recent Order":"최근순","Room Order":"호실순",
+        "Stay":"숙박","Reservation Kind":"구분","Amount":"금액","Amount(USD)":"금액(USD)","Status":"상태","Actions":"관리","Recent Order":"최근순","Room Order":"호실순",
         "Main": "메인","Front Desk":"프론트 데스크","Guest & CRM": "투숙객 및 고객 관리",
         "Operations": "운영 관리","Settings": "설정"
     },
@@ -1415,7 +1398,7 @@ const translations = {
         "All":"All","Confirmed":"Confirmed","Check-in":"Check-in","Check-out":"Check-out","Cancel":"Cancelled",
         "Export":"Export Excel","New Booking":"New Booking",
         "Booking #":"Booking #","Room / Booking #":"Room / Booking #","Guest":"Guest","Guest / 주의사항":"Guest / Notes","Room":"Room","Type":"Type",
-        "Stay":"Stay","Channel":"Channel","Amount":"Amount","Amount(USD)":"Amount(USD)","Status":"Status","Actions":"Actions","Recent Order":"Recent","Room Order":"Room Order",
+        "Stay":"Stay","Reservation Kind":"Guest Type","Amount":"Amount","Amount(USD)":"Amount(USD)","Status":"Status","Actions":"Actions","Recent Order":"Recent","Room Order":"Room Order",
         "Main":"Main","Front Desk":"Front Desk","Guest & CRM":"Guest & CRM",
         "Operations":"Operations","Settings":"Settings"
     }
