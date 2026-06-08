@@ -201,10 +201,14 @@ function assert(condition, message, details = null) {
     const companyHoverResult = await firstCompanyCard.evaluate(el => ({
       transform: getComputedStyle(el).transform,
       transitionProperty: getComputedStyle(el).transitionProperty,
+      role: el.getAttribute('role') || '',
+      tabIndexAttr: el.getAttribute('tabindex') || '',
+      inlineCursor: el.getAttribute('style') || '',
       childTransforms: Array.from(el.querySelectorAll('button')).map(button => ({
         className: button.className,
         transform: getComputedStyle(button).transform,
-        transitionProperty: getComputedStyle(button).transitionProperty
+        transitionProperty: getComputedStyle(button).transitionProperty,
+        transitionDuration: getComputedStyle(button).transitionDuration
       }))
     }));
     await firstCompanyCard.locator('.btn-room-assign').first().hover();
@@ -218,8 +222,10 @@ function assert(condition, message, details = null) {
       companyHoverResult
     );
     assert(!companyHoverResult.transitionProperty.split(',').map(item => item.trim()).includes('transform'), 'Company card transition must not animate transform.', companyHoverResult);
+    assert(companyHoverResult.transitionProperty === 'none', 'Company card hover must not animate because it can flicker inside nested controls.', companyHoverResult);
+    assert(!companyHoverResult.role && !companyHoverResult.tabIndexAttr && !companyHoverResult.inlineCursor.includes('cursor:pointer'), 'Company card itself must not be a nested clickable parent around buttons.', companyHoverResult);
     assert(companyHoverResult.childTransforms.every(item => item.transform === 'none' || item.transform === 'matrix(1, 0, 0, 1, 0, 0)'), 'Company card buttons must not move on hover or active states.', companyHoverResult);
-    assert(companyHoverResult.childTransforms.every(item => !item.transitionProperty.split(',').map(part => part.trim()).includes('transform')), 'Company card buttons must not animate transform.', companyHoverResult);
+    assert(companyHoverResult.childTransforms.every(item => item.transitionProperty === 'none' && item.transitionDuration === '0s'), 'Company card buttons must use stable, non-animated hover styles.', companyHoverResult);
     assert(stableBox(cardBoxBeforeHover, cardBoxAfterHover) && stableBox(cardBoxBeforeHover, cardBoxAfterButtonHover), 'Company card bounding box must stay stable across card and button hover.', { cardBoxBeforeHover, cardBoxAfterHover, cardBoxAfterButtonHover });
 
     await page.evaluate(() => {
