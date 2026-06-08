@@ -91,7 +91,7 @@
         <div class="section-header membership-toolbar" style="margin-top: 20px;">
             <h3 style="margin:0;color:var(--txt)" data-i18n-key="Tier Member Status">등급별 회원 현황 및 기준</h3>
             <div class="membership-actions">
-                <button class="btn-outline membership-benefits-btn" onclick="openModal('tierBenefitsModal')"><i class="fa-solid fa-gift"></i> <span data-i18n-key="Tier Benefits">등급별 혜택</span></button>
+                <button class="btn-outline membership-benefits-btn" onclick="openModal('tierCriteriaModal')"><i class="fa-solid fa-layer-group"></i> <span data-i18n-key="Tier Criteria">등급 기준</span></button>
                 <button class="btn-primary-sm" onclick="openVipCriteriaModal()"><i class="fa-solid fa-sliders"></i> <span data-i18n-key="VIP Upgrade Criteria">승급 기준 관리</span></button>
             </div>
         </div>
@@ -186,7 +186,7 @@
 let membershipTiers = [];
 
 function openModal(id) {
-    if (id === 'tierBenefitsModal') renderTierBenefits();
+    if (id === 'tierCriteriaModal') renderTierCriteria();
     document.getElementById(id).classList.add('active');
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -205,44 +205,35 @@ function localizedValue(value) {
     return value ?? '';
 }
 
-function benefitsMessage(message) {
+function tierCriteriaMessage(message) {
     return `<tbody><tr><td style="text-align:center;padding:32px;color:var(--txt3)">${membershipEscape(localizedValue(message))}</td></tr></tbody>`;
 }
 
-const benefitRows = [
-    { key: 'roomDiscountPercent', label: { ko: '객실 할인', en: 'Room Discount' }, format: value => Number(value || 0) ? `${Number(value)}%` : '-' },
-    { key: 'earlyCheckIn', label: { ko: '얼리 체크인', en: 'Early Check-in' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
-    { key: 'lateCheckOut', label: { ko: '레이트 체크아웃', en: 'Late Check-out' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
-    { key: 'freeBreakfast', label: { ko: '무료 조식', en: 'Free Breakfast' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
-    { key: 'roomUpgrade', label: { ko: '객실 업그레이드', en: 'Room Upgrade' }, format: value => localizedValue(value) ? membershipEscape(localizedValue(value)) : '-' },
-    { key: 'loungeAccess', label: { ko: '라운지 이용', en: 'Lounge Access' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
-    { key: 'airportPickup', label: { ko: '공항 픽업', en: 'Airport Pickup' }, format: value => value ? '<i class="fa-solid fa-check c-green"></i>' : '-' },
-    { key: 'welcomeAmenity', label: { ko: '환영 어메니티', en: 'Welcome Amenity' }, format: value => localizedValue(value) ? membershipEscape(localizedValue(value)) : '-' },
-    { key: 'pointEarnRate', label: { ko: '포인트 적립률', en: 'Point Earn Rate' }, format: value => membershipEscape(value || '-') }
-];
-
 function tierSortValue(tier) {
-    const order = { standard: 10, gold: 20, platinum: 30, diamond: 40 };
+    const order = { standard: 10, silver: 20, gold: 30, platinum: 40, diamond: 50, group: 90 };
     return Number(tier.sortOrder || order[String(tier.id || '').toLowerCase()] || 999);
 }
 
-function renderTierBenefits(tiers = membershipTiers) {
-    const table = document.querySelector('#tierBenefitsModal .benefits-table');
+function renderTierCriteria(tiers = membershipTiers) {
+    const table = document.querySelector('#tierCriteriaModal .benefits-table');
     if (!table) return;
     const activeTiers = (tiers || [])
-        .filter(tier => tier && tier.id && tier.benefits)
+        .filter(tier => tier && tier.id)
         .sort((a, b) => tierSortValue(a) - tierSortValue(b));
     if (!activeTiers.length) {
-        table.innerHTML = benefitsMessage({ ko: '등급 혜택 데이터가 없습니다.', en: 'No tier benefit data available.' });
+        table.innerHTML = tierCriteriaMessage({ ko: '등급 기준 데이터가 없습니다.', en: 'No tier criteria data available.' });
         return;
     }
+    const hasMinStays = activeTiers.some(tier => tier.minStays !== undefined && tier.minStays !== null);
     const header = `<thead><tr>
-        <th>${membershipEscape(localizedValue({ ko: '혜택', en: 'Benefit' }))}</th>
-        ${activeTiers.map(tier => `<th class="tc"><i class="fa-solid ${membershipEscape(tier.icon || 'fa-user')}" style="color:${membershipEscape(tier.color || '#9CA3AF')}"></i> ${membershipEscape(localizedValue(tier.label) || tier.name || tier.id)}</th>`).join('')}
+        <th>${membershipEscape(localizedValue({ ko: '등급', en: 'Tier' }))}</th>
+        <th class="tc">${membershipEscape(localizedValue({ ko: '최소 누적 결제', en: 'Minimum Spend' }))}</th>
+        ${hasMinStays ? `<th class="tc">${membershipEscape(localizedValue({ ko: '최소 투숙', en: 'Minimum Stays' }))}</th>` : ''}
     </tr></thead>`;
-    const rows = benefitRows.map(row => `<tr>
-        <td>${membershipEscape(localizedValue(row.label))}</td>
-        ${activeTiers.map(tier => `<td class="tc">${row.format(tier.benefits?.[row.key], tier)}</td>`).join('')}
+    const rows = activeTiers.map(tier => `<tr>
+        <td>${membershipEscape(tier.name || tier.id)}</td>
+        <td class="tc">${tier.minSpend === undefined || tier.minSpend === null ? '-' : money(tier.minSpend)}</td>
+        ${hasMinStays ? `<td class="tc">${tier.minStays === undefined || tier.minStays === null ? '-' : membershipEscape(tier.minStays)}</td>` : ''}
     </tr>`).join('');
     table.innerHTML = `${header}<tbody>${rows}</tbody>`;
 }
@@ -345,7 +336,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"VIP Members":"우수 고객 멤버십","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Tier Benefits":"등급별 혜택","Recent Tier Changes":"최근 등급 변동","This Month":"이번 달","Last Month":"지난 달","Benefit":"혜택","Room Discount":"객실 할인","Early Check-in":"얼리 체크인","Late Check-out":"레이트 체크아웃","Free Breakfast":"무료 조식","Room Upgrade":"객실 업그레이드","Lounge Access":"라운지 이용","Airport Pickup":"공항 픽업","Welcome Amenity":"환영 어메니티","Point Earn Rate":"포인트 적립률"},en: {
+"VIP Members":"우수 고객 멤버십","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Tier Criteria":"등급 기준","Recent Tier Changes":"최근 등급 변동","This Month":"이번 달","Last Month":"지난 달"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -373,9 +364,9 @@ const translations={ko: {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
-"VIP Members":"VIP Members","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Tier Benefits":"Tier Benefits","Recent Tier Changes":"Recent Tier Changes","This Month":"This Month","Last Month":"Last Month","Benefit":"Benefit","Room Discount":"Room Discount","Early Check-in":"Early Check-in","Late Check-out":"Late Check-out","Free Breakfast":"Free Breakfast","Room Upgrade":"Room Upgrade","Lounge Access":"Lounge Access","Airport Pickup":"Airport Pickup","Welcome Amenity":"Welcome Amenity","Point Earn Rate":"Point Earn Rate"}};
+"VIP Members":"VIP Members","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Tier Criteria":"Tier Criteria","Recent Tier Changes":"Recent Tier Changes","This Month":"This Month","Last Month":"Last Month"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});renderTierBenefits()}
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});renderTierCriteria()}
 document.addEventListener('DOMContentLoaded', async () => {
     setupI18n();
     changeLang(currentLang);
@@ -395,7 +386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 PmsAPI.getMembershipTiers ? PmsAPI.getMembershipTiers() : Promise.resolve([])
             ]);
             membershipTiers = tiers;
-            renderTierBenefits();
+            renderTierCriteria();
             let d=0, p=0, g=0, s=0;
             guests.forEach(guest => {
                 if(guest.tier === 'diamond') d++;
@@ -419,22 +410,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 </script>
 
 
-<!-- Tier Benefits Modal -->
-<div class="modal-overlay" id="tierBenefitsModal" onclick="if(event.target===this) closeModal('tierBenefitsModal')">
+<!-- Tier Criteria Modal -->
+<div class="modal-overlay" id="tierCriteriaModal" onclick="if(event.target===this) closeModal('tierCriteriaModal')">
     <div class="modal-card tier-benefits-modal" style="max-width:980px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title" data-i18n-key="Tier Benefits">등급별 혜택</h3>
-            <button class="modal-close" onclick="closeModal('tierBenefitsModal')"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="modal-title" data-i18n-key="Tier Criteria">등급 기준</h3>
+            <button class="modal-close" onclick="closeModal('tierCriteriaModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body">
             <div class="table-wrap benefits-table-wrap">
                 <table class="benefits-table">
-                    <tbody><tr><td style="text-align:center;padding:32px;color:var(--txt3)">등급 혜택 데이터를 불러오는 중입니다.</td></tr></tbody>
+                    <tbody><tr><td style="text-align:center;padding:32px;color:var(--txt3)">등급 기준 데이터를 불러오는 중입니다.</td></tr></tbody>
                 </table>
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-primary-sm" onclick="closeModal('tierBenefitsModal')"><i class="fa-solid fa-check"></i> 확인</button>
+            <button class="btn-primary-sm" onclick="closeModal('tierCriteriaModal')"><i class="fa-solid fa-check"></i> 확인</button>
         </div>
     </div>
 </div>

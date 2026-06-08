@@ -109,31 +109,14 @@ guests.forEach(guest => {
   }
 });
 
-const requiredBenefitKeys = [
-  'roomDiscountPercent',
-  'earlyCheckIn',
-  'lateCheckOut',
-  'freeBreakfast',
-  'roomUpgrade',
-  'loungeAccess',
-  'airportPickup',
-  'welcomeAmenity',
-  'pointEarnRate'
-];
-['standard', 'gold', 'platinum', 'diamond'].forEach(tierId => {
+['standard', 'silver', 'gold', 'group'].forEach(tierId => {
   const tier = membershipTiers.find(item => item.id === tierId);
   if (!tier) {
     errors.push(`membership-tier/${tierId}: required tier is missing`);
     return;
   }
-  if (!tier.label?.ko || !tier.label?.en) errors.push(`membership-tier/${tierId}: localized label is required`);
-  if (!tier.benefits || typeof tier.benefits !== 'object') {
-    errors.push(`membership-tier/${tierId}: benefits object is required`);
-    return;
-  }
-  requiredBenefitKeys.forEach(key => {
-    if (!Object.prototype.hasOwnProperty.call(tier.benefits, key)) errors.push(`membership-tier/${tierId}: missing benefit ${key}`);
-  });
+  if (!String(tier.name || '').trim()) errors.push(`membership-tier/${tierId}: name is required`);
+  if (typeof tier.minSpend !== 'number') errors.push(`membership-tier/${tierId}: minSpend must be a number`);
 });
 
 adminBilling.forEach(invoice => {
