@@ -286,20 +286,56 @@ const guestPageSize = 10;
 let currentGuestDetailEmail = null;
 let originalGuestTier = null;
 const PMS_GUEST_NATIONALITIES = [
-    'Vietnam', 'Korea', 'Japan', 'China', 'Taiwan', 'Hong Kong',
-    'Singapore', 'Thailand', 'Malaysia', 'Indonesia', 'Philippines', 'India',
-    'UAE', 'Saudi Arabia', 'Qatar',
-    'USA', 'Canada', 'Mexico', 'Brazil',
-    'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
-    'Australia', 'New Zealand'
-];
+    'Australia', 'Brazil', 'Canada', 'China', 'France', 'Germany',
+    'Hong Kong', 'India', 'Indonesia', 'Italy', 'Japan', 'Korea',
+    'Malaysia', 'Mexico', 'New Zealand', 'Philippines', 'Qatar',
+    'Saudi Arabia', 'Singapore', 'Spain', 'Taiwan', 'Thailand',
+    'UAE', 'United Kingdom', 'USA', 'Vietnam'
+].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
 
 function guestEscape(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
+function normalizeGuestNationality(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (PMS_GUEST_NATIONALITIES.includes(raw)) return raw;
+    const stripped = raw.replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
+    if (PMS_GUEST_NATIONALITIES.includes(stripped)) return stripped;
+    const lower = stripped.toLowerCase();
+    const aliasRules = [
+        [/vietnam|viet|베트남|踰좏듃/, 'Vietnam'],
+        [/korea|south korea|대한민국|한국|?쒕?援/, 'Korea'],
+        [/japan|일본|쇰낯/, 'Japan'],
+        [/china|중국|묎뎅/, 'China'],
+        [/taiwan|대만|留/, 'Taiwan'],
+        [/hong kong|홍콩/, 'Hong Kong'],
+        [/singapore|싱가포르/, 'Singapore'],
+        [/thailand|태국/, 'Thailand'],
+        [/malaysia|말레이시아/, 'Malaysia'],
+        [/indonesia|인도네시아/, 'Indonesia'],
+        [/philippines|필리핀/, 'Philippines'],
+        [/india|인도|낆씪/, 'India'],
+        [/uae|emirates|아랍에미리트|꾨엻/, 'UAE'],
+        [/usa|u\.s\.a|united states|america|미국|誘멸뎅/, 'USA'],
+        [/canada|캐나다/, 'Canada'],
+        [/mexico|멕시코/, 'Mexico'],
+        [/brazil|브라질/, 'Brazil'],
+        [/united kingdom|uk|england|영국/, 'United Kingdom'],
+        [/germany|독일|낅룆/, 'Germany'],
+        [/france|프랑스|띿쉘/, 'France'],
+        [/spain|스페인|ㅽ럹/, 'Spain'],
+        [/italy|이탈리아/, 'Italy'],
+        [/australia|호주/, 'Australia'],
+        [/new zealand|뉴질랜드/, 'New Zealand']
+    ];
+    const match = aliasRules.find(([pattern]) => pattern.test(lower) || pattern.test(stripped));
+    return match ? match[1] : stripped;
+}
+
 function cleanGuestNation(guest) {
-    return String(guest?.nation || guest?.nationality || guest?.country || '').trim();
+    return normalizeGuestNationality(guest?.nation || guest?.nationality || guest?.country);
 }
 
 function displayGuestNation(value) {
@@ -307,9 +343,9 @@ function displayGuestNation(value) {
 }
 
 function nationalityOptionsHtml(selected = '') {
-    const current = String(selected || '').trim();
-    const values = PMS_GUEST_NATIONALITIES.slice();
-    if (current && !values.includes(current)) values.unshift(current);
+    const current = normalizeGuestNationality(selected);
+    const values = Array.from(new Set([...PMS_GUEST_NATIONALITIES, current].filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
     return values.map(country => `<option value="${guestEscape(country)}"${country === current ? ' selected' : ''}>${guestEscape(country)}</option>`).join('');
 }
 
@@ -317,7 +353,7 @@ function hydrateGuestNationalitySelects(selected = '') {
     const addSelect = document.querySelector('#addGuestModal select');
     const detailSelect = document.getElementById('gdInputNation');
     [addSelect, detailSelect].filter(Boolean).forEach(select => {
-        const current = selected || select.value || 'Vietnam';
+        const current = normalizeGuestNationality(selected || select.value) || 'Vietnam';
         select.innerHTML = nationalityOptionsHtml(current);
         select.value = current;
     });
@@ -657,10 +693,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">국적</label>
                     <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>베트남</option>
-                        <option>대한민국</option>
-                        <option>미국</option>
-                        <option>일본</option>
+                        <option value="Vietnam">Vietnam</option>
                     </select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
@@ -730,16 +763,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:4px">
                     <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">국적</label>
                     <select id="gdInputNation" style="height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option value="🇻🇳 베트남">베트남</option>
-                        <option value="🇰🇷 대한민국">대한민국</option>
-                        <option value="🇺🇸 미국">미국</option>
-                        <option value="🇯🇵 일본">일본</option>
-                        <option value="🇪🇸 스페인">스페인</option>
-                        <option value="🇦🇪 아랍에미리트">아랍에미리트</option>
-                        <option value="🇨🇳 중국">중국</option>
-                        <option value="🇩🇪 독일">독일</option>
-                        <option value="🇭🇰 홍콩">홍콩</option>
-                        <option value="🇹🇼 대만">대만</option>
+                        <option value="Vietnam">Vietnam</option>
                     </select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:4px">
