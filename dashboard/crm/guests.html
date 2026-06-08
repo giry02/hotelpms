@@ -285,6 +285,44 @@ let currentPage = 1;
 const guestPageSize = 10;
 let currentGuestDetailEmail = null;
 let originalGuestTier = null;
+const PMS_GUEST_NATIONALITIES = [
+    'Vietnam', 'Korea', 'Japan', 'China', 'Taiwan', 'Hong Kong',
+    'Singapore', 'Thailand', 'Malaysia', 'Indonesia', 'Philippines', 'India',
+    'UAE', 'Saudi Arabia', 'Qatar',
+    'USA', 'Canada', 'Mexico', 'Brazil',
+    'United Kingdom', 'Germany', 'France', 'Spain', 'Italy',
+    'Australia', 'New Zealand'
+];
+
+function guestEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+function cleanGuestNation(guest) {
+    return String(guest?.nation || guest?.nationality || guest?.country || '').trim();
+}
+
+function displayGuestNation(value) {
+    return String(value || '').trim() || '-';
+}
+
+function nationalityOptionsHtml(selected = '') {
+    const current = String(selected || '').trim();
+    const values = PMS_GUEST_NATIONALITIES.slice();
+    if (current && !values.includes(current)) values.unshift(current);
+    return values.map(country => `<option value="${guestEscape(country)}"${country === current ? ' selected' : ''}>${guestEscape(country)}</option>`).join('');
+}
+
+function hydrateGuestNationalitySelects(selected = '') {
+    const addSelect = document.querySelector('#addGuestModal select');
+    const detailSelect = document.getElementById('gdInputNation');
+    [addSelect, detailSelect].filter(Boolean).forEach(select => {
+        const current = selected || select.value || 'Vietnam';
+        select.innerHTML = nationalityOptionsHtml(current);
+        select.value = current;
+    });
+}
+
 PmsAPI.getGuests()
     .then(data => {
         guests = data.map((g, index) => ({
@@ -293,7 +331,8 @@ PmsAPI.getGuests()
             name: g.name,
             init: g.name ? g.name.substring(0,2).toUpperCase() : '--',
             color: g.color || '#3B82F6',
-            nation: g.nation || g.country || '',
+            nation: cleanGuestNation(g),
+            nationality: cleanGuestNation(g),
             tier: g.tier ? String(g.tier).toLowerCase() : 'standard',
             tierLabel: g.tier || 'standard',
             visits: g.visits || 0,
@@ -361,9 +400,10 @@ function renderGuests() {
     // Desktop table
     tbody.innerHTML = pageItems.map(g => {
         const tc = t[g.tier] || t.standard;
+        const nation = displayGuestNation(g.nation);
         return `<tr onclick="openGuestDetail('${g.email}')" style="cursor:pointer" class="guest-row">
             <td><div class="guest-cell"><div class="guest-avatar" style="background:${g.color}">${g.init}</div><div><strong>${g.name}</strong> <span style="font-size:.7rem;color:var(--txt3)">${g.email}</span></div></div></td>
-            <td>${g.nation}</td>
+            <td>${guestEscape(nation)}</td>
             <td><span class="tier-badge" style="background:${tc.bg};color:${tc.color}"><i class="fa-solid ${tc.icon}"></i> ${g.tierLabel || g.tier}</span></td>
             <td><strong>${g.visits}</strong>회</td>
             <td>${g.last}</td>
@@ -378,13 +418,14 @@ function renderGuests() {
     // Mobile cards
     mobile.innerHTML = pageItems.map(g => {
         const tc = t[g.tier] || t.standard;
+        const nation = displayGuestNation(g.nation);
         return `<div class="m-res-card" onclick="openGuestDetail('${g.email}')" style="cursor:pointer">
             <div class="m-res-top">
                 <div class="m-res-guest">
                     <div class="guest-avatar" style="background:${g.color}">${g.init}</div>
                     <div>
                         <div class="m-res-name">${g.name}</div>
-                        <div class="m-res-sub">${g.nation}</div>
+                        <div class="m-res-sub">${guestEscape(nation)}</div>
                     </div>
                 </div>
                 <div style="text-align:right">
@@ -581,7 +622,7 @@ function saveGuest() {
     closeModal('addGuestModal');
 }
 
-document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
+document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang);hydrateGuestNationalitySelects()});
 </script>
 
 <!-- Add Guest Modal -->
@@ -776,6 +817,7 @@ function openGuestDetail(email) {
     document.getElementById('gdInputLastName').value = lastName;
     document.getElementById('gdInputPhone').value = guest.phone;
     document.getElementById('gdInputEmail').value = guest.email;
+    hydrateGuestNationalitySelects(guest.nation);
     const nSel = document.getElementById('gdInputNation');
     if(!Array.from(nSel.options).some(o => o.value === guest.nation)) {
         nSel.add(new Option(guest.nation, guest.nation));

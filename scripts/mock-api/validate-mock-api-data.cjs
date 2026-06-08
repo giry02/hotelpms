@@ -103,12 +103,10 @@ guests.forEach(guest => {
   if (status && !enumRules.docStatus.has(status)) errors.push(`guest/${guest.id}: invalid document.status ${status}`);
   const rawDoc = guest.document?.number || guest.document?.passportNumber || '';
   if (rawDoc && !String(rawDoc).includes('*')) errors.push(`guest/${guest.id}: document number must be masked`);
+  if (!String(guest.nationality || guest.nation || guest.country || '').trim()) {
+    errors.push(`guest/${guest.id}: nationality is required for demo list display`);
+  }
 });
-
-const robertFord = guests.find(guest => guest.name === 'Robert Ford');
-if (robertFord && !String(robertFord.nationality || robertFord.nation || '').trim()) {
-  errors.push('guest/Robert Ford: nationality is required for demo list display');
-}
 
 adminBilling.forEach(invoice => {
   if (invoice.status && !enumRules.invoiceStatus.has(invoice.status)) errors.push(`invoice/${invoice.id}: invalid status ${invoice.status}`);
