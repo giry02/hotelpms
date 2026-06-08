@@ -731,10 +731,30 @@ function openBlockModal(compId) {
         return { locked, events, counts };
     };
 
+    function bindCompanyCardActions() {
+        const grid = document.getElementById('companyGrid');
+        if (!grid || grid.dataset.actionsBound === 'true') return;
+        grid.dataset.actionsBound = 'true';
+        grid.addEventListener('click', event => {
+            const button = event.target.closest('[data-company-action]');
+            if (!button || !grid.contains(button)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (button.disabled || button.getAttribute('aria-disabled') === 'true') return;
+            const id = button.dataset.companyId || '';
+            const action = button.dataset.companyAction;
+            if (action === 'create') openBlockModal(id);
+            if (action === 'events') location.href = `groups_blocks.html?companyId=${encodeURIComponent(id)}`;
+            if (action === 'edit') editCompany(id);
+            if (action === 'delete') deleteCompany(id);
+        });
+    }
+
     window.renderCompanies = function(search = '') {
         const grid = document.getElementById('companyGrid');
         const empty = document.getElementById('emptyState');
         if (!grid) return;
+        bindCompanyCardActions();
         document.getElementById('kpiTotal').textContent = companies.length;
         document.getElementById('kpiActive').textContent = companies.filter(c => c.status === 'active').length;
         const eventCounts = stageCounts(allGroupEvents());
@@ -750,6 +770,7 @@ function openBlockModal(compId) {
         });
         if (!filtered.length) {
             grid.style.display = 'none';
+            grid.dataset.renderKey = '';
             if (empty) empty.style.display = 'block';
             return;
         }
@@ -783,14 +804,17 @@ function openBlockModal(compId) {
                     <div><i class="fa-solid fa-box-archive"></i> ${companyText('pastEvents')} ${cnt.past}</div>
                 </div>
                 <div class="card-footer-btns">
-                    <button class="btn-room-assign" onclick="event.stopPropagation(); openBlockModal('${c.id}')"><i class="fa-solid fa-calendar-plus"></i> 행사 생성</button>
-                    <button class="btn-card-edit" onclick="event.stopPropagation(); location.href='groups_blocks.html?companyId=${encodeURIComponent(c.id)}'" title="행사 보기"><i class="fa-solid fa-list"></i></button>
-                    <button class="btn-card-edit" onclick="event.stopPropagation(); editCompany('${c.id}')" title="업체 수정"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn-card-delete" onclick="event.stopPropagation(); deleteCompany('${c.id}')" title="${deleteTitle}" ${deleteDisabled}><i class="fa-solid fa-trash"></i></button>
+                    <button type="button" class="btn-room-assign" data-company-action="create" data-company-id="${c.id}"><i class="fa-solid fa-calendar-plus"></i> 행사 생성</button>
+                    <button type="button" class="btn-card-edit" data-company-action="events" data-company-id="${c.id}" title="행사 보기"><i class="fa-solid fa-list"></i></button>
+                    <button type="button" class="btn-card-edit" data-company-action="edit" data-company-id="${c.id}" title="업체 수정"><i class="fa-solid fa-pen"></i></button>
+                    <button type="button" class="btn-card-delete" data-company-action="delete" data-company-id="${c.id}" title="${deleteTitle}" ${deleteDisabled}><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>`;
         }).join('');
-        if (grid.innerHTML !== companyCardHtml) grid.innerHTML = companyCardHtml;
+        if (grid.dataset.renderKey !== companyCardHtml) {
+            grid.innerHTML = companyCardHtml;
+            grid.dataset.renderKey = companyCardHtml;
+        }
     };
     try { renderCompanies = window.renderCompanies; } catch(e) {}
 })();

@@ -251,6 +251,18 @@ function assert(condition, message, details = null) {
     assert(companyHoverResult.childTransforms.every(item => item.transitionProperty === 'none' && item.transitionDuration === '0s'), 'Company card buttons must use stable, non-animated hover styles.', companyHoverResult);
     assert(stableBox(cardBoxBeforeHover, cardBoxAfterHover) && stableBox(cardBoxBeforeHover, cardBoxAfterButtonHover), 'Company card bounding box must stay stable across card and button hover.', { cardBoxBeforeHover, cardBoxAfterHover, cardBoxAfterButtonHover });
     assert(buttonHoverStyles.every(item => JSON.stringify(item.before) === JSON.stringify(item.after)), 'Company card action buttons must not visually flicker on hover.', buttonHoverStyles);
+    await firstCompanyCard.locator('[data-company-action="edit"]').first().click();
+    await page.waitForFunction(() => document.getElementById('companyModal')?.classList.contains('active'), null, { timeout: 5000 });
+    const editActionResult = await page.evaluate(() => ({
+      modalActive: document.getElementById('companyModal')?.classList.contains('active') || false,
+      companyId: document.getElementById('compId')?.value || '',
+      title: document.getElementById('compModalTitle')?.textContent || ''
+    }));
+    assert(editActionResult.modalActive && editActionResult.companyId, 'Company edit button must open the edit modal with the company loaded.', editActionResult);
+    await page.evaluate(() => closeModal('companyModal'));
+    await firstCompanyCard.locator('[data-company-action="create"]').first().click();
+    await page.waitForURL(/groups_block_detail\.html\?mode=new&companyId=/, { timeout: 7000 });
+    assert(page.url().includes('groups_block_detail.html?mode=new&companyId='), 'Company event creation button must navigate to new event detail with companyId.', { url: page.url() });
 
     await page.evaluate(() => {
       localStorage.removeItem('pms_companies');
@@ -377,6 +389,7 @@ function assert(condition, message, details = null) {
         'past count includes paid and unsettled past events',
         'settlement-needed count excludes paid past and future pending events',
         'company card hover does not move the pointer hit area',
+        'company card action buttons remain clickable',
         'group detail hydrates company data for existing events',
         'group detail separates company baseline and event discount',
         'group detail requires registered company selection',
