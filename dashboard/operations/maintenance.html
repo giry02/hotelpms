@@ -95,8 +95,8 @@
         .mt-table-wrap thead th:nth-child(5) { width: 82px; }
         .mt-table-wrap thead th:nth-child(6) { width: 86px; }
         .mt-table-wrap thead th:nth-child(7) { width: 82px; }
-        .mt-table-wrap thead th:nth-child(8) { width: 176px; }
-        .mt-table-wrap thead th:nth-child(9) { width: 108px; }
+        .mt-table-wrap thead th:nth-child(8) { width: 138px; }
+        .mt-table-wrap thead th:nth-child(9) { width: 126px; }
         .mt-table-wrap thead th {
             padding: 12px 16px; font-size: .78rem; font-weight: 700; color: var(--txt3);
             background: #f8fafc; text-align: left; border-bottom: 1px solid var(--border);
@@ -108,6 +108,14 @@
         }
         .mt-table-wrap tbody tr:last-child td { border-bottom: none; }
         .mt-table-wrap tbody tr:hover { background: #f8fafc; }
+        .maintenance-time-cell { color: var(--txt3); font-size: .76rem; white-space: nowrap; }
+        .maintenance-time-stack { display: grid; gap: 3px; line-height: 1.28; min-width: 0; }
+        .maintenance-time-line { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; min-width: 0; font-variant-numeric: tabular-nums; }
+        .maintenance-time-label { flex: 0 0 26px; color: var(--txt2); font-weight: 700; }
+        .maintenance-action-cell { text-align: right; }
+        .maintenance-actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; flex-wrap: nowrap; width: 100%; min-width: 0; }
+        .maintenance-actions .action-btn { flex: 0 0 auto; padding: 5px 8px; font-size: .72rem; white-space: nowrap; }
+        .maintenance-actions .action-btn.icon-only { width: 34px; padding: 5px 0; justify-content: center; }
 
         /* ── Action Buttons ── */
         .action-btn {
@@ -635,6 +643,27 @@ function formatMaintenanceDateTime(value) {
     return raw.replace('T', ' ').slice(0, 16);
 }
 
+function formatMaintenanceTableDateTime(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '-';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.slice(5).replace('-', '. ');
+    const parsed = new Date(normalizeMaintenanceTimestamp(raw));
+    if (!Number.isNaN(parsed.getTime())) {
+        const parts = new Intl.DateTimeFormat('ko-KR', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).formatToParts(parsed).reduce((acc, part) => {
+            acc[part.type] = part.value;
+            return acc;
+        }, {});
+        return `${parts.month}.${parts.day} ${parts.hour}:${parts.minute}`;
+    }
+    return raw.replace('T', ' ').slice(5, 16).replace('-', '.');
+}
+
 function maintenanceElapsedHours(value) {
     const timestamp = normalizeMaintenanceTimestamp(value);
     if (!timestamp) return '-';
@@ -849,6 +878,8 @@ function renderKanban(data) {
 function renderTable(data) {
     document.getElementById('mtTableBody').innerHTML = data.map(r => {
         const stClass = r.status === 'open' ? 'priority-high' : r.status === 'in-progress' ? 'priority-normal' : 'priority-low';
+        const issuedAtText = formatMaintenanceTableDateTime(r.issuedAt || r.createdAt || r.requestedAt || r.date);
+        const startedAtText = formatMaintenanceTableDateTime(r.startedAt);
         return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="showDetail('${r.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${r.id}')}">
             <td data-label="요청 번호"><strong style="cursor:pointer; color:var(--primary);" onclick="event.stopPropagation(); showDetail('${r.id}')">${r.id}</strong></td>
             <td data-label="객실">${r.room}호</td>
@@ -857,17 +888,17 @@ function renderTable(data) {
             <td data-label="우선순위"><span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span></td>
             <td data-label="담당자">${r.assignee}</td>
             <td data-label="상태"><span class="priority-badge ${stClass}">${statusLabel[r.status]}</span></td>
-            <td data-label="처리 일시" style="color:var(--txt3); font-size:.78rem;">
-                <div style="display:flex; flex-direction:column; gap:3px; line-height:1.35;">
-                    <span><strong style="color:var(--txt2); font-weight:700;">발행</strong> ${formatMaintenanceDateTime(r.issuedAt || r.createdAt || r.requestedAt || r.date)}</span>
-                    <span><strong style="color:var(--txt2); font-weight:700;">시작</strong> ${formatMaintenanceDateTime(r.startedAt)}</span>
+            <td data-label="처리 일시" class="maintenance-time-cell">
+                <div class="maintenance-time-stack">
+                    <span class="maintenance-time-line"><strong class="maintenance-time-label">발행</strong>${issuedAtText}</span>
+                    <span class="maintenance-time-line"><strong class="maintenance-time-label">시작</strong>${startedAtText}</span>
                 </div>
             </td>
-            <td data-label="액션" style="text-align:right;">
-                <div style="display:flex; gap:4px; justify-content:flex-end; width:100%;">
+            <td data-label="액션" class="maintenance-action-cell">
+                <div class="maintenance-actions">
                     ${r.status === 'open' ? `<button class="action-btn" onclick="event.stopPropagation(); changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> 착수</button>` : ''}
                     ${r.status === 'in-progress' ? `<button class="action-btn" onclick="event.stopPropagation(); changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> 완료 확인</button>` : ''}
-                    <button class="action-btn" onclick="event.stopPropagation(); showDetail('${r.id}')"><i class="fa-solid fa-eye"></i></button>
+                    <button class="action-btn icon-only" onclick="event.stopPropagation(); showDetail('${r.id}')" aria-label="상세 보기"><i class="fa-solid fa-eye"></i></button>
                 </div>
             </td>
         </tr>`;
