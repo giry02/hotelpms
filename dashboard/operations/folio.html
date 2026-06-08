@@ -433,7 +433,7 @@ function selectedNumber(id, fallback) {
     return match ? Number(match[0]) : fallback;
 }
 
-const CURRENT_FOLIO_PERIOD = { year: 2026, month: 6, week: 2 };
+const CURRENT_FOLIO_PERIOD = { year: 2026, month: 6, week: 2, day: 8 };
 
 function setSelectByNumber(id, number) {
     const el = document.getElementById(id);
@@ -449,8 +449,12 @@ function resetToCurrentFolioPeriod(period) {
     if (period === 'week') setSelectByNumber('selWeek', CURRENT_FOLIO_PERIOD.week);
 }
 
+function folioPeriodDate(folio) {
+    return folio.settlementDate || folio.closedAt || folio.issuedAt || folio.out || '';
+}
+
 function folioDateParts(folio) {
-    const match = String(folio.out || '').match(/(\d{4})-(\d{2})-(\d{2})/);
+    const match = String(folioPeriodDate(folio)).match(/(\d{4})-(\d{2})-(\d{2})/);
     if (!match) return { year: 2026, month: 6, day: 1 };
     return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
 }
@@ -467,7 +471,7 @@ function periodMatchesFolio(folio) {
     if (currentPeriod === 'year') return parts.year === year;
     if (currentPeriod === 'month') return parts.year === year && parts.month === month;
     if (currentPeriod === 'week') return parts.year === year && parts.month === month && folioWeekOfMonth(folio) === week;
-    return parts.year === year && parts.month === month && parts.day === 6;
+    return parts.year === CURRENT_FOLIO_PERIOD.year && parts.month === CURRENT_FOLIO_PERIOD.month && parts.day === CURRENT_FOLIO_PERIOD.day;
 }
 
 function periodFolios() {
@@ -485,7 +489,7 @@ function comparePeriodFolios() {
         if (currentPeriod === 'year') return parts.year === year - 1;
         if (currentPeriod === 'month') return parts.year === year && parts.month === month - 1;
         if (currentPeriod === 'week') return parts.year === year && parts.month === month && folioWeekOfMonth(folio) === week - 1;
-        return parts.year === year && parts.month === month && parts.day === 5;
+        return parts.year === CURRENT_FOLIO_PERIOD.year && parts.month === CURRENT_FOLIO_PERIOD.month && parts.day === CURRENT_FOLIO_PERIOD.day - 1;
     });
 }
 
@@ -519,17 +523,22 @@ function mapApiFolio(item) {
     const roomRevenue = typeTotals.room || 0;
     const ancillaryRevenue = total - roomRevenue;
     const dept = Object.entries(typeTotals).sort((a, b) => b[1] - a[1])[0]?.[0] || 'pos';
+    const closedAt = item.closedAt || '';
+    const issuedAt = item.issuedAt || item.closedAt || '';
+    const settlementDate = (closedAt || issuedAt || '').slice(0, 10);
     return {
         id: item.id,
         room: item.groupId ? 'Master' : (item.roomNo || '-'),
         dept,
         guest: folioDisplayText(item.ownerName || item.guestName || '-'),
-        out: item.closedAt ? item.closedAt.slice(0, 10) : '-',
+        out: closedAt ? closedAt.slice(0, 10) : '-',
+        settlementDate,
         total,
         paid,
         bal,
         currency: item.balance?.currency || 'USD',
-        issuedAt: item.closedAt,
+        issuedAt,
+        closedAt,
         charges: mappedCharges,
         payments: payments.map(payment => ({
             method: payment.method || '-',
