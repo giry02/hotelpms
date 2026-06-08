@@ -190,6 +190,23 @@ function assert(condition, message, details = null) {
     assert(result.past.overlap && result.past.paidPast && !result.past.futurePending, 'Past filter membership is wrong.', result);
     assert(result.settlement.overlap && !result.settlement.paidPast && !result.settlement.futurePending, 'Settlement filter membership is wrong.', result);
 
+    await page.goto(`${base}/dashboard/frontdesk/groups_companies.html`, { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('.company-card', { timeout: 15000 });
+    const firstCompanyCard = page.locator('.company-card').first();
+    await firstCompanyCard.hover();
+    const companyHoverResult = await firstCompanyCard.evaluate(el => ({
+      transform: getComputedStyle(el).transform,
+      transitionProperty: getComputedStyle(el).transitionProperty
+    }));
+
+    assert(
+      companyHoverResult.transform === 'none' || companyHoverResult.transform === 'matrix(1, 0, 0, 1, 0, 0)',
+      'Company cards must not move on hover because it can cause pointer jitter near card edges.',
+      companyHoverResult
+    );
+    assert(!companyHoverResult.transitionProperty.split(',').map(item => item.trim()).includes('transform'), 'Company card transition must not animate transform.', companyHoverResult);
+
     await page.evaluate(() => {
       localStorage.removeItem('pms_companies');
       localStorage.removeItem('mockapi:v1:TENANT-GRAND-SAIGON:companies');
@@ -314,6 +331,7 @@ function assert(condition, message, details = null) {
         'past and settlement-needed filters can overlap',
         'past count includes paid and unsettled past events',
         'settlement-needed count excludes paid past and future pending events',
+        'company card hover does not move the pointer hit area',
         'group detail hydrates company data for existing events',
         'group detail separates company baseline and event discount',
         'group detail requires registered company selection',
