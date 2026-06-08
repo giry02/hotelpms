@@ -212,6 +212,7 @@ function assert(condition, message, details = null) {
         optionText: options.map(option => option.text).join(' | '),
         agencyId: group?.agencyId || '',
         agency: group?.agency || '',
+        eventDiscountValue: document.getElementById('detailEventDiscount')?.value || '',
         storedCount,
         overviewText: document.getElementById('overview')?.innerText || ''
       };
@@ -220,6 +221,8 @@ function assert(condition, message, details = null) {
     assert(hydratedCompanyResult.storedCount >= 3, 'Group detail must hydrate registered companies from API data.', hydratedCompanyResult);
     assert(hydratedCompanyResult.optionValues.includes('COMP-1002'), 'Group detail company select must include Hana Tour company option.', hydratedCompanyResult);
     assert(hydratedCompanyResult.value === 'COMP-1002' && hydratedCompanyResult.agencyId === 'COMP-1002', 'Group detail must auto-select the event company linkage.', hydratedCompanyResult);
+    assert(Number(hydratedCompanyResult.eventDiscountValue) === 15, 'Group detail must show the event-specific discount, not only the company baseline.', hydratedCompanyResult);
+    assert(hydratedCompanyResult.overviewText.includes('업체 기준 할인') && hydratedCompanyResult.overviewText.includes('행사 적용 할인'), 'Group detail must distinguish company baseline discount from event discount.', hydratedCompanyResult);
 
     await page.goto(`${base}/dashboard/frontdesk/groups_block_detail.html?mode=new`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -249,13 +252,19 @@ function assert(condition, message, details = null) {
       document.getElementById('detailName').value = 'Hana Linked Event';
       document.getElementById('detailCheckin').value = '2026-06-10';
       document.getElementById('detailCheckout').value = '2026-06-12';
+      document.getElementById('detailEventDiscount').value = '18';
       saveBasicInfo();
+      switchTabById('rooms');
+      addDetailAllocationRow();
+      const newAllocationDiscount = document.querySelector('.detail-discount')?.value || '';
       return {
         manualExists,
         initialText,
         blockedWithoutCompany,
         savedAgencyId: group.agencyId,
         savedAgency: group.agency,
+        savedEventDiscount: group.eventDiscountPercent,
+        newAllocationDiscount,
         companyInfoText: document.getElementById('detailCompanyInfo')?.innerText || ''
       };
     });
@@ -264,6 +273,8 @@ function assert(condition, message, details = null) {
     assert(!/직접 입력|미지정/.test(companySelectionResult.initialText), 'Group detail must not show direct/unassigned company options.', companySelectionResult);
     assert(companySelectionResult.blockedWithoutCompany, 'Group detail must block saving without a registered company.', companySelectionResult);
     assert(companySelectionResult.savedAgencyId === 'COMP-HANA' && companySelectionResult.savedAgency === 'Hana Tour', 'Group detail must save the selected company linkage.', companySelectionResult);
+    assert(Number(companySelectionResult.savedEventDiscount) === 18, 'Group detail must save event-specific discount separately from the company baseline.', companySelectionResult);
+    assert(Number(companySelectionResult.newAllocationDiscount) === 18, 'New room allocation rows must use the event-specific discount by default.', companySelectionResult);
     assert(companySelectionResult.companyInfoText.includes('Travel Agency') && companySelectionResult.companyInfoText.includes('10'), 'Group detail must show selected company metadata.', companySelectionResult);
 
     const detailResult = await page.evaluate(() => {
@@ -300,6 +311,7 @@ function assert(condition, message, details = null) {
         'past count includes paid and unsettled past events',
         'settlement-needed count excludes paid past and future pending events',
         'group detail hydrates company data for existing events',
+        'group detail separates company baseline and event discount',
         'group detail requires registered company selection',
         'group detail empty room assignment message is centered'
       ]

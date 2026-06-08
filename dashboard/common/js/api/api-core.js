@@ -382,7 +382,7 @@ window.PmsMockApi = window.PmsMockApi || (function() {
             type: item.roomTypeName || item.type || item.roomTypeId,
             building: item.buildingName || item.building || item.buildingId,
             baseRate: amountValue(item.baseRate),
-            discountPercent: Number(item.discountPercent || 0),
+            discountPercent: item.discountPercent !== undefined && item.discountPercent !== null ? Number(item.discountPercent || 0) : undefined,
             rate: amountValue(item.finalRate || item.rate),
             currency: currencyOf(item.finalRate || item.baseRate)
         };
@@ -397,6 +397,13 @@ window.PmsMockApi = window.PmsMockApi || (function() {
 
     function toLegacyGroup(item) {
         const roomAllocations = (item.roomAllocations || []).map(toLegacyAllocation);
+        const allocationDiscounts = roomAllocations
+            .map(allocation => Number(allocation.discountPercent))
+            .filter(value => Number.isFinite(value) && value >= 0);
+        const allocationDiscount = allocationDiscounts.length
+            ? Math.round(allocationDiscounts.reduce((sum, value) => sum + value, 0) / allocationDiscounts.length * 10) / 10
+            : undefined;
+        const eventDiscount = item.eventDiscountPercent ?? item.appliedDiscountPercent ?? allocationDiscount;
         const roomingList = (item.roomingList || []).map(guest => ({
             ...guest,
             roomId: guest.roomNo || roomNoFromId(guest.roomId),
@@ -415,6 +422,7 @@ window.PmsMockApi = window.PmsMockApi || (function() {
             block: item.blockedRooms || roomAllocations.length || item.block || 0,
             pickup: item.pickedUpRooms || roomingList.length || item.pickup || 0,
             pax: item.pax || 0,
+            ...(eventDiscount !== undefined ? { eventDiscountPercent: Number(eventDiscount || 0) } : {}),
             routing: item.routing || 'Master Folio',
             sales: item.salesManagerName || item.sales || '',
             contact: item.contact?.phone ? `${item.contact.phone} (${item.contact.name || ''})` : (item.contact || ''),

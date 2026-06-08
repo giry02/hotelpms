@@ -576,6 +576,7 @@ function renderOverview() {
             <div><label class="form-label">총 인원(PAX)</label><input type="number" id="detailPax" class="form-input" style="width:100%" min="0" value="${group.pax || ''}"></div>
             <div><label class="form-label">체크인</label><input type="date" id="detailCheckin" class="form-input" style="width:100%" value="${group.checkin || ''}"></div>
             <div><label class="form-label">체크아웃</label><input type="date" id="detailCheckout" class="form-input" style="width:100%" value="${group.checkout || ''}"></div>
+            <div><label class="form-label">행사 적용 할인(%)</label><input type="number" id="detailEventDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" value="${group.eventDiscountPercent ?? 0}"></div>
             <div><label class="form-label">상태</label><select id="detailStatus" class="form-input" style="width:100%">${Object.entries(statusMap).map(([k,v]) => `<option value="${k}" ${group.status === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
             <div><label class="form-label">정산 방식</label><select id="detailRouting" class="form-input" style="width:100%">${['Master Folio (단체 일괄)','Individual (개별 정산)','혼합 (일부 단체/일부 개별)'].map(v => `<option ${group.routing === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
             <div><label class="form-label">행사 담당 영업 직원</label><input id="detailSales" class="form-input" style="width:100%" value="${group.sales || ''}" placeholder="직원명"></div>
@@ -597,6 +598,7 @@ window.saveBasicInfo = function() {
         checkin: document.getElementById('detailCheckin').value,
         checkout: document.getElementById('detailCheckout').value,
         pax: parseInt(document.getElementById('detailPax').value || 0, 10),
+        eventDiscountPercent: Number(document.getElementById('detailEventDiscount')?.value || 0),
         status: document.getElementById('detailStatus').value,
         routing: document.getElementById('detailRouting').value,
         sales: document.getElementById('detailSales').value.trim(),
@@ -910,15 +912,37 @@ window.addEventListener('DataReady', () => {
         group.companyName = group.companyName || group.agency;
         if ((!group.routing || group.routing === 'Master Folio') && company.billing) group.routing = company.billing;
         if (!group.contact) group.contact = [company.contactName, company.phone].filter(Boolean).join(' / ');
+        if (group.eventDiscountPercent === undefined || group.eventDiscountPercent === null || group.eventDiscountPercent === '') {
+            group.eventDiscountPercent = eventDiscountPercent();
+        }
         return company;
     }
-    function companyDiscount() {
-        const c = companyForGroup();
+    function discountFromCompany(c) {
         if (!c) return 0;
         if (c.groupDiscount !== undefined) return Number(c.groupDiscount || 0);
+        if (c.discountPercent !== undefined) return Number(c.discountPercent || 0);
         const m = String(c.rate || '').match(/(\d+(?:\.\d+)?)\s*%/);
         return m ? Number(m[1]) : 0;
     }
+    function companyDiscount() {
+        return discountFromCompany(companyForGroup());
+    }
+    function allocationDiscountSnapshot() {
+        const allocations = Array.isArray(group?.roomAllocations) && group.roomAllocations.length ? group.roomAllocations : (group?.allocations || []);
+        const values = allocations.map(a => Number(a?.discountPercent)).filter(v => Number.isFinite(v) && v >= 0);
+        if (!values.length) return null;
+        return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 10) / 10;
+    }
+    function eventDiscountPercent() {
+        const field = document.getElementById('detailEventDiscount');
+        if (field && field.value !== '') return Number(field.value || 0);
+        const explicit = group?.eventDiscountPercent ?? group?.appliedDiscountPercent;
+        if (explicit !== undefined && explicit !== null && explicit !== '') return Number(explicit || 0);
+        const snapshot = allocationDiscountSnapshot();
+        if (snapshot !== null) return snapshot;
+        return companyDiscount();
+    }
+    window.groupEventDiscountPercent = eventDiscountPercent;
     function companyDisplayName(company) {
         return [company?.displayName || company?.name, company?.type].filter(Boolean).join(' · ') || company?.id || '';
     }
@@ -928,11 +952,11 @@ window.addEventListener('DataReady', () => {
                 등록 업체를 선택해야 행사 저장이 가능합니다. 업체가 없다면 업체 관리에서 먼저 등록해 주세요.
             </div>`;
         }
-        const discount = company.groupDiscount !== undefined ? `${Number(company.groupDiscount || 0)}%` : (company.rate || '-');
+        const discount = discountFromCompany(company);
         const contact = [company.contactName, company.phone, company.email].filter(Boolean).join(' / ') || '-';
         return `<div class="wide" id="detailCompanyInfo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;background:#f8fafc;border:1px solid var(--border2);border-radius:10px;padding:12px">
             <div><div class="form-label" style="margin-bottom:3px">업체 유형</div><div style="font-weight:850">${safeAttr(company.type || '-')}</div></div>
-            <div><div class="form-label" style="margin-bottom:3px">기본 할인</div><div style="font-weight:850">${safeAttr(discount)}</div></div>
+            <div><div class="form-label" style="margin-bottom:3px">업체 기준 할인</div><div style="font-weight:850">${safeAttr(`${discount}%`)}</div></div>
             <div><div class="form-label" style="margin-bottom:3px">정산 방식</div><div style="font-weight:850">${safeAttr(company.billing || '-')}</div></div>
             <div><div class="form-label" style="margin-bottom:3px">업체 담당/연락처</div><div style="font-weight:850">${safeAttr(contact)}</div></div>
         </div>`;
@@ -959,6 +983,7 @@ window.addEventListener('DataReady', () => {
             block: 0,
             pickup: 0,
             pax: 0,
+            eventDiscountPercent: c ? discountFromCompany(c) : 0,
             routing: c?.billing || 'Master Folio (단체 일괄)',
             sales: '',
             contact: c ? [c.contactName, c.phone].filter(Boolean).join(' / ') : '',
@@ -987,6 +1012,7 @@ window.addEventListener('DataReady', () => {
                 <div><label class="form-label">총 인원(PAX)</label><input type="number" id="detailPax" class="form-input" style="width:100%" min="0" value="${safeAttr(group.pax || '')}"></div>
                 <div><label class="form-label">체크인</label><input type="date" id="detailCheckin" class="form-input" style="width:100%" value="${safeAttr(group.checkin)}"></div>
                 <div><label class="form-label">체크아웃</label><input type="date" id="detailCheckout" class="form-input" style="width:100%" value="${safeAttr(group.checkout)}"></div>
+                <div><label class="form-label">행사 적용 할인(%)</label><input type="number" id="detailEventDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" value="${safeAttr(eventDiscountPercent())}"></div>
                 <div><label class="form-label">상태</label><select id="detailStatus" class="form-input" style="width:100%">
                     <option value="pending" ${group.status === 'pending' ? 'selected' : ''}>대기</option>
                     <option value="confirmed" ${group.status === 'confirmed' ? 'selected' : ''}>확정</option>
@@ -1017,9 +1043,11 @@ window.addEventListener('DataReady', () => {
         if (!c) return;
         const routing = document.getElementById('detailRouting');
         const contact = document.getElementById('detailContact');
+        const discount = document.getElementById('detailEventDiscount');
         const info = document.getElementById('detailCompanyInfo');
         if (routing && c.billing) routing.value = [...routing.options].some(o => o.value === c.billing) ? c.billing : routing.value;
         if (contact) contact.value = [c.contactName, c.phone].filter(Boolean).join(' / ');
+        if (discount && (!discount.value || isDraftGroup())) discount.value = discountFromCompany(c);
         if (info) info.outerHTML = companyInfoHtml(c);
     };
     window.saveBasicInfo = function() {
@@ -1041,6 +1069,7 @@ window.addEventListener('DataReady', () => {
             checkin: document.getElementById('detailCheckin').value,
             checkout: document.getElementById('detailCheckout').value,
             pax: parseInt(document.getElementById('detailPax').value || 0, 10),
+            eventDiscountPercent: Number(document.getElementById('detailEventDiscount')?.value || 0),
             status: document.getElementById('detailStatus').value,
             routing: document.getElementById('detailRouting').value,
             sales: document.getElementById('detailSales').value.trim(),
@@ -1062,7 +1091,7 @@ window.addEventListener('DataReady', () => {
         row.innerHTML = `
             <select class="form-input detail-room" style="width:100%">${allocationOptions(allocation.roomId)}</select>
             <input type="number" class="form-input detail-rate" placeholder="기준 단가" value="${allocation.baseRate || allocation.rate || ''}">
-            <input type="number" class="form-input detail-discount" placeholder="할인율" value="${allocation.discountPercent ?? companyDiscount()}">
+            <input type="number" class="form-input detail-discount" placeholder="할인율" value="${allocation.discountPercent ?? eventDiscountPercent()}">
             <button class="mini-btn danger" type="button" onclick="this.closest('.allocation-editor-row').remove()"><i class="fa-solid fa-trash"></i></button>`;
         wrap.prepend(row);
     };
@@ -1105,6 +1134,8 @@ window.addEventListener('DataReady', () => {
         return type ? 100000 : 0;
     }
     function defaultDiscount() {
+        const eventDiscount = window.groupEventDiscountPercent?.();
+        if (Number.isFinite(Number(eventDiscount))) return Number(eventDiscount);
         try {
             const companies = JSON.parse(localStorage.getItem('pms_companies') || '[]');
             const c = companies.find(x => x.id === group?.agencyId || x.name === group?.agency || (group?.agency || '').includes(x.name));
