@@ -284,14 +284,8 @@
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">객실 유형 <span style="color:var(--danger)">*</span></label>
-                    <select id="addRoomType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option value="Standard">Standard</option>
-                        <option value="Deluxe">Deluxe</option>
-                        <option value="Premier">Premier</option>
-                        <option value="Penthouse">Penthouse</option>
-                        <option value="Pool Villa">Pool Villa</option>
-                        <option value="Garden Villa">Garden Villa</option>
-                    </select>
+                    <input type="text" id="addRoomType" list="roomTypeSuggestions" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" placeholder="예: Deluxe, Family Suite">
+                    <datalist id="roomTypeSuggestions"></datalist>
                 </div>
             </div>
 
@@ -363,6 +357,29 @@ function roomTypeLabel(value) {
     const name = String(found.name || found.id || '').trim();
     const view = String(found.view || '').trim();
     return view ? `${name} · ${view}` : name;
+}
+
+function roomTypeSearchKey(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFKC')
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function findRoomTypeByInput(value) {
+    const text = String(value || '').trim();
+    const exactText = text.toLowerCase();
+    const comparableText = roomTypeSearchKey(text);
+    if (!text) return null;
+    return allRoomTypes.find(rt => {
+        const candidates = [rt.id, rt.typeId, rt.code, rt.name, roomTypeLabel(rt.id)].filter(Boolean);
+        const exactCandidates = candidates.map(candidate => String(candidate).trim().toLowerCase());
+        const comparableCandidates = candidates.map(roomTypeSearchKey);
+        return exactCandidates.includes(exactText) || comparableCandidates.includes(comparableText);
+    }) || null;
 }
 
 function normalizeRoomType(raw) {
@@ -503,7 +520,10 @@ async function addRoomType() {
 async function deleteRoomType(index) {
     const rt = allRoomTypes[index];
     if (!rt) return;
-    const used = allRooms.filter(room => room.type === rt.id || room.type === rt.name).length;
+    const used = allRooms.filter(room => {
+        const match = findRoomTypeByInput(room.type);
+        return room.type === rt.id || room.type === rt.name || match?.id === rt.id;
+    }).length;
     if (used > 0) return showToast('사용 중인 객실 유형은 삭제할 수 없습니다. 먼저 객실의 유형을 변경해 주세요.', 'error');
     if (!await showConfirm(`'${roomTypeLabel(rt.id)}' 객실 유형을 삭제하시겠습니까?`)) return;
     allRoomTypes.splice(index, 1);
@@ -516,7 +536,8 @@ async function deleteRoomType(index) {
 
 function migrateRoomTypeId(oldId, newId) {
     allRooms.forEach(room => {
-        if (room.type === oldId) room.type = newId;
+        const current = findRoomTypeByInput(room.type);
+        if (room.type === oldId || current?.id === oldId) room.type = newId;
     });
     if (window.PmsAPI?.saveRooms) window.PmsAPI.saveRooms(allRooms);
     try {
@@ -542,21 +563,40 @@ function removeRateType(typeId) {
 }
 
 function renderRoomTypeOptions() {
-    const select = document.getElementById('addRoomType');
-    if (!select) return;
-    const current = select.value;
-    select.innerHTML = allRoomTypes.map(rt => `
-        <option value="${escapeAttr(rt.id)}">${escapeHtml(roomTypeLabel(rt.id))}</option>
+    const input = document.getElementById('addRoomType');
+    const list = document.getElementById('roomTypeSuggestions');
+    if (!input || !list) return;
+    list.innerHTML = allRoomTypes.map(rt => `
+        <option value="${escapeAttr(roomTypeLabel(rt.id))}" label="${escapeAttr(rt.code || rt.id)}"></option>
     `).join('');
-    setRoomTypeSelectValue(current || allRoomTypes[0]?.id || '');
 }
 
 function setRoomTypeSelectValue(value) {
-    const select = document.getElementById('addRoomType');
-    if (!select) return;
-    const match = allRoomTypes.find(rt => rt.id === value || rt.name === value || rt.typeId === value);
-    select.value = match?.id || value || '';
-    if (select.value !== (match?.id || value || '') && allRoomTypes[0]) select.value = allRoomTypes[0].id;
+    const input = document.getElementById('addRoomType');
+    if (!input) return;
+    const match = findRoomTypeByInput(value);
+    input.value = match ? roomTypeLabel(match.id) : String(value || '');
+}
+
+async function ensureRoomTypeFromInput(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    const existing = findRoomTypeByInput(text);
+    if (existing) return existing.id;
+
+    const baseId = slugRoomType(text, '');
+    let id = baseId;
+    let suffix = 2;
+    while (allRoomTypes.some(rt => rt.id === id)) {
+        id = `${baseId}-${suffix}`;
+        suffix += 1;
+    }
+
+    const created = normalizeRoomType({ id, typeId: id, code: id, name: text, view: '' });
+    allRoomTypes.push(created);
+    await persistRoomTypes();
+    renderRoomTypeOptions();
+    return created.id;
 }
 
 function renderTabs() {
@@ -767,20 +807,24 @@ openModal = function(id) {
         document.getElementById('saveBtnText').innerText = '객실 등록';
         document.getElementById('addRoomId').value = '';
         document.getElementById('addRoomFloor').value = '';
-        setRoomTypeSelectValue(allRoomTypes[0]?.id || 'Standard');
+        setRoomTypeSelectValue('');
         document.getElementById('addRoomBuilding').value = '';
     }
     originalOpenModal(id);
 }
 
-function saveRoom() {
-    const id = document.getElementById('addRoomId').value;
+async function saveRoom() {
+    const id = document.getElementById('addRoomId').value.trim();
     const floor = document.getElementById('addRoomFloor').value;
-    const type = document.getElementById('addRoomType').value;
+    const type = await ensureRoomTypeFromInput(document.getElementById('addRoomType').value);
     const building = document.getElementById('addRoomBuilding').value || null;
 
     if (!id) {
         showToast('객실 번호를 입력해주세요.', 'error');
+        return;
+    }
+    if (!type) {
+        showToast('객실 유형을 입력해주세요.', 'error');
         return;
     }
 
