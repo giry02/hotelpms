@@ -468,6 +468,7 @@ function switchView(view) {
 function renderAllViews() {
     renderTasks();
     renderGrid();
+    updateKpis();
 }
 
 function roomKeySet(value) {
@@ -599,6 +600,34 @@ function findActiveTaskForRoom(room) {
     ));
 }
 
+function housekeepingStatusForRoom(room) {
+    const task = findActiveTaskForRoom(room);
+    if (task) {
+        return {
+            ...room,
+            hkStatus: task.status,
+            taskId: task.id,
+            taskType: task.type
+        };
+    }
+    if (room.status === 'vacant-clean' || room.status === 'clean') return { ...room, hkStatus: 'clean' };
+    if (room.status === 'vacant-dirty' || room.status === 'dirty') return { ...room, hkStatus: 'dirty' };
+    if (room.status === 'inspect') return { ...room, hkStatus: 'inspect' };
+    if (room.status === 'occupied') return { ...room, hkStatus: 'occupied' };
+    return { ...room, hkStatus: 'clean' };
+}
+
+function housekeepingRoomSummary() {
+    const rooms = allRooms.map(housekeepingStatusForRoom);
+    return {
+        rooms,
+        total: rooms.length,
+        dirty: rooms.filter(r => r.hkStatus === 'dirty').length,
+        inspect: rooms.filter(r => r.hkStatus === 'inspect').length,
+        clean: rooms.filter(r => r.hkStatus === 'clean').length
+    };
+}
+
 function createRoomCleanTask(room, type) {
     const roomNo = displayRoomNo(room);
     const task = {
@@ -632,24 +661,7 @@ function renderGrid() {
     const container = document.getElementById('roomContainer');
     container.innerHTML = '';
     
-    // Process rooms: map task status if available
-    const mappedRooms = allRooms.map(r => {
-        let mapped = { ...r };
-        // Find if there's an active housekeeping task for this room
-        const task = findActiveTaskForRoom(r);
-        if (task) {
-            mapped.hkStatus = task.status; 
-            mapped.taskId = task.id;
-            mapped.taskType = task.type;
-        } else {
-            // Default based on room status
-            if (r.status === 'vacant-clean') mapped.hkStatus = 'clean';
-            else if (r.status === 'vacant-dirty') mapped.hkStatus = 'dirty';
-            else if (r.status === 'occupied') { mapped.hkStatus = 'occupied'; }
-            else mapped.hkStatus = 'clean';
-        }
-        return mapped;
-    });
+    const mappedRooms = housekeepingRoomSummary().rooms;
 
     const filtered = mappedRooms.filter(r => {
         if(currentFilter !== 'all' && r.hkStatus !== currentFilter) return false;
@@ -871,14 +883,16 @@ function renderTasks() {
 }
 
 function updateKpis() {
-    document.getElementById('kpi-total').textContent = tasks.length;
-    document.getElementById('kpi-dirty').textContent = tasks.filter(t => t.status === 'dirty').length;
-    document.getElementById('kpi-inspect').textContent = tasks.filter(t => t.status === 'inspect').length;
-    document.getElementById('kpi-clean').textContent = tasks.filter(t => t.status === 'clean').length;
+    const summary = housekeepingRoomSummary();
+    document.getElementById('kpi-total').textContent = summary.total;
+    document.getElementById('kpi-dirty').textContent = summary.dirty;
+    document.getElementById('kpi-inspect').textContent = summary.inspect;
+    document.getElementById('kpi-clean').textContent = summary.clean;
     updateFilterCounts();
 }
 
 function updateFilterCounts() {
+    const summary = housekeepingRoomSummary();
     document.querySelectorAll('.chip').forEach(chip => {
         const status = chip.getAttribute('data-status');
         if (!status) return;
@@ -886,8 +900,8 @@ function updateFilterCounts() {
         if (!countSpan) return;
         
         let count = 0;
-        if (status === 'all') count = tasks.length;
-        else count = tasks.filter(t => t.status === status).length;
+        if (status === 'all') count = summary.total;
+        else count = summary[status] || 0;
         
         countSpan.textContent = `(${count})`;
     });
