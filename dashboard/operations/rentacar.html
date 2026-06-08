@@ -155,6 +155,8 @@
 
 <script>
 let orders = [];
+let rentacarReservations = [];
+let rentacarGuests = [];
 
 const tMap = {
     'lotte': { label:'롯데렌터카', icon:'fa-car', color:'var(--orange)' },
@@ -741,16 +743,212 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 </div>
 
 <script>
+function mockItems(env) {
+    if (!env) return [];
+    if (window.PmsMockApi?.items) return window.PmsMockApi.items(env);
+    if (Array.isArray(env?.data?.items)) return env.data.items;
+    if (Array.isArray(env?.items)) return env.items;
+    return Array.isArray(env) ? env : [];
+}
+
+function normalizeRoomKeys(value) {
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw) return [];
+    const tail = raw.includes('-') ? raw.split('-').pop() : raw;
+    const digits = (tail.match(/\d+/g) || []).join('');
+    const shortDigits = digits.replace(/^0+(?=\d)/, '');
+    return [...new Set([raw, tail, digits, shortDigits].filter(Boolean))];
+}
+
+function sameRoomValue(left, right) {
+    const leftKeys = normalizeRoomKeys(left);
+    const rightKeys = new Set(normalizeRoomKeys(right));
+    return leftKeys.some(key => rightKeys.has(key));
+}
+
+function roomDisplayNo(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw.replace(/^ROOM[-\s]*/i, '').trim();
+}
+
+function reservationRoomValues(reservation) {
+    const values = [
+        reservation?.room,
+        reservation?.roomNo,
+        reservation?.roomNumber,
+        reservation?.roomLabel,
+        reservation?.fullRoom,
+        reservation?.roomId
+    ];
+    if (reservation?.roomId && window.PmsMockApi?.roomNoFromId) {
+        values.push(window.PmsMockApi.roomNoFromId(reservation.roomId));
+    }
+    return values.filter(value => value !== undefined && value !== null && String(value).trim() !== '');
+}
+
+function reservationRoomNo(reservation) {
+    const fromValues = reservationRoomValues(reservation);
+    return roomDisplayNo(fromValues.find(Boolean));
+}
+
+function parseRentDate(value) {
+    const text = String(value || '').trim();
+    const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return null;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function rentTodayDate() {
+    const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function reservationStatusKey(value) {
+    return String(value || '').toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+function isInactiveReservation(reservation) {
+    const status = reservationStatusKey(reservation?.status);
+    return ['cancelled', 'canceled', 'noshow', 'checkedout', 'blocked'].includes(status);
+}
+
+function reservationMatchesRoom(reservation, room) {
+    return reservationRoomValues(reservation).some(value => sameRoomValue(value, room));
+}
+
+function reservationCoversToday(reservation) {
+    const today = rentTodayDate();
+    const checkIn = parseRentDate(reservation?.checkInDate || reservation?.checkIn || reservation?.arrivalDate || reservation?.startDate);
+    const checkOut = parseRentDate(reservation?.checkOutDate || reservation?.checkOut || reservation?.departureDate || reservation?.endDate);
+    return Boolean(checkIn && checkOut && checkIn <= today && today <= checkOut);
+}
+
+function reservationCheckInTime(reservation) {
+    const checkIn = parseRentDate(reservation?.checkInDate || reservation?.checkIn || reservation?.arrivalDate || reservation?.startDate);
+    return checkIn ? checkIn.getTime() : 0;
+}
+
+function reservationRank(reservation) {
+    const today = rentTodayDate().getTime();
+    const checkIn = reservationCheckInTime(reservation);
+    const status = reservationStatusKey(reservation?.status);
+    const inHouseStatus = ['checkedin', 'inhouse', 'occupied'].includes(status);
+    const coversToday = reservationCoversToday(reservation);
+    if (inHouseStatus && (!checkIn || coversToday)) return 0;
+    if (coversToday) return 1;
+    if (inHouseStatus) return 2;
+    if (checkIn >= today) return 3;
+    return 4;
+}
+
+function sortReservationsForGuestLookup(a, b) {
+    const rankDiff = reservationRank(a) - reservationRank(b);
+    if (rankDiff) return rankDiff;
+    const aTime = reservationCheckInTime(a);
+    const bTime = reservationCheckInTime(b);
+    if (reservationRank(a) <= 1) return bTime - aTime;
+    return aTime - bTime;
+}
+
+function findGuestByReservation(reservation) {
+    if (!reservation) return null;
+    const guestId = reservation.guestId || reservation.customerId || reservation.crmGuestId;
+    if (guestId) {
+        const byId = rentacarGuests.find(guest => String(guest.id) === String(guestId));
+        if (byId) return byId;
+    }
+    const name = String(reservation.guestName || reservation.guest || reservation.name || '').trim().toLowerCase();
+    return name ? rentacarGuests.find(guest => String(guest.name || '').trim().toLowerCase() === name) : null;
+}
+
+function guestInfoFromReservation(reservation) {
+    const guest = findGuestByReservation(reservation);
+    return {
+        name: reservation?.guestName || reservation?.guest || reservation?.name || guest?.name || '',
+        phone: reservation?.phone || reservation?.guestPhone || reservation?.mobile || guest?.phone || guest?.mobile || ''
+    };
+}
+
+function findRoomGuest(room) {
+    if (!room) return null;
+    const reservation = rentacarReservations
+        .filter(item => !isInactiveReservation(item) && reservationMatchesRoom(item, room))
+        .sort(sortReservationsForGuestLookup)[0];
+    return reservation ? guestInfoFromReservation(reservation) : null;
+}
+
+function findRentacarOrderGuest(room) {
+    const order = orders.find(item => sameRoomValue(item.room || item.roomNo || item.roomId, room));
+    if (!order) return null;
+    return {
+        name: order.guest || order.guestName || order.name || '',
+        phone: order.phone || order.guestPhone || ''
+    };
+}
+
+function refreshRentRoomOptions() {
+    const select = document.getElementById('rentRoom');
+    if (!select) return;
+
+    const selectedValue = select.value;
+    const seen = new Set();
+    const options = [];
+
+    rentacarReservations
+        .filter(item => !isInactiveReservation(item))
+        .sort(sortReservationsForGuestLookup)
+        .forEach(reservation => {
+            const roomNo = reservationRoomNo(reservation);
+            if (!roomNo) return;
+            const key = normalizeRoomKeys(roomNo)[0];
+            if (seen.has(key)) return;
+            seen.add(key);
+            const guest = guestInfoFromReservation(reservation).name;
+            options.push({ value: roomNo, label: guest ? `${roomNo} - ${guest}` : roomNo });
+        });
+
+    orders.forEach(order => {
+        const roomNo = roomDisplayNo(order.room || order.roomNo || order.roomId);
+        if (!roomNo) return;
+        const key = normalizeRoomKeys(roomNo)[0];
+        if (seen.has(key)) return;
+        seen.add(key);
+        const guest = order.guest || order.guestName || order.name || '';
+        options.push({ value: roomNo, label: guest ? `${roomNo} - ${guest}` : roomNo });
+    });
+
+    select.replaceChildren();
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '\uD638\uC2E4 \uC120\uD0DD...';
+    select.appendChild(placeholder);
+
+    options.forEach(option => {
+        const node = document.createElement('option');
+        node.value = option.value;
+        node.textContent = option.label;
+        select.appendChild(node);
+    });
+
+    if (selectedValue && options.some(option => sameRoomValue(option.value, selectedValue))) {
+        select.value = options.find(option => sameRoomValue(option.value, selectedValue)).value;
+    }
+}
+
 function autoFillGuest(type) {
     const roomEl = document.getElementById(type + 'Room');
     const guestEl = document.getElementById(type + 'Guest');
     const phoneEl = document.getElementById(type + 'Phone');
     const room = String(roomEl?.value || '').trim();
-    const info = orders.find(order => String(order.room || order.roomNo || '').trim() === room);
+    const info = findRoomGuest(room) || findRentacarOrderGuest(room);
     
     if(room && info) {
-        if(guestEl) guestEl.value = info.guest || info.guestName || info.name || '';
-        if(phoneEl && info.phone) phoneEl.value = info.phone;
+        if(guestEl) guestEl.value = info.name || '';
+        if(phoneEl) phoneEl.value = info.phone || '';
     } else {
         if(guestEl) guestEl.value = '';
         if(phoneEl) phoneEl.value = '';
@@ -767,7 +965,15 @@ function updateFilterCounts() {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         refreshVehicleClassOptions();
-        orders = await PmsAPI.getRentacarOrders();
+        const [rentacarOrders, reservationEnv, guestEnv] = await Promise.all([
+            PmsAPI.getRentacarOrders(),
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/reservations').catch(() => null) : Promise.resolve(null),
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/crm/guests').catch(() => null) : Promise.resolve(null)
+        ]);
+        orders = rentacarOrders;
+        rentacarReservations = mockItems(reservationEnv);
+        rentacarGuests = mockItems(guestEnv);
+        refreshRentRoomOptions();
         updateFilterCounts();
         renderOrders();
     } catch(e) { console.error(e); }
