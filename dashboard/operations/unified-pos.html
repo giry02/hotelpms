@@ -178,6 +178,7 @@ const statusInfo = {
 let currentFilter = 'all';
 let currentStatusFilter = 'all';
 let currentPeriodFilter = 'week';
+const CURRENT_POS_DATE = '2026-06-08';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -237,7 +238,7 @@ function normalizeOrder(order) {
         items,
         total: Number(total || 0),
         status: normalizeOrderStatus(order.status),
-        date: order.date || '2026-06-06',
+        date: order.date || CURRENT_POS_DATE,
         time: order.time || '--:--'
     };
 }
@@ -264,15 +265,20 @@ function formatOrderTime(order) {
 
 function parseOrderDate(value) {
     if (!value) return null;
-    const date = new Date(String(value));
+    const match = String(value).match(/(\d{4})-(\d{2})-(\d{2})/);
+    const date = match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : new Date(String(value));
     if (Number.isNaN(date.getTime())) return null;
     date.setHours(0, 0, 0, 0);
     return date;
 }
 
+function currentPosDate() {
+    return parseOrderDate(CURRENT_POS_DATE) || new Date();
+}
+
 function periodRange(filter) {
     if (filter === 'all') return null;
-    const today = new Date();
+    const today = currentPosDate();
     today.setHours(0, 0, 0, 0);
     if (filter === 'today') return { start: today, end: today };
     if (filter === 'month') {
@@ -287,7 +293,6 @@ function periodRange(filter) {
 }
 
 function orderMatchesPeriod(order) {
-    if (order.status !== 'done') return true;
     const range = periodRange(currentPeriodFilter);
     if (!range) return true;
     const date = parseOrderDate(order.date);
@@ -417,9 +422,17 @@ function renderOrders() {
     }).join('');
 }
 
+function scopedOrdersForMetrics() {
+    return allOrders.filter(o => {
+        if (currentFilter !== 'all' && o.categoryKey !== currentFilter) return false;
+        return orderMatchesPeriod(o);
+    });
+}
+
 function updateKPIs() {
     let newReq = 0, prep = 0, done = 0, rev = 0;
-    allOrders.forEach(o => {
+    const scopedOrders = scopedOrdersForMetrics();
+    scopedOrders.forEach(o => {
         if(o.status === 'new') newReq++;
         else if(o.status === 'prep') prep++;
         else if(o.status === 'done') done++;
@@ -431,18 +444,20 @@ function updateKPIs() {
     document.getElementById('kpiDone').textContent = done;
     document.getElementById('kpiRev').textContent = formatAmount(rev);
 
-    document.getElementById('statusAllCount').textContent = allOrders.length;
+    document.getElementById('statusAllCount').textContent = scopedOrders.length;
     document.getElementById('statusOpenCount').textContent = newReq + prep;
     document.getElementById('statusDoneCount').textContent = done;
 }
 
 function setCategoryFilter(filter) {
     currentFilter = filter;
+    updateKPIs();
     renderOrders();
 }
 
 function setPeriodFilter(filter) {
     currentPeriodFilter = filter;
+    updateKPIs();
     renderOrders();
 }
 
