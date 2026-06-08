@@ -857,6 +857,11 @@ function openGuestDetail(email) {
     document.getElementById('gdCancel').textContent = `${noShow} / ${cancel}`;
 
     window.currentGuestVisits = normalizeGuestHistory(guest);
+    const startFilter = document.getElementById('gdFilterStart');
+    const endFilter = document.getElementById('gdFilterEnd');
+    if (startFilter) startFilter.value = '';
+    if (endFilter) endFilter.value = '';
+    syncGuestHistoryDateBounds(window.currentGuestVisits);
     renderGuestHistory(window.currentGuestVisits);
 
     // Mobile Expansion Reset
@@ -962,13 +967,48 @@ function normalizeGuestHistory(guest) {
         : Array.isArray(guest.history) ? guest.history
         : Array.isArray(guest.visitsHistory) ? guest.visitsHistory
         : [];
-    return list.map(item => ({
-        checkIn: item.checkIn || item.checkInDate || item.date || '',
-        checkOut: item.checkOut || item.checkOutDate || '',
-        rt: item.roomType || item.roomTypeName || item.rt || '-',
-        pmt: Number((item.amount && item.amount.amount) || item.amount || item.payment || item.pmt || 0),
-        status: item.status || 'completed'
-    })).filter(item => item.checkIn);
+    return list.map(item => {
+        const checkIn = item.checkIn || item.checkInDate || item.date || '';
+        const checkOut = item.checkOut || item.checkOutDate || checkIn;
+        return {
+            checkIn,
+            checkOut,
+            checkInKey: guestHistoryDateKey(checkIn),
+            checkOutKey: guestHistoryDateKey(checkOut) || guestHistoryDateKey(checkIn),
+            rt: item.roomType || item.roomTypeName || item.rt || '-',
+            pmt: Number((item.amount && item.amount.amount) || item.amount || item.payment || item.pmt || 0),
+            status: item.status || 'completed'
+        };
+    }).filter(item => item.checkInKey).sort((a, b) => String(b.checkInKey).localeCompare(String(a.checkInKey)));
+}
+
+function guestHistoryDateKey(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    const match = text.match(/(\d{4})\D?(\d{1,2})\D?(\d{1,2})/);
+    if (!match) return '';
+    const [, year, month, day] = match;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function syncGuestHistoryDateBounds(data) {
+    const startInput = document.getElementById('gdFilterStart');
+    const endInput = document.getElementById('gdFilterEnd');
+    if (!startInput || !endInput) return;
+    const keys = (data || []).flatMap(item => [item.checkInKey, item.checkOutKey]).filter(Boolean).sort();
+    if (!keys.length) {
+        startInput.removeAttribute('min');
+        startInput.removeAttribute('max');
+        endInput.removeAttribute('min');
+        endInput.removeAttribute('max');
+        return;
+    }
+    const min = keys[0];
+    const max = keys[keys.length - 1];
+    startInput.min = min;
+    startInput.max = max;
+    endInput.min = min;
+    endInput.max = max;
 }
 
 function renderGuestHistory(data) {
@@ -992,18 +1032,25 @@ function renderGuestHistory(data) {
 }
 
 function filterGuestHistory() {
-    const start = document.getElementById('gdFilterStart').value;
-    const end = document.getElementById('gdFilterEnd').value;
+    const start = guestHistoryDateKey(document.getElementById('gdFilterStart')?.value);
+    const end = guestHistoryDateKey(document.getElementById('gdFilterEnd')?.value);
+    const visits = Array.isArray(window.currentGuestVisits) ? window.currentGuestVisits : [];
     if(!start && !end) {
-        renderGuestHistory(window.currentGuestVisits);
+        renderGuestHistory(visits);
         return;
     }
-    
-    const filtered = window.currentGuestVisits.filter(v => {
-        let pass = true;
-        if(start && v.checkIn < start) pass = false;
-        if(end && v.checkIn > end) pass = false;
-        return pass;
+
+    if (start && end && start > end) {
+        showToast(guestText('조회 시작일은 종료일보다 늦을 수 없습니다.', 'Start date cannot be later than end date.'), 'error');
+        return;
+    }
+
+    const from = start || '0000-01-01';
+    const to = end || '9999-12-31';
+    const filtered = visits.filter(v => {
+        const checkIn = v.checkInKey || guestHistoryDateKey(v.checkIn);
+        const checkOut = v.checkOutKey || guestHistoryDateKey(v.checkOut) || checkIn;
+        return checkIn <= to && checkOut >= from;
     });
     renderGuestHistory(filtered);
 }
