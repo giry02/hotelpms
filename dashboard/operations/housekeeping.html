@@ -378,7 +378,9 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
                     <label class="form-label">객실 번호 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" class="form-input" id="newRoom" placeholder="예: 1205, 로비 화장실">
+                    <select class="form-input" id="newRoom">
+                        <option value="">객실 선택</option>
+                    </select>
                 </div>
                 <div>
                     <label class="form-label">유형 <span style="color:var(--danger)">*</span></label>
@@ -1053,6 +1055,52 @@ if (typeof showToast === 'undefined') {
 
 
 // ===== MAINTENANCE REQUEST (maintenance.html 티켓 생성과 동일한 팝업) =====
+function maintenanceRoomDisplay(room) {
+    return room.roomNo || room.number || room.display || room.id || String(room.roomId || '').split('-').pop() || room.displayName;
+}
+
+function maintenanceRoomFullId(room) {
+    return room.roomId || room.fullRoom || room.id || maintenanceRoomDisplay(room);
+}
+
+function maintenanceRoomLabel(room) {
+    const building = room.building || room.buildingName || room.bldgCode || '';
+    const no = maintenanceRoomDisplay(room);
+    const type = room.type || room.roomTypeName || '';
+    return [building, no, type].filter(Boolean).join(' · ');
+}
+
+function sortMaintenanceRooms(list) {
+    return [...(list || [])].sort((a, b) => {
+        const ab = String(a.building || a.buildingName || a.bldgCode || '');
+        const bb = String(b.building || b.buildingName || b.bldgCode || '');
+        const buildingCompare = ab.localeCompare(bb, ['ko', 'en'], { numeric: true, sensitivity: 'base' });
+        if (buildingCompare) return buildingCompare;
+        const af = Number(a.floor || 0);
+        const bf = Number(b.floor || 0);
+        if (af !== bf) return bf - af;
+        return String(maintenanceRoomDisplay(a)).localeCompare(String(maintenanceRoomDisplay(b)), ['ko', 'en'], { numeric: true, sensitivity: 'base' });
+    });
+}
+
+async function populateMaintenanceRoomSelect() {
+    const select = document.getElementById('newRoom');
+    if (!select) return;
+    let rooms = Array.isArray(allRooms) && allRooms.length ? allRooms : [];
+    if (!rooms.length && window.PmsAPI?.getAllRooms) {
+        try { rooms = await window.PmsAPI.getAllRooms(); } catch(e) { rooms = []; }
+    }
+    const options = sortMaintenanceRooms(rooms)
+        .filter(room => maintenanceRoomDisplay(room))
+        .map(room => {
+            const display = maintenanceRoomDisplay(room);
+            const fullId = maintenanceRoomFullId(room);
+            return `<option value="${display}" data-room-id="${fullId}">${maintenanceRoomLabel(room)}</option>`;
+        })
+        .join('');
+    select.innerHTML = `<option value="">객실 선택</option>${options}`;
+}
+
 async function openMaintModal() {
     var r = document.getElementById('newRoom');
     var d = document.getElementById('newDesc');
@@ -1066,6 +1114,7 @@ async function openMaintModal() {
         var types = await PmsAPI.getMAINTENANCE_TYPES();
         typeEl.innerHTML = types.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
     }
+    await populateMaintenanceRoomSelect();
 
     var assigneeEl = document.getElementById('newAssignee');
     var assigneeWrapper = document.getElementById('assigneeWrapper');
@@ -1096,12 +1145,13 @@ function addTicketFromHK() {
     var assigneeEl = document.getElementById('newAssignee');
 
     var room     = roomEl     ? roomEl.value.trim()     : '';
+    var roomId   = roomEl && roomEl.selectedOptions && roomEl.selectedOptions[0] ? roomEl.selectedOptions[0].dataset.roomId || room : room;
     var type     = typeEl     ? typeEl.value             : '기타';
     var desc     = descEl     ? descEl.value.trim()     : '';
     var priority = priorityEl ? priorityEl.value         : 'normal';
     var assignee = assigneeEl ? assigneeEl.value         : '미배정';
 
-    if (!room || !desc) { showToast('객실 번호와 상세 내용을 입력해주세요.'); return; }
+    if (!room || !desc) { showToast('객실과 상세 내용을 선택/입력해주세요.'); return; }
 
     var today = new Date().toISOString().split('T')[0];
     var id    = 'MT-' + Date.now().toString().slice(-6);
@@ -1109,7 +1159,7 @@ function addTicketFromHK() {
     // pms_maintenance localStorage 에 저장 (시설보수 페이지와 동일한 저장소)
     var list = [];
     try { list = JSON.parse(localStorage.getItem('pms_maintenance') || '[]'); } catch(e) {}
-    list.unshift({ id: id, room: room, type: type, desc: desc, priority: priority, assignee: assignee, status: 'open', date: today, source: 'housekeeping' });
+    list.unshift({ id: id, room: room, roomId: roomId, type: type, desc: desc, priority: priority, assignee: assignee, status: 'open', date: today, source: 'housekeeping' });
     localStorage.setItem('pms_maintenance', JSON.stringify(list));
 
     closeModal('newRequestModal');

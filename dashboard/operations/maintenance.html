@@ -417,7 +417,9 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
                     <label class="form-label">객실 번호 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" class="form-input" id="newRoom" placeholder="예: 1205">
+                    <select class="form-input" id="newRoom">
+                        <option value="">객실 선택</option>
+                    </select>
                 </div>
                 <div>
                     <label class="form-label">유형 <span style="color:var(--danger)">*</span></label>
@@ -468,6 +470,52 @@
 </div>
 
 <script>
+function maintenanceRoomDisplay(room) {
+    return room.roomNo || room.number || room.display || room.id || String(room.roomId || '').split('-').pop() || room.displayName;
+}
+
+function maintenanceRoomFullId(room) {
+    return room.roomId || room.fullRoom || room.id || maintenanceRoomDisplay(room);
+}
+
+function maintenanceRoomLabel(room) {
+    const building = room.building || room.buildingName || room.bldgCode || '';
+    const no = maintenanceRoomDisplay(room);
+    const type = room.type || room.roomTypeName || '';
+    return [building, no, type].filter(Boolean).join(' · ');
+}
+
+function sortMaintenanceRooms(list) {
+    return [...(list || [])].sort((a, b) => {
+        const ab = String(a.building || a.buildingName || a.bldgCode || '');
+        const bb = String(b.building || b.buildingName || b.bldgCode || '');
+        const buildingCompare = ab.localeCompare(bb, ['ko', 'en'], { numeric: true, sensitivity: 'base' });
+        if (buildingCompare) return buildingCompare;
+        const af = Number(a.floor || 0);
+        const bf = Number(b.floor || 0);
+        if (af !== bf) return bf - af;
+        return String(maintenanceRoomDisplay(a)).localeCompare(String(maintenanceRoomDisplay(b)), ['ko', 'en'], { numeric: true, sensitivity: 'base' });
+    });
+}
+
+async function populateMaintenanceRoomSelect() {
+    const select = document.getElementById('newRoom');
+    if (!select) return;
+    let rooms = [];
+    if (window.PmsAPI?.getAllRooms) {
+        try { rooms = await window.PmsAPI.getAllRooms(); } catch(e) { rooms = []; }
+    }
+    const options = sortMaintenanceRooms(rooms)
+        .filter(room => maintenanceRoomDisplay(room))
+        .map(room => {
+            const display = maintenanceRoomDisplay(room);
+            const fullId = maintenanceRoomFullId(room);
+            return `<option value="${display}" data-room-id="${fullId}">${maintenanceRoomLabel(room)}</option>`;
+        })
+        .join('');
+    select.innerHTML = `<option value="">객실 선택</option>${options}`;
+}
+
 async function openMaintModal() {
     var r = document.getElementById('newRoom');
     var d = document.getElementById('newDesc');
@@ -481,6 +529,7 @@ async function openMaintModal() {
         var types = await PmsAPI.getMAINTENANCE_TYPES();
         typeEl.innerHTML = types.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
     }
+    await populateMaintenanceRoomSelect();
 
     var assigneeEl = document.getElementById('newAssignee');
     var assigneeWrapper = document.getElementById('assigneeWrapper');
@@ -825,14 +874,16 @@ async function showDetail(id) {
 }
 
 function addTicket() {
-    const room = document.getElementById('newRoom').value.trim();
+    const roomEl = document.getElementById('newRoom');
+    const room = roomEl.value.trim();
+    const roomId = roomEl.selectedOptions && roomEl.selectedOptions[0] ? roomEl.selectedOptions[0].dataset.roomId || room : room;
     const type = document.getElementById('newType').value;
     const desc = document.getElementById('newDesc').value.trim();
     const priority = document.getElementById('newPriority').value;
     const assignee = document.getElementById('newAssignee').value;
-    if (!room || !desc) { showToast('객실 번호와 상세 내용을 입력해주세요.'); return; }
+    if (!room || !desc) { showToast('객실과 상세 내용을 선택/입력해주세요.'); return; }
     const today = new Date().toISOString().split('T')[0];
-    requests.unshift({ id: 'MT-' + (nextId++), room, type, desc, priority, assignee, status: 'open', date: today });
+    requests.unshift({ id: 'MT-' + (nextId++), room, roomId, type, desc, priority, assignee, status: 'open', date: today });
     persistMaintenanceRequests();
     updateKPI(); render();
     closeModal('newRequestModal');
