@@ -178,6 +178,7 @@ let currentFilter = 'all';
 let currentPeriodFilter = 'week';
 let currentStatusFilter = 'all';
 let lockedOrderProviderKey = '';
+let editingOrderId = '';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -187,6 +188,20 @@ function escapeHtml(value) {
         '"': '&quot;',
         "'": '&#39;'
     }[ch]));
+}
+
+function escapeJsString(value) {
+    return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, ' ');
+}
+
+function ensureSelectOption(select, value, label = value) {
+    if (!select || !value) return;
+    if (![...select.options].some(option => String(option.value) === String(value))) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label || value;
+        select.appendChild(option);
+    }
 }
 
 function normalizeMarketplace(raw) {
@@ -506,11 +521,16 @@ function renderOrders() {
     container.innerHTML = filtered.map(o => {
         const info = providerMetaFor(o);
         const status = orderStatusKey(o);
+        const orderId = escapeJsString(o.id);
         
         let sHtml, actBtn;
         if (status === 'new') {
             sHtml = `<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> 예약 대기</span>`;
-            actBtn = `<button class="btn-primary-sm"><i class="fa-solid fa-check"></i> 예약 확정</button>`;
+            actBtn = `
+                <button class="btn-primary-sm" onclick="confirmGolfOrder('${orderId}')"><i class="fa-solid fa-check"></i> 예약 확정</button>
+                <button class="btn-outline-sm" onclick="openEditGolfOrder('${orderId}')"><i class="fa-solid fa-pen"></i> 수정</button>
+                <button class="btn-outline-sm" style="color:var(--danger);border-color:rgba(239,68,68,.35)" onclick="deleteGolfOrder('${orderId}')"><i class="fa-solid fa-trash"></i> 삭제</button>
+            `;
         } else if (status === 'prep') {
             sHtml = `<span style="color:var(--primary);font-weight:700"><i class="fa-solid fa-car"></i> 진행 예정</span>`;
             actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)"><i class="fa-solid fa-check-double"></i> 완료 처리</button>`;
@@ -652,17 +672,91 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
-    if (id === 'addOrderModal') applyProviderLock('');
+    if (id === 'addOrderModal') {
+        applyProviderLock('');
+        editingOrderId = '';
+    }
 }
 
 function openAddOrderModal(providerKey = '') {
+    editingOrderId = '';
     lockedOrderProviderKey = providerKey || '';
-    const golfDate = document.getElementById('golfDate');
-    const golfTime = document.getElementById('golfTime');
+    openModal('addOrderModal');
+    resetGolfOrderForm();
+    const title = document.querySelector('#addOrderModal .modal-title');
+    if (title) title.textContent = '골프장 신규 예약';
+    const saveButton = document.getElementById('golfSaveOrderButton');
+    if (saveButton) saveButton.innerHTML = '<i class="fa-solid fa-check"></i> 예약 전송';
+    const modal = document.getElementById('addOrderModal');
+    const golfDate = modal?.querySelector('#golfDate');
+    const golfTime = modal?.querySelector('#golfTime');
     if (golfDate && !golfDate.value) golfDate.value = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
     if (golfTime && !golfTime.value) golfTime.value = '09:00';
-    openModal('addOrderModal');
     applyProviderLock(lockedOrderProviderKey);
+}
+
+function resetGolfOrderForm() {
+    const modal = document.getElementById('addOrderModal');
+    if (!modal) return;
+    ['#golfGuest', '#golfNation', '#golf에이전시', '#golfDate', '#golfTime', '#golfPax', '#golfTotal', '#golfCommission'].forEach(selector => {
+        const el = modal.querySelector(selector);
+        if (el) el.value = '';
+    });
+    const room = modal.querySelector('#golfRoom');
+    if (room) room.value = '';
+    const provider = modal.querySelector('#golfProvider');
+    if (provider) provider.value = '';
+    const holes = modal.querySelector('#golfHoles');
+    if (holes) holes.value = '18홀';
+}
+
+function openEditGolfOrder(orderId) {
+    const order = orders.find(item => String(item.id) === String(orderId));
+    if (!order) return;
+    if (orderStatusKey(order) !== 'new') {
+        showToast('예약 확정 전 상태만 수정할 수 있습니다.');
+        return;
+    }
+    editingOrderId = order.id;
+    lockedOrderProviderKey = '';
+    openModal('addOrderModal');
+    resetGolfOrderForm();
+    const modal = document.getElementById('addOrderModal');
+    const title = modal?.querySelector('.modal-title');
+    if (title) title.textContent = '골프장 예약 수정';
+    const saveButton = document.getElementById('golfSaveOrderButton');
+    if (saveButton) saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 수정 저장';
+
+    const roomNo = order.roomNo || order.room || '';
+    const room = modal?.querySelector('#golfRoom');
+    ensureSelectOption(room, roomNo, roomNo);
+    if (room) room.value = roomNo;
+    const guest = modal?.querySelector('#golfGuest');
+    if (guest) guest.value = order.guest || order.guestName || '';
+    const nation = modal?.querySelector('#golfNation');
+    if (nation) nation.value = order.nation || order.nationality || '';
+    const agency = modal?.querySelector('#golf에이전시');
+    if (agency) agency.value = order.agency || order.channel || '';
+    const provider = modal?.querySelector('#golfProvider');
+    const providerKey = providerKeyFor(order);
+    ensureSelectOption(provider, providerKey, providerLabelFor(order, providerKey));
+    if (provider) provider.value = providerKey;
+    const golfDate = modal?.querySelector('#golfDate');
+    if (golfDate) golfDate.value = orderDateValue(order) || (window.PmsDate?.todayIso ? window.PmsDate.todayIso() : '');
+    const golfTime = modal?.querySelector('#golfTime');
+    if (golfTime) golfTime.value = order.time || '09:00';
+    const parts = String(order.items || '').split('/').map(part => part.trim()).filter(Boolean);
+    const holes = modal?.querySelector('#golfHoles');
+    if (parts[0]) ensureSelectOption(holes, parts[0], parts[0]);
+    if (holes && parts[0]) holes.value = parts[0];
+    const pax = modal?.querySelector('#golfPax');
+    const paxMatch = String(parts[1] || '').match(/\d+/);
+    if (pax) pax.value = paxMatch ? paxMatch[0] : '';
+    const total = modal?.querySelector('#golfTotal');
+    if (total) total.value = Number(order.total || 0) || '';
+
+    const lockProvider = order.providerSource === 'marketplace' || Boolean(marketplacePartnerByKey(providerKey));
+    applyProviderLock(lockProvider ? providerKey : '');
 }
 
 function applyProviderLock(providerKey = '') {
@@ -696,6 +790,7 @@ function selectedOptionText(select) {
 }
 
 function buildGolfOrder() {
+    const existingOrder = editingOrderId ? orders.find(order => String(order.id) === String(editingOrderId)) : null;
     const modal = document.getElementById('addOrderModal');
     const room = modal?.querySelector('#golfRoom')?.value?.trim() || '';
     const guest = modal?.querySelector('#golfGuest')?.value?.trim() || '';
@@ -725,7 +820,8 @@ function buildGolfOrder() {
     }
 
     return {
-        id: `GLF-N${String(Date.now()).slice(-6)}`,
+        ...(existingOrder || {}),
+        id: existingOrder?.id || `GLF-N${String(Date.now()).slice(-6)}`,
         date,
         roomId: `ROOM-${room}`,
         roomNo: room,
@@ -740,7 +836,7 @@ function buildGolfOrder() {
         items: `${holes || '18홀'} / ${pax}인`,
         total: amount || 0,
         currency,
-        status: 'new',
+        status: existingOrder?.status || 'new',
         time
     };
 }
@@ -759,7 +855,12 @@ async function persistGolfOrders() {
 async function saveOrder() {
     const newOrder = buildGolfOrder();
     if (!newOrder) return;
-    orders.unshift(newOrder);
+    if (editingOrderId) {
+        const index = orders.findIndex(order => String(order.id) === String(editingOrderId));
+        if (index >= 0) orders[index] = newOrder;
+    } else {
+        orders.unshift(newOrder);
+    }
     try {
         await persistGolfOrders();
     } catch(e) {
@@ -767,8 +868,40 @@ async function saveOrder() {
     }
     updateFilterCounts();
     renderOrders();
-    showToast('골프장 예약이 등록되었습니다.');
+    showToast(editingOrderId ? '골프장 예약이 수정되었습니다.' : '골프장 예약이 등록되었습니다.');
     closeModal('addOrderModal');
+}
+
+async function confirmGolfOrder(orderId) {
+    const order = orders.find(item => String(item.id) === String(orderId));
+    if (!order || orderStatusKey(order) !== 'new') return;
+    order.status = 'prep';
+    try {
+        await persistGolfOrders();
+    } catch(e) {
+        console.warn('Golf order confirm save failed', e);
+    }
+    updateFilterCounts();
+    renderOrders();
+    showToast('골프장 예약이 확정되었습니다.');
+}
+
+async function deleteGolfOrder(orderId) {
+    const order = orders.find(item => String(item.id) === String(orderId));
+    if (!order || orderStatusKey(order) !== 'new') {
+        showToast('예약 확정 전 상태만 삭제할 수 있습니다.');
+        return;
+    }
+    if (!window.confirm('예약 대기 건을 삭제하시겠습니까?')) return;
+    orders = orders.filter(item => String(item.id) !== String(orderId));
+    try {
+        await persistGolfOrders();
+    } catch(e) {
+        console.warn('Golf order delete save failed', e);
+    }
+    updateFilterCounts();
+    renderOrders();
+    showToast('골프장 예약이 삭제되었습니다.');
 }
 
 function handleItemSelect() {
@@ -880,7 +1013,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('addOrderModal')">취소</button>
-            <button class="btn-primary-sm" onclick="saveOrder()"><i class="fa-solid fa-check"></i> 예약 전송</button>
+            <button class="btn-primary-sm" id="golfSaveOrderButton" onclick="saveOrder()"><i class="fa-solid fa-check"></i> 예약 전송</button>
         </div>
     </div>
 </div>
