@@ -73,8 +73,8 @@
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-handshake"></i></div></div>
                 <div class="kpi-body">
                     <div class="kpi-value" id="kpiProviderCount">0</div>
-                    <div class="kpi-label">제휴 업체 수</div>
-                    <div class="kpi-sub">계약된 골프장</div>
+                    <div class="kpi-label">이용 가능 골프장</div>
+                    <div class="kpi-sub">호텔 등록 + 플랫폼 추천</div>
                 </div>
             </div>
             <div class="kpi-card blue">
@@ -102,6 +102,11 @@
                 </div>
             </div>
         </div>
+
+        <!-- MARKETPLACE -->
+        <section class="marketplace-strip" id="marketplacePanel" aria-label="골프장 플랫폼 입점 업체 추천">
+            <div class="marketplace-loading">지역 골프장 추천 업체를 불러오는 중입니다.</div>
+        </section>
 
         <!-- FILTER -->
         <div class="filter-bar-mt">
@@ -160,6 +165,15 @@ const tMap = {
     'club_b': { label:'스카이72', icon:'fa-golf-ball-tee', color:'var(--purple)' },
 };
 
+let marketplace = {};
+const DEFAULT_MARKETPLACE = {
+    regionLabel: '',
+    title: '지역 입점 골프장 추천',
+    description: '',
+    banners: [],
+    partners: []
+};
+
 let currentFilter = 'all';
 let currentPeriodFilter = 'week';
 let currentStatusFilter = 'all';
@@ -174,41 +188,164 @@ function escapeHtml(value) {
     }[ch]));
 }
 
+function normalizeMarketplace(raw) {
+    const source = raw && typeof raw === 'object' ? raw : {};
+    const partners = Array.isArray(source.partners) ? source.partners : DEFAULT_MARKETPLACE.partners;
+    const banners = Array.isArray(source.banners) ? source.banners : DEFAULT_MARKETPLACE.banners;
+    return {
+        ...DEFAULT_MARKETPLACE,
+        ...source,
+        partners,
+        banners
+    };
+}
+
+function marketplacePartners() {
+    return Array.isArray(marketplace?.partners) ? marketplace.partners : [];
+}
+
+function marketplacePartnerByKey(key) {
+    return marketplacePartners().find(partner => String(partner.key) === String(key));
+}
+
+function providerEntryFromPartner(partner) {
+    return {
+        key: String(partner.key || '').trim(),
+        label: partner.name || partner.label || partner.partnerName || '추천 업체',
+        count: 0,
+        source: 'marketplace',
+        badge: partner.badge || '추천',
+        icon: partner.icon || 'fa-golf-ball-tee',
+        color: partner.color || 'var(--primary)'
+    };
+}
+
+async function loadMarketplaceData() {
+    try {
+        if (window.PmsMockApi) {
+            const env = await window.PmsMockApi.request('GET', '/ancillaries/golf-orders');
+            if (env?.data?.marketplace) return env.data.marketplace;
+        }
+    } catch(e) {}
+    try {
+        const res = await fetch('../data/api/v1/ancillaries/golf-orders.json', { cache: 'no-store' });
+        if (res.ok) {
+            const env = await res.json();
+            if (env?.data?.marketplace) return env.data.marketplace;
+        }
+    } catch(e) {}
+    return DEFAULT_MARKETPLACE;
+}
+
+function renderMarketplace() {
+    const panel = document.getElementById('marketplacePanel');
+    if (!panel) return;
+    const data = normalizeMarketplace(marketplace);
+    const banner = data.banners?.[0] || {};
+    const partners = marketplacePartners();
+    if (!partners.length && !data.banners?.length) {
+        panel.innerHTML = '<div class="marketplace-loading">입점 추천 업체 데이터가 없습니다.</div>';
+        return;
+    }
+    panel.innerHTML = `
+        <div class="marketplace-head">
+            <div>
+                <div class="marketplace-eyebrow"><i class="fa-solid fa-bullhorn"></i> 플랫폼 입점 추천</div>
+                <div class="marketplace-title">${escapeHtml(data.title || '지역 입점 골프장 추천')}</div>
+                <div class="marketplace-desc">${escapeHtml(data.description || '')}</div>
+            </div>
+            <div class="marketplace-region"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(data.regionLabel || '')}</div>
+        </div>
+        <div class="marketplace-grid">
+            <div class="marketplace-banner">
+                <div class="marketplace-banner-icon" style="background:${escapeHtml(banner.color || '#16a34a')}">
+                    <i class="fa-solid ${escapeHtml(banner.icon || 'fa-golf-ball-tee')}"></i>
+                </div>
+                <div class="marketplace-banner-body">
+                    <span class="marketplace-badge"><i class="fa-solid fa-rectangle-ad"></i> ${escapeHtml(banner.badge || '광고')}</span>
+                    <div class="marketplace-banner-title">${escapeHtml(banner.title || '추천 골프장 상품')}</div>
+                    <div class="marketplace-banner-copy">${escapeHtml(banner.copy || '')}</div>
+                    <div class="marketplace-banner-meta">
+                        ${banner.area ? `<span class="marketplace-meta-chip"><i class="fa-solid fa-map-location-dot"></i> ${escapeHtml(banner.area)}</span>` : ''}
+                        ${banner.benefit ? `<span class="marketplace-meta-chip"><i class="fa-solid fa-percent"></i> ${escapeHtml(banner.benefit)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="marketplace-partners">
+                ${partners.map(partner => `
+                    <div class="marketplace-partner">
+                        <div class="marketplace-partner-icon" style="background:${escapeHtml(partner.color || '#16a34a')}">
+                            <i class="fa-solid ${escapeHtml(partner.icon || 'fa-golf-ball-tee')}"></i>
+                        </div>
+                        <div class="marketplace-partner-body">
+                            <div class="marketplace-partner-name">${escapeHtml(partner.name || partner.label)}</div>
+                            <div class="marketplace-partner-meta">${escapeHtml([partner.badge, partner.area, partner.benefit].filter(Boolean).join(' · '))}</div>
+                        </div>
+                        <button type="button" class="marketplace-action" onclick="useMarketplacePartner('${escapeHtml(partner.key)}')">예약 사용</button>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function useMarketplacePartner(key) {
+    openModal('addOrderModal');
+    const select = document.querySelector('#addOrderModal .provider-order-select');
+    if (select) {
+        select.value = key;
+        select.dispatchEvent(new Event('change'));
+    }
+}
+
 function providerKeyFor(order) {
     return String(order?.type || order?.providerType || order?.partnerId || order?.providerName || order?.partnerName || 'other').trim() || 'other';
 }
 
 function providerLabelFor(order, key = providerKeyFor(order)) {
+    const marketplacePartner = marketplacePartnerByKey(key);
     return order?.providerLabel
         || order?.providerName
         || order?.partnerName
         || order?.companyName
         || order?.courseName
+        || marketplacePartner?.name
+        || marketplacePartner?.label
         || tMap[key]?.label
         || String(key || '기타 업체').replace(/[-_]/g, ' ');
 }
 
 function providerMetaFor(order) {
     const key = providerKeyFor(order);
-    const known = tMap[key] || {};
+    const known = tMap[key] || marketplacePartnerByKey(key) || {};
     return {
         key,
         label: providerLabelFor(order, key),
         icon: known.icon || 'fa-golf-ball-tee',
-        color: known.color || 'var(--txt2)'
+        color: known.color || 'var(--txt2)',
+        source: known.source || (marketplacePartnerByKey(key) ? 'marketplace' : 'hotel'),
+        badge: known.badge || ''
     };
 }
 
-function providerEntries() {
+function providerEntries(options = {}) {
+    const includeMarketplace = options.includeMarketplace !== false;
+    const includeFallback = options.includeFallback !== false;
     const map = new Map();
+    if (includeMarketplace) {
+        marketplacePartners().forEach(partner => {
+            const entry = providerEntryFromPartner(partner);
+            if (entry.key) map.set(entry.key, entry);
+        });
+    }
     orders.forEach(order => {
         const meta = providerMetaFor(order);
         if (!map.has(meta.key)) {
-            map.set(meta.key, { key: meta.key, label: meta.label, count: 0 });
+            map.set(meta.key, { key: meta.key, label: meta.label, count: 0, source: meta.source, badge: meta.badge });
         }
         map.get(meta.key).count++;
     });
-    if (!map.size) {
+    if (!map.size && includeFallback) {
         Object.entries(tMap).forEach(([key, meta]) => map.set(key, { key, label: meta.label, count: 0 }));
     }
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'ko'));
@@ -216,12 +353,13 @@ function providerEntries() {
 
 function refreshProviderFilterOptions() {
     const select = document.getElementById('providerFilterSelect');
-    const entries = providerEntries();
-    if (currentFilter !== 'all' && !entries.some(entry => entry.key === currentFilter)) currentFilter = 'all';
+    const filterEntries = providerEntries({ includeMarketplace: false });
+    const orderEntries = providerEntries({ includeMarketplace: true });
+    if (currentFilter !== 'all' && !filterEntries.some(entry => entry.key === currentFilter)) currentFilter = 'all';
     if (select) {
         select.innerHTML = [
             `<option value="all">전체 업체 (${orders.length})</option>`,
-            ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)} (${entry.count})</option>`)
+            ...filterEntries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)} (${entry.count})</option>`)
         ].join('');
         select.value = currentFilter;
     }
@@ -229,9 +367,12 @@ function refreshProviderFilterOptions() {
         const selected = orderSelect.value;
         orderSelect.innerHTML = [
             `<option value="">업체 선택...</option>`,
-            ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)}</option>`)
+            ...orderEntries.map(entry => {
+                const suffix = entry.source === 'marketplace' ? ` · ${entry.badge || '플랫폼 추천'}` : '';
+                return `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)}${escapeHtml(suffix)}</option>`;
+            })
         ].join('');
-        if (entries.some(entry => entry.key === selected)) orderSelect.value = selected;
+        if (orderEntries.some(entry => entry.key === selected)) orderSelect.value = selected;
     });
 }
 
@@ -328,7 +469,7 @@ function updateStatusCounts() {
     const dataDate = currentDataDate();
     const openToday = orders.filter(order => orderDateValue(order) === dataDate && orderStatusKey(order) !== 'done').length;
     const doneToday = orders.filter(order => orderDateValue(order) === dataDate && orderStatusKey(order) === 'done').length;
-    const providerCount = providerEntries().filter(entry => entry.count > 0).length;
+    const providerCount = providerEntries({ includeMarketplace: true }).length;
     const allEl = document.getElementById('statusAllCount');
     const openEl = document.getElementById('statusOpenCount');
     const doneEl = document.getElementById('statusDoneCount');
@@ -722,7 +863,13 @@ function updateFilterCounts() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        orders = await PmsAPI.getGolfOrders();
+        const [golfOrders, marketplaceData] = await Promise.all([
+            PmsAPI.getGolfOrders(),
+            loadMarketplaceData()
+        ]);
+        orders = golfOrders;
+        marketplace = normalizeMarketplace(marketplaceData);
+        renderMarketplace();
         updateFilterCounts();
         renderOrders();
     } catch(e) { console.error(e); }
