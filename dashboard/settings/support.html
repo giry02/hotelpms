@@ -21,6 +21,25 @@
         .list-item.active { background: var(--primary-lt); border-left: 3px solid var(--primary); }
         .item-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; color: var(--txt); }
         .item-meta { font-size: 0.75rem; color: var(--txt2); display: flex; justify-content: space-between; align-items: center; }
+        .support-btn {
+            min-height: 36px; padding: 0 14px; border: none; border-radius: var(--radius-sm);
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            font-family: var(--font); font-size: .82rem; font-weight: 700; cursor: pointer;
+            transition: background .18s, border-color .18s, color .18s, box-shadow .18s, transform .18s;
+            white-space: nowrap;
+        }
+        .support-btn.primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,.18); }
+        .support-btn.primary:hover { background: var(--primary-dk); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,.24); }
+        .support-btn.outline { background: #fff; color: var(--txt2); border: 1px solid var(--border); }
+        .support-btn.outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-lt); }
+        .support-form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+        .badge { display: inline-flex; align-items: center; justify-content: center; min-height: 22px; padding: 2px 8px; border-radius: 12px; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+        .badge.orange { background: var(--warning-lt); color: #B45309; }
+        .badge.green { background: var(--success-lt); color: #047857; }
+        .badge.blue { background: var(--primary-lt); color: var(--primary-dk); }
+        .support-message { background:#f8fafc; padding:16px; border-radius:8px; margin-bottom:20px; font-size:0.9rem; line-height:1.6; white-space:pre-line; }
+        .support-reply { background:var(--primary-lt); border:1px solid rgba(59,130,246,0.2); padding:16px; border-radius:8px; font-size:0.9rem; line-height:1.6; white-space:pre-line; }
+        .support-empty-reply { background:#f8fafc; border:1px dashed var(--border); color:var(--txt3); padding:16px; border-radius:8px; font-size:0.86rem; }
         
         .support-detail { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
         .detail-header { padding: 20px; border-bottom: 1px solid var(--border); }
@@ -56,42 +75,17 @@
 <div class="support-list">
 <div class="list-header">
 <h3 style="font-size:1rem;font-weight:600;">나의 문의 내역</h3>
-<button class="btn-primary" onclick="showNewTicketForm()" style="padding:6px 12px;font-size:0.8rem;"><i class="fa-solid fa-plus"></i> 문의하기</button>
+<button class="support-btn primary" type="button" onclick="showNewTicketForm()"><i class="fa-solid fa-plus"></i> 문의하기</button>
 </div>
-<div class="list-items" id="ticketList">
-<div class="list-item active" onclick="showTicketDetail()">
-<div class="item-title">[TK-10023] 결제 모듈 연동 에러</div>
-<div class="item-meta">
-<span>2026-05-20</span>
-<span class="badge orange">처리중</span>
-                        </span></div>
-</div>
-<div class="list-item" onclick="showTicketDetail()">
-<div class="item-title">[TK-10020] 일간 리포트 다운로드 버그</div>
-<div class="item-meta">
-<span>2026-05-21</span>
-<span class="badge green">답변완료</span>
-</div>
-</div>
-</div>
+<div class="list-items" id="ticketList"></div>
 </div>
 <!-- DETAIL -->
 <div class="support-detail" id="ticketDetailView">
 <div class="detail-header">
-<div class="detail-title">결제 모듈 연동 에러</div>
-<div style="font-size:0.8rem;color:var(--txt2);">작성일: 2026-05-20 | 상태: <span class="badge orange">처리중</span></span></div>
+<div class="detail-title" id="ticketDetailTitle"></div>
+<div id="ticketDetailMeta" style="font-size:0.8rem;color:var(--txt2);"></div>
 </div>
-<div class="detail-body">
-<div style="background:#f8fafc;padding:16px;border-radius:8px;margin-bottom:20px;font-size:0.9rem;line-height:1.6;">
-                        안녕하세요. 오늘 예약 결제창에서 결제 대행사 연동 오류가 발생했습니다. 확인 부탁드립니다.
-                    </div>
-<h4 style="margin-bottom:12px;font-size:0.9rem;">답변 내역</h4>
-<div style="background:var(--primary-lt);border:1px solid rgba(59,130,246,0.2);padding:16px;border-radius:8px;font-size:0.9rem;line-height:1.6;">
-<strong>플랫폼 관리자</strong><br/><br/>
-                        고객님 이용에 불편을 드려 죄송합니다. 현재 결제 대행사 측의 일시적인 네트워크 지연이 발생한 것으로 파악되었습니다.
-                        오후 3시 경 복구될 예정이며, 처리 후 다시 안내해드리겠습니다.
-                    </div>
-</div>
+<div class="detail-body" id="ticketDetailBody"></div>
 </div>
 <!-- NEW TICKET FORM -->
 <div class="support-detail" id="newTicketView" style="display:none; flex-direction:column;">
@@ -101,20 +95,21 @@
 <div class="new-ticket-form" style="flex:1; overflow-y:auto;">
 <div class="form-group">
 <label class="form-label">문의 유형</label>
-<select class="form-select">
-<option>버그/오류 신고</option>
-<option>기능 제안</option>
-<option>요금/결제 문의</option>
-<option data-i18n="room">Room</option>
+<select class="form-select" id="ticketType">
+<option value="시스템 오류">시스템 오류</option>
+<option value="예약/운영">예약/운영</option>
+<option value="요금/결제">요금/결제</option>
+<option value="계정/권한">계정/권한</option>
+<option value="기타">기타</option>
 </select>
 </div>
 <div class="form-group">
 <label class="form-label">제목</label>
-<input class="form-input" placeholder="문의 제목을 입력하세요" type="text"/>
+<input class="form-input" id="ticketSubject" placeholder="문의 제목을 입력하세요" type="text"/>
 </div>
 <div class="form-group">
 <label class="form-label">내용</label>
-<textarea class="form-textarea" placeholder="상세한 증상이나 문의 내용을 입력해주세요."></textarea>
+<textarea class="form-textarea" id="ticketMessage" placeholder="상세한 증상이나 문의 내용을 입력해주세요."></textarea>
 </div>
 <div class="form-group">
 <label class="form-label">파일 첨부</label>
@@ -124,9 +119,9 @@
 <span id="fileName" style="font-size:0.8rem;color:var(--txt3);">선택된 파일 없음</span>
 </div>
 </div>
-<div style="text-align:right; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);">
-<button class="btn-outline" onclick="showTicketDetail()" style="margin-right:8px;">Cancel</button>
-<button class="btn-primary" onclick="showToast('접수되었습니다.', 'success');showTicketDetail();"><i class="fa-solid fa-paper-plane"></i> 제출하기</button>
+<div class="support-form-actions">
+<button class="support-btn outline" type="button" onclick="showTicketDetail()">취소</button>
+<button class="support-btn primary" type="button" onclick="submitTicket()"><i class="fa-solid fa-paper-plane"></i> 제출하기</button>
 </div>
 </div>
 </div>
@@ -134,14 +129,138 @@
 </div>
 </div>
 <script>
+    const supportTickets = [
+        {
+            id: 'TK-10023',
+            type: '요금/결제',
+            title: '결제 모듈 연동 에러',
+            date: '2026-05-20',
+            status: 'processing',
+            message: '안녕하세요. 오늘 예약 결제창에서 결제 대행사 연동 오류가 발생했습니다. 확인 부탁드립니다.',
+            reply: '고객님 이용에 불편을 드려 죄송합니다. 현재 결제 대행사 측의 일시적인 네트워크 지연이 발생한 것으로 파악되었습니다.\n오후 3시 경 복구될 예정이며, 처리 후 다시 안내해드리겠습니다.'
+        },
+        {
+            id: 'TK-10020',
+            type: '시스템 오류',
+            title: '일간 리포트 다운로드 버그',
+            date: '2026-05-21',
+            status: 'answered',
+            message: '일일 마감 화면에서 일간 리포트 다운로드 버튼을 누르면 빈 파일이 내려받아집니다. 6월 20일 데이터 기준으로 확인 부탁드립니다.',
+            reply: '다운로드 파일 생성 시 정산 필터가 누락되는 문제를 확인해 수정했습니다.\n브라우저 새로고침 후 다시 다운로드하면 정상 파일을 받을 수 있습니다.'
+        },
+        {
+            id: 'TK-10018',
+            type: '계정/권한',
+            title: '직원 권한 변경 문의',
+            date: '2026-05-18',
+            status: 'closed',
+            message: '프론트 직원에게 예약 조회 권한은 유지하고 요금 설정 메뉴는 숨기고 싶습니다. 어떤 역할로 설정해야 하나요?',
+            reply: '직원 관리의 역할 및 접근 권한 관리에서 Front Desk 역할을 선택한 뒤 요금 설정 권한을 제외하면 됩니다.\n변경 후 해당 직원이 재로그인하면 메뉴가 갱신됩니다.'
+        }
+    ];
+
+    const supportStatus = {
+        processing: { label: '처리중', badge: 'orange' },
+        answered: { label: '답변완료', badge: 'green' },
+        closed: { label: '종료', badge: 'blue' }
+    };
+
+    let selectedTicketId = supportTickets[0].id;
+
+    function escapeSupportHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[ch]));
+    }
+
+    function statusBadge(status) {
+        const meta = supportStatus[status] || supportStatus.processing;
+        return `<span class="badge ${meta.badge}">${escapeSupportHtml(meta.label)}</span>`;
+    }
+
+    function renderTicketList() {
+        document.getElementById('ticketList').innerHTML = supportTickets.map(ticket => `
+            <div class="list-item ${ticket.id === selectedTicketId ? 'active' : ''}" role="button" tabindex="0"
+                 onclick="showTicketDetail('${ticket.id}')"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showTicketDetail('${ticket.id}')}">
+                <div class="item-title">[${escapeSupportHtml(ticket.id)}] ${escapeSupportHtml(ticket.title)}</div>
+                <div class="item-meta">
+                    <span>${escapeSupportHtml(ticket.date)}</span>
+                    ${statusBadge(ticket.status)}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderTicketDetail() {
+        const ticket = supportTickets.find(item => item.id === selectedTicketId) || supportTickets[0];
+        if (!ticket) return;
+        document.getElementById('ticketDetailTitle').textContent = ticket.title;
+        document.getElementById('ticketDetailMeta').innerHTML = `문의번호: ${escapeSupportHtml(ticket.id)} | 유형: ${escapeSupportHtml(ticket.type)} | 작성일: ${escapeSupportHtml(ticket.date)} | 상태: ${statusBadge(ticket.status)}`;
+        document.getElementById('ticketDetailBody').innerHTML = `
+            <div class="support-message">${escapeSupportHtml(ticket.message)}</div>
+            <h4 style="margin-bottom:12px;font-size:0.9rem;">답변 내역</h4>
+            ${ticket.reply
+                ? `<div class="support-reply"><strong>플랫폼 관리자</strong><br><br>${escapeSupportHtml(ticket.reply)}</div>`
+                : '<div class="support-empty-reply">아직 등록된 답변이 없습니다. 접수 순서대로 확인 중입니다.</div>'}
+        `;
+    }
+
     function showNewTicketForm() {
         document.getElementById('ticketDetailView').style.display = 'none';
-        document.getElementById('newTicketView').style.display = 'block';
+        document.getElementById('newTicketView').style.display = 'flex';
     }
-    function showTicketDetail() {
+
+    function showTicketDetail(ticketId = selectedTicketId) {
+        selectedTicketId = ticketId;
         document.getElementById('ticketDetailView').style.display = 'flex';
         document.getElementById('newTicketView').style.display = 'none';
+        renderTicketList();
+        renderTicketDetail();
     }
+
+    function resetTicketForm() {
+        document.getElementById('ticketType').value = '시스템 오류';
+        document.getElementById('ticketSubject').value = '';
+        document.getElementById('ticketMessage').value = '';
+        document.getElementById('ticketFile').value = '';
+        document.getElementById('fileName').textContent = '선택된 파일 없음';
+    }
+
+    function submitTicket() {
+        const type = document.getElementById('ticketType').value;
+        const title = document.getElementById('ticketSubject').value.trim();
+        const message = document.getElementById('ticketMessage').value.trim();
+        if (!title || !message) {
+            showToast('제목과 내용을 입력해주세요.', 'error');
+            return;
+        }
+        const nextNumber = Math.max(...supportTickets.map(ticket => Number(ticket.id.replace(/\D/g, '')))) + 1;
+        const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
+        const newTicket = {
+            id: `TK-${nextNumber}`,
+            type,
+            title,
+            date: today,
+            status: 'processing',
+            message,
+            reply: ''
+        };
+        supportTickets.unshift(newTicket);
+        selectedTicketId = newTicket.id;
+        resetTicketForm();
+        showToast('접수되었습니다.', 'success');
+        showTicketDetail(newTicket.id);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderTicketList();
+        renderTicketDetail();
+    });
 </script>
 <script>
 // Sync language selector to stored preference
