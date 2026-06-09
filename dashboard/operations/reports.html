@@ -639,6 +639,40 @@ function monthAndDay(row){
     if(short) return { month:Number(short[1]), day:Number(short[2]) };
     return { month: selectedNumber('selMonth', 6), day: 1 };
 }
+function reportRowDate(row, fallbackYear = selectedNumber('selYear', CURRENT_REPORT_PERIOD.year)){
+    const raw = String(row.rawDate || row.date || '');
+    const iso = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if(iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    const short = raw.match(/(\d{1,2})\.(\d{1,2})/);
+    if(short) return new Date(fallbackYear, Number(short[1]) - 1, Number(short[2]));
+    const parts = monthAndDay(row);
+    return new Date(fallbackYear, parts.month - 1, parts.day);
+}
+function daysInReportMonth(year, month){
+    return new Date(year, month, 0).getDate();
+}
+function reportAnchorDay(month, week){
+    if(month === CURRENT_REPORT_PERIOD.month && (!week || week === CURRENT_REPORT_PERIOD.week)) {
+        return CURRENT_REPORT_PERIOD.day;
+    }
+    if(week) return Math.min(week * 7, daysInReportMonth(selectedNumber('selYear', CURRENT_REPORT_PERIOD.year), month));
+    return Math.min(CURRENT_REPORT_PERIOD.day, daysInReportMonth(selectedNumber('selYear', CURRENT_REPORT_PERIOD.year), month));
+}
+function recentSevenDailyRows(sourceRows, month, anchorDay){
+    const year = selectedNumber('selYear', CURRENT_REPORT_PERIOD.year);
+    const anchor = new Date(year, month - 1, anchorDay);
+    anchor.setHours(0, 0, 0, 0);
+    const start = new Date(anchor);
+    start.setDate(anchor.getDate() - 6);
+    return sourceRows
+        .filter(row => {
+            const rowDate = reportRowDate(row, year);
+            rowDate.setHours(0, 0, 0, 0);
+            return rowDate >= start && rowDate <= anchor;
+        })
+        .sort((a, b) => reportRowDate(a, year) - reportRowDate(b, year))
+        .slice(-7);
+}
 function weekOfMonth(row){
     const { day } = monthAndDay(row);
     return Math.floor((day - 1) / 7) + 1;
@@ -660,16 +694,20 @@ function currentWeekToDateRows(rows, month, week){
 function syncSelectedPeriodData(){
     const month = selectedNumber('selMonth', 6);
     const week = selectedNumber('selWeek', 2);
-    const day = CURRENT_REPORT_PERIOD.day;
-    const rows = currentChartPeriod === 'day' ? filterDailyRows(month, null, day) : currentWeekToDateRows(filterDailyRows(month, week), month, week);
+    const day = reportAnchorDay(month, currentChartPeriod === 'week' ? week : null);
+    const rollingDailyRows = recentSevenDailyRows(allDailyData, month, day);
+    const rows = (currentChartPeriod === 'day' || currentChartPeriod === 'week')
+        ? rollingDailyRows
+        : currentWeekToDateRows(filterDailyRows(month, week), month, week);
     dailyData = rows.length ? rows : allDailyData.slice(-7);
     selectedDailyIndex = dailyData.length ? Math.min(selectedDailyIndex ?? dailyData.length - 1, dailyData.length - 1) : null;
 
-    const trendRows = allTrendData.filter(row => {
-        const parts = monthAndDay(row);
-        if(currentChartPeriod === 'day') return parts.month === month && parts.day <= day && parts.day > day - 7;
-        return parts.month === month && (!week || weekOfMonth(row) === week) && (!isCurrentReportWeek(month, week) || parts.day <= day);
-    });
+    const trendRows = (currentChartPeriod === 'day' || currentChartPeriod === 'week')
+        ? recentSevenDailyRows(allTrendData, month, day)
+        : allTrendData.filter(row => {
+            const parts = monthAndDay(row);
+            return parts.month === month && (!week || weekOfMonth(row) === week) && (!isCurrentReportWeek(month, week) || parts.day <= day);
+        });
     trendData = (trendRows.length ? trendRows : allTrendData.slice(-7)).slice(-7);
 }
 function getMonthlyRow(month){
