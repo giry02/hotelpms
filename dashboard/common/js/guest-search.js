@@ -151,6 +151,14 @@ class GuestSearchWidget {
         const guests = await loadGuestDb();
         const g = guests.find(x => String(x.id) === String(id));
         if (!g) return;
+        if (window.PmsPrivacyAudit) {
+            window.PmsPrivacyAudit.log('guest.search_selection.view', {
+                screen: window.location.pathname.includes('reservation-timeline') ? 'reservation-timeline' : 'reservation-list',
+                guestId: g.id || '',
+                guestName: g.name || '',
+                fields: ['phone', 'email']
+            });
+        }
         this._selectedGuest = g;
         this._mode = 'selected';
         this._hideAll();
@@ -218,6 +226,13 @@ class GuestSearchWidget {
     }
 
     _renderResults(results) {
+        if (window.PmsPrivacyAudit) {
+            window.PmsPrivacyAudit.log('guest.search_results.view', {
+                screen: window.location.pathname.includes('reservation-timeline') ? 'reservation-timeline' : 'reservation-list',
+                resultCount: results.length,
+                fields: ['phone', 'email']
+            });
+        }
         let html = '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;max-height:200px;overflow-y:auto">';
         results.forEach(g => {
             const tc = _tierColors[g.tier] || '#6B7280';

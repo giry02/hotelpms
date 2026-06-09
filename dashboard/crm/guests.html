@@ -137,6 +137,9 @@
 .guest-table .guest-cell strong,.guest-table .guest-cell span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .guest-table td:last-child{overflow:visible}
 .guest-table .action-btns{justify-content:center}
+.tier-icon-sm{width:30px;height:30px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid currentColor;font-size:.82rem}
+.guest-table .tier-icon-sm{margin-right:2px}
+.m-res-tier-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;border:1px solid currentColor;font-size:.9rem;flex-shrink:0}
 
 @media (max-width: 768px) {
     .gd-history table, .gd-history thead, .gd-history tbody, .gd-history tr, .gd-history td { display: block; width: 100%; }
@@ -156,6 +159,7 @@
 <script src="../common/js/vip-criteria.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/privacy-audit.js"></script>
     <script src="../common/js/topbar.js"></script>
 </head>
 <body>
@@ -204,7 +208,7 @@
         <div class="filter-bar-mt">
             <div class="search-box-mt">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="searchInput" placeholder="이름, 이메일, 전화번호 검색..." oninput="currentPage=1;renderGuests()">
+                <input type="text" id="searchInput" placeholder="이름, 이메일 검색..." oninput="currentPage=1;renderGuests()">
             </div>
             <button class="btn-search" onclick="currentPage=1;renderGuests()"><i class="fa-solid fa-magnifying-glass"></i> <span data-i18n-key="Search">검색</span></button>
 
@@ -225,7 +229,7 @@
             </button>
 
             <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
-                <button class="btn-outline" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> <span data-i18n-key="Export">엑셀 다운로드</span></button>
+                <button class="btn-outline" onclick="downloadGuestExport()"><i class="fa-solid fa-download"></i> <span data-i18n-key="Export">엑셀 다운로드</span></button>
                 <button class="btn-primary-sm" onclick="openModal('addGuestModal')"><i class="fa-solid fa-plus"></i> <span data-i18n-key="고객 등록">신규 투숙객 등록</span></button>
             </div>
         </div>
@@ -236,17 +240,16 @@
                 <div class="table-wrap">
                     <table class="guest-table">
                         <colgroup>
-                            <col style="width:29%">
-                            <col style="width:10%">
-                            <col style="width:12%">
-                            <col style="width:8%">
-                            <col style="width:10%">
+                            <col style="width:32%">
                             <col style="width:10%">
                             <col style="width:14%">
-                            <col style="width:7%">
+                            <col style="width:9%">
+                            <col style="width:12%">
+                            <col style="width:13%">
+                            <col style="width:10%">
                         </colgroup>
                         <thead><tr>
-                        <th>고객</th><th>국적</th><th>등급</th><th>방문 횟수</th><th>최근 투숙</th><th>총 지출</th><th>연락처</th><th>관리</th>
+                        <th>고객</th><th>국적</th><th>등급</th><th>방문 횟수</th><th>최근 투숙</th><th>총 지출</th><th>관리</th>
                     </tr></thead>
                     <tbody id="guestBody"></tbody></table>
                 </div>
@@ -416,7 +419,7 @@ function renderGuests() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const filtered = guests.filter(g => {
         if (currentTier !== 'all' && g.tier !== currentTier) return false;
-        if (search && !g.name.toLowerCase().includes(search) && !g.email.toLowerCase().includes(search) && !g.phone.includes(search)) return false;
+        if (search && !String(g.name || '').toLowerCase().includes(search) && !String(g.email || '').toLowerCase().includes(search)) return false;
         return true;
     });
 
@@ -439,7 +442,7 @@ function renderGuests() {
     if (pageCount) pageCount.textContent = filtered.length.toLocaleString();
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8">${emptyState}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7">${emptyState}</td></tr>`;
         mobile.innerHTML = emptyState;
         if (pageBtns) pageBtns.innerHTML = '';
         return;
@@ -456,13 +459,12 @@ function renderGuests() {
         const tc = t[g.tier] || t.standard;
         const nation = displayGuestNation(g.nation);
         return `<tr onclick="openGuestDetail('${g.email}')" style="cursor:pointer" class="guest-row">
-            <td><div class="guest-cell"><div class="guest-avatar" style="background:${g.color}">${g.init}</div><div><strong>${g.name}</strong> <span style="font-size:.7rem;color:var(--txt3)">${g.email}</span></div></div></td>
+            <td><div class="guest-cell"><span class="tier-icon-sm" style="background:${tc.bg};color:${tc.color}"><i class="fa-solid ${tc.icon}"></i></span><div><strong>${g.name}</strong></div></div></td>
             <td>${guestEscape(nation)}</td>
             <td><span class="tier-badge" style="background:${tc.bg};color:${tc.color}"><i class="fa-solid ${tc.icon}"></i> ${g.tierLabel || g.tier}</span></td>
             <td><strong>${g.visits}</strong>회</td>
             <td>${g.last}</td>
             <td style="font-weight:700">$${g.spend.toLocaleString()}</td>
-            <td><span style="font-size:.75rem;color:var(--txt2)">${g.phone}</span></td>
             <td><div class="action-btns">
                 <button class="act-btn" title="상세" onclick="event.stopPropagation(); openGuestDetail('${g.email}')"><i class="fa-solid fa-eye"></i></button>
             </div></td>
@@ -476,7 +478,7 @@ function renderGuests() {
         return `<div class="m-res-card" onclick="openGuestDetail('${g.email}')" style="cursor:pointer">
             <div class="m-res-top">
                 <div class="m-res-guest">
-                    <div class="guest-avatar" style="background:${g.color}">${g.init}</div>
+                    <span class="m-res-tier-icon" style="background:${tc.bg};color:${tc.color}"><i class="fa-solid ${tc.icon}"></i></span>
                     <div>
                         <div class="m-res-name">${g.name}</div>
                         <div class="m-res-sub">${guestEscape(nation)}</div>
@@ -490,8 +492,6 @@ function renderGuests() {
             <div class="m-res-details">
                 <div class="m-res-detail"><i class="fa-solid fa-rotate"></i> 방문 ${g.visits}회</div>
                 <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> 최근: ${g.last}</div>
-                <div class="m-res-detail"><i class="fa-solid fa-phone"></i> ${g.phone}</div>
-                <div class="m-res-detail"><i class="fa-solid fa-envelope"></i> ${g.email}</div>
             </div>
             <div class="m-res-actions">
                 <button class="act-btn" onclick="event.stopPropagation(); openGuestDetail('${g.email}')"><i class="fa-solid fa-eye"></i> 상세</button>
@@ -518,6 +518,21 @@ function renderGuests() {
 function setGuestPage(page) {
     currentPage = page;
     renderGuests();
+}
+
+function downloadGuestExport() {
+    if (window.PmsPrivacyAudit) {
+        window.PmsPrivacyAudit.log('guest.export.download', {
+            screen: 'guest-crm',
+            exportType: 'xlsx',
+            filters: {
+                tier: currentTier,
+                queryApplied: !!document.getElementById('searchInput')?.value.trim()
+            },
+            fields: ['guestProfile', 'phone', 'email', 'specialNotes', 'stayHistory']
+        });
+    }
+    window.location.href = '../download/Export_Data.xlsx';
 }
 
 function setTier(btn, tier) {
@@ -663,7 +678,7 @@ const translations={ko: {
         "Support": "Support",
 "Guest CRM":"Guest CRM","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Guests":"Total Guests","Return Rate":"Return Rate","VIP Guests":"VIP Guests","Avg. Spend/Guest":"Avg. Spend/Guest","All":"All","Export":"Export","고객 등록":"Add Guest","Guest":"Guest","Country":"Country","Tier":"Tier","Visits":"Visits","Last Stay":"Last Stay","Total Spend":"Total Spend","Contact":"Contact","Actions":"Actions"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});    document.getElementById('searchInput').placeholder=l==='en'?'Search name, phone, email...':'이름, 연락처, 이메일 검색...';
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});    document.getElementById('searchInput').placeholder=l==='en'?'Search name or email...':'이름, 이메일 검색...';
     const tierReason = document.getElementById('gdTierChangeReason');
     if (tierReason) tierReason.placeholder = l === 'en' ? 'Example: corrected tier after merging duplicate VIP profiles' : '예: 중복 우수 고객 프로필 병합 후 등급 정정';
 }
@@ -842,6 +857,14 @@ function openGuestDetail(email) {
     if(!guest) return;
     currentGuestDetailEmail = guest.email;
     originalGuestTier = guest.tier;
+    if (window.PmsPrivacyAudit) {
+        window.PmsPrivacyAudit.log('guest.detail.view', {
+            screen: 'guest-crm',
+            guestId: guest.id || '',
+            guestName: guest.name,
+            fields: ['phone', 'email', 'specialNotes', 'stayHistory']
+        });
+    }
 
     // Populate data
     const t = tierCfg[guest.tier] || tierCfg.standard;

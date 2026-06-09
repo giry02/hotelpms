@@ -129,6 +129,7 @@
 <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/privacy-audit.js"></script>
     <script src="../common/js/topbar.js"></script>
     <script src="../common/js/guest-search.js"></script>
     <script src="../common/js/reservation-actions.js"></script>
@@ -1264,6 +1265,18 @@ function exportReservationsToCSV() {
     if (!reservations || reservations.length === 0) {
         if(window.showToast) window.showToast(resText('toast.noData'));
         return;
+    }
+    if (window.PmsPrivacyAudit) {
+        window.PmsPrivacyAudit.log('reservation.export.download', {
+            screen: 'reservation-list',
+            exportType: 'csv',
+            filters: {
+                status: currentFilter,
+                sort: currentSort,
+                queryApplied: !!document.getElementById('searchInput')?.value.trim()
+            },
+            fields: ['reservationId', 'guestName', 'room', 'stayDates', 'operationalNotes']
+        });
     }
     const headers = ['예약번호', '고객', '객실', '유형', '체크인', '체크아웃', '숙박', '구분', '금액', '상태', '메모'];
     const rows = reservations.map(r => [

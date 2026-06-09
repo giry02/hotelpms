@@ -90,6 +90,126 @@
         return text;
     }
 
+    function actionEscapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[ch]));
+    }
+
+    function compactValue(value) {
+        const text = String(value ?? '').trim();
+        return text && text !== '-' ? text : '';
+    }
+
+    async function reservationGuestList() {
+        try {
+            if (typeof window.loadGuestDb === 'function') {
+                const loaded = await window.loadGuestDb();
+                if (Array.isArray(loaded) && loaded.length) return loaded;
+            }
+        } catch (error) {
+            console.warn('Guest DB lookup failed', error);
+        }
+        if (Array.isArray(window.GUEST_DB) && window.GUEST_DB.length) return window.GUEST_DB;
+        if (Array.isArray(window.guests) && window.guests.length) return window.guests;
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/crm/guests');
+                const items = window.PmsMockApi.items ? window.PmsMockApi.items(env) : env?.data?.items;
+                if (Array.isArray(items)) return items;
+            }
+        } catch (error) {
+            console.warn('Reservation guest privacy lookup failed', error);
+        }
+        return [];
+    }
+
+    async function guestForUnifiedReservation(res) {
+        const list = await reservationGuestList();
+        const guestId = compactValue(res?.guestId || res?.roomingGuestId);
+        const guestName = compactValue(res?.roomingGuestName || res?.guestName || res?.guest);
+        const guestEmail = compactValue(res?.guestEmail || res?.email);
+        return list.find(guest => String(guest.id || guest.guestId || '') === guestId)
+            || list.find(guest => guestEmail && String(guest.email || '').toLowerCase() === guestEmail.toLowerCase())
+            || list.find(guest => guestName && String(guest.name || guest.guestName || '').toLowerCase() === guestName.toLowerCase())
+            || null;
+    }
+
+    function reservationPrivacyDetails(res, guest) {
+        const guestName = compactValue(res?.roomingGuestName || res?.guestName || res?.guest || guest?.name || guest?.guestName) || '-';
+        const phone = compactValue(res?.guestPhone || res?.phone || res?.mobile || guest?.phone || guest?.mobile) || '-';
+        const email = compactValue(res?.guestEmail || res?.email || guest?.email) || '-';
+        const notes = [
+            res?.specialNotes,
+            res?.guestNote,
+            res?.notes,
+            res?.memo,
+            guest?.specialNotes,
+            guest?.notes,
+            guest?.preference
+        ].map(compactValue).filter(Boolean);
+        const documentStatus = compactValue(res?.docStatus || res?.documentStatus || guest?.documentStatus || guest?.docStatus || guest?.document?.status) || '-';
+        return {
+            guestName,
+            phone,
+            email,
+            notes: [...new Set(notes)].join(' / ') || '-',
+            documentStatus,
+            guestId: compactValue(res?.guestId || res?.roomingGuestId || guest?.id || guest?.guestId),
+            guest
+        };
+    }
+
+    async function renderUnifiedGuestPrivacy(res) {
+        const panel = document.getElementById('unifiedGuestPrivacyPanel');
+        const body = document.getElementById('unifiedGuestPrivacyBody');
+        if (!panel || !body) return;
+        if (!res || res.isGroupPlaceholder || normalizedReservationStatus(res.status) === 'blocked') {
+            panel.style.display = 'none';
+            body.innerHTML = '';
+            return;
+        }
+        const guest = await guestForUnifiedReservation(res);
+        const info = reservationPrivacyDetails(res, guest);
+        panel.style.display = 'block';
+        body.innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div style="min-width:0">
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">고객명</div>
+                    <div style="font-size:.88rem;color:var(--txt);font-weight:800;word-break:break-word">${actionEscapeHtml(info.guestName)}</div>
+                </div>
+                <div style="min-width:0">
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">휴대폰</div>
+                    <div style="font-size:.88rem;color:var(--txt);font-weight:800;word-break:break-word">${actionEscapeHtml(info.phone)}</div>
+                </div>
+                <div style="min-width:0">
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">이메일</div>
+                    <div style="font-size:.86rem;color:var(--txt2);font-weight:700;word-break:break-word">${actionEscapeHtml(info.email)}</div>
+                </div>
+                <div style="min-width:0">
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">신분증 확인</div>
+                    <div style="font-size:.86rem;color:var(--txt2);font-weight:700">${actionEscapeHtml(info.documentStatus)}</div>
+                </div>
+                <div style="grid-column:1 / -1;min-width:0">
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">특이사항</div>
+                    <div style="font-size:.86rem;color:var(--txt);font-weight:700;line-height:1.45;word-break:break-word;background:#f8fafc;border:1px solid var(--border2);border-radius:8px;padding:10px">${actionEscapeHtml(info.notes)}</div>
+                </div>
+            </div>`;
+        if (window.PmsPrivacyAudit) {
+            window.PmsPrivacyAudit.log('reservation.guest_detail.view', {
+                screen: window.location.pathname.includes('reservation-timeline') ? 'reservation-timeline' : 'reservation-list',
+                reservationId: res.id || res.reservationId || '',
+                guestId: info.guestId || '',
+                guestName: info.guestName,
+                fields: ['phone', 'email', 'specialNotes']
+            });
+        }
+    }
+
     const modalHtml = `
     <!-- Unified Reservation Modal (View & Edit) -->
     <div class="modal-overlay" id="unifiedResModal" style="z-index: 9999;">
@@ -106,6 +226,13 @@
                 
                 <div id="unifiedGuestSection" style="margin-bottom:20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border2);">
                     ${typeof renderGuestSearchHTML === 'function' ? renderGuestSearchHTML('Edit') : '<div style="color:red">guest-search.js missing</div>'}
+                </div>
+                <div id="unifiedGuestPrivacyPanel" style="display:none;margin-bottom:20px;background:#fff;border:1px solid var(--border2);border-radius:10px;overflow:hidden;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--border2);">
+                        <div style="font-size:.9rem;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:8px"><i class="fa-solid fa-id-card-clip" style="color:var(--primary)"></i> 고객 상세 정보</div>
+                        <div style="font-size:.68rem;color:var(--txt3);font-weight:700"><i class="fa-solid fa-shield-halved"></i> 열람 로그 기록</div>
+                    </div>
+                    <div id="unifiedGuestPrivacyBody" style="padding:14px;"></div>
                 </div>
                 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
@@ -776,6 +903,7 @@
             // NEW BOOKING MODE
             const cancelBtn = document.getElementById('unifiedBtnCancel');
             if (cancelBtn) cancelBtn.style.display = 'none';
+            await renderUnifiedGuestPrivacy(null);
             document.getElementById('unifiedModalTitle').textContent = actionText('booking.newTitle');
             document.getElementById('unifiedResId').value = '';
             document.getElementById('unifiedStatus').value = 'confirmed';
@@ -872,6 +1000,7 @@
             window.updateUnifiedStayAndRooms(targetRoomValue);
             setUnifiedReservationReadonly(isReadonlyReservation, res);
             renderUnifiedFlowActions(res);
+            await renderUnifiedGuestPrivacy(res);
         }
 
         // Hide other modals if they are open
