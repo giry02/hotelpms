@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>감사 로그 - Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/i18n-catalog.js"></script>
+    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/privacy-audit.js"></script>
+    <script src="../common/js/topbar.js"></script>
+    <style>
+        .audit-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+        .audit-title{font-size:1.1rem;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:8px}
+        .audit-desc{font-size:.82rem;color:var(--txt3);margin-top:4px;line-height:1.5}
+        .audit-filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+        .audit-search{display:flex;align-items:center;gap:8px;width:320px;max-width:100%;height:38px;padding:0 12px;background:#fff;border:1px solid var(--border);border-radius:8px}
+        .audit-search i{color:var(--txt3);font-size:.82rem}
+        .audit-search input{border:none;outline:none;background:transparent;font-family:var(--font);font-size:.82rem;width:100%;color:var(--txt)}
+        .audit-filter{height:38px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 12px;font-family:var(--font);font-size:.82rem;color:var(--txt)}
+        .audit-table{table-layout:fixed;min-width:1040px}
+        .audit-table th,.audit-table td{white-space:normal;line-height:1.45}
+        .audit-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:999px;font-size:.72rem;font-weight:800}
+        .audit-chip.view{background:var(--primary-lt);color:var(--primary-dk)}
+        .audit-chip.export{background:var(--warning-lt);color:#92400E}
+        .audit-chip.search{background:var(--purple-lt);color:#6D28D9}
+        .audit-chip.other{background:#f1f5f9;color:#475569}
+        .field-list{display:flex;gap:5px;flex-wrap:wrap}
+        .field-pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:#f8fafc;border:1px solid var(--border);font-size:.68rem;color:var(--txt2);font-weight:700}
+        .access-denied{display:none;align-items:center;justify-content:center;min-height:calc(100vh - 130px)}
+        .access-card{width:min(520px,100%);background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:34px 28px;text-align:center}
+        .access-card i{font-size:2rem;color:var(--danger);margin-bottom:12px}
+        .access-card h2{font-size:1.1rem;margin-bottom:8px}
+        .access-card p{font-size:.84rem;color:var(--txt2);line-height:1.55}
+        @media(max-width:768px){
+            .audit-filter-bar{align-items:stretch}
+            .audit-search,.audit-filter{width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="main">
+    <header class="topbar"><h1 data-i18n-key="Audit Logs">감사 로그</h1></header>
+    <div class="content">
+        <div id="auditDenied" class="access-denied">
+            <div class="access-card">
+                <i class="fa-solid fa-lock"></i>
+                <h2>어드민 전용 메뉴입니다.</h2>
+                <p>개인정보 열람 감사 로그는 호텔 관리자 권한에서만 확인할 수 있습니다.</p>
+            </div>
+        </div>
+
+        <div id="auditContent">
+            <div class="audit-title-row">
+                <div>
+                    <div class="audit-title"><i class="fa-solid fa-shield-halved" style="color:var(--primary)"></i> 개인정보 열람 감사 로그</div>
+                    <div class="audit-desc">휴대폰, 이메일, 특이사항 등 고객정보를 조회하거나 엑셀로 반출한 이력을 확인합니다. 로그에는 실제 연락처 값이 아니라 열람 필드와 대상만 기록됩니다.</div>
+                </div>
+                <button class="btn-outline" onclick="renderAuditLogs()"><i class="fa-solid fa-rotate-right"></i> 새로고침</button>
+            </div>
+
+            <div class="kpi-grid kpi-grid-4">
+                <div class="kpi-card blue">
+                    <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-list"></i></div></div>
+                    <div class="kpi-body"><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-label">전체 로그</div></div>
+                </div>
+                <div class="kpi-card green">
+                    <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-eye"></i></div></div>
+                    <div class="kpi-body"><div class="kpi-value" id="kpiViews">0</div><div class="kpi-label">상세 열람</div></div>
+                </div>
+                <div class="kpi-card orange">
+                    <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-download"></i></div></div>
+                    <div class="kpi-body"><div class="kpi-value" id="kpiExports">0</div><div class="kpi-label">다운로드</div></div>
+                </div>
+                <div class="kpi-card purple">
+                    <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-user-shield"></i></div></div>
+                    <div class="kpi-body"><div class="kpi-value" id="kpiActors">0</div><div class="kpi-label">열람 직원</div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-clipboard-list"></i> 로그 목록</div>
+                </div>
+                <div class="card-body">
+                    <div class="audit-filter-bar">
+                        <div class="audit-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input id="auditSearch" type="text" placeholder="직원, 고객명, 예약번호 검색..." oninput="renderAuditLogs()">
+                        </div>
+                        <select id="auditActionFilter" class="audit-filter" onchange="renderAuditLogs()">
+                            <option value="all">전체 동작</option>
+                            <option value="view">상세 열람</option>
+                            <option value="export">다운로드</option>
+                            <option value="search">검색/선택</option>
+                        </select>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="audit-table">
+                            <colgroup>
+                                <col style="width:15%">
+                                <col style="width:13%">
+                                <col style="width:13%">
+                                <col style="width:14%">
+                                <col style="width:17%">
+                                <col style="width:14%">
+                                <col style="width:14%">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>일시</th>
+                                    <th>직원</th>
+                                    <th>화면</th>
+                                    <th>동작</th>
+                                    <th>대상</th>
+                                    <th>열람 항목</th>
+                                    <th>세부 정보</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const ACTION_META = {
+    'guest.detail.view': { label: '투숙객 상세 열람', type: 'view', icon: 'fa-eye' },
+    'reservation.guest_detail.view': { label: '예약 고객정보 열람', type: 'view', icon: 'fa-id-card-clip' },
+    'guest.export.download': { label: '투숙객 엑셀 다운로드', type: 'export', icon: 'fa-download' },
+    'reservation.export.download': { label: '예약 엑셀 다운로드', type: 'export', icon: 'fa-download' },
+    'guest.search_results.view': { label: '고객 검색 결과 열람', type: 'search', icon: 'fa-magnifying-glass' },
+    'guest.search_selection.view': { label: '고객 검색 선택', type: 'search', icon: 'fa-user-check' }
+};
+
+const FIELD_LABELS = {
+    phone: '휴대폰',
+    email: '이메일',
+    specialNotes: '특이사항',
+    stayHistory: '투숙 이력',
+    guestProfile: '고객 프로필',
+    reservationId: '예약번호',
+    guestName: '고객명',
+    room: '객실',
+    stayDates: '투숙일',
+    operationalNotes: '운영 메모'
+};
+
+function escapeAudit(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
+function currentRole() {
+    return localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
+}
+
+function ensureAdminAccess() {
+    const allowed = currentRole() === 'sys_admin';
+    document.getElementById('auditContent').style.display = allowed ? 'block' : 'none';
+    document.getElementById('auditDenied').style.display = allowed ? 'none' : 'flex';
+    return allowed;
+}
+
+function readAuditLogs() {
+    return window.PmsPrivacyAudit ? window.PmsPrivacyAudit.list() : [];
+}
+
+function actionMeta(action) {
+    return ACTION_META[action] || { label: action || '기타 동작', type: 'other', icon: 'fa-circle-info' };
+}
+
+function screenLabel(screen) {
+    const value = String(screen || '').replace(/^\/+/, '');
+    if (value.includes('reservation-timeline')) return '예약 타임라인';
+    if (value.includes('reservation-list')) return '예약 관리';
+    if (value.includes('crm') || value === 'guest-crm') return '투숙객 관리';
+    return value || '-';
+}
+
+function formatDateTime(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value || '-';
+    return date.toLocaleString('ko-KR', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+}
+
+function fieldPills(fields) {
+    const list = Array.isArray(fields) ? fields : [];
+    if (!list.length) return '<span class="field-pill">-</span>';
+    return `<div class="field-list">${list.map(field => `<span class="field-pill">${escapeAudit(FIELD_LABELS[field] || field)}</span>`).join('')}</div>`;
+}
+
+function targetText(entry) {
+    const d = entry.details || {};
+    return d.guestName || d.reservationId || d.guestId || d.exportType || '-';
+}
+
+function detailText(entry) {
+    const d = entry.details || {};
+    const parts = [];
+    if (d.reservationId) parts.push(`예약 ${d.reservationId}`);
+    if (d.guestId) parts.push(`고객 ID ${d.guestId}`);
+    if (d.exportType) parts.push(String(d.exportType).toUpperCase());
+    if (d.resultCount !== undefined) parts.push(`결과 ${d.resultCount}건`);
+    if (d.filters && d.filters.queryApplied) parts.push('검색 조건 적용');
+    return parts.join(' · ') || '-';
+}
+
+function filteredLogs(logs) {
+    const query = (document.getElementById('auditSearch')?.value || '').trim().toLowerCase();
+    const type = document.getElementById('auditActionFilter')?.value || 'all';
+    return logs.filter(entry => {
+        const meta = actionMeta(entry.action);
+        if (type !== 'all' && meta.type !== type) return false;
+        if (!query) return true;
+        const haystack = [
+            entry.actor?.name,
+            entry.actor?.roleLabel,
+            meta.label,
+            screenLabel(entry.details?.screen || entry.page),
+            targetText(entry),
+            detailText(entry)
+        ].join(' ').toLowerCase();
+        return haystack.includes(query);
+    });
+}
+
+function renderAuditLogs() {
+    if (!ensureAdminAccess()) return;
+    const logs = readAuditLogs().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    const rows = filteredLogs(logs);
+    const body = document.getElementById('auditBody');
+    const viewCount = logs.filter(entry => actionMeta(entry.action).type === 'view').length;
+    const exportCount = logs.filter(entry => actionMeta(entry.action).type === 'export').length;
+    const actors = new Set(logs.map(entry => entry.actor?.id || entry.actor?.name).filter(Boolean));
+    document.getElementById('kpiTotal').textContent = logs.length.toLocaleString();
+    document.getElementById('kpiViews').textContent = viewCount.toLocaleString();
+    document.getElementById('kpiExports').textContent = exportCount.toLocaleString();
+    document.getElementById('kpiActors').textContent = actors.size.toLocaleString();
+
+    if (!rows.length) {
+        body.innerHTML = `<tr><td colspan="7">
+            <div class="pms-empty-state">
+                <div class="pms-empty-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="pms-empty-title">표시할 감사 로그가 없습니다.</div>
+                <div class="pms-empty-desc">예약/투숙객 상세에서 연락처를 열람하거나 엑셀 다운로드를 실행하면 이곳에 기록됩니다.</div>
+            </div>
+        </td></tr>`;
+        return;
+    }
+
+    body.innerHTML = rows.map(entry => {
+        const meta = actionMeta(entry.action);
+        const screen = screenLabel(entry.details?.screen || entry.page);
+        return `<tr>
+            <td><strong>${escapeAudit(formatDateTime(entry.createdAt))}</strong></td>
+            <td>${escapeAudit(entry.actor?.name || '-')}<div style="font-size:.7rem;color:var(--txt3)">${escapeAudit(entry.actor?.roleLabel || entry.actor?.role || '')}</div></td>
+            <td>${escapeAudit(screen)}</td>
+            <td><span class="audit-chip ${meta.type}"><i class="fa-solid ${meta.icon}"></i>${escapeAudit(meta.label)}</span></td>
+            <td><strong>${escapeAudit(targetText(entry))}</strong></td>
+            <td>${fieldPills(entry.details?.fields)}</td>
+            <td>${escapeAudit(detailText(entry))}</td>
+        </tr>`;
+    }).join('');
+}
+
+window.addEventListener('pms:privacy-audit', renderAuditLogs);
+document.addEventListener('DOMContentLoaded', renderAuditLogs);
+</script>
+</body>
+</html>

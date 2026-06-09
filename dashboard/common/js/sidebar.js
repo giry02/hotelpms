@@ -96,6 +96,7 @@
                     ]
                 },
                 { icon: 'fa-credit-card', label: 'Billing & Payment', href: BASE + 'settings/billing.html' },
+                { icon: 'fa-shield-halved', label: 'Audit Logs', href: BASE + 'settings/audit-logs.html', roles: ['sys_admin'] },
                 { icon: 'fa-bullhorn',    label: 'Notices',           href: BASE + 'settings/notices.html' },
                 { icon: 'fa-headset',     label: 'Support',           href: BASE + 'settings/support.html' },
             ]
