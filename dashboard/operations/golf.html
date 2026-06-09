@@ -146,7 +146,7 @@
             </div>
             <div class="filter-right">
                 <button class="btn-outline" onclick="openModal('partnerModal')"><i class="fa-solid fa-building"></i> 업체 관리</button>
-                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> 신규 예약</button>
+                <button class="btn-primary-sm" onclick="openAddOrderModal()"><i class="fa-solid fa-plus"></i> 신규 예약</button>
             </div>
         </div>
 
@@ -177,6 +177,7 @@ const DEFAULT_MARKETPLACE = {
 let currentFilter = 'all';
 let currentPeriodFilter = 'week';
 let currentStatusFilter = 'all';
+let lockedOrderProviderKey = '';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -290,12 +291,7 @@ function renderMarketplace() {
 }
 
 function useMarketplacePartner(key) {
-    openModal('addOrderModal');
-    const select = document.querySelector('#addOrderModal .provider-order-select');
-    if (select) {
-        select.value = key;
-        select.dispatchEvent(new Event('change'));
-    }
+    openAddOrderModal(key);
 }
 
 function providerKeyFor(order) {
@@ -373,6 +369,7 @@ function refreshProviderFilterOptions() {
             })
         ].join('');
         if (orderEntries.some(entry => entry.key === selected)) orderSelect.value = selected;
+        if (orderSelect.closest('#addOrderModal')) applyProviderLock(orderSelect.dataset.lockedProviderKey || '');
     });
 }
 
@@ -653,9 +650,124 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
 
 // 모달 및 오더 등록 로직
 function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function saveOrder() {
-    showToast('새 Ancillary Svcs 오더가 시스템에 등록되었습니다.');
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    if (id === 'addOrderModal') applyProviderLock('');
+}
+
+function openAddOrderModal(providerKey = '') {
+    lockedOrderProviderKey = providerKey || '';
+    const golfDate = document.getElementById('golfDate');
+    const golfTime = document.getElementById('golfTime');
+    if (golfDate && !golfDate.value) golfDate.value = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
+    if (golfTime && !golfTime.value) golfTime.value = '09:00';
+    openModal('addOrderModal');
+    applyProviderLock(lockedOrderProviderKey);
+}
+
+function applyProviderLock(providerKey = '') {
+    const select = document.querySelector('#addOrderModal .provider-order-select');
+    const note = document.getElementById('golfProviderLockNote');
+    if (!select) return;
+    if (providerKey) {
+        select.dataset.lockedProviderKey = providerKey;
+        select.value = providerKey;
+        select.disabled = true;
+        select.style.background = '#f1f5f9';
+        select.style.color = 'var(--txt2)';
+        if (note) note.style.display = 'block';
+    } else {
+        delete select.dataset.lockedProviderKey;
+        select.disabled = false;
+        select.style.background = '#fff';
+        select.style.color = 'var(--txt)';
+        if (note) note.style.display = 'none';
+        lockedOrderProviderKey = '';
+    }
+}
+
+function currentTimeValue() {
+    const now = window.PmsDate?.now ? window.PmsDate.now() : new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+function selectedOptionText(select) {
+    return select?.selectedOptions?.[0]?.textContent?.replace(/\s+·\s+(광고|제휴|추천|플랫폼 추천)$/u, '').trim() || '';
+}
+
+function buildGolfOrder() {
+    const modal = document.getElementById('addOrderModal');
+    const room = modal?.querySelector('#golfRoom')?.value?.trim() || '';
+    const guest = modal?.querySelector('#golfGuest')?.value?.trim() || '';
+    const nation = modal?.querySelector('#golfNation')?.value?.trim() || '';
+    const agency = modal?.querySelector('#golf에이전시')?.value?.trim() || '';
+    const providerSelect = modal?.querySelector('.provider-order-select');
+    const providerKey = providerSelect?.value || '';
+    const providerName = selectedOptionText(providerSelect);
+    const date = modal?.querySelector('#golfDate')?.value || '';
+    const time = modal?.querySelector('#golfTime')?.value || currentTimeValue();
+    const pax = Number(modal?.querySelector('#golfPax')?.value || 0);
+    const holes = modal?.querySelector('#golfHoles')?.value || '';
+    const amount = Number(modal?.querySelector('#golfTotal')?.value || 0);
+    const currency = defaultCurrency();
+
+    const missing = [];
+    if (!providerKey) missing.push('골프장명');
+    if (!room) missing.push('호실');
+    if (!guest) missing.push('고객명');
+    if (!date) missing.push('이용 일자');
+    if (!time) missing.push('티타임');
+    if (!pax) missing.push('인원');
+    if (!amount) missing.push('총 요금');
+    if (missing.length) {
+        showToast(`${missing.join(', ')}을(를) 입력해 주세요.`);
+        return null;
+    }
+
+    return {
+        id: `GLF-N${String(Date.now()).slice(-6)}`,
+        date,
+        roomId: `ROOM-${room}`,
+        roomNo: room,
+        room,
+        guest,
+        nation,
+        agency,
+        type: providerKey,
+        providerName,
+        partnerName: providerName,
+        providerSource: marketplacePartnerByKey(providerKey) ? 'marketplace' : 'hotel',
+        items: `${holes || '18홀'} / ${pax}인`,
+        total: amount || 0,
+        currency,
+        status: 'new',
+        time
+    };
+}
+
+async function persistGolfOrders() {
+    if (!window.PmsMockApi) return;
+    const body = orders.map(order => ({
+        ...order,
+        roomNo: order.roomNo || order.room,
+        roomId: order.roomId || `ROOM-${order.roomNo || order.room || ''}`,
+        total: { amount: Number(order.total || 0), currency: orderCurrency(order) }
+    }));
+    await window.PmsMockApi.request('PUT', '/ancillaries/golf-orders', { body });
+}
+
+async function saveOrder() {
+    const newOrder = buildGolfOrder();
+    if (!newOrder) return;
+    orders.unshift(newOrder);
+    try {
+        await persistGolfOrders();
+    } catch(e) {
+        console.warn('Golf order overlay save failed', e);
+    }
+    updateFilterCounts();
+    renderOrders();
+    showToast('골프장 예약이 등록되었습니다.');
     closeModal('addOrderModal');
 }
 
@@ -736,10 +848,11 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
-                    <select class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">골프장명 <span style="color:var(--danger)">*</span></label>
+                    <select id="golfProvider" class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
                         <option value="">업체 선택...</option>
                     </select>
+                    <div id="golfProviderLockNote" style="display:none;font-size:.72rem;color:var(--txt3);font-weight:700">추천 광고에서 선택한 골프장이라 예약 중 변경할 수 없습니다.</div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">인원 / 홀 (인원 / 홀수) <span style="color:var(--danger)">*</span></label>
@@ -751,6 +864,17 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                             <option>27홀</option>
                         </select>
                     </div>
+                </div>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border2)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">총 요금 <span style="color:var(--danger)">*</span></label>
+                    <input type="number" id="golfTotal" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 450">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호텔 수익/수수료 <span style="color:var(--danger)">*</span></label>
+                    <input type="number" id="golfCommission" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 45">
                 </div>
             </div>
         </div>
@@ -807,7 +931,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">골프장명 <span style="color:var(--danger)">*</span></label>
                     <select class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
                         <option value="">업체 선택...</option>
                     </select>

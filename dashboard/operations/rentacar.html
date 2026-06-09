@@ -147,7 +147,7 @@
             </div>
             <div class="filter-right">
                 <button class="btn-outline" onclick="openModal('partnerModal')"><i class="fa-solid fa-building"></i> 업체 관리</button>
-                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> 신규 예약</button>
+                <button class="btn-primary-sm" onclick="openAddOrderModal()"><i class="fa-solid fa-plus"></i> 신규 예약</button>
             </div>
         </div>
 
@@ -191,6 +191,7 @@ const VEHICLE_CLASSES = [
 let currentFilter = 'all';
 let currentPeriodFilter = 'week';
 let currentStatusFilter = 'all';
+let lockedOrderProviderKey = '';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -304,12 +305,7 @@ function renderMarketplace() {
 }
 
 function useMarketplacePartner(key) {
-    openModal('addOrderModal');
-    const select = document.querySelector('#addOrderModal .provider-order-select');
-    if (select) {
-        select.value = key;
-        select.dispatchEvent(new Event('change'));
-    }
+    openAddOrderModal(key);
 }
 
 function providerKeyFor(order) {
@@ -431,6 +427,7 @@ function refreshProviderFilterOptions() {
             })
         ].join('');
         if (orderEntries.some(entry => entry.key === selected)) orderSelect.value = selected;
+        if (orderSelect.closest('#addOrderModal')) applyProviderLock(orderSelect.dataset.lockedProviderKey || '');
     });
 }
 
@@ -718,9 +715,124 @@ function openModal(id) {
     if (id === 'addOrderModal') refreshVehicleClassOptions();
     document.getElementById(id).classList.add('active');
 }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function saveOrder() {
-    showToast('새 Ancillary Svcs 오더가 시스템에 등록되었습니다.');
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    if (id === 'addOrderModal') applyProviderLock('');
+}
+
+function openAddOrderModal(providerKey = '') {
+    lockedOrderProviderKey = providerKey || '';
+    const rentDate = document.getElementById('rentDate');
+    if (rentDate && !rentDate.value) rentDate.value = `${window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10)}T10:00`;
+    openModal('addOrderModal');
+    applyProviderLock(lockedOrderProviderKey);
+}
+
+function applyProviderLock(providerKey = '') {
+    const select = document.querySelector('#addOrderModal .provider-order-select');
+    const note = document.getElementById('rentProviderLockNote');
+    if (!select) return;
+    if (providerKey) {
+        select.dataset.lockedProviderKey = providerKey;
+        select.value = providerKey;
+        select.disabled = true;
+        select.style.background = '#f1f5f9';
+        select.style.color = 'var(--txt2)';
+        if (note) note.style.display = 'block';
+    } else {
+        delete select.dataset.lockedProviderKey;
+        select.disabled = false;
+        select.style.background = '#fff';
+        select.style.color = 'var(--txt)';
+        if (note) note.style.display = 'none';
+        lockedOrderProviderKey = '';
+    }
+}
+
+function currentTimeValue() {
+    const now = window.PmsDate?.now ? window.PmsDate.now() : new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+function selectedOptionText(select) {
+    return select?.selectedOptions?.[0]?.textContent?.replace(/\s+·\s+(광고|제휴|추천|플랫폼 추천)$/u, '').trim() || '';
+}
+
+function buildRentacarOrder() {
+    const room = document.getElementById('rentRoom')?.value?.trim() || '';
+    const guest = document.getElementById('rentGuest')?.value?.trim() || '';
+    const phone = document.getElementById('rentPhone')?.value?.trim() || '';
+    const providerSelect = document.querySelector('#addOrderModal .provider-order-select');
+    const providerKey = providerSelect?.value || '';
+    const providerName = selectedOptionText(providerSelect);
+    const rentDateRaw = document.getElementById('rentDate')?.value || '';
+    const duration = document.getElementById('rentDuration')?.value || '';
+    const location = document.getElementById('rentLocation')?.value?.trim() || '';
+    const carTypeSelect = document.getElementById('rentCarType');
+    const customCarType = document.getElementById('rentCarTypeCustom')?.value?.trim() || '';
+    const vehicleClass = carTypeSelect?.value === 'custom' ? customCarType : carTypeSelect?.value;
+    const vehicleLabel = vehicleClassMeta(vehicleClass).label;
+    const amount = Number(document.getElementById('rentTotal')?.value || 0);
+    const currency = defaultCurrency();
+
+    const missing = [];
+    if (!providerKey) missing.push('렌터카 업체');
+    if (!room) missing.push('호실');
+    if (!guest) missing.push('고객명');
+    if (!rentDateRaw) missing.push('대여 일시');
+    if (!duration) missing.push('대여 기간');
+    if (!amount) missing.push('총 요금');
+    if (missing.length) {
+        showToast(`${missing.join(', ')}을(를) 입력해 주세요.`);
+        return null;
+    }
+
+    const date = rentDateRaw.slice(0, 10);
+    const time = rentDateRaw.includes('T') ? rentDateRaw.slice(11, 16) : currentTimeValue();
+    return {
+        id: `RNT-N${String(Date.now()).slice(-6)}`,
+        date,
+        roomId: `ROOM-${room}`,
+        roomNo: room,
+        room,
+        guest,
+        phone,
+        type: providerKey,
+        providerName,
+        partnerName: providerName,
+        providerSource: marketplacePartnerByKey(providerKey) ? 'marketplace' : 'hotel',
+        items: `${vehicleLabel} / ${duration}${location ? ` / ${location}` : ''}`,
+        total: amount || 0,
+        currency,
+        status: 'new',
+        time,
+        vehicleClass: vehicleClass || 'sedan'
+    };
+}
+
+async function persistRentacarOrders() {
+    if (!window.PmsMockApi) return;
+    const body = orders.map(order => ({
+        ...order,
+        roomNo: order.roomNo || order.room,
+        roomId: order.roomId || `ROOM-${order.roomNo || order.room || ''}`,
+        total: { amount: Number(order.total || 0), currency: orderCurrency(order) }
+    }));
+    await window.PmsMockApi.request('PUT', '/ancillaries/rentacar-orders', { body });
+}
+
+async function saveOrder() {
+    const newOrder = buildRentacarOrder();
+    if (!newOrder) return;
+    orders.unshift(newOrder);
+    try {
+        await persistRentacarOrders();
+    } catch(e) {
+        console.warn('Rentacar order overlay save failed', e);
+    }
+    updateFilterCounts();
+    renderOrders();
+    showToast('렌터카 예약이 등록되었습니다.');
     closeModal('addOrderModal');
 }
 
@@ -795,9 +907,10 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">렌터카 업체 <span style="color:var(--danger)">*</span></label>
-                <select class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                <select id="rentProvider" class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
                     <option value="">업체 선택...</option>
                 </select>
+                <div id="rentProviderLockNote" style="display:none;font-size:.72rem;color:var(--txt3);font-weight:700">추천 광고에서 선택한 업체라 예약 중 변경할 수 없습니다.</div>
             </div>
             <hr style="border:none;border-top:1px solid var(--border2)">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -824,11 +937,11 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">총 요금 <span style="color:var(--danger)">*</span></label>
-                    <input type="number" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 80000">
+                    <input type="number" id="rentTotal" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 120">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호텔 수익/수수료 <span style="color:var(--danger)">*</span></label>
-                    <input type="number" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 15000">
+                    <input type="number" id="rentCommission" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 15">
                 </div>
             </div>
 </div>
