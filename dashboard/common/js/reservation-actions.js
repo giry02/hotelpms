@@ -1108,6 +1108,177 @@
         return window.reservations || (typeof reservations !== 'undefined' ? reservations : []);
     }
 
+    function reservationRoomIdForGroup(res) {
+        return compactValue(res?.fullRoom || res?.roomId || res?.room || res?.roomNo || res?.roomLabel);
+    }
+
+    function allocationRoomId(allocation) {
+        return compactValue(allocation?.roomId || allocation?.fullRoom || allocation?.room || allocation?.roomNo || allocation?.roomLabel);
+    }
+
+    function normalizeGroupAllocationList(list, beforeRooms, nextRoomId, res) {
+        const items = Array.isArray(list) ? list.map(item => ({ ...item })) : [];
+        if (!nextRoomId) return items;
+        const beforeValues = beforeRooms.filter(Boolean);
+        const currentIndex = items.findIndex(item => beforeValues.some(value => sameRoomValue(allocationRoomId(item), value)));
+        const nextIndex = items.findIndex(item => sameRoomValue(allocationRoomId(item), nextRoomId));
+        if (currentIndex >= 0) {
+            items[currentIndex] = {
+                ...items[currentIndex],
+                roomId: nextRoomId,
+                fullRoom: nextRoomId,
+                roomLabel: res?.roomNo || res?.roomLabel || nextRoomId,
+                type: res?.type || items[currentIndex].type || 'Standard',
+                rate: reservationRateValue(res) || items[currentIndex].rate || 0
+            };
+            if (nextIndex >= 0 && nextIndex !== currentIndex) items.splice(nextIndex, 1);
+        } else if (nextIndex < 0) {
+            items.push({
+                roomId: nextRoomId,
+                fullRoom: nextRoomId,
+                roomLabel: res?.roomNo || res?.roomLabel || nextRoomId,
+                type: res?.type || 'Standard',
+                baseRate: reservationRateValue(res) || 0,
+                discountPercent: 0,
+                rate: reservationRateValue(res) || 0
+            });
+        }
+        const seen = new Set();
+        return items.filter(item => {
+            const key = normalizeRoomValue(allocationRoomId(item)).strippedDigits || allocationRoomId(item);
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    function normalizeGroupRoomingFromReservation(res) {
+        if (res?.isGroupPlaceholder && normalizedReservationStatus(res.status) === 'blocked') return [];
+        const source = Array.isArray(res?.roomingGuests) && res.roomingGuests.length
+            ? res.roomingGuests
+            : (compactValue(guestNameForReservation(res)) ? [{
+                guestId: res?.guestId || res?.roomingGuestId,
+                id: res?.guestId || res?.roomingGuestId,
+                name: guestNameForReservation(res),
+                phone: res?.guestPhone || res?.phone || res?.mobile,
+                email: res?.guestEmail || res?.email,
+                role: 'primary'
+            }] : []);
+        return source.map((item, index) => {
+            const raw = typeof item === 'string' ? { name: item } : (item || {});
+            const name = compactValue(raw.name || raw.guestName || raw.roomingGuestName || raw.guest);
+            if (!name) return null;
+            return {
+                id: compactValue(raw.guestId || raw.id || raw.roomingGuestId) || `GG-${Date.now()}-${index}`,
+                guestId: compactValue(raw.guestId || raw.id || raw.roomingGuestId),
+                name,
+                phone: compactValue(raw.phone || raw.mobile || raw.guestPhone),
+                email: compactValue(raw.email || raw.guestEmail),
+                nation: compactValue(raw.nation || raw.country || raw.nationality),
+                docStatus: compactValue(raw.docStatus || raw.documentStatus) || 'pending',
+                role: rosterGuestRole(raw.role || (index === 0 ? 'primary' : 'companion'))
+            };
+        }).filter(Boolean);
+    }
+
+    async function syncUnifiedGroupReservation(res, context = {}) {
+        if (!res?.groupId) return;
+        const nextRoomId = reservationRoomIdForGroup(res);
+        const beforeRooms = [
+            context.beforeRoom,
+            context.beforeFullRoom,
+            ...(Array.isArray(context.beforeRooms) ? context.beforeRooms : [])
+        ].map(compactValue).filter(Boolean);
+        const groups = await unifiedGroups();
+        const group = groups.find(item => item.id === res.groupId);
+        if (!group) return;
+
+        const allocationSource = Array.isArray(group.roomAllocations) && group.roomAllocations.length
+            ? group.roomAllocations
+            : group.allocations;
+        group.roomAllocations = normalizeGroupAllocationList(allocationSource, beforeRooms, nextRoomId, res);
+        const legacyAllocationSource = Array.isArray(group.allocations) && group.allocations.length
+            ? group.allocations
+            : group.roomAllocations;
+        group.allocations = normalizeGroupAllocationList(legacyAllocationSource, beforeRooms, nextRoomId, res);
+        group.block = group.roomAllocations.length || group.block || 0;
+
+        const list = Array.isArray(group.roomingList) ? group.roomingList.map(item => ({ ...item })) : [];
+        if (beforeRooms.length && nextRoomId) {
+            list.forEach(item => {
+                const roomValue = allocationRoomId(item);
+                if (beforeRooms.some(value => sameRoomValue(roomValue, value))) {
+                    item.roomId = nextRoomId;
+                    item.fullRoom = nextRoomId;
+                }
+            });
+        }
+
+        const rooming = normalizeGroupRoomingFromReservation(res);
+        if (rooming.length && nextRoomId) {
+            const roomingNames = new Set(rooming.map(item => item.name.toLowerCase()));
+            const filtered = list.filter(item => {
+                const roomValue = allocationRoomId(item);
+                const sameRoom = sameRoomValue(roomValue, nextRoomId) || beforeRooms.some(value => sameRoomValue(roomValue, value));
+                const sameGuest = roomingNames.has(compactValue(item.name).toLowerCase());
+                return !(sameRoom && (sameGuest || item.role === 'primary'));
+            });
+            rooming.forEach((item, index) => {
+                filtered.push({
+                    ...item,
+                    id: item.id || `GG-${Date.now()}-${index}`,
+                    groupId: res.groupId,
+                    roomId: nextRoomId,
+                    fullRoom: nextRoomId
+                });
+            });
+            group.roomingList = filtered;
+            if (Array.isArray(group.rooming)) group.rooming = filtered;
+            group.pickup = Math.max(Number(group.pickup || 0), new Set(filtered.map(item => allocationRoomId(item)).filter(Boolean)).size);
+        } else {
+            group.roomingList = list;
+            if (Array.isArray(group.rooming)) group.rooming = list;
+        }
+
+        const actor = currentReservationActor();
+        group.history = Array.isArray(group.history) ? group.history : [];
+        if (context.roomChanged && nextRoomId) {
+            group.history.unshift({
+                at: new Date().toLocaleString('ko-KR'),
+                action: '타임라인 객실 변경',
+                note: `${beforeRooms[0] || '-'} -> ${nextRoomId} · ${actor.name}`
+            });
+        }
+        if (rooming.length) {
+            group.history.unshift({
+                at: new Date().toLocaleString('ko-KR'),
+                action: '타임라인 투숙객 동기화',
+                note: `${nextRoomId || '-'} · ${rooming.map(item => item.name).join(', ')}`
+            });
+        }
+
+        let stored = [];
+        try {
+            stored = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+        } catch(e) {
+            stored = [];
+        }
+        const storedIndex = stored.findIndex(item => item.id === group.id);
+        if (storedIndex >= 0) stored[storedIndex] = { ...stored[storedIndex], ...group };
+        else stored.unshift(group);
+        localStorage.setItem('pms_groups', JSON.stringify(stored));
+        try {
+            sessionStorage.setItem('pms_selected_group', JSON.stringify(group));
+        } catch(e) {}
+        try {
+            if (window.PmsMockApi) {
+                await window.PmsMockApi.request('PATCH', `/groups/events/${encodeURIComponent(group.id)}`, { body: group });
+            }
+        } catch(e) {
+            console.warn('Mock group reservation sync failed', e);
+        }
+    }
+
     function padDatePart(value) {
         return String(value).padStart(2, '0');
     }
@@ -1365,7 +1536,8 @@
             }
         }
 
-        if (guestSection) guestSection.style.display = isBlock ? 'none' : 'block';
+        const isEditableGroupBlock = isBlock && !!res?.groupId;
+        if (guestSection) guestSection.style.display = (isBlock && !isEditableGroupBlock) ? 'none' : 'block';
         const blockNotice = document.getElementById('unifiedBlockNotice');
         if (blockNotice) blockNotice.style.display = (!locked && isBlock) ? 'block' : 'none';
         ['unifiedCin', 'unifiedCout', 'unifiedChannel'].forEach(id => {
@@ -1549,6 +1721,7 @@
 
         const currentRes = resId ? allRes.find(r => r.id === resId) : null;
         const isEditingBlock = !!(currentRes && (normalizedReservationStatus(currentRes.status) === 'blocked' || currentRes.isGroupPlaceholder));
+        const isEditableGroupBlock = !!(isEditingBlock && currentRes?.groupId);
 
         // Populate room select
         if (!window.rooms || window.rooms.length === 0) {
@@ -1660,7 +1833,7 @@
 
             const guestSection = document.getElementById('unifiedGuestSection');
             if (guestSection) {
-                guestSection.style.display = isEditingBlock ? 'none' : 'block';
+                guestSection.style.display = (isEditingBlock && !isEditableGroupBlock) ? 'none' : 'block';
                 let blockNotice = document.getElementById('unifiedBlockNotice');
                 if (!blockNotice) {
                     blockNotice = document.createElement('div');
@@ -1669,18 +1842,21 @@
                     guestSection.parentElement.insertBefore(blockNotice, guestSection);
                 }
                 blockNotice.style.display = (isEditingBlock && !isReadonlyReservation) ? 'block' : 'none';
-                blockNotice.innerHTML = `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> 단체 블록 상태입니다. 아직 개별 투숙객이 배정되지 않았으며, 투숙객은 단체 상세의 Rooming List에서 등록하거나 상태를 예약 확정으로 전환할 때 연결합니다.`;
+                blockNotice.innerHTML = isEditableGroupBlock
+                    ? `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> 단체 연결 객실입니다. 업체 연결은 유지되며, 여기에서 객실 변경과 대표/동반 투숙객 등록을 함께 처리할 수 있습니다.`
+                    : `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> 단체 블록 상태입니다. 아직 개별 투숙객이 배정되지 않았으며, 투숙객은 단체 상세의 Rooming List에서 등록하거나 상태를 예약 확정으로 전환할 때 연결합니다.`;
             }
 
-            if (!isEditingBlock && window._editGuestWidget) {
+            if ((!isEditingBlock || isEditableGroupBlock) && window._editGuestWidget) {
                 window._editGuestWidget.reset();
-                const existingGuest = await guestForUnifiedReservation(res);
+                const shouldLoadGroupPlaceholderGuest = !(isEditableGroupBlock && res.isGroupPlaceholder);
+                const existingGuest = shouldLoadGroupPlaceholderGuest ? await guestForUnifiedReservation(res) : null;
                 if (existingGuest) {
                     await window._editGuestWidget.select(existingGuest.id);
                 } else {
                     window._editGuestWidget.showNewForm();
                     const nameInput = document.getElementById('nrGuestEdit');
-                    if (nameInput) nameInput.value = guestNameForReservation(res);
+                    if (nameInput) nameInput.value = shouldLoadGroupPlaceholderGuest ? compactValue(guestNameForReservation(res)) : '';
                 }
             } else if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
@@ -1695,7 +1871,8 @@
             setUnifiedDateValue('unifiedCin', res.checkInDate || res.checkin || res.cin);
             setUnifiedDateValue('unifiedCout', res.checkOutDate || res.checkout || res.cout);
             window.updateUnifiedStayAndRooms(targetRoomValue);
-            setUnifiedGuestRoster(isEditingBlock ? [] : await rosterGuestsForReservation(res));
+            const shouldLoadRoster = !isEditingBlock || (isEditableGroupBlock && !res.isGroupPlaceholder);
+            setUnifiedGuestRoster(shouldLoadRoster ? await rosterGuestsForReservation(res) : []);
             setUnifiedFinanceValues(res);
             setUnifiedReservationReadonly(isReadonlyReservation, res);
             renderUnifiedFlowActions(res);
@@ -1726,7 +1903,10 @@
         let guest = '';
         const currentRes = id ? allRes.find(r => r.id === id) : null;
         const operationalEdit = !!(currentRes && isReservationReadOnly(currentRes));
-        const isBlockSave = currentRes && (normalizedReservationStatus(currentRes.status) === 'blocked' || currentRes.isGroupPlaceholder) && document.getElementById('unifiedStatus').value === 'blocked';
+        const currentIsBlock = !!(currentRes && (normalizedReservationStatus(currentRes.status) === 'blocked' || currentRes.isGroupPlaceholder));
+        const isEditableGroupBlockSave = !!(currentIsBlock && currentRes?.groupId);
+        const selectedStatusValue = document.getElementById('unifiedStatus')?.value || normalizedReservationStatus(currentRes?.status);
+        const isBlockSave = currentIsBlock && selectedStatusValue === 'blocked' && !isEditableGroupBlockSave;
         if (!isBlockSave) {
             let primaryEntry = getUnifiedPrimaryGuestEntry();
             if (!primaryEntry) {
@@ -1736,7 +1916,7 @@
                     primaryEntry = getUnifiedPrimaryGuestEntry();
                 }
             }
-            if (!primaryEntry && currentRes) {
+            if (!primaryEntry && currentRes && !isEditableGroupBlockSave) {
                 upsertUnifiedRosterGuest({
                     guestId: currentRes.guestId || currentRes.roomingGuestId,
                     name: guestNameForReservation(currentRes),
@@ -1747,7 +1927,7 @@
             }
             guest = compactValue(primaryEntry?.name);
         }
-        if (!isBlockSave && (!guest || !guest.trim())) {
+        if (!isBlockSave && !isEditableGroupBlockSave && (!guest || !guest.trim())) {
             alert(actionText('guest.required'));
             return;
         }
@@ -1779,14 +1959,16 @@
             alert(actionText('booking.roomUnavailable'));
             return;
         }
-        const status = id
+        let status = id
             ? (operationalEdit ? normalizedReservationStatus(currentRes?.status) : (document.getElementById('unifiedStatus')?.value || normalizedReservationStatus(currentRes?.status)))
             : 'confirmed';
+        if (isEditableGroupBlockSave && guest.trim() && status === 'blocked') status = 'confirmed';
         let channel = document.getElementById('unifiedChannel')?.value || 'Walk-in';
         const groupId = document.getElementById('unifiedGroupId')?.value || '';
         const isB2B = !!groupId;
         const linkedGroupName = isB2B ? (await unifiedGroupName(groupId) || currentRes?.groupName || '') : '';
         let savedRes = null;
+        let groupSyncMeta = null;
         const cinText = toReservationDateText(getUnifiedDateInputValue('unifiedCin'));
         const coutText = toReservationDateText(getUnifiedDateInputValue('unifiedCout'));
         const cinIso = getUnifiedDateInputValue('unifiedCin');
@@ -1797,9 +1979,19 @@
         const prepaidAmount = Math.min(parseMoneyInput(document.getElementById('unifiedPrepaid')?.value), totalAmount);
         const balanceDue = Math.max(totalAmount - prepaidAmount, 0);
         const nightlyRate = nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount;
-        const guestPayload = !isBlockSave
+        const shouldWriteGuest = !isBlockSave && (!isEditableGroupBlockSave || !!guest.trim() || getUnifiedCompanionGuestEntries().length > 0);
+        const existingGuestName = compactValue(guestNameForReservation(currentRes));
+        const guestPayload = shouldWriteGuest
             ? unifiedRosterPayload(guest)
-            : { guest, guestId: '', companionGuestNames: [], companionGuestIds: [], roomingGuestNames: [], roomingGuests: [], companions: [] };
+            : {
+                guest: existingGuestName,
+                guestId: compactValue(currentRes?.guestId || currentRes?.roomingGuestId),
+                companionGuestNames: companionNamesForReservation(currentRes),
+                companionGuestIds: Array.isArray(currentRes?.companionGuestIds) ? currentRes.companionGuestIds : [],
+                roomingGuestNames: Array.isArray(currentRes?.roomingGuestNames) ? currentRes.roomingGuestNames : (existingGuestName ? [existingGuestName, ...companionNamesForReservation(currentRes)] : []),
+                roomingGuests: Array.isArray(currentRes?.roomingGuests) ? currentRes.roomingGuests : [],
+                companions: Array.isArray(currentRes?.companions) ? currentRes.companions : []
+            };
         guest = guestPayload.guest || guest;
         const companionGuestNames = guestPayload.companionGuestNames;
         
@@ -1859,6 +2051,7 @@
             };
             allRes.unshift(newRes);
             savedRes = newRes;
+            if (newRes.groupId) groupSyncMeta = { roomChanged: true, beforeRoom: '', beforeFullRoom: '' };
             if (window.showToast) window.showToast(actionText('booking.created'), 'success');
         } else {
             // EDIT BOOKING MODE
@@ -1873,7 +2066,7 @@
                 const beforeGuest = guestNameForReservation(res);
                 const beforeGuestId = compactValue(res.guestId || res.roomingGuestId);
                 const beforeCompanionNames = companionNamesForReservation(res);
-                if (!isBlockSave) {
+                if (shouldWriteGuest) {
                     const nextGuestId = guestPayload.guestId || (beforeGuest === guest ? beforeGuestId : '');
                     res.guest = guest;
                     res.guestName = guest;
@@ -1883,6 +2076,8 @@
                     if (guest.trim()) res.initials = guest.split(' ').map(n => n[0]).join('');
                     if (res.isGroupPlaceholder && status !== 'blocked' && guest.trim()) {
                         res.isGroupPlaceholder = false;
+                        res.groupAssigned = true;
+                        if (!res.color || res.color === '#111827') res.color = '#2563EB';
                         res.status = 'confirmed';
                     }
                 }
@@ -1923,6 +2118,13 @@
                     settlementBasis: 'reservation-room-total'
                 };
                 const roomChanged = !sameRoomValue(beforeRoom, room) && !sameRoomValue(beforeFullRoom, res.fullRoom);
+                if (res.groupId) {
+                    groupSyncMeta = {
+                        roomChanged,
+                        beforeRoom,
+                        beforeFullRoom
+                    };
+                }
                 const isPostCheckinEdit = ['checkedin', 'checkout'].includes(beforeStatus);
                 const guestChanged = beforeGuest !== guestNameForReservation(res) || beforeGuestId !== compactValue(res.guestId || res.roomingGuestId);
                 const companionsChanged = beforeCompanionNames.join('|') !== companionGuestNames.join('|');
@@ -2022,6 +2224,7 @@
         } catch(e) {
             console.warn('Mock reservation save failed', e);
         }
+        if (savedRes?.groupId) await syncUnifiedGroupReservation(savedRes, groupSyncMeta || {});
         if (typeof window.syncGroupData === 'function') window.syncGroupData();
         
         closeUnifiedResModal();

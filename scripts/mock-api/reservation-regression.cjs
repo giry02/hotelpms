@@ -227,7 +227,7 @@ function countValues(values) {
     });
 
     assert(blockResult.before.hiddenStatus === 'blocked', 'Group block modal must keep blocked status internally.', blockResult);
-    assert(blockResult.before.guestSectionDisplay === 'none', 'Group block modal must hide guest entry.', blockResult);
+    assert(blockResult.before.guestSectionDisplay === 'block', 'Group block modal must allow guest entry from the timeline.', blockResult);
     assert(blockResult.before.blockNoticeDisplay === 'block', 'Group block modal must show block notice.', blockResult);
     assert(blockResult.after.status === 'blocked', 'Saving a group block must preserve blocked status.', blockResult.after);
     assert(blockResult.after.guest === 'Preserved Block Name', 'Saving a group block must preserve the existing guest/group label.', blockResult.after);
@@ -241,7 +241,7 @@ function countValues(values) {
         'channel labels do not render or search',
         'Korean/English headers stay consistent',
         'new reservation has no manual status/group conversion controls',
-        'group block records remain blocked'
+        'group block timeline modal allows guest entry without forcing conversion'
       ]
     }, null, 2));
   } catch (error) {
