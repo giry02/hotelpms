@@ -115,6 +115,22 @@
 .btn-search:hover { background: #1D4ED8; }
 .filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.stay-info-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
+.stay-info-room{display:flex;align-items:center;gap:12px;min-width:0}
+.stay-info-room-icon{width:46px;height:46px;border-radius:12px;background:var(--primary-lt);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0}
+.stay-info-room-main{min-width:0}
+.stay-info-room-no{font-size:1.15rem;font-weight:900;color:var(--txt);line-height:1.15}
+.stay-info-room-type{font-size:.78rem;font-weight:700;color:var(--txt3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stay-info-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:var(--primary-lt);color:var(--primary-dk);font-size:.72rem;font-weight:900;white-space:nowrap}
+.stay-info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.stay-info-field{border:1px solid var(--border2);border-radius:10px;background:#fff;padding:12px;min-width:0}
+.stay-info-label{font-size:.7rem;font-weight:800;color:var(--txt3);margin-bottom:5px}
+.stay-info-value{font-size:.88rem;font-weight:850;color:var(--txt);line-height:1.35;word-break:break-word}
+.stay-info-sub{font-size:.72rem;font-weight:700;color:var(--txt3);line-height:1.4;margin-top:3px}
+.stay-info-companions{display:flex;flex-direction:column;gap:3px}
+.stay-info-companion{font-size:.78rem;font-weight:750;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stay-info-empty{padding:28px 18px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--txt3);font-weight:800;background:#f8fafc}
+@media(max-width:768px){.stay-info-grid{grid-template-columns:1fr}.stay-info-head{flex-direction:column}.stay-info-badge{align-self:flex-start}}
 </style>
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-operations.js"></script>
@@ -123,6 +139,7 @@
 <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/privacy-audit.js"></script>
     <script src="../common/js/topbar.js"></script>
 </head>
 <body>
@@ -315,10 +332,24 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="stayInfoModal" onclick="if(event.target===this) closeModal('stayInfoModal')">
+    <div class="modal-card" style="max-width:640px;width:95vw">
+        <div class="modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center">
+            <h3 class="modal-title"><i class="fa-solid fa-id-card-clip" style="color:var(--primary);margin-right:8px"></i>투숙 정보</h3>
+            <button class="modal-close" onclick="closeModal('stayInfoModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" id="stayInfoBody" style="padding:20px"></div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+            <button class="btn-outline-sm" onclick="closeModal('stayInfoModal')">닫기</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // Mock Room Data — building field is optional (null = no building)
 let allRooms = [];
 let allRoomTypes = [];
+let allReservations = [];
 
 const statusConfig = {
     'occupied': { label: '투숙 중' },
@@ -358,6 +389,218 @@ function displayRoomType(type) {
     const found = allRoomTypes.find(rt => rt.id === value || rt.typeId === value || rt.code === value || rt.name === value);
     if (!found) return value;
     return [found.name, found.view].filter(Boolean).join(' · ');
+}
+
+function roomKeyVariants(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return [];
+    const upper = raw.toUpperCase();
+    const tail = upper.includes('-') ? upper.split('-').pop() : upper;
+    const compact = upper.replace(/[^A-Z0-9]/g, '');
+    const hasLetters = /[A-Z]/.test(upper);
+    const digits = hasLetters ? '' : (upper.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
+    return [...new Set([upper, tail, compact, digits].filter(Boolean))];
+}
+
+function sameRoomKey(left, right) {
+    const leftKeys = roomKeyVariants(left);
+    const rightKeys = new Set(roomKeyVariants(right));
+    return leftKeys.some(key => rightKeys.has(key));
+}
+
+function roomIdentityValues(room) {
+    return [
+        room?.id,
+        room?.roomId,
+        room?.fullRoom,
+        room?.number,
+        room?.display,
+        room?.roomNo
+    ].filter(Boolean);
+}
+
+function reservationRoomValues(res) {
+    return [
+        res?.fullRoom,
+        res?.roomId,
+        res?.roomNo,
+        res?.room,
+        res?.roomLabel
+    ].filter(Boolean);
+}
+
+function reservationMatchesRoom(res, room) {
+    const roomValues = roomIdentityValues(room);
+    const resValues = reservationRoomValues(res);
+    return roomValues.some(roomValue => resValues.some(resValue => sameRoomKey(roomValue, resValue)));
+}
+
+function normalizeStayStatus(value) {
+    return String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+}
+
+function parseStayDate(value) {
+    const text = String(value || '').trim();
+    if (!text) return null;
+    const md = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (md) {
+        const base = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+        return new Date(base.getFullYear(), Number(md[1]) - 1, Number(md[2]));
+    }
+    const date = new Date(text);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function isReservationInStayWindow(res) {
+    const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkIn = parseStayDate(res?.checkin || res?.checkInDate || res?.cin);
+    const checkOut = parseStayDate(res?.checkout || res?.checkOutDate || res?.cout);
+    if (!checkIn || !checkOut) return false;
+    return checkIn <= today && today < checkOut;
+}
+
+function stayReservationForRoom(room) {
+    const candidates = allReservations.filter(res => reservationMatchesRoom(res, room));
+    if (!candidates.length) return null;
+    const activeStatuses = new Set(['checkedin', 'inhouse', 'occupied']);
+    return candidates.find(res => activeStatuses.has(normalizeStayStatus(res.status)))
+        || candidates.find(res => !['cancelled', 'canceled', 'noshow', 'completed', 'checkedout'].includes(normalizeStayStatus(res.status)) && isReservationInStayWindow(res))
+        || candidates.find(res => !['cancelled', 'canceled', 'noshow'].includes(normalizeStayStatus(res.status)))
+        || null;
+}
+
+function stayGuestName(res) {
+    return String(res?.roomingGuestName || res?.guestName || res?.guest || '-').trim() || '-';
+}
+
+function stayCompanionNames(res) {
+    const primary = stayGuestName(res);
+    const values = [
+        ...(Array.isArray(res?.companionGuestNames) ? res.companionGuestNames : []),
+        ...(Array.isArray(res?.companions) ? res.companions.map(item => typeof item === 'string' ? item : item?.name) : []),
+        ...(Array.isArray(res?.roomingGuests) ? res.roomingGuests.slice(1).map(item => typeof item === 'string' ? item : item?.name) : []),
+        ...(Array.isArray(res?.roomingGuestNames) ? res.roomingGuestNames.slice(1) : [])
+    ];
+    const seen = new Set();
+    return values
+        .map(name => String(name || '').trim())
+        .filter(name => name && name !== primary && !seen.has(name) && seen.add(name));
+}
+
+function stayAmountValue(res) {
+    if (res?.totalAmount && typeof res.totalAmount === 'object') return Number(res.totalAmount.amount || 0);
+    return Number(res?.amount || 0);
+}
+
+function stayPrepaidValue(res) {
+    if (res?.paymentPlan && typeof res.paymentPlan === 'object') return Number(res.paymentPlan.prepaidAmount || 0);
+    return Number(res?.prepaidAmount || res?.prepaid || 0);
+}
+
+function stayCurrency(res) {
+    return res?.currency || res?.totalAmount?.currency || res?.rate?.currency || 'PHP';
+}
+
+function formatStayMoney(amount, currency = 'PHP') {
+    if (typeof window.pmsFormatCurrency === 'function') return window.pmsFormatCurrency(amount, { currency });
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency, maximumFractionDigits: 2 }).format(Number(amount || 0));
+}
+
+function stayDateText(value) {
+    const text = String(value || '').trim();
+    const date = parseStayDate(text);
+    if (!date) return text || '-';
+    return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, '0')}. ${String(date.getDate()).padStart(2, '0')}.`;
+}
+
+function stayStatusLabel(res) {
+    const key = normalizeStayStatus(res?.status);
+    if (['checkedin', 'inhouse', 'occupied'].includes(key)) return '투숙 중';
+    if (key === 'confirmed') return '예약 확정';
+    if (key === 'checkout') return '체크아웃 예정';
+    return res?.status || '-';
+}
+
+function stayField(label, value, sub = '') {
+    return `<div class="stay-info-field">
+        <div class="stay-info-label">${escapeHtml(label)}</div>
+        <div class="stay-info-value">${value}</div>
+        ${sub ? `<div class="stay-info-sub">${escapeHtml(sub)}</div>` : ''}
+    </div>`;
+}
+
+function openStayInfoModal(roomId) {
+    const room = allRooms.find(item => roomIdentityValues(item).some(value => sameRoomKey(value, roomId)));
+    const res = room ? stayReservationForRoom(room) : null;
+    const body = document.getElementById('stayInfoBody');
+    if (!body) return;
+    const roomNo = room?.id || room?.number || roomId || '-';
+    const roomType = displayRoomType(room?.type || res?.type || res?.roomTypeName || '');
+    if (!res) {
+        body.innerHTML = `<div class="stay-info-head">
+            <div class="stay-info-room">
+                <div class="stay-info-room-icon"><i class="fa-solid fa-bed"></i></div>
+                <div class="stay-info-room-main">
+                    <div class="stay-info-room-no">${escapeHtml(roomNo)}</div>
+                    <div class="stay-info-room-type">${escapeHtml(roomType || '-')}</div>
+                </div>
+            </div>
+            <span class="stay-info-badge"><i class="fa-solid fa-user-check"></i> 투숙 중</span>
+        </div>
+        <div class="stay-info-empty">연결된 투숙 예약 정보를 찾지 못했습니다.</div>`;
+        openModal('stayInfoModal');
+        return;
+    }
+
+    const companions = stayCompanionNames(res);
+    const total = stayAmountValue(res);
+    const prepaid = stayPrepaidValue(res);
+    const balance = Math.max(total - prepaid, 0);
+    const currency = stayCurrency(res);
+    const companionHtml = companions.length
+        ? `<div class="stay-info-companions">${companions.map(name => `<div class="stay-info-companion">${escapeHtml(name)}</div>`).join('')}</div>`
+        : '<span class="stay-info-sub">등록된 동반 투숙객 없음</span>';
+    body.innerHTML = `<div class="stay-info-head">
+        <div class="stay-info-room">
+            <div class="stay-info-room-icon"><i class="fa-solid fa-bed"></i></div>
+            <div class="stay-info-room-main">
+                <div class="stay-info-room-no">${escapeHtml(roomNo)}</div>
+                <div class="stay-info-room-type">${escapeHtml(roomType || res.type || '-')}</div>
+            </div>
+        </div>
+        <span class="stay-info-badge"><i class="fa-solid fa-user-check"></i> ${escapeHtml(stayStatusLabel(res))}</span>
+    </div>
+    <div class="stay-info-grid">
+        ${stayField('대표 투숙객', `<i class="fa-solid fa-user" style="color:var(--primary);font-size:.78rem;margin-right:6px"></i>${escapeHtml(stayGuestName(res))}`, res.vip ? `등급 ${res.vip}` : '')}
+        ${stayField('동반 투숙객', companionHtml)}
+        ${stayField('체크인', escapeHtml(stayDateText(res.checkin || res.checkInDate || res.cin)))}
+        ${stayField('체크아웃', escapeHtml(stayDateText(res.checkout || res.checkOutDate || res.cout)), `${Number(res.nights || res.len || 1)}박`)}
+        ${stayField('예약번호', escapeHtml(res.id || res.reservationId || '-'), res.channel ? `채널 ${res.channel}` : '')}
+        ${stayField('금액', escapeHtml(formatStayMoney(total, currency)), `선결제 ${formatStayMoney(prepaid, currency)} · 잔액 ${formatStayMoney(balance, currency)}`)}
+        ${res.groupName ? stayField('단체/행사', escapeHtml(res.groupName)) : ''}
+        ${res.companyName || res.agency ? stayField('거래처', escapeHtml(res.companyName || res.agency)) : ''}
+    </div>`;
+    if (window.PmsPrivacyAudit) {
+        window.PmsPrivacyAudit.log('room.stay_info.view', {
+            screen: 'room-list',
+            roomId: roomNo,
+            reservationId: res.id || res.reservationId || '',
+            guestName: stayGuestName(res),
+            fields: ['guestName', 'companionGuestNames', 'stayDates', 'amount']
+        });
+    }
+    openModal('stayInfoModal');
+}
+
+function handleRoomClick(roomId, status) {
+    if (status === 'occupied') {
+        openStayInfoModal(roomId);
+        return;
+    }
+    openStatusModal(roomId, status);
 }
 
 function renderRoomTypeOptions() {
@@ -420,8 +663,10 @@ function renderRooms() {
                 html += `<div class="room-grid">`;
                 floorRooms.forEach(r => {
                     const stLabel = (statusConfig[r.status] || {label: r.status}).label;
-                    const guestHtml = r.guest ? `<div class="room-guest-name">${r.guest}</div>` : '';
-                    html += `<div class="room-box ${r.status}" style="cursor:pointer" onclick="openStatusModal('${r.id}', '${r.status}')"><div class="room-box-num">${r.id || 'N/A'}</div><div class="room-box-type">${displayRoomType(r.type)}</div><div class="room-box-status">${stLabel}</div>${guestHtml}</div>`;
+                    const stayRes = r.status === 'occupied' ? stayReservationForRoom(r) : null;
+                    const displayGuest = stayRes ? stayGuestName(stayRes) : r.guest;
+                    const guestHtml = displayGuest ? `<div class="room-guest-name">${escapeHtml(displayGuest)}</div>` : '';
+                    html += `<div class="room-box ${r.status}" style="cursor:pointer" data-room-id="${escapeHtml(r.id || '')}" data-room-status="${escapeHtml(r.status || '')}" onclick="handleRoomClick(this.dataset.roomId, this.dataset.roomStatus)"><div class="room-box-num">${escapeHtml(r.id || 'N/A')}</div><div class="room-box-type">${escapeHtml(displayRoomType(r.type))}</div><div class="room-box-status">${escapeHtml(stLabel)}</div>${guestHtml}</div>`;
                 });
                 html += `</div></div>`;
             });
@@ -438,8 +683,10 @@ function renderRooms() {
             html += `<div class="room-grid">`;
             floorRooms.forEach(r => {
                 const stLabel = (statusConfig[r.status] || {label: r.status}).label;
-                const guestHtml = r.guest ? `<div class="room-guest-name">${r.guest}</div>` : '';
-                html += `<div class="room-box ${r.status}" style="cursor:pointer" onclick="openStatusModal('${r.id}', '${r.status}')"><div class="room-box-num">${r.id || 'N/A'}</div><div class="room-box-type">${displayRoomType(r.type)}</div><div class="room-box-status">${stLabel}</div>${guestHtml}</div>`;
+                const stayRes = r.status === 'occupied' ? stayReservationForRoom(r) : null;
+                const displayGuest = stayRes ? stayGuestName(stayRes) : r.guest;
+                const guestHtml = displayGuest ? `<div class="room-guest-name">${escapeHtml(displayGuest)}</div>` : '';
+                html += `<div class="room-box ${r.status}" style="cursor:pointer" data-room-id="${escapeHtml(r.id || '')}" data-room-status="${escapeHtml(r.status || '')}" onclick="handleRoomClick(this.dataset.roomId, this.dataset.roomStatus)"><div class="room-box-num">${escapeHtml(r.id || 'N/A')}</div><div class="room-box-type">${escapeHtml(displayRoomType(r.type))}</div><div class="room-box-status">${escapeHtml(stLabel)}</div>${guestHtml}</div>`;
             });
             html += `</div></div>`;
             container.innerHTML += html;
@@ -682,6 +929,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!Array.isArray(allRoomTypes)) allRoomTypes = [];
             allRoomTypes.sort(compareRoomTypes);
         }
+        if (PmsAPI.getReservations) {
+            allReservations = await PmsAPI.getReservations();
+            if (!Array.isArray(allReservations)) allReservations = [];
+            window.reservations = allReservations;
+        }
         renderRoomTypeOptions();
         let rawRooms = await PmsAPI.getAllRooms();
         allRooms = rawRooms.map(r => {
@@ -696,6 +948,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!r.id) r.id = r.number || r.display;
             return r;
         });
+        window.rooms = allRooms;
         renderRooms();
         updateFilterCounts();
     } catch(e) { console.error(e); }
