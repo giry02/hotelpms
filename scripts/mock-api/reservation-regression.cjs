@@ -194,6 +194,45 @@ function countValues(values) {
     assert(modalResult.created?.status === 'confirmed', 'New reservation must default to confirmed.', modalResult.created);
     assert(!modalResult.created?.groupId && modalResult.created?.isB2B === false, 'New reservation must default to individual.', modalResult.created);
 
+    const editSearchState = await page.evaluate(async () => {
+      window.rooms = [{ id: 'T-902', number: '902', fullRoom: 'T-902', type: 'Standard', building: 'Test Tower', status: 'vacant-clean', housekeepingStatus: 'clean', frontStatus: 'vacant' }];
+      window.reservations = [{
+        id: 'RSV-DETAIL',
+        room: 'T-902',
+        fullRoom: 'T-902',
+        type: 'Standard',
+        status: 'confirmed',
+        guest: 'Alexander Kim',
+        guestName: 'Alexander Kim',
+        roomingGuestName: 'Alexander Kim',
+        guestId: 'G-DETAIL',
+        roomingGuestId: 'G-DETAIL',
+        phone: '+82 10 9900 1401',
+        email: 'alexander.kim@example.com',
+        cin: '6/8',
+        cout: '6/9',
+        checkin: '2026-06-08',
+        checkout: '2026-06-09',
+        checkInDate: '2026-06-08',
+        checkOutDate: '2026-06-09',
+        nights: 1,
+        len: 1
+      }];
+      reservations = window.reservations;
+      await openUnifiedResModal('RSV-DETAIL');
+      return {
+        selectedCardDisplay: getComputedStyle(document.getElementById('selectedGuestCardEdit')).display,
+        searchResultsDisplay: getComputedStyle(document.getElementById('guestSearchResultsEdit')).display,
+        rosterText: document.getElementById('unifiedStayGuestList')?.innerText || '',
+        privacyText: document.getElementById('unifiedGuestPrivacyBody')?.innerText || ''
+      };
+    });
+
+    assert(editSearchState.selectedCardDisplay === 'none', 'Edit detail must not show the selected guest search card until a search result is chosen.', editSearchState);
+    assert(editSearchState.searchResultsDisplay === 'none', 'Edit detail must keep guest search results hidden until searching.', editSearchState);
+    assert(editSearchState.rosterText.includes('Alexander Kim'), 'Edit detail must still show the reservation guest roster.', editSearchState);
+    assert(editSearchState.privacyText.includes('Alexander Kim'), 'Edit detail must still show guest detail information below.', editSearchState);
+
     const blockResult = await page.evaluate(async () => {
       window.reservations = [{
         id: 'BLK-901',
@@ -241,6 +280,7 @@ function countValues(values) {
         'channel labels do not render or search',
         'Korean/English headers stay consistent',
         'new reservation has no manual status/group conversion controls',
+        'edit detail keeps guest search idle until user searches',
         'group block timeline modal allows guest entry without forcing conversion'
       ]
     }, null, 2));

@@ -1849,15 +1849,6 @@
 
             if ((!isEditingBlock || isEditableGroupBlock) && window._editGuestWidget) {
                 window._editGuestWidget.reset();
-                const shouldLoadGroupPlaceholderGuest = !(isEditableGroupBlock && res.isGroupPlaceholder);
-                const existingGuest = shouldLoadGroupPlaceholderGuest ? await guestForUnifiedReservation(res) : null;
-                if (existingGuest) {
-                    await window._editGuestWidget.select(existingGuest.id);
-                } else {
-                    window._editGuestWidget.showNewForm();
-                    const nameInput = document.getElementById('nrGuestEdit');
-                    if (nameInput) nameInput.value = shouldLoadGroupPlaceholderGuest ? compactValue(guestNameForReservation(res)) : '';
-                }
             } else if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
             }
