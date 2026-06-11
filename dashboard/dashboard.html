@@ -337,12 +337,20 @@
             index = Math.min(index, maxIndex);
             track.style.transform = `translateX(-${index * (cardWidth + gap)}px)`;
             if (count) count.textContent = `${pad(index + 1)} / ${pad(cards.length)}`;
-            prev?.classList.toggle('is-disabled', index <= 0);
-            next?.classList.toggle('is-disabled', index >= maxIndex);
+            prev?.classList.remove('is-disabled');
+            next?.classList.remove('is-disabled');
         };
         const moveEvents = (direction) => {
             const { maxIndex } = getMetrics();
-            index = Math.max(0, Math.min(maxIndex, index + direction));
+            if (maxIndex <= 0) {
+                index = 0;
+            } else if (direction > 0 && index >= maxIndex) {
+                index = 0;
+            } else if (direction < 0 && index <= 0) {
+                index = maxIndex;
+            } else {
+                index += direction;
+            }
             renderEvents();
         };
 
