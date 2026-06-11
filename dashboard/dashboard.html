@@ -144,7 +144,6 @@
             <button class="ad-control-btn ad-event-showcase__btn ad-event-showcase__btn--next" type="button" data-ad-events-next aria-label="다음 이벤트">
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
-            <div class="ad-event-showcase__status"><span class="ad-count" data-ad-events-count>01 / 03</span></div>
         </section>
 
         <!-- KPI CARDS -->
@@ -296,8 +295,6 @@
 
 <script>
 (function(){
-    const pad = (num) => String(num).padStart(2, '0');
-
     const hero = document.querySelector('[data-ad-hero]');
     if (hero) {
         const track = hero.querySelector('.ad-hero-carousel__track');
@@ -351,7 +348,6 @@
         const cards = Array.from(events.querySelectorAll('.ad-event-card'));
         const prev = events.querySelector('[data-ad-events-prev]');
         const next = events.querySelector('[data-ad-events-next]');
-        const count = events.querySelector('[data-ad-events-count]');
         let index = 0;
 
         const getMetrics = () => {
@@ -361,14 +357,12 @@
             const visible = Math.max(1, Math.floor((viewportWidth + gap) / (cardWidth + gap)));
             const step = visible >= 3 ? 3 : 1;
             const maxIndex = Math.max(0, cards.length - visible);
-            const pageCount = Math.max(1, Math.ceil(cards.length / step));
-            return { cardWidth, gap, maxIndex, step, pageCount };
+            return { cardWidth, gap, maxIndex, step };
         };
         const renderEvents = () => {
-            const { cardWidth, gap, maxIndex, step, pageCount } = getMetrics();
+            const { cardWidth, gap, maxIndex } = getMetrics();
             index = Math.min(index, maxIndex);
             track.style.transform = `translateX(-${index * (cardWidth + gap)}px)`;
-            if (count) count.textContent = `${pad(Math.floor(index / step) + 1)} / ${pad(pageCount)}`;
             prev?.classList.remove('is-disabled');
             next?.classList.remove('is-disabled');
         };
