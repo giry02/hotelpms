@@ -666,6 +666,40 @@
         };
     }
 
+    function setUnifiedGuestActionBarVisible(visible) {
+        const bar = document.getElementById('unifiedGuestCandidateActions');
+        if (bar) bar.style.display = visible ? 'flex' : 'none';
+    }
+
+    function syncUnifiedGuestActionBar() {
+        const mode = window._editGuestWidget?._mode || 'idle';
+        setUnifiedGuestActionBarVisible(mode === 'selected' || mode === 'newForm');
+    }
+
+    function wireUnifiedGuestWidgetActions(widget) {
+        if (!widget) return;
+        if (widget.__unifiedGuestActionsWired) {
+            syncUnifiedGuestActionBar();
+            return;
+        }
+        const wrap = (method, visibleWhenDone) => {
+            if (typeof widget[method] !== 'function') return;
+            const original = widget[method].bind(widget);
+            widget[method] = async (...args) => {
+                const result = await original(...args);
+                setUnifiedGuestActionBarVisible(typeof visibleWhenDone === 'function' ? visibleWhenDone(widget) : visibleWhenDone);
+                return result;
+            };
+        };
+        wrap('select', true);
+        wrap('showNewForm', true);
+        wrap('deselect', false);
+        wrap('reset', false);
+        wrap('search', () => false);
+        widget.__unifiedGuestActionsWired = true;
+        syncUnifiedGuestActionBar();
+    }
+
     window.addUnifiedSelectedGuest = function(role = 'companion') {
         const candidate = getUnifiedSelectedGuestCandidate();
         if (!candidate || !compactValue(candidate.name)) {
@@ -674,6 +708,7 @@
         }
         upsertUnifiedRosterGuest(candidate, role === 'primary' ? 'primary' : 'companion');
         if (window._editGuestWidget?.reset) window._editGuestWidget.reset();
+        setUnifiedGuestActionBarVisible(false);
     };
 
     window.setUnifiedPrimaryGuest = function(encodedKey) {
@@ -862,7 +897,7 @@
                 
                 <div id="unifiedGuestSection" style="margin-bottom:20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border2);">
                     ${typeof renderGuestSearchHTML === 'function' ? renderGuestSearchHTML('Edit') : '<div style="color:red">guest-search.js missing</div>'}
-                    <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:12px">
+                    <div id="unifiedGuestCandidateActions" style="display:none;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:12px">
                         <button type="button" onclick="addUnifiedSelectedGuest('primary')" style="height:34px;border:none;border-radius:7px;background:#111827;color:#fff;padding:0 13px;font-family:var(--font);font-size:.76rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="fa-solid fa-user-check"></i> 대표로 설정</button>
                         <button type="button" onclick="addUnifiedSelectedGuest('companion')" style="height:34px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--txt);padding:0 13px;font-family:var(--font);font-size:.76rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="fa-solid fa-user-plus"></i> 동반으로 추가</button>
                     </div>
@@ -1718,6 +1753,7 @@
         if (!window._editGuestWidget && typeof initGuestSearch === 'function') {
             window._editGuestWidget = initGuestSearch('Edit');
         }
+        wireUnifiedGuestWidgetActions(window._editGuestWidget);
 
         const currentRes = resId ? allRes.find(r => r.id === resId) : null;
         const isEditingBlock = !!(currentRes && (normalizedReservationStatus(currentRes.status) === 'blocked' || currentRes.isGroupPlaceholder));

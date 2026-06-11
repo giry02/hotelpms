@@ -174,7 +174,9 @@ function countValues(values) {
       const statusSelectExists = !!document.querySelector('#unifiedResModal select#unifiedStatus');
       const groupCheckboxExists = !!document.getElementById('unifiedIsB2B');
       const groupSelectExists = !!document.getElementById('unifiedGroupSelect');
-      window._editGuestWidget.showNewForm();
+      const initialActionBarDisplay = getComputedStyle(document.getElementById('unifiedGuestCandidateActions')).display;
+      await window._editGuestWidget.showNewForm();
+      const newFormActionBarDisplay = getComputedStyle(document.getElementById('unifiedGuestCandidateActions')).display;
       document.getElementById('nrGuestEdit').value = 'Direct Test Guest';
       document.getElementById('unifiedRoom').value = 'T-901';
       await saveUnifiedRes();
@@ -184,6 +186,8 @@ function countValues(values) {
         statusSelectExists,
         groupCheckboxExists,
         groupSelectExists,
+        initialActionBarDisplay,
+        newFormActionBarDisplay,
         created: window.reservations[0]
       };
     });
@@ -191,6 +195,8 @@ function countValues(values) {
     assert(modalResult.statusType === 'hidden' && modalResult.statusVisible === false, 'Reservation status must be hidden in the modal.', modalResult);
     assert(!modalResult.statusSelectExists, 'Reservation modal must not expose a status select.', modalResult);
     assert(!modalResult.groupCheckboxExists && !modalResult.groupSelectExists, 'Reservation modal must not expose group conversion controls.', modalResult);
+    assert(modalResult.initialActionBarDisplay === 'none', 'New reservation must keep representative/companion action buttons hidden before a guest candidate is active.', modalResult);
+    assert(modalResult.newFormActionBarDisplay === 'flex', 'New reservation must show representative/companion action buttons after opening a guest candidate form.', modalResult);
     assert(modalResult.created?.status === 'confirmed', 'New reservation must default to confirmed.', modalResult.created);
     assert(!modalResult.created?.groupId && modalResult.created?.isB2B === false, 'New reservation must default to individual.', modalResult.created);
 
@@ -223,6 +229,7 @@ function countValues(values) {
       return {
         selectedCardDisplay: getComputedStyle(document.getElementById('selectedGuestCardEdit')).display,
         searchResultsDisplay: getComputedStyle(document.getElementById('guestSearchResultsEdit')).display,
+        actionBarDisplay: getComputedStyle(document.getElementById('unifiedGuestCandidateActions')).display,
         rosterText: document.getElementById('unifiedStayGuestList')?.innerText || '',
         privacyText: document.getElementById('unifiedGuestPrivacyBody')?.innerText || ''
       };
@@ -230,6 +237,7 @@ function countValues(values) {
 
     assert(editSearchState.selectedCardDisplay === 'none', 'Edit detail must not show the selected guest search card until a search result is chosen.', editSearchState);
     assert(editSearchState.searchResultsDisplay === 'none', 'Edit detail must keep guest search results hidden until searching.', editSearchState);
+    assert(editSearchState.actionBarDisplay === 'none', 'Edit detail must keep representative/companion action buttons hidden until a guest candidate is active.', editSearchState);
     assert(editSearchState.rosterText.includes('Alexander Kim'), 'Edit detail must still show the reservation guest roster.', editSearchState);
     assert(editSearchState.privacyText.includes('Alexander Kim'), 'Edit detail must still show guest detail information below.', editSearchState);
 
@@ -281,6 +289,7 @@ function countValues(values) {
         'Korean/English headers stay consistent',
         'new reservation has no manual status/group conversion controls',
         'edit detail keeps guest search idle until user searches',
+        'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion'
       ]
     }, null, 2));
