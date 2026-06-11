@@ -130,7 +130,8 @@ function httpOk(url) {
           smokeChecks.push(['detail has rooming guest', await page.locator('text=Alexander Kim').first().isVisible().catch(() => false)]);
         }
         if (pagePath.includes('reservation-list')) {
-          smokeChecks.push(['reservation list has group reservation', await page.locator('text=Samsung').first().isVisible().catch(() => false)]);
+          const bodyText = await page.locator('body').innerText().catch(() => '');
+          smokeChecks.push(['reservation list has group reservation', bodyText.includes('Samsung Tech Conference 2026')]);
         }
         if (pagePath.includes('operations/rates')) {
           smokeChecks.push(['rates table rendered', await page.locator('#ratesTableBody tr').first().isVisible().catch(() => false)]);

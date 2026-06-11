@@ -3,12 +3,12 @@
 window.currentLang = localStorage.getItem('pms_lang') || 'ko';
 window.PMS_I18N_NAMESPACE = window.PMS_I18N_NAMESPACE || 'dashboard';
 
-(function migrateDefaultCurrencyToUsd(){
-    const migrationKey = 'pms_default_currency_usd_migrated_v1';
+(function migrateDefaultCurrencyToPhp(){
+    const migrationKey = 'pms_default_currency_php_migrated_v1';
     try {
         if (localStorage.getItem(migrationKey)) return;
         const current = localStorage.getItem('pms_default_currency');
-        if (!current || current === 'KRW') localStorage.setItem('pms_default_currency', 'USD');
+        if (!current || current === 'USD' || current === 'KRW') localStorage.setItem('pms_default_currency', 'PHP');
         localStorage.setItem(migrationKey, '1');
     } catch(e) {}
 })();

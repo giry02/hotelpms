@@ -277,8 +277,8 @@ function roomDisplayName(a) {
 }
 
 function getCurrency() {
-    const code = localStorage.getItem('pms_default_currency') || 'USD';
-    return { code, symbol: ({ USD: '$', VND: 'VND ', KRW: 'KRW ' }[code] || code) };
+    const code = localStorage.getItem('pms_default_currency') || 'PHP';
+    return { code, symbol: ({ PHP: '₱', USD: '$', VND: 'VND ', KRW: 'KRW ' }[code] || code) };
 }
 
 function money(value) {
@@ -1447,6 +1447,15 @@ window.addEventListener('DataReady', () => {
         };
     }
 
+    function guestsForRoom(roomIdValue) {
+        const direct = allGuestRows()
+            .filter(guest => guest.roomId === roomIdValue && !isPendingAssignmentName(guest.name))
+            .sort((a, b) => (a.role === 'primary' ? 0 : 1) - (b.role === 'primary' ? 0 : 1));
+        if (direct.length) return direct;
+        const fallback = guestForRoom(roomIdValue);
+        return fallback ? [fallback] : [];
+    }
+
     function allGuestRows() {
         const guests = new Map();
         roomingList().forEach(guest => {
@@ -1636,6 +1645,27 @@ window.addEventListener('DataReady', () => {
                 </div>
             </div>
             <div id="detailAllocationEditor" class="allocation-editor"></div>
+            <table class="data-table room-assignment-table" style="margin-top:14px">
+                <thead><tr><th>객실</th><th>투숙객</th><th>구분</th><th>국적</th><th>신분증</th><th>요금</th></tr></thead>
+                <tbody>
+                    ${assigned.map(room => {
+                        const guests = guestsForRoom(room.roomId);
+                        const display = typeof roomDisplayName === 'function' ? roomDisplayName(room) : (room.roomLabel || room.roomId);
+                        const names = guests.length ? guests.map(guest => safe(guest.name)).join(' / ') : '미등록';
+                        const roles = guests.length ? guests.map(guest => guest.role === 'companion' ? '동반' : '대표').join(' / ') : '-';
+                        const nations = guests.length ? guests.map(guest => safe(guest.nation || guest.nationality || guest.country || '-')).join(' / ') : '-';
+                        const docs = guests.length ? `${guests.filter(guest => guest.docStatus === 'verified').length}/${guests.length} 확인` : '-';
+                        return `<tr>
+                            <td><span class="room-chip">${safe(display)}</span><div class="event-sub">${safe(room.type || '-')}</div></td>
+                            <td><div class="event-metric">${names}</div></td>
+                            <td>${roles}</td>
+                            <td>${nations}</td>
+                            <td>${docs}</td>
+                            <td>${money(room.rate)} <small style="display:block;color:var(--txt3);font-weight:800">할인 ${safe(room.discountPercent || 0)}%</small></td>
+                        </tr>`;
+                    }).join('') || '<tr><td colspan="6">배정된 객실이 없습니다.</td></tr>'}
+                </tbody>
+            </table>
             <div class="detail-sticky-actions">
                 <div class="hint"><i class="fa-solid fa-floppy-disk"></i> 객실과 행사별 요금 변경사항을 저장합니다.</div>
                 <button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button>

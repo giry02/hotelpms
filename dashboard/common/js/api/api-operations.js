@@ -110,7 +110,7 @@ Object.assign(window.PmsAPI, {
                     ...item,
                     room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
                     total: window.PmsMockApi.amountValue(item.total),
-                    currency: window.PmsMockApi.currencyOf(item.total, env?.meta?.currency || 'USD')
+                    currency: window.PmsMockApi.currencyOf(item.total, env?.meta?.currency || 'PHP')
                 }));
                 if (orders.length) return orders;
             }
@@ -126,7 +126,7 @@ Object.assign(window.PmsAPI, {
                     ...item,
                     room: item.roomNo || String(item.roomId || '').split('-').pop(),
                     total: item.total && typeof item.total === 'object' ? Number(item.total.amount || 0) : Number(item.total || 0),
-                    currency: item.currency || item.total?.currency || env?.meta?.currency || 'USD'
+                    currency: item.currency || item.total?.currency || env?.meta?.currency || 'PHP'
                 }));
             }
         } catch(e) {}
@@ -144,7 +144,7 @@ Object.assign(window.PmsAPI, {
                     ...item,
                     room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
                     total: window.PmsMockApi.amountValue(item.total),
-                    currency: window.PmsMockApi.currencyOf(item.total, env?.meta?.currency || 'USD')
+                    currency: window.PmsMockApi.currencyOf(item.total, env?.meta?.currency || 'PHP')
                 }));
                 if (orders.length) return orders;
             }
@@ -160,7 +160,7 @@ Object.assign(window.PmsAPI, {
                     ...item,
                     room: item.roomNo || String(item.roomId || '').split('-').pop(),
                     total: item.total && typeof item.total === 'object' ? Number(item.total.amount || 0) : Number(item.total || 0),
-                    currency: item.currency || item.total?.currency || env?.meta?.currency || 'USD'
+                    currency: item.currency || item.total?.currency || env?.meta?.currency || 'PHP'
                 }));
             }
         } catch(e) {}
@@ -209,7 +209,7 @@ Object.assign(window.PmsAPI, {
                     ...item,
                     room: item.roomNo || window.PmsMockApi.roomNoFromId(item.roomId),
                     total: window.PmsMockApi.amountValue(item.total),
-                    currency: window.PmsMockApi.currencyOf(item.total, env?.meta?.currency || 'USD')
+                    currency: window.PmsMockApi.currencyOf(item.total, env?.meta?.currency || 'PHP')
                 }));
                 if (orders.length) return orders;
             }
@@ -225,7 +225,7 @@ Object.assign(window.PmsAPI, {
                     ...item,
                     room: item.roomNo || String(item.roomId || '').split('-').pop(),
                     total: item.total && typeof item.total === 'object' ? Number(item.total.amount || 0) : Number(item.total || 0),
-                    currency: item.currency || item.total?.currency || env?.meta?.currency || 'USD'
+                    currency: item.currency || item.total?.currency || env?.meta?.currency || 'PHP'
                 }));
             }
         } catch(e) {}

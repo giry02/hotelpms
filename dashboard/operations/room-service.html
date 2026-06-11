@@ -176,7 +176,7 @@ function normalizeRoomServiceOrder(item) {
         guest: item.guest || item.guestName || '',
         items,
         total,
-        currency: item.currency || item.totalCurrency || item.total?.currency || 'USD',
+        currency: item.currency || item.totalCurrency || item.total?.currency || localStorage.getItem('pms_default_currency') || 'PHP',
         status: normalizeOrderStatus(item.status),
         time: item.time || (item.createdAt ? String(item.createdAt).slice(11, 16) : '')
     };
@@ -198,15 +198,15 @@ function saveStatusOverlay(id, status) {
     localStorage.setItem('pms_room_service_status', JSON.stringify(overlay));
 }
 
-function formatMoney(amount, currency = 'USD') {
-    const code = String(currency || 'USD').toUpperCase();
+function formatMoney(amount, currency = localStorage.getItem('pms_default_currency') || 'PHP') {
+    const code = String(currency || 'PHP').toUpperCase();
     const value = Number(amount || 0);
     try {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: code,
             minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-            maximumFractionDigits: code === 'USD' ? 2 : 0
+            maximumFractionDigits: ['USD', 'PHP'].includes(code) ? 2 : 0
         }).format(value);
     } catch(e) {
         const symbols = { USD: '$', KRW: '₩', VND: '₫', THB: '฿', JPY: '¥' };
@@ -219,7 +219,7 @@ function updateOrderKpis() {
     const prepCount = orders.filter(o => o.status === 'prep').length;
     const doneCount = orders.filter(o => o.status === 'done').length;
     const total = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
-    const currency = orders[0]?.currency || 'USD';
+    const currency = orders[0]?.currency || localStorage.getItem('pms_default_currency') || 'PHP';
 
     document.getElementById('kpiNewOrders').textContent = newCount;
     document.getElementById('kpiPrepOrders').textContent = prepCount;

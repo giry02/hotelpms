@@ -400,10 +400,35 @@ function effectiveTimelineStatus(res) {
 
 function timelineGuestName(res) {
     if (!res) return '';
-    const roomingName = cleanTimelineGuestName(res.roomingGuestName) || cleanTimelineGuestName(res.guestName);
-    if (roomingName) return roomingName;
+    const names = timelineGuestNames(res);
+    if (names.length) return names[0];
     if (res.isGroupPlaceholder || normalizeReservationStatus(res) === 'blocked') return '';
     return cleanTimelineGuestName(res.guest);
+}
+
+function timelineGuestNames(res) {
+    if (!res) return [];
+    const values = [
+        res.roomingGuestName,
+        res.guestName,
+        res.guest,
+        ...(Array.isArray(res.roomingGuestNames) ? res.roomingGuestNames : []),
+        ...(Array.isArray(res.companionGuestNames) ? res.companionGuestNames : []),
+        ...(Array.isArray(res.companions) ? res.companions.map(item => typeof item === 'string' ? item : item?.name) : []),
+        ...(Array.isArray(res.roomingGuests) ? res.roomingGuests.map(item => typeof item === 'string' ? item : item?.name) : [])
+    ];
+    const seen = new Set();
+    return values
+        .map(cleanTimelineGuestName)
+        .filter(name => {
+            if (!name || seen.has(name)) return false;
+            seen.add(name);
+            return true;
+        });
+}
+
+function timelineGuestLabel(res) {
+    return timelineGuestNames(res).join(' / ');
 }
 
 function timelineCompanyLabel(res) {
@@ -418,7 +443,7 @@ function timelineCompanyLabel(res) {
 }
 
 function hasTimelineGroupGuest(res) {
-    return !!(res && res.groupId && timelineGuestName(res));
+    return !!(res && res.groupId && timelineGuestNames(res).length);
 }
 
 function renderTimelineStatus(res, safeStatus) {
@@ -427,7 +452,7 @@ function renderTimelineStatus(res, safeStatus) {
 }
 
 function timelineDisplayName(res) {
-    const guestName = timelineGuestName(res);
+    const guestName = timelineGuestLabel(res) || timelineGuestName(res);
     if (res && res.groupId && guestName) return `${timelineCompanyLabel(res)} · ${guestName}`;
     if (res && res.groupId && (normalizeReservationStatus(res) === 'blocked' || res.isGroupPlaceholder)) {
         return res.groupName || res.channel || timelineText('groupBlock');
@@ -437,8 +462,40 @@ function timelineDisplayName(res) {
 
 function timelineGroupBadge(res) {
     if (!res || !(res.groupId || res.isGroupPlaceholder)) return '';
-    const label = res.groupId && !timelineGuestName(res) ? timelineText('block') : timelineText('group');
+    const label = res.groupId && !timelineGuestNames(res).length ? timelineText('block') : timelineText('group');
     return `<span class="tl-group-badge"><i class="fa-solid fa-users"></i>${label}</span>`;
+}
+
+function timelineReservationPriority(res, index) {
+    const status = effectiveTimelineStatus(res);
+    const groupScore = res?.groupId ? 0 : 20;
+    const assignedScore = timelineGuestNames(res).length ? 0 : 4;
+    const statusScore = status === 'checkedin' ? 0 : status === 'checkout' ? 1 : status === 'confirmed' ? 2 : status === 'pending' ? 3 : status === 'blocked' ? 4 : 5;
+    return groupScore + assignedScore + statusScore + (Number.isFinite(index) ? index / 10000 : 0);
+}
+
+function dedupeTimelineReservations(list) {
+    const occupied = new Map();
+    const source = (list || []).map((res, index) => ({ res, index }));
+    source.sort((a, b) => timelineReservationPriority(a.res, a.index) - timelineReservationPriority(b.res, b.index));
+    const kept = [];
+    source.forEach(({ res }) => {
+        const room = timelineRoomForReservation(res);
+        if (!room) return;
+        const cin = parseTimelineDate(res.checkInDate || res.checkin || res.cin);
+        const cout = parseTimelineDate(res.checkOutDate || res.checkout || res.cout);
+        if (!cin || !cout || cout <= cin) return;
+        const roomKey = room.fullRoom || room.roomId || room.id;
+        const days = [];
+        for (const day = new Date(cin); day < cout; day.setDate(day.getDate() + 1)) {
+            days.push(`${roomKey}|${day.toISOString().slice(0, 10)}`);
+        }
+        if (days.some(day => occupied.has(day))) return;
+        days.forEach(day => occupied.set(day, res.id));
+        kept.push(res);
+    });
+    const keepIds = new Set(kept.map(res => res.id));
+    return (list || []).filter(res => keepIds.has(res.id));
 }
 
 function buildTimeline() {
@@ -563,6 +620,7 @@ function buildTimeline() {
         const displayName = timelineDisplayName(res);
         const groupBadge = timelineGroupBadge(res);
         const vipIcon = isVip ? `<i class="fa-solid fa-crown" style="color:#F59E0B; margin-right:4px; font-size:0.7rem;"></i>` : '';
+        block.title = displayName;
         block.innerHTML = `<span class="tl-block-text">${groupBadge}${vipIcon}${displayName}</span>`;
 
         block.onclick = () => openTimelineReservation(res);
@@ -777,7 +835,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             PmsAPI.getTimelineReservations()
         ]);
         rooms = rmData;
-        window.reservations = resData;
+        window.reservations = dedupeTimelineReservations(resData);
         alignTimelineToFirstGroupBlock();
 
         applyTimelineStaticLabels();

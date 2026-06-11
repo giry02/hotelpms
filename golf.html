@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>골프 예약 — Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
+    <link rel="stylesheet" href="../common/css/operations.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
+    <script src="../common/js/i18n-catalog.js"></script>
+<script src="../common/js/i18n.js"></script>
+<script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
+<style>
+/* Filter Bar Styling */
+.filter-bar-mt {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px;
+    padding: 12px 20px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
+}
+.filter-left { display: flex; align-items: center; gap: 12px; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.filter-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.search-container { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.search-box-mt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: #fff; transition: border-color .2s; width: 220px;
+}
+.search-box-mt:focus-within { border-color: var(--primary); }
+.search-box-mt i { color: var(--txt3); font-size: .85rem; }
+.search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
+.btn-search {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 7px 14px; border-radius: 8px; border: none; cursor: pointer;
+    background: var(--primary); color: #fff; font-family: var(--font);
+    font-size: .8rem; font-weight: 600; transition: background .2s;
+}
+.btn-search:hover { background: #1D4ED8; }
+.filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
+.filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.period-select, .provider-select { height: 36px; min-width: 150px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
+.provider-select { min-width: 190px; }
+.period-select:focus, .provider-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
+
+@media(max-width:768px){
+    .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+    .filter-left { flex-wrap: wrap; gap: 10px; }
+    .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
+    .search-box-mt { flex: 1; min-width: 0; width: auto; }
+    .filter-divider { display: none; }
+    .filter-group { width: 100%; }
+    .period-select, .provider-select { width: 100%; }
+    .filter-right { justify-content: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="main">
+        <header class="topbar"><h1 data-i18n-key="Golf Booking">골프 예약</h1></header>
+
+    <div class="content">
+        <!-- KPI -->
+        <div class="kpi-grid">
+            <div class="kpi-card orange">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-handshake"></i></div></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpiProviderCount">0</div>
+                    <div class="kpi-label">제휴 업체 수</div>
+                    <div class="kpi-sub">계약된 골프장</div>
+                </div>
+            </div>
+            <div class="kpi-card blue">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpiOpenToday">0</div>
+                    <div class="kpi-label">금일 예약 건</div>
+                    <div class="kpi-sub">진행 예정 대기건</div>
+                </div>
+            </div>
+            <div class="kpi-card green">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-check"></i></div></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpiDoneToday">0</div>
+                    <div class="kpi-label">금일 라운딩 완료</div>
+                    <div class="kpi-sub">정산 완료 대상</div>
+                </div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpiCommission">$0</div>
+                    <div class="kpi-label">예상 수수료 수익</div>
+                    <div class="kpi-sub">예약 수수료 (별도 통계)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILTER -->
+        <div class="filter-bar-mt">
+            <div class="filter-left">
+                <div class="search-container">
+                    <div class="search-box-mt">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" data-pms-no-search-button="true" placeholder="객실번호, 고객명 검색..." oninput="renderOrders()" onkeydown="if(event.key==='Enter') renderOrders()">
+                    </div>
+                    <button onclick="renderOrders()" class="btn-primary-sm" style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap">
+                        <i class="fa-solid fa-magnifying-glass"></i> 검색
+                    </button>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
+                        <option value="week">최근 7일</option>
+                        <option value="today">오늘</option>
+                        <option value="month">이번 달</option>
+                        <option value="all">전체 기간</option>
+                    </select>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <div class="filter-chips" id="statusFilterChips">
+                        <button class="chip active" onclick="setStatusFilter(this,'all')">전체 <span class="chip-count" id="statusAllCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'open')">미완료 <span class="chip-count" id="statusOpenCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'done')">완료 <span class="chip-count" id="statusDoneCount">0</span></button>
+                    </div>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <select id="providerFilterSelect" class="provider-select" onchange="setProviderFilter(this.value)">
+                        <option value="all">전체 업체</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-right">
+                <button class="btn-outline" onclick="openModal('partnerModal')"><i class="fa-solid fa-building"></i> 업체 관리</button>
+                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> 신규 예약</button>
+            </div>
+        </div>
+
+        <!-- ORDER LIST -->
+        <div class="hk-task-list" id="orderList">
+            <!-- Generated by JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+let orders = [];
+
+const tMap = {
+    'club_a': { label:'썬밸리 CC', icon:'fa-golf-ball-tee', color:'var(--orange)' },
+    'club_b': { label:'스카이72', icon:'fa-golf-ball-tee', color:'var(--purple)' },
+};
+
+let currentFilter = 'all';
+let currentPeriodFilter = 'week';
+let currentStatusFilter = 'all';
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
+function providerKeyFor(order) {
+    return String(order?.type || order?.providerType || order?.partnerId || order?.providerName || order?.partnerName || 'other').trim() || 'other';
+}
+
+function providerLabelFor(order, key = providerKeyFor(order)) {
+    return order?.providerLabel
+        || order?.providerName
+        || order?.partnerName
+        || order?.companyName
+        || order?.courseName
+        || tMap[key]?.label
+        || String(key || '기타 업체').replace(/[-_]/g, ' ');
+}
+
+function providerMetaFor(order) {
+    const key = providerKeyFor(order);
+    const known = tMap[key] || {};
+    return {
+        key,
+        label: providerLabelFor(order, key),
+        icon: known.icon || 'fa-golf-ball-tee',
+        color: known.color || 'var(--txt2)'
+    };
+}
+
+function providerEntries() {
+    const map = new Map();
+    orders.forEach(order => {
+        const meta = providerMetaFor(order);
+        if (!map.has(meta.key)) {
+            map.set(meta.key, { key: meta.key, label: meta.label, count: 0 });
+        }
+        map.get(meta.key).count++;
+    });
+    if (!map.size) {
+        Object.entries(tMap).forEach(([key, meta]) => map.set(key, { key, label: meta.label, count: 0 }));
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'ko'));
+}
+
+function refreshProviderFilterOptions() {
+    const select = document.getElementById('providerFilterSelect');
+    const entries = providerEntries();
+    if (currentFilter !== 'all' && !entries.some(entry => entry.key === currentFilter)) currentFilter = 'all';
+    if (select) {
+        select.innerHTML = [
+            `<option value="all">전체 업체 (${orders.length})</option>`,
+            ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)} (${entry.count})</option>`)
+        ].join('');
+        select.value = currentFilter;
+    }
+    document.querySelectorAll('.provider-order-select').forEach(orderSelect => {
+        const selected = orderSelect.value;
+        orderSelect.innerHTML = [
+            `<option value="">업체 선택...</option>`,
+            ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)}</option>`)
+        ].join('');
+        if (entries.some(entry => entry.key === selected)) orderSelect.value = selected;
+    });
+}
+
+function parseOrderDate(value) {
+    if (!value) return null;
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function periodRange(filter) {
+    if (filter === 'all') return null;
+    const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    today.setHours(0, 0, 0, 0);
+    if (filter === 'today') return { start: today, end: today };
+    if (filter === 'month') {
+        return {
+            start: new Date(today.getFullYear(), today.getMonth(), 1),
+            end: new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        };
+    }
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+    return { start, end: today };
+}
+
+function orderDateValue(order) {
+    return order.date || order.reservationDate || order.scheduledDate || order.playDate || order.roundDate;
+}
+
+function currentDataDate() {
+    const dates = orders.map(orderDateValue).filter(Boolean).sort();
+    return dates[dates.length - 1] || (window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10));
+}
+
+function orderMatchesPeriod(order) {
+    const range = periodRange(currentPeriodFilter);
+    if (!range) return true;
+    const date = parseOrderDate(orderDateValue(order));
+    if (!date) return true;
+    return date >= range.start && date <= range.end;
+}
+
+function orderStatusKey(order) {
+    const value = String(order?.status || 'new').replace(/[-_\s]/g, '').toLowerCase();
+    if (['done', 'complete', 'completed', 'closed', 'paid'].includes(value)) return 'done';
+    if (['prep', 'preparing', 'accepted', 'progress', 'processing'].includes(value)) return 'prep';
+    return 'new';
+}
+
+function formatOrderTime(order) {
+    const rawDate = orderDateValue(order);
+    const date = rawDate ? String(rawDate).slice(5).replace('-', '.') : '';
+    return [date, order.time].filter(Boolean).join(' ');
+}
+
+function defaultCurrency() {
+    return localStorage.getItem('pms_default_currency') || 'PHP';
+}
+
+function orderCurrency(order) {
+    return order?.currency || order?.totalCurrency || order?.total?.currency || defaultCurrency();
+}
+
+function formatMoney(amount, currency = defaultCurrency()) {
+    const code = String(currency || 'PHP').toUpperCase();
+    const value = Number(amount || 0);
+    try {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: code,
+            minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+            maximumFractionDigits: ['USD', 'PHP'].includes(code) ? 2 : 0
+        }).format(value);
+    } catch(e) {
+        const symbols = { USD: '$', KRW: '₩', VND: '₫', THB: '฿', JPY: '¥' };
+        return `${symbols[code] || `${code} `}${value.toLocaleString()}`;
+    }
+}
+
+function updateRevenueKpi() {
+    const el = document.getElementById('kpiCommission');
+    if (!el) return;
+    const currency = orders.length ? orderCurrency(orders[0]) : defaultCurrency();
+    const total = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    el.textContent = formatMoney(total, currency);
+}
+
+function updateStatusCounts() {
+    const all = orders.length;
+    const done = orders.filter(order => orderStatusKey(order) === 'done').length;
+    const open = all - done;
+    const dataDate = currentDataDate();
+    const openToday = orders.filter(order => orderDateValue(order) === dataDate && orderStatusKey(order) !== 'done').length;
+    const doneToday = orders.filter(order => orderDateValue(order) === dataDate && orderStatusKey(order) === 'done').length;
+    const providerCount = providerEntries().filter(entry => entry.count > 0).length;
+    const allEl = document.getElementById('statusAllCount');
+    const openEl = document.getElementById('statusOpenCount');
+    const doneEl = document.getElementById('statusDoneCount');
+    if (allEl) allEl.textContent = all;
+    if (openEl) openEl.textContent = open;
+    if (doneEl) doneEl.textContent = done;
+    const providerEl = document.getElementById('kpiProviderCount');
+    const openTodayEl = document.getElementById('kpiOpenToday');
+    const doneTodayEl = document.getElementById('kpiDoneToday');
+    if (providerEl) providerEl.textContent = providerCount;
+    if (openTodayEl) openTodayEl.textContent = openToday;
+    if (doneTodayEl) doneTodayEl.textContent = doneToday;
+}
+
+function renderOrders() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const container = document.getElementById('orderList');
+    updateRevenueKpi();
+    updateStatusCounts();
+    
+    const filtered = orders.filter(o => {
+        if (currentFilter !== 'all' && providerKeyFor(o) !== currentFilter) return false;
+        const status = orderStatusKey(o);
+        if (currentStatusFilter === 'open' && status === 'done') return false;
+        if (currentStatusFilter === 'done' && status !== 'done') return false;
+        if (!orderMatchesPeriod(o)) return false;
+        const haystack = [o.room, o.guest, o.id, o.items, providerLabelFor(o)].join(' ').toLowerCase();
+        if (search && !haystack.includes(search)) return false;
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3)">해당하는 오더가 없습니다.</div>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(o => {
+        const info = providerMetaFor(o);
+        const status = orderStatusKey(o);
+        
+        let sHtml, actBtn;
+        if (status === 'new') {
+            sHtml = `<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> 예약 대기</span>`;
+            actBtn = `<button class="btn-primary-sm"><i class="fa-solid fa-check"></i> 예약 확정</button>`;
+        } else if (status === 'prep') {
+            sHtml = `<span style="color:var(--primary);font-weight:700"><i class="fa-solid fa-car"></i> 진행 예정</span>`;
+            actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)"><i class="fa-solid fa-check-double"></i> 완료 처리</button>`;
+        } else {
+            sHtml = `<span style="color:var(--success)"><i class="fa-solid fa-check-circle"></i> 라운딩 완료</span>`;
+            actBtn = `<button class="btn-outline-sm" disabled>정산됨</button>`;
+        }
+
+        const amtHtml = `<span style="font-weight:700;color:var(--txt)">${formatMoney(o.total, orderCurrency(o))}</span> (예상 수수료)`;
+
+        return `
+        <div class="hk-task ${status === 'new' ? 'dirty' : (status === 'done' ? 'clean' : 'inspect')}">
+            <div class="hk-task-left">
+                <div class="hk-task-room">${escapeHtml(o.room)}</div>
+                <div class="hk-task-info">
+                    <div class="hk-task-title">
+                        <i class="fa-solid ${escapeHtml(info.icon)}" style="color:${escapeHtml(info.color)}"></i> ${escapeHtml(info.label)}
+                        <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:6px">${escapeHtml(o.id)}</span>
+                    </div>
+                    <div class="hk-task-meta" style="color:var(--txt);font-weight:500">
+                        ${escapeHtml(o.items)}
+                    </div>
+                    <div class="hk-task-meta">
+                        ${sHtml}
+                        <span style="color:var(--border)">|</span>
+                        <span><i class="fa-regular fa-clock"></i> 접수: ${formatOrderTime(o)}</span>
+                        <span style="color:var(--border)">|</span>
+                        <span>청구액: ${amtHtml}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hk-task-right">
+                ${actBtn}
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+function setFilter(btn, filter) {
+    setProviderFilter(filter);
+}
+
+function setProviderFilter(filter) {
+    currentFilter = filter || 'all';
+    refreshProviderFilterOptions();
+    renderOrders();
+}
+
+function setPeriodFilter(filter) {
+    currentPeriodFilter = filter;
+    renderOrders();
+}
+
+function setStatusFilter(btn, filter) {
+    currentStatusFilter = filter || 'all';
+    document.getElementById('statusFilterChips')?.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn?.classList.add('active');
+    renderOrders();
+}
+
+/* renderOrders(); */
+
+// i18n
+let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+const translations={ko: {
+        "Main": "메인",
+        "Front Desk": "프론트 데스크",
+        "Guest & CRM": "투숙객 및 고객 관리",
+        "Operations": "운영 관리",
+        "Settings": "설정",
+        "Dashboard": "대시보드",
+        "Reservations": "예약 타임라인",
+        "Booking List": "예약 목록",
+        "Check-in/out": "체크인/아웃",
+        "Guest CRM": "투숙객 관리",
+        "VIP Members": "우수 고객 멤버십",
+        "Room Mgmt": "객실 관리",
+        "Room Types": "객실 유형",
+        "Rates Calendar": "요금 캘린더",
+        "Housekeeping": "하우스키핑",
+        "Folio & Billing": "통합 정산",
+        "Folio List": "정산 목록",
+        "Revenue Analytics": "매출 분석",
+        "Ancillary Svcs": "부가서비스",
+        "Room Service": "룸서비스",
+        "Golf": "골프",
+        "Golf Booking": "골프 예약",
+        "Rent-a-car Booking": "렌터카 예약",
+        "Rent-a-car": "렌터카",
+        "Hotel Settings": "호텔 설정",
+        "Staff Mgmt": "직원 관리",
+        "Billing & Payment": "요금 및 결제",
+        "Notices": "공지사항",
+        "Support": "고객지원",
+"Ancillary Svcs":"부가서비스","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","New Requests":"신규 요청","Preparing":"준비/진행 중","Completed":"처리 완료","Est. Revenue":"금일 예상 매출","All Services":"전체 서비스","Room Service":"룸서비스","Spa & Massage":"스파/마사지","Concierge":"컨시어지","Manual Order":"수기 오더 등록"},en: {
+        "Main": "Main",
+        "Front Desk": "Front Desk",
+        "Guest & CRM": "Guest & CRM",
+        "Operations": "Operations",
+        "Settings": "Settings",
+        "Dashboard": "Dashboard",
+        "Reservations": "Reservations",
+        "Booking List": "Booking List",
+        "Check-in/out": "Check-in/out",
+        "Guest CRM": "Guest CRM",
+        "VIP Members": "VIP Members",
+        "Room Mgmt": "Room Mgmt",
+        "Room Types": "Room Types",
+        "Rates Calendar": "Rates Calendar",
+        "Housekeeping": "Housekeeping",
+        "Folio & Billing": "Folio & Billing",
+        "Folio List": "Folio List",
+        "Revenue Analytics": "Revenue Analytics",
+        "Ancillary Svcs": "Ancillary Svcs",
+        "Room Service": "Room Service",
+        "Golf": "Golf",
+        "Golf Booking": "Golf Booking",
+        "Rent-a-car Booking": "Rent-a-car Booking",
+        "Rent-a-car": "Rent-a-car",
+        "Hotel Settings": "Hotel Settings",
+        "Staff Mgmt": "Staff Mgmt",
+        "Billing & Payment": "Billing & Payment",
+        "Notices": "Notices",
+        "Support": "Support",
+"Ancillary Svcs":"Ancillary Svcs","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","New Requests":"New Requests","Preparing":"Preparing","Completed":"Completed","Est. Revenue":"Est. Revenue","All Services":"All Services","Room Service":"Room Service","Spa & Massage":"Spa & Massage","Concierge":"Concierge","Manual Order":"Manual Order"}};
+function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
+    const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
+    document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
+    document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room번호 검색...';
+    if(tMap['club_a']) tMap['club_a'].label = l==='en'?'Sun Valley CC':'썬밸리 CC';
+    if(tMap['club_b']) tMap['club_b'].label = l==='en'?'SKY72':'스카이72';
+    refreshProviderFilterOptions();
+    /* renderOrders(); */
+}
+
+// 모달 및 오더 등록 로직
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function saveOrder() {
+    showToast('새 Ancillary Svcs 오더가 시스템에 등록되었습니다.');
+    closeModal('addOrderModal');
+}
+
+function handleItemSelect() {
+    const sel = document.getElementById('itemSelect');
+    const customInput = document.getElementById('customItemName');
+    const priceInput = document.getElementById('orderPrice');
+    
+    if (sel.value === 'custom') {
+        customInput.style.display = 'block';
+        priceInput.readOnly = false;
+        priceInput.value = '0.00';
+    } else {
+        customInput.style.display = 'none';
+        if (sel.value !== '') {
+            priceInput.readOnly = true;
+            calculateTotal();
+        }
+    }
+}
+
+function calculateTotal() {
+    const sel = document.getElementById('itemSelect');
+    const qty = document.getElementById('itemQty').value;
+    const priceInput = document.getElementById('orderPrice');
+    
+    if (sel.value && sel.value !== 'custom') {
+        priceInput.value = (parseFloat(sel.value) * parseInt(qty)).toFixed(2);
+    }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
+</script>
+
+<!-- Add Order Modal -->
+<div class="modal-overlay" id="addOrderModal" onclick="if(event.target===this) closeModal('addOrderModal')">
+    <div class="modal-card" style="max-width:500px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">골프장 신규 예약</h3>
+            <button class="modal-close" onclick="closeModal('addOrderModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호실 선택 <span style="color:var(--danger)">*</span></label>
+                    <select id="golfRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="autoFillGuest('golf')">
+                        <option value="">선택...</option>
+                        <option value="1401">1401</option>
+                        <option value="0807">0807</option>
+                        <option value="1205">1205</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">고객명 <span style="color:var(--danger)">*</span></label>
+                    <input type="text" id="golfGuest" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="자동 입력">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">국적 (국적)</label>
+                    <input type="text" id="golfNation" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">에이전시 (에이전시)</label>
+                    <input type="text" id="golf에이전시" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
+                </div>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border2)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이용 일시 <span style="color:var(--danger)">*</span></label>
+                    <input type="date" id="golfDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">티타임 (티 타임) <span style="color:var(--danger)">*</span></label>
+                    <input type="time" id="golfTime" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
+                    <select class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="">업체 선택...</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">인원 / 홀 (인원 / 홀수) <span style="color:var(--danger)">*</span></label>
+                    <div style="display:flex;gap:8px">
+                        <input type="number" id="golfPax" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);" placeholder="인원(명)">
+                        <select id="golfHoles" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
+                            <option>9홀</option>
+                            <option selected>18홀</option>
+                            <option>27홀</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+            <button class="btn-outline" onclick="closeModal('addOrderModal')">취소</button>
+            <button class="btn-primary-sm" onclick="saveOrder()"><i class="fa-solid fa-check"></i> 예약 전송</button>
+        </div>
+    </div>
+</div>
+
+<!-- Partner Management Modal -->
+<div class="modal-overlay" id="partnerModal" onclick="if(event.target===this) closeModal('partnerModal')">
+    <div class="modal-card" style="max-width:600px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">제휴 골프장 업체 관리</h3>
+            <button class="modal-close" onclick="closeModal('partnerModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호실 선택 <span style="color:var(--danger)">*</span></label>
+                    <select id="golfRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="autoFillGuest('golf')">
+                        <option value="">선택...</option>
+                        <option value="1401">1401</option>
+                        <option value="0807">0807</option>
+                        <option value="1205">1205</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">고객명 <span style="color:var(--danger)">*</span></label>
+                    <input type="text" id="golfGuest" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="자동 입력">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">국적 (국적)</label>
+                    <input type="text" id="golfNation" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">에이전시 (에이전시)</label>
+                    <input type="text" id="golf에이전시" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
+                </div>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border2)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이용 일시 <span style="color:var(--danger)">*</span></label>
+                    <input type="date" id="golfDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">티타임 (티 타임) <span style="color:var(--danger)">*</span></label>
+                    <input type="time" id="golfTime" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">코스 (코스) <span style="color:var(--danger)">*</span></label>
+                    <select class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="">업체 선택...</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">인원 / 홀 (인원 / 홀수) <span style="color:var(--danger)">*</span></label>
+                    <div style="display:flex;gap:8px">
+                        <input type="number" id="golfPax" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);" placeholder="인원(명)">
+                        <select id="golfHoles" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
+                            <option>9홀</option>
+                            <option selected>18홀</option>
+                            <option>27홀</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+            <button class="btn-primary-sm" onclick="closeModal('partnerModal')">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function autoFillGuest(type) {
+    const roomEl = document.getElementById(type + 'Room');
+    const guestEl = document.getElementById(type + 'Guest');
+    const nationEl = document.getElementById(type + 'Nation');
+    const agencyEl = document.getElementById(type + '에이전시');
+    const phoneEl = document.getElementById(type + 'Phone');
+    const room = String(roomEl?.value || '').trim();
+    const info = orders.find(order => String(order.room || order.roomNo || '').trim() === room);
+    
+    if(room && info) {
+        if(guestEl) guestEl.value = info.guest || info.guestName || info.name || '';
+        if(nationEl) nationEl.value = info.nation || info.nationality || '';
+        if(agencyEl) agencyEl.value = info.agency || info.channel || '';
+        if(phoneEl && info.phone) phoneEl.value = info.phone;
+    } else {
+        if(guestEl) guestEl.value = '';
+        if(nationEl) nationEl.value = '';
+        if(agencyEl) agencyEl.value = '';
+        if(phoneEl) phoneEl.value = '';
+    }
+}
+</script>
+
+<script>
+function updateFilterCounts() {
+    refreshProviderFilterOptions();
+    updateRevenueKpi();
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        orders = await PmsAPI.getGolfOrders();
+        updateFilterCounts();
+        renderOrders();
+    } catch(e) { console.error(e); }
+});
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
+</script>
+</body>
+</html>

@@ -646,12 +646,12 @@ function alertBadges(res) {
 }
 
 function formatMoney(res) {
-    const currency = res.currency || 'USD';
+    const currency = res.currency || localStorage.getItem('pms_default_currency') || 'PHP';
     const amount = Number(res.amount || res.totalAmount?.amount || 0);
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency,
-        maximumFractionDigits: currency === 'USD' ? 2 : 0
+        maximumFractionDigits: ['USD', 'PHP'].includes(currency) ? 2 : 0
     }).format(amount);
 }
 

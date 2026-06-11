@@ -10,11 +10,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const explicit = amountValue(room.baseRate ?? room.rate ?? room.price);
         return explicit > 0 ? explicit : 0;
     };
-    const currencyOf = (value) => (value && typeof value === 'object' && value.currency) || 'USD';
-    const formatMoney = (amount, currency = 'USD') => new Intl.NumberFormat('en-US', {
+    const currencyOf = (value) => (value && typeof value === 'object' && value.currency) || localStorage.getItem('pms_default_currency') || 'PHP';
+    const formatMoney = (amount, currency = localStorage.getItem('pms_default_currency') || 'PHP') => new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency,
-        maximumFractionDigits: currency === 'USD' ? 2 : 0
+        maximumFractionDigits: ['USD', 'PHP'].includes(currency) ? 2 : 0
     }).format(Number(amount || 0));
     const localIso = (date) => {
         if (!date && window.PmsDate?.todayIso) return window.PmsDate.todayIso();
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         room: order.room || order.roomNo || String(order.roomId || '').split('-').pop() || '-',
         itemText: orderItemsText(order.items || order.item || order.name),
         amount: amountValue(order.total ?? order.amount ?? order.price),
-        currency: order.currency || order.total?.currency || 'USD'
+            currency: order.currency || order.total?.currency || localStorage.getItem('pms_default_currency') || 'PHP'
     });
 
     let rooms = [];

@@ -114,6 +114,8 @@ function auditCoreRelations() {
   const rooming = items(readJson('dashboard/data/api/v1/groups/rooming-list/GRP-260527-01.json'), 'rooming list');
   const hkRooms = items(readJson('dashboard/data/api/v1/operations/housekeeping-rooms.json'), 'housekeeping rooms');
   const folios = items(readJson('dashboard/data/api/v1/folios/index.json'), 'folios');
+  const currencySettings = readJson('dashboard/data/api/v1/settings/currency.json')?.data || {};
+  const defaultCurrency = currencySettings.defaultCurrency || 'PHP';
 
   const roomIds = new Set(rooms.map(room => room.roomId || room.id));
   const roomTypeIds = new Set(roomTypes.map(type => type.id || type.code));
@@ -186,7 +188,7 @@ function auditCoreRelations() {
   folios.forEach(folio => {
     if (folio.groupId) assert(groupIds.has(folio.groupId), `folios/${folio.id}: unknown groupId ${folio.groupId}`);
     if (folio.companyId) assert(companyIds.has(folio.companyId), `folios/${folio.id}: unknown companyId ${folio.companyId}`);
-    assert(folio.balance?.currency === 'USD', `folios/${folio.id}: balance currency is not USD`);
+    assert(folio.balance?.currency === defaultCurrency, `folios/${folio.id}: balance currency is not ${defaultCurrency}`);
   });
 
   const inHouseRoomIds = rooms

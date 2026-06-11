@@ -5,8 +5,8 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const DASH_API = path.join(ROOT, 'dashboard', 'data', 'api', 'v1');
 const ADMIN_API = path.join(ROOT, 'admin', 'data', 'api', 'v1', 'admin');
 const TENANT_ID = 'TENANT-GRAND-SAIGON';
-const CURRENCY = 'USD';
-const CURRENCY_SYMBOL = '$';
+const CURRENCY = 'PHP';
+const CURRENCY_SYMBOL = '₱';
 const MONETARY_KEYS = new Set(['amount', 'value', 'room', 'fnb', 'spa', 'other', 'lastYear', 'thisYear', 'amt', 'v', 'minSpend']);
 const NOW = '2026-05-28T09:00:00+09:00';
 
@@ -326,6 +326,7 @@ function reservation(id, roomId, guestId, guestName, channel, status, checkInDat
 
 function groupReservation(id, roomId, allocationId, roomingGuestId, roomingGuestName) {
   const alloc = roomAllocations.find(item => item.id === allocationId);
+  const assigned = !!roomingGuestName;
   return {
     id,
     reservationId: id,
@@ -345,7 +346,7 @@ function groupReservation(id, roomId, allocationId, roomingGuestId, roomingGuest
     guestId: roomingGuestId ? roomingGuestId.replace('RMG', 'GUEST') : '',
     guestName: roomingGuestName,
     channel: 'Group',
-    status: 'blocked',
+    status: assigned ? 'confirmed' : 'blocked',
     checkInDate: '2026-05-27',
     checkOutDate: '2026-05-30',
     start: 15,
@@ -353,7 +354,7 @@ function groupReservation(id, roomId, allocationId, roomingGuestId, roomingGuest
     rate: alloc.finalRate,
     totalAmount: { amount: alloc.finalRate.amount * 3, currency: CURRENCY },
     isB2B: true,
-    isGroupPlaceholder: true,
+    isGroupPlaceholder: !assigned,
     discountPercent: alloc.discountPercent,
     specialNotes: roomingGuestName === 'Alexander Kim' ? '견과류 알러지, 저자극 베개 요청' : ''
   };
@@ -595,7 +596,7 @@ function writeDashboardData() {
     { id: 'ACT-2', type: 'task', label: 'OT-1405 maintenance in progress', time: '10:10' }
   ], 'REQ-DASHBOARD-ACTIVITIES'));
   writeJson(DASH_API, 'settings/hotel.json', envelope({ id: TENANT_ID, name: 'The Grand Saigon', country: 'Vietnam', city: 'Ho Chi Minh', timezone: 'Asia/Seoul', defaultCurrency: CURRENCY }, 'REQ-SETTINGS-HOTEL'));
-  writeJson(DASH_API, 'settings/currency.json', envelope({ defaultCurrency: CURRENCY, supported: ['USD', 'VND', 'THB', 'JPY', 'KRW'], display: { symbol: CURRENCY_SYMBOL, decimals: 2 } }, 'REQ-SETTINGS-CURRENCY'));
+  writeJson(DASH_API, 'settings/currency.json', envelope({ defaultCurrency: CURRENCY, supported: ['USD', 'PHP', 'VND', 'THB', 'JPY', 'KRW'], display: { symbol: CURRENCY_SYMBOL, decimals: 2 } }, 'REQ-SETTINGS-CURRENCY'));
   writeJson(DASH_API, 'settings/menus.json', listEnvelope(menus, 'REQ-SETTINGS-MENUS'));
   writeJson(DASH_API, 'settings/roles.json', listEnvelope(roles, 'REQ-SETTINGS-ROLES'));
   writeJson(DASH_API, 'settings/staff.json', listEnvelope(staff, 'REQ-SETTINGS-STAFF'));

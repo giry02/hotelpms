@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>렌터카 예약 — Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
+    <link rel="stylesheet" href="../common/css/operations.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
+    <script src="../common/js/i18n-catalog.js"></script>
+<script src="../common/js/i18n.js"></script>
+<script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
+<style>
+/* Filter Bar Styling */
+.filter-bar-mt {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px;
+    padding: 12px 20px; background: #fff; border: 1px solid var(--border); border-radius: 14px;
+}
+.filter-left { display: flex; align-items: center; gap: 12px; flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.filter-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.search-container { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.search-box-mt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: #fff; transition: border-color .2s; width: 220px;
+}
+.search-box-mt:focus-within { border-color: var(--primary); }
+.search-box-mt i { color: var(--txt3); font-size: .85rem; }
+.search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
+.btn-search {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 7px 14px; border-radius: 8px; border: none; cursor: pointer;
+    background: var(--primary); color: #fff; font-family: var(--font);
+    font-size: .8rem; font-weight: 600; transition: background .2s;
+}
+.btn-search:hover { background: #1D4ED8; }
+.filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
+.filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.period-select, .provider-select { height: 36px; min-width: 150px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
+.provider-select { min-width: 190px; }
+.period-select:focus, .provider-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
+
+@media(max-width:768px){
+    .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+    .filter-left { flex-wrap: wrap; gap: 10px; }
+    .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
+    .search-box-mt { flex: 1; min-width: 0; width: auto; }
+    .filter-divider { display: none; }
+    .filter-group { width: 100%; }
+    .period-select, .provider-select { width: 100%; }
+    .filter-right { justify-content: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="main">
+        <header class="topbar"><h1 data-i18n-key="Rent-a-car Booking">렌터카 예약</h1></header>
+
+    <div class="content">
+        <!-- KPI -->
+        <div class="kpi-grid">
+            <div class="kpi-card orange">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-handshake"></i></div></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpiProviderCount">0</div>
+                    <div class="kpi-label">제휴 업체 수</div>
+                    <div class="kpi-sub">계약된 렌터카 업체</div>
+                </div>
+            </div>
+            <div class="kpi-card blue">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpiOpenToday">0</div>
+                    <div class="kpi-label">금일 예약 건</div>
+                    <div class="kpi-sub">대여 예정 및 대기</div>
+                </div>
+            </div>
+            <div class="kpi-card green">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-car-on"></i></div></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpiDoneToday">0</div>
+                    <div class="kpi-label">금일 대여 중/완료</div>
+                    <div class="kpi-sub">정산 대상</div>
+                </div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div></div>
+                <div class="kpi-body">
+                    <div class="kpi-value" id="kpiCommission">$0</div>
+                    <div class="kpi-label">예상 수수료 수익</div>
+                    <div class="kpi-sub">예약 수수료 (별도 통계)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILTER -->
+        <div class="filter-bar-mt">
+            <div class="filter-left">
+                <div class="search-container">
+                    <div class="search-box-mt">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="searchInput" data-pms-no-search-button="true" placeholder="객실번호 검색..." oninput="renderOrders()" onkeydown="if(event.key==='Enter') renderOrders()">
+                    </div>
+                    <button onclick="renderOrders()" class="btn-primary-sm"
+                        style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap">
+                        <i class="fa-solid fa-magnifying-glass"></i> 검색
+                    </button>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
+                        <option value="week">최근 7일</option>
+                        <option value="today">오늘</option>
+                        <option value="month">이번 달</option>
+                        <option value="all">전체 기간</option>
+                    </select>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <div class="filter-chips" id="statusFilterChips">
+                        <button class="chip active" onclick="setStatusFilter(this,'all')">전체 <span class="chip-count" id="statusAllCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'open')">미완료 <span class="chip-count" id="statusOpenCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'done')">완료 <span class="chip-count" id="statusDoneCount">0</span></button>
+                    </div>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-group">
+                    <select id="providerFilterSelect" class="provider-select" onchange="setProviderFilter(this.value)">
+                        <option value="all">전체 업체</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-right">
+                <button class="btn-outline" onclick="openModal('partnerModal')"><i class="fa-solid fa-building"></i> 업체 관리</button>
+                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> 신규 예약</button>
+            </div>
+        </div>
+
+        <!-- ORDER LIST -->
+        <div class="hk-task-list" id="orderList">
+            <!-- Generated by JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+let orders = [];
+let rentacarReservations = [];
+let rentacarGuests = [];
+
+const tMap = {
+    'lotte': { label:'롯데렌터카', icon:'fa-car', color:'var(--orange)' },
+    'sk': { label:'SK렌터카', icon:'fa-car', color:'var(--purple)' },
+};
+
+const VEHICLE_CLASSES = [
+    { value: 'compact', label: '\uCEF4\uD329\uD2B8', icon: 'fa-car-side' },
+    { value: 'sedan', label: '\uC138\uB2E8', icon: 'fa-car' },
+    { value: 'suv', label: 'SUV', icon: 'fa-truck-monster' },
+    { value: 'van', label: '\uBC34/\uC2B9\uD569', icon: 'fa-van-shuttle' },
+    { value: 'electric', label: '\uC804\uAE30\uCC28', icon: 'fa-bolt' },
+    { value: 'hybrid', label: '\uD558\uC774\uBE0C\uB9AC\uB4DC', icon: 'fa-leaf' },
+    { value: 'luxury', label: '\uB7ED\uC154\uB9AC', icon: 'fa-gem' },
+    { value: 'chauffeur', label: '\uAE30\uC0AC \uD3EC\uD568', icon: 'fa-user-tie' }
+];
+
+let currentFilter = 'all';
+let currentPeriodFilter = 'week';
+let currentStatusFilter = 'all';
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
+function providerKeyFor(order) {
+    return String(order?.type || order?.providerType || order?.partnerId || order?.providerName || order?.partnerName || 'other').trim() || 'other';
+}
+
+function providerLabelFor(order, key = providerKeyFor(order)) {
+    return order?.providerLabel
+        || order?.providerName
+        || order?.partnerName
+        || order?.companyName
+        || order?.vendorName
+        || tMap[key]?.label
+        || String(key || '기타 업체').replace(/[-_]/g, ' ');
+}
+
+function providerMetaFor(order) {
+    const key = providerKeyFor(order);
+    const known = tMap[key] || {};
+    return {
+        key,
+        label: providerLabelFor(order, key),
+        icon: known.icon || 'fa-car',
+        color: known.color || 'var(--txt2)'
+    };
+}
+
+function vehicleClassOf(order) {
+    const raw = String(order?.vehicleClass || order?.carClass || order?.vehicleType || order?.carType || '').trim();
+    if (raw) return raw;
+    const itemText = String(order?.items || '').toLowerCase();
+    if (/ev|electric|tesla|ioniq/.test(itemText)) return 'electric';
+    if (/hybrid/.test(itemText)) return 'hybrid';
+    if (/van|carnival|staria/.test(itemText)) return 'van';
+    if (/suv|sorento|palisade/.test(itemText)) return 'suv';
+    if (/g80|bmw|benz|mercedes|premium/.test(itemText)) return 'luxury';
+    if (/chauffeur/.test(itemText)) return 'chauffeur';
+    if (/k3|compact/.test(itemText)) return 'compact';
+    return 'sedan';
+}
+
+function vehicleClassMeta(value) {
+    const key = String(value || '').trim();
+    return VEHICLE_CLASSES.find(item => item.value === key || item.label === key) || {
+        value: key || 'sedan',
+        label: key || '\uC138\uB2E8',
+        icon: 'fa-car'
+    };
+}
+
+function vehicleClassLabel(order) {
+    return vehicleClassMeta(vehicleClassOf(order)).label;
+}
+
+function refreshVehicleClassOptions() {
+    const select = document.getElementById('rentCarType');
+    if (!select) return;
+    select.innerHTML = [
+        '<option value="">\uCC28\uC885 \uC120\uD0DD...</option>',
+        ...VEHICLE_CLASSES.map(item => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`),
+        '<option value="custom">\uC9C1\uC811 \uC785\uB825</option>'
+    ].join('');
+    toggleVehicleClassCustom();
+}
+
+function toggleVehicleClassCustom() {
+    const select = document.getElementById('rentCarType');
+    const custom = document.getElementById('rentCarTypeCustom');
+    if (custom) custom.style.display = select?.value === 'custom' ? 'block' : 'none';
+}
+
+function providerEntries() {
+    const map = new Map();
+    orders.forEach(order => {
+        const meta = providerMetaFor(order);
+        if (!map.has(meta.key)) {
+            map.set(meta.key, { key: meta.key, label: meta.label, count: 0 });
+        }
+        map.get(meta.key).count++;
+    });
+    if (!map.size) {
+        Object.entries(tMap).forEach(([key, meta]) => map.set(key, { key, label: meta.label, count: 0 }));
+    }
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'ko'));
+}
+
+function refreshProviderFilterOptions() {
+    const select = document.getElementById('providerFilterSelect');
+    const entries = providerEntries();
+    if (currentFilter !== 'all' && !entries.some(entry => entry.key === currentFilter)) currentFilter = 'all';
+    if (select) {
+        select.innerHTML = [
+            `<option value="all">전체 업체 (${orders.length})</option>`,
+            ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)} (${entry.count})</option>`)
+        ].join('');
+        select.value = currentFilter;
+    }
+    document.querySelectorAll('.provider-order-select').forEach(orderSelect => {
+        const selected = orderSelect.value;
+        orderSelect.innerHTML = [
+            `<option value="">업체 선택...</option>`,
+            ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)}</option>`)
+        ].join('');
+        if (entries.some(entry => entry.key === selected)) orderSelect.value = selected;
+    });
+}
+
+function parseOrderDate(value) {
+    if (!value) return null;
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function periodRange(filter) {
+    if (filter === 'all') return null;
+    const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    today.setHours(0, 0, 0, 0);
+    if (filter === 'today') return { start: today, end: today };
+    if (filter === 'month') {
+        return {
+            start: new Date(today.getFullYear(), today.getMonth(), 1),
+            end: new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        };
+    }
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+    return { start, end: today };
+}
+
+function orderDateValue(order) {
+    return order.date || order.reservationDate || order.scheduledDate || order.pickupDate || order.rentDate;
+}
+
+function currentDataDate() {
+    const dates = orders.map(orderDateValue).filter(Boolean).sort();
+    return dates[dates.length - 1] || (window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10));
+}
+
+function orderMatchesPeriod(order) {
+    const range = periodRange(currentPeriodFilter);
+    if (!range) return true;
+    const date = parseOrderDate(orderDateValue(order));
+    if (!date) return true;
+    return date >= range.start && date <= range.end;
+}
+
+function orderStatusKey(order) {
+    const value = String(order?.status || 'new').replace(/[-_\s]/g, '').toLowerCase();
+    if (['done', 'complete', 'completed', 'closed', 'paid'].includes(value)) return 'done';
+    if (['prep', 'preparing', 'accepted', 'progress', 'processing'].includes(value)) return 'prep';
+    return 'new';
+}
+
+function formatOrderTime(order) {
+    const rawDate = orderDateValue(order);
+    const date = rawDate ? String(rawDate).slice(5).replace('-', '.') : '';
+    return [date, order.time].filter(Boolean).join(' ');
+}
+
+function defaultCurrency() {
+    return localStorage.getItem('pms_default_currency') || 'PHP';
+}
+
+function orderCurrency(order) {
+    return order?.currency || order?.totalCurrency || order?.total?.currency || defaultCurrency();
+}
+
+function formatMoney(amount, currency = defaultCurrency()) {
+    const code = String(currency || 'PHP').toUpperCase();
+    const value = Number(amount || 0);
+    try {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: code,
+            minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+            maximumFractionDigits: ['USD', 'PHP'].includes(code) ? 2 : 0
+        }).format(value);
+    } catch(e) {
+        const symbols = { USD: '$', KRW: '₩', VND: '₫', THB: '฿', JPY: '¥' };
+        return `${symbols[code] || `${code} `}${value.toLocaleString()}`;
+    }
+}
+
+function updateRevenueKpi() {
+    const el = document.getElementById('kpiCommission');
+    if (!el) return;
+    const currency = orders.length ? orderCurrency(orders[0]) : defaultCurrency();
+    const total = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    el.textContent = formatMoney(total, currency);
+}
+
+function updateStatusCounts() {
+    const all = orders.length;
+    const done = orders.filter(order => orderStatusKey(order) === 'done').length;
+    const open = all - done;
+    const dataDate = currentDataDate();
+    const openToday = orders.filter(order => orderDateValue(order) === dataDate && orderStatusKey(order) !== 'done').length;
+    const doneToday = orders.filter(order => orderDateValue(order) === dataDate && orderStatusKey(order) === 'done').length;
+    const providerCount = providerEntries().filter(entry => entry.count > 0).length;
+    const allEl = document.getElementById('statusAllCount');
+    const openEl = document.getElementById('statusOpenCount');
+    const doneEl = document.getElementById('statusDoneCount');
+    if (allEl) allEl.textContent = all;
+    if (openEl) openEl.textContent = open;
+    if (doneEl) doneEl.textContent = done;
+    const providerEl = document.getElementById('kpiProviderCount');
+    const openTodayEl = document.getElementById('kpiOpenToday');
+    const doneTodayEl = document.getElementById('kpiDoneToday');
+    if (providerEl) providerEl.textContent = providerCount;
+    if (openTodayEl) openTodayEl.textContent = openToday;
+    if (doneTodayEl) doneTodayEl.textContent = doneToday;
+}
+
+function renderOrders() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const container = document.getElementById('orderList');
+    updateRevenueKpi();
+    updateStatusCounts();
+    
+    const filtered = orders.filter(o => {
+        if (currentFilter !== 'all' && providerKeyFor(o) !== currentFilter) return false;
+        const status = orderStatusKey(o);
+        if (currentStatusFilter === 'open' && status === 'done') return false;
+        if (currentStatusFilter === 'done' && status !== 'done') return false;
+        if (!orderMatchesPeriod(o)) return false;
+        const haystack = [o.room, o.guest, o.id, o.items, providerLabelFor(o), vehicleClassLabel(o)].join(' ').toLowerCase();
+        if (search && !haystack.includes(search)) return false;
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3)">해당하는 오더가 없습니다.</div>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(o => {
+        const info = providerMetaFor(o);
+        const vehicle = vehicleClassMeta(vehicleClassOf(o));
+        const status = orderStatusKey(o);
+        
+        let sHtml, actBtn;
+        if (status === 'new') {
+            sHtml = `<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> 예약 대기</span>`;
+            actBtn = `<button class="btn-primary-sm"><i class="fa-solid fa-check"></i> 예약 확정</button>`;
+        } else if (status === 'prep') {
+            sHtml = `<span style="color:var(--primary);font-weight:700"><i class="fa-solid fa-key"></i> 배차 진행중</span>`;
+            actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)"><i class="fa-solid fa-check-double"></i> 대여 완료</button>`;
+        } else {
+            sHtml = `<span style="color:var(--success)"><i class="fa-solid fa-check-circle"></i> 반납 완료</span>`;
+            actBtn = `<button class="btn-outline-sm" disabled>정산됨</button>`;
+        }
+
+        const amtHtml = `<span style="font-weight:700;color:var(--txt)">${formatMoney(o.total, orderCurrency(o))}</span> (예상 수수료)`;
+
+        return `
+        <div class="hk-task ${status === 'new' ? 'dirty' : (status === 'done' ? 'clean' : 'inspect')}">
+            <div class="hk-task-left">
+                <div class="hk-task-room">${escapeHtml(o.room)}</div>
+                <div class="hk-task-info">
+                    <div class="hk-task-title">
+                        <i class="fa-solid ${escapeHtml(info.icon)}" style="color:${escapeHtml(info.color)}"></i> ${escapeHtml(info.label)}
+                        <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:6px">${escapeHtml(o.id)}</span>
+                    </div>
+                    <div class="hk-task-meta" style="color:var(--txt);font-weight:500">
+                        <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:999px;background:rgba(59,130,246,.08);color:var(--primary);font-size:.72rem;font-weight:800;margin-right:6px">
+                            <i class="fa-solid ${escapeHtml(vehicle.icon)}"></i> ${escapeHtml(vehicle.label)}
+                        </span>
+                        ${escapeHtml(o.items)}
+                    </div>
+                    <div class="hk-task-meta">
+                        ${sHtml}
+                        <span style="color:var(--border)">|</span>
+                        <span><i class="fa-regular fa-clock"></i> 접수: ${formatOrderTime(o)}</span>
+                        <span style="color:var(--border)">|</span>
+                        <span>청구액: ${amtHtml}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hk-task-right">
+                ${actBtn}
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+function setFilter(btn, filter) {
+    setProviderFilter(filter);
+}
+
+function setProviderFilter(filter) {
+    currentFilter = filter || 'all';
+    refreshProviderFilterOptions();
+    renderOrders();
+}
+
+function setPeriodFilter(filter) {
+    currentPeriodFilter = filter;
+    renderOrders();
+}
+
+function setStatusFilter(btn, filter) {
+    currentStatusFilter = filter || 'all';
+    document.getElementById('statusFilterChips')?.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    btn?.classList.add('active');
+    renderOrders();
+}
+
+/* renderOrders(); */
+
+// i18n
+let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+const translations={ko: {
+        "Main": "메인",
+        "Front Desk": "프론트 데스크",
+        "Guest & CRM": "투숙객 및 고객 관리",
+        "Operations": "운영 관리",
+        "Settings": "설정",
+        "Dashboard": "대시보드",
+        "Reservations": "예약 타임라인",
+        "Booking List": "예약 목록",
+        "Check-in/out": "체크인/아웃",
+        "Guest CRM": "투숙객 관리",
+        "VIP Members": "우수 고객 멤버십",
+        "Room Mgmt": "객실 관리",
+        "Room Types": "객실 유형",
+        "Rates Calendar": "요금 캘린더",
+        "Housekeeping": "하우스키핑",
+        "Folio & Billing": "통합 정산",
+        "Folio List": "정산 목록",
+        "Revenue Analytics": "매출 분석",
+        "Ancillary Svcs": "부가서비스",
+        "Room Service": "룸서비스",
+        "Golf": "골프",
+        "Golf Booking": "골프 예약",
+        "Rent-a-car Booking": "렌터카 예약",
+        "Rent-a-car": "렌터카",
+        "Hotel Settings": "호텔 설정",
+        "Staff Mgmt": "직원 관리",
+        "Billing & Payment": "요금 및 결제",
+        "Notices": "공지사항",
+        "Support": "고객지원",
+"Ancillary Svcs":"부가서비스","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","New Requests":"신규 요청","Preparing":"준비/진행 중","Completed":"처리 완료","Est. Revenue":"금일 예상 매출","All Services":"전체 서비스","Room Service":"룸서비스","Spa & Massage":"스파/마사지","Concierge":"컨시어지","Manual Order":"수기 오더 등록"},en: {
+        "Main": "Main",
+        "Front Desk": "Front Desk",
+        "Guest & CRM": "Guest & CRM",
+        "Operations": "Operations",
+        "Settings": "Settings",
+        "Dashboard": "Dashboard",
+        "Reservations": "Reservations",
+        "Booking List": "Booking List",
+        "Check-in/out": "Check-in/out",
+        "Guest CRM": "Guest CRM",
+        "VIP Members": "VIP Members",
+        "Room Mgmt": "Room Mgmt",
+        "Room Types": "Room Types",
+        "Rates Calendar": "Rates Calendar",
+        "Housekeeping": "Housekeeping",
+        "Folio & Billing": "Folio & Billing",
+        "Folio List": "Folio List",
+        "Revenue Analytics": "Revenue Analytics",
+        "Ancillary Svcs": "Ancillary Svcs",
+        "Room Service": "Room Service",
+        "Golf": "Golf",
+        "Golf Booking": "Golf Booking",
+        "Rent-a-car Booking": "Rent-a-car Booking",
+        "Rent-a-car": "Rent-a-car",
+        "Hotel Settings": "Hotel Settings",
+        "Staff Mgmt": "Staff Mgmt",
+        "Billing & Payment": "Billing & Payment",
+        "Notices": "Notices",
+        "Support": "Support",
+"Ancillary Svcs":"Ancillary Svcs","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","New Requests":"New Requests","Preparing":"Preparing","Completed":"Completed","Est. Revenue":"Est. Revenue","All Services":"All Services","Room Service":"Room Service","Spa & Massage":"Spa & Massage","Concierge":"Concierge","Manual Order":"Manual Order"}};
+function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
+function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
+    const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
+    document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
+    document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room번호 검색...';
+    if(tMap['lotte']) tMap['lotte'].label = l==='en'?'Lotte Rent-a-Car':'롯데렌터카';
+    if(tMap['sk']) tMap['sk'].label = l==='en'?'SK Rent-a-Car':'SK렌터카';
+    refreshProviderFilterOptions();
+    /* renderOrders(); */
+}
+
+// 모달 및 오더 등록 로직
+function openModal(id) {
+    if (id === 'addOrderModal') refreshVehicleClassOptions();
+    document.getElementById(id).classList.add('active');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function saveOrder() {
+    showToast('새 Ancillary Svcs 오더가 시스템에 등록되었습니다.');
+    closeModal('addOrderModal');
+}
+
+function handleItemSelect() {
+    const sel = document.getElementById('itemSelect');
+    const customInput = document.getElementById('customItemName');
+    const priceInput = document.getElementById('orderPrice');
+    
+    if (sel.value === 'custom') {
+        customInput.style.display = 'block';
+        priceInput.readOnly = false;
+        priceInput.value = '0.00';
+    } else {
+        customInput.style.display = 'none';
+        if (sel.value !== '') {
+            priceInput.readOnly = true;
+            calculateTotal();
+        }
+    }
+}
+
+function calculateTotal() {
+    const sel = document.getElementById('itemSelect');
+    const qty = document.getElementById('itemQty').value;
+    const priceInput = document.getElementById('orderPrice');
+    
+    if (sel.value && sel.value !== 'custom') {
+        priceInput.value = (parseFloat(sel.value) * parseInt(qty)).toFixed(2);
+    }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
+</script>
+
+<!-- Add Order Modal -->
+<div class="modal-overlay" id="addOrderModal" onclick="if(event.target===this) closeModal('addOrderModal')">
+    <div class="modal-card" style="max-width:500px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">렌트카 신규 예약</h3>
+            <button class="modal-close" onclick="closeModal('addOrderModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호실 선택 <span style="color:var(--danger)">*</span></label>
+                    <select id="rentRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="autoFillGuest('rent')">
+                        <option value="">선택...</option>
+                        <option value="1401">1401</option>
+                        <option value="0807">0807</option>
+                        <option value="1205">1205</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">고객명 <span style="color:var(--danger)">*</span></label>
+                    <input type="text" id="rentGuest" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="자동 입력">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">연락처</label>
+                    <input type="text" id="rentPhone" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#f1f5f9" placeholder="자동 입력">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">차량 등급 (차종) <span style="color:var(--danger)">*</span></label>
+                    <select id="rentCarType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="toggleVehicleClassCustom()">
+                        <option>세단</option>
+                        <option>패밀리 SUV</option>
+                        <option>럭셔리 밴</option>
+                    </select>
+                    <input type="text" id="rentCarTypeCustom" style="display:none;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="&#50696;: &#54589;&#50629;&#53944;&#47085;, &#47532;&#47924;&#51652;, &#51204;&#44592; SUV">
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">렌터카 업체 <span style="color:var(--danger)">*</span></label>
+                <select class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                    <option value="">업체 선택...</option>
+                </select>
+            </div>
+            <hr style="border:none;border-top:1px solid var(--border2)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">대여 일시 <span style="color:var(--danger)">*</span></label>
+                    <input type="datetime-local" id="rentDate" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">대여 기간 <span style="color:var(--danger)">*</span></label>
+                    <select id="rentDuration" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option>4시간</option>
+                        <option>8시간</option>
+                        <option>24시간 (1 Day)</option>
+                        <option>공항 샌딩</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">픽업 / 반납 장소 <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="rentLocation" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 호텔 정문 픽업 -> 다낭 국제공항 반납">
+            </div>
+        
+            <hr style="border:none;border-top:1px solid var(--border2)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">총 요금 <span style="color:var(--danger)">*</span></label>
+                    <input type="number" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 80000">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호텔 수익/수수료 <span style="color:var(--danger)">*</span></label>
+                    <input type="number" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 15000">
+                </div>
+            </div>
+</div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+            <button class="btn-outline" onclick="closeModal('addOrderModal')">취소</button>
+            <button class="btn-primary-sm" onclick="saveOrder()"><i class="fa-solid fa-check"></i> 예약 전송</button>
+        </div>
+    </div>
+</div>
+
+<!-- Partner Management Modal -->
+<div class="modal-overlay" id="partnerModal" onclick="if(event.target===this) closeModal('partnerModal')">
+    <div class="modal-card" style="max-width:600px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">렌터카 제휴 업체 목록</h3>
+            <button class="modal-close" onclick="closeModal('partnerModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">업체명 <span style="color:var(--danger)">*</span></label>
+                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 롯데렌터카">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">담당자 연락처</label>
+                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: +84 28 3823 0000">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">수수료율 (%)</label>
+                    <input type="number" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 15">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">상태</label>
+                    <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="active">활성</option>
+                        <option value="pending">대기</option>
+                        <option value="inactive">비활성</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">특이사항</label>
+                <textarea style="height:80px;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--font);width:100%;resize:vertical" placeholder="기타 메모..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+            <button class="btn-outline" onclick="closeModal('partnerModal')">취소</button>
+            <button class="btn-primary-sm" onclick="closeModal('partnerModal'); showToast('업체 정보가 저장되었습니다.')"><i class="fa-solid fa-check"></i> 저장</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function mockItems(env) {
+    if (!env) return [];
+    if (window.PmsMockApi?.items) return window.PmsMockApi.items(env);
+    if (Array.isArray(env?.data?.items)) return env.data.items;
+    if (Array.isArray(env?.items)) return env.items;
+    return Array.isArray(env) ? env : [];
+}
+
+function normalizeRoomKeys(value) {
+    const raw = String(value || '').trim().toUpperCase();
+    if (!raw) return [];
+    const tail = raw.includes('-') ? raw.split('-').pop() : raw;
+    const digits = (tail.match(/\d+/g) || []).join('');
+    const shortDigits = digits.replace(/^0+(?=\d)/, '');
+    return [...new Set([raw, tail, digits, shortDigits].filter(Boolean))];
+}
+
+function sameRoomValue(left, right) {
+    const leftKeys = normalizeRoomKeys(left);
+    const rightKeys = new Set(normalizeRoomKeys(right));
+    return leftKeys.some(key => rightKeys.has(key));
+}
+
+function roomDisplayNo(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw.replace(/^ROOM[-\s]*/i, '').trim();
+}
+
+function reservationRoomValues(reservation) {
+    const values = [
+        reservation?.room,
+        reservation?.roomNo,
+        reservation?.roomNumber,
+        reservation?.roomLabel,
+        reservation?.fullRoom,
+        reservation?.roomId
+    ];
+    if (reservation?.roomId && window.PmsMockApi?.roomNoFromId) {
+        values.push(window.PmsMockApi.roomNoFromId(reservation.roomId));
+    }
+    return values.filter(value => value !== undefined && value !== null && String(value).trim() !== '');
+}
+
+function reservationRoomNo(reservation) {
+    const fromValues = reservationRoomValues(reservation);
+    return roomDisplayNo(fromValues.find(Boolean));
+}
+
+function parseRentDate(value) {
+    const text = String(value || '').trim();
+    const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return null;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function rentTodayDate() {
+    const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function reservationStatusKey(value) {
+    return String(value || '').toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+function isInactiveReservation(reservation) {
+    const status = reservationStatusKey(reservation?.status);
+    return ['cancelled', 'canceled', 'noshow', 'checkedout', 'blocked'].includes(status);
+}
+
+function reservationMatchesRoom(reservation, room) {
+    return reservationRoomValues(reservation).some(value => sameRoomValue(value, room));
+}
+
+function reservationCoversToday(reservation) {
+    const today = rentTodayDate();
+    const checkIn = parseRentDate(reservation?.checkInDate || reservation?.checkIn || reservation?.arrivalDate || reservation?.startDate);
+    const checkOut = parseRentDate(reservation?.checkOutDate || reservation?.checkOut || reservation?.departureDate || reservation?.endDate);
+    return Boolean(checkIn && checkOut && checkIn <= today && today <= checkOut);
+}
+
+function reservationCheckInTime(reservation) {
+    const checkIn = parseRentDate(reservation?.checkInDate || reservation?.checkIn || reservation?.arrivalDate || reservation?.startDate);
+    return checkIn ? checkIn.getTime() : 0;
+}
+
+function reservationRank(reservation) {
+    const today = rentTodayDate().getTime();
+    const checkIn = reservationCheckInTime(reservation);
+    const status = reservationStatusKey(reservation?.status);
+    const inHouseStatus = ['checkedin', 'inhouse', 'occupied'].includes(status);
+    const coversToday = reservationCoversToday(reservation);
+    if (inHouseStatus && (!checkIn || coversToday)) return 0;
+    if (coversToday) return 1;
+    if (inHouseStatus) return 2;
+    if (checkIn >= today) return 3;
+    return 4;
+}
+
+function sortReservationsForGuestLookup(a, b) {
+    const rankDiff = reservationRank(a) - reservationRank(b);
+    if (rankDiff) return rankDiff;
+    const aTime = reservationCheckInTime(a);
+    const bTime = reservationCheckInTime(b);
+    if (reservationRank(a) <= 1) return bTime - aTime;
+    return aTime - bTime;
+}
+
+function findGuestByReservation(reservation) {
+    if (!reservation) return null;
+    const guestId = reservation.guestId || reservation.customerId || reservation.crmGuestId;
+    if (guestId) {
+        const byId = rentacarGuests.find(guest => String(guest.id) === String(guestId));
+        if (byId) return byId;
+    }
+    const name = String(reservation.guestName || reservation.guest || reservation.name || '').trim().toLowerCase();
+    return name ? rentacarGuests.find(guest => String(guest.name || '').trim().toLowerCase() === name) : null;
+}
+
+function guestInfoFromReservation(reservation) {
+    const guest = findGuestByReservation(reservation);
+    return {
+        name: reservation?.guestName || reservation?.guest || reservation?.name || guest?.name || '',
+        phone: reservation?.phone || reservation?.guestPhone || reservation?.mobile || guest?.phone || guest?.mobile || ''
+    };
+}
+
+function findRoomGuest(room) {
+    if (!room) return null;
+    const reservation = rentacarReservations
+        .filter(item => !isInactiveReservation(item) && reservationMatchesRoom(item, room))
+        .sort(sortReservationsForGuestLookup)[0];
+    return reservation ? guestInfoFromReservation(reservation) : null;
+}
+
+function findRentacarOrderGuest(room) {
+    const order = orders.find(item => sameRoomValue(item.room || item.roomNo || item.roomId, room));
+    if (!order) return null;
+    return {
+        name: order.guest || order.guestName || order.name || '',
+        phone: order.phone || order.guestPhone || ''
+    };
+}
+
+function refreshRentRoomOptions() {
+    const select = document.getElementById('rentRoom');
+    if (!select) return;
+
+    const selectedValue = select.value;
+    const seen = new Set();
+    const options = [];
+
+    rentacarReservations
+        .filter(item => !isInactiveReservation(item))
+        .sort(sortReservationsForGuestLookup)
+        .forEach(reservation => {
+            const roomNo = reservationRoomNo(reservation);
+            if (!roomNo) return;
+            const key = normalizeRoomKeys(roomNo)[0];
+            if (seen.has(key)) return;
+            seen.add(key);
+            const guest = guestInfoFromReservation(reservation).name;
+            options.push({ value: roomNo, label: guest ? `${roomNo} - ${guest}` : roomNo });
+        });
+
+    orders.forEach(order => {
+        const roomNo = roomDisplayNo(order.room || order.roomNo || order.roomId);
+        if (!roomNo) return;
+        const key = normalizeRoomKeys(roomNo)[0];
+        if (seen.has(key)) return;
+        seen.add(key);
+        const guest = order.guest || order.guestName || order.name || '';
+        options.push({ value: roomNo, label: guest ? `${roomNo} - ${guest}` : roomNo });
+    });
+
+    select.replaceChildren();
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '\uD638\uC2E4 \uC120\uD0DD...';
+    select.appendChild(placeholder);
+
+    options.forEach(option => {
+        const node = document.createElement('option');
+        node.value = option.value;
+        node.textContent = option.label;
+        select.appendChild(node);
+    });
+
+    if (selectedValue && options.some(option => sameRoomValue(option.value, selectedValue))) {
+        select.value = options.find(option => sameRoomValue(option.value, selectedValue)).value;
+    }
+}
+
+function autoFillGuest(type) {
+    const roomEl = document.getElementById(type + 'Room');
+    const guestEl = document.getElementById(type + 'Guest');
+    const phoneEl = document.getElementById(type + 'Phone');
+    const room = String(roomEl?.value || '').trim();
+    const info = findRoomGuest(room) || findRentacarOrderGuest(room);
+    
+    if(room && info) {
+        if(guestEl) guestEl.value = info.name || '';
+        if(phoneEl) phoneEl.value = info.phone || '';
+    } else {
+        if(guestEl) guestEl.value = '';
+        if(phoneEl) phoneEl.value = '';
+    }
+}
+</script>
+
+<script>
+function updateFilterCounts() {
+    refreshProviderFilterOptions();
+    updateRevenueKpi();
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        refreshVehicleClassOptions();
+        const [rentacarOrders, reservationEnv, guestEnv] = await Promise.all([
+            PmsAPI.getRentacarOrders(),
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/reservations').catch(() => null) : Promise.resolve(null),
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/crm/guests').catch(() => null) : Promise.resolve(null)
+        ]);
+        orders = rentacarOrders;
+        rentacarReservations = mockItems(reservationEnv);
+        rentacarGuests = mockItems(guestEnv);
+        refreshRentRoomOptions();
+        updateFilterCounts();
+        renderOrders();
+    } catch(e) { console.error(e); }
+});
+</script>
+<script>
+// Sync language selector to stored preference
+(function(){
+    var sel = document.getElementById('langSelect');
+    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
+</script>
+</body>
+</html>

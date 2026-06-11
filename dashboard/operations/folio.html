@@ -536,7 +536,7 @@ function mapApiFolio(item) {
         total,
         paid,
         bal,
-        currency: item.balance?.currency || 'USD',
+        currency: item.balance?.currency || localStorage.getItem('pms_default_currency') || 'PHP',
         issuedAt,
         closedAt,
         charges: mappedCharges,
@@ -560,7 +560,7 @@ function updateApiKpis() {
         acc.anc += folio.ancillaryRevenue || 0;
         return acc;
     }, { total: 0, room: 0, anc: 0 });
-    const currency = apiFolios[0]?.currency || 'USD';
+    const currency = apiFolios[0]?.currency || localStorage.getItem('pms_default_currency') || 'PHP';
     document.getElementById('kpiTotal').textContent = fmtMoney(totals.total, currency);
     document.getElementById('kpiRoom').textContent = fmtMoney(totals.room, currency);
     document.getElementById('kpiAnc').textContent = fmtMoney(totals.anc, currency);
@@ -785,7 +785,7 @@ function openInvoiceModal(index) {
     const folio = visibleFolios[index];
     if (!folio) return;
     const content = document.getElementById('invoiceContent');
-    const currency = folio.currency || 'USD';
+    const currency = folio.currency || localStorage.getItem('pms_default_currency') || 'PHP';
     const itemsHtml = invoiceItems(folio).map(item => `
         <div style="display:flex;justify-content:space-between;gap:16px">
             <span>${escapeHtml(item.label)}</span>
