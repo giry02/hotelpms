@@ -231,6 +231,302 @@
             .filter(name => name && name !== primary && !seen.has(name) && seen.add(name));
     }
 
+    let unifiedStayGuestRoster = [];
+
+    function rosterGuestRole(role) {
+        const value = String(role || '').toLowerCase();
+        return ['primary', 'representative', 'main', 'owner'].includes(value) ? 'primary' : 'companion';
+    }
+
+    function rosterGuestKey(entry) {
+        const guestId = compactValue(entry?.guestId || entry?.id || entry?.roomingGuestId);
+        const name = compactValue(entry?.name || entry?.guestName || entry?.roomingGuestName || entry?.guest);
+        return guestId ? `id:${guestId}` : `name:${name.toLowerCase()}`;
+    }
+
+    function normalizeRosterGuest(source, fallbackRole = 'companion') {
+        if (!source) return null;
+        const item = typeof source === 'string' ? { name: source } : source;
+        const name = compactValue(item.name || item.guestName || item.roomingGuestName || item.guest);
+        if (!name) return null;
+        const guestId = compactValue(item.guestId || item.id || item.roomingGuestId);
+        return {
+            key: guestId ? `id:${guestId}` : `name:${name.toLowerCase()}`,
+            guestId,
+            id: guestId,
+            name,
+            phone: compactValue(item.phone || item.mobile || item.guestPhone),
+            email: compactValue(item.email || item.guestEmail),
+            tier: compactValue(item.tier || item.vip),
+            country: compactValue(item.country || item.nationality || item.nation),
+            role: rosterGuestRole(item.role || fallbackRole)
+        };
+    }
+
+    function findRosterGuestRecord(raw, guestList = []) {
+        const guestId = compactValue(raw?.guestId || raw?.id || raw?.roomingGuestId);
+        const name = compactValue(raw?.name || raw?.guestName || raw?.roomingGuestName || raw?.guest);
+        const email = compactValue(raw?.email || raw?.guestEmail);
+        return guestList.find(guest => guestId && String(guest.id || guest.guestId || '') === guestId)
+            || guestList.find(guest => email && String(guest.email || '').toLowerCase() === email.toLowerCase())
+            || guestList.find(guest => name && String(guest.name || guest.guestName || '').toLowerCase() === name.toLowerCase())
+            || null;
+    }
+
+    function mergeRosterGuestWithRecord(raw, guestList = []) {
+        const item = typeof raw === 'string' ? { name: raw } : (raw || {});
+        const matched = findRosterGuestRecord(item, guestList);
+        const guestId = compactValue(item.guestId || item.id || item.roomingGuestId || matched?.id || matched?.guestId);
+        const name = compactValue(item.name || item.guestName || item.roomingGuestName || item.guest || matched?.name || matched?.guestName);
+        return {
+            ...(matched || {}),
+            ...item,
+            id: guestId,
+            guestId,
+            name
+        };
+    }
+
+    async function rosterGuestsForReservation(res = null) {
+        if (!res) return [];
+        const guestList = await reservationGuestList();
+        const entries = [];
+        const addEntry = (raw, fallbackRole) => {
+            const normalized = normalizeRosterGuest(mergeRosterGuestWithRecord(raw, guestList), fallbackRole);
+            if (!normalized) return;
+            const key = rosterGuestKey(normalized);
+            const existingIndex = entries.findIndex(item => rosterGuestKey(item) === key);
+            if (normalized.role === 'primary') {
+                entries.forEach(item => { item.role = 'companion'; });
+            }
+            if (existingIndex >= 0) {
+                entries[existingIndex] = { ...entries[existingIndex], ...normalized };
+            } else {
+                entries.push(normalized);
+            }
+        };
+
+        addEntry({
+            guestId: res.guestId || res.roomingGuestId,
+            name: res.roomingGuestName || res.guestName || res.guest,
+            phone: res.guestPhone || res.phone || res.mobile,
+            email: res.guestEmail || res.email,
+            tier: res.tier || res.vip
+        }, 'primary');
+
+        if (Array.isArray(res.roomingGuests)) {
+            res.roomingGuests.forEach((item, index) => {
+                const role = typeof item === 'object' && item?.role ? item.role : (index === 0 ? 'primary' : 'companion');
+                addEntry(item, role);
+            });
+        }
+
+        const companionIds = Array.isArray(res.companionGuestIds) ? res.companionGuestIds : [];
+        if (Array.isArray(res.companionGuestNames)) {
+            res.companionGuestNames.forEach((name, index) => addEntry({ name, guestId: companionIds[index] }, 'companion'));
+        }
+        if (Array.isArray(res.roomingGuestNames)) {
+            res.roomingGuestNames.slice(1).forEach(name => addEntry({ name }, 'companion'));
+        }
+        if (Array.isArray(res.companions)) {
+            res.companions.forEach(item => addEntry(item, 'companion'));
+        }
+
+        const primary = entries.find(item => item.role === 'primary');
+        if (primary) {
+            const primaryKey = rosterGuestKey(primary);
+            entries.forEach(item => {
+                if (item.role !== 'primary' && rosterGuestKey(item) === primaryKey) item.role = 'primary';
+            });
+        } else if (entries[0]) {
+            entries[0].role = 'primary';
+        }
+
+        const seen = new Set();
+        return entries.filter(item => {
+            const key = rosterGuestKey(item);
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    function orderedUnifiedRoster() {
+        const primary = unifiedStayGuestRoster.filter(item => item.role === 'primary');
+        const companions = unifiedStayGuestRoster.filter(item => item.role !== 'primary');
+        return [...primary, ...companions];
+    }
+
+    function syncUnifiedCompanionField() {
+        const companionInput = document.getElementById('unifiedCompanions');
+        if (!companionInput) return;
+        companionInput.value = unifiedStayGuestRoster
+            .filter(item => item.role !== 'primary')
+            .map(item => item.name)
+            .join('\n');
+    }
+
+    function renderUnifiedGuestRoster() {
+        const list = document.getElementById('unifiedStayGuestList');
+        const count = document.getElementById('unifiedStayGuestCount');
+        if (!list) return;
+        syncUnifiedCompanionField();
+        const roster = orderedUnifiedRoster();
+        if (count) count.textContent = `${roster.length}명`;
+        if (!roster.length) {
+            list.innerHTML = `<div style="padding:14px;border:1px dashed var(--border);border-radius:8px;background:#fff;color:var(--txt3);font-size:.78rem;font-weight:700;text-align:center">상단에서 투숙객을 검색한 뒤 대표 또는 동반으로 추가하세요.</div>`;
+            return;
+        }
+        list.innerHTML = roster.map(item => {
+            const isPrimary = item.role === 'primary';
+            const key = encodeURIComponent(rosterGuestKey(item)).replace(/'/g, '%27');
+            const meta = [item.phone, item.email].filter(Boolean).join(' · ') || (item.guestId ? `고객ID ${item.guestId}` : '신규 입력 고객');
+            const badgeStyle = isPrimary
+                ? 'background:#111827;color:#fff'
+                : 'background:#EEF2FF;color:#4338CA';
+            const icon = isPrimary ? 'fa-user-check' : 'fa-user-group';
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;background:#fff;border:1px solid var(--border2);border-radius:9px;margin-top:8px">
+                <div style="display:flex;align-items:center;gap:10px;min-width:0">
+                    <div style="width:36px;height:36px;border-radius:50%;background:${isPrimary ? '#111827' : '#EEF2FF'};color:${isPrimary ? '#fff' : '#4338CA'};display:flex;align-items:center;justify-content:center;flex:0 0 auto"><i class="fa-solid ${icon}" style="font-size:.8rem"></i></div>
+                    <div style="min-width:0">
+                        <div style="display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap">
+                            <span style="font-size:.86rem;font-weight:900;color:var(--txt);word-break:break-word">${actionEscapeHtml(item.name)}</span>
+                            <span style="font-size:.65rem;font-weight:900;border-radius:999px;padding:3px 8px;${badgeStyle}">${isPrimary ? '대표' : '동반'}</span>
+                        </div>
+                        <div style="font-size:.7rem;color:var(--txt3);font-weight:700;margin-top:2px;word-break:break-all">${actionEscapeHtml(meta)}</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;flex:0 0 auto">
+                    ${isPrimary ? '' : `<button type="button" onclick="setUnifiedPrimaryGuest('${key}')" style="height:30px;border:1px solid var(--border);background:#fff;border-radius:6px;padding:0 9px;font-family:var(--font);font-size:.7rem;font-weight:800;color:var(--txt2);cursor:pointer"><i class="fa-solid fa-star"></i> 대표</button>`}
+                    <button type="button" onclick="removeUnifiedStayGuest('${key}')" style="width:30px;height:30px;border:1px solid var(--border);background:#fff;border-radius:6px;color:var(--txt3);cursor:pointer" title="삭제"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function setUnifiedGuestRoster(entries = []) {
+        unifiedStayGuestRoster = [];
+        entries.forEach(entry => {
+            const normalized = normalizeRosterGuest(entry, entry?.role || 'companion');
+            if (!normalized) return;
+            const existingIndex = unifiedStayGuestRoster.findIndex(item => rosterGuestKey(item) === rosterGuestKey(normalized));
+            if (normalized.role === 'primary') unifiedStayGuestRoster.forEach(item => { item.role = 'companion'; });
+            if (existingIndex >= 0) unifiedStayGuestRoster[existingIndex] = { ...unifiedStayGuestRoster[existingIndex], ...normalized };
+            else unifiedStayGuestRoster.push(normalized);
+        });
+        if (!unifiedStayGuestRoster.some(item => item.role === 'primary') && unifiedStayGuestRoster[0]) {
+            unifiedStayGuestRoster[0].role = 'primary';
+        }
+        renderUnifiedGuestRoster();
+    }
+
+    function getUnifiedSelectedGuestCandidate() {
+        const widget = window._editGuestWidget;
+        const selected = widget?.getSelectedGuest ? widget.getSelectedGuest() : null;
+        if (selected) return selected;
+        const name = compactValue(widget?.getGuestName ? widget.getGuestName() : document.getElementById('nrGuestEdit')?.value);
+        if (!name) return null;
+        return {
+            name,
+            phone: compactValue(document.getElementById('nrPhoneEdit')?.value),
+            email: compactValue(document.getElementById('nrEmailEdit')?.value),
+            country: compactValue(document.getElementById('nrNationEdit')?.value)
+        };
+    }
+
+    function upsertUnifiedRosterGuest(source, role = 'companion') {
+        const normalized = normalizeRosterGuest(source, role);
+        if (!normalized) return null;
+        const key = rosterGuestKey(normalized);
+        const existingIndex = unifiedStayGuestRoster.findIndex(item => rosterGuestKey(item) === key);
+        if (existingIndex >= 0 && unifiedStayGuestRoster[existingIndex].role === 'primary' && normalized.role !== 'primary') {
+            return unifiedStayGuestRoster[existingIndex];
+        }
+        if (normalized.role === 'primary') {
+            unifiedStayGuestRoster.forEach(item => { item.role = 'companion'; });
+        }
+        if (existingIndex >= 0) {
+            unifiedStayGuestRoster[existingIndex] = { ...unifiedStayGuestRoster[existingIndex], ...normalized };
+        } else {
+            unifiedStayGuestRoster.push(normalized);
+        }
+        if (!unifiedStayGuestRoster.some(item => item.role === 'primary') && unifiedStayGuestRoster[0]) {
+            unifiedStayGuestRoster[0].role = 'primary';
+        }
+        renderUnifiedGuestRoster();
+        return normalized;
+    }
+
+    function getUnifiedPrimaryGuestEntry() {
+        return unifiedStayGuestRoster.find(item => item.role === 'primary') || null;
+    }
+
+    function getUnifiedCompanionGuestEntries() {
+        return unifiedStayGuestRoster.filter(item => item.role !== 'primary');
+    }
+
+    function unifiedRosterPayload(fallbackGuestName = '') {
+        const primary = getUnifiedPrimaryGuestEntry();
+        const companions = getUnifiedCompanionGuestEntries();
+        const guest = compactValue(primary?.name || fallbackGuestName);
+        const guestId = compactValue(primary?.guestId || primary?.id);
+        const companionGuestNames = companions.map(item => item.name).filter(Boolean);
+        const companionGuestIds = companions.map(item => compactValue(item.guestId || item.id));
+        const roomingGuests = [
+            primary ? { ...primary, role: 'primary' } : (guest ? { name: guest, guestId, role: 'primary' } : null),
+            ...companions.map(item => ({ ...item, role: 'companion' }))
+        ].filter(Boolean).map(item => ({
+            guestId: compactValue(item.guestId || item.id),
+            name: item.name,
+            phone: compactValue(item.phone),
+            email: compactValue(item.email),
+            tier: compactValue(item.tier),
+            role: item.role
+        }));
+        return {
+            primary,
+            guest,
+            guestId,
+            companionGuestNames,
+            companionGuestIds,
+            roomingGuestNames: [guest, ...companionGuestNames].filter(Boolean),
+            roomingGuests,
+            companions: companions.map(item => ({
+                guestId: compactValue(item.guestId || item.id),
+                name: item.name,
+                phone: compactValue(item.phone),
+                email: compactValue(item.email)
+            }))
+        };
+    }
+
+    window.addUnifiedSelectedGuest = function(role = 'companion') {
+        const candidate = getUnifiedSelectedGuestCandidate();
+        if (!candidate || !compactValue(candidate.name)) {
+            alert('상단에서 투숙객을 검색한 뒤 선택해주세요.');
+            return;
+        }
+        upsertUnifiedRosterGuest(candidate, role === 'primary' ? 'primary' : 'companion');
+        if (window._editGuestWidget?.reset) window._editGuestWidget.reset();
+    };
+
+    window.setUnifiedPrimaryGuest = function(encodedKey) {
+        const key = decodeURIComponent(encodedKey || '');
+        const target = unifiedStayGuestRoster.find(item => rosterGuestKey(item) === key);
+        if (!target) return;
+        unifiedStayGuestRoster.forEach(item => { item.role = rosterGuestKey(item) === key ? 'primary' : 'companion'; });
+        renderUnifiedGuestRoster();
+    };
+
+    window.removeUnifiedStayGuest = function(encodedKey) {
+        const key = decodeURIComponent(encodedKey || '');
+        unifiedStayGuestRoster = unifiedStayGuestRoster.filter(item => rosterGuestKey(item) !== key);
+        if (!unifiedStayGuestRoster.some(item => item.role === 'primary') && unifiedStayGuestRoster[0]) {
+            unifiedStayGuestRoster[0].role = 'primary';
+        }
+        renderUnifiedGuestRoster();
+    };
+
     function setUnifiedFinanceValues(res = null, options = {}) {
         const amountInput = document.getElementById('unifiedAmount');
         const prepaidInput = document.getElementById('unifiedPrepaid');
@@ -333,7 +629,19 @@
                 
                 <div id="unifiedGuestSection" style="margin-bottom:20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border2);">
                     ${typeof renderGuestSearchHTML === 'function' ? renderGuestSearchHTML('Edit') : '<div style="color:red">guest-search.js missing</div>'}
+                    <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:12px">
+                        <button type="button" onclick="addUnifiedSelectedGuest('primary')" style="height:34px;border:none;border-radius:7px;background:#111827;color:#fff;padding:0 13px;font-family:var(--font);font-size:.76rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="fa-solid fa-user-check"></i> 대표로 설정</button>
+                        <button type="button" onclick="addUnifiedSelectedGuest('companion')" style="height:34px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--txt);padding:0 13px;font-family:var(--font);font-size:.76rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="fa-solid fa-user-plus"></i> 동반으로 추가</button>
+                    </div>
+                    <div id="unifiedStayGuestPanel" style="margin-top:14px;background:#fff;border:1px solid var(--border2);border-radius:10px;padding:12px">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">
+                            <div style="font-size:.86rem;font-weight:900;color:var(--txt);display:flex;align-items:center;gap:7px"><i class="fa-solid fa-address-book" style="color:var(--primary)"></i> 예약 투숙객 명단</div>
+                            <div id="unifiedStayGuestCount" style="font-size:.68rem;font-weight:900;color:var(--txt3);background:#f1f5f9;border-radius:999px;padding:4px 8px">0명</div>
+                        </div>
+                        <div id="unifiedStayGuestList"></div>
+                    </div>
                 </div>
+                <input type="hidden" id="unifiedCompanions">
                 <div id="unifiedGuestPrivacyPanel" style="display:none;margin-bottom:20px;background:#fff;border:1px solid var(--border2);border-radius:10px;overflow:hidden;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--border2);">
                         <div style="font-size:.9rem;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:8px"><i class="fa-solid fa-id-card-clip" style="color:var(--primary)"></i> 고객 상세 정보</div>
@@ -364,9 +672,9 @@
                         <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin:0 0 4px 0">단체 연결</div>
                         <div id="unifiedGroupLinkText" style="font-size:0.82rem;font-weight:700;color:var(--txt)"></div>
                     </div>
-                    <div class="md-item" style="grid-column:1 / -1">
+                    <div class="md-item" style="grid-column:1 / -1;display:none">
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">동반 투숙객</div>
-                        <textarea id="unifiedCompanions" style="min-height:58px;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;resize:vertical" placeholder="동반 투숙객 이름을 쉼표 또는 줄바꿈으로 입력"></textarea>
+                        <textarea id="unifiedCompanionsLegacy" style="min-height:58px;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;resize:vertical" placeholder="동반 투숙객 이름을 쉼표 또는 줄바꿈으로 입력"></textarea>
                         <div style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;">대표투숙객은 위 고객 정보, 동반 투숙객은 목록과 타임라인 아래줄에 표시됩니다.</div>
                     </div>
                     <div style="grid-column:1 / -1;background:#fff;border:1px solid var(--border2);border-radius:10px;padding:14px;">
@@ -817,7 +1125,7 @@
             }
         }
 
-        if (guestSection) guestSection.style.display = (locked || isBlock) ? 'none' : 'block';
+        if (guestSection) guestSection.style.display = isBlock ? 'none' : 'block';
         const blockNotice = document.getElementById('unifiedBlockNotice');
         if (blockNotice) blockNotice.style.display = (!locked && isBlock) ? 'block' : 'none';
         ['unifiedCin', 'unifiedCout', 'unifiedChannel'].forEach(id => {
@@ -1064,8 +1372,7 @@
             if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
             }
-            const companionInput = document.getElementById('unifiedCompanions');
-            if (companionInput) companionInput.value = companionNamesFromText(prefill?.companionGuestNames || prefill?.companions || '').join('\n');
+            setUnifiedGuestRoster(await rosterGuestsForReservation(prefill || null));
             setUnifiedFinanceValues(null, {
                 amount: Number(prefill?.amount || prefill?.totalAmount?.amount || 0),
                 prepaid: Number(prefill?.prepaidAmount || prefill?.paymentPlan?.prepaidAmount || 0)
@@ -1112,7 +1419,7 @@
 
             const guestSection = document.getElementById('unifiedGuestSection');
             if (guestSection) {
-                guestSection.style.display = (isEditingBlock || isReadonlyReservation) ? 'none' : 'block';
+                guestSection.style.display = isEditingBlock ? 'none' : 'block';
                 let blockNotice = document.getElementById('unifiedBlockNotice');
                 if (!blockNotice) {
                     blockNotice = document.createElement('div');
@@ -1124,17 +1431,17 @@
                 blockNotice.innerHTML = `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> 단체 블록 상태입니다. 아직 개별 투숙객이 배정되지 않았으며, 투숙객은 단체 상세의 Rooming List에서 등록하거나 상태를 예약 확정으로 전환할 때 연결합니다.`;
             }
 
-            if (!isEditingBlock && !isReadonlyReservation && window._editGuestWidget) {
+            if (!isEditingBlock && window._editGuestWidget) {
                 window._editGuestWidget.reset();
-                const existingGuest = typeof GUEST_DB !== 'undefined' ? GUEST_DB.find(g => g.name === res.guest) : null;
+                const existingGuest = await guestForUnifiedReservation(res);
                 if (existingGuest) {
-                    window._editGuestWidget.select(existingGuest.id);
+                    await window._editGuestWidget.select(existingGuest.id);
                 } else {
                     window._editGuestWidget.showNewForm();
                     const nameInput = document.getElementById('nrGuestEdit');
-                    if (nameInput) nameInput.value = res.guest || '';
+                    if (nameInput) nameInput.value = guestNameForReservation(res);
                 }
-            } else if (isReadonlyReservation && window._editGuestWidget) {
+            } else if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
             }
         
@@ -1147,8 +1454,7 @@
             setUnifiedDateValue('unifiedCin', res.checkInDate || res.checkin || res.cin);
             setUnifiedDateValue('unifiedCout', res.checkOutDate || res.checkout || res.cout);
             window.updateUnifiedStayAndRooms(targetRoomValue);
-            const companionInput = document.getElementById('unifiedCompanions');
-            if (companionInput) companionInput.value = companionNamesForReservation(res).join('\n');
+            setUnifiedGuestRoster(isEditingBlock ? [] : await rosterGuestsForReservation(res));
             setUnifiedFinanceValues(res);
             setUnifiedReservationReadonly(isReadonlyReservation, res);
             renderUnifiedFlowActions(res);
@@ -1179,13 +1485,25 @@
         const currentRes = id ? allRes.find(r => r.id === id) : null;
         const operationalEdit = !!(currentRes && isReservationReadOnly(currentRes));
         const isBlockSave = currentRes && (normalizedReservationStatus(currentRes.status) === 'blocked' || currentRes.isGroupPlaceholder) && document.getElementById('unifiedStatus').value === 'blocked';
-        if (!isBlockSave && !operationalEdit && window._editGuestWidget) {
-            guest = window._editGuestWidget.getGuestName();
-        } else if (!isBlockSave && !operationalEdit) {
-            const guestInput = document.getElementById('nrGuestEdit');
-            if (guestInput) guest = guestInput.value;
-        } else if (currentRes) {
-            guest = guestNameForReservation(currentRes);
+        if (!isBlockSave) {
+            let primaryEntry = getUnifiedPrimaryGuestEntry();
+            if (!primaryEntry) {
+                const candidate = getUnifiedSelectedGuestCandidate();
+                if (candidate && compactValue(candidate.name)) {
+                    upsertUnifiedRosterGuest(candidate, 'primary');
+                    primaryEntry = getUnifiedPrimaryGuestEntry();
+                }
+            }
+            if (!primaryEntry && currentRes) {
+                upsertUnifiedRosterGuest({
+                    guestId: currentRes.guestId || currentRes.roomingGuestId,
+                    name: guestNameForReservation(currentRes),
+                    phone: currentRes.guestPhone || currentRes.phone || currentRes.mobile,
+                    email: currentRes.guestEmail || currentRes.email
+                }, 'primary');
+                primaryEntry = getUnifiedPrimaryGuestEntry();
+            }
+            guest = compactValue(primaryEntry?.name);
         }
         if (!isBlockSave && (!guest || !guest.trim())) {
             alert(actionText('guest.required'));
@@ -1237,7 +1555,11 @@
         const prepaidAmount = Math.min(parseMoneyInput(document.getElementById('unifiedPrepaid')?.value), totalAmount);
         const balanceDue = Math.max(totalAmount - prepaidAmount, 0);
         const nightlyRate = nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount;
-        const companionGuestNames = companionNamesFromText(document.getElementById('unifiedCompanions')?.value || '');
+        const guestPayload = !isBlockSave
+            ? unifiedRosterPayload(guest)
+            : { guest, guestId: '', companionGuestNames: [], companionGuestIds: [], roomingGuestNames: [], roomingGuests: [], companions: [] };
+        guest = guestPayload.guest || guest;
+        const companionGuestNames = guestPayload.companionGuestNames;
         
         if (isB2B) channel = linkedGroupName || channel || 'Group';
         
@@ -1247,6 +1569,10 @@
             const newRes = {
                 id: newId,
                 guest: guest,
+                guestName: guest,
+                roomingGuestName: guest,
+                guestId: guestPayload.guestId || '',
+                roomingGuestId: guestPayload.guestId || '',
                 room: room,
                 status: status,
                 channel: channel,
@@ -1267,8 +1593,10 @@
                 roomId: selectedRoom?.roomId || selectedRoom?.fullRoom || room,
                 roomNo: selectedRoom?.number || selectedRoom?.display || room,
                 companionGuestNames,
-                roomingGuestNames: [guest, ...companionGuestNames],
-                companions: companionGuestNames.map(name => ({ name })),
+                companionGuestIds: guestPayload.companionGuestIds,
+                roomingGuestNames: guestPayload.roomingGuestNames,
+                roomingGuests: guestPayload.roomingGuests,
+                companions: guestPayload.companions,
                 amount: totalAmount,
                 rate: { amount: nightlyRate, currency },
                 totalAmount: { amount: totalAmount, currency },
@@ -1298,9 +1626,16 @@
                 const beforeAmount = reservationAmountValue(res);
                 const beforePrepaid = reservationPrepaidValue(res);
                 const beforeStatus = effectiveReservationStatus(res);
-                if (!isBlockSave && !operationalEdit) {
+                const beforeGuest = guestNameForReservation(res);
+                const beforeGuestId = compactValue(res.guestId || res.roomingGuestId);
+                const beforeCompanionNames = companionNamesForReservation(res);
+                if (!isBlockSave) {
+                    const nextGuestId = guestPayload.guestId || (beforeGuest === guest ? beforeGuestId : '');
                     res.guest = guest;
                     res.guestName = guest;
+                    res.roomingGuestName = guest;
+                    res.guestId = nextGuestId;
+                    res.roomingGuestId = nextGuestId;
                     if (guest.trim()) res.initials = guest.split(' ').map(n => n[0]).join('');
                     if (res.isGroupPlaceholder && status !== 'blocked' && guest.trim()) {
                         res.isGroupPlaceholder = false;
@@ -1326,8 +1661,10 @@
                 res.roomId = selectedRoom?.roomId || selectedRoom?.fullRoom || res.roomId || room;
                 res.roomNo = selectedRoom?.number || selectedRoom?.display || room;
                 res.companionGuestNames = companionGuestNames;
-                res.roomingGuestNames = [guestNameForReservation(res), ...companionGuestNames].filter(Boolean);
-                res.companions = companionGuestNames.map(name => ({ name }));
+                res.companionGuestIds = guestPayload.companionGuestIds;
+                res.roomingGuestNames = guestPayload.roomingGuestNames;
+                res.roomingGuests = guestPayload.roomingGuests;
+                res.companions = guestPayload.companions;
                 res.amount = totalAmount;
                 res.rate = { amount: nightlyRate, currency };
                 res.totalAmount = { amount: totalAmount, currency };
@@ -1343,6 +1680,18 @@
                 };
                 const roomChanged = !sameRoomValue(beforeRoom, room) && !sameRoomValue(beforeFullRoom, res.fullRoom);
                 const isPostCheckinEdit = ['checkedin', 'checkout'].includes(beforeStatus);
+                const guestChanged = beforeGuest !== guestNameForReservation(res) || beforeGuestId !== compactValue(res.guestId || res.roomingGuestId);
+                const companionsChanged = beforeCompanionNames.join('|') !== companionGuestNames.join('|');
+                if (isPostCheckinEdit && (guestChanged || companionsChanged)) {
+                    logReservationAudit('reservation.guests.adjust', {
+                        reservationId: res.id,
+                        beforeGuest,
+                        afterGuest: guestNameForReservation(res),
+                        beforeCompanions: beforeCompanionNames,
+                        afterCompanions: companionGuestNames,
+                        fields: ['reservationId', 'guestName', 'companionGuestNames']
+                    });
+                }
                 if (roomChanged) {
                     const move = {
                         fromRoom: beforeRoom || beforeFullRoom || '',
