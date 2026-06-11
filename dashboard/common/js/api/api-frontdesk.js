@@ -104,6 +104,18 @@ Object.assign(window.PmsAPI, {
         };
         const fmt = (date) => `${date.getMonth()+1}/${date.getDate()}`;
         const roomId = (room) => room.id || room.roomId || room.fullRoom || room.display || room.number || '';
+        const normalizeRoomValue = (value) => {
+            const text = String(value || '').trim().toLowerCase();
+            const digits = (text.match(/\d+/g) || []).join('');
+            return { text, digits, strippedDigits: digits.replace(/^0+(?=\d)/, '') };
+        };
+        const sameRoomValue = (left, right) => {
+            const a = normalizeRoomValue(left);
+            const b = normalizeRoomValue(right);
+            if (!a.text || !b.text) return false;
+            if (a.text === b.text) return true;
+            return !!(a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits));
+        };
         const roomLabel = (room) => {
             const id = roomId(room);
             const building = room.building || room.bldgCode || '';
@@ -180,9 +192,14 @@ Object.assign(window.PmsAPI, {
             const len = cin && cout ? Math.max(1, Math.round((cout - cin) / 86400000)) : (existing?.len || 1);
             const start = cin ? Math.round((cin - epoch) / 86400000) : (existing?.start || 0);
             const base = existing || {};
-            const rooming = (g.roomingList || []).find(item =>
-                item.roomId === allocation.roomId || item.room === allocation.roomId || item.fullRoom === allocation.roomId
+            const groupRooming = (g.roomingList || []).filter(item =>
+                sameRoomValue(item.roomId, allocation.roomId) ||
+                sameRoomValue(item.room, allocation.roomId) ||
+                sameRoomValue(item.fullRoom, allocation.roomId)
             );
+            const baseRoomingGuests = Array.isArray(base.roomingGuests) ? base.roomingGuests : [];
+            const roomingSource = groupRooming.length ? groupRooming : baseRoomingGuests;
+            const rooming = groupRooming.find(item => item.role === 'primary') || groupRooming[0] || baseRoomingGuests.find(item => item?.role === 'primary') || baseRoomingGuests[0] || null;
             const cleanGuest = (value) => {
                 const text = String(value || '').trim();
                 if (!text || text === 'undefined' || text === 'null') return '';
@@ -193,6 +210,39 @@ Object.assign(window.PmsAPI, {
             const storedGuest = cleanGuest(base.guest);
             const assignedGuest = roomingGuest || (!base.isGroupPlaceholder ? storedGuest : '');
             const placeholderGuest = !assignedGuest;
+            const normalizedRoomingGuests = roomingSource.map((item, index) => {
+                const raw = typeof item === 'string' ? { name: item } : (item || {});
+                const name = cleanGuest(raw.name || raw.guestName || raw.roomingGuestName || raw.guest);
+                if (!name) return null;
+                return {
+                    guestId: raw.guestId || raw.id || raw.roomingGuestId || '',
+                    id: raw.id || raw.guestId || raw.roomingGuestId || '',
+                    name,
+                    phone: raw.phone || raw.mobile || raw.guestPhone || '',
+                    email: raw.email || raw.guestEmail || '',
+                    tier: raw.tier || raw.vip || '',
+                    role: raw.role || (index === 0 ? 'primary' : 'companion')
+                };
+            }).filter(Boolean);
+            if (!normalizedRoomingGuests.length && assignedGuest) {
+                normalizedRoomingGuests.push({
+                    guestId: base.guestId || base.roomingGuestId || rooming?.guestId || '',
+                    id: base.roomingGuestId || base.guestId || rooming?.id || '',
+                    name: assignedGuest,
+                    phone: base.phone || rooming?.phone || '',
+                    email: base.email || rooming?.email || '',
+                    tier: base.vip || '',
+                    role: 'primary'
+                });
+            }
+            let primaryRooming = normalizedRoomingGuests.find(item => item.role === 'primary') || normalizedRoomingGuests[0] || null;
+            if (primaryRooming) primaryRooming.role = 'primary';
+            normalizedRoomingGuests.forEach((item, index) => {
+                if (item !== primaryRooming && item.role === 'primary') item.role = 'companion';
+                if (!item.role) item.role = index === 0 ? 'primary' : 'companion';
+            });
+            const roomingGuestNames = normalizedRoomingGuests.map(item => item.name);
+            const companionGuestNames = normalizedRoomingGuests.filter(item => item.role !== 'primary').map(item => item.name);
             const currentStatus = String(base.status || '').replace(/[- _]/g, '').toLowerCase();
             const reservationStatus = placeholderGuest
                 ? 'blocked'
@@ -204,11 +254,21 @@ Object.assign(window.PmsAPI, {
                 room: allocation.roomId,
                 fullRoom: allocation.roomId,
                 type: allocation.type,
-                guestId: base.guestId || rooming?.guestId || `G-${g.id}`,
-                guest: assignedGuest,
-                roomingGuestId: base.roomingGuestId || rooming?.id || '',
-                roomingGuestName: assignedGuest,
-                guestName: assignedGuest,
+                guestId: base.guestId || primaryRooming?.guestId || rooming?.guestId || `G-${g.id}`,
+                guest: primaryRooming?.name || assignedGuest,
+                roomingGuestId: base.roomingGuestId || primaryRooming?.id || rooming?.id || '',
+                roomingGuestName: primaryRooming?.name || assignedGuest,
+                guestName: primaryRooming?.name || assignedGuest,
+                companionGuestNames,
+                companionGuestIds: normalizedRoomingGuests.filter(item => item.role !== 'primary').map(item => item.guestId || item.id || ''),
+                roomingGuestNames,
+                roomingGuests: normalizedRoomingGuests,
+                companions: normalizedRoomingGuests.filter(item => item.role !== 'primary').map(item => ({
+                    guestId: item.guestId || item.id || '',
+                    name: item.name,
+                    phone: item.phone || '',
+                    email: item.email || ''
+                })),
                 groupName: g.name,
                 isGroupPlaceholder: placeholderGuest,
                 groupAssigned: !placeholderGuest,

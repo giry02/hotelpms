@@ -429,40 +429,108 @@ function effectiveTimelineStatus(res) {
 
 function timelineGuestName(res) {
     if (!res) return '';
-    const names = timelineGuestNames(res);
-    if (names.length) return names[0];
+    const primary = timelinePrimaryGuestEntry(res);
+    if (primary) return primary.name;
     if (res.isGroupPlaceholder || normalizeReservationStatus(res) === 'blocked') return '';
     return cleanTimelineGuestName(res.guest);
 }
 
-function timelineGuestNames(res) {
+function timelineGroupRoomingEntries(res) {
+    if (!res?.groupId) return [];
+    let groups = [];
+    try {
+        groups = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+    } catch(e) {
+        groups = [];
+    }
+    const group = groups.find(item => item && item.id === res.groupId);
+    const source = Array.isArray(group?.roomingList) ? group.roomingList : (Array.isArray(group?.rooming) ? group.rooming : []);
+    const roomValues = [res.room, res.fullRoom, res.roomId, res.roomNo, res.roomNumber, res.roomLabel].filter(Boolean);
+    return source
+        .filter(item => roomValues.some(value =>
+            sameTimelineRoomValue(item?.roomId, value) ||
+            sameTimelineRoomValue(item?.room, value) ||
+            sameTimelineRoomValue(item?.fullRoom, value)
+        ))
+        .map((item, index) => ({
+            id: item?.guestId || item?.id || item?.roomingGuestId || '',
+            name: cleanTimelineGuestName(item?.name || item?.guestName || item?.roomingGuestName || item?.guest),
+            role: item?.role || (index === 0 ? 'primary' : 'companion'),
+            source: 'group-rooming',
+            index
+        }))
+        .filter(item => item.name);
+}
+
+function timelineGuestEntries(res) {
     if (!res) return [];
-    const values = [
-        res.roomingGuestName,
-        res.guestName,
-        res.guest,
-        ...(Array.isArray(res.roomingGuestNames) ? res.roomingGuestNames : []),
-        ...(Array.isArray(res.companionGuestNames) ? res.companionGuestNames : []),
-        ...(Array.isArray(res.companions) ? res.companions.map(item => typeof item === 'string' ? item : item?.name) : []),
-        ...(Array.isArray(res.roomingGuests) ? res.roomingGuests.map(item => typeof item === 'string' ? item : item?.name) : [])
-    ];
-    const seen = new Set();
-    return values
-        .map(cleanTimelineGuestName)
-        .filter(name => {
-            if (!name || seen.has(name)) return false;
-            seen.add(name);
-            return true;
-        });
+    const entries = [];
+    const addEntry = (raw, fallbackRole = 'companion', source = 'reservation', index = 0) => {
+        const item = typeof raw === 'string' ? { name: raw } : (raw || {});
+        const name = cleanTimelineGuestName(item.name || item.guestName || item.roomingGuestName || item.guest);
+        if (!name) return;
+        const id = String(item.guestId || item.id || item.roomingGuestId || '').trim();
+        const role = item.role || fallbackRole;
+        if (id && entries.some(entry => entry.id && entry.id === id)) return;
+        if (id) {
+            const sameNameWithoutId = entries.findIndex(entry => !entry.id && entry.name === name);
+            if (sameNameWithoutId >= 0) {
+                entries[sameNameWithoutId] = { id, name, role, source, index };
+                return;
+            }
+        }
+        const isDerivedSource = ['primary-fields', 'roomingGuestNames', 'companionGuestNames', 'companions'].includes(source);
+        if (isDerivedSource && entries.some(entry => entry.name === name && (!id || !entry.id || entry.id === id))) return;
+        if (!id && entries.some(entry => !entry.id && entry.name === name && entry.source === source)) return;
+        entries.push({ id, name, role, source, index });
+    };
+
+    if (Array.isArray(res.roomingGuests)) {
+        res.roomingGuests.forEach((item, index) => addEntry(item, index === 0 ? 'primary' : 'companion', 'roomingGuests', index));
+    }
+    timelineGroupRoomingEntries(res).forEach((item, index) => addEntry(item, item.role || (index === 0 ? 'primary' : 'companion'), 'group-rooming', index));
+
+    if (!entries.some(item => item.role === 'primary')) {
+        addEntry({
+            guestId: res.guestId || res.roomingGuestId,
+            name: res.roomingGuestName || res.guestName || res.guest
+        }, 'primary', 'primary-fields', 0);
+    }
+    if (Array.isArray(res.roomingGuestNames)) {
+        res.roomingGuestNames.forEach((name, index) => addEntry({ name }, index === 0 ? 'primary' : 'companion', 'roomingGuestNames', index));
+    }
+    if (Array.isArray(res.companionGuestNames)) {
+        const ids = Array.isArray(res.companionGuestIds) ? res.companionGuestIds : [];
+        res.companionGuestNames.forEach((name, index) => addEntry({ name, guestId: ids[index] || '' }, 'companion', 'companionGuestNames', index));
+    }
+    if (Array.isArray(res.companions)) {
+        res.companions.forEach((item, index) => addEntry(item, 'companion', 'companions', index));
+    }
+
+    const primary = entries.find(item => item.role === 'primary');
+    if (!primary && entries[0]) entries[0].role = 'primary';
+    return entries;
+}
+
+function timelineGuestNames(res) {
+    return timelineGuestEntries(res).map(item => item.name);
+}
+
+function timelinePrimaryGuestEntry(res) {
+    const entries = timelineGuestEntries(res);
+    return entries.find(item => item.role === 'primary') || entries[0] || null;
 }
 
 function timelinePrimaryGuestName(res) {
-    return timelineGuestNames(res)[0] || timelineGuestName(res);
+    return timelinePrimaryGuestEntry(res)?.name || '';
 }
 
 function timelineCompanionGuestNames(res) {
-    const primary = timelinePrimaryGuestName(res);
-    return timelineGuestNames(res).filter(name => name && name !== primary);
+    const entries = timelineGuestEntries(res);
+    const primary = entries.find(item => item.role === 'primary') || entries[0] || null;
+    return entries
+        .filter(item => item && item !== primary)
+        .map(item => item.name);
 }
 
 function timelineGuestLabel(res) {
