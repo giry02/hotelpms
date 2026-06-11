@@ -25,7 +25,22 @@ function crmAmount(value) {
     return Number(value || 0);
 }
 
+function crmIsBlacklisted(guest) {
+    const tags = Array.isArray(guest?.tags) ? guest.tags.map(tag => String(tag).toLowerCase()) : [];
+    const blacklist = guest?.blacklist && typeof guest.blacklist === 'object' ? guest.blacklist : {};
+    return Boolean(
+        guest?.blacklisted ||
+        guest?.isBlacklisted ||
+        blacklist.active ||
+        String(guest?.status || '').toLowerCase() === 'blacklisted' ||
+        tags.includes('blacklist') ||
+        tags.includes('blacklisted')
+    );
+}
+
 function normalizeCrmGuest(guest, index) {
+    const blacklist = guest.blacklist && typeof guest.blacklist === 'object' ? guest.blacklist : {};
+    const blacklisted = crmIsBlacklisted(guest);
     return {
         ...guest,
         init: guest.init || crmInitial(guest.name),
@@ -38,7 +53,17 @@ function normalizeCrmGuest(guest, index) {
         vip: guest.vip || guest.tier || 'standard',
         docStatus: (guest.document && guest.document.status) || guest.docStatus || 'pending',
         documentStatus: (guest.document && guest.document.status) || guest.documentStatus || 'pending',
-        specialNotes: guest.specialNotes || ''
+        specialNotes: guest.specialNotes || '',
+        blacklisted,
+        isBlacklisted: blacklisted,
+        blacklistReason: guest.blacklistReason || blacklist.reason || '',
+        blacklistRegisteredAt: guest.blacklistRegisteredAt || blacklist.registeredAt || '',
+        blacklistRegisteredBy: guest.blacklistRegisteredBy || blacklist.registeredBy || '',
+        blacklistUpdatedAt: guest.blacklistUpdatedAt || blacklist.updatedAt || '',
+        blacklistUpdatedBy: guest.blacklistUpdatedBy || blacklist.updatedBy || '',
+        blacklistHistory: Array.isArray(guest.blacklistHistory)
+            ? guest.blacklistHistory
+            : (Array.isArray(blacklist.history) ? blacklist.history : [])
     };
 }
 

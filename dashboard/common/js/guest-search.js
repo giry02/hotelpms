@@ -65,6 +65,27 @@ function _escapeGuestHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
+function _isGuestBlacklisted(guest) {
+    const tags = Array.isArray(guest?.tags) ? guest.tags.map(tag => String(tag).toLowerCase()) : [];
+    return Boolean(
+        guest?.blacklisted ||
+        guest?.isBlacklisted ||
+        String(guest?.status || '').toLowerCase() === 'blacklisted' ||
+        tags.includes('blacklist') ||
+        tags.includes('blacklisted')
+    );
+}
+
+function _guestBlacklistReason(guest) {
+    return String(guest?.blacklistReason || guest?.blacklist?.reason || '').trim();
+}
+
+function _guestSearchBlacklistBadge(guest) {
+    if (!_isGuestBlacklisted(guest)) return '';
+    const reason = _guestBlacklistReason(guest);
+    return `<div style="margin-top:4px;display:flex;align-items:center;gap:5px;color:var(--danger);font-size:.68rem;font-weight:800"><i class="fa-solid fa-ban"></i><span>블랙리스트${reason ? ` · ${_escapeGuestHtml(reason)}` : ''}</span></div>`;
+}
+
 function _normalizeGuestForSearch(guest, index = 0) {
     const spendValue = guest.totalSpend && typeof guest.totalSpend === 'object'
         ? Number(guest.totalSpend.amount || 0)
@@ -79,7 +100,10 @@ function _normalizeGuestForSearch(guest, index = 0) {
         country: guest.country || guest.nationality || guest.nation || '',
         tier,
         visits: Number(guest.visits || guest.visitCount || 0),
-        spend: spendValue
+        spend: spendValue,
+        blacklisted: _isGuestBlacklisted(guest),
+        isBlacklisted: _isGuestBlacklisted(guest),
+        blacklistReason: _guestBlacklistReason(guest)
     };
 }
 
@@ -166,13 +190,15 @@ class GuestSearchWidget {
         const tc = _tierColors[g.tier] || '#6B7280';
         const ti = _tierIcons[g.tier] || 'fa-user';
 
-        this.els.selected.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(135deg,${tc}08,${tc}15);border:1.5px solid ${tc}40;border-radius:10px">
+        const blacklistBorder = _isGuestBlacklisted(g) ? 'var(--danger)' : `${tc}40`;
+        this.els.selected.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(135deg,${tc}08,${tc}15);border:1.5px solid ${blacklistBorder};border-radius:10px">
             <div style="display:flex;align-items:center;gap:12px">
                 <div style="width:44px;height:44px;border-radius:50%;background:${tc}20;color:${tc};display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800">${_escapeGuestHtml(g.name.charAt(0).toUpperCase())}</div>
                 <div>
                     <div style="font-size:.88rem;font-weight:700;color:var(--txt)">${_escapeGuestHtml(g.name)} <span style="font-size:.65rem;padding:2px 7px;border-radius:10px;background:${tc};color:#fff;font-weight:700;margin-left:4px"><i class="fa-solid ${ti}" style="font-size:.55rem"></i> ${_escapeGuestHtml(_tierLabel(g.tier))}</span></div>
                     <div style="font-size:.72rem;color:var(--txt3);margin-top:2px">${_escapeGuestHtml(g.phone)} · ${_escapeGuestHtml(g.email)}</div>
                     <div style="font-size:.68rem;color:var(--txt3);margin-top:1px">${_escapeGuestHtml(g.country)} · ${_guestText('guest.visits', '방문')} ${Number(g.visits || 0)} · ${_guestText('guest.spend', '누적')} ${typeof window.pmsFormatCurrency === 'function' ? window.pmsFormatCurrency(g.spend) : '₱' + Number(g.spend || 0).toLocaleString()}</div>
+                    ${_guestSearchBlacklistBadge(g)}
                 </div>
             </div>
             <button type="button" class="_gs-deselect-btn" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-family:var(--font);font-size:.72rem;color:var(--txt3);cursor:pointer" title="${_guestText('guest.deselect', '선택 해제')}"><i class="fa-solid fa-xmark"></i> ${_guestText('Change', '변경')}</button>
@@ -237,12 +263,13 @@ class GuestSearchWidget {
         results.forEach(g => {
             const tc = _tierColors[g.tier] || '#6B7280';
             const ti = _tierIcons[g.tier] || 'fa-user';
-            html += `<div class="_gs-result-row" data-gid="${_escapeGuestHtml(g.id)}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border2);transition:background .15s">
+            html += `<div class="_gs-result-row" data-gid="${_escapeGuestHtml(g.id)}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border2);transition:background .15s;${_isGuestBlacklisted(g) ? 'box-shadow:inset 3px 0 0 var(--danger);' : ''}">
                 <div style="display:flex;align-items:center;gap:10px">
                     <div style="width:36px;height:36px;border-radius:50%;background:${tc}15;color:${tc};display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700">${_escapeGuestHtml(g.name.charAt(0).toUpperCase())}</div>
                     <div>
                         <div style="font-size:.82rem;font-weight:600;color:var(--txt)">${_escapeGuestHtml(g.name)} <span style="font-size:.65rem;padding:2px 6px;border-radius:10px;background:${tc}18;color:${tc};font-weight:700;margin-left:4px"><i class="fa-solid ${ti}" style="font-size:.6rem"></i> ${_escapeGuestHtml(_tierLabel(g.tier))}</span></div>
                         <div style="font-size:.72rem;color:var(--txt3);margin-top:1px">${_escapeGuestHtml(g.phone)} · ${_escapeGuestHtml(g.email)}</div>
+                        ${_guestSearchBlacklistBadge(g)}
                     </div>
                 </div>
                 <div style="font-size:.7rem;color:var(--txt3);text-align:right">

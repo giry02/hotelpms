@@ -141,6 +141,20 @@
 .guest-table .guest-cell .tier-icon-sm{display:inline-flex;align-items:center;justify-content:center;margin-right:2px;overflow:visible;text-overflow:clip;white-space:normal}
 .tier-icon-sm i,.m-res-tier-icon i{display:block;width:1em;height:1em;line-height:1;text-align:center}
 .m-res-tier-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;border:1px solid currentColor;font-size:.9rem;flex-shrink:0}
+.guest-cell.blacklisted strong{color:var(--danger)}
+.blacklist-badge{display:inline-flex!important;align-items:center;gap:4px;width:max-content;max-width:100%;margin-top:4px;padding:3px 7px;border-radius:999px;background:var(--danger-lt);color:var(--danger);font-size:.63rem;font-weight:900;line-height:1.1;white-space:nowrap}
+.blacklist-reason-line{display:block;margin-top:3px;color:var(--txt3);font-size:.68rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-res-card.blacklisted{border-color:rgba(239,68,68,.35);box-shadow:inset 3px 0 0 var(--danger)}
+.gd-blacklist-card{margin-top:14px;padding:14px;border:1px solid var(--border2);border-radius:10px;background:#fff}
+.gd-blacklist-card.active{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.04)}
+.gd-blacklist-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.gd-blacklist-title{display:flex;align-items:center;gap:8px;font-size:.86rem;font-weight:900;color:var(--txt)}
+.gd-blacklist-title i{color:var(--danger)}
+.gd-blacklist-toggle{display:inline-flex;align-items:center;gap:7px;font-size:.75rem;font-weight:900;color:var(--txt);cursor:pointer;white-space:nowrap}
+.gd-blacklist-toggle input{width:16px;height:16px;accent-color:var(--danger)}
+.gd-blacklist-card textarea{min-height:72px;border:1px solid var(--border);border-radius:7px;padding:9px 10px;font-family:var(--font);width:100%;resize:vertical;background:#fff}
+.gd-blacklist-desc,.gd-blacklist-meta{font-size:.72rem;color:var(--txt3);line-height:1.45}
+.gd-blacklist-meta{margin-top:8px;font-weight:700}
 
 @media (max-width: 768px) {
     .gd-history table, .gd-history thead, .gd-history tbody, .gd-history tr, .gd-history td { display: block; width: 100%; }
@@ -221,6 +235,7 @@
                 <button class="chip" onclick="setTier(this,'platinum')" data-tier="platinum"><i class="fa-solid fa-star" style="color:#A78BFA"></i> 플래티넘 <span class="chip-count"></span></button>
                 <button class="chip" onclick="setTier(this,'gold')" data-tier="gold"><i class="fa-solid fa-crown" style="color:#F59E0B"></i> 골드 <span class="chip-count"></span></button>
                 <button class="chip" onclick="setTier(this,'standard')" data-tier="standard">일반 <span class="chip-count"></span></button>
+                <button class="chip" onclick="setTier(this,'blacklist')" data-tier="blacklist"><i class="fa-solid fa-ban" style="color:var(--danger)"></i> 블랙리스트 <span class="chip-count"></span></button>
             </div>
             
             <button class="m-filter-trigger" onclick="openBottomSheet()">
@@ -298,6 +313,11 @@
             <div class="bs-option-label">일반<div class="bs-option-desc">일반 등급 고객</div></div>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
+        <button class="bs-option" onclick="selectFilter('blacklist','블랙리스트')">
+            <div class="bs-option-icon" style="background:var(--danger-lt);color:var(--danger)"><i class="fa-solid fa-ban"></i></div>
+            <div class="bs-option-label">블랙리스트<div class="bs-option-desc">주의 사유가 등록된 투숙객</div></div>
+            <i class="fa-solid fa-check bs-option-check"></i>
+        </button>
     </div>
 </div>
 
@@ -307,6 +327,7 @@ let currentPage = 1;
 const guestPageSize = 10;
 let currentGuestDetailEmail = null;
 let originalGuestTier = null;
+let originalGuestBlacklist = false;
 const PMS_GUEST_NATIONALITIES = [
     'Australia', 'Brazil', 'Canada', 'China', 'France', 'Germany',
     'Hong Kong', 'India', 'Indonesia', 'Italy', 'Japan', 'Korea',
@@ -317,6 +338,33 @@ const PMS_GUEST_NATIONALITIES = [
 
 function guestEscape(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+function isGuestBlacklisted(guest) {
+    const tags = Array.isArray(guest?.tags) ? guest.tags.map(tag => String(tag).toLowerCase()) : [];
+    return Boolean(
+        guest?.blacklisted ||
+        guest?.isBlacklisted ||
+        String(guest?.status || '').toLowerCase() === 'blacklisted' ||
+        tags.includes('blacklist') ||
+        tags.includes('blacklisted')
+    );
+}
+
+function guestBlacklistReason(guest) {
+    return String(guest?.blacklistReason || guest?.blacklist?.reason || '').trim();
+}
+
+function guestBlacklistBadge(guest) {
+    if (!isGuestBlacklisted(guest)) return '';
+    return `<span class="blacklist-badge"><i class="fa-solid fa-ban"></i> 블랙리스트</span>`;
+}
+
+function guestBlacklistMeta(guest) {
+    if (!isGuestBlacklisted(guest)) return '';
+    const by = guest.blacklistRegisteredBy || guest.blacklistUpdatedBy || '';
+    const at = guest.blacklistRegisteredAt || guest.blacklistUpdatedAt || '';
+    return [by, at].filter(Boolean).join(' · ');
 }
 
 function normalizeGuestNationality(value) {
@@ -404,7 +452,17 @@ PmsAPI.getGuests()
             spend: g.spend || 0,
             email: g.email || '-',
             phone: g.phone || '-',
-            specialNotes: g.specialNotes || ''
+            specialNotes: g.specialNotes || '',
+            blacklisted: isGuestBlacklisted(g),
+            isBlacklisted: isGuestBlacklisted(g),
+            blacklistReason: guestBlacklistReason(g),
+            blacklistRegisteredAt: g.blacklistRegisteredAt || g.blacklist?.registeredAt || '',
+            blacklistRegisteredBy: g.blacklistRegisteredBy || g.blacklist?.registeredBy || '',
+            blacklistUpdatedAt: g.blacklistUpdatedAt || g.blacklist?.updatedAt || '',
+            blacklistUpdatedBy: g.blacklistUpdatedBy || g.blacklist?.updatedBy || '',
+            blacklistHistory: Array.isArray(g.blacklistHistory)
+                ? g.blacklistHistory
+                : (Array.isArray(g.blacklist?.history) ? g.blacklist.history : [])
         }));
         if(typeof renderGuests === 'function') {
             renderGuests();
@@ -417,7 +475,8 @@ const tierCfg = {
     diamond:{label:'다이아몬드',icon:'fa-gem',color:'#60A5FA',bg:'rgba(96,165,250,.1)'},
     platinum:{label:'플래티넘',icon:'fa-star',color:'#A78BFA',bg:'rgba(167,139,250,.1)'},
     gold:{label:'골드',icon:'fa-crown',color:'#F59E0B',bg:'rgba(245,158,11,.1)'},
-    standard:{label:'일반',icon:'fa-user',color:'#9CA3AF',bg:'rgba(156,163,175,.1)'}
+    standard:{label:'일반',icon:'fa-user',color:'#9CA3AF',bg:'rgba(156,163,175,.1)'},
+    blacklist:{label:'블랙리스트',icon:'fa-ban',color:'var(--danger)',bg:'var(--danger-lt)'}
 };
 
 let currentTier = 'all';
@@ -425,8 +484,19 @@ let currentTier = 'all';
 function renderGuests() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const filtered = guests.filter(g => {
-        if (currentTier !== 'all' && g.tier !== currentTier) return false;
-        if (search && !String(g.name || '').toLowerCase().includes(search) && !String(g.email || '').toLowerCase().includes(search)) return false;
+        if (currentTier === 'blacklist') {
+            if (!isGuestBlacklisted(g)) return false;
+        } else if (currentTier !== 'all' && g.tier !== currentTier) {
+            return false;
+        }
+        const searchable = [
+            g.name,
+            g.email,
+            g.phone,
+            g.nation,
+            guestBlacklistReason(g)
+        ].map(value => String(value || '').toLowerCase()).join(' ');
+        if (search && !searchable.includes(search)) return false;
         return true;
     });
 
@@ -465,12 +535,14 @@ function renderGuests() {
     tbody.innerHTML = pageItems.map(g => {
         const tc = t[g.tier] || t.standard;
         const nation = displayGuestNation(g.nation);
+        const blacklist = isGuestBlacklisted(g);
+        const reason = guestBlacklistReason(g);
         return `<tr onclick="openGuestDetail('${g.email}')" style="cursor:pointer" class="guest-row">
-            <td><div class="guest-cell"><span class="tier-icon-sm" style="background:${tc.bg};color:${tc.color}"><i class="fa-solid ${tc.icon}"></i></span><div><strong>${g.name}</strong></div></div></td>
+            <td><div class="guest-cell ${blacklist ? 'blacklisted' : ''}"><span class="tier-icon-sm" style="background:${tc.bg};color:${tc.color}"><i class="fa-solid ${tc.icon}"></i></span><div><strong>${guestEscape(g.name)}</strong>${guestBlacklistBadge(g)}${blacklist && reason ? `<span class="blacklist-reason-line">${guestEscape(reason)}</span>` : ''}</div></div></td>
             <td>${guestEscape(nation)}</td>
             <td><span class="tier-badge" style="background:${tc.bg};color:${tc.color}"><i class="fa-solid ${tc.icon}"></i> ${g.tierLabel || g.tier}</span></td>
             <td><strong>${g.visits}</strong>회</td>
-            <td>${g.last}</td>
+            <td>${guestEscape(g.last)}</td>
             <td style="font-weight:700">${formatGuestMoney(g.spend)}</td>
             <td><div class="action-btns">
                 <button class="act-btn" title="상세" onclick="event.stopPropagation(); openGuestDetail('${g.email}')"><i class="fa-solid fa-eye"></i></button>
@@ -482,13 +554,16 @@ function renderGuests() {
     mobile.innerHTML = pageItems.map(g => {
         const tc = t[g.tier] || t.standard;
         const nation = displayGuestNation(g.nation);
-        return `<div class="m-res-card" onclick="openGuestDetail('${g.email}')" style="cursor:pointer">
+        const blacklist = isGuestBlacklisted(g);
+        const reason = guestBlacklistReason(g);
+        return `<div class="m-res-card ${blacklist ? 'blacklisted' : ''}" onclick="openGuestDetail('${g.email}')" style="cursor:pointer">
             <div class="m-res-top">
                 <div class="m-res-guest">
                     <span class="m-res-tier-icon" style="background:${tc.bg};color:${tc.color}"><i class="fa-solid ${tc.icon}"></i></span>
                     <div>
-                        <div class="m-res-name">${g.name}</div>
+                        <div class="m-res-name">${guestEscape(g.name)}</div>
                         <div class="m-res-sub">${guestEscape(nation)}</div>
+                        ${guestBlacklistBadge(g)}
                     </div>
                 </div>
                 <div style="text-align:right">
@@ -496,9 +571,10 @@ function renderGuests() {
                     <div class="m-res-amount">${formatGuestMoney(g.spend)}</div>
                 </div>
             </div>
+            ${blacklist && reason ? `<div class="blacklist-reason-line">${guestEscape(reason)}</div>` : ''}
             <div class="m-res-details">
                 <div class="m-res-detail"><i class="fa-solid fa-rotate"></i> 방문 ${g.visits}회</div>
-                <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> 최근: ${g.last}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> 최근: ${guestEscape(g.last)}</div>
             </div>
             <div class="m-res-actions">
                 <button class="act-btn" onclick="event.stopPropagation(); openGuestDetail('${g.email}')"><i class="fa-solid fa-eye"></i> 상세</button>
@@ -559,6 +635,7 @@ function updateFilterCounts() {
         
         let count = 0;
         if (tier === 'all') count = guests.length;
+        else if (tier === 'blacklist') count = guests.filter(isGuestBlacklisted).length;
         else count = guests.filter(g => g.tier === tier).length;
         
         countSpan.textContent = count;
@@ -825,6 +902,20 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">특이사항 / 선호도</label>
                 <textarea id="gdInputSpecialNotes" style="min-height:50px;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-family:var(--font);width:100%;resize:vertical" placeholder="예: 금연 객실 선호"></textarea>
             </div>
+            <div class="gd-blacklist-card" id="gdBlacklistCard">
+                <div class="gd-blacklist-head">
+                    <div>
+                        <div class="gd-blacklist-title"><i class="fa-solid fa-ban"></i> 블랙리스트 관리</div>
+                        <div class="gd-blacklist-desc">예약, 체크인, 고객 응대 전 확인이 필요한 투숙객이면 사유와 함께 등록합니다.</div>
+                    </div>
+                    <label class="gd-blacklist-toggle">
+                        <input type="checkbox" id="gdBlacklistActive" onchange="updateGuestBlacklistVisibility()">
+                        등록
+                    </label>
+                </div>
+                <textarea id="gdBlacklistReason" placeholder="블랙리스트 등록 사유를 입력하세요. 예: 반복 노쇼, 객실 파손, 결제 분쟁 등"></textarea>
+                <div class="gd-blacklist-meta" id="gdBlacklistMeta"></div>
+            </div>
         </div>
         <!-- 하단 상세 이력 (Bottom Stay History) -->
         <div class="gd-history">
@@ -864,6 +955,7 @@ function openGuestDetail(email) {
     if(!guest) return;
     currentGuestDetailEmail = guest.email;
     originalGuestTier = guest.tier;
+    originalGuestBlacklist = isGuestBlacklisted(guest);
     if (window.PmsPrivacyAudit) {
         window.PmsPrivacyAudit.log('guest.detail.view', {
             screen: 'guest-crm',
@@ -875,7 +967,7 @@ function openGuestDetail(email) {
 
     // Populate data
     const t = tierCfg[guest.tier] || tierCfg.standard;
-    document.getElementById('gdName').innerHTML = `<span class="tier-badge" style="background:${t.bg};color:${t.color};margin-right:8px"><i class="fa-solid ${t.icon}"></i> ${guest.tierLabel || guest.tier}</span> ${guest.name}`;
+    document.getElementById('gdName').innerHTML = `<span class="tier-badge" style="background:${t.bg};color:${t.color};margin-right:8px"><i class="fa-solid ${t.icon}"></i> ${guest.tierLabel || guest.tier}</span> ${guestEscape(guest.name)} ${guestBlacklistBadge(guest)}`;
     
     document.getElementById('gdVisits').textContent = guest.visits + '회';
     document.getElementById('gdLastStay').textContent = guest.last;
@@ -898,6 +990,9 @@ function openGuestDetail(email) {
     document.getElementById('gdInputTier').value = guest.tier;
     document.getElementById('gdInputSpecialNotes').value = guest.specialNotes || '';
     document.getElementById('gdTierChangeReason').value = '';
+    document.getElementById('gdBlacklistActive').checked = originalGuestBlacklist;
+    document.getElementById('gdBlacklistReason').value = guestBlacklistReason(guest);
+    updateGuestBlacklistVisibility();
     updateGuestTierReasonVisibility();
     
     const noShow = Number(guest.noShowCount || guest.noShow || guest.noshow || 0);
@@ -928,6 +1023,27 @@ function updateGuestTierReasonVisibility() {
     wrap.classList.toggle('active', !!originalGuestTier && selectedTier !== originalGuestTier);
 }
 
+function updateGuestBlacklistVisibility() {
+    const active = !!document.getElementById('gdBlacklistActive')?.checked;
+    const card = document.getElementById('gdBlacklistCard');
+    const reason = document.getElementById('gdBlacklistReason');
+    const meta = document.getElementById('gdBlacklistMeta');
+    const guest = guests.find(g => g.email === currentGuestDetailEmail);
+    if (card) card.classList.toggle('active', active);
+    if (reason) {
+        reason.disabled = !active;
+        reason.style.opacity = active ? '1' : '.62';
+    }
+    if (meta) {
+        const history = Array.isArray(guest?.blacklistHistory) ? guest.blacklistHistory : [];
+        const latest = history[0];
+        const registered = guestBlacklistMeta(guest);
+        if (active && registered) meta.textContent = `등록 정보: ${registered}`;
+        else if (latest) meta.textContent = `최근 변경: ${latest.changedBy || latest.by || '-'} · ${latest.changedAt || latest.date || '-'}`;
+        else meta.textContent = active ? '저장 시 등록자와 등록일이 기록됩니다.' : '현재 블랙리스트로 등록되어 있지 않습니다.';
+    }
+}
+
 function getCurrentStaffName() {
     const role = localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
     const profiles = {
@@ -950,11 +1066,19 @@ async function saveGuestDetail() {
 
     const nextTier = document.getElementById('gdInputTier').value;
     const tierChanged = nextTier !== originalGuestTier;
-    const reason = document.getElementById('gdTierChangeReason').value.trim();
+    const tierReason = document.getElementById('gdTierChangeReason').value.trim();
+    const nextBlacklisted = !!document.getElementById('gdBlacklistActive')?.checked;
+    const blacklistReason = document.getElementById('gdBlacklistReason')?.value.trim() || '';
+    const blacklistChanged = nextBlacklisted !== originalGuestBlacklist || (nextBlacklisted && blacklistReason !== guestBlacklistReason(guest));
 
-    if (tierChanged && !reason) {
+    if (tierChanged && !tierReason) {
         showToast(guestText('등급 변경 사유를 입력해 주세요.', 'Enter a reason for the tier change.'), 'error');
         document.getElementById('gdTierChangeReason').focus();
+        return;
+    }
+    if (nextBlacklisted && !blacklistReason) {
+        showToast(guestText('블랙리스트 등록 사유를 입력해 주세요.', 'Enter a reason for blacklisting this guest.'), 'error');
+        document.getElementById('gdBlacklistReason')?.focus();
         return;
     }
 
@@ -963,6 +1087,18 @@ async function saveGuestDetail() {
     const nextName = [firstName, lastName].filter(Boolean).join(' ') || guest.name;
     const previousTier = guest.tier;
     const changedBy = getCurrentStaffName();
+    const changedAt = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+    const previousBlacklistReason = guestBlacklistReason(guest);
+    const blacklistHistory = Array.isArray(guest.blacklistHistory) ? guest.blacklistHistory.slice() : [];
+    if (blacklistChanged) {
+        blacklistHistory.unshift({
+            id: `BL-${Date.now()}`,
+            action: nextBlacklisted ? 'registered' : 'released',
+            reason: nextBlacklisted ? blacklistReason : previousBlacklistReason,
+            changedBy,
+            changedAt
+        });
+    }
 
     Object.assign(guest, {
         name: nextName,
@@ -973,7 +1109,16 @@ async function saveGuestDetail() {
         nationality: document.getElementById('gdInputNation').value,
         tier: nextTier,
         tierLabel: nextTier,
-        specialNotes: document.getElementById('gdInputSpecialNotes').value.trim()
+        specialNotes: document.getElementById('gdInputSpecialNotes').value.trim(),
+        status: nextBlacklisted ? 'blacklisted' : (String(guest.status || '').toLowerCase() === 'blacklisted' ? 'active' : (guest.status || 'active')),
+        blacklisted: nextBlacklisted,
+        isBlacklisted: nextBlacklisted,
+        blacklistReason: nextBlacklisted ? blacklistReason : '',
+        blacklistRegisteredAt: nextBlacklisted ? (guest.blacklistRegisteredAt || changedAt) : '',
+        blacklistRegisteredBy: nextBlacklisted ? (guest.blacklistRegisteredBy || changedBy) : '',
+        blacklistUpdatedAt: blacklistChanged ? changedAt : (guest.blacklistUpdatedAt || ''),
+        blacklistUpdatedBy: blacklistChanged ? changedBy : (guest.blacklistUpdatedBy || ''),
+        blacklistHistory
     });
 
     try {
@@ -988,22 +1133,34 @@ async function saveGuestDetail() {
                         beforeTier: previousTier,
                         afterTier: nextTier,
                         changeType: 'manual',
-                        reason: { ko: reason, en: reason },
+                        reason: { ko: tierReason, en: tierReason },
                         changedBy,
-                        changedAt: new Date().toISOString().slice(0, 10)
+                        changedAt
                     }
+                });
+            }
+            if (blacklistChanged && window.PmsPrivacyAudit) {
+                window.PmsPrivacyAudit.log('guest.blacklist.change', {
+                    screen: 'guest-crm',
+                    guestId: guest.id || '',
+                    guestName: guest.name,
+                    action: nextBlacklisted ? 'registered' : 'released',
+                    fields: ['blacklisted', 'blacklistReason', 'blacklistHistory']
                 });
             }
         }
         renderGuests();
         updateFilterCounts();
         originalGuestTier = nextTier;
+        originalGuestBlacklist = nextBlacklisted;
         document.getElementById('gdTierChangeReason').value = '';
         updateGuestTierReasonVisibility();
         openGuestDetail(guest.email);
-        showToast(tierChanged
-            ? guestText('등급 변경 사유와 이력이 저장되었습니다.', 'Tier change reason and history were saved.')
-            : guestText('투숙객 정보가 저장되었습니다.', 'Guest information was saved.'), 'success');
+        showToast(blacklistChanged
+            ? guestText('블랙리스트 상태와 사유가 저장되었습니다.', 'Blacklist status and reason were saved.')
+            : (tierChanged
+                ? guestText('등급 변경 사유와 이력이 저장되었습니다.', 'Tier change reason and history were saved.')
+                : guestText('투숙객 정보가 저장되었습니다.', 'Guest information was saved.')), 'success');
     } catch (error) {
         console.error(error);
         showToast(guestText('저장 중 오류가 발생했습니다.', 'An error occurred while saving.'), 'error');
