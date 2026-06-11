@@ -1028,10 +1028,7 @@ async function deleteGroup(id) {
     }
 
     function getCurrency() {
-        const saved = localStorage.getItem('pms_default_currency') || localStorage.getItem('pms_currency') || 'PHP';
-        const code = saved.includes('PHP') ? 'PHP' : saved.includes('USD') ? 'USD' : saved.includes('VND') ? 'VND' : saved.includes('KRW') ? 'KRW' : saved;
-        const symbols = { PHP: '₱', USD: '$', KRW: 'KRW ', VND: 'VND ' };
-        return { code, symbol: symbols[code] || code };
+        return { code: 'PHP', symbol: '₱' };
     }
 
     function money(value) {
@@ -1062,7 +1059,6 @@ async function deleteGroup(id) {
         const typeConfig = getRoomTypesConfig().find(rt => rt.id === type || rt.name === type || type.includes(rt.id) || rt.name.includes(type));
         const typeId = typeConfig ? typeConfig.id : type;
         let rate = dailyRates[date] && dailyRates[date][typeId] !== undefined ? Number(dailyRates[date][typeId]) : Number(typeConfig?.basePrice || 0);
-        if (getCurrency().code === 'KRW' && rate > 0 && rate < 1000) rate = rate * 1000;
         return rate;
     }
 

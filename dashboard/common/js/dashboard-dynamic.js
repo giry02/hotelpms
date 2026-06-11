@@ -10,12 +10,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const explicit = amountValue(room.baseRate ?? room.rate ?? room.price);
         return explicit > 0 ? explicit : 0;
     };
-    const currencyOf = (value) => (value && typeof value === 'object' && value.currency) || localStorage.getItem('pms_default_currency') || 'PHP';
-    const formatMoney = (amount, currency = localStorage.getItem('pms_default_currency') || 'PHP') => new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency,
-        maximumFractionDigits: ['USD', 'PHP'].includes(currency) ? 2 : 0
-    }).format(Number(amount || 0));
+    const currencyOf = () => 'PHP';
+    const formatMoney = (amount) => {
+        if (typeof window.pmsFormatCurrency === 'function') return window.pmsFormatCurrency(amount);
+        return new Intl.NumberFormat('en-PH', {
+            style: 'currency',
+            currency: 'PHP',
+            maximumFractionDigits: 2
+        }).format(Number(amount || 0));
+    };
     const localIso = (date) => {
         if (!date && window.PmsDate?.todayIso) return window.PmsDate.todayIso();
         date = date || new Date();

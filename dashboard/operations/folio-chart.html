@@ -240,7 +240,11 @@
 <script>
 let dailyData = [];
 let selectedDailyIndex = null;
-function chartMoney(v){return '$' + Number(v || 0).toLocaleString();}
+function chartMoney(v){
+    return typeof window.pmsFormatCurrency === 'function'
+        ? window.pmsFormatCurrency(v)
+        : '₱' + Number(v || 0).toLocaleString();
+}
 function renderDailyDetail(index){
     const panel = document.getElementById('dailyChartDetail');
     if(!panel) return;

@@ -290,7 +290,11 @@
 let allDailyData = [];
 let dailyData = [];
 let selectedDailyIndex = null;
-function chartMoney(v){return '$' + Number(v || 0).toLocaleString();}
+function chartMoney(v){
+    return typeof window.pmsFormatCurrency === 'function'
+        ? window.pmsFormatCurrency(v)
+        : '₱' + Number(v || 0).toLocaleString();
+}
 const REPORT_TEXT = {
     ko: {
         weekBtn:'주별', monthBtn:'월별', yearBtn:'연도별',
@@ -603,7 +607,10 @@ function periodRoomTotal(rows){
     return rows.reduce((sum, row) => sum + Number(row.room || 0), 0);
 }
 function formatMoney(value){
-    return '$' + Math.round(Number(value || 0)).toLocaleString();
+    const amount = Math.round(Number(value || 0));
+    return typeof window.pmsFormatCurrency === 'function'
+        ? window.pmsFormatCurrency(amount)
+        : '₱' + amount.toLocaleString();
 }
 function formatDiff(value){
     const num = Number.isFinite(value) ? value : 0;

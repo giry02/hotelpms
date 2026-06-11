@@ -240,17 +240,20 @@ async function loadAuditData() {
 
         // Revenue Data (Using last item in dailyData as "today")
         const todayData = dailyData[dailyData.length - 1] || { room:0, fnb:0, spa:0, other:0 };
-        document.getElementById('revRoomAmt').textContent = '$' + todayData.room.toLocaleString();
+        const money = value => typeof window.pmsFormatCurrency === 'function'
+            ? window.pmsFormatCurrency(value)
+            : '₱' + Number(value || 0).toLocaleString();
+        document.getElementById('revRoomAmt').textContent = money(todayData.room);
         
-        document.getElementById('revFnbAmt').textContent = '$' + todayData.fnb.toLocaleString();
+        document.getElementById('revFnbAmt').textContent = money(todayData.fnb);
         
         const golfRev = todayData.spa || 1300;
         const carRev  = todayData.other || 880;
-        document.getElementById('revGolfAmt').textContent = '$' + golfRev.toLocaleString();
-        document.getElementById('revCarAmt').textContent  = '$' + carRev.toLocaleString();
+        document.getElementById('revGolfAmt').textContent = money(golfRev);
+        document.getElementById('revCarAmt').textContent  = money(carRev);
 
         totalRev = todayData.room + todayData.fnb + golfRev + carRev;
-        document.getElementById('revTotalAmt').textContent = '$' + totalRev.toLocaleString();
+        document.getElementById('revTotalAmt').textContent = money(totalRev);
 
     } catch (e) {
         console.error(e);

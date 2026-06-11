@@ -33,8 +33,8 @@
             { id: 'ADM-2', name: 'Ops Manager', email: 'ops@platform.example', role: 'Operations', status: 'active', lastLogin: '2026-05-27 18:40' }
         ],
         billing: [
-            { id: 'INV-202605-001', tenantId: 'TENANT-GRAND-SAIGON', hotelName: 'The Grand Saigon', plan: 'Premium', amount: 1250, currency: 'USD', status: 'paid', issuedAt: '2026-05-01', dueAt: '2026-05-10' },
-            { id: 'INV-202605-002', tenantId: 'TENANT-HANOI-LAKE', hotelName: 'Hanoi Lakeside', plan: 'Standard', amount: 650, currency: 'USD', status: 'open', issuedAt: '2026-05-01', dueAt: '2026-05-10' }
+            { id: 'INV-202605-001', tenantId: 'TENANT-GRAND-SAIGON', hotelName: 'The Grand Saigon', plan: 'Premium', amount: 1250, currency: 'PHP', status: 'paid', issuedAt: '2026-05-01', dueAt: '2026-05-10' },
+            { id: 'INV-202605-002', tenantId: 'TENANT-HANOI-LAKE', hotelName: 'Hanoi Lakeside', plan: 'Standard', amount: 650, currency: 'PHP', status: 'open', issuedAt: '2026-05-01', dueAt: '2026-05-10' }
         ],
         tickets: [
             { id: 'TCK-1001', tenantId: 'TENANT-GRAND-SAIGON', hotelName: 'The Grand Saigon', title: '요금 캘린더 저장 확인 요청', status: 'open', priority: 'normal', createdAt: '2026-05-28 09:00' },
@@ -54,7 +54,7 @@
             { id: 'APP-20260526-002', hotelName: 'Jeju Bay Resort', country: 'South Korea', city: 'Jeju', plan: 'Standard', rooms: 210, status: 'pending', email: 'owner@jejubay.example' }
         ],
         tenants: [
-            { id: 'TENANT-GRAND-SAIGON', hotelName: 'The Grand Saigon', country: 'Vietnam', city: 'Ho Chi Minh', plan: 'Premium', status: 'active', currency: 'USD' },
+            { id: 'TENANT-GRAND-SAIGON', hotelName: 'The Grand Saigon', country: 'Vietnam', city: 'Ho Chi Minh', plan: 'Premium', status: 'active', currency: 'PHP' },
             { id: 'TENANT-HANOI-LAKE', hotelName: 'Hanoi Lakeside', country: 'Vietnam', city: 'Hanoi', plan: 'Standard', status: 'active', currency: 'VND' }
         ]
     };

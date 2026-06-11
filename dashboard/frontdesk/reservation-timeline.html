@@ -657,8 +657,14 @@ function calcEstimate() {
     const typeName = document.getElementById('nrRoomType').options[document.getElementById('nrRoomType').selectedIndex].text.split(' —')[0];
     let nights = Math.max(1, Math.round((cout - cin) / 86400000));
     const total = rate * nights;
-    document.getElementById('nrEstimate').textContent = `$${total.toLocaleString('en',{minimumFractionDigits:2})}`;
-    document.getElementById('nrCalcDetail').textContent = `${typeName} $${rate} × ${nights}${timelineText('nights')}`;
+    const formattedTotal = typeof window.pmsFormatCurrency === 'function'
+        ? window.pmsFormatCurrency(total, { forceDecimals: true })
+        : `₱${total.toLocaleString('en',{minimumFractionDigits:2})}`;
+    const formattedRate = typeof window.pmsFormatCurrency === 'function'
+        ? window.pmsFormatCurrency(rate)
+        : `₱${rate.toLocaleString('en')}`;
+    document.getElementById('nrEstimate').textContent = formattedTotal;
+    document.getElementById('nrCalcDetail').textContent = `${typeName} ${formattedRate} × ${nights}${timelineText('nights')}`;
 }
 function updateDateRangeText() {
     const end = new Date(baseDate);

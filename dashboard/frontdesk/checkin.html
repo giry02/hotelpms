@@ -730,8 +730,9 @@ async function processCheckout(btn) {
 
     // Check outstanding balance
     const balanceEl = card.querySelector('.ci-folio b');
-    const balanceText = balanceEl ? balanceEl.textContent.trim() : '$0.00';
-    const hasBalance = balanceText !== '$0.00';
+    const balanceText = balanceEl ? balanceEl.textContent.trim() : '₱0.00';
+    const balanceAmount = Number(balanceText.replace(/[^\d.-]/g, '')) || 0;
+    const hasBalance = balanceAmount > 0;
     if (hasBalance) {
         const msg = currentLang === 'en'
             ? `Outstanding balance: ${balanceText}. Please settle the folio first.`

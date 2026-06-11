@@ -2,6 +2,120 @@
 
 window.currentLang = localStorage.getItem('pms_lang') || 'ko';
 window.PMS_I18N_NAMESPACE = window.PMS_I18N_NAMESPACE || 'admin';
+window.PMS_DEFAULT_CURRENCY = 'PHP';
+
+(function forceDefaultCurrencyToPhp(){
+    try {
+        localStorage.setItem('pms_default_currency', 'PHP');
+        localStorage.setItem('pms_currency', 'PHP');
+    } catch(e) {}
+})();
+
+window.pmsFormatCurrency = window.pmsFormatCurrency || function pmsFormatCurrency(value, options = {}) {
+    const amount = Number(value || 0);
+    const digits = options.forceDecimals ? 2 : (Number.isInteger(amount) ? 0 : 2);
+    return new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: 'PHP',
+        minimumFractionDigits: digits,
+        maximumFractionDigits: 2
+    }).format(amount);
+};
+
+window.pmsNormalizeCurrencyDisplayText = window.pmsNormalizeCurrencyDisplayText || function pmsNormalizeCurrencyDisplayText(text) {
+    if (typeof text !== 'string' || !text) return text;
+    return text
+        .replace(/USD\s*\(\s*\$\s*\)/gi, 'PHP (₱)')
+        .replace(/KRW\s*\(\s*₩\s*\)/gi, 'PHP (₱)')
+        .replace(/Amount\s*\(\s*USD\s*\)/gi, 'Amount(PHP)')
+        .replace(/Amount\s+USD/gi, 'Amount PHP')
+        .replace(/청구액\s*\(\s*USD\s*\)/g, '청구액 (PHP)')
+        .replace(/금액\s*\(\s*USD\s*\)/g, '금액 (PHP)')
+        .replace(/금액\s+USD/g, '금액 PHP')
+        .replace(/단가\s*\(\s*USD\s*\)/g, '단가 (PHP)')
+        .replace(/요금\s*\(\s*USD\s*\)/g, '요금 (PHP)')
+        .replace(/특별단가\s*\(\s*USD\s*\)/g, '특별단가(PHP)')
+        .replace(/\bUSD\b/g, 'PHP')
+        .replace(/\bKRW\b/g, 'PHP')
+        .replace(/US\$/g, '₱')
+        .replace(/\$/g, '₱')
+        .replace(/₩/g, '₱');
+};
+
+(function installPhpCurrencyDisplayNormalizer(){
+    const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'CODE', 'PRE', 'TEXTAREA']);
+
+    function shouldSkip(node) {
+        let el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+        while (el) {
+            if (skipTags.has(el.tagName)) return true;
+            el = el.parentElement;
+        }
+        return false;
+    }
+
+    function normalizeTextNode(node) {
+        const next = window.pmsNormalizeCurrencyDisplayText(node.nodeValue);
+        if (next !== node.nodeValue) node.nodeValue = next;
+    }
+
+    function normalizeElementAttributes(el) {
+        ['placeholder', 'title', 'aria-label'].forEach(attr => {
+            if (!el.hasAttribute || !el.hasAttribute(attr)) return;
+            const current = el.getAttribute(attr);
+            const next = window.pmsNormalizeCurrencyDisplayText(current);
+            if (next !== current) el.setAttribute(attr, next);
+        });
+    }
+
+    function normalizeCurrencyDisplay(root = document.body) {
+        if (!root) return;
+        if (root.nodeType === Node.TEXT_NODE) {
+            if (!shouldSkip(root)) normalizeTextNode(root);
+            return;
+        }
+        if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
+        if (shouldSkip(root)) return;
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode(node) {
+                return shouldSkip(node) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+            }
+        });
+        const nodes = [];
+        let node;
+        while ((node = walker.nextNode())) nodes.push(node);
+        nodes.forEach(normalizeTextNode);
+        if (root.querySelectorAll) {
+            root.querySelectorAll('[placeholder], [title], [aria-label]').forEach(el => {
+                if (!shouldSkip(el)) normalizeElementAttributes(el);
+            });
+        }
+        if (root.nodeType === Node.ELEMENT_NODE) normalizeElementAttributes(root);
+    }
+
+    window.pmsNormalizeCurrencyDisplay = normalizeCurrencyDisplay;
+
+    function scheduleNormalize() {
+        clearTimeout(window.__pmsCurrencyNormalizeTimer);
+        window.__pmsCurrencyNormalizeTimer = setTimeout(() => normalizeCurrencyDisplay(), 40);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        normalizeCurrencyDisplay();
+        if (!window.__pmsCurrencyObserver && document.body) {
+            window.__pmsCurrencyObserver = new MutationObserver(scheduleNormalize);
+            window.__pmsCurrencyObserver.observe(document.body, {
+                childList: true,
+                subtree: true,
+                characterData: true,
+                attributes: true,
+                attributeFilter: ['placeholder', 'title', 'aria-label']
+            });
+        }
+    });
+    window.addEventListener('DataReady', scheduleNormalize);
+    window.addEventListener('languagechange', scheduleNormalize);
+})();
 
 (function migrateDefaultCurrencyToPhp(){
     const migrationKey = 'pms_default_currency_php_migrated_v1';

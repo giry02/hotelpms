@@ -30,7 +30,10 @@
     }
 
     function formatMoney(amount) {
-        return `$${Math.round(Number(amount || 0)).toLocaleString("en-US")}`;
+        const value = Math.round(Number(amount || 0));
+        return typeof window.pmsFormatCurrency === "function"
+            ? window.pmsFormatCurrency(value)
+            : `₱${value.toLocaleString("en-US")}`;
     }
 
     function apiItems(envelope) {
@@ -330,12 +333,12 @@
             const label = serviceLabel(service, data.indexOf(service));
             const tooltipTitle = `${tr("Ancillary Rev")} - ${label}`;
             const tooltipContent = `
-                <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Revenue Amount")}:</span><strong style="color:${service.color}">$${service.val.toLocaleString()}</strong></div>
+                    <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Revenue Amount")}:</span><strong style="color:${service.color}">${formatMoney(service.val)}</strong></div>
                 <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Share")}:</span><strong>${service.pct}%</strong></div>`;
             row.innerHTML = `
                 <div class="svc-icon" style="background:${service.color}1A;color:${service.color}"><i class="fa-solid ${service.icon}"></i></div>
                 <div class="svc-bar-bg"><div class="svc-bar" style="width:${service.pct}%;background:${service.color}"></div></div>
-                <div class="svc-val">$${service.val.toLocaleString()}</div>`;
+                <div class="svc-val">${formatMoney(service.val)}</div>`;
             attachChartTooltip(row, tooltipTitle, tooltipContent);
             list.appendChild(row);
 

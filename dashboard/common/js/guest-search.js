@@ -172,7 +172,7 @@ class GuestSearchWidget {
                 <div>
                     <div style="font-size:.88rem;font-weight:700;color:var(--txt)">${_escapeGuestHtml(g.name)} <span style="font-size:.65rem;padding:2px 7px;border-radius:10px;background:${tc};color:#fff;font-weight:700;margin-left:4px"><i class="fa-solid ${ti}" style="font-size:.55rem"></i> ${_escapeGuestHtml(_tierLabel(g.tier))}</span></div>
                     <div style="font-size:.72rem;color:var(--txt3);margin-top:2px">${_escapeGuestHtml(g.phone)} · ${_escapeGuestHtml(g.email)}</div>
-                    <div style="font-size:.68rem;color:var(--txt3);margin-top:1px">${_escapeGuestHtml(g.country)} · ${_guestText('guest.visits', '방문')} ${Number(g.visits || 0)} · ${_guestText('guest.spend', '누적')} $${Number(g.spend || 0).toLocaleString()}</div>
+                    <div style="font-size:.68rem;color:var(--txt3);margin-top:1px">${_escapeGuestHtml(g.country)} · ${_guestText('guest.visits', '방문')} ${Number(g.visits || 0)} · ${_guestText('guest.spend', '누적')} ${typeof window.pmsFormatCurrency === 'function' ? window.pmsFormatCurrency(g.spend) : '₱' + Number(g.spend || 0).toLocaleString()}</div>
                 </div>
             </div>
             <button type="button" class="_gs-deselect-btn" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-family:var(--font);font-size:.72rem;color:var(--txt3);cursor:pointer" title="${_guestText('guest.deselect', '선택 해제')}"><i class="fa-solid fa-xmark"></i> ${_guestText('Change', '변경')}</button>
@@ -247,7 +247,7 @@ class GuestSearchWidget {
                 </div>
                 <div style="font-size:.7rem;color:var(--txt3);text-align:right">
                     <div>${Number(g.visits || 0)} ${_guestText('guest.visits', '방문')}</div>
-                    <div style="font-weight:600;color:var(--primary)">$${Number(g.spend || 0).toLocaleString()}</div>
+                    <div style="font-weight:600;color:var(--primary)">${typeof window.pmsFormatCurrency === 'function' ? window.pmsFormatCurrency(g.spend) : '₱' + Number(g.spend || 0).toLocaleString()}</div>
                 </div>
             </div>`;
         });
