@@ -1145,24 +1145,35 @@ function syncPaymentKindLabels() {
     if (completeWrap) completeWrap.style.display = kind === 'deposit' ? 'none' : 'flex';
 }
 
+function parsePaymentAmount(value) {
+    const normalized = String(value ?? '').replace(/[^\d.-]/g, '');
+    const amount = Number(normalized);
+    return Number.isFinite(amount) ? Math.max(0, amount) : 0;
+}
+
+function readPaymentAmount(id) {
+    return parsePaymentAmount(document.getElementById(id)?.value);
+}
+
 function syncPaymentCompleteAmount() {
     const folio = visibleFolios.find(item => item.id === currentPaymentFolioId);
     const complete = document.getElementById('paymentCompleteFolio');
     const input = document.getElementById('paymentInputAmount');
-    if (folio && complete?.checked && input) input.value = Number(folio.bal || 0).toFixed(2);
+    const due = parsePaymentAmount(folio?.bal);
+    if (folio && complete?.checked && input && due > 0) input.value = due.toFixed(2);
 }
 
 function openPaymentModal(folioId, bal) {
     const folio = visibleFolios.find(item => item.id === folioId);
     currentPaymentFolioId = folioId;
-    const due = Number(folio?.bal ?? bal ?? 0);
+    const due = parsePaymentAmount(folio?.bal ?? bal ?? 0);
     document.getElementById('paymentBalAmount').innerText = `미수금 기준: ${fmtInvoiceMoney(due)} / 예치금: ${fmtInvoiceMoney(folioDepositValue(folio || {}))}`;
     document.getElementById('paymentInputAmount').value = due.toFixed(2);
     document.getElementById('paymentReceivedAmount').value = '';
     document.getElementById('paymentReceivedCurrency').value = 'PHP';
     document.getElementById('paymentKind').value = 'settlement';
     document.getElementById('paymentMethod').value = 'cash';
-    document.getElementById('paymentCompleteFolio').checked = true;
+    document.getElementById('paymentCompleteFolio').checked = due > 0;
     document.getElementById('paymentNote').value = '';
     syncPaymentKindLabels();
     openModal('paymentModal');
@@ -1176,16 +1187,21 @@ function processPayment() {
     }
     const kind = document.getElementById('paymentKind')?.value || 'settlement';
     const complete = !!document.getElementById('paymentCompleteFolio')?.checked;
-    const enteredPhp = Math.max(0, Number(document.getElementById('paymentInputAmount')?.value || 0));
+    const balance = parsePaymentAmount(folio.bal);
+    const enteredPhp = readPaymentAmount('paymentInputAmount');
     const appliedPhpAmount = kind === 'deposit'
         ? enteredPhp
-        : Math.min(complete ? Number(folio.bal || 0) : enteredPhp, Number(folio.bal || 0));
-    const receivedAmount = Math.max(0, Number(document.getElementById('paymentReceivedAmount')?.value || 0));
+        : (balance > 0 ? Math.min(enteredPhp, balance) : enteredPhp);
+    const receivedAmount = readPaymentAmount('paymentReceivedAmount');
     const receivedCurrency = document.getElementById('paymentReceivedCurrency')?.value || 'PHP';
     const method = document.getElementById('paymentMethod')?.value || 'cash';
     const methodLabel = document.getElementById('paymentMethod')?.selectedOptions?.[0]?.textContent || method;
-    if (!appliedPhpAmount || !receivedAmount) {
-        showToast('페소 기준 금액과 실제 받은 금액을 모두 입력해주세요.', 'error');
+    if (!enteredPhp) {
+        showToast(kind === 'deposit' ? '예치금 기준 페소금액을 입력해주세요.' : '정산 반영 페소금액을 입력해주세요.', 'error');
+        return;
+    }
+    if (!receivedAmount) {
+        showToast('실제 받은 금액을 입력해주세요.', 'error');
         return;
     }
     const records = settlementPaymentRecords();
