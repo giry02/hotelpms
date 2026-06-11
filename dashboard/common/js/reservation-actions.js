@@ -186,6 +186,21 @@
         return Number(res.prepaidAmount || res.prepaid || 0);
     }
 
+    function reservationDepositValue(res = null) {
+        if (!res) return 0;
+        const direct = Number(res.depositAmount ?? res.preauthAmount ?? (typeof res.deposit === 'object' ? undefined : res.deposit));
+        if (Number.isFinite(direct) && direct > 0) return direct;
+        if (res.deposit && typeof res.deposit === 'object') {
+            const fromObject = Number(res.deposit.amount || 0);
+            if (Number.isFinite(fromObject) && fromObject > 0) return fromObject;
+        }
+        if (res.paymentPlan && typeof res.paymentPlan === 'object') {
+            const fromPlan = Number(res.paymentPlan.depositAmount || res.paymentPlan.deposit || 0);
+            if (Number.isFinite(fromPlan) && fromPlan > 0) return fromPlan;
+        }
+        return Number.isFinite(direct) ? direct : 0;
+    }
+
     function parseMoneyInput(value) {
         const normalized = String(value ?? '').replace(/[^\d.-]/g, '');
         const amount = Number(normalized);
@@ -256,6 +271,8 @@
                 afterAmount: Number(item.afterAmount || 0),
                 beforePrepaid: Number(item.beforePrepaid || 0),
                 afterPrepaid: Number(item.afterPrepaid || 0),
+                beforeDeposit: Number(item.beforeDeposit || 0),
+                afterDeposit: Number(item.afterDeposit || 0),
                 balanceDue: Number(item.balanceDue || 0),
                 currency: item.currency || reservationCurrency(res),
                 note: item.note || ''
@@ -316,7 +333,7 @@
                         ${item.affectsSettlement ? '<span style="font-size:.66rem;font-weight:900;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:999px;padding:2px 7px">정산 반영</span>' : ''}
                     </div>
                     <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-top:4px">${actionEscapeHtml(formatReservationDateTime(item.changedAt))} · ${actionEscapeHtml(item.changedBy.name || '-')}</div>
-                    <div style="font-size:.72rem;color:var(--txt2);font-weight:700;margin-top:4px">총액 ${formatSettlementMoney(item.beforeAmount || reservationAmountValue(res), item.currency)} -> ${formatSettlementMoney(item.afterAmount || reservationAmountValue(res), item.currency)} · 잔액 ${formatSettlementMoney(item.balanceDue || 0, item.currency)}</div>
+                    <div style="font-size:.72rem;color:var(--txt2);font-weight:700;margin-top:4px">총액 ${formatSettlementMoney(item.beforeAmount || reservationAmountValue(res), item.currency)} -> ${formatSettlementMoney(item.afterAmount || reservationAmountValue(res), item.currency)} · 예치금 ${formatSettlementMoney(item.afterDeposit || reservationDepositValue(res), item.currency)} · 잔액 ${formatSettlementMoney(item.balanceDue || 0, item.currency)}</div>
                 </div>
                 <div style="font-size:.68rem;font-weight:900;color:${item.settlementStatus === 'settled' ? 'var(--success)' : '#b45309'};background:${item.settlementStatus === 'settled' ? 'var(--success-lt)' : '#fff7ed'};border-radius:999px;padding:4px 8px;white-space:nowrap">${item.settlementStatus === 'settled' ? '정산 완료' : '정산 확인'}</div>
             </div>
@@ -338,6 +355,8 @@
             afterAmount: Number(data.afterAmount || 0),
             beforePrepaid: Number(data.beforePrepaid || 0),
             afterPrepaid: Number(data.afterPrepaid || 0),
+            beforeDeposit: Number(data.beforeDeposit || 0),
+            afterDeposit: Number(data.afterDeposit || 0),
             balanceDue: Number(data.balanceDue || 0),
             currency: data.currency || reservationCurrency(res),
             reason: 'frontdesk-room-change',
@@ -677,32 +696,38 @@
     function setUnifiedFinanceValues(res = null, options = {}) {
         const amountInput = document.getElementById('unifiedAmount');
         const prepaidInput = document.getElementById('unifiedPrepaid');
+        const depositInput = document.getElementById('unifiedDeposit');
         if (!amountInput || !prepaidInput) return;
         const currency = reservationCurrency(res);
         let amount = options.amount;
         if (amount === undefined) amount = reservationAmountValue(res);
         if (!amount && options.suggest) amount = options.suggest;
         const prepaid = options.prepaid !== undefined ? options.prepaid : reservationPrepaidValue(res);
+        const deposit = options.deposit !== undefined ? options.deposit : reservationDepositValue(res);
         amountInput.value = formatMoneyInputValue(amount);
         prepaidInput.value = formatMoneyInputValue(prepaid);
+        if (depositInput) depositInput.value = formatMoneyInputValue(deposit);
         amountInput.dataset.currency = currency;
         prepaidInput.dataset.currency = currency;
+        if (depositInput) depositInput.dataset.currency = currency;
         syncUnifiedBalance();
     }
 
     function syncUnifiedBalance() {
         const amountInput = document.getElementById('unifiedAmount');
         const prepaidInput = document.getElementById('unifiedPrepaid');
+        const depositInput = document.getElementById('unifiedDeposit');
         const balanceInput = document.getElementById('unifiedBalance');
         const help = document.getElementById('unifiedFinanceHelp');
         if (!amountInput || !prepaidInput || !balanceInput) return;
         const currency = amountInput.dataset.currency || 'PHP';
         const total = parseMoneyInput(amountInput.value);
         const prepaid = Math.min(parseMoneyInput(prepaidInput.value), total);
+        const deposit = parseMoneyInput(depositInput?.value);
         const balance = Math.max(total - prepaid, 0);
         balanceInput.value = formatSettlementMoney(balance, currency);
         if (help) {
-            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 선결제 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)}`;
+            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 선결제 ${formatSettlementMoney(prepaid, currency)} · 예치금 ${formatSettlementMoney(deposit, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)}`;
         }
     }
 
@@ -892,8 +917,8 @@
                         <div style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;">대표투숙객은 위 고객 정보, 동반 투숙객은 목록과 타임라인 아래줄에 표시됩니다.</div>
                     </div>
                     <div style="grid-column:1 / -1;background:#fff;border:1px solid var(--border2);border-radius:10px;padding:14px;">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem;font-weight:900;color:var(--txt);"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--primary)"></i> 객실 요금 / 선결제</div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem;font-weight:900;color:var(--txt);"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--primary)"></i> 객실 요금 / 선결제 / 예치금</div>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">총 객실 금액</div>
                                 <input type="number" min="0" step="0.01" id="unifiedAmount" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
@@ -901,6 +926,10 @@
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">선결제 금액</div>
                                 <input type="number" min="0" step="0.01" id="unifiedPrepaid" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                            </div>
+                            <div class="md-item">
+                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">예치금(보증금)</div>
+                                <input type="number" min="0" step="0.01" id="unifiedDeposit" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                             </div>
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">추후 정산 잔액</div>
@@ -942,7 +971,7 @@
                     window.updateUnifiedStayAndRooms();
                 });
             });
-            ['unifiedAmount', 'unifiedPrepaid'].forEach(id => {
+            ['unifiedAmount', 'unifiedPrepaid', 'unifiedDeposit'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) input.addEventListener('input', syncUnifiedBalance);
             });
@@ -1339,7 +1368,7 @@
                         <i class="fa-solid fa-lock" style="color:var(--primary);margin-top:3px"></i>
                         <div>
                             <div style="color:var(--txt);font-size:.9rem;margin-bottom:4px">체크인 이후 예약은 운영 정정만 가능합니다.</div>
-                            <div>대표투숙객과 투숙 날짜는 잠기며, 객실 이동·동반 투숙객·요금·선결제 정정은 저장 시 감사 로그에 기록됩니다.</div>
+                            <div>대표투숙객과 투숙 날짜는 잠기며, 객실 이동·동반 투숙객·요금·선결제·예치금 정정은 저장 시 감사 로그에 기록됩니다.</div>
                             <div style="margin-top:8px;color:var(--txt)">투숙객: ${guestNameForReservation(res)} · 객실: ${roomLabel}</div>
                         </div>
                     </div>`;
@@ -1596,7 +1625,8 @@
             setUnifiedGuestRoster(await rosterGuestsForReservation(prefill || null));
             setUnifiedFinanceValues(null, {
                 amount: Number(prefill?.amount || prefill?.totalAmount?.amount || 0),
-                prepaid: Number(prefill?.prepaidAmount || prefill?.paymentPlan?.prepaidAmount || 0)
+                prepaid: Number(prefill?.prepaidAmount || prefill?.paymentPlan?.prepaidAmount || 0),
+                deposit: reservationDepositValue(prefill)
             });
             renderUnifiedRoomHistory(null);
             renderUnifiedFlowActions(null);
@@ -1776,6 +1806,7 @@
         const currency = reservationCurrency(currentRes);
         const totalAmount = parseMoneyInput(document.getElementById('unifiedAmount')?.value);
         const prepaidAmount = Math.min(parseMoneyInput(document.getElementById('unifiedPrepaid')?.value), totalAmount);
+        const depositAmount = parseMoneyInput(document.getElementById('unifiedDeposit')?.value);
         const balanceDue = Math.max(totalAmount - prepaidAmount, 0);
         const nightlyRate = nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount;
         const guestPayload = !isBlockSave
@@ -1824,10 +1855,13 @@
                 rate: { amount: nightlyRate, currency },
                 totalAmount: { amount: totalAmount, currency },
                 prepaidAmount,
+                depositAmount,
+                deposit: { amount: depositAmount, currency },
                 balanceDue,
                 paymentPlan: {
                     totalAmount,
                     prepaidAmount,
+                    depositAmount,
                     balanceDue,
                     currency,
                     settlementBasis: 'reservation-room-total'
@@ -1849,6 +1883,7 @@
                 const beforeFullRoom = res.fullRoom || res.roomId || res.room;
                 const beforeAmount = reservationAmountValue(res);
                 const beforePrepaid = reservationPrepaidValue(res);
+                const beforeDeposit = reservationDepositValue(res);
                 const beforeStatus = effectiveReservationStatus(res);
                 const beforeGuest = guestNameForReservation(res);
                 const beforeGuestId = compactValue(res.guestId || res.roomingGuestId);
@@ -1893,11 +1928,14 @@
                 res.rate = { amount: nightlyRate, currency };
                 res.totalAmount = { amount: totalAmount, currency };
                 res.prepaidAmount = prepaidAmount;
+                res.depositAmount = depositAmount;
+                res.deposit = { amount: depositAmount, currency };
                 res.balanceDue = balanceDue;
                 res.paymentPlan = {
                     ...(res.paymentPlan || {}),
                     totalAmount,
                     prepaidAmount,
+                    depositAmount,
                     balanceDue,
                     currency,
                     settlementBasis: 'reservation-room-total'
@@ -1926,6 +1964,8 @@
                         afterAmount: totalAmount,
                         beforePrepaid,
                         afterPrepaid: prepaidAmount,
+                        beforeDeposit,
+                        afterDeposit: depositAmount,
                         balanceDue,
                         currency
                     });
@@ -1965,6 +2005,16 @@
                         beforePrepaid,
                         afterPrepaid: prepaidAmount,
                         balanceDue,
+                        currency,
+                        fields: ['reservationId', 'guestName', 'amount']
+                    });
+                }
+                if (isPostCheckinEdit && beforeDeposit !== depositAmount) {
+                    logReservationAudit('reservation.deposit.adjust', {
+                        reservationId: res.id,
+                        guestName: guestNameForReservation(res),
+                        beforeDeposit,
+                        afterDeposit: depositAmount,
                         currency,
                         fields: ['reservationId', 'guestName', 'amount']
                     });

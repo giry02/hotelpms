@@ -34,7 +34,7 @@
 .search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
 #btnUnpaidToggle { margin-left: 12px; border: 1px solid var(--danger); color: var(--danger); background: transparent; display: flex; align-items: center; gap: 6px; }
 #btnUnpaidToggle.active { background: var(--danger) !important; color: #fff !important; }
-.folio-table { table-layout: fixed; min-width: 1080px; }
+.folio-table { table-layout: fixed; min-width: 1180px; }
 .folio-table th, .folio-table td { overflow: hidden; text-overflow: ellipsis; }
 .folio-table .folio-actions { display: grid; grid-template-columns: 68px 58px; gap: 6px; justify-content: start; align-items: center; min-width: 132px; max-width: 140px; }
 .folio-table .folio-actions .btn-outline-sm,
@@ -136,18 +136,19 @@
                 <div class="table-wrap">
                     <table class="folio-table">
                         <colgroup>
-                            <col style="width:13%">
-                            <col style="width:7%">
-                            <col style="width:13%">
+                            <col style="width:12%">
+                            <col style="width:6%">
+                            <col style="width:12%">
+                            <col style="width:9%">
+                            <col style="width:10%">
+                            <col style="width:10%">
                             <col style="width:10%">
                             <col style="width:11%">
-                            <col style="width:11%">
-                            <col style="width:11%">
-                            <col style="width:9%">
-                            <col style="width:15%">
+                            <col style="width:8%">
+                            <col style="width:12%">
                         </colgroup>
                         <thead><tr>
-                        <th>정산 번호</th><th>객실</th><th>고객명</th><th>체크아웃</th><th>총 금액</th><th>결제액</th><th>미수금 잔액</th><th>상태</th><th>관리</th>
+                        <th>정산 번호</th><th>객실</th><th>고객명</th><th>체크아웃</th><th>총 금액</th><th>결제액</th><th>예치금</th><th>미수금 잔액</th><th>상태</th><th>관리</th>
                     </tr></thead>
                     <tbody id="folioBody"></tbody></table>
                 </div>
@@ -445,6 +446,39 @@ function reservationPrepaidValue(res) {
     return Number(res?.prepaidAmount || res?.prepaid || 0);
 }
 
+function reservationDepositValue(res) {
+    const direct = Number(res?.depositAmount ?? res?.preauthAmount ?? (typeof res?.deposit === 'object' ? undefined : res?.deposit));
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    if (res?.deposit && typeof res.deposit === 'object') {
+        const fromObject = Number(res.deposit.amount || 0);
+        if (Number.isFinite(fromObject) && fromObject > 0) return fromObject;
+    }
+    if (res?.paymentPlan && typeof res.paymentPlan === 'object') {
+        const fromPlan = Number(res.paymentPlan.depositAmount || res.paymentPlan.deposit || 0);
+        if (Number.isFinite(fromPlan) && fromPlan > 0) return fromPlan;
+    }
+    return Number.isFinite(direct) ? direct : 0;
+}
+
+function paymentIsDeposit(payment) {
+    const label = String(payment?.method || payment?.type || payment?.label || payment?.desc || '').toLowerCase();
+    return label.includes('deposit') || label.includes('preauth') || label.includes('pre-auth') || label.includes('예치') || label.includes('보증');
+}
+
+function folioDepositValue(folio) {
+    const direct = Number(folio?.depositAmount ?? folio?.preauthAmount ?? (typeof folio?.deposit === 'object' ? undefined : folio?.deposit));
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    if (folio?.deposit && typeof folio.deposit === 'object') {
+        const fromObject = Number(folio.deposit.amount || 0);
+        if (Number.isFinite(fromObject) && fromObject > 0) return fromObject;
+    }
+    if (folio?.paymentPlan && typeof folio.paymentPlan === 'object') {
+        const fromPlan = Number(folio.paymentPlan.depositAmount || folio.paymentPlan.deposit || 0);
+        if (Number.isFinite(fromPlan) && fromPlan > 0) return fromPlan;
+    }
+    return Number.isFinite(direct) ? direct : 0;
+}
+
 function reservationBalanceDue(res) {
     const explicit = Number(res?.balanceDue ?? res?.paymentPlan?.balanceDue);
     if (Number.isFinite(explicit) && explicit >= 0) return explicit;
@@ -495,6 +529,7 @@ function reservationToSettlementFolio(res) {
     const changes = reservationRoomChangeHistory(res);
     const total = reservationAmountValue(res);
     const paid = reservationPrepaidValue(res);
+    const depositAmount = reservationDepositValue(res);
     const bal = reservationBalanceDue(res);
     const currency = reservationCurrency(res);
     const checkout = res?.checkOutDate || res?.checkout || res?.cout || '';
@@ -508,6 +543,8 @@ function reservationToSettlementFolio(res) {
         settlementDate: formatDate(checkout),
         total,
         paid,
+        depositAmount,
+        deposit: { amount: depositAmount, currency },
         bal,
         currency,
         issuedAt: res.updatedAt || changes[0]?.changedAt || '',
@@ -520,6 +557,14 @@ function reservationToSettlementFolio(res) {
             ...(changes.length ? [{ type: 'room', label: `객실 변경 확인: ${roomChangeText(changes)}`, amount: 0 }] : [])
         ],
         payments: paid ? [{ method: 'Prepaid', amount: paid, paidAt: res.prepaidAt || null }] : [],
+        paymentPlan: {
+            ...(res.paymentPlan || {}),
+            totalAmount: total,
+            prepaidAmount: paid,
+            depositAmount,
+            balanceDue: bal,
+            currency
+        },
         settlementRoomChanges: changes,
         roomChangeText: roomChangeText(changes)
     };
@@ -534,10 +579,23 @@ function enrichFolioWithReservation(folio) {
     });
     if (!match) return folio;
     const changes = reservationRoomChangeHistory(match);
-    if (!changes.length) return folio;
-    return {
+    const depositAmount = folioDepositValue(folio) || reservationDepositValue(match);
+    const currency = folio.currency || reservationCurrency(match);
+    const enriched = {
         ...folio,
         reservationId: folio.reservationId || match.id,
+        depositAmount,
+        deposit: folio.deposit || { amount: depositAmount, currency },
+        paymentPlan: {
+            ...(match.paymentPlan || {}),
+            ...(folio.paymentPlan || {}),
+            depositAmount,
+            currency
+        }
+    };
+    if (!changes.length) return enriched;
+    return {
+        ...enriched,
         settlementRoomChanges: changes,
         roomChangeText: roomChangeText(changes)
     };
@@ -648,7 +706,11 @@ function mapApiFolio(item) {
     const charges = Array.isArray(item.charges) ? item.charges : [];
     const payments = Array.isArray(item.payments) ? item.payments : [];
     const total = charges.reduce((sum, charge) => sum + apiAmount(charge.amount), 0);
-    const paid = payments.reduce((sum, payment) => sum + apiAmount(payment.amount), 0);
+    const settlementPayments = payments.filter(payment => !paymentIsDeposit(payment));
+    const depositPayments = payments.filter(paymentIsDeposit);
+    const paid = settlementPayments.reduce((sum, payment) => sum + apiAmount(payment.amount), 0);
+    const depositAmount = apiAmount(item.depositAmount ?? item.deposit ?? item.preauthAmount)
+        + depositPayments.reduce((sum, payment) => sum + apiAmount(payment.amount), 0);
     const bal = apiAmount(item.balance) || Math.max(0, total - paid);
     const mappedCharges = charges.map(charge => ({
         type: normalizeDept(charge.type),
@@ -677,16 +739,22 @@ function mapApiFolio(item) {
         settlementDate,
         total,
         paid,
+        depositAmount,
+        deposit: { amount: depositAmount, currency: item.balance?.currency || localStorage.getItem('pms_default_currency') || 'PHP' },
         bal,
         currency: item.balance?.currency || localStorage.getItem('pms_default_currency') || 'PHP',
         issuedAt,
         closedAt,
         charges: mappedCharges,
-        payments: payments.map(payment => ({
+        payments: settlementPayments.map(payment => ({
             method: payment.method || '-',
             amount: apiAmount(payment.amount),
             paidAt: payment.paidAt || null
         })),
+        paymentPlan: {
+            ...(item.paymentPlan || {}),
+            depositAmount
+        },
         settlementRoomChanges: Array.isArray(item.roomChangeHistory) ? item.roomChangeHistory : [],
         roomChangeText: '',
         roomRevenue,
@@ -816,6 +884,7 @@ function renderFolios() {
     tbody.innerHTML = filtered.map((f, index) => {
         const s = stMap[f.status];
         const balColor = f.bal > 0 ? 'var(--danger)' : 'var(--txt)';
+        const depositAmount = folioDepositValue(f);
         return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
             <td style="color:var(--txt2)">${f.id}</td>
             <td><strong>${f.room}</strong>${f.roomChangeText ? `<div class="folio-room-change-badge" title="${escapeHtml(f.roomChangeText)}"><i class="fa-solid fa-right-left"></i>객실변경</div>` : ''}</td>
@@ -823,6 +892,7 @@ function renderFolios() {
             <td>${f.out}</td>
             <td>${fmtMoney(f.total, f.currency)}</td>
             <td>${fmtMoney(f.paid, f.currency)}</td>
+            <td>${fmtMoney(depositAmount, f.currency)}</td>
             <td style="color:${balColor};font-weight:700">${fmtMoney(f.bal, f.currency)}</td>
             <td><span class="status-badge ${s.badge}">${s.label}</span></td>
             <td>
@@ -836,6 +906,7 @@ function renderFolios() {
 
     mobile.innerHTML = filtered.map((f, index) => {
         const s = stMap[f.status];
+        const depositAmount = folioDepositValue(f);
         return `<div class="m-res-card" role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
             <div class="m-res-top">
                 <div>
@@ -850,7 +921,7 @@ function renderFolios() {
             </div>
             <div class="m-res-details">
                 <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> Check-out: ${f.out}</div>
-                <div class="m-res-detail"><i class="fa-solid fa-money-bill"></i> ${fmtMoney(f.total, f.currency)} / ${fmtMoney(f.paid, f.currency)}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-money-bill"></i> 총액 ${fmtMoney(f.total, f.currency)} · 결제 ${fmtMoney(f.paid, f.currency)} · 예치금 ${fmtMoney(depositAmount, f.currency)}</div>
             </div>
             <div class="m-res-actions folio-mobile-actions">
                 <button class="act-btn" onclick="event.stopPropagation(); openInvoiceModal(${index})"><i class="fa-solid fa-file-invoice"></i> 명세서</button>
@@ -969,6 +1040,7 @@ function openInvoiceModal(index) {
         <div>${escapeHtml(label)}: ${escapeHtml(value)}</div>
     `).join('');
     const paidPrefix = Number(folio.paid || 0) > 0 ? '-' : '';
+    const depositAmount = folioDepositValue(folio);
     content.innerHTML = `
         <div style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${escapeHtml(invoiceDeptTitle(folio.dept))}</div>
         <div>정산 번호: ${escapeHtml(folio.id)}</div>
@@ -980,6 +1052,7 @@ function openInvoiceModal(index) {
         <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
         <div style="display:flex;justify-content:space-between;font-weight:700"><span>합계</span><span>${fmtInvoiceMoney(folio.total, currency)}</span></div>
         <div style="display:flex;justify-content:space-between"><span>결제액</span><span>${paidPrefix}${fmtInvoiceMoney(folio.paid, currency)}</span></div>
+        <div style="display:flex;justify-content:space-between"><span>예치금</span><span>${fmtInvoiceMoney(depositAmount, currency)}</span></div>
         <div style="display:flex;justify-content:space-between;color:${folio.bal > 0 ? 'var(--danger)' : 'var(--success)'};font-weight:700;margin-top:8px"><span>미수금 잔액</span><span>${fmtInvoiceMoney(folio.bal, currency)}</span></div>
     `;
     openModal('invoiceModal');
