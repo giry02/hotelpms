@@ -61,51 +61,35 @@
             <button class="ad-control-btn ad-control-btn--next" type="button" data-ad-hero-next aria-label="다음 프리미엄 광고">
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
-            <div class="ad-hero-carousel__status">
-                <button class="ad-pause-btn" type="button" data-ad-hero-pause aria-label="프리미엄 광고 자동 전환 일시정지">
-                    <i class="fa-solid fa-pause"></i>
-                </button>
-                <span class="ad-count" data-ad-hero-count>01 / 03</span>
+            <div class="ad-hero-carousel__progress" aria-label="프리미엄 광고 현재 위치">
+                <span class="active" data-ad-hero-dot></span>
+                <span data-ad-hero-dot></span>
+                <span data-ad-hero-dot></span>
             </div>
         </section>
 
         <!-- IMAGE-LIKE EVENT ADS -->
         <section class="ad-event-showcase" aria-label="Event advertising carousel" data-ad-events>
             <div class="card-header">
-                <h3 class="card-title">NOL 라이브 놀라운 혜택! <i class="fa-solid fa-signal"></i></h3>
+                <h3 class="card-title">호텔 제휴 할인 이벤트 <i class="fa-solid fa-tags"></i></h3>
                 <a class="view-all-btn" href="operations/ancillary.html">더보기</a>
             </div>
             <div class="ad-event-showcase__viewport">
                 <div class="ad-event-showcase__track">
-                    <a class="ad-event-card ad-event-card--pool" href="operations/ancillary.html">
-                        <span class="ad-event-card__badge"><i class="fa-regular fa-clock"></i> 방송예정</span>
-                        <strong>[소피텔 앰배서더] 호캉스 특집</strong>
-                        <span class="ad-event-card__time"><b>06.17(수)</b> 19:00</span>
+                    <a class="ad-event-card ad-event-card--restaurant" href="operations/ancillary.html">
+                        <span class="ad-event-card__badge"><i class="fa-solid fa-utensils"></i> 주변 맛집</span>
+                        <strong>주변 음식점 할인 이벤트</strong>
+                        <span class="ad-event-card__time"><b>투숙객 전용</b> 최대 20% 할인</span>
                     </a>
-                    <a class="ad-event-card ad-event-card--waterpark" href="operations/golf.html">
-                        <span class="ad-event-card__badge"><i class="fa-regular fa-clock"></i> 방송예정</span>
-                        <strong>[경주월드] 올 여름 특가 여기서 시작</strong>
-                        <span class="ad-event-card__time"><b>06.18(목)</b> 15:00</span>
-                    </a>
-                    <a class="ad-event-card ad-event-card--resort" href="operations/ancillary.html">
-                        <span class="ad-event-card__badge"><i class="fa-regular fa-clock"></i> 방송예정</span>
-                        <strong>[여수 오션뷰 TOP4] 여수 휴가 특집</strong>
-                        <span class="ad-event-card__time"><b>06.18(목)</b> 19:00</span>
-                    </a>
-                    <a class="ad-event-card ad-event-card--hotel" href="operations/rentacar.html">
-                        <span class="ad-event-card__badge"><i class="fa-regular fa-clock"></i> 방송예정</span>
-                        <strong>[롯데리조트] 자연이 펼쳐지는 순간</strong>
-                        <span class="ad-event-card__time"><b>06.19(금)</b> 19:00</span>
+                    <a class="ad-event-card ad-event-card--rentacar" href="operations/rentacar.html">
+                        <span class="ad-event-card__badge"><i class="fa-solid fa-car"></i> 렌터카</span>
+                        <strong>렌터카 할인 이벤트</strong>
+                        <span class="ad-event-card__time"><b>공항 픽업</b> 주말 특가</span>
                     </a>
                     <a class="ad-event-card ad-event-card--golf" href="operations/golf.html">
-                        <span class="ad-event-card__badge"><i class="fa-regular fa-clock"></i> 예약오픈</span>
-                        <strong>[골프 패키지] 조조 라운딩 특가</strong>
-                        <span class="ad-event-card__time"><b>06.20(토)</b> 07:00</span>
-                    </a>
-                    <a class="ad-event-card ad-event-card--drive" href="operations/rentacar.html">
-                        <span class="ad-event-card__badge"><i class="fa-regular fa-clock"></i> 예약오픈</span>
-                        <strong>[렌터카] 공항 픽업 주말 할인</strong>
-                        <span class="ad-event-card__time"><b>06.21(일)</b> 10:00</span>
+                        <span class="ad-event-card__badge"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</span>
+                        <strong>골프장 할인 이벤트</strong>
+                        <span class="ad-event-card__time"><b>티타임 예약</b> 그린피 혜택</span>
                     </a>
                 </div>
             </div>
@@ -115,7 +99,7 @@
             <button class="ad-control-btn ad-event-showcase__btn ad-event-showcase__btn--next" type="button" data-ad-events-next aria-label="다음 이벤트">
                 <i class="fa-solid fa-chevron-right"></i>
             </button>
-            <div class="ad-event-showcase__status"><span class="ad-count" data-ad-events-count>01 / 06</span></div>
+            <div class="ad-event-showcase__status"><span class="ad-count" data-ad-events-count>01 / 03</span></div>
         </section>
 
         <!-- KPI CARDS -->
@@ -275,16 +259,14 @@
         const slides = Array.from(hero.querySelectorAll('.ad-hero-carousel__slide'));
         const prev = hero.querySelector('[data-ad-hero-prev]');
         const next = hero.querySelector('[data-ad-hero-next]');
-        const pause = hero.querySelector('[data-ad-hero-pause]');
-        const count = hero.querySelector('[data-ad-hero-count]');
+        const dots = Array.from(hero.querySelectorAll('[data-ad-hero-dot]'));
         let index = 0;
         let timer = null;
         let locked = false;
-        let userPaused = false;
 
         const renderHero = () => {
             track.style.transform = `translateY(-${index * 100}%)`;
-            if (count) count.textContent = `${pad(index + 1)} / ${pad(slides.length)}`;
+            dots.forEach((dot, dotIndex) => dot.classList.toggle('active', dotIndex === index));
         };
         const stopHero = () => {
             if (timer) clearInterval(timer);
@@ -292,7 +274,7 @@
         };
         const startHero = () => {
             stopHero();
-            if (userPaused || slides.length < 2) return;
+            if (slides.length < 2) return;
             timer = setInterval(() => {
                 index = (index + 1) % slides.length;
                 renderHero();
@@ -309,12 +291,6 @@
 
         prev?.addEventListener('click', () => moveHero(-1));
         next?.addEventListener('click', () => moveHero(1));
-        pause?.addEventListener('click', () => {
-            userPaused = !userPaused;
-            pause.classList.toggle('is-paused', userPaused);
-            pause.setAttribute('aria-label', userPaused ? '프리미엄 광고 자동 전환 재생' : '프리미엄 광고 자동 전환 일시정지');
-            if (userPaused) stopHero(); else startHero();
-        });
         hero.addEventListener('mouseenter', stopHero);
         hero.addEventListener('mouseleave', startHero);
         hero.addEventListener('focusin', stopHero);

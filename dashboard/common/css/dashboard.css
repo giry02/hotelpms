@@ -315,30 +315,29 @@ tr:hover td{background:var(--border2)}
 }
 .ad-control-btn--prev{left:20px}
 .ad-control-btn--next{right:20px}
-.ad-hero-carousel__status{
+.ad-hero-carousel__progress{
   position:absolute;
-  right:28px;
-  bottom:16px;
+  left:50%;
+  bottom:12px;
   z-index:5;
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:7px;
+  transform:translateX(-50%);
 }
-.ad-pause-btn{
-  width:32px;
-  height:32px;
-  border:0;
+.ad-hero-carousel__progress span{
+  width:26px;
+  height:3px;
   border-radius:999px;
-  background:rgba(17,24,39,.68);
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
+  background:rgba(255,255,255,.62);
+  box-shadow:0 1px 4px rgba(15,23,42,.16);
+  transition:background .25s,width .25s;
 }
-.ad-pause-btn.is-paused i::before{
-  content:"\f04b";
+.ad-hero-carousel__progress span.active{
+  width:38px;
+  background:#2563eb;
 }
+
 .ad-count{
   display:inline-flex;
   align-items:center;
@@ -370,9 +369,23 @@ tr:hover td{background:var(--border2)}
   color:#ec4899;
 }
 .ad-event-showcase__viewport{
+  position:relative;
   overflow:hidden;
-  padding:10px 16px 20px;
+  padding:10px 18px 20px;
 }
+.ad-event-showcase__viewport::before,
+.ad-event-showcase__viewport::after{
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:0;
+  z-index:4;
+  width:18px;
+  background:var(--card);
+  pointer-events:none;
+}
+.ad-event-showcase__viewport::before{left:0}
+.ad-event-showcase__viewport::after{right:0}
 .ad-event-showcase__track{
   display:flex;
   gap:16px;
@@ -381,8 +394,8 @@ tr:hover td{background:var(--border2)}
 }
 .ad-event-card{
   position:relative;
-  flex:0 0 calc((100% - 48px) / 4);
-  min-height:214px;
+  flex:0 0 calc((100% - 16px) / 2);
+  min-height:184px;
   overflow:hidden;
   display:flex;
   flex-direction:column;
@@ -393,7 +406,7 @@ tr:hover td{background:var(--border2)}
   color:#fff;
   text-decoration:none;
   isolation:isolate;
-  box-shadow:inset 0 -90px 70px rgba(0,0,0,.48);
+  box-shadow:inset 0 -82px 64px rgba(0,0,0,.42);
   background-size:cover;
   background-position:center;
 }
@@ -404,23 +417,14 @@ tr:hover td{background:var(--border2)}
   z-index:-1;
   background:linear-gradient(180deg,rgba(15,23,42,.06) 0%,rgba(15,23,42,.16) 42%,rgba(15,23,42,.8) 100%);
 }
-.ad-event-card--pool{
-  background-image:url("https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80"),linear-gradient(135deg,#1e3a8a,#111827);
+.ad-event-card--restaurant{
+  background-image:url("https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1100&q=80"),linear-gradient(135deg,#7c2d12,#111827);
 }
-.ad-event-card--waterpark{
-  background-image:url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80"),linear-gradient(135deg,#06b6d4,#0f172a);
-}
-.ad-event-card--resort{
-  background-image:url("https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=900&q=80"),linear-gradient(135deg,#334155,#020617);
-}
-.ad-event-card--hotel{
-  background-image:url("https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=900&q=80"),linear-gradient(135deg,#14532d,#020617);
+.ad-event-card--rentacar{
+  background-image:url("https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1100&q=80"),linear-gradient(135deg,#111827,#374151);
 }
 .ad-event-card--golf{
-  background-image:url("https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=900&q=80"),linear-gradient(135deg,#166534,#052e16);
-}
-.ad-event-card--drive{
-  background-image:url("https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=900&q=80"),linear-gradient(135deg,#111827,#374151);
+  background-image:url("https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=1100&q=80"),linear-gradient(135deg,#166534,#052e16);
 }
 .ad-event-card__badge{
   align-self:flex-start;
@@ -437,7 +441,7 @@ tr:hover td{background:var(--border2)}
 .ad-event-card strong{
   margin-top:auto;
   padding:0 2px 14px;
-  font-size:.88rem;
+  font-size:1.12rem;
   line-height:1.45;
   font-weight:900;
   text-shadow:0 2px 8px rgba(0,0,0,.38);
@@ -552,14 +556,15 @@ a.hk-grid-link:hover .hk-item{border-color:var(--primary);transition:border-colo
   .ad-control-btn{width:36px;height:36px}
   .ad-control-btn--prev{left:10px}
   .ad-control-btn--next{right:10px}
-  .ad-hero-carousel__status{right:14px;bottom:10px}
-  .ad-pause-btn,.ad-count{height:28px}
-  .ad-pause-btn{width:28px}
+  .ad-hero-carousel__progress{bottom:8px}
+  .ad-hero-carousel__progress span{width:20px}
+  .ad-hero-carousel__progress span.active{width:30px}
+  .ad-count{height:28px}
   .ad-count{padding:0 10px;font-size:.68rem}
   .ad-event-showcase__viewport{padding:8px 14px 18px}
   .ad-event-showcase__track{gap:12px}
   .ad-event-card{
-    flex:0 0 calc((100% - 12px) / 2);
+    flex:0 0 78vw;
     min-height:190px;
     padding:12px;
   }
@@ -593,8 +598,7 @@ a.hk-grid-link:hover .hk-item{border-color:var(--primary);transition:border-colo
   .ad-hero-carousel__copy p{display:none}
   .ad-hero-carousel__brand{font-size:.54rem}
   .ad-control-btn{width:32px;height:32px;font-size:.74rem}
-  .ad-hero-carousel__status{right:10px;bottom:8px}
-  .ad-pause-btn{display:none}
+  .ad-hero-carousel__progress{bottom:7px}
   .ad-count{height:26px;padding:0 8px;font-size:.64rem}
   .ad-event-showcase{margin-bottom:12px}
   .ad-event-showcase .card-header{padding:12px 14px 6px}
