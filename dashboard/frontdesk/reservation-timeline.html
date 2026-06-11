@@ -73,14 +73,17 @@
     height:auto!important;
     flex-direction:column;
     align-items:flex-start!important;
-    justify-content:center;
-    gap:2px;
-    padding:4px 8px!important;
+    justify-content:flex-start;
+    gap:0;
+    padding:5px 8px!important;
+    overflow:hidden;
 }
-.tl-block-text{width:100%;display:flex;flex-direction:column;gap:2px;line-height:1.18}
-.tl-primary-guest{display:flex;align-items:center;gap:5px;min-width:0;font-size:.65rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tl-primary-guest i.fa-user{font-size:.62rem;color:rgba(255,255,255,.92)}
-.tl-companion-guests{font-size:.58rem;font-weight:750;color:rgba(255,255,255,.86);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:17px;max-width:100%}
+.tl-block-text{width:100%;display:flex;flex-direction:column;gap:2px;line-height:1.15;min-width:0}
+.tl-guest-row{display:flex;align-items:center;gap:5px;min-width:0;width:100%;font-size:.64rem;font-weight:850;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden}
+.tl-guest-row span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tl-primary-guest{font-weight:950;color:#fff}
+.tl-primary-guest i.fa-user{font-size:.6rem;color:rgba(255,255,255,.94);flex:0 0 auto}
+.tl-companion-guest{padding-left:17px;font-size:.59rem;font-weight:780;color:rgba(255,255,255,.88)}
 .tl-block-label{font-size:.65rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tl-block.group-assigned {
     background: #2563EB !important;
@@ -316,6 +319,16 @@ function cleanTimelineGuestName(value) {
     return text;
 }
 
+function timelineEscapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
 function normalizeReservationStatus(res) {
     let safeStatus = res && res.status ? String(res.status).replace(/[- _]/g, '').toLowerCase() : 'confirmed';
     if (['inhouse', 'occupied'].includes(safeStatus)) return 'checkedin';
@@ -488,12 +501,15 @@ function timelineBlockContent(res, groupBadge, vipIcon) {
     const companions = timelineCompanionGuestNames(res);
     if (primary) {
         const prefix = res?.groupId ? `${timelineCompanyLabel(res)} · ` : '';
+        const guestRows = [
+            `<span class="tl-guest-row tl-primary-guest">${groupBadge}${vipIcon}<i class="fa-solid fa-user"></i><span>${timelineEscapeHtml(prefix + primary)}</span></span>`,
+            ...companions.map(name => `<span class="tl-guest-row tl-companion-guest"><span>${timelineEscapeHtml(name)}</span></span>`)
+        ].join('');
         return `<span class="tl-block-text">
-            <span class="tl-primary-guest">${groupBadge}${vipIcon}<i class="fa-solid fa-user"></i><span>${prefix}${primary}</span></span>
-            ${companions.length ? `<span class="tl-companion-guests" title="${companions.join(', ')}">${companions.join(', ')}</span>` : ''}
+            ${guestRows}
         </span>`;
     }
-    return `<span class="tl-block-text"><span class="tl-block-label">${groupBadge}${vipIcon}${timelineDisplayName(res)}</span></span>`;
+    return `<span class="tl-block-text"><span class="tl-block-label">${groupBadge}${vipIcon}${timelineEscapeHtml(timelineDisplayName(res))}</span></span>`;
 }
 
 function timelineGroupBadge(res) {
@@ -640,13 +656,16 @@ function buildTimeline() {
         const renderLen = clipEnd - clipStart;
 
         block.style.position = 'absolute';
-        const levelStep = 48;
+        const guestLineCount = Math.max(1, timelineGuestNames(res).length);
+        const blockHeight = Math.min(92, Math.max(34, 22 + (guestLineCount * 15)));
+        const levelStep = 96;
         block.style.top = `${8 + (level * levelStep)}px`;
         block.style.left = `calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px)`;
         block.style.width = `calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px)`;
+        block.style.minHeight = `${blockHeight}px`;
         
         // Adjust row height if multiple levels are used
-        const requiredHeight = 66 + (level * levelStep);
+        const requiredHeight = 16 + (level * levelStep) + blockHeight;
         const currentHeight = parseInt(row.style.height || 52);
         if (currentHeight < requiredHeight) {
             row.style.height = `${requiredHeight}px`;

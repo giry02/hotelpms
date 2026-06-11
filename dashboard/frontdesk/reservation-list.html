@@ -54,8 +54,9 @@
 .res-guest-stack{display:flex;flex-direction:column;gap:3px;min-width:0}
 .res-guest-primary{display:flex;align-items:center;gap:6px;font-weight:850;color:var(--txt);min-width:0}
 .res-guest-primary i{color:var(--primary);font-size:.72rem}
-.res-guest-companions{font-size:.72rem;color:var(--txt3);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
-.res-guest-companions::before{content:"동반 ";color:#94a3b8;font-weight:800;margin-right:2px}
+.res-guest-companions{display:flex;flex-direction:column;gap:2px;font-size:.72rem;color:var(--txt3);font-weight:700;max-width:260px;min-width:0}
+.res-guest-companion{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-guest-companion:first-child::before{content:"동반 ";color:#94a3b8;font-weight:800;margin-right:2px}
 .res-money-stack{display:flex;flex-direction:column;gap:2px;font-weight:800;color:var(--txt)}
 .res-money-sub{font-size:.68rem;color:var(--txt3);font-weight:700;line-height:1.35}
 .res-work-action{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:0;border-radius:8px;color:#fff;font-family:var(--font);font-size:.72rem;font-weight:800;cursor:pointer;white-space:nowrap}
@@ -635,7 +636,7 @@ function reservationGuestStack(res, isVip = false) {
     const vipIcon = isVip ? ' <i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.6rem"></i>' : '';
     return `<div class="res-guest-stack">
         <div class="res-guest-primary"><i class="fa-solid fa-user"></i><span>${escapeHtml(primary)}</span>${vipIcon}<span style="font-size:.72rem;color:#9CA3AF;margin-left:2px">${escapeHtml(tierDisplay(res.vip))}</span></div>
-        ${companions.length ? `<div class="res-guest-companions" title="${escapeHtml(companions.join(', '))}">${escapeHtml(companions.join(', '))}</div>` : ''}
+        ${companions.length ? `<div class="res-guest-companions" title="${escapeHtml(companions.join(', '))}">${companions.map(name => `<div class="res-guest-companion">${escapeHtml(name)}</div>`).join('')}</div>` : ''}
     </div>`;
 }
 

@@ -49,7 +49,8 @@
         .board-guest{width:100%;min-width:0;margin-top:4px}
         .board-primary{display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:900;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .board-primary i{color:var(--primary);font-size:.68rem}
-        .board-companions{margin-top:3px;padding-left:17px;font-size:.68rem;color:var(--txt3);font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .board-companions{display:flex;flex-direction:column;gap:2px;margin-top:3px;padding-left:17px;font-size:.68rem;color:var(--txt3);font-weight:750;min-width:0}
+        .board-companion{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .board-date{font-size:.68rem;color:var(--txt2);font-weight:750;line-height:1.35}
         .board-empty{font-size:.74rem;color:var(--txt3);font-weight:750;margin-top:8px}
         .board-money{font-size:.68rem;color:var(--txt2);font-weight:800;margin-top:auto}
@@ -236,7 +237,7 @@ function boardCard(room) {
         <div class="room-box-type">${escapeHtml(roomType(room))}</div>
         ${res ? `<div class="board-guest">
             <div class="board-primary"><i class="fa-solid fa-user"></i><span>${escapeHtml(primary || res.groupName || '단체 블록')}</span></div>
-            ${companions.length ? `<div class="board-companions" title="${escapeHtml(companions.join(', '))}">${escapeHtml(companions.join(', '))}</div>` : ''}
+            ${companions.length ? `<div class="board-companions" title="${escapeHtml(companions.join(', '))}">${companions.map(name => `<div class="board-companion">${escapeHtml(name)}</div>`).join('')}</div>` : ''}
         </div>
         <div class="board-date">${escapeHtml(reservationDates(res))}</div>
         <div class="board-money">${formatMoney(amountValue(res))}${res.balanceDue ? ` · 잔액 ${formatMoney(res.balanceDue)}` : ''}</div>` : '<div class="board-empty">배정된 예약 없음</div>'}
