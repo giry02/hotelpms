@@ -69,17 +69,18 @@
 .tl-block.cancelled { background: #EF4444 !important; }
 .tl-block.completed { background: #94A3B8 !important; } /* Past reservations (gray) */
 .tl-block{
-    min-height:34px;
+    min-height:30px;
     height:auto!important;
     flex-direction:column;
     align-items:flex-start!important;
     justify-content:flex-start;
     gap:0;
-    padding:5px 8px!important;
+    padding:4px 8px!important;
+    box-sizing:border-box;
     overflow:hidden;
 }
-.tl-block-text{width:100%;display:flex;flex-direction:column;gap:2px;line-height:1.15;min-width:0}
-.tl-guest-row{display:flex;align-items:center;gap:5px;min-width:0;width:100%;font-size:.64rem;font-weight:850;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden}
+.tl-block-text{width:100%;display:flex;flex-direction:column;gap:1px;line-height:1.08;min-width:0}
+.tl-guest-row{display:flex;align-items:center;gap:5px;min-width:0;width:100%;font-size:.64rem;font-weight:850;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;line-height:1.1}
 .tl-guest-row span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .tl-primary-guest{font-weight:950;color:#fff}
 .tl-primary-guest i.fa-user{font-size:.6rem;color:rgba(255,255,255,.94);flex:0 0 auto}
@@ -657,15 +658,15 @@ function buildTimeline() {
 
         block.style.position = 'absolute';
         const guestLineCount = Math.max(1, timelineGuestNames(res).length);
-        const blockHeight = Math.min(92, Math.max(34, 22 + (guestLineCount * 15)));
-        const levelStep = 96;
+        const blockHeight = Math.min(70, Math.max(30, Math.ceil(9 + (guestLineCount * 11.5))));
+        const levelStep = 76;
         block.style.top = `${8 + (level * levelStep)}px`;
         block.style.left = `calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px)`;
         block.style.width = `calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px)`;
         block.style.minHeight = `${blockHeight}px`;
         
         // Adjust row height if multiple levels are used
-        const requiredHeight = 16 + (level * levelStep) + blockHeight;
+        const requiredHeight = 14 + (level * levelStep) + blockHeight;
         const currentHeight = parseInt(row.style.height || 52);
         if (currentHeight < requiredHeight) {
             row.style.height = `${requiredHeight}px`;
