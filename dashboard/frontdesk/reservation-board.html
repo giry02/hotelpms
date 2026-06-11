@@ -45,6 +45,8 @@
         .reservation-board-box.inhouse{border-top:3px solid var(--success)}
         .reservation-board-box.checkout{border-top:3px solid var(--warning)}
         .reservation-board-box.reserved{border-top:3px solid var(--purple)}
+        .reservation-board-box.completed{border-top:3px solid #64748b}
+        .reservation-board-box.cancelled{border-top:3px solid var(--danger)}
         .reservation-board-box.blocked{border-top:3px solid #111827}
         .reservation-board-box.oos{border-top:3px solid var(--danger);opacity:.82}
         .reservation-board-box .room-box-num{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -54,6 +56,8 @@
         .board-status.inhouse{background:var(--success-lt);color:var(--success)}
         .board-status.checkout{background:var(--warning-lt);color:#92400e}
         .board-status.reserved{background:var(--purple-lt);color:#6d28d9}
+        .board-status.completed{background:#f1f5f9;color:#475569}
+        .board-status.cancelled{background:var(--danger-lt);color:var(--danger)}
         .board-status.blocked{background:#f1f5f9;color:#111827}
         .board-status.oos{background:var(--danger-lt);color:var(--danger)}
         .board-guest{width:100%;min-width:0;margin-top:4px}
@@ -99,12 +103,12 @@
                 </div>
                 <div class="filter-divider desktop-only"></div>
                 <div class="filter-chips" id="boardChips">
-                    <button class="chip active" data-status="all" onclick="setBoardFilter('all')">전체 <span class="chip-count">0</span></button>
-                    <button class="chip" data-status="arrival" onclick="setBoardFilter('arrival')"><span class="status-dot" style="background:var(--primary)"></span> 오늘 체크인 <span class="chip-count">0</span></button>
-                    <button class="chip" data-status="inhouse" onclick="setBoardFilter('inhouse')"><span class="status-dot" style="background:var(--success)"></span> 투숙 중 <span class="chip-count">0</span></button>
-                    <button class="chip" data-status="checkout" onclick="setBoardFilter('checkout')"><span class="status-dot" style="background:var(--warning)"></span> 체크아웃 <span class="chip-count">0</span></button>
-                    <button class="chip" data-status="reserved" onclick="setBoardFilter('reserved')"><span class="status-dot" style="background:var(--purple)"></span> 예약 예정 <span class="chip-count">0</span></button>
-                    <button class="chip" data-status="vacant" onclick="setBoardFilter('vacant')">예약 없음 <span class="chip-count">0</span></button>
+                    <button class="chip active" data-filter="all" onclick="setBoardFilter('all')"><i class="fa-solid fa-list"></i> 전체 <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="checkin" onclick="setBoardFilter('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="inhouse" onclick="setBoardFilter('inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="checkout" onclick="setBoardFilter('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="completed" onclick="setBoardFilter('completed')"><i class="fa-solid fa-check-double"></i> 완료 <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="cancelled" onclick="setBoardFilter('cancelled')"><i class="fa-solid fa-ban"></i> 취소/노쇼 <span class="chip-count">0</span></button>
                 </div>
             </div>
             <div class="filter-right">
@@ -154,6 +158,17 @@ function normalizeStatus(value) {
     return key || 'confirmed';
 }
 
+function normalizeReservationStatus(value) {
+    const key = String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+    if (['checkedin', 'inhouse', 'occupied'].includes(key)) return 'checkedin';
+    if (key === 'checkout') return 'checkout';
+    if (['checkedout', 'completed', 'departed'].includes(key)) return 'completed';
+    if (['cancelled', 'canceled', 'noshow'].includes(key)) return 'cancelled';
+    if (key === 'blocked') return 'blocked';
+    if (key === 'pending') return 'pending';
+    return key || 'confirmed';
+}
+
 function normalizeRoomValue(value) {
     const text = String(value || '').trim().toLowerCase();
     const digits = (text.match(/\d+/g) || []).join('');
@@ -172,6 +187,58 @@ function roomMatchesReservation(room, res) {
     const roomValues = [room?.id, room?.fullRoom, room?.roomId, room?.number, room?.roomNo, room?.display, room?.roomLabel];
     const resValues = [res?.room, res?.fullRoom, res?.roomId, res?.roomNo, res?.roomNumber, res?.roomLabel];
     return roomValues.some(roomValue => resValues.some(resValue => sameRoomValue(roomValue, resValue)));
+}
+
+function roomForReservation(res) {
+    return rooms.find(room => roomMatchesReservation(room, res));
+}
+
+function isReservationRoomInHouse(res) {
+    const room = roomForReservation(res);
+    return normalizeStatus(room?.frontStatus || room?.status || room?.housekeepingStatus) === 'inhouse';
+}
+
+function checkoutDateIsDue(res) {
+    const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
+    return !!end && end <= todayDate();
+}
+
+function checkinDateIsDue(res) {
+    const start = parseDate(res?.checkInDate || res?.checkin || res?.cin);
+    return !!start && start <= todayDate();
+}
+
+function isCurrentStayWindow(res) {
+    const start = parseDate(res?.checkInDate || res?.checkin || res?.cin);
+    const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
+    const today = todayDate();
+    return !!(start && end && start <= today && today < end);
+}
+
+function effectiveReservationStatus(res) {
+    let status = normalizeReservationStatus(res?.status);
+    if (['confirmed', 'pending'].includes(status) && isReservationRoomInHouse(res) && isCurrentStayWindow(res)) status = 'checkedin';
+    if (status === 'checkedin' && checkoutDateIsDue(res)) return 'checkout';
+    return status;
+}
+
+function reservationBucket(res) {
+    const status = effectiveReservationStatus(res);
+    if (status === 'cancelled') return 'cancelled';
+    if (status === 'completed') return 'completed';
+    if (status === 'checkout') return 'checkout';
+    if (status === 'checkedin') return 'inhouse';
+    if (['confirmed', 'pending'].includes(status) && checkinDateIsDue(res)) return 'checkin';
+    return status;
+}
+
+function boardReservationCounts() {
+    const counts = { all: reservations.length, checkin: 0, inhouse: 0, checkout: 0, completed: 0, cancelled: 0 };
+    reservations.forEach(res => {
+        const bucket = reservationBucket(res);
+        if (counts[bucket] !== undefined) counts[bucket]++;
+    });
+    return counts;
 }
 
 function primaryGuest(res) {
@@ -245,18 +312,70 @@ function reservationDates(res) {
     return `${res.cin || (res.checkInDate || '').slice(5)} → ${res.cout || (res.checkOutDate || '').slice(5)}`;
 }
 
+function reservationStateForFilter(res) {
+    const bucket = reservationBucket(res);
+    const statusByBucket = {
+        checkin: 'arrival',
+        inhouse: 'inhouse',
+        checkout: 'checkout',
+        completed: 'completed',
+        cancelled: 'cancelled'
+    };
+    const labelByBucket = {
+        checkin: '오늘 체크인',
+        inhouse: '투숙 중',
+        checkout: '체크아웃',
+        completed: '완료',
+        cancelled: '취소/노쇼'
+    };
+    return {
+        status: statusByBucket[bucket] || 'reserved',
+        label: labelByBucket[bucket] || '예약 예정',
+        res
+    };
+}
+
+function reservationForRoomFilter(room) {
+    if (boardFilter === 'all') return null;
+    return reservations
+        .filter(res => roomMatchesReservation(room, res) && reservationBucket(res) === boardFilter)
+        .sort((a, b) => {
+            const left = parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0;
+            const right = parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0;
+            return left - right;
+        })[0] || null;
+}
+
+function boardStatusIcon(status) {
+    return ({
+        vacant: 'fa-door-open',
+        arrival: 'fa-right-to-bracket',
+        inhouse: 'fa-bed',
+        checkout: 'fa-right-from-bracket',
+        reserved: 'fa-calendar-check',
+        completed: 'fa-check-double',
+        cancelled: 'fa-ban',
+        blocked: 'fa-users',
+        oos: 'fa-screwdriver-wrench'
+    })[status] || 'fa-calendar-check';
+}
+
 function boardCard(room) {
-    const state = boardStatusFor(room);
+    let state = boardStatusFor(room);
+    if (boardFilter !== 'all') {
+        const filteredRes = reservationForRoomFilter(room);
+        if (!filteredRes) return '';
+        state = reservationStateForFilter(filteredRes);
+    }
     const res = state.res;
     const primary = res ? primaryGuest(res) : '';
     const companions = res ? companionGuests(res) : [];
     const searchText = [room.id, room.fullRoom, roomType(room), state.label, primary, companions.join(' ')].join(' ').toLowerCase();
     const query = document.getElementById('boardSearch')?.value.trim().toLowerCase() || '';
-    if (boardFilter !== 'all' && state.status !== boardFilter) return '';
     if (query && !searchText.includes(query)) return '';
     const click = res ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"` : '';
     return `<div class="room-box reservation-board-box ${state.status}" ${click} style="${res ? 'cursor:pointer' : ''}">
-        <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${state.status === 'vacant' ? 'fa-door-open' : state.status === 'checkout' ? 'fa-right-from-bracket' : state.status === 'inhouse' ? 'fa-bed' : 'fa-calendar-check'}"></i>${state.label}</span></div>
+        <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${boardStatusIcon(state.status)}"></i>${state.label}</span></div>
         <div class="room-box-type">${escapeHtml(roomType(room))}</div>
         ${res ? `<div class="board-guest">
             <div class="board-primary"><i class="fa-solid fa-user"></i><span>${escapeHtml(primary || res.groupName || '단체 블록')}</span></div>
@@ -273,14 +392,15 @@ function updateBoardKpis() {
         const state = boardStatusFor(room);
         if (counts[state.status] !== undefined) counts[state.status]++;
     });
+    const reservationCounts = boardReservationCounts();
     document.getElementById('kpiArrival').textContent = counts.arrival;
     document.getElementById('kpiInhouse').textContent = counts.inhouse;
     document.getElementById('kpiCheckout').textContent = counts.checkout;
     document.getElementById('kpiReserved').textContent = counts.reserved;
     document.getElementById('kpiVacant').textContent = counts.vacant;
     document.querySelectorAll('#boardChips .chip').forEach(chip => {
-        const status = chip.dataset.status;
-        const count = status === 'all' ? rooms.length : (counts[status] || 0);
+        const filter = chip.dataset.filter;
+        const count = reservationCounts[filter] || 0;
         const countEl = chip.querySelector('.chip-count');
         if (countEl) countEl.textContent = count;
     });
@@ -325,7 +445,7 @@ function renderReservationBoard() {
 
 function setBoardFilter(filter) {
     boardFilter = filter;
-    document.querySelectorAll('#boardChips .chip').forEach(btn => btn.classList.toggle('active', btn.dataset.status === filter));
+    document.querySelectorAll('#boardChips .chip').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === filter));
     renderReservationBoard();
 }
 
