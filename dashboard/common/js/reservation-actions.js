@@ -164,6 +164,113 @@
         };
     }
 
+    function reservationCurrency(res = null) {
+        return res?.currency || res?.totalAmount?.currency || res?.rate?.currency || 'PHP';
+    }
+
+    function reservationAmountValue(res = null) {
+        if (!res) return 0;
+        if (res.totalAmount && typeof res.totalAmount === 'object') return Number(res.totalAmount.amount || 0);
+        return Number(res.amount || 0);
+    }
+
+    function reservationRateValue(res = null) {
+        if (!res) return 0;
+        if (res.rate && typeof res.rate === 'object') return Number(res.rate.amount || 0);
+        return Number(res.rate || 0);
+    }
+
+    function reservationPrepaidValue(res = null) {
+        if (!res) return 0;
+        if (res.paymentPlan && typeof res.paymentPlan === 'object') return Number(res.paymentPlan.prepaidAmount || 0);
+        return Number(res.prepaidAmount || res.prepaid || 0);
+    }
+
+    function parseMoneyInput(value) {
+        const normalized = String(value ?? '').replace(/[^\d.-]/g, '');
+        const amount = Number(normalized);
+        return Number.isFinite(amount) ? Math.max(0, amount) : 0;
+    }
+
+    function formatMoneyInputValue(amount) {
+        const value = Number(amount || 0);
+        return Number.isFinite(value) ? String(Math.round(value * 100) / 100) : '0';
+    }
+
+    function formatSettlementMoney(amount, currency = 'PHP') {
+        try {
+            return new Intl.NumberFormat('en-PH', {
+                style: 'currency',
+                currency,
+                maximumFractionDigits: 2
+            }).format(Number(amount || 0));
+        } catch(e) {
+            return `${currency} ${Number(amount || 0).toLocaleString()}`;
+        }
+    }
+
+    function companionNamesFromText(value) {
+        return String(value || '')
+            .split(/[\n,]/)
+            .map(name => name.trim())
+            .filter(Boolean)
+            .filter((name, index, arr) => arr.indexOf(name) === index);
+    }
+
+    function companionNamesForReservation(res) {
+        const values = [
+            ...(Array.isArray(res?.companionGuestNames) ? res.companionGuestNames : []),
+            ...(Array.isArray(res?.roomingGuestNames) ? res.roomingGuestNames.slice(1) : []),
+            ...(Array.isArray(res?.companions) ? res.companions.map(item => typeof item === 'string' ? item : item?.name) : []),
+            ...(Array.isArray(res?.roomingGuests) ? res.roomingGuests.slice(1).map(item => typeof item === 'string' ? item : item?.name) : [])
+        ];
+        const primary = guestNameForReservation(res);
+        const seen = new Set();
+        return values
+            .map(name => String(name || '').trim())
+            .filter(name => name && name !== primary && !seen.has(name) && seen.add(name));
+    }
+
+    function setUnifiedFinanceValues(res = null, options = {}) {
+        const amountInput = document.getElementById('unifiedAmount');
+        const prepaidInput = document.getElementById('unifiedPrepaid');
+        if (!amountInput || !prepaidInput) return;
+        const currency = reservationCurrency(res);
+        let amount = options.amount;
+        if (amount === undefined) amount = reservationAmountValue(res);
+        if (!amount && options.suggest) amount = options.suggest;
+        const prepaid = options.prepaid !== undefined ? options.prepaid : reservationPrepaidValue(res);
+        amountInput.value = formatMoneyInputValue(amount);
+        prepaidInput.value = formatMoneyInputValue(prepaid);
+        amountInput.dataset.currency = currency;
+        prepaidInput.dataset.currency = currency;
+        syncUnifiedBalance();
+    }
+
+    function syncUnifiedBalance() {
+        const amountInput = document.getElementById('unifiedAmount');
+        const prepaidInput = document.getElementById('unifiedPrepaid');
+        const balanceInput = document.getElementById('unifiedBalance');
+        const help = document.getElementById('unifiedFinanceHelp');
+        if (!amountInput || !prepaidInput || !balanceInput) return;
+        const currency = amountInput.dataset.currency || 'PHP';
+        const total = parseMoneyInput(amountInput.value);
+        const prepaid = Math.min(parseMoneyInput(prepaidInput.value), total);
+        const balance = Math.max(total - prepaid, 0);
+        balanceInput.value = formatSettlementMoney(balance, currency);
+        if (help) {
+            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 선결제 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)}`;
+        }
+    }
+
+    function logReservationAudit(action, details) {
+        if (!window.PmsPrivacyAudit) return;
+        window.PmsPrivacyAudit.log(action, {
+            screen: window.location.pathname.includes('reservation-timeline') ? 'reservation-timeline' : 'reservation-list',
+            ...details
+        });
+    }
+
     async function renderUnifiedGuestPrivacy(res) {
         const panel = document.getElementById('unifiedGuestPrivacyPanel');
         const body = document.getElementById('unifiedGuestPrivacyBody');
@@ -257,6 +364,29 @@
                         <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin:0 0 4px 0">단체 연결</div>
                         <div id="unifiedGroupLinkText" style="font-size:0.82rem;font-weight:700;color:var(--txt)"></div>
                     </div>
+                    <div class="md-item" style="grid-column:1 / -1">
+                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">동반 투숙객</div>
+                        <textarea id="unifiedCompanions" style="min-height:58px;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;resize:vertical" placeholder="동반 투숙객 이름을 쉼표 또는 줄바꿈으로 입력"></textarea>
+                        <div style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;">대표투숙객은 위 고객 정보, 동반 투숙객은 목록과 타임라인 아래줄에 표시됩니다.</div>
+                    </div>
+                    <div style="grid-column:1 / -1;background:#fff;border:1px solid var(--border2);border-radius:10px;padding:14px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem;font-weight:900;color:var(--txt);"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--primary)"></i> 객실 요금 / 선결제</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                            <div class="md-item">
+                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">총 객실 금액</div>
+                                <input type="number" min="0" step="0.01" id="unifiedAmount" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                            </div>
+                            <div class="md-item">
+                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">선결제 금액</div>
+                                <input type="number" min="0" step="0.01" id="unifiedPrepaid" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                            </div>
+                            <div class="md-item">
+                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">추후 정산 잔액</div>
+                                <input type="text" id="unifiedBalance" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:800;box-sizing:border-box;background:#f8fafc;color:var(--primary);">
+                            </div>
+                        </div>
+                        <div id="unifiedFinanceHelp" style="margin-top:8px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 0 0 var(--radius-sm) var(--radius-sm);">
@@ -283,10 +413,16 @@
                     window.updateUnifiedStayAndRooms();
                 });
             });
+            ['unifiedAmount', 'unifiedPrepaid'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) input.addEventListener('input', syncUnifiedBalance);
+            });
         }
         const checkinInput = document.getElementById('unifiedCin');
         if (checkinInput?.tagName === 'INPUT') checkinInput.min = todayInputValue();
     }
+
+    window.syncUnifiedBalance = syncUnifiedBalance;
 
     async function unifiedGroups() {
         const merged = new Map();
@@ -554,8 +690,9 @@
             const value = roomLabel(room);
             if (!value) return;
             const conflict = roomConflictForDates(room, checkin, checkout, currentRes);
-            const blocked = !!conflict || roomMaintenanceBlocked(room);
-            (blocked ? unavailable : available).push({ room, value, conflict, blocked });
+            const isCurrentRoom = !!(currentRes && roomMatchesReservation(room, currentRes));
+            const blocked = !isCurrentRoom && (!!conflict || roomMaintenanceBlocked(room));
+            (blocked ? unavailable : available).push({ room, value, conflict: isCurrentRoom ? null : conflict, blocked });
         });
 
         if (!available.length && !unavailable.length) {
@@ -669,11 +806,11 @@
             if (locked) {
                 const roomLabel = res?.roomLabel || res?.fullRoom || res?.room || '-';
                 notice.innerHTML = `
-                    <div style="display:flex;gap:8px;align-items:flex-start">
+                            <div style="display:flex;gap:8px;align-items:flex-start">
                         <i class="fa-solid fa-lock" style="color:var(--primary);margin-top:3px"></i>
                         <div>
-                            <div style="color:var(--txt);font-size:.9rem;margin-bottom:4px">체크인 이후 예약은 조회 전용입니다.</div>
-                            <div>투숙객 변경, 신규 회원 등록, 객실/상태 변경은 이 화면에서 처리하지 않습니다.</div>
+                            <div style="color:var(--txt);font-size:.9rem;margin-bottom:4px">체크인 이후 예약은 운영 정정만 가능합니다.</div>
+                            <div>대표투숙객과 투숙 날짜는 잠기며, 객실 이동·동반 투숙객·요금·선결제 정정은 저장 시 감사 로그에 기록됩니다.</div>
                             <div style="margin-top:8px;color:var(--txt)">투숙객: ${guestNameForReservation(res)} · 객실: ${roomLabel}</div>
                         </div>
                     </div>`;
@@ -683,15 +820,21 @@
         if (guestSection) guestSection.style.display = (locked || isBlock) ? 'none' : 'block';
         const blockNotice = document.getElementById('unifiedBlockNotice');
         if (blockNotice) blockNotice.style.display = (!locked && isBlock) ? 'block' : 'none';
-        ['unifiedCin', 'unifiedCout', 'unifiedRoom', 'unifiedChannel'].forEach(id => {
+        ['unifiedCin', 'unifiedCout', 'unifiedChannel'].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.disabled = locked;
             if (el.tagName === 'SELECT' || el.tagName === 'INPUT') el.style.background = locked ? '#f1f5f9' : '#fff';
         });
+        ['unifiedRoom', 'unifiedCompanions', 'unifiedAmount', 'unifiedPrepaid'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.disabled = false;
+            if (el.tagName === 'SELECT' || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.style.background = '#fff';
+        });
 
         const saveBtn = modal.querySelector('button[onclick="saveUnifiedRes()"]');
-        if (saveBtn) saveBtn.style.display = locked ? 'none' : 'inline-flex';
+        if (saveBtn) saveBtn.style.display = 'inline-flex';
         const cancelBtn = document.getElementById('unifiedBtnCancel');
         if (locked && cancelBtn) cancelBtn.style.display = 'none';
     }
@@ -921,6 +1064,12 @@
             if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
             }
+            const companionInput = document.getElementById('unifiedCompanions');
+            if (companionInput) companionInput.value = companionNamesFromText(prefill?.companionGuestNames || prefill?.companions || '').join('\n');
+            setUnifiedFinanceValues(null, {
+                amount: Number(prefill?.amount || prefill?.totalAmount?.amount || 0),
+                prepaid: Number(prefill?.prepaidAmount || prefill?.paymentPlan?.prepaidAmount || 0)
+            });
             renderUnifiedFlowActions(null);
         } else {
             // EDIT BOOKING MODE
@@ -998,6 +1147,9 @@
             setUnifiedDateValue('unifiedCin', res.checkInDate || res.checkin || res.cin);
             setUnifiedDateValue('unifiedCout', res.checkOutDate || res.checkout || res.cout);
             window.updateUnifiedStayAndRooms(targetRoomValue);
+            const companionInput = document.getElementById('unifiedCompanions');
+            if (companionInput) companionInput.value = companionNamesForReservation(res).join('\n');
+            setUnifiedFinanceValues(res);
             setUnifiedReservationReadonly(isReadonlyReservation, res);
             renderUnifiedFlowActions(res);
             await renderUnifiedGuestPrivacy(res);
@@ -1025,18 +1177,15 @@
         
         let guest = '';
         const currentRes = id ? allRes.find(r => r.id === id) : null;
-        if (currentRes && isReservationReadOnly(currentRes)) {
-            const message = actionText('edit.readonly');
-            if (window.showToast) window.showToast(message, 'error');
-            else alert(message);
-            return;
-        }
+        const operationalEdit = !!(currentRes && isReservationReadOnly(currentRes));
         const isBlockSave = currentRes && (normalizedReservationStatus(currentRes.status) === 'blocked' || currentRes.isGroupPlaceholder) && document.getElementById('unifiedStatus').value === 'blocked';
-        if (!isBlockSave && window._editGuestWidget) {
+        if (!isBlockSave && !operationalEdit && window._editGuestWidget) {
             guest = window._editGuestWidget.getGuestName();
-        } else if (!isBlockSave) {
+        } else if (!isBlockSave && !operationalEdit) {
             const guestInput = document.getElementById('nrGuestEdit');
             if (guestInput) guest = guestInput.value;
+        } else if (currentRes) {
+            guest = guestNameForReservation(currentRes);
         }
         if (!isBlockSave && (!guest || !guest.trim())) {
             alert(actionText('guest.required'));
@@ -1047,7 +1196,7 @@
             alert(actionText('booking.dateRequired'));
             return;
         }
-        if (dateRange.checkin < todayStart()) {
+        if (!currentRes && dateRange.checkin < todayStart()) {
             alert(actionText('booking.pastCheckin'));
             return;
         }
@@ -1065,11 +1214,14 @@
             return;
         }
         const selectedRoom = (window.rooms || []).find(r => r.id === room || r.fullRoom === room || r.number === room || r.display === room || roomLabel(r) === room);
-        if (roomConflictForDates(selectedRoom || { id: room }, dateRange.checkin, dateRange.checkout, currentRes)) {
+        const selectedIsCurrentRoom = !!(currentRes && selectedRoom && roomMatchesReservation(selectedRoom, currentRes));
+        if (!selectedIsCurrentRoom && roomConflictForDates(selectedRoom || { id: room }, dateRange.checkin, dateRange.checkout, currentRes)) {
             alert(actionText('booking.roomUnavailable'));
             return;
         }
-        const status = id ? (document.getElementById('unifiedStatus')?.value || normalizedReservationStatus(currentRes?.status)) : 'confirmed';
+        const status = id
+            ? (operationalEdit ? normalizedReservationStatus(currentRes?.status) : (document.getElementById('unifiedStatus')?.value || normalizedReservationStatus(currentRes?.status)))
+            : 'confirmed';
         let channel = document.getElementById('unifiedChannel')?.value || 'Walk-in';
         const groupId = document.getElementById('unifiedGroupId')?.value || '';
         const isB2B = !!groupId;
@@ -1080,6 +1232,12 @@
         const cinIso = getUnifiedDateInputValue('unifiedCin');
         const coutIso = getUnifiedDateInputValue('unifiedCout');
         const nights = updateUnifiedNightsLabel() || 1;
+        const currency = reservationCurrency(currentRes);
+        const totalAmount = parseMoneyInput(document.getElementById('unifiedAmount')?.value);
+        const prepaidAmount = Math.min(parseMoneyInput(document.getElementById('unifiedPrepaid')?.value), totalAmount);
+        const balanceDue = Math.max(totalAmount - prepaidAmount, 0);
+        const nightlyRate = nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount;
+        const companionGuestNames = companionNamesFromText(document.getElementById('unifiedCompanions')?.value || '');
         
         if (isB2B) channel = linkedGroupName || channel || 'Group';
         
@@ -1105,8 +1263,25 @@
                 len: nights,
 
                 type: selectedRoom?.type || currentRes?.type || 'Standard',
-                fullRoom: selectedRoom?.id || room,
-                amount: 0,
+                fullRoom: selectedRoom?.fullRoom || selectedRoom?.roomId || selectedRoom?.id || room,
+                roomId: selectedRoom?.roomId || selectedRoom?.fullRoom || room,
+                roomNo: selectedRoom?.number || selectedRoom?.display || room,
+                companionGuestNames,
+                roomingGuestNames: [guest, ...companionGuestNames],
+                companions: companionGuestNames.map(name => ({ name })),
+                amount: totalAmount,
+                rate: { amount: nightlyRate, currency },
+                totalAmount: { amount: totalAmount, currency },
+                prepaidAmount,
+                balanceDue,
+                paymentPlan: {
+                    totalAmount,
+                    prepaidAmount,
+                    balanceDue,
+                    currency,
+                    settlementBasis: 'reservation-room-total'
+                },
+                roomMoveHistory: [],
                 color: '#3B82F6',
                 initials: guest.substring(0,2).toUpperCase(),
                 vip: 'Standard'
@@ -1118,8 +1293,14 @@
             // EDIT BOOKING MODE
             const res = allRes.find(r => r.id === id);
             if (res) {
-                if (!isBlockSave) {
+                const beforeRoom = res.room;
+                const beforeFullRoom = res.fullRoom || res.roomId || res.room;
+                const beforeAmount = reservationAmountValue(res);
+                const beforePrepaid = reservationPrepaidValue(res);
+                const beforeStatus = effectiveReservationStatus(res);
+                if (!isBlockSave && !operationalEdit) {
                     res.guest = guest;
+                    res.guestName = guest;
                     if (guest.trim()) res.initials = guest.split(' ').map(n => n[0]).join('');
                     if (res.isGroupPlaceholder && status !== 'blocked' && guest.trim()) {
                         res.isGroupPlaceholder = false;
@@ -1141,7 +1322,93 @@
                 res.nights = nights;
                 res.len = nights;
                 res.type = selectedRoom?.type || res.type || 'Standard';
-                res.fullRoom = selectedRoom?.id || room;
+                res.fullRoom = selectedRoom?.fullRoom || selectedRoom?.roomId || selectedRoom?.id || room;
+                res.roomId = selectedRoom?.roomId || selectedRoom?.fullRoom || res.roomId || room;
+                res.roomNo = selectedRoom?.number || selectedRoom?.display || room;
+                res.companionGuestNames = companionGuestNames;
+                res.roomingGuestNames = [guestNameForReservation(res), ...companionGuestNames].filter(Boolean);
+                res.companions = companionGuestNames.map(name => ({ name }));
+                res.amount = totalAmount;
+                res.rate = { amount: nightlyRate, currency };
+                res.totalAmount = { amount: totalAmount, currency };
+                res.prepaidAmount = prepaidAmount;
+                res.balanceDue = balanceDue;
+                res.paymentPlan = {
+                    ...(res.paymentPlan || {}),
+                    totalAmount,
+                    prepaidAmount,
+                    balanceDue,
+                    currency,
+                    settlementBasis: 'reservation-room-total'
+                };
+                const roomChanged = !sameRoomValue(beforeRoom, room) && !sameRoomValue(beforeFullRoom, res.fullRoom);
+                const isPostCheckinEdit = ['checkedin', 'checkout'].includes(beforeStatus);
+                if (roomChanged) {
+                    const move = {
+                        fromRoom: beforeRoom || beforeFullRoom || '',
+                        toRoom: room,
+                        fromFullRoom: beforeFullRoom || beforeRoom || '',
+                        toFullRoom: res.fullRoom || room,
+                        changedAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
+                        reason: 'frontdesk-room-move',
+                        affectsSettlement: true
+                    };
+                    res.roomMoveHistory = [...(Array.isArray(res.roomMoveHistory) ? res.roomMoveHistory : []), move];
+                    res.settlementAdjustments = [...(Array.isArray(res.settlementAdjustments) ? res.settlementAdjustments : []), {
+                        type: 'room-move',
+                        createdAt: move.changedAt,
+                        description: `${move.fromRoom} → ${move.toRoom} 객실 이동`,
+                        affectsSettlement: true
+                    }];
+                    if (isPostCheckinEdit) {
+                        logReservationAudit('reservation.room.move', {
+                            reservationId: res.id,
+                            guestName: guestNameForReservation(res),
+                            fromRoom: move.fromRoom,
+                            toRoom: move.toRoom,
+                            fields: ['room', 'stayDates']
+                        });
+                    }
+                }
+                if (isPostCheckinEdit && beforeAmount !== totalAmount) {
+                    logReservationAudit('reservation.amount.adjust', {
+                        reservationId: res.id,
+                        guestName: guestNameForReservation(res),
+                        beforeAmount,
+                        afterAmount: totalAmount,
+                        currency,
+                        fields: ['reservationId', 'guestName', 'room', 'amount']
+                    });
+                }
+                if (isPostCheckinEdit && beforePrepaid !== prepaidAmount) {
+                    logReservationAudit('reservation.prepayment.adjust', {
+                        reservationId: res.id,
+                        guestName: guestNameForReservation(res),
+                        beforePrepaid,
+                        afterPrepaid: prepaidAmount,
+                        balanceDue,
+                        currency,
+                        fields: ['reservationId', 'guestName', 'amount']
+                    });
+                }
+                if (roomChanged && isPostCheckinEdit && Array.isArray(window.rooms)) {
+                    const oldRoom = window.rooms.find(item => roomMatchesReservation(item, { room: beforeRoom, fullRoom: beforeFullRoom }));
+                    if (oldRoom) {
+                        oldRoom.status = 'vacant-dirty';
+                        oldRoom.frontStatus = 'vacant';
+                        oldRoom.housekeepingStatus = 'dirty';
+                        oldRoom.guest = '';
+                    }
+                    if (selectedRoom) {
+                        selectedRoom.status = 'occupied';
+                        selectedRoom.frontStatus = 'in-house';
+                        selectedRoom.housekeepingStatus = 'occupied';
+                        selectedRoom.guest = guestNameForReservation(res);
+                    }
+                    localStorage.setItem('pms_rooms', JSON.stringify(window.rooms));
+                    if (oldRoom) await persistUnifiedRoom(oldRoom);
+                    if (selectedRoom) await persistUnifiedRoom(selectedRoom);
+                }
                 savedRes = res;
             }
             if (window.showToast) window.showToast(actionText('booking.updated'), 'success');

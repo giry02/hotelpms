@@ -109,6 +109,7 @@
                             <option value="view">상세 열람</option>
                             <option value="export">다운로드</option>
                             <option value="search">검색/선택</option>
+                            <option value="other">운영 변경</option>
                         </select>
                     </div>
                     <div class="table-wrap">
@@ -148,6 +149,9 @@ const ACTION_META = {
     'reservation.guest_detail.view': { label: '예약 고객정보 열람', type: 'view', icon: 'fa-id-card-clip' },
     'guest.export.download': { label: '투숙객 엑셀 다운로드', type: 'export', icon: 'fa-download' },
     'reservation.export.download': { label: '예약 엑셀 다운로드', type: 'export', icon: 'fa-download' },
+    'reservation.amount.adjust': { label: '체크인 후 객실요금 정정', type: 'other', icon: 'fa-file-invoice-dollar' },
+    'reservation.prepayment.adjust': { label: '체크인 후 선결제 정정', type: 'other', icon: 'fa-money-check-dollar' },
+    'reservation.room.move': { label: '체크인 후 객실 이동', type: 'other', icon: 'fa-right-left' },
     'guest.search_results.view': { label: '고객 검색 결과 열람', type: 'search', icon: 'fa-magnifying-glass' },
     'guest.search_selection.view': { label: '고객 검색 선택', type: 'search', icon: 'fa-user-check' }
 };
@@ -162,7 +166,9 @@ const FIELD_LABELS = {
     guestName: '고객명',
     room: '객실',
     stayDates: '투숙일',
-    operationalNotes: '운영 메모'
+    operationalNotes: '운영 메모',
+    amount: '금액',
+    prepayment: '선결제'
 };
 
 function escapeAudit(value) {
@@ -232,6 +238,10 @@ function detailText(entry) {
     if (d.guestId) parts.push(`고객 ID ${d.guestId}`);
     if (d.exportType) parts.push(String(d.exportType).toUpperCase());
     if (d.resultCount !== undefined) parts.push(`결과 ${d.resultCount}건`);
+    if (d.beforeAmount !== undefined || d.afterAmount !== undefined) parts.push(`금액 ${d.beforeAmount ?? '-'} → ${d.afterAmount ?? '-'}`);
+    if (d.beforePrepaid !== undefined || d.afterPrepaid !== undefined) parts.push(`선결제 ${d.beforePrepaid ?? '-'} → ${d.afterPrepaid ?? '-'}`);
+    if (d.fromRoom || d.toRoom) parts.push(`객실 ${d.fromRoom || '-'} → ${d.toRoom || '-'}`);
+    if (d.balanceDue !== undefined) parts.push(`잔액 ${d.balanceDue}`);
     if (d.filters && d.filters.queryApplied) parts.push('검색 조건 적용');
     return parts.join(' · ') || '-';
 }

@@ -51,6 +51,13 @@
 .guest-alert.empty{background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0}
 .guest-alert.id-action{border:1px solid #fed7aa;background:#fff7ed;color:#c2410c;cursor:pointer;font-family:var(--font)}
 .guest-alert.id-action:hover{border-color:#fb923c;background:#ffedd5;color:#9a3412}
+.res-guest-stack{display:flex;flex-direction:column;gap:3px;min-width:0}
+.res-guest-primary{display:flex;align-items:center;gap:6px;font-weight:850;color:var(--txt);min-width:0}
+.res-guest-primary i{color:var(--primary);font-size:.72rem}
+.res-guest-companions{font-size:.72rem;color:var(--txt3);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.res-guest-companions::before{content:"동반 ";color:#94a3b8;font-weight:800;margin-right:2px}
+.res-money-stack{display:flex;flex-direction:column;gap:2px;font-weight:800;color:var(--txt)}
+.res-money-sub{font-size:.68rem;color:var(--txt3);font-weight:700;line-height:1.35}
 .res-work-action{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:0;border-radius:8px;color:#fff;font-family:var(--font);font-size:.72rem;font-weight:800;cursor:pointer;white-space:nowrap}
 .res-work-action.checkin{background:#2563eb}
 .res-work-action.checkout{background:#ef4444}
@@ -601,6 +608,37 @@ function displayGuestName(res) {
     return reservationGuestName(res) || '-';
 }
 
+function reservationGuestNames(res) {
+    const primary = reservationGuestName(res);
+    const values = [
+        primary,
+        ...(Array.isArray(res?.roomingGuestNames) ? res.roomingGuestNames : []),
+        ...(Array.isArray(res?.companionGuestNames) ? res.companionGuestNames : []),
+        ...(Array.isArray(res?.companions) ? res.companions.map(item => typeof item === 'string' ? item : item?.name) : []),
+        ...(Array.isArray(res?.roomingGuests) ? res.roomingGuests.map(item => typeof item === 'string' ? item : item?.name) : [])
+    ];
+    const seen = new Set();
+    return values
+        .map(name => String(name || '').trim())
+        .filter(name => name && !seen.has(name) && seen.add(name));
+}
+
+function companionGuestNames(res) {
+    const names = reservationGuestNames(res);
+    const primary = reservationGuestName(res);
+    return names.filter(name => name !== primary);
+}
+
+function reservationGuestStack(res, isVip = false) {
+    const primary = displayGuestName(res);
+    const companions = companionGuestNames(res);
+    const vipIcon = isVip ? ' <i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.6rem"></i>' : '';
+    return `<div class="res-guest-stack">
+        <div class="res-guest-primary"><i class="fa-solid fa-user"></i><span>${escapeHtml(primary)}</span>${vipIcon}<span style="font-size:.72rem;color:#9CA3AF;margin-left:2px">${escapeHtml(tierDisplay(res.vip))}</span></div>
+        ${companions.length ? `<div class="res-guest-companions" title="${escapeHtml(companions.join(', '))}">${escapeHtml(companions.join(', '))}</div>` : ''}
+    </div>`;
+}
+
 function operationalNotes(res) {
     const guest = guestForReservation(res);
     const notes = [
@@ -653,6 +691,27 @@ function formatMoney(res) {
         currency,
         maximumFractionDigits: 2
     }).format(amount);
+}
+
+function prepaidAmount(res) {
+    if (res?.paymentPlan && typeof res.paymentPlan === 'object') return Number(res.paymentPlan.prepaidAmount || 0);
+    return Number(res?.prepaidAmount || res?.prepaid || 0);
+}
+
+function balanceDueAmount(res) {
+    const total = Number(res?.amount || res?.totalAmount?.amount || 0);
+    const explicit = Number(res?.balanceDue ?? res?.paymentPlan?.balanceDue);
+    if (Number.isFinite(explicit) && explicit >= 0) return explicit;
+    return Math.max(total - prepaidAmount(res), 0);
+}
+
+function moneyStack(res) {
+    const prepaid = prepaidAmount(res);
+    const balance = balanceDueAmount(res);
+    return `<div class="res-money-stack">
+        <div>${formatMoney(res)}</div>
+        ${(prepaid || balance) ? `<div class="res-money-sub">선결제 ${formatMoney({ amount: prepaid })}<br>잔액 ${formatMoney({ amount: balance })}</div>` : ''}
+    </div>`;
 }
 
 function operationalBucket(res) {
@@ -885,6 +944,7 @@ function renderTable() {
             reservationKindMeta(r).label,
             r.groupName,
             displayGuestName(r),
+            companionGuestNames(r).join(' '),
             operationalNotes(r).join(' ')
         ].join(' ').toLowerCase();
         if (search && !haystack.includes(search)) return false;
@@ -919,8 +979,7 @@ function renderTable() {
             <td>
                 <div class="guest-cell">
                     <div>
-                        ${escapeHtml(displayGuest)}${isVip ? ' <i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.6rem"></i>' : ''}
-                        <span style="font-size:.72rem;color:#9CA3AF;margin-left:6px">${escapeHtml(tierDisplay(r.vip))}</span>
+                        ${reservationGuestStack(r, isVip)}
                         <div class="res-submeta">${escapeHtml(r.groupName || r.companyName || '')}</div>
                         ${alertBadges(r)}
                     </div>
@@ -931,7 +990,7 @@ function renderTable() {
             <td>${escapeHtml(r.cout)}</td>
             <td>${stayLabel(r.nights)}</td>
             <td>${reservationKindBadge(r)}</td>
-            <td style="font-weight:700">${formatMoney(r)}</td>
+            <td>${moneyStack(r)}</td>
             <td><span class="status-badge ${st.cls}">${st.label}</span></td>
             <td class="res-actions-cell">
                 <div class="res-action-stack">
@@ -957,13 +1016,13 @@ function renderTable() {
             <div class="m-res-top">
                 <div class="m-res-guest">
                     <div>
-                        <div class="m-res-name">${escapeHtml(displayGuest)} ${isVip ? '<i class="fa-solid fa-crown" style="color:#F59E0B;font-size:.65rem"></i>' : ''}</div>
+                        <div class="m-res-name">${reservationGuestStack(r, isVip)}</div>
                         <div class="m-res-sub">${escapeHtml(tierDisplay(r.vip) || r.groupName || '')}</div>
                     </div>
                 </div>
                 <div style="text-align:right">
                     <span class="status-badge ${st.cls}">${st.label}</span>
-                    <div class="m-res-amount">${formatMoney(r)}</div>
+                    <div class="m-res-amount">${moneyStack(r)}</div>
                 </div>
             </div>
             <div class="m-res-details">
