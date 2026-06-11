@@ -39,6 +39,19 @@
         .btn-search{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;background:var(--primary);color:#fff;font-family:var(--font);font-size:.8rem;font-weight:700;transition:background .2s}
         .btn-search:hover{background:#1D4ED8}
         .filter-divider{width:1px;height:24px;background:var(--border2);flex-shrink:0}
+        .building-section{margin-bottom:8px}
+        .building-section + .building-section{margin-top:24px}
+        .building-header{display:flex;align-items:center;gap:10px;padding:0 0 8px;cursor:pointer;user-select:none}
+        .building-header i.bldg-icon{font-size:1rem;color:var(--primary);width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--primary-lt);border-radius:6px}
+        .building-header .bldg-name{font-size:1.05rem;font-weight:700;color:var(--txt);line-height:1.2}
+        .building-header .bldg-count{font-size:.78rem;color:var(--txt3);font-weight:500;margin-left:4px;line-height:1.2}
+        .building-header .bldg-chevron{margin-left:auto;color:var(--txt3);font-size:.8rem;transition:transform .2s}
+        .building-header.collapsed .bldg-chevron{transform:rotate(-90deg)}
+        .building-body.collapsed{display:none}
+        .floor-section{margin-bottom:24px}
+        .floor-title{display:flex;align-items:center;gap:7px;margin:0 0 10px;color:var(--txt);font-size:1rem;font-weight:800;line-height:1.25}
+        .floor-title i{color:var(--txt3);font-size:.86rem}
+        .floor-count{font-size:.8rem;color:var(--txt3);font-weight:500;margin-left:8px;line-height:1.2}
         .reservation-board-box{min-height:150px;align-items:flex-start;text-align:left;padding:13px 12px;gap:7px}
         .reservation-board-box.vacant{border-top:3px solid var(--success)}
         .reservation-board-box.arrival{border-top:3px solid var(--primary)}
@@ -426,7 +439,7 @@ function renderReservationBoard() {
                 const cards = buildingRooms.filter(room => floorValue(room) === floor).sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true })).map(boardCard).filter(Boolean);
                 rendered += cards.length;
                 if (!cards.length) return;
-                html += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${floor}층 <span style="font-size:0.8rem;color:var(--txt3);font-weight:500;margin-left:8px">(${cards.length}개 객실)</span></div><div class="room-grid">${cards.join('')}</div></div>`;
+                html += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${floor}층 <span class="floor-count">(${cards.length}개 객실)</span></div><div class="room-grid">${cards.join('')}</div></div>`;
             });
             html += '</div></div>';
             container.innerHTML += html;
@@ -437,7 +450,7 @@ function renderReservationBoard() {
             const cards = rooms.filter(room => floorValue(room) === floor).sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true })).map(boardCard).filter(Boolean);
             rendered += cards.length;
             if (!cards.length) return;
-            container.innerHTML += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${floor}층 <span style="font-size:0.8rem;color:var(--txt3);font-weight:500;margin-left:8px">(${cards.length}개 객실)</span></div><div class="room-grid">${cards.join('')}</div></div>`;
+            container.innerHTML += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${floor}층 <span class="floor-count">(${cards.length}개 객실)</span></div><div class="room-grid">${cards.join('')}</div></div>`;
         });
     }
     if (!rendered) container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3);font-weight:800">조건에 맞는 예약 현황이 없습니다.</div>';

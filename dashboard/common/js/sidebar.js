@@ -27,12 +27,12 @@
             roles: ['sys_admin', 'sys_gm', 'sys_desk'],
             items: [
                 {
-                    icon: 'fa-calendar-check', label: '예약관리', id: 'reservations',
+                    icon: 'fa-calendar-check', label: '예약 관리', id: 'reservations',
                     mainHref: BASE + 'frontdesk/reservation-timeline.html',
                     children: [
                         { label: '예약 타임라인', href: BASE + 'frontdesk/reservation-timeline.html' },
-                        { label: '예약 목록', href: BASE + 'frontdesk/reservation-list.html' },
                         { label: '예약 현황', href: BASE + 'frontdesk/reservation-board.html' },
+                        { label: '예약 목록', href: BASE + 'frontdesk/reservation-list.html' },
                     ]
                 },
                 {
