@@ -49,6 +49,7 @@ window.pmsNormalizeCurrencyDisplayText = window.pmsNormalizeCurrencyDisplayText 
         let el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
         while (el) {
             if (skipTags.has(el.tagName)) return true;
+            if (el.hasAttribute && (el.hasAttribute('data-no-currency-normalize') || el.hasAttribute('data-keep-currency'))) return true;
             el = el.parentElement;
         }
         return false;

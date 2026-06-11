@@ -49,11 +49,42 @@
         .revenue-total .rev-amount { font-size: 1.5rem; }
 
         .action-box { background: var(--bg); border: 1px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; }
+        .audit-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .audit-tab { border: 0; background: transparent; height: 42px; padding: 0 16px; font-family: var(--font); font-size: .9rem; font-weight: 800; color: var(--txt2); cursor: pointer; border-bottom: 3px solid transparent; display: inline-flex; align-items: center; gap: 8px; }
+        .audit-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .audit-tab-panel { display: none; }
+        .audit-tab-panel.active { display: block; }
+        .cash-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+        .cash-summary-card { border: 1px solid var(--border2); border-radius: 10px; padding: 14px; background: #fff; }
+        .cash-summary-label { font-size: .72rem; color: var(--txt3); font-weight: 800; margin-bottom: 6px; }
+        .cash-summary-value { font-size: 1.12rem; color: var(--txt); font-weight: 900; }
+        .cash-summary-sub { font-size: .72rem; color: var(--txt3); margin-top: 5px; line-height: 1.35; font-weight: 700; }
+        .cash-workflow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        .cash-work-card { border: 1px solid var(--border2); border-radius: 12px; background: #fff; overflow: hidden; }
+        .cash-work-head { padding: 12px 14px; border-bottom: 1px solid var(--border2); background: #f8fafc; font-size: .88rem; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+        .cash-work-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+        .cash-field { display: flex; flex-direction: column; gap: 5px; }
+        .cash-field label { font-size: .72rem; color: var(--txt2); font-weight: 800; }
+        .cash-field input, .cash-field select, .cash-field textarea { min-height: 36px; border: 1px solid var(--border); border-radius: 7px; padding: 0 10px; font-family: var(--font); font-size: .82rem; box-sizing: border-box; background: #fff; }
+        .cash-field textarea { min-height: 62px; padding: 9px 10px; resize: vertical; }
+        .currency-mini-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+        .cash-ledger { margin-top: 16px; border: 1px solid var(--border2); border-radius: 12px; overflow: hidden; background: #fff; }
+        .cash-ledger-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid var(--border2); font-weight: 900; }
+        .cash-ledger-body { overflow-x: auto; }
+        .cash-ledger table { width: 100%; border-collapse: collapse; min-width: 840px; }
+        .cash-ledger th, .cash-ledger td { padding: 11px 12px; border-bottom: 1px solid var(--border2); text-align: left; font-size: .78rem; white-space: nowrap; }
+        .cash-ledger th { color: var(--txt2); background: #fbfdff; font-weight: 900; }
+        .cash-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font-size: .7rem; font-weight: 900; background: #eef2ff; color: #4338ca; }
+        .cash-pill.deposit { background: #ecfdf5; color: #047857; }
+        .cash-status { font-size: .72rem; font-weight: 900; color: var(--success); }
         
         @media (max-width: 768px) {
             .check-grid { grid-template-columns: 1fr; }
             .revenue-row { grid-template-columns: 1fr; gap: 12px; }
             .revenue-row-actions { justify-content: space-between; min-width: 0; }
+            .audit-tabs { overflow-x: auto; }
+            .cash-summary-grid, .cash-workflow-grid { grid-template-columns: 1fr; }
+            .currency-mini-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -73,6 +104,12 @@
             </div>
         </div>
 
+        <div class="audit-tabs" role="tablist">
+            <button type="button" class="audit-tab active" id="auditTabBtnClose" onclick="setAuditTab('close')"><i class="fa-solid fa-list-check"></i> 마감 체크</button>
+            <button type="button" class="audit-tab" id="auditTabBtnCash" onclick="setAuditTab('cash')"><i class="fa-solid fa-cash-register"></i> 시재 인수인계</button>
+        </div>
+
+        <div id="auditTabClose" class="audit-tab-panel active">
         <!-- 1. Pre-Close Checklist -->
         <div class="audit-section">
             <div class="audit-header">
@@ -195,12 +232,359 @@
                 <i class="fa-solid fa-play"></i> 일일 영업 마감 실행
             </button>
         </div>
+        </div>
+
+        <div id="auditTabCash" class="audit-tab-panel">
+            <div class="audit-section">
+                <div class="audit-header">
+                    <i class="fa-solid fa-handshake" style="color:var(--primary)"></i> 시재 시작 / 출금 / 마감 인수인계
+                </div>
+                <div class="audit-body">
+                    <div class="cash-summary-grid">
+                        <div class="cash-summary-card">
+                            <div class="cash-summary-label">시작 시재(PHP 기준)</div>
+                            <div class="cash-summary-value" id="cashOpeningPhp">₱0</div>
+                            <div class="cash-summary-sub" id="cashOpeningDetail" data-no-currency-normalize="true">PHP 0 · USD 0 · KRW 0</div>
+                        </div>
+                        <div class="cash-summary-card">
+                            <div class="cash-summary-label">현금 수납(PHP 기준)</div>
+                            <div class="cash-summary-value" id="cashReceivedPhp">₱0</div>
+                            <div class="cash-summary-sub" id="cashReceivedDetail" data-no-currency-normalize="true">PHP 0 · USD 0 · KRW 0</div>
+                        </div>
+                        <div class="cash-summary-card">
+                            <div class="cash-summary-label">중간 출금(PHP 기준)</div>
+                            <div class="cash-summary-value" id="cashWithdrawPhp">₱0</div>
+                            <div class="cash-summary-sub" id="cashWithdrawDetail" data-no-currency-normalize="true">출금 기록 없음</div>
+                        </div>
+                        <div class="cash-summary-card">
+                            <div class="cash-summary-label">마감 차이(PHP 기준)</div>
+                            <div class="cash-summary-value" id="cashDiffPhp">₱0</div>
+                            <div class="cash-summary-sub" id="cashDiffDetail">마감 시재를 입력하면 차이가 계산됩니다.</div>
+                        </div>
+                    </div>
+
+                    <div class="cash-workflow-grid">
+                        <div class="cash-work-card">
+                            <div class="cash-work-head"><i class="fa-solid fa-play" style="color:var(--success)"></i> 시작 시재 등록</div>
+                            <div class="cash-work-body">
+                                <div class="currency-mini-grid">
+                                    <div class="cash-field"><label>PHP</label><input id="openPhp" type="number" min="0" step="0.01" placeholder="0"></div>
+                                    <div class="cash-field"><label>USD</label><input id="openUsd" type="number" min="0" step="0.01" placeholder="0"></div>
+                                    <div class="cash-field"><label>KRW</label><input id="openKrw" type="number" min="0" step="1" placeholder="0"></div>
+                                </div>
+                                <div class="cash-field"><label>시작 시재 PHP 환산 기준</label><input id="openEquivalent" type="number" min="0" step="0.01" placeholder="직접 입력"></div>
+                                <div class="cash-field"><label>인수 메모</label><textarea id="openNote" placeholder="예: 전 근무자에게 받은 잔돈, 봉투 번호"></textarea></div>
+                                <button class="btn-primary-sm" onclick="saveOpeningCash()"><i class="fa-solid fa-check"></i> 시작 시재 저장</button>
+                                <div class="cash-status" id="openStatus">미등록</div>
+                            </div>
+                        </div>
+
+                        <div class="cash-work-card">
+                            <div class="cash-work-head"><i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--warning)"></i> 중간 출금 처리</div>
+                            <div class="cash-work-body">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                                    <div class="cash-field"><label>출금 통화</label><select id="withdrawCurrency" data-no-currency-normalize="true"><option value="PHP">PHP</option><option value="USD">USD</option><option value="KRW">KRW</option></select></div>
+                                    <div class="cash-field"><label>출금 금액</label><input id="withdrawAmount" type="number" min="0" step="0.01" placeholder="0"></div>
+                                </div>
+                                <div class="cash-field"><label>출금 PHP 환산 기준</label><input id="withdrawEquivalent" type="number" min="0" step="0.01" placeholder="직접 입력"></div>
+                                <div class="cash-field"><label>수령자 / 사유</label><input id="withdrawReceiver" type="text" placeholder="예: 매니저 / 환전 지급"></div>
+                                <button class="btn-primary-sm" onclick="addWithdrawal()"><i class="fa-solid fa-plus"></i> 출금 기록 추가</button>
+                                <div class="cash-status" id="withdrawStatus">출금 기록 없음</div>
+                            </div>
+                        </div>
+
+                        <div class="cash-work-card">
+                            <div class="cash-work-head"><i class="fa-solid fa-flag-checkered" style="color:var(--danger)"></i> 마감 시재 인계</div>
+                            <div class="cash-work-body">
+                                <div class="currency-mini-grid">
+                                    <div class="cash-field"><label>PHP</label><input id="closePhp" type="number" min="0" step="0.01" placeholder="0"></div>
+                                    <div class="cash-field"><label>USD</label><input id="closeUsd" type="number" min="0" step="0.01" placeholder="0"></div>
+                                    <div class="cash-field"><label>KRW</label><input id="closeKrw" type="number" min="0" step="1" placeholder="0"></div>
+                                </div>
+                                <div class="cash-field"><label>마감 시재 PHP 환산 기준</label><input id="closeEquivalent" type="number" min="0" step="0.01" placeholder="직접 입력"></div>
+                                <div class="cash-field"><label>인계 메모</label><textarea id="closeNote" placeholder="예: 다음 근무자에게 인계, 차이 사유"></textarea></div>
+                                <button class="btn-primary-sm" onclick="saveClosingCash()"><i class="fa-solid fa-lock"></i> 마감 시재 저장</button>
+                                <div class="cash-status" id="closeStatus">미등록</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cash-ledger">
+                        <div class="cash-ledger-head">
+                            <span><i class="fa-solid fa-receipt" style="color:var(--primary)"></i> 금일 수납 / 예치 / 출금 내역</span>
+                            <span id="cashLedgerCount" style="font-size:.75rem;color:var(--txt3)">0건</span>
+                        </div>
+                        <div class="cash-ledger-body">
+                            <table>
+                                <thead>
+                                    <tr><th>시간</th><th>구분</th><th>Folio/고객</th><th>PHP 기준</th><th>실제 통화</th><th>담당자</th><th>메모</th></tr>
+                                </thead>
+                                <tbody id="cashLedgerBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 </div>
 
 <script>
 let totalRev = 0;
+const CASH_SESSION_KEY = 'pms_night_audit_cash_sessions';
+const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
+
+function storageJson(key, fallback) {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(key) || '');
+        return parsed ?? fallback;
+    } catch(e) {
+        return fallback;
+    }
+}
+
+function setStorageJson(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+}
+
+function auditBusinessDate() {
+    return document.getElementById('currentDate')?.textContent || (window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10));
+}
+
+function nowIso() {
+    return window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+}
+
+function operatorName() {
+    return localStorage.getItem('pms_current_user_name') || localStorage.getItem('pms_staff_name') || 'Nguyen Kim';
+}
+
+function moneyPhp(value) {
+    return typeof window.pmsFormatCurrency === 'function'
+        ? window.pmsFormatCurrency(value)
+        : '₱' + Number(value || 0).toLocaleString();
+}
+
+function amount(id) {
+    return Math.max(0, Number(document.getElementById(id)?.value || 0));
+}
+
+function textValue(id) {
+    return (document.getElementById(id)?.value || '').trim();
+}
+
+function cashSessions() {
+    const sessions = storageJson(CASH_SESSION_KEY, []);
+    return Array.isArray(sessions) ? sessions : [];
+}
+
+function settlementPayments() {
+    const payments = storageJson(SETTLEMENT_PAYMENTS_KEY, []);
+    return Array.isArray(payments) ? payments : [];
+}
+
+function activeCashSession(create = true) {
+    const date = auditBusinessDate();
+    const sessions = cashSessions();
+    let session = sessions.find(item => item.businessDate === date);
+    if (!session && create) {
+        session = { businessDate: date, opening: { PHP: 0, USD: 0, KRW: 0 }, openingPhpEquivalent: 0, withdrawals: [], closing: null };
+        sessions.push(session);
+        setStorageJson(CASH_SESSION_KEY, sessions);
+    }
+    return session || null;
+}
+
+function saveCashSession(session) {
+    const sessions = cashSessions();
+    const index = sessions.findIndex(item => item.businessDate === session.businessDate);
+    if (index >= 0) sessions[index] = session;
+    else sessions.push(session);
+    setStorageJson(CASH_SESSION_KEY, sessions);
+}
+
+function formatCurrencyBreakdown(values = {}) {
+    return `PHP ${Number(values.PHP || 0).toLocaleString()} · USD ${Number(values.USD || 0).toLocaleString()} · KRW ${Number(values.KRW || 0).toLocaleString()}`;
+}
+
+function paymentsForBusinessDate() {
+    const date = auditBusinessDate();
+    return settlementPayments().filter(item => item.businessDate === date);
+}
+
+function currencyTotals(records, fieldCurrency = 'receivedCurrency', fieldAmount = 'receivedAmount') {
+    return records.reduce((acc, item) => {
+        const currency = item[fieldCurrency] || 'PHP';
+        acc[currency] = (acc[currency] || 0) + Number(item[fieldAmount] || 0);
+        return acc;
+    }, { PHP: 0, USD: 0, KRW: 0 });
+}
+
+function withdrawalCurrencyTotals(session) {
+    return (session?.withdrawals || []).reduce((acc, item) => {
+        const currency = item.currency || 'PHP';
+        acc[currency] = (acc[currency] || 0) + Number(item.amount || 0);
+        return acc;
+    }, { PHP: 0, USD: 0, KRW: 0 });
+}
+
+function setAuditTab(tab) {
+    document.getElementById('auditTabClose')?.classList.toggle('active', tab === 'close');
+    document.getElementById('auditTabCash')?.classList.toggle('active', tab === 'cash');
+    document.getElementById('auditTabBtnClose')?.classList.toggle('active', tab === 'close');
+    document.getElementById('auditTabBtnCash')?.classList.toggle('active', tab === 'cash');
+    if (tab === 'cash') renderCashHandover();
+}
+
+function saveOpeningCash() {
+    const session = activeCashSession(true);
+    session.opening = { PHP: amount('openPhp'), USD: amount('openUsd'), KRW: amount('openKrw') };
+    session.openingPhpEquivalent = amount('openEquivalent');
+    session.openingNote = textValue('openNote');
+    session.openedAt = nowIso();
+    session.openedBy = operatorName();
+    saveCashSession(session);
+    renderCashHandover();
+    showToast('시작 시재가 저장되었습니다.', 'success');
+}
+
+function addWithdrawal() {
+    const session = activeCashSession(true);
+    const currency = document.getElementById('withdrawCurrency')?.value || 'PHP';
+    const outAmount = amount('withdrawAmount');
+    const phpEquivalent = amount('withdrawEquivalent');
+    if (!outAmount || !phpEquivalent) {
+        showToast('출금 금액과 PHP 환산 기준을 입력해주세요.', 'error');
+        return;
+    }
+    session.withdrawals = Array.isArray(session.withdrawals) ? session.withdrawals : [];
+    session.withdrawals.push({
+        id: `WD-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        currency,
+        amount: outAmount,
+        phpEquivalent,
+        receiver: textValue('withdrawReceiver'),
+        createdAt: nowIso(),
+        operator: operatorName()
+    });
+    saveCashSession(session);
+    ['withdrawAmount', 'withdrawEquivalent', 'withdrawReceiver'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    renderCashHandover();
+    showToast('중간 출금 기록이 추가되었습니다.', 'success');
+}
+
+function saveClosingCash() {
+    const session = activeCashSession(true);
+    session.closing = { PHP: amount('closePhp'), USD: amount('closeUsd'), KRW: amount('closeKrw') };
+    session.closingPhpEquivalent = amount('closeEquivalent');
+    session.closingNote = textValue('closeNote');
+    session.closedAt = nowIso();
+    session.closedBy = operatorName();
+    saveCashSession(session);
+    renderCashHandover();
+    showToast('마감 시재가 저장되었습니다.', 'success');
+}
+
+function renderCashHandover() {
+    const session = activeCashSession(false) || { opening: { PHP: 0, USD: 0, KRW: 0 }, openingPhpEquivalent: 0, withdrawals: [] };
+    const payments = paymentsForBusinessDate();
+    const cashPayments = payments.filter(item => item.method === 'cash');
+    const receivedPhp = cashPayments.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const receivedCurrencies = currencyTotals(cashPayments);
+    const withdrawalPhp = (session.withdrawals || []).reduce((sum, item) => sum + Number(item.phpEquivalent || 0), 0);
+    const withdrawalCurrencies = withdrawalCurrencyTotals(session);
+    const expectedPhp = Number(session.openingPhpEquivalent || 0) + receivedPhp - withdrawalPhp;
+    const closingPhp = Number(session.closingPhpEquivalent || 0);
+    const diff = session.closing ? closingPhp - expectedPhp : 0;
+
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    set('cashOpeningPhp', moneyPhp(session.openingPhpEquivalent || 0));
+    set('cashOpeningDetail', formatCurrencyBreakdown(session.opening));
+    set('cashReceivedPhp', moneyPhp(receivedPhp));
+    set('cashReceivedDetail', formatCurrencyBreakdown(receivedCurrencies));
+    set('cashWithdrawPhp', moneyPhp(withdrawalPhp));
+    set('cashWithdrawDetail', (session.withdrawals || []).length ? formatCurrencyBreakdown(withdrawalCurrencies) : '출금 기록 없음');
+    set('cashDiffPhp', session.closing ? moneyPhp(diff) : moneyPhp(0));
+    set('cashDiffDetail', session.closing ? `예상 ${moneyPhp(expectedPhp)} · 실사 ${moneyPhp(closingPhp)}` : '마감 시재를 입력하면 차이가 계산됩니다.');
+    set('openStatus', session.openedAt ? `${session.openedBy || '-'} · ${formatAuditTime(session.openedAt)}` : '미등록');
+    set('withdrawStatus', (session.withdrawals || []).length ? `${session.withdrawals.length}건 출금` : '출금 기록 없음');
+    set('closeStatus', session.closedAt ? `${session.closedBy || '-'} · ${formatAuditTime(session.closedAt)}` : '미등록');
+
+    if (session.opening) {
+        const openPhp = document.getElementById('openPhp');
+        const openUsd = document.getElementById('openUsd');
+        const openKrw = document.getElementById('openKrw');
+        const openEq = document.getElementById('openEquivalent');
+        if (openPhp && !openPhp.value) openPhp.value = session.opening.PHP || '';
+        if (openUsd && !openUsd.value) openUsd.value = session.opening.USD || '';
+        if (openKrw && !openKrw.value) openKrw.value = session.opening.KRW || '';
+        if (openEq && !openEq.value) openEq.value = session.openingPhpEquivalent || '';
+    }
+    if (session.closing) {
+        const closePhp = document.getElementById('closePhp');
+        const closeUsd = document.getElementById('closeUsd');
+        const closeKrw = document.getElementById('closeKrw');
+        const closeEq = document.getElementById('closeEquivalent');
+        if (closePhp && !closePhp.value) closePhp.value = session.closing.PHP || '';
+        if (closeUsd && !closeUsd.value) closeUsd.value = session.closing.USD || '';
+        if (closeKrw && !closeKrw.value) closeKrw.value = session.closing.KRW || '';
+        if (closeEq && !closeEq.value) closeEq.value = session.closingPhpEquivalent || '';
+    }
+
+    const withdrawalRows = (session.withdrawals || []).map(item => ({
+        at: item.createdAt,
+        type: '출금',
+        pill: 'withdraw',
+        target: item.receiver || '-',
+        php: item.phpEquivalent,
+        actual: `${item.currency} ${Number(item.amount || 0).toLocaleString()}`,
+        operator: item.operator || '-',
+        note: item.receiver || ''
+    }));
+    const paymentRows = payments.map(item => ({
+        at: item.createdAt,
+        type: item.kind === 'deposit' ? '예치금' : '정산 결제',
+        pill: item.kind === 'deposit' ? 'deposit' : 'payment',
+        target: `${item.folioId || '-'} / ${item.guest || '-'}`,
+        php: item.appliedPhpAmount,
+        actual: `${item.receivedCurrency} ${Number(item.receivedAmount || 0).toLocaleString()}`,
+        operator: item.operator || '-',
+        note: item.note || ''
+    }));
+    const rows = [...paymentRows, ...withdrawalRows].sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+    set('cashLedgerCount', `${rows.length}건`);
+    const body = document.getElementById('cashLedgerBody');
+    if (body) {
+        body.innerHTML = rows.length ? rows.map(item => `
+            <tr>
+                <td>${escapeAudit(formatAuditTime(item.at))}</td>
+                <td><span class="cash-pill ${item.pill === 'deposit' ? 'deposit' : ''}">${escapeAudit(item.type)}</span></td>
+                <td>${escapeAudit(item.target)}</td>
+                <td>${moneyPhp(item.php)}</td>
+                <td><span data-no-currency-normalize="true">${escapeAudit(item.actual)}</span></td>
+                <td>${escapeAudit(item.operator)}</td>
+                <td>${escapeAudit(item.note || '-')}</td>
+            </tr>
+        `).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:18px">아직 등록된 수납/출금 내역이 없습니다.</td></tr>';
+    }
+}
+
+function formatAuditTime(value) {
+    const date = value ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) return '-';
+    return new Intl.DateTimeFormat('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+}
+
+function escapeAudit(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
 
 async function loadAuditData() {
     try {
@@ -263,6 +647,12 @@ async function loadAuditData() {
 
 function runNightAudit() {
     if(!document.getElementById('confirmCheck').checked) return;
+    const session = activeCashSession(false);
+    if (!session?.openedAt || !session?.closedAt) {
+        showToast('시재 시작과 마감 인수인계를 먼저 저장해주세요.', 'error');
+        setAuditTab('cash');
+        return;
+    }
 
     const confirmMessage = typeof window.t === 'function'
         ? window.t('nightAudit.close.confirm')
@@ -279,8 +669,9 @@ function runNightAudit() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadAuditData();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadAuditData();
+    renderCashHandover();
 });
 </script>
 <script>

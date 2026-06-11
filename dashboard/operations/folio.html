@@ -260,6 +260,9 @@ const kpiData = {
 let apiFolios = [];
 let visibleFolios = [];
 let folioReservations = [];
+let currentPaymentFolioId = '';
+
+const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
 
 function fmtMoney(value, currency = 'PHP') {
     return new Intl.NumberFormat('en-PH', {
@@ -286,6 +289,67 @@ function escapeHtml(value) {
         '"': '&quot;',
         "'": '&#39;'
     }[char]));
+}
+
+function storageJson(key, fallback) {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(key) || '');
+        return parsed ?? fallback;
+    } catch(e) {
+        return fallback;
+    }
+}
+
+function setStorageJson(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+}
+
+function currentBusinessDate() {
+    if (window.PmsDate?.todayIso) return window.PmsDate.todayIso();
+    return `${CURRENT_FOLIO_PERIOD.year}-${String(CURRENT_FOLIO_PERIOD.month).padStart(2, '0')}-${String(CURRENT_FOLIO_PERIOD.day).padStart(2, '0')}`;
+}
+
+function settlementPaymentRecords() {
+    const records = storageJson(SETTLEMENT_PAYMENTS_KEY, []);
+    return Array.isArray(records) ? records : [];
+}
+
+function saveSettlementPaymentRecords(records) {
+    setStorageJson(SETTLEMENT_PAYMENTS_KEY, records);
+    window.dispatchEvent(new CustomEvent('pms:settlement-payments-updated'));
+}
+
+function paymentRecordsForFolio(folioId) {
+    return settlementPaymentRecords().filter(item => item.folioId === folioId);
+}
+
+function sumRecords(records, predicate, field) {
+    return records
+        .filter(predicate)
+        .reduce((sum, item) => sum + Number(item[field] || 0), 0);
+}
+
+function applySettlementPaymentRecords(folio) {
+    const records = paymentRecordsForFolio(folio.id);
+    if (!records.length) return folio;
+    const settlementApplied = sumRecords(records, item => item.kind !== 'deposit', 'appliedPhpAmount');
+    const depositApplied = sumRecords(records, item => item.kind === 'deposit', 'appliedPhpAmount');
+    const paid = Number(folio.paid || 0) + settlementApplied;
+    const bal = Math.max(Number(folio.bal || 0) - settlementApplied, 0);
+    const depositAmount = folioDepositValue(folio) + depositApplied;
+    return {
+        ...folio,
+        paid,
+        bal,
+        depositAmount,
+        deposit: { amount: depositAmount, currency: folio.currency || 'PHP' },
+        settlementPaymentRecords: records,
+        status: bal > 0 ? 'unpaid' : 'paid'
+    };
+}
+
+function currentOperatorName() {
+    return localStorage.getItem('pms_current_user_name') || localStorage.getItem('pms_staff_name') || 'Nguyen Kim';
 }
 
 function normalizeDept(type) {
@@ -675,7 +739,7 @@ function periodFolios() {
     return [
         ...synthetic.filter(folio => !existingKeys.has(folio.id) && !existingReservationIds.has(folio.reservationId)),
         ...enriched
-    ];
+    ].map(applySettlementPaymentRecords);
 }
 
 function comparePeriodFolios() {
@@ -898,7 +962,7 @@ function renderFolios() {
             <td>
                 <div class="folio-actions">
                     <button class="btn-outline-sm" onclick="event.stopPropagation(); openInvoiceModal(${index})">명세서</button>
-                    ${f.bal > 0 ? `<button class="btn-primary-sm" onclick="event.stopPropagation(); openPaymentModal('${f.id}', ${f.bal})">결제</button>` : '<button class="btn-primary-sm folio-action-placeholder" tabindex="-1" aria-hidden="true">결제</button>'}
+                    <button class="btn-primary-sm" onclick="event.stopPropagation(); openPaymentModal('${f.id}', ${f.bal})">${f.bal > 0 ? '결제' : '수납'}</button>
                 </div>
             </td>
         </tr>`;
@@ -925,7 +989,7 @@ function renderFolios() {
             </div>
             <div class="m-res-actions folio-mobile-actions">
                 <button class="act-btn" onclick="event.stopPropagation(); openInvoiceModal(${index})"><i class="fa-solid fa-file-invoice"></i> 명세서</button>
-                ${f.bal > 0 ? `<button class="act-btn" style="background:var(--primary);color:#fff" onclick="event.stopPropagation(); openPaymentModal('${f.id}', ${f.bal})"><i class="fa-solid fa-credit-card"></i> 결제</button>` : '<button class="act-btn folio-action-placeholder" tabindex="-1" aria-hidden="true"><i class="fa-solid fa-credit-card"></i> 결제</button>'}
+                <button class="act-btn" style="background:var(--primary);color:#fff" onclick="event.stopPropagation(); openPaymentModal('${f.id}', ${f.bal})"><i class="fa-solid fa-credit-card"></i> ${f.bal > 0 ? '결제' : '수납'}</button>
             </div>
         </div>`;
     }).join('');
@@ -1041,6 +1105,17 @@ function openInvoiceModal(index) {
     `).join('');
     const paidPrefix = Number(folio.paid || 0) > 0 ? '-' : '';
     const depositAmount = folioDepositValue(folio);
+    const paymentRecordsHtml = (folio.settlementPaymentRecords || []).length
+        ? `
+        <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
+        <div style="font-weight:700;margin-bottom:4px">수납/예치 기록</div>
+        ${(folio.settlementPaymentRecords || []).map(item => `
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:.82rem">
+                <span>${escapeHtml(item.kind === 'deposit' ? '예치금' : '정산 결제')} · <span data-no-currency-normalize="true">${escapeHtml(item.receivedCurrency)} ${Number(item.receivedAmount || 0).toLocaleString()}</span> (${escapeHtml(item.methodLabel || item.method || '-')})</span>
+                <span>${fmtInvoiceMoney(item.appliedPhpAmount, currency)}</span>
+            </div>
+        `).join('')}
+        ` : '';
     content.innerHTML = `
         <div style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${escapeHtml(invoiceDeptTitle(folio.dept))}</div>
         <div>정산 번호: ${escapeHtml(folio.id)}</div>
@@ -1054,6 +1129,7 @@ function openInvoiceModal(index) {
         <div style="display:flex;justify-content:space-between"><span>결제액</span><span>${paidPrefix}${fmtInvoiceMoney(folio.paid, currency)}</span></div>
         <div style="display:flex;justify-content:space-between"><span>예치금</span><span>${fmtInvoiceMoney(depositAmount, currency)}</span></div>
         <div style="display:flex;justify-content:space-between;color:${folio.bal > 0 ? 'var(--danger)' : 'var(--success)'};font-weight:700;margin-top:8px"><span>미수금 잔액</span><span>${fmtInvoiceMoney(folio.bal, currency)}</span></div>
+        ${paymentRecordsHtml}
     `;
     openModal('invoiceModal');
 }
@@ -1061,15 +1137,81 @@ function openInvoiceModal(index) {
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
+function syncPaymentKindLabels() {
+    const kind = document.getElementById('paymentKind')?.value || 'settlement';
+    const label = document.getElementById('paymentBaseLabel');
+    const completeWrap = document.getElementById('paymentCompleteWrap');
+    if (label) label.textContent = kind === 'deposit' ? '예치금 기준 페소금액' : '정산 반영 페소금액';
+    if (completeWrap) completeWrap.style.display = kind === 'deposit' ? 'none' : 'flex';
+}
+
+function syncPaymentCompleteAmount() {
+    const folio = visibleFolios.find(item => item.id === currentPaymentFolioId);
+    const complete = document.getElementById('paymentCompleteFolio');
+    const input = document.getElementById('paymentInputAmount');
+    if (folio && complete?.checked && input) input.value = Number(folio.bal || 0).toFixed(2);
+}
+
 function openPaymentModal(folioId, bal) {
-    document.getElementById('paymentBalAmount').innerText = `미수금: ${fmtInvoiceMoney(bal)}`;
-    document.getElementById('paymentInputAmount').value = bal.toFixed(2);
+    const folio = visibleFolios.find(item => item.id === folioId);
+    currentPaymentFolioId = folioId;
+    const due = Number(folio?.bal ?? bal ?? 0);
+    document.getElementById('paymentBalAmount').innerText = `미수금 기준: ${fmtInvoiceMoney(due)} / 예치금: ${fmtInvoiceMoney(folioDepositValue(folio || {}))}`;
+    document.getElementById('paymentInputAmount').value = due.toFixed(2);
+    document.getElementById('paymentReceivedAmount').value = '';
+    document.getElementById('paymentReceivedCurrency').value = 'PHP';
+    document.getElementById('paymentKind').value = 'settlement';
+    document.getElementById('paymentMethod').value = 'cash';
+    document.getElementById('paymentCompleteFolio').checked = true;
+    document.getElementById('paymentNote').value = '';
+    syncPaymentKindLabels();
     openModal('paymentModal');
 }
 
 function processPayment() {
-    showToast('결제가 성공적으로 승인되었습니다.');
+    const folio = visibleFolios.find(item => item.id === currentPaymentFolioId);
+    if (!folio) {
+        showToast('정산 대상을 찾지 못했습니다.', 'error');
+        return;
+    }
+    const kind = document.getElementById('paymentKind')?.value || 'settlement';
+    const complete = !!document.getElementById('paymentCompleteFolio')?.checked;
+    const enteredPhp = Math.max(0, Number(document.getElementById('paymentInputAmount')?.value || 0));
+    const appliedPhpAmount = kind === 'deposit'
+        ? enteredPhp
+        : Math.min(complete ? Number(folio.bal || 0) : enteredPhp, Number(folio.bal || 0));
+    const receivedAmount = Math.max(0, Number(document.getElementById('paymentReceivedAmount')?.value || 0));
+    const receivedCurrency = document.getElementById('paymentReceivedCurrency')?.value || 'PHP';
+    const method = document.getElementById('paymentMethod')?.value || 'cash';
+    const methodLabel = document.getElementById('paymentMethod')?.selectedOptions?.[0]?.textContent || method;
+    if (!appliedPhpAmount || !receivedAmount) {
+        showToast('페소 기준 금액과 실제 받은 금액을 모두 입력해주세요.', 'error');
+        return;
+    }
+    const records = settlementPaymentRecords();
+    records.push({
+        id: `PAY-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        folioId: folio.id,
+        reservationId: folio.reservationId || '',
+        room: folio.room || '',
+        guest: folio.guest || '',
+        kind,
+        method,
+        methodLabel,
+        baseCurrency: 'PHP',
+        appliedPhpAmount,
+        receivedCurrency,
+        receivedAmount,
+        completeSettlement: kind !== 'deposit' && complete,
+        businessDate: currentBusinessDate(),
+        createdAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
+        operator: currentOperatorName(),
+        note: document.getElementById('paymentNote')?.value || ''
+    });
+    saveSettlementPaymentRecords(records);
+    showToast(kind === 'deposit' ? '예치금 수납 기록이 저장되었습니다.' : '정산 수납이 완료 처리되었습니다.', 'success');
     closeModal('paymentModal');
+    renderFolios();
 }
 
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
@@ -1077,31 +1219,65 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 
 <!-- 결제 모달 (PAYMENT MODAL) -->
 <div class="modal-overlay" id="paymentModal" onclick="if(event.target===this) closeModal('paymentModal')">
-    <div class="modal-card" style="max-width:400px;width:95vw">
+    <div class="modal-card" style="max-width:520px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title">결제 진행 (Payment)</h3>
+            <h3 class="modal-title">정산 수납 처리</h3>
             <button class="modal-close" onclick="closeModal('paymentModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
             <div style="background:var(--warning-lt);color:var(--warning);padding:12px;border-radius:4px;text-align:center;font-weight:700;font-size:1.1rem" id="paymentBalAmount">
-                미수금: $1,150.00
+                미수금 기준: ₱0
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">처리 유형</label>
+                    <select id="paymentKind" onchange="syncPaymentKindLabels();syncPaymentCompleteAmount()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="settlement">정산 결제</option>
+                        <option value="deposit">예치금 보관</option>
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">결제 수단</label>
+                    <select id="paymentMethod" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="cash">현금</option>
+                        <option value="card">신용카드</option>
+                        <option value="bank">계좌이체</option>
+                        <option value="other">기타</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label id="paymentBaseLabel" style="font-size:.8rem;font-weight:600;color:var(--txt2)">정산 반영 페소금액</label>
+                    <input type="number" min="0" step="0.01" id="paymentInputAmount" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" value="0">
+                    <div style="font-size:.7rem;color:var(--txt3);font-weight:700">잔액 차감 기준은 페소(PHP)로 직접 입력합니다.</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">실제 받은 통화</label>
+                    <select id="paymentReceivedCurrency" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="PHP">PHP 페소</option>
+                        <option value="USD">USD 달러</option>
+                        <option value="KRW">KRW 원화</option>
+                    </select>
+                </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
-                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">결제 수단</label>
-                <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                    <option>신용카드 (Credit Card)</option>
-                    <option>현금 (Cash)</option>
-                    <option>계좌이체 (Bank Transfer)</option>
-                </select>
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">실제 받은 금액</label>
+                <input type="number" min="0" step="0.01" id="paymentReceivedAmount" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="손님에게 실제 받은 금액">
             </div>
+            <label id="paymentCompleteWrap" style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-size:.78rem;font-weight:800;color:var(--txt);cursor:pointer">
+                <input type="checkbox" id="paymentCompleteFolio" onchange="syncPaymentCompleteAmount()" style="width:16px;height:16px">
+                이 수납으로 해당 Folio 정산 완료 처리
+            </label>
             <div style="display:flex;flex-direction:column;gap:6px">
-                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">결제할 금액</label>
-                <input type="number" id="paymentInputAmount" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" value="1150.00">
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">메모</label>
+                <input type="text" id="paymentNote" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: USD 100 수령, 환산 기준은 담당자 확인">
+                <div style="font-size:.7rem;color:var(--txt3);font-weight:700;line-height:1.45">실시간 환율 자동 계산 대신, 담당자가 인정할 페소 기준 금액과 실제 수납 통화를 별도로 기록합니다.</div>
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('paymentModal')">취소</button>
-            <button class="btn-primary-sm" onclick="processPayment()"><i class="fa-solid fa-credit-card"></i> 승인 및 완료</button>
+            <button class="btn-primary-sm" onclick="processPayment()"><i class="fa-solid fa-circle-check"></i> 수납 완료 처리</button>
         </div>
     </div>
 </div>
