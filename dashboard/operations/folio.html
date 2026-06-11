@@ -43,6 +43,8 @@
 .folio-mobile-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 10px; min-height: 36px; }
 #folioMobile .m-res-top > div:first-child { min-width: 0; }
 #folioMobile .m-res-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 210px; }
+.folio-room-change-badge{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:3px 7px;border-radius:999px;background:#fff7ed;color:#b45309;border:1px solid #fde68a;font-size:.66rem;font-weight:900;white-space:nowrap}
+.folio-room-change-badge i{font-size:.62rem}
 @media(max-width:768px){
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
     .filter-left { flex-direction: column; align-items: stretch; overflow: visible; gap: 10px; }
@@ -256,6 +258,7 @@ const kpiData = {
 
 let apiFolios = [];
 let visibleFolios = [];
+let folioReservations = [];
 
 function fmtMoney(value, currency = 'PHP') {
     return new Intl.NumberFormat('en-PH', {
@@ -376,13 +379,18 @@ function generatedInvoiceItems(folio) {
 
 function invoiceItems(folio) {
     const sourceCharges = Array.isArray(folio.charges) ? folio.charges : [];
+    const changeItems = Array.isArray(folio.settlementRoomChanges) && folio.settlementRoomChanges.length
+        ? [{ label: `객실 변경 확인: ${roomChangeText(folio.settlementRoomChanges)}`, amount: 0 }]
+        : [];
     if (sourceCharges.length > 1) {
-        return sourceCharges.map(charge => ({
+        const items = sourceCharges.map(charge => ({
             label: charge.label || folioDisplayText(charge.desc || charge.type || '정산 항목'),
             amount: Number(charge.amount || 0)
         }));
+        const hasChangeItem = items.some(item => String(item.label || '').includes('객실 변경'));
+        return hasChangeItem ? items : [...items, ...changeItems];
     }
-    return generatedInvoiceItems(folio);
+    return [...generatedInvoiceItems(folio), ...changeItems];
 }
 
 function invoiceMetaRows(folio) {
@@ -414,8 +422,133 @@ function invoiceMetaRows(folio) {
     return [['연결 객실', folio.room], ['이용 일자', out]];
 }
 
+function invoiceMetaRowsWithRoomChanges(folio) {
+    const rows = invoiceMetaRows(folio);
+    if (Array.isArray(folio.settlementRoomChanges) && folio.settlementRoomChanges.length) {
+        rows.push(['객실 변경 이력', roomChangeText(folio.settlementRoomChanges)]);
+        rows.push(['연결 예약', folio.reservationId || '-']);
+    }
+    return rows;
+}
+
 function apiAmount(value) {
     return window.PmsMockApi ? window.PmsMockApi.amountValue(value) : Number(value?.amount || value || 0);
+}
+
+function reservationAmountValue(res) {
+    if (res?.totalAmount && typeof res.totalAmount === 'object') return Number(res.totalAmount.amount || 0);
+    return Number(res?.amount || 0);
+}
+
+function reservationPrepaidValue(res) {
+    if (res?.paymentPlan && typeof res.paymentPlan === 'object') return Number(res.paymentPlan.prepaidAmount || 0);
+    return Number(res?.prepaidAmount || res?.prepaid || 0);
+}
+
+function reservationBalanceDue(res) {
+    const explicit = Number(res?.balanceDue ?? res?.paymentPlan?.balanceDue);
+    if (Number.isFinite(explicit) && explicit >= 0) return explicit;
+    return Math.max(reservationAmountValue(res) - reservationPrepaidValue(res), 0);
+}
+
+function reservationCurrency(res) {
+    return res?.currency || res?.totalAmount?.currency || res?.rate?.currency || localStorage.getItem('pms_default_currency') || 'PHP';
+}
+
+function reservationRoomChangeHistory(res) {
+    const values = [
+        ...(Array.isArray(res?.roomChangeHistory) ? res.roomChangeHistory : []),
+        ...(Array.isArray(res?.roomMoveHistory) ? res.roomMoveHistory : [])
+    ];
+    const seen = new Set();
+    return values.map(item => ({
+        id: item.id || `${item.changedAt || item.createdAt || ''}-${item.fromRoom || item.fromFullRoom || ''}-${item.toRoom || item.toFullRoom || ''}`,
+        reservationId: item.reservationId || res?.id || '',
+        fromRoom: item.fromRoom || item.fromRoomNo || item.fromFullRoom || '',
+        toRoom: item.toRoom || item.toRoomNo || item.toFullRoom || '',
+        changedAt: item.changedAt || item.createdAt || '',
+        changedBy: item.changedBy?.name || item.changedByName || item.changedBy || '-',
+        affectsSettlement: item.affectsSettlement !== false,
+        settlementStatus: item.settlementStatus || 'pending'
+    })).filter(item => {
+        if (!item.fromRoom && !item.toRoom) return false;
+        const key = item.id || `${item.changedAt}-${item.fromRoom}-${item.toRoom}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    }).sort((a, b) => String(b.changedAt || '').localeCompare(String(a.changedAt || '')));
+}
+
+function roomChangeText(changes) {
+    return (changes || []).map(item => `${item.fromRoom || '-'} -> ${item.toRoom || '-'}`).join(', ');
+}
+
+function reservationGuestName(res) {
+    return res?.roomingGuestName || res?.guestName || res?.guest || '-';
+}
+
+function reservationRoomNo(res) {
+    return res?.roomNo || res?.room || (res?.roomId && window.PmsMockApi?.roomNoFromId ? window.PmsMockApi.roomNoFromId(res.roomId) : '') || res?.roomId || '-';
+}
+
+function reservationToSettlementFolio(res) {
+    const changes = reservationRoomChangeHistory(res);
+    const total = reservationAmountValue(res);
+    const paid = reservationPrepaidValue(res);
+    const bal = reservationBalanceDue(res);
+    const currency = reservationCurrency(res);
+    const checkout = res?.checkOutDate || res?.checkout || res?.cout || '';
+    return {
+        id: `FOL-${res.id || Date.now()}`,
+        reservationId: res.id || '',
+        room: reservationRoomNo(res),
+        dept: 'room',
+        guest: reservationGuestName(res),
+        out: formatDate(checkout),
+        settlementDate: formatDate(checkout),
+        total,
+        paid,
+        bal,
+        currency,
+        issuedAt: res.updatedAt || changes[0]?.changedAt || '',
+        closedAt: checkout,
+        roomRevenue: total,
+        ancillaryRevenue: 0,
+        status: bal > 0 ? 'unpaid' : 'paid',
+        charges: [
+            { type: 'room', label: '객실 요금', amount: total },
+            ...(changes.length ? [{ type: 'room', label: `객실 변경 확인: ${roomChangeText(changes)}`, amount: 0 }] : [])
+        ],
+        payments: paid ? [{ method: 'Prepaid', amount: paid, paidAt: res.prepaidAt || null }] : [],
+        settlementRoomChanges: changes,
+        roomChangeText: roomChangeText(changes)
+    };
+}
+
+function enrichFolioWithReservation(folio) {
+    const match = folioReservations.find(res => {
+        if (folio.reservationId && res.id === folio.reservationId) return true;
+        const sameRoom = String(reservationRoomNo(res)) === String(folio.room);
+        const sameGuest = reservationGuestName(res) === folio.guest;
+        return sameRoom && sameGuest;
+    });
+    if (!match) return folio;
+    const changes = reservationRoomChangeHistory(match);
+    if (!changes.length) return folio;
+    return {
+        ...folio,
+        reservationId: folio.reservationId || match.id,
+        settlementRoomChanges: changes,
+        roomChangeText: roomChangeText(changes)
+    };
+}
+
+function reservationSettlementFolios() {
+    const linkedIds = new Set(apiFolios.map(folio => folio.reservationId).filter(Boolean));
+    return folioReservations
+        .filter(res => reservationRoomChangeHistory(res).length && !linkedIds.has(res.id))
+        .map(reservationToSettlementFolio)
+        .filter(periodMatchesFolio);
 }
 
 function folioDisplayText(value) {
@@ -476,7 +609,15 @@ function periodMatchesFolio(folio) {
 
 function periodFolios() {
     const source = apiFolios.length ? apiFolios : (foliosData[currentPeriod] || []);
-    return apiFolios.length ? source.filter(periodMatchesFolio) : source;
+    const rows = apiFolios.length ? source.filter(periodMatchesFolio) : source;
+    const enriched = rows.map(enrichFolioWithReservation);
+    const synthetic = reservationSettlementFolios();
+    const existingKeys = new Set(enriched.map(folio => folio.id));
+    const existingReservationIds = new Set(enriched.map(folio => folio.reservationId).filter(Boolean));
+    return [
+        ...synthetic.filter(folio => !existingKeys.has(folio.id) && !existingReservationIds.has(folio.reservationId)),
+        ...enriched
+    ];
 }
 
 function comparePeriodFolios() {
@@ -528,6 +669,7 @@ function mapApiFolio(item) {
     const settlementDate = (closedAt || issuedAt || '').slice(0, 10);
     return {
         id: item.id,
+        reservationId: item.reservationId || item.bookingId || item.sourceReservationId || '',
         room: item.groupId ? 'Master' : (item.roomNo || '-'),
         dept,
         guest: folioDisplayText(item.ownerName || item.guestName || '-'),
@@ -545,6 +687,8 @@ function mapApiFolio(item) {
             amount: apiAmount(payment.amount),
             paidAt: payment.paidAt || null
         })),
+        settlementRoomChanges: Array.isArray(item.roomChangeHistory) ? item.roomChangeHistory : [],
+        roomChangeText: '',
         roomRevenue,
         ancillaryRevenue,
         status: bal > 0 ? 'unpaid' : 'paid'
@@ -580,6 +724,32 @@ async function loadApiFolios() {
     } catch(e) {
         console.warn('Mock folios fallback', e);
     }
+}
+
+async function loadReservationSettlementLinks() {
+    const merged = new Map();
+    try {
+        JSON.parse(localStorage.getItem('pms_reservations') || '[]').forEach(res => {
+            if (res?.id) merged.set(res.id, res);
+        });
+    } catch(e) {}
+    try {
+        if (window.PmsMockApi) {
+            const env = await window.PmsMockApi.request('GET', '/reservations');
+            const items = window.PmsMockApi.items ? window.PmsMockApi.items(env) : env?.data?.items;
+            if (Array.isArray(items)) {
+                items.forEach(item => {
+                    const legacy = window.PmsMockApi.toLegacyReservation ? window.PmsMockApi.toLegacyReservation(item) : item;
+                    if (legacy?.id) merged.set(legacy.id, { ...merged.get(legacy.id), ...legacy });
+                });
+            }
+        }
+    } catch(e) {
+        console.warn('Reservation settlement link fallback', e);
+    }
+    folioReservations = [...merged.values()];
+    updateApiKpis();
+    renderFolios();
 }
 
 function setKpiPeriod(btn, period) {
@@ -634,7 +804,8 @@ function renderFolios() {
         const showUnpaidOnly = document.getElementById('chkUnpaid') ? document.getElementById('chkUnpaid').checked : false;
         if (typeof currentDept !== 'undefined' && currentDept !== 'all' && f.dept !== currentDept) return false;
         if (showUnpaidOnly && f.bal <= 0) return false;
-        if (search && !f.id.toLowerCase().includes(search) && !f.room.includes(search) && !f.guest.toLowerCase().includes(search)) return false;
+        const changeText = String(f.roomChangeText || roomChangeText(f.settlementRoomChanges || []) || '').toLowerCase();
+        if (search && !String(f.id).toLowerCase().includes(search) && !String(f.room).toLowerCase().includes(search) && !String(f.guest).toLowerCase().includes(search) && !changeText.includes(search)) return false;
         return true;
     });
     visibleFolios = filtered;
@@ -647,7 +818,7 @@ function renderFolios() {
         const balColor = f.bal > 0 ? 'var(--danger)' : 'var(--txt)';
         return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
             <td style="color:var(--txt2)">${f.id}</td>
-            <td><strong>${f.room}</strong></td>
+            <td><strong>${f.room}</strong>${f.roomChangeText ? `<div class="folio-room-change-badge" title="${escapeHtml(f.roomChangeText)}"><i class="fa-solid fa-right-left"></i>객실변경</div>` : ''}</td>
             <td>${f.guest}</td>
             <td>${f.out}</td>
             <td>${fmtMoney(f.total, f.currency)}</td>
@@ -670,6 +841,7 @@ function renderFolios() {
                 <div>
                     <div style="font-size:0.7rem;color:var(--txt3);font-family:monospace">${f.id}</div>
                     <div class="m-res-name" style="margin-top:2px">${f.room} · ${f.guest}</div>
+                    ${f.roomChangeText ? `<div class="folio-room-change-badge" title="${escapeHtml(f.roomChangeText)}"><i class="fa-solid fa-right-left"></i>${escapeHtml(f.roomChangeText)}</div>` : ''}
                 </div>
                 <div style="text-align:right">
                     <span class="status-badge ${s.badge}">${s.label}</span>
@@ -699,6 +871,7 @@ function setDept(btn, dept) {
 
 renderFolios();
 loadApiFolios();
+loadReservationSettlementLinks();
 const urlParams = new URLSearchParams(window.location.search);
 const pDept = urlParams.get('dept');
 if (pDept) {
@@ -792,7 +965,7 @@ function openInvoiceModal(index) {
             <span>${fmtInvoiceMoney(item.amount, currency)}</span>
         </div>
     `).join('');
-    const metaHtml = invoiceMetaRows(folio).map(([label, value]) => `
+    const metaHtml = invoiceMetaRowsWithRoomChanges(folio).map(([label, value]) => `
         <div>${escapeHtml(label)}: ${escapeHtml(value)}</div>
     `).join('');
     const paidPrefix = Number(folio.paid || 0) > 0 ? '-' : '';

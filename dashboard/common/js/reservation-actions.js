@@ -209,6 +209,144 @@
         }
     }
 
+    function currentReservationActor() {
+        const role = localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
+        const profiles = {
+            sys_admin: { id: 's1', name: 'Nguyen Kim', roleLabel: 'Admin' },
+            sys_gm: { id: 's2', name: 'Robert Ford', roleLabel: 'General Manager' },
+            sys_desk: { id: 's3', name: 'Sarah Connor', roleLabel: 'Front Desk' },
+            sys_housekeeping: { id: 's5', name: 'Maria Garcia', roleLabel: 'Housekeeping' },
+            sys_maintenance: { id: 's6', name: 'James Bond', roleLabel: 'Maintenance' }
+        };
+        const profile = profiles[role] || profiles.sys_admin;
+        return {
+            id: localStorage.getItem('mock_user_id') || profile.id || role,
+            name: profile.name,
+            role,
+            roleLabel: profile.roleLabel
+        };
+    }
+
+    function reservationRoomChangeHistory(res) {
+        const values = [
+            ...(Array.isArray(res?.roomChangeHistory) ? res.roomChangeHistory : []),
+            ...(Array.isArray(res?.roomMoveHistory) ? res.roomMoveHistory : [])
+        ];
+        const seen = new Set();
+        return values.map(item => {
+            const changedBy = item.changedBy || item.actor || {};
+            return {
+                id: item.id || `${item.changedAt || item.createdAt || ''}-${item.fromRoom || item.fromFullRoom || ''}-${item.toRoom || item.toFullRoom || ''}`,
+                reservationId: item.reservationId || res?.id || '',
+                fromRoom: item.fromRoom || item.fromRoomNo || item.fromFullRoom || '',
+                toRoom: item.toRoom || item.toRoomNo || item.toFullRoom || '',
+                fromFullRoom: item.fromFullRoom || item.fromRoom || '',
+                toFullRoom: item.toFullRoom || item.toRoom || '',
+                changedAt: item.changedAt || item.createdAt || '',
+                changedBy: {
+                    id: changedBy.id || item.changedById || '',
+                    name: changedBy.name || item.changedByName || item.changedBy || '-',
+                    role: changedBy.role || item.changedByRole || '',
+                    roleLabel: changedBy.roleLabel || item.changedByRoleLabel || ''
+                },
+                reason: item.reason || item.note || 'frontdesk-room-change',
+                affectsSettlement: item.affectsSettlement !== false,
+                settlementStatus: item.settlementStatus || (item.affectsSettlement === false ? 'none' : 'pending'),
+                beforeAmount: Number(item.beforeAmount || 0),
+                afterAmount: Number(item.afterAmount || 0),
+                beforePrepaid: Number(item.beforePrepaid || 0),
+                afterPrepaid: Number(item.afterPrepaid || 0),
+                balanceDue: Number(item.balanceDue || 0),
+                currency: item.currency || reservationCurrency(res),
+                note: item.note || ''
+            };
+        }).filter(item => {
+            if (!item.fromRoom && !item.toRoom) return false;
+            const key = item.id || `${item.changedAt}-${item.fromRoom}-${item.toRoom}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        }).sort((a, b) => String(b.changedAt || '').localeCompare(String(a.changedAt || '')));
+    }
+
+    function roomChangeRouteText(item) {
+        return `${item.fromRoom || item.fromFullRoom || '-'} -> ${item.toRoom || item.toFullRoom || '-'}`;
+    }
+
+    function formatReservationDateTime(value) {
+        const date = value ? new Date(value) : new Date();
+        if (Number.isNaN(date.getTime())) return '-';
+        try {
+            return new Intl.DateTimeFormat('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }).format(date);
+        } catch(e) {
+            return String(value || '-');
+        }
+    }
+
+    function renderUnifiedRoomHistory(res) {
+        const panel = document.getElementById('unifiedRoomHistoryPanel');
+        const body = document.getElementById('unifiedRoomHistoryBody');
+        const count = document.getElementById('unifiedRoomHistoryCount');
+        if (!panel || !body) return;
+        if (!res) {
+            panel.style.display = 'none';
+            body.innerHTML = '';
+            if (count) count.textContent = '0';
+            return;
+        }
+        const history = reservationRoomChangeHistory(res);
+        panel.style.display = 'block';
+        if (count) count.textContent = String(history.length);
+        if (!history.length) {
+            body.innerHTML = `<div style="font-size:.78rem;color:var(--txt3);font-weight:700;background:#f8fafc;border:1px dashed var(--border);border-radius:8px;padding:12px">객실 변경 이력이 없습니다.</div>`;
+            return;
+        }
+        body.innerHTML = history.map(item => `
+            <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;padding:11px 0;border-top:1px solid var(--border2)">
+                <div style="min-width:0">
+                    <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                        <span style="font-size:.82rem;font-weight:900;color:var(--txt)"><i class="fa-solid fa-right-left" style="color:var(--primary);margin-right:5px"></i>${actionEscapeHtml(roomChangeRouteText(item))}</span>
+                        ${item.affectsSettlement ? '<span style="font-size:.66rem;font-weight:900;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:999px;padding:2px 7px">정산 반영</span>' : ''}
+                    </div>
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-top:4px">${actionEscapeHtml(formatReservationDateTime(item.changedAt))} · ${actionEscapeHtml(item.changedBy.name || '-')}</div>
+                    <div style="font-size:.72rem;color:var(--txt2);font-weight:700;margin-top:4px">총액 ${formatSettlementMoney(item.beforeAmount || reservationAmountValue(res), item.currency)} -> ${formatSettlementMoney(item.afterAmount || reservationAmountValue(res), item.currency)} · 잔액 ${formatSettlementMoney(item.balanceDue || 0, item.currency)}</div>
+                </div>
+                <div style="font-size:.68rem;font-weight:900;color:${item.settlementStatus === 'settled' ? 'var(--success)' : '#b45309'};background:${item.settlementStatus === 'settled' ? 'var(--success-lt)' : '#fff7ed'};border-radius:999px;padding:4px 8px;white-space:nowrap">${item.settlementStatus === 'settled' ? '정산 완료' : '정산 확인'}</div>
+            </div>
+        `).join('');
+    }
+
+    function createRoomChangeRecord(res, data) {
+        const changedAt = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+        return {
+            id: `RC-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            reservationId: res?.id || '',
+            changedAt,
+            changedBy: currentReservationActor(),
+            fromRoom: data.fromRoom || '',
+            toRoom: data.toRoom || '',
+            fromFullRoom: data.fromFullRoom || data.fromRoom || '',
+            toFullRoom: data.toFullRoom || data.toRoom || '',
+            beforeAmount: Number(data.beforeAmount || 0),
+            afterAmount: Number(data.afterAmount || 0),
+            beforePrepaid: Number(data.beforePrepaid || 0),
+            afterPrepaid: Number(data.afterPrepaid || 0),
+            balanceDue: Number(data.balanceDue || 0),
+            currency: data.currency || reservationCurrency(res),
+            reason: 'frontdesk-room-change',
+            note: '객실 변경으로 정산 확인 필요',
+            affectsSettlement: true,
+            settlementStatus: 'pending'
+        };
+    }
+
     function reservationActionScreen() {
         const path = window.location.pathname || '';
         if (path.includes('reservation-timeline')) return 'reservation-timeline';
@@ -771,6 +909,13 @@
                         </div>
                         <div id="unifiedFinanceHelp" style="margin-top:8px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
                     </div>
+                </div>
+                <div id="unifiedRoomHistoryPanel" style="display:none;margin-bottom:20px;background:#fff;border:1px solid var(--border2);border-radius:10px;overflow:hidden;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--border2);">
+                        <div style="font-size:.9rem;font-weight:900;color:var(--txt);display:flex;align-items:center;gap:8px"><i class="fa-solid fa-right-left" style="color:var(--primary)"></i> 객실 변경 이력</div>
+                        <div style="font-size:.68rem;color:var(--txt3);font-weight:900;background:#fff;border:1px solid var(--border);border-radius:999px;padding:3px 8px"><span id="unifiedRoomHistoryCount">0</span>건</div>
+                    </div>
+                    <div id="unifiedRoomHistoryBody" style="padding:0 14px 12px;"></div>
                 </div>
             </div>
             <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 0 0 var(--radius-sm) var(--radius-sm);">
@@ -1453,6 +1598,7 @@
                 amount: Number(prefill?.amount || prefill?.totalAmount?.amount || 0),
                 prepaid: Number(prefill?.prepaidAmount || prefill?.paymentPlan?.prepaidAmount || 0)
             });
+            renderUnifiedRoomHistory(null);
             renderUnifiedFlowActions(null);
         } else {
             // EDIT BOOKING MODE
@@ -1535,6 +1681,7 @@
             setUnifiedReservationReadonly(isReadonlyReservation, res);
             renderUnifiedFlowActions(res);
             await renderUnifiedGuestPrivacy(res);
+            renderUnifiedRoomHistory(res);
         }
 
         // Hide other modals if they are open
@@ -1685,6 +1832,7 @@
                     currency,
                     settlementBasis: 'reservation-room-total'
                 },
+                roomChangeHistory: [],
                 roomMoveHistory: [],
                 color: '#3B82F6',
                 initials: guest.substring(0,2).toUpperCase(),
@@ -1769,20 +1917,25 @@
                     });
                 }
                 if (roomChanged) {
-                    const move = {
+                    const move = createRoomChangeRecord(res, {
                         fromRoom: beforeRoom || beforeFullRoom || '',
                         toRoom: room,
                         fromFullRoom: beforeFullRoom || beforeRoom || '',
                         toFullRoom: res.fullRoom || room,
-                        changedAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
-                        reason: 'frontdesk-room-move',
-                        affectsSettlement: true
-                    };
+                        beforeAmount,
+                        afterAmount: totalAmount,
+                        beforePrepaid,
+                        afterPrepaid: prepaidAmount,
+                        balanceDue,
+                        currency
+                    });
+                    res.roomChangeHistory = [...(Array.isArray(res.roomChangeHistory) ? res.roomChangeHistory : []), move];
                     res.roomMoveHistory = [...(Array.isArray(res.roomMoveHistory) ? res.roomMoveHistory : []), move];
                     res.settlementAdjustments = [...(Array.isArray(res.settlementAdjustments) ? res.settlementAdjustments : []), {
                         type: 'room-move',
+                        id: move.id,
                         createdAt: move.changedAt,
-                        description: `${move.fromRoom} → ${move.toRoom} 객실 이동`,
+                        description: `${move.fromRoom} -> ${move.toRoom} 객실 이동`,
                         affectsSettlement: true
                     }];
                     if (isPostCheckinEdit) {

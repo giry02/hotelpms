@@ -80,6 +80,8 @@
 .res-id{display:block;max-width:132px;white-space:normal;overflow:visible;line-height:1.25;word-break:break-word}
 .reservation-room-tag{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:28px;padding:0 10px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;font-size:.78rem;font-weight:900;letter-spacing:.01em}
 .reservation-room-tag i{font-size:.72rem;margin-right:5px}
+.res-room-change-chip{display:inline-flex;align-items:center;gap:4px;max-width:132px;height:22px;padding:0 7px;border-radius:999px;background:#fff7ed;color:#b45309;border:1px solid #fde68a;font-size:.64rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-room-change-chip i{font-size:.6rem}
 .res-actions-cell{min-width:320px;text-align:right}
 .res-action-stack{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-start;gap:6px;min-width:0}
 .stay-flag-panel{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:0;width:100%}
@@ -722,6 +724,40 @@ function moneyStack(res) {
     </div>`;
 }
 
+function reservationRoomChangeHistory(res) {
+    const values = [
+        ...(Array.isArray(res?.roomChangeHistory) ? res.roomChangeHistory : []),
+        ...(Array.isArray(res?.roomMoveHistory) ? res.roomMoveHistory : [])
+    ];
+    const seen = new Set();
+    return values.map(item => ({
+        id: item.id || `${item.changedAt || item.createdAt || ''}-${item.fromRoom || item.fromFullRoom || ''}-${item.toRoom || item.toFullRoom || ''}`,
+        fromRoom: item.fromRoom || item.fromRoomNo || item.fromFullRoom || '',
+        toRoom: item.toRoom || item.toRoomNo || item.toFullRoom || '',
+        changedAt: item.changedAt || item.createdAt || '',
+        affectsSettlement: item.affectsSettlement !== false
+    })).filter(item => {
+        if (!item.fromRoom && !item.toRoom) return false;
+        const key = item.id || `${item.changedAt}-${item.fromRoom}-${item.toRoom}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    }).sort((a, b) => String(b.changedAt || '').localeCompare(String(a.changedAt || '')));
+}
+
+function roomChangeBadge(res, mobile = false) {
+    const history = reservationRoomChangeHistory(res);
+    if (!history.length) return '';
+    const latest = history[0];
+    const route = `${latest.fromRoom || '-'} -> ${latest.toRoom || '-'}`;
+    const text = mobile ? `객실변경 ${route}` : `객실변경 ${history.length}`;
+    return `<span class="res-room-change-chip" title="${escapeHtml(route)}"><i class="fa-solid fa-right-left"></i>${escapeHtml(text)}</span>`;
+}
+
+function roomChangeSearchText(res) {
+    return reservationRoomChangeHistory(res).map(item => `${item.fromRoom || ''} ${item.toRoom || ''}`).join(' ');
+}
+
 function operationalBucket(res) {
     const status = effectiveRowStatus(res);
     if (status === 'cancelled') return 'cancelled';
@@ -957,7 +993,8 @@ function renderTable() {
             r.groupName,
             displayGuestName(r),
             companionGuestNames(r).join(' '),
-            operationalNotes(r).join(' ')
+            operationalNotes(r).join(' '),
+            roomChangeSearchText(r)
         ].join(' ').toLowerCase();
         if (search && !haystack.includes(search)) return false;
         return true;
@@ -987,7 +1024,7 @@ function renderTable() {
         const displayGuest = displayGuestName(r);
         return `
         <tr class="res-click-row" tabindex="0" data-res-id="${escapeHtml(r.id)}" onclick="openReservationRow(event, this.dataset.resId)" onkeydown="handleReservationRowKey(event)">
-            <td class="res-room-cell"><div class="res-room-booking"><span class="reservation-room-tag"><i class="fa-solid fa-door-open"></i>${escapeHtml(r.room)}</span><span class="res-id">${r.id}</span></div></td>
+            <td class="res-room-cell"><div class="res-room-booking"><span class="reservation-room-tag"><i class="fa-solid fa-door-open"></i>${escapeHtml(r.room)}</span>${roomChangeBadge(r)}<span class="res-id">${r.id}</span></div></td>
             <td>
                 <div class="guest-cell">
                     <div>
@@ -1039,6 +1076,7 @@ function renderTable() {
             </div>
             <div class="m-res-details">
                 <div class="m-res-detail"><i class="fa-solid fa-door-open"></i> <span class="room-tag">${escapeHtml(r.room)}</span> ${escapeHtml(roomTypeDisplay(r.type))}</div>
+                ${roomChangeBadge(r, true) ? `<div class="m-res-detail">${roomChangeBadge(r, true)}</div>` : ''}
                 <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> ${escapeHtml(r.cin)} → ${escapeHtml(r.cout)} (${stayLabel(r.nights)})</div>
                 <div class="m-res-detail"><i class="fa-solid fa-user-tag"></i> ${reservationKindBadge(r)}</div>
                 ${alertBadges(r)}
