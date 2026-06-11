@@ -47,6 +47,8 @@ Object.assign(window.PmsAPI, {
         };
         const displayRoom = String(roomId || '').split('-').pop() || String(roomId || '');
         const status = String(newStatus || '').replace(/[_\s]/g, '-').toLowerCase();
+        const requestedType = context?.type || context?.cleaningType || '';
+        const isStayoverRequest = ['stayover-dirty', 'stayover-cleaning', 'clean-request', 'cleaning-request', 'mur'].includes(status) || requestedType === 'stayover';
         const openTaskIndexes = tasks
             .map((task, index) => ({ task, index }))
             .filter(({ task }) => taskMatchesRoom(task) && task.status !== 'clean')
@@ -68,21 +70,24 @@ Object.assign(window.PmsAPI, {
             completeOpenTasks('객실 정비 완료');
         } else if (['occupied', 'in-house', 'inhouse', 'checkedin', 'checked-in'].includes(status)) {
             return true;
-        } else if (['vacant-dirty', 'dirty'].includes(status)) {
-            const note = context?.guestName ? `${context.guestName} 체크아웃 후 청소 필요` : '체크아웃 후 청소 필요';
+        } else if (['vacant-dirty', 'dirty'].includes(status) || isStayoverRequest) {
+            const taskType = isStayoverRequest ? 'stayover' : 'checkout';
+            const note = context?.note || (isStayoverRequest
+                ? (context?.guestName ? `${context.guestName} 투숙 중 청소 요청` : '투숙 중 청소 요청')
+                : (context?.guestName ? `${context.guestName} 체크아웃 후 청소 필요` : '체크아웃 후 청소 필요'));
             if (existingTaskIndex === -1) {
                 tasks.push({
                     id: 't' + Date.now(),
                     room: displayRoom,
                     roomId,
-                    type: 'checkout',
+                    type: taskType,
                     status: 'dirty',
                     priority: false,
                     note,
                     reservationId: context?.reservationId || null
                 });
             } else {
-                tasks[existingTaskIndex].type = 'checkout';
+                tasks[existingTaskIndex].type = taskType;
                 tasks[existingTaskIndex].status = 'dirty';
                 tasks[existingTaskIndex].note = note;
                 tasks[existingTaskIndex].reservationId = context?.reservationId || tasks[existingTaskIndex].reservationId;

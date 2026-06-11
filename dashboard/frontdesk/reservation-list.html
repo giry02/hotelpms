@@ -65,7 +65,7 @@
 .res-work-action.group{background:#111827}
 .res-work-action:disabled{opacity:.45;cursor:not-allowed}
 .res-submeta{font-size:.72rem;color:#9ca3af;margin-top:3px}
-#resTable{table-layout:fixed;min-width:1420px}
+#resTable{table-layout:fixed;min-width:1480px}
 #resTable th:nth-child(1),#resTable td:nth-child(1){width:150px}
 #resTable th:nth-child(2),#resTable td:nth-child(2){width:330px}
 #resTable th:nth-child(3),#resTable td:nth-child(3){width:110px}
@@ -74,13 +74,13 @@
 #resTable th:nth-child(7),#resTable td:nth-child(7){width:92px}
 #resTable th:nth-child(8),#resTable td:nth-child(8){width:110px}
 #resTable th:nth-child(9),#resTable td:nth-child(9){width:100px}
-#resTable th:nth-child(10),#resTable td:nth-child(10){width:280px}
+#resTable th:nth-child(10),#resTable td:nth-child(10){width:340px}
 .res-room-cell{text-align:left}
 .res-room-booking{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
 .res-id{display:block;max-width:132px;white-space:normal;overflow:visible;line-height:1.25;word-break:break-word}
 .reservation-room-tag{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:28px;padding:0 10px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;font-size:.78rem;font-weight:900;letter-spacing:.01em}
 .reservation-room-tag i{font-size:.72rem;margin-right:5px}
-.res-actions-cell{min-width:260px;text-align:right}
+.res-actions-cell{min-width:320px;text-align:right}
 .res-action-stack{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-start;gap:6px;min-width:0}
 .stay-flag-panel{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:0;width:100%}
 .stay-flag-label{display:none}
@@ -88,7 +88,8 @@
 .stay-flag-btn{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.68rem;font-weight:850;cursor:pointer;transition:.15s;white-space:nowrap}
 .stay-flag-btn:hover{border-color:var(--primary);color:var(--primary)}
 .stay-flag-btn.active{border-color:#6366f1;background:#eef2ff;box-shadow:0 0 0 2px rgba(99,102,241,.14)}
-.stay-flag-btn.dnd i{color:#e11d48}.stay-flag-btn.mur i{color:#10b981}.stay-flag-btn.away i{color:#f59e0b}.stay-flag-btn.none i{color:#2563eb}
+.stay-flag-btn.dnd i{color:#e11d48}.stay-flag-btn.mur i{color:#10b981}.stay-flag-btn.clean i{color:#059669}.stay-flag-btn.away i{color:#f59e0b}.stay-flag-btn.none i{color:#2563eb}
+.stay-flag-btn.clean.active{border-color:#059669;background:#ecfdf5;box-shadow:0 0 0 2px rgba(5,150,105,.14);color:#047857}
 .reservation-kind-tag{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:46px;height:24px;padding:0 9px;border-radius:8px;font-size:.72rem;font-weight:850;white-space:nowrap}
 .reservation-kind-tag.individual{background:#eef2ff;color:#4338ca}
 .reservation-kind-tag.group{background:#111827;color:#fff}
@@ -99,7 +100,7 @@
 .m-res-card.res-click-card{cursor:pointer}
 .m-res-card.res-click-card:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 @media(max-width:1200px){
-    .res-actions-cell{min-width:230px}
+    .res-actions-cell{min-width:270px}
     .stay-flag-btn{padding:0 7px}
     .res-work-action{min-width:74px}
 }
@@ -324,6 +325,7 @@ const reservationLabels = {
         'flag.title': '상태 설정 (프론트 전용)',
         'flag.dnd': '방해금지',
         'flag.mur': '청소요청',
+        'flag.clean': '청소완료',
         'flag.away': '외출',
         'flag.none': '재실',
         'doc.unassigned': '투숙객 미등록',
@@ -340,6 +342,8 @@ const reservationLabels = {
         'toast.docVerified': '신분증/여권 확인 완료로 저장했습니다.',
         'toast.roomMissing': '객실 정보를 찾을 수 없습니다.',
         'toast.flagSaved': '{room} 상태: {flag}',
+        'toast.cleanRequestSaved': '{room} 청소 요청을 하우스키핑에 전달했습니다.',
+        'toast.cleanCompleteSaved': '{room} 청소 완료로 변경했습니다.',
         'toast.checkinNotAllowed': '체크인은 입실 예정일이 도래한 예약 확정/대기 상태에서만 처리할 수 있습니다.',
         'toast.checkoutNotAllowed': '체크아웃은 투숙 중 예약에서만 처리할 수 있습니다.',
         'toast.flowComplete': '{action} 처리가 완료되었습니다.',
@@ -380,6 +384,7 @@ const reservationLabels = {
         'flag.title': 'Stay Status',
         'flag.dnd': 'DND',
         'flag.mur': 'MUR',
+        'flag.clean': 'Clean Done',
         'flag.away': 'Away',
         'flag.none': 'In Room',
         'doc.unassigned': 'Guest not assigned',
@@ -396,6 +401,8 @@ const reservationLabels = {
         'toast.docVerified': 'ID/passport verification has been saved.',
         'toast.roomMissing': 'Room information could not be found.',
         'toast.flagSaved': '{room} status: {flag}',
+        'toast.cleanRequestSaved': 'Cleaning request for {room} has been sent to housekeeping.',
+        'toast.cleanCompleteSaved': '{room} has been marked clean.',
         'toast.checkinNotAllowed': 'Check-in can only be processed for due confirmed or pending reservations.',
         'toast.checkoutNotAllowed': 'Check-out can only be processed for in-house reservations.',
         'toast.flowComplete': '{action} has been completed.',
@@ -879,16 +886,20 @@ function stayoverFlagControls(res) {
     if (!room) return '';
     const flag = room.guestFlag || res.guestFlag || 'none';
     const roomKey = room.roomId || room.fullRoom || room.id || res.room;
+    const cleaningState = normalizedRoomOpsValue(room.housekeepingStatus || room.hkStatus || room.cleaningStatus);
+    const isCleanRequested = flag === 'mur' || ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState);
+    const isCleanComplete = ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState);
     const options = [
-        { key: 'dnd', label: resText('flag.dnd'), icon: 'fa-circle', cls: 'dnd' },
-        { key: 'mur', label: resText('flag.mur'), icon: 'fa-circle', cls: 'mur' },
-        { key: 'away', label: resText('flag.away'), icon: 'fa-person-walking', cls: 'away' },
-        { key: 'none', label: resText('flag.none'), icon: 'fa-bed', cls: 'none' }
+        { key: 'dnd', label: resText('flag.dnd'), icon: 'fa-circle', cls: 'dnd', active: flag === 'dnd', action: `setReservationStayoverFlag('${res.id}','dnd','${escapeHtml(roomKey)}')` },
+        { key: 'mur', label: resText('flag.mur'), icon: 'fa-circle', cls: 'mur', active: isCleanRequested, action: `setReservationCleaningStatus('${res.id}','request','${escapeHtml(roomKey)}')` },
+        { key: 'clean', label: resText('flag.clean'), icon: 'fa-check', cls: 'clean', active: isCleanComplete, action: `setReservationCleaningStatus('${res.id}','complete','${escapeHtml(roomKey)}')` },
+        { key: 'away', label: resText('flag.away'), icon: 'fa-person-walking', cls: 'away', active: flag === 'away', action: `setReservationStayoverFlag('${res.id}','away','${escapeHtml(roomKey)}')` },
+        { key: 'none', label: resText('flag.none'), icon: 'fa-bed', cls: 'none', active: flag === 'none' && !isCleanRequested, action: `setReservationStayoverFlag('${res.id}','none','${escapeHtml(roomKey)}')` }
     ];
     return `<div class="stay-flag-panel">
         <div class="stay-flag-label">${resText('flag.title')}</div>
         <div class="stay-flag-buttons">
-            ${options.map(opt => `<button type="button" class="stay-flag-btn ${opt.cls} ${flag === opt.key ? 'active' : ''}" title="${opt.label}" onclick="setReservationStayoverFlag('${res.id}','${opt.key}','${escapeHtml(roomKey)}')"><i class="fa-solid ${opt.icon}"></i>${opt.label}</button>`).join('')}
+            ${options.map(opt => `<button type="button" class="stay-flag-btn ${opt.cls} ${opt.active ? 'active' : ''}" title="${opt.label}" onclick="${opt.action}"><i class="fa-solid ${opt.icon}"></i>${opt.label}</button>`).join('')}
         </div>
     </div>`;
 }
@@ -1202,6 +1213,39 @@ window.setReservationStayoverFlag = async function(resId, flag, roomKey = '') {
     }), 'success');
 };
 
+window.setReservationCleaningStatus = async function(resId, mode, roomKey = '') {
+    const res = reservations.find(item => item.id === resId);
+    const room = roomForReservation(res) || rooms.find(item => sameRoomValue(item.id, roomKey) || sameRoomValue(item.roomId, roomKey) || sameRoomValue(item.fullRoom, roomKey));
+    if (!room) {
+        if (window.showToast) window.showToast(resText('toast.roomMissing'), 'error');
+        return;
+    }
+    const roomId = room.roomId || room.fullRoom || room.id || roomKey || res?.room;
+    const roomLabel = room.id || room.number || room.roomNo || roomKey || res?.room || '-';
+    const isComplete = mode === 'complete';
+    room.housekeepingStatus = isComplete ? 'clean' : 'dirty';
+    room.cleaningStatus = isComplete ? 'clean' : 'dirty';
+    room.guestFlag = isComplete ? 'none' : 'mur';
+    if (res) res.guestFlag = room.guestFlag;
+
+    await persistReservationAndRoom(res, room);
+    try {
+        if (window.PmsAPI?.setGuestFlag) {
+            await window.PmsAPI.setGuestFlag(roomId, room.guestFlag);
+        } else if (window.PmsMockApi) {
+            await window.PmsMockApi.request('PATCH', `/rooms/${encodeURIComponent(roomId)}/guest-flag`, { body: { flag: room.guestFlag } });
+        }
+    } catch(e) {
+        console.warn('Cleaning guest flag save failed', e);
+    }
+    await syncHousekeepingForReservation(room, isComplete ? 'clean' : 'stayover-dirty', res);
+
+    renderTable();
+    if (window.showToast) {
+        window.showToast(resMessage(isComplete ? 'toast.cleanCompleteSaved' : 'toast.cleanRequestSaved', { room: roomLabel }), 'success');
+    }
+};
+
 async function persistReservationAndRoom(res, room) {
     localStorage.setItem('pms_reservations', JSON.stringify(reservations));
     if (rooms.length) localStorage.setItem('pms_rooms', JSON.stringify(rooms));
@@ -1223,7 +1267,9 @@ async function syncHousekeepingForReservation(room, status, res) {
     try {
         await window.PmsAPI.syncRoomStatusToTask(roomId, status, {
             reservationId: res?.id,
-            guestName: displayGuestName(res)
+            guestName: displayGuestName(res),
+            type: status === 'stayover-dirty' ? 'stayover' : undefined,
+            source: 'frontdesk'
         });
     } catch(e) {
         console.warn('Housekeeping sync failed', e);
