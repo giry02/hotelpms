@@ -209,6 +209,14 @@
         }
     }
 
+    function reservationActionScreen() {
+        const path = window.location.pathname || '';
+        if (path.includes('reservation-timeline')) return 'reservation-timeline';
+        if (path.includes('reservation-board')) return 'reservation-board';
+        if (path.includes('reservation-list')) return 'reservation-list';
+        return 'reservation';
+    }
+
     function companionNamesFromText(value) {
         return String(value || '')
             .split(/[\n,]/)
@@ -232,6 +240,7 @@
     }
 
     let unifiedStayGuestRoster = [];
+    let unifiedPrivacyReservation = null;
 
     function rosterGuestRole(role) {
         const value = String(role || '').toLowerCase();
@@ -562,24 +571,86 @@
     function logReservationAudit(action, details) {
         if (!window.PmsPrivacyAudit) return;
         window.PmsPrivacyAudit.log(action, {
-            screen: window.location.pathname.includes('reservation-timeline') ? 'reservation-timeline' : 'reservation-list',
+            screen: reservationActionScreen(),
             ...details
         });
     }
 
-    async function renderUnifiedGuestPrivacy(res) {
+    function unifiedPrivacyGuestKey(entry) {
+        return rosterGuestKey(entry);
+    }
+
+    async function unifiedPrivacyRoster(res) {
+        const entries = await rosterGuestsForReservation(res);
+        if (entries.length) return entries;
+        const guest = await guestForUnifiedReservation(res);
+        const normalized = normalizeRosterGuest({
+            ...(guest || {}),
+            guestId: res?.guestId || res?.roomingGuestId || guest?.id || guest?.guestId,
+            name: res?.roomingGuestName || res?.guestName || res?.guest || guest?.name || guest?.guestName,
+            phone: res?.guestPhone || res?.phone || res?.mobile || guest?.phone || guest?.mobile,
+            email: res?.guestEmail || res?.email || guest?.email,
+            role: 'primary'
+        }, 'primary');
+        return normalized ? [normalized] : [];
+    }
+
+    function unifiedPrivacyGuestTabs(entries, selectedKey) {
+        if (!entries.length) return '';
+        return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+            ${entries.map(entry => {
+                const key = unifiedPrivacyGuestKey(entry);
+                const encoded = encodeURIComponent(key).replace(/'/g, '%27');
+                const active = key === selectedKey;
+                const roleLabel = entry.role === 'primary' ? '대표' : '동반';
+                return `<button type="button" onclick="selectUnifiedPrivacyGuest('${encoded}')" style="height:30px;border:1px solid ${active ? 'var(--primary)' : 'var(--border)'};background:${active ? 'var(--primary)' : '#fff'};color:${active ? '#fff' : 'var(--txt2)'};border-radius:999px;padding:0 10px;font-family:var(--font);font-size:.7rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:5px;max-width:100%">
+                    <i class="fa-solid ${entry.role === 'primary' ? 'fa-user-check' : 'fa-user-group'}" style="font-size:.66rem"></i>
+                    <span>${roleLabel}</span>
+                    <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${actionEscapeHtml(entry.name)}</span>
+                </button>`;
+            }).join('')}
+        </div>`;
+    }
+
+    async function renderUnifiedGuestPrivacy(res, selectedKey = null) {
         const panel = document.getElementById('unifiedGuestPrivacyPanel');
         const body = document.getElementById('unifiedGuestPrivacyBody');
         if (!panel || !body) return;
         if (!res || res.isGroupPlaceholder || normalizedReservationStatus(res.status) === 'blocked') {
+            unifiedPrivacyReservation = null;
             panel.style.display = 'none';
             body.innerHTML = '';
             return;
         }
-        const guest = await guestForUnifiedReservation(res);
-        const info = reservationPrivacyDetails(res, guest);
+        unifiedPrivacyReservation = res;
+        const entries = await unifiedPrivacyRoster(res);
+        if (!entries.length) {
+            panel.style.display = 'none';
+            body.innerHTML = '';
+            return;
+        }
+        const primary = entries.find(entry => entry.role === 'primary') || entries[0];
+        const selected = entries.find(entry => unifiedPrivacyGuestKey(entry) === selectedKey) || primary;
+        const guestList = await reservationGuestList();
+        const guest = findRosterGuestRecord(selected, guestList);
+        const selectedRes = {
+            guestId: selected.guestId || selected.id || guest?.id || guest?.guestId,
+            roomingGuestId: selected.guestId || selected.id || guest?.id || guest?.guestId,
+            guestName: selected.name,
+            roomingGuestName: selected.name,
+            guest: selected.name,
+            guestPhone: selected.phone || guest?.phone || guest?.mobile,
+            phone: selected.phone || guest?.phone || guest?.mobile,
+            guestEmail: selected.email || guest?.email,
+            email: selected.email || guest?.email,
+            docStatus: selected.documentStatus || selected.docStatus || guest?.documentStatus || guest?.docStatus || guest?.document?.status,
+            documentStatus: selected.documentStatus || selected.docStatus || guest?.documentStatus || guest?.docStatus || guest?.document?.status
+        };
+        const info = reservationPrivacyDetails(selectedRes, guest);
+        const tabs = unifiedPrivacyGuestTabs(entries, unifiedPrivacyGuestKey(selected));
         panel.style.display = 'block';
         body.innerHTML = `
+            ${tabs}
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div style="min-width:0">
                     <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">고객명</div>
@@ -604,7 +675,7 @@
             </div>`;
         if (window.PmsPrivacyAudit) {
             window.PmsPrivacyAudit.log('reservation.guest_detail.view', {
-                screen: window.location.pathname.includes('reservation-timeline') ? 'reservation-timeline' : 'reservation-list',
+                screen: reservationActionScreen(),
                 reservationId: res.id || res.reservationId || '',
                 guestId: info.guestId || '',
                 guestName: info.guestName,
@@ -612,6 +683,11 @@
             });
         }
     }
+
+    window.selectUnifiedPrivacyGuest = async function(encodedKey) {
+        if (!unifiedPrivacyReservation) return;
+        await renderUnifiedGuestPrivacy(unifiedPrivacyReservation, decodeURIComponent(encodedKey || ''));
+    };
 
     const modalHtml = `
     <!-- Unified Reservation Modal (View & Edit) -->

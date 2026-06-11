@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>예약현황 — Hotel PMS</title>
+    <title>예약 현황 — Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -22,13 +22,23 @@
     <script src="../common/js/guest-search.js"></script>
     <script src="../common/js/reservation-actions.js"></script>
     <style>
-        .reservation-board-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
-        .board-search{display:flex;align-items:center;gap:8px;width:280px;height:38px;padding:0 12px;background:#fff;border:1px solid var(--border);border-radius:8px}
-        .board-search i{color:var(--txt3);font-size:.82rem}
-        .board-search input{border:0;outline:0;background:transparent;font-family:var(--font);font-size:.82rem;width:100%;color:var(--txt)}
-        .board-chips{display:flex;gap:8px;flex-wrap:wrap}
-        .board-chip{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.74rem;font-weight:850;cursor:pointer}
-        .board-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+        .reservation-board-page{font-family:var(--font)}
+        .reservation-board-kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:24px}
+        .reservation-board-kpis .kpi-card{border-left:0;border:1px solid var(--border2);border-radius:16px;padding:16px 20px;box-shadow:0 2px 10px rgba(0,0,0,.02);gap:14px}
+        .reservation-board-kpis .kpi-icon{width:46px;height:46px;border-radius:12px;font-size:1.1rem}
+        .reservation-board-kpis .kpi-value{font-size:1.55rem;line-height:1;font-weight:800}
+        .reservation-board-kpis .kpi-label{font-size:.82rem;font-weight:650}
+        .filter-bar-mt{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px}
+        .filter-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+        .filter-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+        .search-container{display:flex;align-items:center;gap:8px;flex-shrink:0}
+        .search-box-mt{display:flex;align-items:center;gap:8px;padding:7px 14px;border:1.5px solid var(--border);border-radius:8px;background:#fff;transition:border-color .2s;width:220px}
+        .search-box-mt:focus-within{border-color:var(--primary)}
+        .search-box-mt i{color:var(--txt3);font-size:.85rem}
+        .search-box-mt input{border:none;outline:none;font-family:var(--font);font-size:.82rem;color:var(--txt);width:100%;background:transparent;padding:0;margin:0}
+        .btn-search{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;background:var(--primary);color:#fff;font-family:var(--font);font-size:.8rem;font-weight:700;transition:background .2s}
+        .btn-search:hover{background:#1D4ED8}
+        .filter-divider{width:1px;height:24px;background:var(--border2);flex-shrink:0}
         .reservation-board-box{min-height:150px;align-items:flex-start;text-align:left;padding:13px 12px;gap:7px}
         .reservation-board-box.vacant{border-top:3px solid var(--success)}
         .reservation-board-box.arrival{border-top:3px solid var(--primary)}
@@ -55,18 +65,22 @@
         .board-empty{font-size:.74rem;color:var(--txt3);font-weight:750;margin-top:8px}
         .board-money{font-size:.68rem;color:var(--txt2);font-weight:800;margin-top:auto}
         @media(max-width:768px){
-            .reservation-board-toolbar{align-items:stretch;padding:12px}
-            .board-search{width:100%}
-            .board-chips{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-            .board-chip{justify-content:center}
+            .reservation-board-kpis{grid-template-columns:1fr 1fr}
+            .filter-bar-mt{flex-direction:column;align-items:stretch;padding:12px;gap:10px}
+            .filter-left{flex-wrap:wrap;gap:10px}
+            .search-container{width:100%;display:flex;gap:8px;flex:1}
+            .search-box-mt{flex:1;min-width:0;width:auto}
+            #boardChips{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+            #boardChips .chip{justify-content:center}
+            .filter-right .btn-outline{width:100%;justify-content:center}
         }
     </style>
 </head>
 <body>
-<div class="main">
-    <header class="topbar"><h1>예약현황</h1></header>
+<div class="main reservation-board-page">
+    <header class="topbar"><h1>예약 현황</h1></header>
     <div class="content">
-        <div class="kpi-grid kpi-grid-5" style="margin-bottom:18px">
+        <div class="kpi-grid kpi-grid-5 reservation-board-kpis">
             <div class="kpi-card blue"><div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiArrival">0</div><div class="kpi-label">오늘 체크인</div></div></div>
             <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiInhouse">0</div><div class="kpi-label">투숙 중</div></div></div>
             <div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiCheckout">0</div><div class="kpi-label">체크아웃</div></div></div>
@@ -74,18 +88,27 @@
             <div class="kpi-card"><div class="kpi-icon"><i class="fa-solid fa-door-open"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiVacant">0</div><div class="kpi-label">예약 없음</div></div></div>
         </div>
 
-        <div class="reservation-board-toolbar">
-            <div class="board-search">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input id="boardSearch" type="text" placeholder="객실, 대표/동반 투숙객 검색..." oninput="renderReservationBoard()">
+        <div class="filter-bar-mt reservation-board-toolbar">
+            <div class="filter-left">
+                <div class="search-container">
+                    <div class="search-box-mt">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input id="boardSearch" type="text" placeholder="객실번호 검색..." oninput="renderReservationBoard()">
+                    </div>
+                    <button class="btn-search" onclick="renderReservationBoard()"><i class="fa-solid fa-search"></i> 검색</button>
+                </div>
+                <div class="filter-divider desktop-only"></div>
+                <div class="filter-chips" id="boardChips">
+                    <button class="chip active" data-status="all" onclick="setBoardFilter('all')">전체 <span class="chip-count">0</span></button>
+                    <button class="chip" data-status="arrival" onclick="setBoardFilter('arrival')"><span class="status-dot" style="background:var(--primary)"></span> 오늘 체크인 <span class="chip-count">0</span></button>
+                    <button class="chip" data-status="inhouse" onclick="setBoardFilter('inhouse')"><span class="status-dot" style="background:var(--success)"></span> 투숙 중 <span class="chip-count">0</span></button>
+                    <button class="chip" data-status="checkout" onclick="setBoardFilter('checkout')"><span class="status-dot" style="background:var(--warning)"></span> 체크아웃 <span class="chip-count">0</span></button>
+                    <button class="chip" data-status="reserved" onclick="setBoardFilter('reserved')"><span class="status-dot" style="background:var(--purple)"></span> 예약 예정 <span class="chip-count">0</span></button>
+                    <button class="chip" data-status="vacant" onclick="setBoardFilter('vacant')">예약 없음 <span class="chip-count">0</span></button>
+                </div>
             </div>
-            <div class="board-chips" id="boardChips">
-                <button class="board-chip active" data-status="all" onclick="setBoardFilter('all')">전체</button>
-                <button class="board-chip" data-status="arrival" onclick="setBoardFilter('arrival')">오늘 체크인</button>
-                <button class="board-chip" data-status="inhouse" onclick="setBoardFilter('inhouse')">투숙 중</button>
-                <button class="board-chip" data-status="checkout" onclick="setBoardFilter('checkout')">체크아웃</button>
-                <button class="board-chip" data-status="reserved" onclick="setBoardFilter('reserved')">예약 예정</button>
-                <button class="board-chip" data-status="vacant" onclick="setBoardFilter('vacant')">예약 없음</button>
+            <div class="filter-right">
+                <button class="btn-outline" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> 엑셀 다운로드</button>
             </div>
         </div>
 
@@ -255,6 +278,12 @@ function updateBoardKpis() {
     document.getElementById('kpiCheckout').textContent = counts.checkout;
     document.getElementById('kpiReserved').textContent = counts.reserved;
     document.getElementById('kpiVacant').textContent = counts.vacant;
+    document.querySelectorAll('#boardChips .chip').forEach(chip => {
+        const status = chip.dataset.status;
+        const count = status === 'all' ? rooms.length : (counts[status] || 0);
+        const countEl = chip.querySelector('.chip-count');
+        if (countEl) countEl.textContent = count;
+    });
 }
 
 function toggleBuilding(el) {
@@ -291,12 +320,12 @@ function renderReservationBoard() {
             container.innerHTML += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${floor}층 <span style="font-size:0.8rem;color:var(--txt3);font-weight:500;margin-left:8px">(${cards.length}개 객실)</span></div><div class="room-grid">${cards.join('')}</div></div>`;
         });
     }
-    if (!rendered) container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3);font-weight:800">조건에 맞는 예약현황이 없습니다.</div>';
+    if (!rendered) container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3);font-weight:800">조건에 맞는 예약 현황이 없습니다.</div>';
 }
 
 function setBoardFilter(filter) {
     boardFilter = filter;
-    document.querySelectorAll('.board-chip').forEach(btn => btn.classList.toggle('active', btn.dataset.status === filter));
+    document.querySelectorAll('#boardChips .chip').forEach(btn => btn.classList.toggle('active', btn.dataset.status === filter));
     renderReservationBoard();
 }
 
