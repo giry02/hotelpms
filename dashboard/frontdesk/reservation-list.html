@@ -1613,6 +1613,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const params = new URLSearchParams(location.search);
     const requestedTab = params.get('tab') || params.get('filter') || 'all';
+    const requestedQuery = params.get('query') || params.get('search') || '';
 
     if (window.PmsAPI) {
         const [rawRooms, rawGuests, rawRes] = await Promise.all([
@@ -1638,6 +1639,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('.bs-option').forEach(btn => btn.classList.remove('selected'));
             selectedSheet.classList.add('selected');
         }
+    }
+    if (requestedQuery) {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = requestedQuery;
     }
     refreshReservationLabels();
     updateChipCounts();

@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/operations.css">
     <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/i18n-catalog.js"></script>
 <script src="../common/js/i18n.js"></script>
@@ -24,7 +25,9 @@
         .audit-body { padding: 20px; }
         
         .check-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-        .check-item { background: #f8fafc; border: 1px solid var(--border2); border-radius: 8px; padding: 16px; display: flex; align-items: flex-start; gap: 12px; }
+        .check-item { background: #f8fafc; border: 1px solid var(--border2); border-radius: 8px; padding: 16px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: all .18s ease; }
+        .check-item:hover,
+        .check-item:focus-visible { border-color: rgba(59,130,246,.45); box-shadow: 0 10px 24px rgba(15,23,42,.08); transform: translateY(-1px); outline: none; }
         .check-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
         .check-info { flex: 1; }
         .check-title { font-weight: 700; color: var(--txt); font-size: 0.95rem; margin-bottom: 4px; }
@@ -32,6 +35,20 @@
         .check-val { font-size: 1.2rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; }
         .val-danger { color: var(--danger); }
         .val-success { color: var(--success); }
+        .check-action { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 800; color: var(--primary); }
+        .audit-issue-modal { max-width: 780px; width: 95vw; }
+        .audit-issue-summary { padding: 12px 14px; border: 1px solid var(--border2); border-radius: 10px; background: #f8fafc; color: var(--txt2); font-size: .82rem; line-height: 1.45; margin-bottom: 14px; }
+        .audit-issue-list { display: flex; flex-direction: column; gap: 10px; max-height: 52vh; overflow: auto; padding-right: 2px; }
+        .audit-issue-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border2); border-radius: 10px; background: #fff; }
+        .audit-issue-main { min-width: 0; }
+        .audit-issue-title { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 900; color: var(--txt); font-size: .88rem; }
+        .audit-issue-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .audit-issue-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 6px; color: var(--txt3); font-size: .74rem; font-weight: 700; }
+        .audit-issue-pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 4px 8px; font-size: .7rem; font-weight: 900; background: #eef2ff; color: #4338ca; white-space: nowrap; }
+        .audit-issue-pill.danger { background: var(--danger-lt); color: var(--danger); }
+        .audit-issue-pill.warning { background: var(--warning-lt); color: var(--warning); }
+        .audit-issue-amount { font-size: .9rem; font-weight: 900; color: var(--txt); white-space: nowrap; }
+        .audit-issue-empty { padding: 28px 16px; text-align: center; color: var(--txt3); border: 1px dashed var(--border); border-radius: 10px; background: #fbfdff; font-weight: 800; }
 
         .revenue-verification-body { padding: 18px 20px 20px; }
         .revenue-list { display: flex; flex-direction: column; gap: 10px; }
@@ -85,6 +102,8 @@
             .audit-tabs { overflow-x: auto; }
             .cash-summary-grid, .cash-workflow-grid { grid-template-columns: 1fr; }
             .currency-mini-grid { grid-template-columns: 1fr; }
+            .audit-issue-row { grid-template-columns: 1fr; align-items: stretch; }
+            .audit-issue-row .btn-outline-sm { width: 100%; height: 34px; }
         }
     </style>
 </head>
@@ -119,30 +138,33 @@
                 <p style="font-size:0.85rem; color:var(--txt2); margin-bottom:16px;">미처리 항목이 있을 경우 정상적인 마감 및 롤오버가 제한될 수 있습니다.</p>
                 <div class="check-grid">
                     <!-- Pending Departures -->
-                    <div class="check-item">
+                    <div class="check-item" role="button" tabindex="0" data-audit-issue="departures" onclick="openAuditIssueModal('departures')" onkeydown="handleAuditIssueKey(event, 'departures')">
                         <div class="check-icon" style="background:var(--danger-lt); color:var(--danger)"><i class="fa-solid fa-door-open"></i></div>
                         <div class="check-info">
                             <div class="check-title">미처리 체크아웃</div>
                             <div class="check-desc">퇴실 예정이나 아직 시스템에서 체크아웃 처리되지 않은 객실입니다.</div>
                             <div class="check-val" id="chkDep">-</div>
+                            <div class="check-action"><i class="fa-solid fa-list-ul"></i> 대상 목록 보기</div>
                         </div>
                     </div>
                     <!-- Pending Arrivals -->
-                    <div class="check-item">
+                    <div class="check-item" role="button" tabindex="0" data-audit-issue="arrivals" onclick="openAuditIssueModal('arrivals')" onkeydown="handleAuditIssueKey(event, 'arrivals')">
                         <div class="check-icon" style="background:var(--warning-lt); color:var(--warning)"><i class="fa-solid fa-user-clock"></i></div>
                         <div class="check-info">
                             <div class="check-title">미도착 체크인</div>
                             <div class="check-desc">마감 실행 시 자동으로 <strong>노쇼</strong> 처리되어 수수료가 청구됩니다.</div>
                             <div class="check-val" id="chkArr">-</div>
+                            <div class="check-action"><i class="fa-solid fa-list-ul"></i> 대상 목록 보기</div>
                         </div>
                     </div>
                     <!-- Open POS Orders -->
-                    <div class="check-item">
+                    <div class="check-item" role="button" tabindex="0" data-audit-issue="orders" onclick="openAuditIssueModal('orders')" onkeydown="handleAuditIssueKey(event, 'orders')">
                         <div class="check-icon" style="background:var(--blue-lt); color:var(--blue)"><i class="fa-solid fa-receipt"></i></div>
                         <div class="check-info">
                             <div class="check-title">미결제 주문</div>
                             <div class="check-desc">객실 정산에 청구 전이거나 제공 완료되지 않은 룸서비스/부대시설 주문.</div>
                             <div class="check-val" id="chkPos">-</div>
+                            <div class="check-action"><i class="fa-solid fa-list-ul"></i> 주문 목록 보기</div>
                         </div>
                     </div>
                 </div>
@@ -330,10 +352,274 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="auditIssueModal" onclick="if(event.target===this) closeAuditIssueModal()">
+    <div class="modal-card audit-issue-modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="auditIssueTitle">마감 체크 상세</h3>
+            <button type="button" class="modal-close" onclick="closeAuditIssueModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="audit-issue-summary" id="auditIssueSummary"></div>
+            <div class="audit-issue-list" id="auditIssueList"></div>
+        </div>
+        <div class="modal-footer">
+            <a class="btn-primary-sm" id="auditIssuePrimaryLink" href="#"><i class="fa-solid fa-arrow-up-right-from-square"></i> 처리 화면으로 이동</a>
+            <button type="button" class="btn-outline" onclick="closeAuditIssueModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let totalRev = 0;
 const CASH_SESSION_KEY = 'pms_night_audit_cash_sessions';
 const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
+const auditIssueState = { departures: [], arrivals: [], orders: [] };
+window.auditIssueState = auditIssueState;
+
+const AUDIT_ISSUE_META = {
+    departures: {
+        title: '미처리 체크아웃',
+        href: '../frontdesk/reservation-list.html?tab=checkout',
+        linkLabel: '체크아웃 대상 보기',
+        empty: '미처리 체크아웃 대상이 없습니다.',
+        summary: count => count > 0
+            ? `${count}건의 체크아웃 대상이 아직 투숙 상태로 남아 있습니다. 객실별 상세를 확인하고 체크아웃 처리를 진행하세요.`
+            : '체크아웃 대상이 모두 처리되었습니다.'
+    },
+    arrivals: {
+        title: '미도착 체크인',
+        href: '../frontdesk/reservation-list.html?tab=checkin',
+        linkLabel: '오늘 체크인 대상 보기',
+        empty: '미도착 체크인 대상이 없습니다.',
+        summary: count => count > 0
+            ? `${count}건의 체크인 예정 예약이 아직 도착 처리되지 않았습니다. 노쇼 처리 전에 예약 상태를 확인하세요.`
+            : '체크인 대상이 모두 처리되었습니다.'
+    },
+    orders: {
+        title: '미결제 주문',
+        href: 'unified-pos.html?status=open',
+        linkLabel: '통합 주문 처리로 이동',
+        empty: '미결제 주문이 없습니다.',
+        summary: count => count > 0
+            ? `${count}건의 주문이 객실 정산 반영 또는 처리 완료 전 상태입니다. 객실/주문별로 확인하세요.`
+            : '미결제 주문이 모두 정리되었습니다.'
+    }
+};
+
+function normalizeAuditKey(value) {
+    return String(value || '').toLowerCase().replace(/[\s_-]+/g, '');
+}
+
+function auditDateOnly(value) {
+    if (!value) return '';
+    const text = String(value);
+    const iso = text.match(/\d{4}-\d{2}-\d{2}/);
+    if (iso) return iso[0];
+    const date = new Date(text);
+    if (!Number.isNaN(date.getTime())) return date.toISOString().slice(0, 10);
+    return '';
+}
+
+function auditDateDueOnOrBefore(value, businessDate) {
+    const date = auditDateOnly(value);
+    return !!date && date <= businessDate;
+}
+
+function auditReservationRoom(res) {
+    return res?.roomNo || res?.room || res?.number || res?.display || res?.fullRoom || '-';
+}
+
+function auditReservationGuest(res) {
+    return res?.guestName || res?.guest || res?.roomingGuestName || res?.primaryGuestName || '-';
+}
+
+function auditReservationStatusLabel(status) {
+    const key = normalizeAuditKey(status);
+    if (key === 'checkedin') return '투숙 중';
+    if (key === 'confirmed') return '예약 확정';
+    if (key === 'pending') return '대기';
+    if (key === 'checkout') return '체크아웃 대상';
+    return status || '-';
+}
+
+function isPendingDeparture(res, businessDate) {
+    const status = normalizeAuditKey(res?.status);
+    const activeStatuses = new Set(['checkedin', 'inhouse', 'occupied', 'checkout']);
+    return activeStatuses.has(status) && auditDateDueOnOrBefore(res?.checkOutDate || res?.checkout || res?.cout, businessDate);
+}
+
+function isPendingArrival(res, businessDate) {
+    const status = normalizeAuditKey(res?.status);
+    const arrivalStatuses = new Set(['confirmed', 'pending', 'reserved', 'booked']);
+    return arrivalStatuses.has(status) && auditDateDueOnOrBefore(res?.checkInDate || res?.checkin || res?.cin, businessDate);
+}
+
+function auditOrderStatusKey(order) {
+    return normalizeAuditKey(order?.status);
+}
+
+function auditOrderStatusLabel(status) {
+    const key = auditOrderStatusKey({ status });
+    if (key === 'new') return '신규';
+    if (key === 'prep' || key === 'preparing') return '처리 중';
+    if (key === 'done' || key === 'completed') return '완료';
+    return status || '-';
+}
+
+function auditOrderSourceLabel(order) {
+    const source = order?._issueSource || order?.source || order?.department || order?.type || '';
+    const key = normalizeAuditKey(source);
+    if (key.includes('golf')) return '골프장';
+    if (key.includes('rent') || key.includes('car')) return '렌터카';
+    return '식음료/룸서비스';
+}
+
+function isOpenAuditOrder(order, businessDate) {
+    const status = auditOrderStatusKey(order);
+    const closed = new Set(['done', 'completed', 'charged', 'posted', 'cancelled', 'canceled', 'void', 'paid']);
+    const date = auditDateOnly(order?.date || order?.serviceDate || order?.createdAt || order?.time);
+    return !closed.has(status) && (!date || date <= businessDate);
+}
+
+function auditOrderRoom(order) {
+    return order?.roomNo || order?.room || String(order?.roomId || '').split('-').pop() || '-';
+}
+
+function auditOrderGuest(order) {
+    return order?.guest || order?.guestName || order?.customerName || '-';
+}
+
+function auditOrderItems(order) {
+    const items = order?.items;
+    if (Array.isArray(items)) return items.filter(Boolean).join(', ');
+    return String(items || order?.type || '-');
+}
+
+function auditOrderAmount(order) {
+    const total = order?.total;
+    if (total && typeof total === 'object') return Number(total.amount || 0);
+    return Number(total || order?.amount || 0);
+}
+
+function buildAuditIssues({ reservations = [], orders = [], golf = [], rentacar = [] }, businessDate) {
+    const departures = reservations
+        .filter(res => isPendingDeparture(res, businessDate))
+        .sort((a, b) => String(a.checkout || a.checkOutDate || '').localeCompare(String(b.checkout || b.checkOutDate || '')) || String(auditReservationRoom(a)).localeCompare(String(auditReservationRoom(b))));
+    const arrivals = reservations
+        .filter(res => isPendingArrival(res, businessDate))
+        .sort((a, b) => String(a.checkin || a.checkInDate || '').localeCompare(String(b.checkin || b.checkInDate || '')) || String(auditReservationRoom(a)).localeCompare(String(auditReservationRoom(b))));
+    const openOrders = [
+        ...orders.map(order => ({ ...order, _issueSource: 'pos' })),
+        ...golf.map(order => ({ ...order, _issueSource: 'golf' })),
+        ...rentacar.map(order => ({ ...order, _issueSource: 'rentacar' }))
+    ]
+        .filter(order => isOpenAuditOrder(order, businessDate))
+        .sort((a, b) => String(auditDateOnly(a.date || a.createdAt)).localeCompare(String(auditDateOnly(b.date || b.createdAt))) || String(auditOrderRoom(a)).localeCompare(String(auditOrderRoom(b))));
+    return { departures, arrivals, orders: openOrders };
+}
+
+function renderAuditIssueCount(elementId, issueKey, options = {}) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const count = auditIssueState[issueKey]?.length || 0;
+    if (count <= 0) {
+        el.innerHTML = '<span class="val-success"><i class="fa-solid fa-check"></i> 완료</span>';
+        return;
+    }
+    const suffix = options.suffix || '건 남음';
+    const cls = options.tone === 'warning' ? '' : ' class="val-danger"';
+    const style = options.tone === 'warning' ? ' style="color:var(--warning)"' : '';
+    el.innerHTML = `<span${cls}${style}><i class="fa-solid fa-triangle-exclamation"></i> ${count}${suffix}</span>`;
+}
+
+function handleAuditIssueKey(event, issueKey) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    openAuditIssueModal(issueKey);
+}
+
+function auditReservationIssueRow(res, issueKey) {
+    const room = auditReservationRoom(res);
+    const guest = auditReservationGuest(res);
+    const id = res?.id || res?.reservationId || '-';
+    const inDate = auditDateOnly(res?.checkInDate || res?.checkin || res?.cin) || '-';
+    const outDate = auditDateOnly(res?.checkOutDate || res?.checkout || res?.cout) || '-';
+    const tab = issueKey === 'departures' ? 'checkout' : 'checkin';
+    const href = `../frontdesk/reservation-list.html?tab=${tab}&query=${encodeURIComponent(id)}`;
+    const pillClass = issueKey === 'departures' ? 'danger' : 'warning';
+    return `
+        <div class="audit-issue-row">
+            <div class="audit-issue-main">
+                <div class="audit-issue-title"><i class="fa-solid fa-bed" style="color:var(--primary)"></i><span>${escapeAudit(room)} · ${escapeAudit(guest)}</span></div>
+                <div class="audit-issue-meta">
+                    <span>${escapeAudit(id)}</span>
+                    <span>${escapeAudit(inDate)} ~ ${escapeAudit(outDate)}</span>
+                    <span>${escapeAudit(auditReservationStatusLabel(res?.status))}</span>
+                </div>
+            </div>
+            <span class="audit-issue-pill ${pillClass}">${issueKey === 'departures' ? '퇴실 확인' : '도착 확인'}</span>
+            <a class="btn-outline-sm" href="${href}">열기</a>
+        </div>
+    `;
+}
+
+function auditOrderIssueRow(order) {
+    const room = auditOrderRoom(order);
+    const guest = auditOrderGuest(order);
+    const id = order?.id || '-';
+    const date = auditDateOnly(order?.date || order?.serviceDate || order?.createdAt) || '-';
+    const time = order?.time || '';
+    const amount = auditOrderAmount(order);
+    const sourceLabel = auditOrderSourceLabel(order);
+    const statusLabel = auditOrderStatusLabel(order?.status);
+    const href = order?._issueSource === 'golf'
+        ? 'golf.html?status=open'
+        : order?._issueSource === 'rentacar'
+            ? 'rentacar.html?status=open'
+            : 'unified-pos.html?status=open';
+    return `
+        <div class="audit-issue-row">
+            <div class="audit-issue-main">
+                <div class="audit-issue-title"><i class="fa-solid fa-receipt" style="color:var(--blue)"></i><span>${escapeAudit(room)} · ${escapeAudit(guest)}</span></div>
+                <div class="audit-issue-meta">
+                    <span>${escapeAudit(sourceLabel)}</span>
+                    <span>${escapeAudit(id)}</span>
+                    <span>${escapeAudit([date, time].filter(Boolean).join(' '))}</span>
+                    <span>${escapeAudit(auditOrderItems(order))}</span>
+                    <span>${escapeAudit(statusLabel)}</span>
+                </div>
+            </div>
+            <span class="audit-issue-amount">${moneyPhp(amount)}</span>
+            <a class="btn-outline-sm" href="${href}">처리</a>
+        </div>
+    `;
+}
+
+function openAuditIssueModal(issueKey) {
+    const meta = AUDIT_ISSUE_META[issueKey];
+    if (!meta) return;
+    const items = auditIssueState[issueKey] || [];
+    const title = document.getElementById('auditIssueTitle');
+    const summary = document.getElementById('auditIssueSummary');
+    const list = document.getElementById('auditIssueList');
+    const link = document.getElementById('auditIssuePrimaryLink');
+    if (title) title.textContent = meta.title;
+    if (summary) summary.textContent = meta.summary(items.length);
+    if (link) {
+        link.href = meta.href;
+        link.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> ${meta.linkLabel}`;
+    }
+    if (list) {
+        list.innerHTML = items.length
+            ? items.map(item => issueKey === 'orders' ? auditOrderIssueRow(item) : auditReservationIssueRow(item, issueKey)).join('')
+            : `<div class="audit-issue-empty"><i class="fa-solid fa-circle-check"></i> ${meta.empty}</div>`;
+    }
+    document.getElementById('auditIssueModal')?.classList.add('active');
+}
+
+function closeAuditIssueModal() {
+    document.getElementById('auditIssueModal')?.classList.remove('active');
+}
 
 function storageJson(key, fallback) {
     try {
@@ -597,30 +883,21 @@ async function loadAuditData() {
         document.getElementById('nextDate').textContent = nextDayStr;
         document.getElementById('confirmDate').textContent = todayStr;
 
-        const [dailyData, orders, golf, rentacar] = await Promise.all([
+        const [dailyData, reservations, orders, golf, rentacar] = await Promise.all([
             PmsAPI.getDailyData(),
+            PmsAPI.getReservations(),
             PmsAPI.getOrders(),
             PmsAPI.getGolfOrders(),
             PmsAPI.getRentacarOrders()
         ]);
 
-        // Mock Checklist Data
-        // 1. Pending Departures (Random small number for demo)
-        const pendingDep = 2;
-        const eDep = document.getElementById('chkDep');
-        eDep.innerHTML = pendingDep > 0 ? `<span class="val-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${pendingDep}건 남음</span>` : `<span class="val-success"><i class="fa-solid fa-check"></i> 완료</span>`;
-
-        // 2. Pending Arrivals (Random small number)
-        const pendingArr = 3;
-        const eArr = document.getElementById('chkArr');
-        eArr.innerHTML = pendingArr > 0 ? `<span style="color:var(--warning)"><i class="fa-solid fa-triangle-exclamation"></i> ${pendingArr}건 미도착</span>` : `<span class="val-success"><i class="fa-solid fa-check"></i> 완료</span>`;
-
-        // 3. Open POS Orders
-        const allOrders = [...orders, ...golf, ...rentacar];
-        let openOrders = 0;
-        allOrders.forEach(o => { if(o.status !== 'done') openOrders++; });
-        const ePos = document.getElementById('chkPos');
-        ePos.innerHTML = openOrders > 0 ? `<span class="val-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${openOrders}건 남음</span>` : `<span class="val-success"><i class="fa-solid fa-check"></i> 완료</span>`;
+        const issues = buildAuditIssues({ reservations, orders, golf, rentacar }, todayStr);
+        auditIssueState.departures = issues.departures;
+        auditIssueState.arrivals = issues.arrivals;
+        auditIssueState.orders = issues.orders;
+        renderAuditIssueCount('chkDep', 'departures', { suffix: '건 남음' });
+        renderAuditIssueCount('chkArr', 'arrivals', { suffix: '건 미도착', tone: 'warning' });
+        renderAuditIssueCount('chkPos', 'orders', { suffix: '건 남음' });
 
         // Revenue Data (Using last item in dailyData as "today")
         const todayData = dailyData[dailyData.length - 1] || { room:0, fnb:0, spa:0, other:0 };
