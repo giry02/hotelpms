@@ -376,33 +376,271 @@ const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
 const auditIssueState = { departures: [], arrivals: [], orders: [] };
 window.auditIssueState = auditIssueState;
 
+const NIGHT_AUDIT_I18N = {
+    ko: {
+        'page.title': '일일 마감',
+        'page.currentBusinessDate': '현재 영업일',
+        'page.rolloverDate': '롤오버 예정일',
+        'tab.close': '마감 체크',
+        'tab.cash': '시재 인수인계',
+        'section.requiredChecks': '1. 마감 전 필수 체크',
+        'check.description': '미처리 항목이 있을 경우 정상적인 마감 및 롤오버가 제한될 수 있습니다.',
+        'issue.departures.title': '미처리 체크아웃',
+        'issue.departures.desc': '퇴실 예정이나 아직 시스템에서 체크아웃 처리되지 않은 객실입니다.',
+        'issue.departures.link': '체크아웃 대상 보기',
+        'issue.departures.empty': '미처리 체크아웃 대상이 없습니다.',
+        'issue.departures.summary': '{count}건의 체크아웃 대상이 아직 투숙 상태로 남아 있습니다. 객실별 상세를 확인하고 체크아웃 처리를 진행하세요.',
+        'issue.departures.summary.empty': '체크아웃 대상이 모두 처리되었습니다.',
+        'issue.arrivals.title': '미도착 체크인',
+        'issue.arrivals.desc': '마감 실행 시 자동으로 노쇼 처리되어 수수료가 청구됩니다.',
+        'issue.arrivals.link': '오늘 체크인 대상 보기',
+        'issue.arrivals.empty': '미도착 체크인 대상이 없습니다.',
+        'issue.arrivals.summary': '{count}건의 체크인 예정 예약이 아직 도착 처리되지 않았습니다. 노쇼 처리 전에 예약 상태를 확인하세요.',
+        'issue.arrivals.summary.empty': '체크인 대상이 모두 처리되었습니다.',
+        'issue.orders.title': '미결제 주문',
+        'issue.orders.desc': '객실 정산에 청구 전이거나 제공 완료되지 않은 룸서비스/부대시설 주문.',
+        'issue.orders.link': '통합 주문 처리로 이동',
+        'issue.orders.empty': '미결제 주문이 없습니다.',
+        'issue.orders.summary': '{count}건의 주문이 객실 정산 반영 또는 처리 완료 전 상태입니다. 객실/주문별로 확인하세요.',
+        'issue.orders.summary.empty': '미결제 주문이 모두 정리되었습니다.',
+        'issue.viewTargets': '대상 목록 보기',
+        'issue.viewOrders': '주문 목록 보기',
+        'issue.modalTitle': '마감 체크 상세',
+        'issue.modalAction': '처리 화면으로 이동',
+        'issue.open': '열기',
+        'issue.process': '처리',
+        'issue.departurePill': '퇴실 확인',
+        'issue.arrivalPill': '도착 확인',
+        'status.done': '완료',
+        'status.inhouse': '투숙 중',
+        'status.confirmed': '예약 확정',
+        'status.pending': '대기',
+        'status.checkoutTarget': '체크아웃 대상',
+        'order.status.new': '신규',
+        'order.status.preparing': '처리 중',
+        'order.status.done': '완료',
+        'order.source.pos': '식음료/룸서비스',
+        'order.source.golf': '골프장',
+        'order.source.rentacar': '렌터카',
+        'count.remaining': '건 남음',
+        'count.arrivalMissing': '건 미도착',
+        'section.revenue': '2. 금일 정산액 검증',
+        'revenue.room': '객실 수익',
+        'revenue.roomSub': '총 객실 이용 요금',
+        'revenue.fnb': '식음료 / 룸서비스',
+        'revenue.fnbSub': '통합 주문 데이터 기준',
+        'revenue.golf': '골프장',
+        'revenue.golfSub': '그린피, 카트 이용료 기준',
+        'revenue.car': '렌터카',
+        'revenue.carSub': '차량 렌탈 이용료 기준',
+        'revenue.total': '일일 총 영업 이익',
+        'common.details': '상세보기',
+        'close.confirmLabel': '위 정산 내역을 확인하였으며, {date} 영업일을 마감합니다.',
+        'close.run': '일일 영업 마감 실행',
+        'cash.section': '시재 시작 / 출금 / 마감 인수인계',
+        'cash.opening': '시작 시재(PHP 기준)',
+        'cash.received': '현금 수납(PHP 기준)',
+        'cash.withdraw': '중간 출금(PHP 기준)',
+        'cash.diff': '마감 차이(PHP 기준)',
+        'cash.noWithdrawals': '출금 기록 없음',
+        'cash.diffHelp': '마감 시재를 입력하면 차이가 계산됩니다.',
+        'cash.openCard': '시작 시재 등록',
+        'cash.openEquivalent': '시작 시재 PHP 환산 기준',
+        'cash.openNote': '인수 메모',
+        'cash.openNotePlaceholder': '예: 전 근무자에게 받은 잔돈, 봉투 번호',
+        'cash.openSave': '시작 시재 저장',
+        'cash.withdrawCard': '중간 출금 처리',
+        'cash.withdrawCurrency': '출금 통화',
+        'cash.withdrawAmount': '출금 금액',
+        'cash.withdrawEquivalent': '출금 PHP 환산 기준',
+        'cash.withdrawReceiver': '수령자 / 사유',
+        'cash.withdrawReceiverPlaceholder': '예: 매니저 / 환전 지급',
+        'cash.withdrawAdd': '출금 기록 추가',
+        'cash.closeCard': '마감 시재 인계',
+        'cash.closeEquivalent': '마감 시재 PHP 환산 기준',
+        'cash.closeNote': '인계 메모',
+        'cash.closeNotePlaceholder': '예: 다음 근무자에게 인계, 차이 사유',
+        'cash.closeSave': '마감 시재 저장',
+        'cash.unregistered': '미등록',
+        'cash.expectedActual': '예상 {expected} · 실사 {actual}',
+        'cash.withdrawCount': '{count}건 출금',
+        'cash.ledgerTitle': '금일 수납 / 예치 / 출금 내역',
+        'cash.ledgerCount': '{count}건',
+        'cash.ledger.empty': '아직 등록된 수납/출금 내역이 없습니다.',
+        'cash.ledger.time': '시간',
+        'cash.ledger.type': '구분',
+        'cash.ledger.target': 'Folio/고객',
+        'cash.ledger.php': 'PHP 기준',
+        'cash.ledger.actual': '실제 통화',
+        'cash.ledger.operator': '담당자',
+        'cash.ledger.memo': '메모',
+        'cash.type.withdraw': '출금',
+        'cash.type.deposit': '예치금',
+        'cash.type.payment': '정산 결제',
+        'toast.openSaved': '시작 시재가 저장되었습니다.',
+        'toast.withdrawRequired': '출금 금액과 PHP 환산 기준을 입력해주세요.',
+        'toast.withdrawAdded': '중간 출금 기록이 추가되었습니다.',
+        'toast.closeSaved': '마감 시재가 저장되었습니다.',
+        'toast.dataLoadFailed': '데이터를 불러오는 데 실패했습니다.',
+        'toast.cashRequired': '시재 시작과 마감 인수인계를 먼저 저장해주세요.',
+        'close.confirm': '정말 마감을 실행하시겠습니까? 되돌릴 수 없습니다.',
+        'close.processing': '마감 처리 중...',
+        'close.complete': '일일 마감이 성공적으로 완료되었습니다. 다음 영업일로 전환됩니다.',
+        'modal.close': '닫기',
+        'placeholder.manual': '직접 입력'
+    },
+    en: {
+        'page.title': 'Night Audit',
+        'page.currentBusinessDate': 'Current business date',
+        'page.rolloverDate': 'Rollover date',
+        'tab.close': 'Close Checklist',
+        'tab.cash': 'Cash Handover',
+        'section.requiredChecks': '1. Required Pre-Close Checks',
+        'check.description': 'Unresolved items can block a normal close and business-date rollover.',
+        'issue.departures.title': 'Pending Check-outs',
+        'issue.departures.desc': 'Rooms scheduled to depart but not yet checked out in the system.',
+        'issue.departures.link': 'View check-out targets',
+        'issue.departures.empty': 'No pending check-out targets.',
+        'issue.departures.summary': '{count} check-out target(s) are still marked in-house. Review each room and process check-out.',
+        'issue.departures.summary.empty': 'All check-out targets have been processed.',
+        'issue.arrivals.title': 'No-show / Pending Arrivals',
+        'issue.arrivals.desc': 'If closing proceeds, these may be handled as no-show items according to policy.',
+        'issue.arrivals.link': 'View today’s check-ins',
+        'issue.arrivals.empty': 'No pending arrivals.',
+        'issue.arrivals.summary': '{count} expected arrival(s) have not been checked in. Review reservations before no-show handling.',
+        'issue.arrivals.summary.empty': 'All expected arrivals have been processed.',
+        'issue.orders.title': 'Unsettled Orders',
+        'issue.orders.desc': 'Room service or ancillary orders not yet posted to folio or completed.',
+        'issue.orders.link': 'Go to unified order handling',
+        'issue.orders.empty': 'No unsettled orders.',
+        'issue.orders.summary': '{count} order(s) are still open or not posted to room settlement. Review by room and order.',
+        'issue.orders.summary.empty': 'All orders have been settled.',
+        'issue.viewTargets': 'View target list',
+        'issue.viewOrders': 'View order list',
+        'issue.modalTitle': 'Close Check Details',
+        'issue.modalAction': 'Go to handling screen',
+        'issue.open': 'Open',
+        'issue.process': 'Handle',
+        'issue.departurePill': 'Departure check',
+        'issue.arrivalPill': 'Arrival check',
+        'status.done': 'Done',
+        'status.inhouse': 'In-house',
+        'status.confirmed': 'Confirmed',
+        'status.pending': 'Pending',
+        'status.checkoutTarget': 'Check-out target',
+        'order.status.new': 'New',
+        'order.status.preparing': 'In progress',
+        'order.status.done': 'Done',
+        'order.source.pos': 'F&B / Room service',
+        'order.source.golf': 'Golf',
+        'order.source.rentacar': 'Rent-a-car',
+        'count.remaining': 'remaining',
+        'count.arrivalMissing': 'pending arrival(s)',
+        'section.revenue': '2. Daily Settlement Verification',
+        'revenue.room': 'Room revenue',
+        'revenue.roomSub': 'Total room charges',
+        'revenue.fnb': 'F&B / Room service',
+        'revenue.fnbSub': 'Based on unified order data',
+        'revenue.golf': 'Golf',
+        'revenue.golfSub': 'Green fee and cart usage',
+        'revenue.car': 'Rent-a-car',
+        'revenue.carSub': 'Vehicle rental usage',
+        'revenue.total': 'Daily gross operating profit',
+        'common.details': 'Details',
+        'close.confirmLabel': 'I have reviewed the settlement details and will close business date {date}.',
+        'close.run': 'Run Daily Close',
+        'cash.section': 'Cash Opening / Withdrawal / Closing Handover',
+        'cash.opening': 'Opening cash (PHP basis)',
+        'cash.received': 'Cash received (PHP basis)',
+        'cash.withdraw': 'Mid-shift withdrawals (PHP basis)',
+        'cash.diff': 'Closing difference (PHP basis)',
+        'cash.noWithdrawals': 'No withdrawal records',
+        'cash.diffHelp': 'Enter closing cash to calculate the difference.',
+        'cash.openCard': 'Register opening cash',
+        'cash.openEquivalent': 'Opening cash PHP equivalent',
+        'cash.openNote': 'Opening note',
+        'cash.openNotePlaceholder': 'Example: change received from previous staff, envelope number',
+        'cash.openSave': 'Save opening cash',
+        'cash.withdrawCard': 'Process mid-shift withdrawal',
+        'cash.withdrawCurrency': 'Withdrawal currency',
+        'cash.withdrawAmount': 'Withdrawal amount',
+        'cash.withdrawEquivalent': 'Withdrawal PHP equivalent',
+        'cash.withdrawReceiver': 'Recipient / reason',
+        'cash.withdrawReceiverPlaceholder': 'Example: manager / exchange payout',
+        'cash.withdrawAdd': 'Add withdrawal record',
+        'cash.closeCard': 'Closing cash handover',
+        'cash.closeEquivalent': 'Closing cash PHP equivalent',
+        'cash.closeNote': 'Handover note',
+        'cash.closeNotePlaceholder': 'Example: handed to next shift, difference reason',
+        'cash.closeSave': 'Save closing cash',
+        'cash.unregistered': 'Not registered',
+        'cash.expectedActual': 'Expected {expected} · Counted {actual}',
+        'cash.withdrawCount': '{count} withdrawal(s)',
+        'cash.ledgerTitle': 'Today’s receipts / deposits / withdrawals',
+        'cash.ledgerCount': '{count} item(s)',
+        'cash.ledger.empty': 'No receipt or withdrawal records have been registered yet.',
+        'cash.ledger.time': 'Time',
+        'cash.ledger.type': 'Type',
+        'cash.ledger.target': 'Folio / guest',
+        'cash.ledger.php': 'PHP basis',
+        'cash.ledger.actual': 'Actual currency',
+        'cash.ledger.operator': 'Operator',
+        'cash.ledger.memo': 'Memo',
+        'cash.type.withdraw': 'Withdrawal',
+        'cash.type.deposit': 'Deposit',
+        'cash.type.payment': 'Settlement payment',
+        'toast.openSaved': 'Opening cash has been saved.',
+        'toast.withdrawRequired': 'Enter both the withdrawal amount and PHP equivalent.',
+        'toast.withdrawAdded': 'Mid-shift withdrawal record has been added.',
+        'toast.closeSaved': 'Closing cash has been saved.',
+        'toast.dataLoadFailed': 'Failed to load data.',
+        'toast.cashRequired': 'Save opening and closing cash handover first.',
+        'close.confirm': 'Run daily close now? This cannot be undone.',
+        'close.processing': 'Closing in progress...',
+        'close.complete': 'Daily close completed successfully. Switching to the next business date.',
+        'modal.close': 'Close',
+        'placeholder.manual': 'Manual entry'
+    }
+};
+
+function nightAuditLang() {
+    return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+}
+
+function nightAuditText(key, vars = {}) {
+    const lang = nightAuditLang();
+    const dict = NIGHT_AUDIT_I18N[lang] || NIGHT_AUDIT_I18N.ko;
+    let text = dict[key] || NIGHT_AUDIT_I18N.ko[key] || key;
+    Object.entries(vars).forEach(([name, value]) => {
+        text = text.replaceAll(`{${name}}`, value);
+    });
+    return text;
+}
+
 const AUDIT_ISSUE_META = {
     departures: {
-        title: '미처리 체크아웃',
+        titleKey: 'issue.departures.title',
         href: '../frontdesk/reservation-list.html?tab=checkout',
-        linkLabel: '체크아웃 대상 보기',
-        empty: '미처리 체크아웃 대상이 없습니다.',
-        summary: count => count > 0
-            ? `${count}건의 체크아웃 대상이 아직 투숙 상태로 남아 있습니다. 객실별 상세를 확인하고 체크아웃 처리를 진행하세요.`
-            : '체크아웃 대상이 모두 처리되었습니다.'
+        linkLabelKey: 'issue.departures.link',
+        emptyKey: 'issue.departures.empty',
+        summaryKey: 'issue.departures.summary',
+        summaryEmptyKey: 'issue.departures.summary.empty'
     },
     arrivals: {
-        title: '미도착 체크인',
+        titleKey: 'issue.arrivals.title',
         href: '../frontdesk/reservation-list.html?tab=checkin',
-        linkLabel: '오늘 체크인 대상 보기',
-        empty: '미도착 체크인 대상이 없습니다.',
-        summary: count => count > 0
-            ? `${count}건의 체크인 예정 예약이 아직 도착 처리되지 않았습니다. 노쇼 처리 전에 예약 상태를 확인하세요.`
-            : '체크인 대상이 모두 처리되었습니다.'
+        linkLabelKey: 'issue.arrivals.link',
+        emptyKey: 'issue.arrivals.empty',
+        summaryKey: 'issue.arrivals.summary',
+        summaryEmptyKey: 'issue.arrivals.summary.empty'
     },
     orders: {
-        title: '미결제 주문',
+        titleKey: 'issue.orders.title',
         href: 'unified-pos.html?status=open',
-        linkLabel: '통합 주문 처리로 이동',
-        empty: '미결제 주문이 없습니다.',
-        summary: count => count > 0
-            ? `${count}건의 주문이 객실 정산 반영 또는 처리 완료 전 상태입니다. 객실/주문별로 확인하세요.`
-            : '미결제 주문이 모두 정리되었습니다.'
+        linkLabelKey: 'issue.orders.link',
+        emptyKey: 'issue.orders.empty',
+        summaryKey: 'issue.orders.summary',
+        summaryEmptyKey: 'issue.orders.summary.empty'
     }
 };
 
@@ -435,10 +673,10 @@ function auditReservationGuest(res) {
 
 function auditReservationStatusLabel(status) {
     const key = normalizeAuditKey(status);
-    if (key === 'checkedin') return '투숙 중';
-    if (key === 'confirmed') return '예약 확정';
-    if (key === 'pending') return '대기';
-    if (key === 'checkout') return '체크아웃 대상';
+    if (key === 'checkedin') return nightAuditText('status.inhouse');
+    if (key === 'confirmed') return nightAuditText('status.confirmed');
+    if (key === 'pending') return nightAuditText('status.pending');
+    if (key === 'checkout') return nightAuditText('status.checkoutTarget');
     return status || '-';
 }
 
@@ -460,18 +698,18 @@ function auditOrderStatusKey(order) {
 
 function auditOrderStatusLabel(status) {
     const key = auditOrderStatusKey({ status });
-    if (key === 'new') return '신규';
-    if (key === 'prep' || key === 'preparing') return '처리 중';
-    if (key === 'done' || key === 'completed') return '완료';
+    if (key === 'new') return nightAuditText('order.status.new');
+    if (key === 'prep' || key === 'preparing') return nightAuditText('order.status.preparing');
+    if (key === 'done' || key === 'completed') return nightAuditText('order.status.done');
     return status || '-';
 }
 
 function auditOrderSourceLabel(order) {
     const source = order?._issueSource || order?.source || order?.department || order?.type || '';
     const key = normalizeAuditKey(source);
-    if (key.includes('golf')) return '골프장';
-    if (key.includes('rent') || key.includes('car')) return '렌터카';
-    return '식음료/룸서비스';
+    if (key.includes('golf')) return nightAuditText('order.source.golf');
+    if (key.includes('rent') || key.includes('car')) return nightAuditText('order.source.rentacar');
+    return nightAuditText('order.source.pos');
 }
 
 function isOpenAuditOrder(order, businessDate) {
@@ -523,13 +761,14 @@ function renderAuditIssueCount(elementId, issueKey, options = {}) {
     if (!el) return;
     const count = auditIssueState[issueKey]?.length || 0;
     if (count <= 0) {
-        el.innerHTML = '<span class="val-success"><i class="fa-solid fa-check"></i> 완료</span>';
+        el.innerHTML = `<span class="val-success"><i class="fa-solid fa-check"></i> ${nightAuditText('status.done')}</span>`;
         return;
     }
-    const suffix = options.suffix || '건 남음';
+    const suffix = options.suffixKey ? nightAuditText(options.suffixKey) : (options.suffix || nightAuditText('count.remaining'));
     const cls = options.tone === 'warning' ? '' : ' class="val-danger"';
     const style = options.tone === 'warning' ? ' style="color:var(--warning)"' : '';
-    el.innerHTML = `<span${cls}${style}><i class="fa-solid fa-triangle-exclamation"></i> ${count}${suffix}</span>`;
+    const gap = nightAuditLang() === 'en' ? ' ' : '';
+    el.innerHTML = `<span${cls}${style}><i class="fa-solid fa-triangle-exclamation"></i> ${count}${gap}${suffix}</span>`;
 }
 
 function handleAuditIssueKey(event, issueKey) {
@@ -557,8 +796,8 @@ function auditReservationIssueRow(res, issueKey) {
                     <span>${escapeAudit(auditReservationStatusLabel(res?.status))}</span>
                 </div>
             </div>
-            <span class="audit-issue-pill ${pillClass}">${issueKey === 'departures' ? '퇴실 확인' : '도착 확인'}</span>
-            <a class="btn-outline-sm" href="${href}">열기</a>
+            <span class="audit-issue-pill ${pillClass}">${issueKey === 'departures' ? nightAuditText('issue.departurePill') : nightAuditText('issue.arrivalPill')}</span>
+            <a class="btn-outline-sm" href="${href}">${nightAuditText('issue.open')}</a>
         </div>
     `;
 }
@@ -590,7 +829,7 @@ function auditOrderIssueRow(order) {
                 </div>
             </div>
             <span class="audit-issue-amount">${moneyPhp(amount)}</span>
-            <a class="btn-outline-sm" href="${href}">처리</a>
+            <a class="btn-outline-sm" href="${href}">${nightAuditText('issue.process')}</a>
         </div>
     `;
 }
@@ -598,26 +837,30 @@ function auditOrderIssueRow(order) {
 function openAuditIssueModal(issueKey) {
     const meta = AUDIT_ISSUE_META[issueKey];
     if (!meta) return;
+    auditIssueState.activeIssue = issueKey;
     const items = auditIssueState[issueKey] || [];
     const title = document.getElementById('auditIssueTitle');
     const summary = document.getElementById('auditIssueSummary');
     const list = document.getElementById('auditIssueList');
     const link = document.getElementById('auditIssuePrimaryLink');
-    if (title) title.textContent = meta.title;
-    if (summary) summary.textContent = meta.summary(items.length);
+    if (title) title.textContent = nightAuditText(meta.titleKey);
+    if (summary) summary.textContent = items.length
+        ? nightAuditText(meta.summaryKey, { count: items.length })
+        : nightAuditText(meta.summaryEmptyKey);
     if (link) {
         link.href = meta.href;
-        link.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> ${meta.linkLabel}`;
+        link.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> ${nightAuditText(meta.linkLabelKey)}`;
     }
     if (list) {
         list.innerHTML = items.length
             ? items.map(item => issueKey === 'orders' ? auditOrderIssueRow(item) : auditReservationIssueRow(item, issueKey)).join('')
-            : `<div class="audit-issue-empty"><i class="fa-solid fa-circle-check"></i> ${meta.empty}</div>`;
+            : `<div class="audit-issue-empty"><i class="fa-solid fa-circle-check"></i> ${nightAuditText(meta.emptyKey)}</div>`;
     }
     document.getElementById('auditIssueModal')?.classList.add('active');
 }
 
 function closeAuditIssueModal() {
+    auditIssueState.activeIssue = '';
     document.getElementById('auditIssueModal')?.classList.remove('active');
 }
 
@@ -732,7 +975,7 @@ function saveOpeningCash() {
     session.openedBy = operatorName();
     saveCashSession(session);
     renderCashHandover();
-    showToast('시작 시재가 저장되었습니다.', 'success');
+    showToast(nightAuditText('toast.openSaved'), 'success');
 }
 
 function addWithdrawal() {
@@ -741,7 +984,7 @@ function addWithdrawal() {
     const outAmount = amount('withdrawAmount');
     const phpEquivalent = amount('withdrawEquivalent');
     if (!outAmount || !phpEquivalent) {
-        showToast('출금 금액과 PHP 환산 기준을 입력해주세요.', 'error');
+        showToast(nightAuditText('toast.withdrawRequired'), 'error');
         return;
     }
     session.withdrawals = Array.isArray(session.withdrawals) ? session.withdrawals : [];
@@ -757,7 +1000,7 @@ function addWithdrawal() {
     saveCashSession(session);
     ['withdrawAmount', 'withdrawEquivalent', 'withdrawReceiver'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     renderCashHandover();
-    showToast('중간 출금 기록이 추가되었습니다.', 'success');
+    showToast(nightAuditText('toast.withdrawAdded'), 'success');
 }
 
 function saveClosingCash() {
@@ -769,7 +1012,7 @@ function saveClosingCash() {
     session.closedBy = operatorName();
     saveCashSession(session);
     renderCashHandover();
-    showToast('마감 시재가 저장되었습니다.', 'success');
+    showToast(nightAuditText('toast.closeSaved'), 'success');
 }
 
 function renderCashHandover() {
@@ -790,12 +1033,14 @@ function renderCashHandover() {
     set('cashReceivedPhp', moneyPhp(receivedPhp));
     set('cashReceivedDetail', formatCurrencyBreakdown(receivedCurrencies));
     set('cashWithdrawPhp', moneyPhp(withdrawalPhp));
-    set('cashWithdrawDetail', (session.withdrawals || []).length ? formatCurrencyBreakdown(withdrawalCurrencies) : '출금 기록 없음');
+    set('cashWithdrawDetail', (session.withdrawals || []).length ? formatCurrencyBreakdown(withdrawalCurrencies) : nightAuditText('cash.noWithdrawals'));
     set('cashDiffPhp', session.closing ? moneyPhp(diff) : moneyPhp(0));
-    set('cashDiffDetail', session.closing ? `예상 ${moneyPhp(expectedPhp)} · 실사 ${moneyPhp(closingPhp)}` : '마감 시재를 입력하면 차이가 계산됩니다.');
-    set('openStatus', session.openedAt ? `${session.openedBy || '-'} · ${formatAuditTime(session.openedAt)}` : '미등록');
-    set('withdrawStatus', (session.withdrawals || []).length ? `${session.withdrawals.length}건 출금` : '출금 기록 없음');
-    set('closeStatus', session.closedAt ? `${session.closedBy || '-'} · ${formatAuditTime(session.closedAt)}` : '미등록');
+    set('cashDiffDetail', session.closing
+        ? nightAuditText('cash.expectedActual', { expected: moneyPhp(expectedPhp), actual: moneyPhp(closingPhp) })
+        : nightAuditText('cash.diffHelp'));
+    set('openStatus', session.openedAt ? `${session.openedBy || '-'} · ${formatAuditTime(session.openedAt)}` : nightAuditText('cash.unregistered'));
+    set('withdrawStatus', (session.withdrawals || []).length ? nightAuditText('cash.withdrawCount', { count: session.withdrawals.length }) : nightAuditText('cash.noWithdrawals'));
+    set('closeStatus', session.closedAt ? `${session.closedBy || '-'} · ${formatAuditTime(session.closedAt)}` : nightAuditText('cash.unregistered'));
 
     if (session.opening) {
         const openPhp = document.getElementById('openPhp');
@@ -820,7 +1065,7 @@ function renderCashHandover() {
 
     const withdrawalRows = (session.withdrawals || []).map(item => ({
         at: item.createdAt,
-        type: '출금',
+        type: nightAuditText('cash.type.withdraw'),
         pill: 'withdraw',
         target: item.receiver || '-',
         php: item.phpEquivalent,
@@ -830,7 +1075,7 @@ function renderCashHandover() {
     }));
     const paymentRows = payments.map(item => ({
         at: item.createdAt,
-        type: item.kind === 'deposit' ? '예치금' : '정산 결제',
+        type: item.kind === 'deposit' ? nightAuditText('cash.type.deposit') : nightAuditText('cash.type.payment'),
         pill: item.kind === 'deposit' ? 'deposit' : 'payment',
         target: `${item.folioId || '-'} / ${item.guest || '-'}`,
         php: item.appliedPhpAmount,
@@ -839,7 +1084,7 @@ function renderCashHandover() {
         note: item.note || ''
     }));
     const rows = [...paymentRows, ...withdrawalRows].sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
-    set('cashLedgerCount', `${rows.length}건`);
+    set('cashLedgerCount', nightAuditText('cash.ledgerCount', { count: rows.length }));
     const body = document.getElementById('cashLedgerBody');
     if (body) {
         body.innerHTML = rows.length ? rows.map(item => `
@@ -852,14 +1097,15 @@ function renderCashHandover() {
                 <td>${escapeAudit(item.operator)}</td>
                 <td>${escapeAudit(item.note || '-')}</td>
             </tr>
-        `).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:18px">아직 등록된 수납/출금 내역이 없습니다.</td></tr>';
+        `).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:18px">${nightAuditText('cash.ledger.empty')}</td></tr>`;
     }
 }
 
 function formatAuditTime(value) {
     const date = value ? new Date(value) : null;
     if (!date || Number.isNaN(date.getTime())) return '-';
-    return new Intl.DateTimeFormat('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+    const locale = nightAuditLang() === 'en' ? 'en-US' : 'ko-KR';
+    return new Intl.DateTimeFormat(locale, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
 }
 
 function escapeAudit(value) {
@@ -870,6 +1116,152 @@ function escapeAudit(value) {
         '"': '&quot;',
         "'": '&#39;'
     }[char]));
+}
+
+function setNightText(selector, key) {
+    const el = document.querySelector(selector);
+    if (el) el.textContent = nightAuditText(key);
+}
+
+function setNightHtml(selector, html) {
+    const el = document.querySelector(selector);
+    if (el) el.innerHTML = html;
+}
+
+function setNightFieldLabel(inputId, key) {
+    const input = document.getElementById(inputId);
+    const label = input?.closest('.cash-field')?.querySelector('label');
+    if (label) label.textContent = nightAuditText(key);
+}
+
+function setNightPlaceholder(inputId, key) {
+    const input = document.getElementById(inputId);
+    if (input) input.setAttribute('placeholder', nightAuditText(key));
+}
+
+function setNightHeader(section, key, iconHtml) {
+    const header = section?.querySelector('.audit-header, .cash-work-head');
+    if (header) header.innerHTML = `${iconHtml} ${nightAuditText(key)}`;
+}
+
+function refreshNightAuditDynamicText() {
+    renderAuditIssueCount('chkDep', 'departures', { suffixKey: 'count.remaining' });
+    renderAuditIssueCount('chkArr', 'arrivals', { suffixKey: 'count.arrivalMissing', tone: 'warning' });
+    renderAuditIssueCount('chkPos', 'orders', { suffixKey: 'count.remaining' });
+    renderCashHandover();
+    if (auditIssueState.activeIssue && document.getElementById('auditIssueModal')?.classList.contains('active')) {
+        openAuditIssueModal(auditIssueState.activeIssue);
+    }
+}
+
+function applyNightAuditI18n() {
+    const t = nightAuditText;
+    document.documentElement.lang = nightAuditLang();
+    document.title = `${t('page.title')} — Hotel PMS`;
+    setNightText('.topbar h1', 'page.title');
+
+    const dateLabels = document.querySelectorAll('.content > div:first-child span');
+    if (dateLabels[0]) dateLabels[0].textContent = t('page.currentBusinessDate');
+    if (dateLabels[1]) dateLabels[1].textContent = t('page.rolloverDate');
+
+    setNightHtml('#auditTabBtnClose', `<i class="fa-solid fa-list-check"></i> ${t('tab.close')}`);
+    setNightHtml('#auditTabBtnCash', `<i class="fa-solid fa-cash-register"></i> ${t('tab.cash')}`);
+
+    const closeSections = document.querySelectorAll('#auditTabClose .audit-section');
+    setNightHeader(closeSections[0], 'section.requiredChecks', '<i class="fa-solid fa-clipboard-check" style="color:var(--orange)"></i>');
+    setNightHeader(closeSections[1], 'section.revenue', '<i class="fa-solid fa-calculator" style="color:var(--success)"></i>');
+    const checkIntro = closeSections[0]?.querySelector('.audit-body > p');
+    if (checkIntro) checkIntro.textContent = t('check.description');
+
+    const checkItems = document.querySelectorAll('.check-item');
+    const checkConfig = [
+        ['issue.departures.title', 'issue.departures.desc', 'issue.viewTargets'],
+        ['issue.arrivals.title', 'issue.arrivals.desc', 'issue.viewTargets'],
+        ['issue.orders.title', 'issue.orders.desc', 'issue.viewOrders']
+    ];
+    checkItems.forEach((item, index) => {
+        const config = checkConfig[index];
+        if (!config) return;
+        const title = item.querySelector('.check-title');
+        const desc = item.querySelector('.check-desc');
+        const action = item.querySelector('.check-action');
+        if (title) title.textContent = t(config[0]);
+        if (desc) desc.textContent = t(config[1]);
+        if (action) action.innerHTML = `<i class="fa-solid fa-list-ul"></i> ${t(config[2])}`;
+    });
+
+    const revenueRows = document.querySelectorAll('#auditTabClose .revenue-row');
+    const revenueConfig = [
+        ['revenue.room', 'revenue.roomSub'],
+        ['revenue.fnb', 'revenue.fnbSub'],
+        ['revenue.golf', 'revenue.golfSub'],
+        ['revenue.car', 'revenue.carSub'],
+        ['revenue.total', null]
+    ];
+    revenueRows.forEach((row, index) => {
+        const config = revenueConfig[index];
+        if (!config) return;
+        const title = row.querySelector('.revenue-row-title');
+        const sub = row.querySelector('.revenue-row-sub');
+        const link = row.querySelector('.revenue-link');
+        if (title) title.textContent = t(config[0]);
+        if (sub && config[1]) sub.textContent = t(config[1]);
+        if (link) link.innerHTML = `<i class="fa-solid fa-square-arrow-up-right"></i> ${t('common.details')}`;
+    });
+
+    const confirmLabel = document.querySelector('.action-box label');
+    if (confirmLabel) {
+        const checked = document.getElementById('confirmCheck')?.checked ? ' checked' : '';
+        const date = document.getElementById('confirmDate')?.textContent || 'YYYY-MM-DD';
+        confirmLabel.innerHTML = `<input type="checkbox" id="confirmCheck" style="width:18px;height:18px"${checked} onchange="document.getElementById('btnRunAudit').disabled = !this.checked"> ${t('close.confirmLabel', { date: `<span id="confirmDate">${escapeAudit(date)}</span>` })}`;
+        const btn = document.getElementById('btnRunAudit');
+        if (btn) btn.disabled = !document.getElementById('confirmCheck')?.checked;
+    }
+    const runBtn = document.getElementById('btnRunAudit');
+    if (runBtn && !runBtn.querySelector('.fa-circle-notch')) runBtn.innerHTML = `<i class="fa-solid fa-play"></i> ${t('close.run')}`;
+
+    const cashSection = document.querySelector('#auditTabCash .audit-section');
+    setNightHeader(cashSection, 'cash.section', '<i class="fa-solid fa-handshake" style="color:var(--primary)"></i>');
+    const summaryLabels = document.querySelectorAll('#auditTabCash .cash-summary-label');
+    ['cash.opening', 'cash.received', 'cash.withdraw', 'cash.diff'].forEach((key, index) => {
+        if (summaryLabels[index]) summaryLabels[index].textContent = t(key);
+    });
+
+    const cashCards = document.querySelectorAll('#auditTabCash .cash-work-card');
+    setNightHeader(cashCards[0], 'cash.openCard', '<i class="fa-solid fa-play" style="color:var(--success)"></i>');
+    setNightHeader(cashCards[1], 'cash.withdrawCard', '<i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--warning)"></i>');
+    setNightHeader(cashCards[2], 'cash.closeCard', '<i class="fa-solid fa-flag-checkered" style="color:var(--danger)"></i>');
+
+    setNightFieldLabel('openEquivalent', 'cash.openEquivalent');
+    setNightFieldLabel('withdrawCurrency', 'cash.withdrawCurrency');
+    setNightFieldLabel('withdrawAmount', 'cash.withdrawAmount');
+    setNightFieldLabel('withdrawEquivalent', 'cash.withdrawEquivalent');
+    setNightFieldLabel('withdrawReceiver', 'cash.withdrawReceiver');
+    setNightFieldLabel('closeEquivalent', 'cash.closeEquivalent');
+    setNightFieldLabel('openNote', 'cash.openNote');
+    setNightFieldLabel('closeNote', 'cash.closeNote');
+    ['openEquivalent', 'withdrawEquivalent', 'closeEquivalent'].forEach(id => setNightPlaceholder(id, 'placeholder.manual'));
+    setNightPlaceholder('openNote', 'cash.openNotePlaceholder');
+    setNightPlaceholder('withdrawReceiver', 'cash.withdrawReceiverPlaceholder');
+    setNightPlaceholder('closeNote', 'cash.closeNotePlaceholder');
+
+    const cashButtons = document.querySelectorAll('#auditTabCash .cash-work-card .btn-primary-sm');
+    if (cashButtons[0]) cashButtons[0].innerHTML = `<i class="fa-solid fa-check"></i> ${t('cash.openSave')}`;
+    if (cashButtons[1]) cashButtons[1].innerHTML = `<i class="fa-solid fa-plus"></i> ${t('cash.withdrawAdd')}`;
+    if (cashButtons[2]) cashButtons[2].innerHTML = `<i class="fa-solid fa-lock"></i> ${t('cash.closeSave')}`;
+
+    const ledgerTitle = document.querySelector('.cash-ledger-head span:first-child');
+    if (ledgerTitle) ledgerTitle.innerHTML = `<i class="fa-solid fa-receipt" style="color:var(--primary)"></i> ${t('cash.ledgerTitle')}`;
+    const ths = document.querySelectorAll('.cash-ledger th');
+    ['cash.ledger.time', 'cash.ledger.type', 'cash.ledger.target', 'cash.ledger.php', 'cash.ledger.actual', 'cash.ledger.operator', 'cash.ledger.memo'].forEach((key, index) => {
+        if (ths[index]) ths[index].textContent = t(key);
+    });
+
+    setNightText('#auditIssueTitle', 'issue.modalTitle');
+    const modalPrimary = document.getElementById('auditIssuePrimaryLink');
+    if (modalPrimary && !auditIssueState.activeIssue) modalPrimary.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> ${t('issue.modalAction')}`;
+    const modalClose = document.querySelector('#auditIssueModal .modal-footer .btn-outline');
+    if (modalClose) modalClose.textContent = t('modal.close');
 }
 
 async function loadAuditData() {
@@ -895,9 +1287,9 @@ async function loadAuditData() {
         auditIssueState.departures = issues.departures;
         auditIssueState.arrivals = issues.arrivals;
         auditIssueState.orders = issues.orders;
-        renderAuditIssueCount('chkDep', 'departures', { suffix: '건 남음' });
-        renderAuditIssueCount('chkArr', 'arrivals', { suffix: '건 미도착', tone: 'warning' });
-        renderAuditIssueCount('chkPos', 'orders', { suffix: '건 남음' });
+        renderAuditIssueCount('chkDep', 'departures', { suffixKey: 'count.remaining' });
+        renderAuditIssueCount('chkArr', 'arrivals', { suffixKey: 'count.arrivalMissing', tone: 'warning' });
+        renderAuditIssueCount('chkPos', 'orders', { suffixKey: 'count.remaining' });
 
         // Revenue Data (Using last item in dailyData as "today")
         const todayData = dailyData[dailyData.length - 1] || { room:0, fnb:0, spa:0, other:0 };
@@ -918,7 +1310,7 @@ async function loadAuditData() {
 
     } catch (e) {
         console.error(e);
-        showToast('데이터를 불러오는데 실패했습니다.', 'error');
+        showToast(nightAuditText('toast.dataLoadFailed'), 'error');
     }
 }
 
@@ -926,21 +1318,19 @@ function runNightAudit() {
     if(!document.getElementById('confirmCheck').checked) return;
     const session = activeCashSession(false);
     if (!session?.openedAt || !session?.closedAt) {
-        showToast('시재 시작과 마감 인수인계를 먼저 저장해주세요.', 'error');
+        showToast(nightAuditText('toast.cashRequired'), 'error');
         setAuditTab('cash');
         return;
     }
 
-    const confirmMessage = typeof window.t === 'function'
-        ? window.t('nightAudit.close.confirm')
-        : '정말 마감을 실행하시겠습니까? (되돌릴 수 없습니다)';
+    const confirmMessage = nightAuditText('close.confirm');
     if(confirm(confirmMessage)) {
         const btn = document.getElementById('btnRunAudit');
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 마감 처리 중...';
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${nightAuditText('close.processing')}`;
         btn.disabled = true;
 
         setTimeout(() => {
-            showToast('일일 마감이 성공적으로 완료되었습니다. 다음 영업일로 전환됩니다.', 'success');
+            showToast(nightAuditText('close.complete'), 'success');
             window.location.href = '../dashboard.html';
         }, 2000);
     }
@@ -949,6 +1339,13 @@ function runNightAudit() {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadAuditData();
     renderCashHandover();
+    applyNightAuditI18n();
+    refreshNightAuditDynamicText();
+});
+
+window.addEventListener('languagechange', () => {
+    applyNightAuditI18n();
+    refreshNightAuditDynamicText();
 });
 </script>
 <script>
