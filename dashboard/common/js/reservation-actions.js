@@ -2079,6 +2079,19 @@
             allRes.unshift(newRes);
             savedRes = newRes;
             if (newRes.groupId) groupSyncMeta = { roomChanged: true, beforeRoom: '', beforeFullRoom: '' };
+            logReservationAudit('reservation.create', {
+                reservationId: newRes.id,
+                guestName: guestNameForReservation(newRes),
+                room: newRes.room,
+                status: newRes.status,
+                checkin: newRes.cin,
+                checkout: newRes.cout,
+                amount: totalAmount,
+                prepaidAmount,
+                balanceDue,
+                currency,
+                fields: ['reservationId', 'guestName', 'room', 'dates', 'amount']
+            });
             if (window.showToast) window.showToast(actionText('booking.created'), 'success');
         } else {
             // EDIT BOOKING MODE
@@ -2090,6 +2103,10 @@
                 const beforePrepaid = reservationPrepaidValue(res);
                 const beforeDeposit = reservationDepositValue(res);
                 const beforeStatus = effectiveReservationStatus(res);
+                const beforeChannel = compactValue(res.channel);
+                const beforeGroupId = compactValue(res.groupId);
+                const beforeCinText = toReservationDateText(res.checkInDate || res.checkin || res.cin);
+                const beforeCoutText = toReservationDateText(res.checkOutDate || res.checkout || res.cout);
                 const beforeGuest = guestNameForReservation(res);
                 const beforeGuestId = compactValue(res.guestId || res.roomingGuestId);
                 const beforeCompanionNames = companionNamesForReservation(res);
@@ -2155,6 +2172,34 @@
                 const isPostCheckinEdit = ['checkedin', 'checkout'].includes(beforeStatus);
                 const guestChanged = beforeGuest !== guestNameForReservation(res) || beforeGuestId !== compactValue(res.guestId || res.roomingGuestId);
                 const companionsChanged = beforeCompanionNames.join('|') !== companionGuestNames.join('|');
+                const auditChanges = [];
+                const auditFields = [];
+                const addAuditChange = (field, label, before, after) => {
+                    const beforeText = Array.isArray(before) ? before.join(', ') : String(before ?? '');
+                    const afterText = Array.isArray(after) ? after.join(', ') : String(after ?? '');
+                    if (beforeText === afterText) return;
+                    auditFields.push(field);
+                    auditChanges.push({ field, label, before: beforeText || '-', after: afterText || '-' });
+                };
+                addAuditChange('room', '객실', beforeRoom || beforeFullRoom, room || res.fullRoom);
+                addAuditChange('status', '상태', beforeStatus, status);
+                addAuditChange('dates', '투숙일', `${beforeCinText} ~ ${beforeCoutText}`, `${cinText} ~ ${coutText}`);
+                addAuditChange('guestName', '대표 투숙객', beforeGuest, guestNameForReservation(res));
+                addAuditChange('companionGuestNames', '동반 투숙객', beforeCompanionNames, companionGuestNames);
+                addAuditChange('amount', '총 금액', beforeAmount, totalAmount);
+                addAuditChange('prepayment', '선결제', beforePrepaid, prepaidAmount);
+                addAuditChange('channel', '유입/업체', beforeChannel, channel);
+                addAuditChange('group', '단체', beforeGroupId, groupId);
+                if (auditChanges.length) {
+                    logReservationAudit('reservation.update', {
+                        reservationId: res.id,
+                        guestName: guestNameForReservation(res),
+                        room: res.room,
+                        changes: auditChanges,
+                        fields: [...new Set(['reservationId', ...auditFields])],
+                        currency
+                    });
+                }
                 if (isPostCheckinEdit && (guestChanged || companionsChanged)) {
                     logReservationAudit('reservation.guests.adjust', {
                         reservationId: res.id,
@@ -2291,6 +2336,14 @@
         const confirmed = window.showConfirm ? await window.showConfirm(cancelMessage) : confirm(cancelMessage);
         if (confirmed) {
             res.status = 'cancelled';
+            logReservationAudit('reservation.cancel', {
+                reservationId: res.id,
+                guestName: guestNameForReservation(res),
+                room: res.room,
+                beforeStatus: currentStatus,
+                afterStatus: 'cancelled',
+                fields: ['reservationId', 'guestName', 'room', 'status']
+            });
             localStorage.setItem('pms_reservations', JSON.stringify(allRes));
             try {
                 if (window.PmsMockApi) await window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(resId)}`, { body: { status: 'cancelled' } });
