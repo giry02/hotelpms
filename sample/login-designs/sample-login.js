@@ -1,56 +1,51 @@
 const themeCopy = {
     golf: {
-        title: "Fairway Operations",
-        eyebrow: "Golf Resort PMS",
-        lead: "골프장 부대시설과 객실 운영을 한 흐름으로 묶는 차분한 그린 톤 로그인입니다.",
-        metrics: ["Tee time", "Room folio", "Member care"],
-        icon: "fa-golf-ball-tee"
+        sceneName: "골프장 배경",
+        icon: "fa-hotel"
     },
     beach: {
-        title: "Coastal Front Desk",
-        eyebrow: "Beach Hotel PMS",
-        lead: "해변 리조트의 밝은 첫인상을 살리고, 로그인 폼은 선명하게 분리한 타입입니다.",
-        metrics: ["Ocean view", "Guest stay", "PHP billing"],
-        icon: "fa-water"
+        sceneName: "해변 배경",
+        icon: "fa-hotel"
     },
     resort: {
-        title: "Resort Cloud Desk",
-        eyebrow: "Resort PMS",
-        lead: "풀빌라와 리조트 운영에 어울리는 따뜻한 톤으로 고급스럽게 구성했습니다.",
-        metrics: ["Villa room", "POS charge", "Concierge"],
+        sceneName: "리조트 배경",
         icon: "fa-hotel"
     },
     green: {
-        title: "Garden Stay Control",
-        eyebrow: "Nature Stay PMS",
-        lead: "숲과 정원 이미지를 이용해 편안하지만 업무 화면다운 집중감을 유지한 타입입니다.",
-        metrics: ["Clean rooms", "Guest list", "Night audit"],
-        icon: "fa-leaf"
+        sceneName: "그린 풍경 배경",
+        icon: "fa-hotel"
     },
     night: {
-        title: "Night Shift Console",
-        eyebrow: "Urban Hotel PMS",
-        lead: "로비와 야경 분위기에 맞춘 어두운 배경 위 반투명 업무 콘솔 느낌입니다.",
-        metrics: ["Late check-in", "Cash handover", "Audit ready"],
-        icon: "fa-city"
+        sceneName: "로비·야경 배경",
+        icon: "fa-hotel"
     }
 };
 
+const hotelCopy = {
+    title: "Hotel PMS",
+    eyebrow: "Cloud Hotel Management",
+    lead: "예약 등록부터 객실 현황, 투숙객 관리, 수납과 마감 정산까지 호텔 운영 흐름을 한 화면에서 연결합니다.",
+    metrics: [
+        { title: "예약 관리", desc: "신규 예약 · 변경 · 체크인" },
+        { title: "객실 운영", desc: "투숙 상태 · 청소 · 방 변경" },
+        { title: "정산 관리", desc: "예치금 · 다통화 수납 · 마감" }
+    ]
+};
+
 const layoutCopy = {
-    split: "좌측 이미지형",
     blend: "반투명 믹스형"
 };
 
 function renderSampleLogin() {
     const body = document.body;
     const theme = body.dataset.theme || "golf";
-    const layout = body.dataset.layout || "split";
+    const layout = body.dataset.layout || "blend";
     const copy = themeCopy[theme] || themeCopy.golf;
-    const layoutLabel = layoutCopy[layout] || layoutCopy.split;
+    const layoutLabel = layoutCopy[layout] || layoutCopy.blend;
     const root = document.getElementById("sampleLoginRoot");
     if (!root) return;
 
-    document.title = `${layoutLabel} - ${copy.eyebrow}`;
+    document.title = `${layoutLabel} - ${copy.sceneName}`;
     root.innerHTML = `
         <a class="back-link" href="index.html"><i class="fa-solid fa-arrow-left"></i> 시안 목록</a>
         <div class="login-scene layout-${layout}">
@@ -60,12 +55,12 @@ function renderSampleLogin() {
                     <span>HOTEL PMS</span>
                 </div>
                 <div class="visual-copy">
-                    <span class="visual-eyebrow"><i class="fa-solid fa-star"></i>${copy.eyebrow}</span>
-                    <h1>${copy.title}</h1>
-                    <p>${copy.lead}</p>
+                    <span class="visual-eyebrow"><i class="fa-solid fa-star"></i>${hotelCopy.eyebrow}</span>
+                    <h1>${hotelCopy.title}</h1>
+                    <p>${hotelCopy.lead}</p>
                 </div>
                 <div class="visual-metrics">
-                    ${copy.metrics.map(item => `<div class="metric"><b>${item}</b><span>운영 핵심 접근</span></div>`).join("")}
+                    ${hotelCopy.metrics.map(item => `<div class="metric"><b>${item.title}</b><span>${item.desc}</span></div>`).join("")}
                 </div>
             </section>
             <main class="auth-pane">
