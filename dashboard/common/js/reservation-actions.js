@@ -201,26 +201,42 @@
         return Number.isFinite(direct) ? direct : 0;
     }
 
-    function parseMoneyInput(value) {
-        const normalized = String(value ?? '').replace(/[^\d.-]/g, '');
-        const amount = Number(normalized);
-        return Number.isFinite(amount) ? Math.max(0, amount) : 0;
+    function currencyFractionDigits(currency = 'PHP') {
+        const code = String(currency || 'PHP').toUpperCase();
+        return code === 'USD' ? 2 : 0;
     }
 
-    function formatMoneyInputValue(amount) {
+    function normalizeMoneyAmount(amount, currency = 'PHP') {
         const value = Number(amount || 0);
-        return Number.isFinite(value) ? String(Math.round(value * 100) / 100) : '0';
+        if (!Number.isFinite(value)) return 0;
+        const digits = currencyFractionDigits(currency);
+        const factor = 10 ** digits;
+        return Math.max(0, Math.round(value * factor) / factor);
+    }
+
+    function parseMoneyInput(value, currency = 'PHP') {
+        const normalized = String(value ?? '').replace(/[^\d.-]/g, '');
+        const amount = Number(normalized);
+        return normalizeMoneyAmount(amount, currency);
+    }
+
+    function formatMoneyInputValue(amount, currency = 'PHP') {
+        const value = normalizeMoneyAmount(amount, currency);
+        const digits = currencyFractionDigits(currency);
+        return digits ? value.toFixed(digits) : String(Math.round(value));
     }
 
     function formatSettlementMoney(amount, currency = 'PHP') {
+        const digits = currencyFractionDigits(currency);
         try {
             return new Intl.NumberFormat('en-PH', {
                 style: 'currency',
                 currency,
-                maximumFractionDigits: 2
-            }).format(Number(amount || 0));
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits
+            }).format(normalizeMoneyAmount(amount, currency));
         } catch(e) {
-            return `${currency} ${Number(amount || 0).toLocaleString()}`;
+            return `${currency} ${normalizeMoneyAmount(amount, currency).toLocaleString()}`;
         }
     }
 
@@ -737,10 +753,12 @@
         if (amount === undefined) amount = reservationAmountValue(res);
         if (!amount && options.suggest) amount = options.suggest;
         const prepaid = options.prepaid !== undefined ? options.prepaid : reservationPrepaidValue(res);
-        amountInput.value = formatMoneyInputValue(amount);
-        prepaidInput.value = formatMoneyInputValue(prepaid);
         amountInput.dataset.currency = currency;
         prepaidInput.dataset.currency = currency;
+        configureUnifiedMoneyInput(amountInput, currency);
+        configureUnifiedMoneyInput(prepaidInput, currency);
+        amountInput.value = formatMoneyInputValue(amount, currency);
+        prepaidInput.value = formatMoneyInputValue(prepaid, currency);
         syncUnifiedBalance();
     }
 
@@ -751,13 +769,27 @@
         const help = document.getElementById('unifiedFinanceHelp');
         if (!amountInput || !prepaidInput || !balanceInput) return;
         const currency = amountInput.dataset.currency || 'PHP';
-        const total = parseMoneyInput(amountInput.value);
-        const prepaid = Math.min(parseMoneyInput(prepaidInput.value), total);
+        const total = parseMoneyInput(amountInput.value, currency);
+        const prepaid = Math.min(parseMoneyInput(prepaidInput.value, currency), total);
         const balance = Math.max(total - prepaid, 0);
         balanceInput.value = formatSettlementMoney(balance, currency);
         if (help) {
             help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 선결제 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)}`;
         }
+    }
+
+    function configureUnifiedMoneyInput(input, currency = 'PHP') {
+        if (!input) return;
+        const digits = currencyFractionDigits(currency);
+        input.step = digits ? String(1 / (10 ** digits)) : '1';
+        input.inputMode = digits ? 'decimal' : 'numeric';
+    }
+
+    function normalizeUnifiedMoneyInput(input) {
+        if (!input) return;
+        const currency = input.dataset.currency || 'PHP';
+        input.value = formatMoneyInputValue(parseMoneyInput(input.value, currency), currency);
+        syncUnifiedBalance();
     }
 
     function logReservationAudit(action, details) {
@@ -950,11 +982,11 @@
                         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">총 객실 금액</div>
-                                <input type="number" min="0" step="0.01" id="unifiedAmount" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                                <input type="number" min="0" step="1" id="unifiedAmount" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                             </div>
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">선결제 금액</div>
-                                <input type="number" min="0" step="0.01" id="unifiedPrepaid" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                                <input type="number" min="0" step="1" id="unifiedPrepaid" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                             </div>
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">추후 정산 잔액</div>
@@ -998,7 +1030,11 @@
             });
             ['unifiedAmount', 'unifiedPrepaid'].forEach(id => {
                 const input = document.getElementById(id);
-                if (input) input.addEventListener('input', syncUnifiedBalance);
+                if (input) {
+                    input.addEventListener('input', syncUnifiedBalance);
+                    input.addEventListener('change', () => normalizeUnifiedMoneyInput(input));
+                    input.addEventListener('blur', () => normalizeUnifiedMoneyInput(input));
+                }
             });
         }
         const checkinInput = document.getElementById('unifiedCin');
@@ -2002,9 +2038,9 @@
         const coutIso = getUnifiedDateInputValue('unifiedCout');
         const nights = updateUnifiedNightsLabel() || 1;
         const currency = reservationCurrency(currentRes);
-        const totalAmount = parseMoneyInput(document.getElementById('unifiedAmount')?.value);
-        const prepaidAmount = Math.min(parseMoneyInput(document.getElementById('unifiedPrepaid')?.value), totalAmount);
-        const balanceDue = Math.max(totalAmount - prepaidAmount, 0);
+        const totalAmount = parseMoneyInput(document.getElementById('unifiedAmount')?.value, currency);
+        const prepaidAmount = Math.min(parseMoneyInput(document.getElementById('unifiedPrepaid')?.value, currency), totalAmount);
+        const balanceDue = normalizeMoneyAmount(totalAmount - prepaidAmount, currency);
         const nightlyRate = nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount;
         const shouldWriteGuest = !isBlockSave && (!isEditableGroupBlockSave || !!guest.trim() || getUnifiedCompanionGuestEntries().length > 0);
         const existingGuestName = compactValue(guestNameForReservation(currentRes));
