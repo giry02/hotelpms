@@ -33,7 +33,8 @@ const hotelCopy = {
 };
 
 const layoutCopy = {
-    blend: "반투명 믹스형"
+    blend: "중앙 정렬형",
+    focus: "이미지 포커스형"
 };
 
 function renderSampleLogin() {
