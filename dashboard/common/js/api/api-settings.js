@@ -7,6 +7,7 @@ const EMPTY_HOTEL_SETTINGS = {
     city: '',
     timezone: '',
     defaultCurrency: '',
+    defaultCurrencyLocked: false,
     adminContact: {
         name: '',
         roleId: '',
@@ -81,7 +82,13 @@ Object.assign(window.PmsAPI, {
     },
 
     saveHotelSettings: async (settings) => {
-        const merged = mergeHotelSettings(await window.PmsAPI.getHotelSettings(), settings || {});
+        const current = await window.PmsAPI.getHotelSettings();
+        const requested = { ...(settings || {}) };
+        if (current.defaultCurrencyLocked && current.defaultCurrency) {
+            requested.defaultCurrency = current.defaultCurrency;
+            requested.defaultCurrencyLocked = true;
+        }
+        const merged = mergeHotelSettings(current, requested);
         localStorage.setItem('pms_hotel_settings', JSON.stringify(merged));
         if (merged.defaultCurrency) localStorage.setItem('pms_default_currency', merged.defaultCurrency);
         try {

@@ -37,6 +37,7 @@ body{display:block;overflow:auto;background:#f1f5f9;color:#111827}
 .apply-field input,.apply-field select,.apply-field textarea{border:1px solid #dbe3ef;border-radius:10px;padding:11px 12px;font-family:var(--font);font-size:.9rem}
 .apply-field input:focus,.apply-field select:focus,.apply-field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-lt)}
 .apply-note{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:12px;padding:13px 14px;font-size:.82rem;line-height:1.55}
+.apply-help{font-size:.74rem;line-height:1.45;color:#64748b}
 .apply-footer{padding:18px 28px;background:#f8fafc;border-top:1px solid #eef2f7;display:flex;justify-content:space-between;gap:12px;align-items:center}
 .apply-link{color:#475569;text-decoration:none;font-size:.86rem;font-weight:700}
 .apply-btn{border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:800;padding:12px 18px;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
@@ -80,7 +81,7 @@ body{display:block;overflow:auto;background:#f1f5f9;color:#111827}
 <div class="apply-field"><label>국가 *</label><select id="country" required><option value="">선택</option><option>South Korea</option><option>Vietnam</option><option>Thailand</option><option>Japan</option></select></div>
 <div class="apply-field"><label>도시 *</label><input id="city" required placeholder="예: Seoul"/></div>
 <div class="apply-field"><label>희망 플랜</label><select id="plan"><option>Free</option><option>Standard</option><option>Premium</option></select></div>
-<div class="apply-field"><label>기본 통화</label><select id="currency"><option selected>PHP</option><option>VND</option><option>THB</option><option>JPY</option></select></div>
+<div class="apply-field"><label>기본 표시 통화 *</label><select id="currency" required data-no-currency-normalize="true"><option value="PHP" selected>PHP 필리핀 페소</option><option value="VND">VND 베트남 동</option><option value="USD">USD 달러</option><option value="KRW">KRW 원화</option></select><div class="apply-help">승인 후 호텔 운영 화면의 기준 표시 통화로 고정되며 변경할 수 없습니다.</div></div>
 </div>
 </section>
 <section class="apply-section">
@@ -131,6 +132,8 @@ function submitApplication(event) {
         city: document.getElementById('city').value.trim(),
         plan: document.getElementById('plan').value,
         currency: document.getElementById('currency').value,
+        defaultCurrency: document.getElementById('currency').value,
+        defaultCurrencyLocked: true,
         contactName: document.getElementById('contactName').value.trim(),
         phone: document.getElementById('phone').value.trim(),
         email: document.getElementById('email').value.trim(),

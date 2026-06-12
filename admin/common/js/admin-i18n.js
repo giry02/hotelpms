@@ -2,21 +2,36 @@
 
 window.currentLang = localStorage.getItem('pms_lang') || 'ko';
 window.PMS_I18N_NAMESPACE = window.PMS_I18N_NAMESPACE || 'admin';
-window.PMS_DEFAULT_CURRENCY = 'PHP';
+window.PMS_CURRENCY_META = window.PMS_CURRENCY_META || {
+    PHP: { symbol: '₱', locale: 'en-PH' },
+    VND: { symbol: '₫', locale: 'vi-VN' },
+    USD: { symbol: '$', locale: 'en-US' },
+    KRW: { symbol: '₩', locale: 'ko-KR' },
+    THB: { symbol: '฿', locale: 'th-TH' },
+    JPY: { symbol: '¥', locale: 'ja-JP' }
+};
+window.pmsDefaultCurrency = window.pmsDefaultCurrency || function pmsDefaultCurrency() {
+    return localStorage.getItem('pms_default_currency') || localStorage.getItem('pms_currency') || 'PHP';
+};
+window.PMS_DEFAULT_CURRENCY = window.pmsDefaultCurrency();
 
-(function forceDefaultCurrencyToPhp(){
+(function ensureDefaultCurrency(){
     try {
-        localStorage.setItem('pms_default_currency', 'PHP');
-        localStorage.setItem('pms_currency', 'PHP');
+        const current = window.pmsDefaultCurrency();
+        if (!localStorage.getItem('pms_default_currency')) localStorage.setItem('pms_default_currency', current);
+        if (!localStorage.getItem('pms_currency')) localStorage.setItem('pms_currency', current);
+        window.PMS_DEFAULT_CURRENCY = current;
     } catch(e) {}
 })();
 
 window.pmsFormatCurrency = window.pmsFormatCurrency || function pmsFormatCurrency(value, options = {}) {
     const amount = Number(value || 0);
     const digits = options.forceDecimals ? 2 : (Number.isInteger(amount) ? 0 : 2);
-    return new Intl.NumberFormat('en-PH', {
+    const currency = options.currency || window.pmsDefaultCurrency();
+    const meta = window.PMS_CURRENCY_META[currency] || window.PMS_CURRENCY_META.PHP;
+    return new Intl.NumberFormat(meta.locale, {
         style: 'currency',
-        currency: 'PHP',
+        currency,
         minimumFractionDigits: digits,
         maximumFractionDigits: 2
     }).format(amount);
@@ -24,31 +39,35 @@ window.pmsFormatCurrency = window.pmsFormatCurrency || function pmsFormatCurrenc
 
 window.pmsNormalizeCurrencyDisplayText = window.pmsNormalizeCurrencyDisplayText || function pmsNormalizeCurrencyDisplayText(text) {
     if (typeof text !== 'string' || !text) return text;
+    const currency = window.pmsDefaultCurrency();
+    const symbol = (window.PMS_CURRENCY_META[currency] || window.PMS_CURRENCY_META.PHP).symbol;
+    const display = `${currency} (${symbol})`;
     return text
-        .replace(/USD\s*\(\s*\$\s*\)/gi, 'PHP (₱)')
-        .replace(/KRW\s*\(\s*₩\s*\)/gi, 'PHP (₱)')
-        .replace(/Amount\s*\(\s*USD\s*\)/gi, 'Amount(PHP)')
-        .replace(/Amount\s+USD/gi, 'Amount PHP')
-        .replace(/청구액\s*\(\s*USD\s*\)/g, '청구액 (PHP)')
-        .replace(/금액\s*\(\s*USD\s*\)/g, '금액 (PHP)')
-        .replace(/금액\s+USD/g, '금액 PHP')
-        .replace(/단가\s*\(\s*USD\s*\)/g, '단가 (PHP)')
-        .replace(/요금\s*\(\s*USD\s*\)/g, '요금 (PHP)')
-        .replace(/특별단가\s*\(\s*USD\s*\)/g, '특별단가(PHP)')
-        .replace(/\bUSD\b/g, 'PHP')
-        .replace(/\bKRW\b/g, 'PHP')
-        .replace(/US\$/g, '₱')
-        .replace(/\$/g, '₱')
-        .replace(/₩/g, '₱');
+        .replace(/USD\s*\(\s*\$\s*\)/gi, display)
+        .replace(/KRW\s*\(\s*₩\s*\)/gi, display)
+        .replace(/Amount\s*\(\s*USD\s*\)/gi, `Amount(${currency})`)
+        .replace(/Amount\s+USD/gi, `Amount ${currency}`)
+        .replace(/청구액\s*\(\s*USD\s*\)/g, `청구액 (${currency})`)
+        .replace(/금액\s*\(\s*USD\s*\)/g, `금액 (${currency})`)
+        .replace(/금액\s+USD/g, `금액 ${currency}`)
+        .replace(/단가\s*\(\s*USD\s*\)/g, `단가 (${currency})`)
+        .replace(/요금\s*\(\s*USD\s*\)/g, `요금 (${currency})`)
+        .replace(/특별단가\s*\(\s*USD\s*\)/g, `특별단가(${currency})`)
+        .replace(/\bUSD\b/g, currency)
+        .replace(/\bKRW\b/g, currency)
+        .replace(/US\$/g, symbol)
+        .replace(/\$/g, symbol)
+        .replace(/₩/g, symbol);
 };
 
-(function installPhpCurrencyDisplayNormalizer(){
+(function installCurrencyDisplayNormalizer(){
     const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'CODE', 'PRE', 'TEXTAREA']);
 
     function shouldSkip(node) {
         let el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
         while (el) {
             if (skipTags.has(el.tagName)) return true;
+            if (el.hasAttribute && (el.hasAttribute('data-no-currency-normalize') || el.hasAttribute('data-keep-currency'))) return true;
             el = el.parentElement;
         }
         return false;
@@ -122,7 +141,7 @@ window.pmsNormalizeCurrencyDisplayText = window.pmsNormalizeCurrencyDisplayText 
     try {
         if (localStorage.getItem(migrationKey)) return;
         const current = localStorage.getItem('pms_default_currency');
-        if (!current || current === 'USD' || current === 'KRW') localStorage.setItem('pms_default_currency', 'PHP');
+        if (!current) localStorage.setItem('pms_default_currency', 'PHP');
         localStorage.setItem(migrationKey, '1');
     } catch(e) {}
 })();
