@@ -34,22 +34,35 @@
 .search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
 #btnUnpaidToggle { margin-left: 12px; border: 1px solid var(--danger); color: var(--danger); background: transparent; display: flex; align-items: center; gap: 6px; }
 #btnUnpaidToggle.active { background: var(--danger) !important; color: #fff !important; }
-.folio-table { table-layout: fixed; min-width: 1180px; }
+.folio-table { table-layout: fixed; min-width: 1100px; }
 .folio-table th, .folio-table td { overflow: hidden; text-overflow: ellipsis; }
-.folio-table .folio-actions { display: grid; grid-template-columns: 68px 58px; gap: 6px; justify-content: start; align-items: center; min-width: 132px; max-width: 140px; }
+.folio-table .folio-room-cell{overflow:hidden;white-space:normal}
+.folio-table .folio-actions { display: grid; grid-template-columns: 64px 52px; gap: 6px; justify-content: start; align-items: center; min-width: 122px; max-width: 128px; }
 .folio-table .folio-actions .btn-outline-sm,
-.folio-table .folio-actions .btn-primary-sm { width: 100%; height: 32px; padding: 0 10px; justify-content: center; }
+.folio-table .folio-actions .btn-primary-sm { width: 100%; height: 32px; padding: 0 8px; justify-content: center; }
 .folio-action-placeholder { visibility: hidden; pointer-events: none; }
 .folio-mobile-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 10px; min-height: 36px; }
 #folioMobile .m-res-top > div:first-child { min-width: 0; }
 #folioMobile .m-res-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 210px; }
-.folio-room-change-badge{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:3px 7px;border-radius:999px;background:#fff7ed;color:#b45309;border:1px solid #fde68a;font-size:.66rem;font-weight:900;white-space:nowrap}
+.folio-room-change-badge{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:3px 7px;border-radius:999px;background:#fff7ed;color:#b45309;border:1px solid #fde68a;font-size:.66rem;font-weight:900;white-space:nowrap;max-width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis}
 .folio-room-change-badge i{font-size:.62rem}
 .folio-service-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
 .folio-service-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:999px;background:#f8fafc;border:1px solid var(--border);font-size:.64rem;font-weight:900;color:var(--txt2);white-space:nowrap}
 .folio-service-tag i{font-size:.58rem;color:var(--primary)}
 .folio-source-count{display:inline-flex;align-items:center;margin-top:4px;font-size:.66rem;font-weight:800;color:var(--txt3)}
 .folio-table td.folio-total-cell{overflow:visible}
+.folio-breakdown{display:grid;gap:5px;margin-top:8px;min-width:190px}
+.folio-breakdown-row{display:grid;grid-template-columns:minmax(78px,1fr) auto;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--border2);border-radius:7px;background:#f8fafc;font-size:.68rem}
+.folio-breakdown-row.total{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;font-weight:900}
+.folio-breakdown-label{display:inline-flex;align-items:center;gap:5px;min-width:0;font-weight:900;color:var(--txt2);white-space:nowrap}
+.folio-breakdown-row.total .folio-breakdown-label{color:#1d4ed8}
+.folio-breakdown-label i{width:12px;text-align:center;color:var(--primary)}
+.folio-breakdown-amount{font-weight:900;color:var(--txt);white-space:nowrap}
+.folio-breakdown-row.total .folio-breakdown-amount{color:#1d4ed8}
+.invoice-scope-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.invoice-scope-tab{height:30px;padding:0 10px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--txt2);font-size:.72rem;font-weight:900;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.invoice-scope-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.invoice-subtitle{font-family:var(--font);font-size:.78rem;color:var(--txt2);text-align:center;margin-top:-10px;margin-bottom:14px;font-weight:800}
 @media(max-width:768px){
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
     .filter-left { flex-direction: column; align-items: stretch; overflow: visible; gap: 10px; }
@@ -59,6 +72,7 @@
     .filter-chips { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; margin-right: 0 !important; }
     .filter-chips .chip { justify-content: center; min-width: 0; padding-inline: 8px; }
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
+    .folio-breakdown{min-width:0}
 }
 </style>
 </head>
@@ -124,7 +138,7 @@
                     <button class="chip dept-chip" onclick="setDept(this,'room')">객실</button>
                     <button class="chip dept-chip" onclick="setDept(this,'pos')">통합 포스</button>
                     <button class="chip dept-chip" onclick="setDept(this,'golf')">골프장</button>
-                    <button class="chip dept-chip" onclick="setDept(this,'car')">렌트카</button>
+                    <button class="chip dept-chip" onclick="setDept(this,'car')">렌터카</button>
                     
                     <button class="chip" id="btnUnpaidToggle" onclick="toggleUnpaidOnly()"><i class="fa-solid fa-exclamation-circle"></i> <span data-i18n-key="folio.filter.hasOutstanding">미수금 있음</span></button>
 <input type="checkbox" id="chkUnpaid" style="display:none;">
@@ -141,16 +155,16 @@
                 <div class="table-wrap">
                     <table class="folio-table">
                         <colgroup>
-                            <col style="width:13%">
+                            <col style="width:10%">
+                            <col style="width:10%">
+                            <col style="width:9%">
+                            <col style="width:8%">
+                            <col style="width:21%">
+                            <col style="width:8%">
                             <col style="width:7%">
-                            <col style="width:11%">
-                            <col style="width:8%">
-                            <col style="width:17%">
-                            <col style="width:8%">
-                            <col style="width:8%">
                             <col style="width:9%">
                             <col style="width:7%">
-                            <col style="width:12%">
+                            <col style="width:11%">
                         </colgroup>
                         <thead><tr>
                         <th>정산 번호</th><th>객실</th><th>고객명</th><th>체크아웃</th><th>총 금액</th><th>결제액</th><th>예치금</th><th>미수금 잔액</th><th>상태</th><th>관리</th>
@@ -266,6 +280,8 @@ let apiFolios = [];
 let visibleFolios = [];
 let folioReservations = [];
 let currentPaymentFolioId = '';
+let currentInvoiceIndex = -1;
+let currentInvoiceScope = 'all';
 
 const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
 
@@ -440,6 +456,26 @@ function folioServiceBadgesHtml(folio) {
     `).join('')}</div>`;
 }
 
+function folioBreakdownHtml(folio) {
+    const totals = folioDeptTotals(folio);
+    const types = (folio.serviceTypes?.length ? folio.serviceTypes : folioServiceTypes(folio))
+        .filter(type => Number(totals[type] || 0) !== 0);
+    if (!types.length) return '';
+    const rows = types.map(type => `
+        <div class="folio-breakdown-row">
+            <span class="folio-breakdown-label"><i class="fa-solid ${deptIcon(type)}"></i>${escapeHtml(deptLabel(type))}</span>
+            <span class="folio-breakdown-amount">${fmtMoney(totals[type], folio.currency)}</span>
+        </div>
+    `).join('');
+    const totalRow = types.length > 1
+        ? `<div class="folio-breakdown-row total">
+            <span class="folio-breakdown-label"><i class="fa-solid fa-equals"></i>합산</span>
+            <span class="folio-breakdown-amount">${fmtMoney(folio.total, folio.currency)}</span>
+        </div>`
+        : '';
+    return `<div class="folio-breakdown">${rows}${totalRow}</div>`;
+}
+
 function folioSourceCountHtml(folio) {
     return Number(folio.sourceFolioCount || 0) > 1
         ? `<div class="folio-source-count">${folio.sourceFolioCount}개 Folio 묶음</div>`
@@ -519,6 +555,7 @@ function aggregateSettlementFolios(folios) {
                 ...only,
                 serviceBreakdown,
                 serviceTypes,
+                sourceFolios: only.sourceFolios || [only],
                 sourceFolioIds: only.sourceFolioIds || [only.id],
                 sourceFolioCount: only.sourceFolioCount || 1,
                 roomRevenue: Number(only.roomRevenue ?? serviceBreakdown.room ?? 0),
@@ -562,6 +599,7 @@ function aggregateSettlementFolios(folios) {
             settlementPaymentRecords: sorted.flatMap(folio => folio.settlementPaymentRecords || []),
             serviceBreakdown,
             serviceTypes,
+            sourceFolios: sorted,
             sourceFolioIds,
             sourceFolioCount: sourceFolioIds.length,
             roomRevenue: Number(serviceBreakdown.room || 0),
@@ -609,6 +647,90 @@ function invoiceDeptTitle(dept) {
         car: '렌터카 정산 명세서',
         mixed: '호실 통합 정산 명세서'
     }[dept] || '정산 명세서';
+}
+
+function invoiceScopeLabel(scope) {
+    return scope === 'all' ? '통합 명세서' : `${deptLabel(scope)} 명세서`;
+}
+
+function invoiceScopes(folio) {
+    const types = (folio.serviceTypes?.length ? folio.serviceTypes : folioServiceTypes(folio))
+        .filter(type => Number(folioDeptTotals(folio)[type] || 0) !== 0);
+    return ['all', ...types];
+}
+
+function invoiceScopeTabsHtml(folio, activeScope) {
+    const scopes = invoiceScopes(folio);
+    if (scopes.length <= 1) return '';
+    return `<div class="invoice-scope-tabs">${scopes.map(scope => `
+        <button class="invoice-scope-tab ${scope === activeScope ? 'active' : ''}" onclick="setInvoiceScope('${scope}')">
+            <i class="fa-solid ${scope === 'all' ? 'fa-layer-group' : deptIcon(scope)}"></i>${escapeHtml(invoiceScopeLabel(scope))}
+        </button>
+    `).join('')}</div>`;
+}
+
+function allocateScopedAmount(amount, ratio) {
+    return Math.round(Number(amount || 0) * ratio * 100) / 100;
+}
+
+function scopedSourceFolios(folio, dept) {
+    const sources = Array.isArray(folio.sourceFolios) && folio.sourceFolios.length ? folio.sourceFolios : [folio];
+    return sources.map(source => {
+        const totals = folioDeptTotals(source);
+        const total = Number(totals[dept] || 0);
+        if (!total) return null;
+        const sourceTotal = Number(source.total || 0);
+        const ratio = sourceTotal > 0 ? total / sourceTotal : 1;
+        const charges = sourceChargeItems(source).filter(charge => normalizeDept(charge.type || source.dept) === dept);
+        return {
+            ...source,
+            dept,
+            total,
+            paid: allocateScopedAmount(source.paid, ratio),
+            bal: allocateScopedAmount(source.bal, ratio),
+            depositAmount: allocateScopedAmount(folioDepositValue(source), ratio),
+            charges,
+            serviceBreakdown: { [dept]: total },
+            serviceTypes: [dept],
+            sourceFolioIds: source.sourceFolioIds || [source.id],
+            sourceFolioCount: source.sourceFolioCount || 1
+        };
+    }).filter(Boolean);
+}
+
+function folioForInvoiceScope(folio, scope) {
+    if (!scope || scope === 'all') {
+        return { ...folio, invoiceScope: 'all', invoiceScopeLabel: '통합 명세서' };
+    }
+    const dept = normalizeDept(scope);
+    const sources = scopedSourceFolios(folio, dept);
+    if (!sources.length) return { ...folio, invoiceScope: 'all', invoiceScopeLabel: '통합 명세서' };
+    const total = sources.reduce((sum, item) => sum + Number(item.total || 0), 0);
+    const paid = sources.reduce((sum, item) => sum + Number(item.paid || 0), 0);
+    const bal = sources.reduce((sum, item) => sum + Number(item.bal || 0), 0);
+    const depositAmount = sources.reduce((sum, item) => sum + folioDepositValue(item), 0);
+    const sourceFolioIds = [...new Set(sources.flatMap(item => item.sourceFolioIds || [item.id]).filter(Boolean))];
+    return {
+        ...folio,
+        dept,
+        total,
+        paid,
+        bal,
+        depositAmount,
+        deposit: { amount: depositAmount, currency: folio.currency || 'PHP' },
+        charges: sources.flatMap(item => item.charges || []),
+        payments: sources.flatMap(item => item.payments || []),
+        serviceBreakdown: { [dept]: total },
+        serviceTypes: [dept],
+        sourceFolios: sources,
+        sourceFolioIds,
+        sourceFolioCount: sourceFolioIds.length,
+        roomRevenue: dept === 'room' ? total : 0,
+        ancillaryRevenue: dept === 'room' ? 0 : total,
+        status: bal > 0 ? 'unpaid' : 'paid',
+        invoiceScope: dept,
+        invoiceScopeLabel: invoiceScopeLabel(dept)
+    };
 }
 
 function splitInvoiceAmount(total, ratios) {
@@ -664,7 +786,7 @@ function invoiceItems(folio) {
     const changeItems = Array.isArray(folio.settlementRoomChanges) && folio.settlementRoomChanges.length
         ? [{ label: `객실 변경 확인: ${roomChangeText(folio.settlementRoomChanges)}`, amount: 0 }]
         : [];
-    if (sourceCharges.length > 1) {
+    if (sourceCharges.length) {
         const items = sourceCharges.map(charge => ({
             label: `${folio.sourceFolioCount > 1 || (folio.serviceTypes || []).length > 1 ? `${deptLabel(charge.type || folio.dept)} · ` : ''}${charge.label || folioDisplayText(charge.desc || charge.type || '정산 항목')}${charge.sourceFolioId ? ` (${charge.sourceFolioId})` : ''}`,
             amount: Number(charge.amount || 0)
@@ -673,6 +795,15 @@ function invoiceItems(folio) {
         return hasChangeItem ? items : [...items, ...changeItems];
     }
     return [...generatedInvoiceItems(folio), ...changeItems];
+}
+
+function invoiceItemsHtml(folio, currency) {
+    return invoiceItems(folio).map(item => `
+        <div style="display:flex;justify-content:space-between;gap:16px">
+            <span>${escapeHtml(item.label)}</span>
+            <span>${fmtInvoiceMoney(item.amount, currency)}</span>
+        </div>
+    `).join('');
 }
 
 function invoiceMetaRows(folio) {
@@ -1191,17 +1322,17 @@ function renderFolios() {
         const depositAmount = folioDepositValue(f);
         return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
             <td style="color:var(--txt2)">${f.id}${folioSourceCountHtml(f)}</td>
-            <td><strong>${f.room}</strong>${folioRoomChangeBadgeHtml(f)}</td>
+            <td class="folio-room-cell"><div><strong>${f.room}</strong></div>${folioRoomChangeBadgeHtml(f)}</td>
             <td>${f.guest}</td>
             <td>${f.out}</td>
-            <td class="folio-total-cell"><strong>${fmtMoney(f.total, f.currency)}</strong>${folioServiceBadgesHtml(f)}</td>
+            <td class="folio-total-cell"><strong>합산 ${fmtMoney(f.total, f.currency)}</strong>${folioBreakdownHtml(f)}</td>
             <td>${fmtMoney(f.paid, f.currency)}</td>
             <td>${fmtMoney(depositAmount, f.currency)}</td>
             <td style="color:${balColor};font-weight:700">${fmtMoney(f.bal, f.currency)}</td>
             <td><span class="status-badge ${s.badge}">${s.label}</span></td>
             <td>
                 <div class="folio-actions">
-                    <button class="btn-outline-sm" onclick="event.stopPropagation(); openInvoiceModal(${index})">명세서</button>
+                    <button class="btn-outline-sm" onclick="event.stopPropagation(); openInvoiceModal(${index}, 'all')">명세서</button>
                     <button class="btn-primary-sm" onclick="event.stopPropagation(); openPaymentModal('${f.id}', ${f.bal})">${f.bal > 0 ? '결제' : '수납'}</button>
                 </div>
             </td>
@@ -1227,11 +1358,11 @@ function renderFolios() {
             <div class="m-res-details">
                 <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> Check-out: ${f.out}</div>
                 <div class="m-res-detail"><i class="fa-solid fa-layer-group"></i> ${escapeHtml(folioServiceSummary(f))}</div>
-                ${folioServiceBadgesHtml(f)}
+                ${folioBreakdownHtml(f)}
                 <div class="m-res-detail"><i class="fa-solid fa-money-bill"></i> 총액 ${fmtMoney(f.total, f.currency)} · 결제 ${fmtMoney(f.paid, f.currency)} · 예치금 ${fmtMoney(depositAmount, f.currency)}</div>
             </div>
             <div class="m-res-actions folio-mobile-actions">
-                <button class="act-btn" onclick="event.stopPropagation(); openInvoiceModal(${index})"><i class="fa-solid fa-file-invoice"></i> 명세서</button>
+                <button class="act-btn" onclick="event.stopPropagation(); openInvoiceModal(${index}, 'all')"><i class="fa-solid fa-file-invoice"></i> 명세서</button>
                 <button class="act-btn" style="background:var(--primary);color:#fff" onclick="event.stopPropagation(); openPaymentModal('${f.id}', ${f.bal})"><i class="fa-solid fa-credit-card"></i> ${f.bal > 0 ? '결제' : '수납'}</button>
             </div>
         </div>`;
@@ -1332,27 +1463,27 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
     renderFolios();
 }
 // 모달 기능
-function openInvoiceModal(index) {
-    const folio = visibleFolios[index];
+function setInvoiceScope(scope) {
+    currentInvoiceScope = scope || 'all';
+    renderInvoiceModal();
+}
+
+function renderInvoiceModal() {
+    const folio = visibleFolios[currentInvoiceIndex];
     if (!folio) return;
     const content = document.getElementById('invoiceContent');
-    const currency = folio.currency || localStorage.getItem('pms_default_currency') || 'PHP';
-    const itemsHtml = invoiceItems(folio).map(item => `
-        <div style="display:flex;justify-content:space-between;gap:16px">
-            <span>${escapeHtml(item.label)}</span>
-            <span>${fmtInvoiceMoney(item.amount, currency)}</span>
-        </div>
-    `).join('');
-    const metaHtml = invoiceMetaRowsWithRoomChanges(folio).map(([label, value]) => `
+    const scopedFolio = folioForInvoiceScope(folio, currentInvoiceScope);
+    const currency = scopedFolio.currency || localStorage.getItem('pms_default_currency') || 'PHP';
+    const metaHtml = invoiceMetaRowsWithRoomChanges(scopedFolio).map(([label, value]) => `
         <div>${escapeHtml(label)}: ${escapeHtml(value)}</div>
     `).join('');
-    const paidPrefix = Number(folio.paid || 0) > 0 ? '-' : '';
-    const depositAmount = folioDepositValue(folio);
-    const paymentRecordsHtml = (folio.settlementPaymentRecords || []).length
+    const paidPrefix = Number(scopedFolio.paid || 0) > 0 ? '-' : '';
+    const depositAmount = folioDepositValue(scopedFolio);
+    const paymentRecordsHtml = (scopedFolio.settlementPaymentRecords || []).length && currentInvoiceScope === 'all'
         ? `
         <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
         <div style="font-weight:700;margin-bottom:4px">수납/예치 기록</div>
-        ${(folio.settlementPaymentRecords || []).map(item => `
+        ${(scopedFolio.settlementPaymentRecords || []).map(item => `
             <div style="display:flex;justify-content:space-between;gap:12px;font-size:.82rem">
                 <span>${escapeHtml(item.kind === 'deposit' ? '예치금' : '정산 결제')} · <span data-no-currency-normalize="true">${escapeHtml(item.receivedCurrency)} ${Number(item.receivedAmount || 0).toLocaleString()}</span> (${escapeHtml(item.methodLabel || item.method || '-')})</span>
                 <span>${fmtInvoiceMoney(item.appliedPhpAmount, currency)}</span>
@@ -1360,21 +1491,58 @@ function openInvoiceModal(index) {
         `).join('')}
         ` : '';
     content.innerHTML = `
-        <div style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${escapeHtml(invoiceDeptTitle(folio.dept))}</div>
-        <div>정산 번호: ${escapeHtml(folio.id)}</div>
-        <div>고객명: ${escapeHtml(folio.guest)}</div>
+        ${invoiceScopeTabsHtml(folio, currentInvoiceScope)}
+        <div class="invoice-title" style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${escapeHtml(invoiceDeptTitle(scopedFolio.dept))}</div>
+        <div class="invoice-subtitle">${escapeHtml(scopedFolio.invoiceScopeLabel || invoiceScopeLabel(currentInvoiceScope))}</div>
+        <div>정산 번호: ${escapeHtml(scopedFolio.id)}</div>
+        <div>고객명: ${escapeHtml(scopedFolio.guest)}</div>
         ${metaHtml}
-        <div>발행 일시: ${escapeHtml(formatDateTime(folio.issuedAt || `${formatDate(folio.out)}T10:30:00+09:00`))}</div>
+        <div>발행 일시: ${escapeHtml(formatDateTime(scopedFolio.issuedAt || `${formatDate(scopedFolio.out)}T10:30:00+09:00`))}</div>
         <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
-        ${itemsHtml}
+        ${invoiceItemsHtml(scopedFolio, currency)}
         <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
-        <div style="display:flex;justify-content:space-between;font-weight:700"><span>합계</span><span>${fmtInvoiceMoney(folio.total, currency)}</span></div>
-        <div style="display:flex;justify-content:space-between"><span>결제액</span><span>${paidPrefix}${fmtInvoiceMoney(folio.paid, currency)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-weight:700"><span>합계</span><span>${fmtInvoiceMoney(scopedFolio.total, currency)}</span></div>
+        <div style="display:flex;justify-content:space-between"><span>결제액</span><span>${paidPrefix}${fmtInvoiceMoney(scopedFolio.paid, currency)}</span></div>
         <div style="display:flex;justify-content:space-between"><span>예치금</span><span>${fmtInvoiceMoney(depositAmount, currency)}</span></div>
-        <div style="display:flex;justify-content:space-between;color:${folio.bal > 0 ? 'var(--danger)' : 'var(--success)'};font-weight:700;margin-top:8px"><span>미수금 잔액</span><span>${fmtInvoiceMoney(folio.bal, currency)}</span></div>
+        <div style="display:flex;justify-content:space-between;color:${scopedFolio.bal > 0 ? 'var(--danger)' : 'var(--success)'};font-weight:700;margin-top:8px"><span>미수금 잔액</span><span>${fmtInvoiceMoney(scopedFolio.bal, currency)}</span></div>
         ${paymentRecordsHtml}
     `;
+}
+
+function openInvoiceModal(index, scope = 'all') {
+    currentInvoiceIndex = index;
+    currentInvoiceScope = scope;
+    renderInvoiceModal();
     openModal('invoiceModal');
+}
+
+function printCurrentInvoice() {
+    const content = document.getElementById('invoiceContent')?.innerHTML || '';
+    const title = document.querySelector('#invoiceContent .invoice-title')?.textContent || '정산 명세서';
+    const printWindow = window.open('', '_blank', 'width=760,height=900');
+    if (!printWindow) {
+        window.print();
+        return;
+    }
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <title>${escapeHtml(title)}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
+            <style>
+                body{font-family:'Inter','Noto Sans KR',sans-serif;margin:32px;color:#111827}
+                button,.invoice-scope-tabs{display:none!important}
+                hr{border:0;border-top:1px dashed #d1d5db;margin:12px 0}
+            </style>
+        </head>
+        <body>${content}</body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 250);
 }
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -1543,7 +1711,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 
 <!-- 명세서 모달 (INVOICE MODAL) -->
 <div class="modal-overlay" id="invoiceModal" onclick="if(event.target===this) closeModal('invoiceModal')">
-    <div class="modal-card" style="max-width:500px;width:95vw">
+    <div class="modal-card" style="max-width:680px;width:95vw">
         <div class="modal-header">
             <h3 class="modal-title">정산 명세서</h3>
             <button class="modal-close" onclick="closeModal('invoiceModal')"><i class="fa-solid fa-xmark"></i></button>
@@ -1552,7 +1720,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('invoiceModal')">닫기</button>
-            <button class="btn-primary-sm" onclick="window.print()"><i class="fa-solid fa-print"></i> 명세서 인쇄</button>
+            <button class="btn-primary-sm" onclick="printCurrentInvoice()"><i class="fa-solid fa-print"></i> 현재 명세서 인쇄</button>
         </div>
     </div>
 </div>
