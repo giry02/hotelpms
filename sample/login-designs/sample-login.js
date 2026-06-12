@@ -16,7 +16,7 @@ const themeCopy = {
         icon: "fa-hotel"
     },
     night: {
-        sceneName: "로비·야경 배경",
+        sceneName: "필리핀 야경 배경",
         icon: "fa-hotel"
     }
 };
