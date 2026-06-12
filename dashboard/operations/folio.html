@@ -45,6 +45,11 @@
 #folioMobile .m-res-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 210px; }
 .folio-room-change-badge{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:3px 7px;border-radius:999px;background:#fff7ed;color:#b45309;border:1px solid #fde68a;font-size:.66rem;font-weight:900;white-space:nowrap}
 .folio-room-change-badge i{font-size:.62rem}
+.folio-service-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.folio-service-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:999px;background:#f8fafc;border:1px solid var(--border);font-size:.64rem;font-weight:900;color:var(--txt2);white-space:nowrap}
+.folio-service-tag i{font-size:.58rem;color:var(--primary)}
+.folio-source-count{display:inline-flex;align-items:center;margin-top:4px;font-size:.66rem;font-weight:800;color:var(--txt3)}
+.folio-table td.folio-total-cell{overflow:visible}
 @media(max-width:768px){
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
     .filter-left { flex-direction: column; align-items: stretch; overflow: visible; gap: 10px; }
@@ -136,15 +141,15 @@
                 <div class="table-wrap">
                     <table class="folio-table">
                         <colgroup>
-                            <col style="width:12%">
-                            <col style="width:6%">
-                            <col style="width:12%">
-                            <col style="width:9%">
-                            <col style="width:10%">
-                            <col style="width:10%">
-                            <col style="width:10%">
+                            <col style="width:13%">
+                            <col style="width:7%">
                             <col style="width:11%">
                             <col style="width:8%">
+                            <col style="width:17%">
+                            <col style="width:8%">
+                            <col style="width:8%">
+                            <col style="width:9%">
+                            <col style="width:7%">
                             <col style="width:12%">
                         </colgroup>
                         <thead><tr>
@@ -330,7 +335,9 @@ function sumRecords(records, predicate, field) {
 }
 
 function applySettlementPaymentRecords(folio) {
-    const records = paymentRecordsForFolio(folio.id);
+    const existingRecords = Array.isArray(folio.settlementPaymentRecords) ? folio.settlementPaymentRecords : [];
+    const existingRecordIds = new Set(existingRecords.map(item => item.id).filter(Boolean));
+    const records = paymentRecordsForFolio(folio.id).filter(item => !existingRecordIds.has(item.id));
     if (!records.length) return folio;
     const settlementApplied = sumRecords(records, item => item.kind !== 'deposit', 'appliedPhpAmount');
     const depositApplied = sumRecords(records, item => item.kind === 'deposit', 'appliedPhpAmount');
@@ -343,7 +350,7 @@ function applySettlementPaymentRecords(folio) {
         bal,
         depositAmount,
         deposit: { amount: depositAmount, currency: folio.currency || 'PHP' },
-        settlementPaymentRecords: records,
+        settlementPaymentRecords: [...existingRecords, ...records],
         status: bal > 0 ? 'unpaid' : 'paid'
     };
 }
@@ -356,6 +363,207 @@ function normalizeDept(type) {
     if (type === 'fnb' || type === 'retail') return 'pos';
     if (type === 'rentacar') return 'car';
     return type || 'pos';
+}
+
+const DEPT_META = {
+    room: { label: '객실', icon: 'fa-bed', order: 1 },
+    pos: { label: '통합 POS', icon: 'fa-cash-register', order: 2 },
+    golf: { label: '골프장', icon: 'fa-golf-ball-tee', order: 3 },
+    car: { label: '렌터카', icon: 'fa-car', order: 4 },
+    mixed: { label: '호실 통합', icon: 'fa-layer-group', order: 0 }
+};
+
+function deptLabel(type) {
+    return DEPT_META[normalizeDept(type)]?.label || '기타';
+}
+
+function deptIcon(type) {
+    return DEPT_META[normalizeDept(type)]?.icon || 'fa-receipt';
+}
+
+function deptSort(type) {
+    return DEPT_META[normalizeDept(type)]?.order || 99;
+}
+
+function safeFolioIdSegment(value) {
+    return String(value || '')
+        .replace(/[^a-zA-Z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .toUpperCase() || 'ROOM';
+}
+
+function folioDeptTotals(folio) {
+    if (folio?.serviceBreakdown && typeof folio.serviceBreakdown === 'object') {
+        return Object.entries(folio.serviceBreakdown).reduce((acc, [type, amount]) => {
+            const dept = normalizeDept(type);
+            acc[dept] = (acc[dept] || 0) + Number(amount || 0);
+            return acc;
+        }, {});
+    }
+    const charges = Array.isArray(folio?.charges) ? folio.charges : [];
+    if (charges.length) {
+        return charges.reduce((acc, charge) => {
+            const dept = normalizeDept(charge.type || folio.dept);
+            acc[dept] = (acc[dept] || 0) + Number(charge.amount || 0);
+            return acc;
+        }, {});
+    }
+    const dept = normalizeDept(folio?.dept);
+    return { [dept]: Number(folio?.total || 0) };
+}
+
+function folioServiceTypes(folio) {
+    return Object.entries(folioDeptTotals(folio))
+        .filter(([, amount]) => Number(amount || 0) !== 0)
+        .map(([type]) => normalizeDept(type))
+        .sort((a, b) => deptSort(a) - deptSort(b));
+}
+
+function folioServiceSummary(folio) {
+    const types = folio.serviceTypes?.length ? folio.serviceTypes : folioServiceTypes(folio);
+    return types.map(deptLabel).join(' · ') || deptLabel(folio.dept);
+}
+
+function folioHasDept(folio, dept) {
+    if (dept === 'all') return true;
+    return folioServiceTypes(folio).includes(normalizeDept(dept));
+}
+
+function folioServiceBadgesHtml(folio) {
+    const totals = folioDeptTotals(folio);
+    const types = folio.serviceTypes?.length ? folio.serviceTypes : folioServiceTypes(folio);
+    if (!types.length) return '';
+    return `<div class="folio-service-tags">${types.map(type => `
+        <span class="folio-service-tag" title="${escapeHtml(deptLabel(type))}">
+            <i class="fa-solid ${deptIcon(type)}"></i>${escapeHtml(deptLabel(type))} ${fmtMoney(totals[type], folio.currency)}
+        </span>
+    `).join('')}</div>`;
+}
+
+function folioSourceCountHtml(folio) {
+    return Number(folio.sourceFolioCount || 0) > 1
+        ? `<div class="folio-source-count">${folio.sourceFolioCount}개 Folio 묶음</div>`
+        : '';
+}
+
+function folioGroupKey(folio) {
+    if (folio.groupId) return `group:${folio.groupId}`;
+    if (folio.folioType === 'group') return `group:${folio.id}`;
+    if (folio.reservationId) return `reservation:${folio.reservationId}`;
+    const room = String(folio.room || '').trim().toLowerCase();
+    const guest = String(folio.guest || '').trim().toLowerCase();
+    const date = String(folio.out || folio.settlementDate || '').slice(0, 10);
+    return `room:${room}|guest:${guest}|date:${date || 'open'}`;
+}
+
+function sourceChargeItems(folio) {
+    const charges = Array.isArray(folio.charges) && folio.charges.length
+        ? folio.charges
+        : generatedInvoiceItems(folio).map(item => ({ type: folio.dept, label: item.label, amount: item.amount }));
+    return charges.map(charge => ({
+        ...charge,
+        type: normalizeDept(charge.type || folio.dept),
+        label: charge.label || folioDisplayText(charge.desc || charge.type || '정산 항목'),
+        amount: Number(charge.amount || 0),
+        sourceFolioId: charge.sourceFolioId || folio.id
+    }));
+}
+
+function mergeUniqueRoomChanges(folios) {
+    const seen = new Set();
+    return folios.flatMap(folio => Array.isArray(folio.settlementRoomChanges) ? folio.settlementRoomChanges : [])
+        .filter(item => {
+            const key = item.id || `${item.changedAt || ''}-${item.fromRoom || ''}-${item.toRoom || ''}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+}
+
+function latestFolioDate(folios) {
+    return folios
+        .map(folio => folioPeriodDate(folio))
+        .filter(Boolean)
+        .sort((a, b) => String(b).localeCompare(String(a)))[0] || '';
+}
+
+function aggregateFolioId(folios, base) {
+    if (base.groupId) return `FOL-${safeFolioIdSegment(base.groupId)}`;
+    if (base.reservationId) return `FOL-${safeFolioIdSegment(base.reservationId)}`;
+    return `FOL-${safeFolioIdSegment(base.room)}-${safeFolioIdSegment(base.guest)}`;
+}
+
+function aggregateSettlementFolios(folios) {
+    const grouped = new Map();
+    folios.forEach(folio => {
+        const key = folioGroupKey(folio);
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(folio);
+    });
+
+    return [...grouped.values()].map(groupRows => {
+        const sorted = [...groupRows].sort((a, b) => deptSort(a.dept) - deptSort(b.dept) || String(a.id).localeCompare(String(b.id)));
+        if (sorted.length === 1) {
+            const only = sorted[0];
+            const serviceBreakdown = folioDeptTotals(only);
+            const serviceTypes = folioServiceTypes({ ...only, serviceBreakdown });
+            return {
+                ...only,
+                serviceBreakdown,
+                serviceTypes,
+                sourceFolioIds: only.sourceFolioIds || [only.id],
+                sourceFolioCount: only.sourceFolioCount || 1,
+                roomRevenue: Number(only.roomRevenue ?? serviceBreakdown.room ?? 0),
+                ancillaryRevenue: Number(only.ancillaryRevenue ?? (Number(only.total || 0) - Number(serviceBreakdown.room || 0)))
+            };
+        }
+
+        const base = sorted.find(folio => normalizeDept(folio.dept) === 'room') || sorted[0];
+        const serviceBreakdown = sorted.reduce((acc, folio) => {
+            Object.entries(folioDeptTotals(folio)).forEach(([type, amount]) => {
+                const dept = normalizeDept(type);
+                acc[dept] = (acc[dept] || 0) + Number(amount || 0);
+            });
+            return acc;
+        }, {});
+        const total = sorted.reduce((sum, folio) => sum + Number(folio.total || 0), 0);
+        const paid = sorted.reduce((sum, folio) => sum + Number(folio.paid || 0), 0);
+        const bal = sorted.reduce((sum, folio) => sum + Number(folio.bal || 0), 0);
+        const depositAmount = sorted.reduce((sum, folio) => sum + folioDepositValue(folio), 0);
+        const serviceTypes = Object.keys(serviceBreakdown).sort((a, b) => deptSort(a) - deptSort(b));
+        const sourceFolioIds = [...new Set(sorted.flatMap(folio => folio.sourceFolioIds || [folio.id]).filter(Boolean))];
+        const settlementRoomChanges = mergeUniqueRoomChanges(sorted);
+        const periodDate = latestFolioDate(sorted);
+        return {
+            ...base,
+            id: aggregateFolioId(sorted, base),
+            dept: serviceTypes.length === 1 ? serviceTypes[0] : 'mixed',
+            folioType: base.folioType || 'room-grouped',
+            total,
+            paid,
+            bal,
+            depositAmount,
+            deposit: { amount: depositAmount, currency: base.currency || 'PHP' },
+            currency: base.currency || sorted.find(folio => folio.currency)?.currency || 'PHP',
+            out: formatDate(periodDate || base.out),
+            settlementDate: formatDate(periodDate || base.settlementDate || base.out),
+            issuedAt: periodDate || base.issuedAt || base.closedAt || '',
+            closedAt: periodDate || base.closedAt || '',
+            charges: sorted.flatMap(sourceChargeItems),
+            payments: sorted.flatMap(folio => (folio.payments || []).map(payment => ({ ...payment, sourceFolioId: folio.id }))),
+            settlementPaymentRecords: sorted.flatMap(folio => folio.settlementPaymentRecords || []),
+            serviceBreakdown,
+            serviceTypes,
+            sourceFolioIds,
+            sourceFolioCount: sourceFolioIds.length,
+            roomRevenue: Number(serviceBreakdown.room || 0),
+            ancillaryRevenue: Math.max(0, total - Number(serviceBreakdown.room || 0)),
+            settlementRoomChanges,
+            roomChangeText: roomChangeText(settlementRoomChanges),
+            isGroupedSettlement: true,
+            status: bal > 0 ? 'unpaid' : (sorted.some(folio => folio.status === 'refund') ? 'refund' : 'paid')
+        };
+    });
 }
 
 function formatDate(value) {
@@ -390,7 +598,8 @@ function invoiceDeptTitle(dept) {
         room: '객실 정산 명세서',
         pos: '통합 POS 정산 명세서',
         golf: '골프장 정산 명세서',
-        car: '렌터카 정산 명세서'
+        car: '렌터카 정산 명세서',
+        mixed: '호실 통합 정산 명세서'
     }[dept] || '정산 명세서';
 }
 
@@ -449,7 +658,7 @@ function invoiceItems(folio) {
         : [];
     if (sourceCharges.length > 1) {
         const items = sourceCharges.map(charge => ({
-            label: charge.label || folioDisplayText(charge.desc || charge.type || '정산 항목'),
+            label: `${folio.sourceFolioCount > 1 || (folio.serviceTypes || []).length > 1 ? `${deptLabel(charge.type || folio.dept)} · ` : ''}${charge.label || folioDisplayText(charge.desc || charge.type || '정산 항목')}${charge.sourceFolioId ? ` (${charge.sourceFolioId})` : ''}`,
             amount: Number(charge.amount || 0)
         }));
         const hasChangeItem = items.some(item => String(item.label || '').includes('객실 변경'));
@@ -460,6 +669,14 @@ function invoiceItems(folio) {
 
 function invoiceMetaRows(folio) {
     const out = formatDate(folio.out);
+    if (folio.sourceFolioCount > 1 || (folio.serviceTypes || []).length > 1 || folio.dept === 'mixed') {
+        return [
+            ['객실', folio.room],
+            ['포함 항목', folioServiceSummary(folio)],
+            ['체크아웃/정산일', out],
+            ['원천 Folio', (folio.sourceFolioIds || []).join(', ') || folio.id]
+        ];
+    }
     if (folio.dept === 'room') {
         return [
             ['객실', folio.room],
@@ -736,10 +953,12 @@ function periodFolios() {
     const synthetic = reservationSettlementFolios();
     const existingKeys = new Set(enriched.map(folio => folio.id));
     const existingReservationIds = new Set(enriched.map(folio => folio.reservationId).filter(Boolean));
-    return [
+    const prepared = [
         ...synthetic.filter(folio => !existingKeys.has(folio.id) && !existingReservationIds.has(folio.reservationId)),
         ...enriched
     ].map(applySettlementPaymentRecords);
+    return aggregateSettlementFolios(prepared)
+        .map(folio => folio.isGroupedSettlement ? applySettlementPaymentRecords(folio) : folio);
 }
 
 function comparePeriodFolios() {
@@ -796,6 +1015,10 @@ function mapApiFolio(item) {
     return {
         id: item.id,
         reservationId: item.reservationId || item.bookingId || item.sourceReservationId || '',
+        groupId: item.groupId || '',
+        folioType: item.folioType || '',
+        sourceReservationIds: Array.isArray(item.reservationIds) ? item.reservationIds : [],
+        sourceRoomIds: Array.isArray(item.roomIds) ? item.roomIds : [],
         room: item.groupId ? 'Master' : (item.roomNo || '-'),
         dept,
         guest: folioDisplayText(item.ownerName || item.guestName || '-'),
@@ -934,10 +1157,18 @@ function renderFolios() {
     const folios = periodFolios();
     const filtered = folios.filter(f => {
         const showUnpaidOnly = document.getElementById('chkUnpaid') ? document.getElementById('chkUnpaid').checked : false;
-        if (typeof currentDept !== 'undefined' && currentDept !== 'all' && f.dept !== currentDept) return false;
+        if (typeof currentDept !== 'undefined' && currentDept !== 'all' && !folioHasDept(f, currentDept)) return false;
         if (showUnpaidOnly && f.bal <= 0) return false;
         const changeText = String(f.roomChangeText || roomChangeText(f.settlementRoomChanges || []) || '').toLowerCase();
-        if (search && !String(f.id).toLowerCase().includes(search) && !String(f.room).toLowerCase().includes(search) && !String(f.guest).toLowerCase().includes(search) && !changeText.includes(search)) return false;
+        const haystack = [
+            f.id,
+            f.room,
+            f.guest,
+            folioServiceSummary(f),
+            ...(f.sourceFolioIds || []),
+            changeText
+        ].join(' ').toLowerCase();
+        if (search && !haystack.includes(search)) return false;
         return true;
     });
     visibleFolios = filtered;
@@ -946,15 +1177,15 @@ function renderFolios() {
     const mobile = document.getElementById('folioMobile');
 
     tbody.innerHTML = filtered.map((f, index) => {
-        const s = stMap[f.status];
+        const s = stMap[f.status] || stMap.unpaid;
         const balColor = f.bal > 0 ? 'var(--danger)' : 'var(--txt)';
         const depositAmount = folioDepositValue(f);
         return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
-            <td style="color:var(--txt2)">${f.id}</td>
+            <td style="color:var(--txt2)">${f.id}${folioSourceCountHtml(f)}</td>
             <td><strong>${f.room}</strong>${f.roomChangeText ? `<div class="folio-room-change-badge" title="${escapeHtml(f.roomChangeText)}"><i class="fa-solid fa-right-left"></i>객실변경</div>` : ''}</td>
             <td>${f.guest}</td>
             <td>${f.out}</td>
-            <td>${fmtMoney(f.total, f.currency)}</td>
+            <td class="folio-total-cell"><strong>${fmtMoney(f.total, f.currency)}</strong>${folioServiceBadgesHtml(f)}</td>
             <td>${fmtMoney(f.paid, f.currency)}</td>
             <td>${fmtMoney(depositAmount, f.currency)}</td>
             <td style="color:${balColor};font-weight:700">${fmtMoney(f.bal, f.currency)}</td>
@@ -969,12 +1200,13 @@ function renderFolios() {
     }).join('');
 
     mobile.innerHTML = filtered.map((f, index) => {
-        const s = stMap[f.status];
+        const s = stMap[f.status] || stMap.unpaid;
         const depositAmount = folioDepositValue(f);
         return `<div class="m-res-card" role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
             <div class="m-res-top">
                 <div>
                     <div style="font-size:0.7rem;color:var(--txt3);font-family:monospace">${f.id}</div>
+                    ${folioSourceCountHtml(f)}
                     <div class="m-res-name" style="margin-top:2px">${f.room} · ${f.guest}</div>
                     ${f.roomChangeText ? `<div class="folio-room-change-badge" title="${escapeHtml(f.roomChangeText)}"><i class="fa-solid fa-right-left"></i>${escapeHtml(f.roomChangeText)}</div>` : ''}
                 </div>
@@ -985,6 +1217,8 @@ function renderFolios() {
             </div>
             <div class="m-res-details">
                 <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> Check-out: ${f.out}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-layer-group"></i> ${escapeHtml(folioServiceSummary(f))}</div>
+                ${folioServiceBadgesHtml(f)}
                 <div class="m-res-detail"><i class="fa-solid fa-money-bill"></i> 총액 ${fmtMoney(f.total, f.currency)} · 결제 ${fmtMoney(f.paid, f.currency)} · 예치금 ${fmtMoney(depositAmount, f.currency)}</div>
             </div>
             <div class="m-res-actions folio-mobile-actions">
