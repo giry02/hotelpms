@@ -51,6 +51,12 @@
 .folio-service-tag i{font-size:.58rem;color:var(--primary)}
 .folio-source-count{display:inline-flex;align-items:center;margin-top:4px;font-size:.66rem;font-weight:800;color:var(--txt3)}
 .folio-table td.folio-total-cell{overflow:visible}
+.folio-group-chip{display:inline-flex;align-items:center;gap:5px;margin-top:5px;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;font-size:.66rem;font-weight:900;white-space:nowrap;max-width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis}
+.folio-group-meta{display:grid;gap:4px;margin-top:5px;color:var(--txt3);font-size:.68rem;font-weight:800;line-height:1.35}
+.folio-group-meta span{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.folio-group-meta i{width:12px;text-align:center;color:var(--primary)}
+.folio-group-manage-link{display:inline-flex;align-items:center;gap:5px;width:max-content;margin-top:2px;color:var(--primary);font-size:.68rem;font-weight:900;text-decoration:none}
+.folio-group-manage-link:hover{text-decoration:underline}
 .folio-breakdown{display:grid;gap:5px;margin-top:8px;min-width:190px}
 .folio-breakdown-row{display:grid;grid-template-columns:minmax(78px,1fr) auto;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--border2);border-radius:7px;background:#f8fafc;font-size:.68rem}
 .folio-breakdown-row.total{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;font-weight:900}
@@ -139,6 +145,7 @@
                     <button class="chip dept-chip" onclick="setDept(this,'pos')">통합 포스</button>
                     <button class="chip dept-chip" onclick="setDept(this,'golf')">골프장</button>
                     <button class="chip dept-chip" onclick="setDept(this,'car')">렌터카</button>
+                    <button class="chip dept-chip" onclick="setDept(this,'group')">단체</button>
                     
                     <button class="chip" id="btnUnpaidToggle" onclick="toggleUnpaidOnly()"><i class="fa-solid fa-exclamation-circle"></i> <span data-i18n-key="folio.filter.hasOutstanding">미수금 있음</span></button>
 <input type="checkbox" id="chkUnpaid" style="display:none;">
@@ -263,7 +270,8 @@ const foliosData = {
 const stMap = {
     'paid': { label:'정산 완료', badge:'success' },
     'unpaid': { label:'미수금 존재', badge:'warning' },
-    'refund': { label:'환불 처리', badge:'danger' }
+    'refund': { label:'환불 처리', badge:'danger' },
+    'group': { label:'단체 관리', badge:'confirmed' }
 };
 
 let currentDept = 'all';
@@ -279,6 +287,7 @@ const kpiData = {
 let apiFolios = [];
 let visibleFolios = [];
 let folioReservations = [];
+let folioGroups = [];
 let currentPaymentFolioId = '';
 let currentInvoiceIndex = -1;
 let currentInvoiceScope = 'all';
@@ -389,6 +398,82 @@ const DEPT_META = {
     mixed: { label: '호실 통합', icon: 'fa-layer-group', order: 0 }
 };
 
+function isGroupFolio(folio) {
+    return !!(folio?.groupId || folio?.folioType === 'group' || folio?.isGroupSettlement);
+}
+
+function normalizeGroup(item = {}) {
+    if (window.PmsMockApi?.toLegacyGroup) return window.PmsMockApi.toLegacyGroup(item);
+    const roomAllocations = Array.isArray(item.roomAllocations) ? item.roomAllocations : (Array.isArray(item.allocations) ? item.allocations : []);
+    const roomingList = Array.isArray(item.roomingList) ? item.roomingList : [];
+    return {
+        ...item,
+        agencyId: item.companyId || item.agencyId || '',
+        agency: item.companyName || item.agency || '',
+        checkin: item.checkInDate || item.checkin || '',
+        checkout: item.checkOutDate || item.checkout || '',
+        block: item.blockedRooms || roomAllocations.length || item.block || 0,
+        pickup: item.pickedUpRooms || roomingList.length || item.pickup || 0,
+        routing: item.routing || 'Master Folio',
+        sales: item.salesManagerName || item.sales || '',
+        roomAllocations,
+        allocations: roomAllocations,
+        roomingList
+    };
+}
+
+function groupById(groupId) {
+    return folioGroups.find(group => group.id === groupId);
+}
+
+function groupRooms(group = {}) {
+    const source = Array.isArray(group.roomAllocations) && group.roomAllocations.length
+        ? group.roomAllocations
+        : (Array.isArray(group.allocations) ? group.allocations : []);
+    if (source.length) {
+        return source.map(item => item.roomNo || item.room || item.roomId || item.roomLabel || item.id).filter(Boolean);
+    }
+    return Array.isArray(group.roomIds) ? group.roomIds : [];
+}
+
+function groupGuestCount(group = {}) {
+    const rooming = Array.isArray(group.roomingList) ? group.roomingList.length : 0;
+    return Number(group.pickup || group.pickedUpRooms || rooming || 0);
+}
+
+function groupStatusText(group = {}) {
+    const status = String(group.status || '').toLowerCase().replace(/[_\s]/g, '-');
+    if (status === 'inhouse' || status === 'in-house') return '투숙 중';
+    if (status === 'departed' || status === 'checked-out') return '체크아웃';
+    if (status === 'confirmed') return '예약 확정';
+    if (status === 'pending') return '대기';
+    return group.status || '단체';
+}
+
+function folioGroupBadgeHtml(folio) {
+    if (!isGroupFolio(folio)) return '';
+    const group = folio.group || groupById(folio.groupId) || {};
+    const label = groupStatusText(group);
+    return `<div class="folio-group-chip" title="${escapeHtml(group.name || folio.guest || '단체')}"><i class="fa-solid fa-people-group"></i>${escapeHtml(label)}</div>`;
+}
+
+function folioGroupMetaHtml(folio) {
+    if (!isGroupFolio(folio)) return '';
+    const group = folio.group || groupById(folio.groupId) || {};
+    const rooms = groupRooms(group);
+    const block = Number(group.block || group.blockedRooms || rooms.length || 0);
+    const pickup = groupGuestCount(group);
+    const pax = Number(group.pax || 0);
+    const company = group.agency || group.companyName || folio.companyName || '-';
+    const routing = group.routing || folio.routing || 'Master Folio';
+    return `<div class="folio-group-meta">
+        <span><i class="fa-solid fa-building"></i>${escapeHtml(company)}</span>
+        <span><i class="fa-solid fa-door-open"></i>블록 ${block} · 픽업 ${pickup}${pax ? ` · PAX ${pax}` : ''}</span>
+        <span><i class="fa-solid fa-file-invoice-dollar"></i>${escapeHtml(routing)}</span>
+        ${folio.groupId ? `<a class="folio-group-manage-link" href="../frontdesk/groups_block_detail.html?id=${encodeURIComponent(folio.groupId)}" onclick="event.stopPropagation()"><i class="fa-solid fa-arrow-up-right-from-square"></i>단체 상세 관리</a>` : ''}
+    </div>`;
+}
+
 function deptLabel(type) {
     return DEPT_META[normalizeDept(type)]?.label || '기타';
 }
@@ -442,6 +527,7 @@ function folioServiceSummary(folio) {
 
 function folioHasDept(folio, dept) {
     if (dept === 'all') return true;
+    if (dept === 'group') return isGroupFolio(folio);
     return folioServiceTypes(folio).includes(normalizeDept(dept));
 }
 
@@ -649,6 +735,11 @@ function invoiceDeptTitle(dept) {
     }[dept] || '정산 명세서';
 }
 
+function invoiceTitleForFolio(folio) {
+    if (isGroupFolio(folio) && (!folio.invoiceScope || folio.invoiceScope === 'all')) return '단체 통합 정산 명세서';
+    return invoiceDeptTitle(folio.dept);
+}
+
 function invoiceScopeLabel(scope) {
     return scope === 'all' ? '통합 명세서' : `${deptLabel(scope)} 명세서`;
 }
@@ -808,6 +899,24 @@ function invoiceItemsHtml(folio, currency) {
 
 function invoiceMetaRows(folio) {
     const out = formatDate(folio.out);
+    if (isGroupFolio(folio)) {
+        const group = folio.group || groupById(folio.groupId) || {};
+        const rooms = groupRooms(group);
+        const block = Number(group.block || group.blockedRooms || rooms.length || 0);
+        const pickup = groupGuestCount(group);
+        const pax = Number(group.pax || 0);
+        const rows = [
+            ['단체명', group.name || folio.guest || '-'],
+            ['업체', group.agency || group.companyName || folio.companyName || '-'],
+            ['행사 기간', folio.groupPeriodText || `${formatDate(group.checkin || group.checkInDate)} ~ ${formatDate(group.checkout || group.checkOutDate)}`],
+            ['객실 블록', `블록 ${block} · 픽업 ${pickup}${pax ? ` · PAX ${pax}` : ''}`],
+            ['정산 방식', group.routing || folio.routing || 'Master Folio'],
+            ['포함 항목', folioServiceSummary(folio)],
+            ['정산일', out]
+        ];
+        if ((folio.sourceFolioIds || []).length) rows.push(['원천 Folio', (folio.sourceFolioIds || []).join(', ')]);
+        return rows;
+    }
     if (folio.sourceFolioCount > 1 || (folio.serviceTypes || []).length > 1 || folio.dept === 'mixed') {
         return [
             ['객실', folio.room],
@@ -1021,6 +1130,90 @@ function enrichFolioWithReservation(folio) {
     };
 }
 
+function enrichFolioWithGroup(folio) {
+    if (!isGroupFolio(folio)) return folio;
+    const group = groupById(folio.groupId);
+    if (!group) return {
+        ...folio,
+        room: folio.room === 'Master' ? '단체' : folio.room,
+        isGroupSettlement: true
+    };
+    const rooms = groupRooms(group);
+    const checkin = group.checkin || group.checkInDate || '';
+    const checkout = group.checkout || group.checkOutDate || '';
+    return {
+        ...folio,
+        group,
+        isGroupSettlement: true,
+        companyName: group.agency || group.companyName || '',
+        groupName: group.name || folio.guest || '',
+        guest: group.name || folio.guest,
+        room: '단체',
+        out: checkout ? formatDate(checkout) : folio.out,
+        settlementDate: checkout ? formatDate(checkout) : folio.settlementDate,
+        groupPeriodText: `${formatDate(checkin)} ~ ${formatDate(checkout)}`,
+        groupRoomsText: rooms.slice(0, 4).join(', ') + (rooms.length > 4 ? ` 외 ${rooms.length - 4}` : ''),
+        routing: group.routing || folio.routing || 'Master Folio',
+        status: Number(folio.bal || 0) > 0 ? 'unpaid' : (folio.status || 'group')
+    };
+}
+
+function groupEstimatedTotal(group) {
+    const rooms = Array.isArray(group.roomAllocations) && group.roomAllocations.length
+        ? group.roomAllocations
+        : (Array.isArray(group.allocations) ? group.allocations : []);
+    const nights = Math.max(1, Math.round(((dateOnly(group.checkout || group.checkOutDate) || dateOnly(group.checkin || group.checkInDate) || new Date()) - (dateOnly(group.checkin || group.checkInDate) || new Date())) / 86400000) || 1);
+    return rooms.reduce((sum, room) => {
+        const finalRate = apiAmount(room.finalRate ?? room.rate ?? room.baseRate ?? 0);
+        return sum + (finalRate * nights);
+    }, 0);
+}
+
+function groupToSettlementFolio(group) {
+    const total = groupEstimatedTotal(group);
+    const checkout = group.checkout || group.checkOutDate || '';
+    return {
+        id: `FOL-${group.id}`,
+        folioId: `FOL-${group.id}`,
+        groupId: group.id,
+        folioType: 'group',
+        isGroupSettlement: true,
+        group,
+        room: '단체',
+        dept: 'mixed',
+        guest: group.name || group.id,
+        companyName: group.agency || group.companyName || '',
+        out: formatDate(checkout),
+        settlementDate: formatDate(checkout),
+        total,
+        paid: 0,
+        depositAmount: 0,
+        deposit: { amount: 0, currency: group.currency || localStorage.getItem('pms_default_currency') || 'PHP' },
+        bal: total,
+        currency: group.currency || localStorage.getItem('pms_default_currency') || 'PHP',
+        issuedAt: group.updatedAt || group.createdAt || '',
+        closedAt: checkout,
+        charges: total ? [{ type: 'room', label: '단체 객실 예상 정산', amount: total }] : [],
+        payments: [],
+        roomRevenue: total,
+        ancillaryRevenue: 0,
+        sourceFolioIds: [],
+        sourceFolioCount: 0,
+        groupPeriodText: `${formatDate(group.checkin || group.checkInDate)} ~ ${formatDate(checkout)}`,
+        groupRoomsText: groupRooms(group).join(', '),
+        routing: group.routing || 'Master Folio',
+        status: total > 0 ? 'unpaid' : 'group'
+    };
+}
+
+function groupSettlementFolios(existingFolios) {
+    const linkedGroupIds = new Set(existingFolios.map(folio => folio.groupId).filter(Boolean));
+    return folioGroups
+        .filter(group => periodMatchesGroup(group))
+        .filter(group => !linkedGroupIds.has(group.id))
+        .map(groupToSettlementFolio);
+}
+
 function reservationSettlementFolios() {
     const linkedIds = new Set(apiFolios.map(folio => folio.reservationId).filter(Boolean));
     return folioReservations
@@ -1045,6 +1238,51 @@ function selectedNumber(id, fallback) {
 }
 
 const CURRENT_FOLIO_PERIOD = { year: 2026, month: 6, week: 2, day: 10 };
+
+function dateOnly(value) {
+    const match = String(value || '').match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return null;
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+function formatDateObject(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function selectedPeriodRange() {
+    const year = selectedNumber('selYear', CURRENT_FOLIO_PERIOD.year);
+    const month = selectedNumber('selMonth', CURRENT_FOLIO_PERIOD.month);
+    const week = selectedNumber('selWeek', CURRENT_FOLIO_PERIOD.week);
+    if (currentPeriod === 'year') {
+        return { start: new Date(year, 0, 1), end: new Date(year, 11, 31) };
+    }
+    if (currentPeriod === 'month') {
+        return { start: new Date(year, month - 1, 1), end: new Date(year, month, 0) };
+    }
+    if (currentPeriod === 'week') {
+        const start = new Date(year, month - 1, 1 + ((week - 1) * 7));
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        const monthEnd = new Date(year, month, 0);
+        return { start, end: end > monthEnd ? monthEnd : end };
+    }
+    const day = new Date(CURRENT_FOLIO_PERIOD.year, CURRENT_FOLIO_PERIOD.month - 1, CURRENT_FOLIO_PERIOD.day);
+    return { start: day, end: day };
+}
+
+function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+    if (!aStart || !bStart || !bEnd) return false;
+    const safeAEnd = aEnd || aStart;
+    return aStart <= bEnd && safeAEnd >= bStart;
+}
+
+function periodMatchesGroup(group) {
+    if (!group) return false;
+    const start = dateOnly(group.checkin || group.checkInDate);
+    const end = dateOnly(group.checkout || group.checkOutDate) || start;
+    const range = selectedPeriodRange();
+    return rangesOverlap(start, end, range.start, range.end);
+}
 
 function setSelectByNumber(id, number) {
     const el = document.getElementById(id);
@@ -1075,6 +1313,10 @@ function folioWeekOfMonth(folio) {
 }
 
 function periodMatchesFolio(folio) {
+    if (isGroupFolio(folio)) {
+        const group = groupById(folio.groupId);
+        if (group && periodMatchesGroup(group)) return true;
+    }
     const parts = folioDateParts(folio);
     const year = selectedNumber('selYear', 2026);
     const month = selectedNumber('selMonth', 6);
@@ -1088,7 +1330,7 @@ function periodMatchesFolio(folio) {
 function periodFolios() {
     const source = apiFolios.length ? apiFolios : (foliosData[currentPeriod] || []);
     const rows = apiFolios.length ? source.filter(periodMatchesFolio) : source;
-    const enriched = rows.map(enrichFolioWithReservation);
+    const enriched = rows.map(enrichFolioWithReservation).map(enrichFolioWithGroup);
     const synthetic = reservationSettlementFolios();
     const existingKeys = new Set(enriched.map(folio => folio.id));
     const existingReservationIds = new Set(enriched.map(folio => folio.reservationId).filter(Boolean));
@@ -1096,7 +1338,8 @@ function periodFolios() {
         ...synthetic.filter(folio => !existingKeys.has(folio.id) && !existingReservationIds.has(folio.reservationId)),
         ...enriched
     ].map(applySettlementPaymentRecords);
-    return aggregateSettlementFolios(prepared)
+    const groupSynthetic = groupSettlementFolios(prepared);
+    return aggregateSettlementFolios([...groupSynthetic, ...prepared])
         .map(folio => folio.isGroupedSettlement ? applySettlementPaymentRecords(folio) : folio);
 }
 
@@ -1156,10 +1399,12 @@ function mapApiFolio(item) {
         folioId: item.folioId || item.id,
         reservationId: item.reservationId || item.bookingId || item.sourceReservationId || '',
         groupId: item.groupId || '',
+        companyId: item.companyId || '',
+        companyName: item.companyName || '',
         folioType: item.folioType || '',
         sourceReservationIds: Array.isArray(item.reservationIds) ? item.reservationIds : [],
         sourceRoomIds: Array.isArray(item.roomIds) ? item.roomIds : [],
-        room: item.groupId ? 'Master' : (item.roomNo || '-'),
+        room: item.groupId ? '단체' : (item.roomNo || '-'),
         dept,
         guest: folioDisplayText(item.ownerName || item.guestName || '-'),
         out: closedAt ? closedAt.slice(0, 10) : '-',
@@ -1247,6 +1492,32 @@ async function loadReservationSettlementLinks() {
     renderFolios();
 }
 
+async function loadGroupSettlementLinks() {
+    const merged = new Map();
+    try {
+        JSON.parse(localStorage.getItem('pms_groups') || '[]').forEach(group => {
+            if (group?.id) merged.set(group.id, normalizeGroup(group));
+        });
+    } catch(e) {}
+    try {
+        if (window.PmsMockApi) {
+            const env = await window.PmsMockApi.request('GET', '/groups/events');
+            const items = window.PmsMockApi.items ? window.PmsMockApi.items(env) : env?.data?.items;
+            if (Array.isArray(items)) {
+                items.forEach(item => {
+                    const legacy = normalizeGroup(item);
+                    if (legacy?.id) merged.set(legacy.id, { ...merged.get(legacy.id), ...legacy });
+                });
+            }
+        }
+    } catch(e) {
+        console.warn('Group settlement link fallback', e);
+    }
+    folioGroups = [...merged.values()];
+    updateApiKpis();
+    renderFolios();
+}
+
 function setKpiPeriod(btn, period) {
     currentPeriod = period;
     clearUnpaidFilter();
@@ -1304,6 +1575,11 @@ function renderFolios() {
             f.id,
             f.room,
             f.guest,
+            f.groupName,
+            f.companyName,
+            f.group?.agency,
+            f.group?.routing,
+            f.groupRoomsText,
             folioServiceSummary(f),
             ...(f.sourceFolioIds || []),
             changeText
@@ -1322,8 +1598,8 @@ function renderFolios() {
         const depositAmount = folioDepositValue(f);
         return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
             <td style="color:var(--txt2)">${f.id}${folioSourceCountHtml(f)}</td>
-            <td class="folio-room-cell"><div><strong>${f.room}</strong></div>${folioRoomChangeBadgeHtml(f)}</td>
-            <td>${f.guest}</td>
+            <td class="folio-room-cell"><div><strong>${f.room}</strong></div>${folioGroupBadgeHtml(f)}${folioRoomChangeBadgeHtml(f)}</td>
+            <td>${escapeHtml(f.guest)}${folioGroupMetaHtml(f)}</td>
             <td>${f.out}</td>
             <td class="folio-total-cell"><strong>합산 ${fmtMoney(f.total, f.currency)}</strong>${folioBreakdownHtml(f)}</td>
             <td>${fmtMoney(f.paid, f.currency)}</td>
@@ -1348,6 +1624,8 @@ function renderFolios() {
                     <div style="font-size:0.7rem;color:var(--txt3);font-family:monospace">${f.id}</div>
                     ${folioSourceCountHtml(f)}
                     <div class="m-res-name" style="margin-top:2px">${f.room} · ${f.guest}</div>
+                    ${folioGroupBadgeHtml(f)}
+                    ${folioGroupMetaHtml(f)}
                     ${folioRoomChangeBadgeHtml(f)}
                 </div>
                 <div style="text-align:right">
@@ -1381,6 +1659,7 @@ function setDept(btn, dept) {
 renderFolios();
 loadApiFolios();
 loadReservationSettlementLinks();
+loadGroupSettlementLinks();
 const urlParams = new URLSearchParams(window.location.search);
 const pDept = urlParams.get('dept');
 if (pDept) {
@@ -1460,6 +1739,7 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
     stMap['paid'].label = l==='en'?'Paid':'정산 완료';
     stMap['unpaid'].label = l==='en'?'Unpaid Bal':'미수금 존재';
     stMap['refund'].label = l==='en'?'Refunded':'환불 처리';
+    stMap['group'].label = l==='en'?'Group Mgmt':'단체 관리';
     renderFolios();
 }
 // 모달 기능
@@ -1492,7 +1772,7 @@ function renderInvoiceModal() {
         ` : '';
     content.innerHTML = `
         ${invoiceScopeTabsHtml(folio, currentInvoiceScope)}
-        <div class="invoice-title" style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${escapeHtml(invoiceDeptTitle(scopedFolio.dept))}</div>
+        <div class="invoice-title" style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${escapeHtml(invoiceTitleForFolio(scopedFolio))}</div>
         <div class="invoice-subtitle">${escapeHtml(scopedFolio.invoiceScopeLabel || invoiceScopeLabel(currentInvoiceScope))}</div>
         <div>정산 번호: ${escapeHtml(scopedFolio.id)}</div>
         <div>고객명: ${escapeHtml(scopedFolio.guest)}</div>
