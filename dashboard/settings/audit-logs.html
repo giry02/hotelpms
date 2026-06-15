@@ -171,7 +171,11 @@ const ACTION_META = {
     'reservation.prepayment.adjust': { label: '체크인 후 선결제 정정', type: 'reservation', icon: 'fa-money-check-dollar' },
     'reservation.room.move': { label: '체크인 후 객실 이동', type: 'reservation', icon: 'fa-right-left' },
     'guest.search_results.view': { label: '고객 검색 결과 열람', type: 'search', icon: 'fa-magnifying-glass' },
-    'guest.search_selection.view': { label: '고객 검색 선택', type: 'search', icon: 'fa-user-check' }
+    'guest.search_selection.view': { label: '고객 검색 선택', type: 'search', icon: 'fa-user-check' },
+    'guest.blacklist.change': { label: '블랙리스트 변경', type: 'other', icon: 'fa-user-slash' },
+    'room.cleaning.status': { label: '객실 청소 상태 변경', type: 'other', icon: 'fa-broom' },
+    'folio.payment.complete': { label: '정산 수납 완료', type: 'other', icon: 'fa-cash-register' },
+    'night.audit.cash.handover': { label: '시재 인수인계', type: 'other', icon: 'fa-money-bill-transfer' }
 };
 
 const FIELD_LABELS = {
@@ -192,8 +196,146 @@ const FIELD_LABELS = {
     channel: '유입/업체',
     group: '단체',
     dates: '투숙일',
-    totalAmount: '총 금액'
+    totalAmount: '총 금액',
+    roomMoveHistory: '객실 이동 이력',
+    blacklistReason: '블랙리스트 사유',
+    cleaningStatus: '청소 상태',
+    payment: '수납',
+    cashCount: '시재'
 };
+
+const AUDIT_DEMO_STORAGE_KEY = 'pms_audit_demo_seed_v2';
+const AUDIT_DEMO_ACTORS = {
+    admin: { id: 's1', name: 'Nguyen Kim', role: 'sys_admin', roleLabel: 'Admin' },
+    desk: { id: 's3', name: 'Sarah Connor', role: 'sys_desk', roleLabel: 'Front Desk' },
+    gm: { id: 's2', name: 'Robert Ford', role: 'sys_gm', roleLabel: 'General Manager' },
+    hk: { id: 's5', name: 'Maria Garcia', role: 'sys_housekeeping', roleLabel: 'Housekeeping' }
+};
+
+function auditDemoCreatedAt(index) {
+    const base = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    base.setHours(15, 45, 0, 0);
+    base.setMinutes(base.getMinutes() - index * 9);
+    return base.toISOString();
+}
+
+function auditDemoEntries() {
+    const rows = [
+        {
+            action: 'reservation.create',
+            actor: AUDIT_DEMO_ACTORS.desk,
+            page: '/dashboard/frontdesk/reservation-list.html',
+            details: { screen: 'reservation-list', reservationId: 'RSV-260615-1205', guestName: 'Wong Li', room: '1205', checkin: '2026-06-15', checkout: '2026-06-16', fields: ['reservationId', 'guestName', 'room', 'stayDates', 'amount'], amount: 140, currency: 'PHP' }
+        },
+        {
+            action: 'reservation.update',
+            actor: AUDIT_DEMO_ACTORS.desk,
+            page: '/dashboard/frontdesk/reservation-list.html',
+            details: { screen: 'reservation-list', reservationId: 'RSV-260615-1203', guestName: 'Wong Li', fields: ['stayDates', 'operationalNotes'], changes: [{ field: 'checkout', label: '체크아웃', before: '2026-06-16', after: '2026-06-17' }, { field: 'operationalNotes', label: '운영 메모', before: '-', after: '레이트 요청' }] }
+        },
+        {
+            action: 'reservation.cancel',
+            actor: AUDIT_DEMO_ACTORS.gm,
+            page: '/dashboard/frontdesk/reservation-list.html',
+            details: { screen: 'reservation-list', reservationId: 'RSV-260615-0902', guestName: 'No Show Guest', beforeStatus: 'confirmed', afterStatus: 'cancelled', fields: ['status'] }
+        },
+        {
+            action: 'reservation.guests.adjust',
+            actor: AUDIT_DEMO_ACTORS.desk,
+            page: '/dashboard/frontdesk/reservation-timeline.html',
+            details: { screen: 'reservation-timeline', reservationId: 'RSV-GRP-260527-01-1401', guestName: 'Alexander Kim', beforeGuest: 'Alexander Kim', afterGuest: 'Alexander Kim', afterCompanions: ['Park Minjae', 'Test Companion Three'], fields: ['guestName', 'companionGuestNames'] }
+        },
+        {
+            action: 'reservation.amount.adjust',
+            actor: AUDIT_DEMO_ACTORS.admin,
+            page: '/dashboard/frontdesk/reservation-list.html',
+            details: { screen: 'reservation-list', reservationId: 'RSV-260615-1202', guestName: 'Sarah Connor', beforeAmount: 280, afterAmount: 300, currency: 'PHP', balanceDue: 300, fields: ['amount'] }
+        },
+        {
+            action: 'reservation.prepayment.adjust',
+            actor: AUDIT_DEMO_ACTORS.admin,
+            page: '/dashboard/frontdesk/reservation-list.html',
+            details: { screen: 'reservation-list', reservationId: 'RSV-260615-1202', guestName: 'Sarah Connor', beforePrepaid: 0, afterPrepaid: 100, currency: 'PHP', balanceDue: 200, fields: ['prepayment'] }
+        },
+        {
+            action: 'reservation.room.move',
+            actor: AUDIT_DEMO_ACTORS.desk,
+            page: '/dashboard/frontdesk/reservation-board.html',
+            details: { screen: 'reservation-board', reservationId: 'RSV-260615-1202', guestName: 'Sarah Connor', fromRoom: '1001', toRoom: '1202', fields: ['room', 'roomMoveHistory'] }
+        },
+        {
+            action: 'guest.detail.view',
+            actor: AUDIT_DEMO_ACTORS.desk,
+            page: '/dashboard/crm/guests.html',
+            details: { screen: 'guest-crm', guestId: 'G-0016', guestName: 'Rodriguez Van', fields: ['phone', 'email', 'specialNotes'] }
+        },
+        {
+            action: 'reservation.guest_detail.view',
+            actor: AUDIT_DEMO_ACTORS.admin,
+            page: '/dashboard/frontdesk/reservation-list.html',
+            details: { screen: 'reservation-list', reservationId: 'RSV-260614-1401', guestId: 'G-0201', guestName: 'Alexander Kim', fields: ['phone', 'email', 'specialNotes'] }
+        },
+        {
+            action: 'room.stay_info.view',
+            actor: AUDIT_DEMO_ACTORS.desk,
+            page: '/dashboard/operations/rooms.html',
+            details: { screen: 'rooms', reservationId: 'RSV-260615-1203', guestName: 'Wong Li', room: '1203', fields: ['guestName', 'companionGuestNames', 'stayDates', 'stayTimes', 'amount'] }
+        },
+        {
+            action: 'guest.export.download',
+            actor: AUDIT_DEMO_ACTORS.admin,
+            page: '/dashboard/crm/guests.html',
+            details: { screen: 'guest-crm', exportType: 'guest-xlsx', resultCount: 42, filters: { queryApplied: true }, fields: ['guestProfile', 'stayHistory'] }
+        },
+        {
+            action: 'reservation.export.download',
+            actor: AUDIT_DEMO_ACTORS.desk,
+            page: '/dashboard/frontdesk/reservation-list.html',
+            details: { screen: 'reservation-list', exportType: 'reservation-xlsx', resultCount: 38, filters: { queryApplied: true }, fields: ['reservationId', 'guestName', 'room', 'stayDates', 'amount'] }
+        },
+        {
+            action: 'guest.search_results.view',
+            actor: AUDIT_DEMO_ACTORS.desk,
+            page: '/dashboard/common/js/guest-search.js',
+            details: { screen: 'guest-crm', guestName: 'Park', resultCount: 3, filters: { queryApplied: true }, fields: ['guestName', 'phone'] }
+        },
+        {
+            action: 'guest.search_selection.view',
+            actor: AUDIT_DEMO_ACTORS.desk,
+            page: '/dashboard/common/js/guest-search.js',
+            details: { screen: 'reservation-list', guestId: 'G-0104', guestName: 'Park Minjae', reservationId: 'RSV-GRP-260527-01-1401', fields: ['guestName', 'phone', 'email'] }
+        },
+        {
+            action: 'guest.blacklist.change',
+            actor: AUDIT_DEMO_ACTORS.gm,
+            page: '/dashboard/crm/guests.html',
+            details: { screen: 'guest-crm', guestId: 'G-0099', guestName: 'Late Damage Guest', beforeStatus: 'normal', afterStatus: 'blacklisted', fields: ['blacklistReason', 'status'], changes: [{ field: 'blacklistReason', label: '블랙리스트 사유', before: '-', after: '객실 파손 및 미수금 발생' }] }
+        },
+        {
+            action: 'room.cleaning.status',
+            actor: AUDIT_DEMO_ACTORS.hk,
+            page: '/dashboard/frontdesk/reservation-list.html',
+            details: { screen: 'reservation-list', reservationId: 'RSV-260615-1203', guestName: 'Wong Li', room: '1203', status: '재실 · 청소완료', fields: ['room', 'cleaningStatus'] }
+        },
+        {
+            action: 'folio.payment.complete',
+            actor: AUDIT_DEMO_ACTORS.admin,
+            page: '/dashboard/operations/folio.html',
+            details: { screen: 'folio', reservationId: 'FOL-1001', guestName: 'Samsung Tech Conference 2026', amount: 867, currency: 'PHP', fields: ['payment', 'amount'] }
+        },
+        {
+            action: 'night.audit.cash.handover',
+            actor: AUDIT_DEMO_ACTORS.admin,
+            page: '/dashboard/operations/night-audit.html',
+            details: { screen: 'night-audit', amount: 12500, currency: 'PHP', fields: ['cashCount'], status: '시작 시재 등록' }
+        }
+    ];
+    return rows.map((entry, index) => ({
+        id: `AUD-DEMO-${entry.action.replace(/[^a-z0-9]+/gi, '-')}`,
+        createdAt: auditDemoCreatedAt(index),
+        ...entry
+    }));
+}
 
 function escapeAudit(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -220,6 +362,21 @@ function readAuditLogs() {
     return window.PmsPrivacyAudit ? window.PmsPrivacyAudit.list() : [];
 }
 
+function ensureAuditDemoLogs() {
+    if (!window.PmsPrivacyAudit) return;
+    const storageKey = window.PmsPrivacyAudit.storageKey || 'pms_privacy_audit_logs';
+    const logs = readAuditLogs();
+    const existingActions = new Set(logs.map(entry => entry.action));
+    const existingIds = new Set(logs.map(entry => entry.id));
+    const missing = auditDemoEntries().filter(entry => !existingActions.has(entry.action) && !existingIds.has(entry.id));
+    if (!missing.length) {
+        localStorage.setItem(AUDIT_DEMO_STORAGE_KEY, 'seeded');
+        return;
+    }
+    localStorage.setItem(storageKey, JSON.stringify([...logs, ...missing].slice(-500)));
+    localStorage.setItem(AUDIT_DEMO_STORAGE_KEY, 'seeded');
+}
+
 function actionMeta(action) {
     return ACTION_META[action] || { label: action || '기타 동작', type: 'other', icon: 'fa-circle-info' };
 }
@@ -231,6 +388,8 @@ function screenLabel(screen) {
     if (value.includes('reservation-board')) return '예약 현황';
     if (value.includes('crm') || value === 'guest-crm') return '투숙객 관리';
     if (value.includes('rooms')) return '객실 관리';
+    if (value.includes('folio')) return '통합 정산';
+    if (value.includes('night-audit')) return '마감 정산';
     return value || '-';
 }
 
@@ -328,6 +487,7 @@ function sortAuditLogs(logs) {
 
 function renderAuditLogs() {
     if (!ensureAdminAccess()) return;
+    ensureAuditDemoLogs();
     const logs = readAuditLogs();
     const rows = sortAuditLogs(filteredLogs(logs));
     const body = document.getElementById('auditBody');
