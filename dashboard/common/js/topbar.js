@@ -2,21 +2,32 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
 
 (function() {
     window.PmsDate = window.PmsDate || (function() {
-        const DEMO_ISO_DATE = '2026-06-10';
-        function fromIso(isoDate) {
-            const [year, month, day] = String(isoDate || DEMO_ISO_DATE).slice(0, 10).split('-').map(Number);
+        function todayIsoDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function fromCurrentIso(isoDate) {
+            const [year, month, day] = String(isoDate || todayIsoDate()).slice(0, 10).split('-').map(Number);
             const date = new Date(year, month - 1, day);
             date.setHours(0, 0, 0, 0);
             return date;
         }
+
+        function fromIso(isoDate) {
+            return fromCurrentIso(isoDate || todayIsoDate());
+        }
         function now() {
             const clock = new Date();
-            const date = fromIso(DEMO_ISO_DATE);
+            const date = fromIso(todayIsoDate());
             date.setHours(clock.getHours(), clock.getMinutes(), clock.getSeconds(), clock.getMilliseconds());
             return date;
         }
         function localIso(date) {
-            if (!date) return DEMO_ISO_DATE;
+            if (!date) return todayIsoDate();
             const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
             return shifted.toISOString().slice(0, 10);
         }
@@ -25,9 +36,9 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
         }
         function nowIso() {
             const clock = new Date();
-            return `${DEMO_ISO_DATE}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}+09:00`;
+            return `${todayIsoDate()}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}+09:00`;
         }
-        return { demoIsoDate: DEMO_ISO_DATE, todayIso: () => DEMO_ISO_DATE, today: () => fromIso(DEMO_ISO_DATE), now, nowIso, localIso };
+        return { demoIsoDate: todayIsoDate(), todayIso: todayIsoDate, today: () => fromCurrentIso(todayIsoDate()), now, nowIso, localIso };
     })();
 
     const pathParts = window.location.pathname.split('/').filter(Boolean);

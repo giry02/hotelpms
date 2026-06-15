@@ -95,12 +95,25 @@ Object.assign(window.PmsAPI, {
         try { rooms = await window.PmsAPI.getAllRooms(); } catch(e) {}
         
         let modified = false;
-        const epoch = new Date(2026, 4, 12);
+        const epoch = (() => {
+            const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+            today.setHours(0, 0, 0, 0);
+            return today;
+        })();
+        const epochYear = epoch.getFullYear();
         const toDate = (value) => {
             if (!value) return null;
-            if (value.includes('-')) return new Date(value);
-            const parts = value.split('/');
-            return new Date(2026, parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
+            const text = String(value).trim();
+            if (text.includes('/')) {
+                const parts = text.split('/');
+                if (parts.length !== 2) return null;
+                return new Date(epochYear, parseInt(parts[0], 10) - 1, parseInt(parts[1], 10));
+            }
+            const date = new Date(text);
+            if (Number.isNaN(date.getTime())) return null;
+            date.setHours(0, 0, 0, 0);
+            date.setFullYear(epochYear);
+            return date;
         };
         const fmt = (date) => `${date.getMonth()+1}/${date.getDate()}`;
         const roomId = (room) => room.id || room.roomId || room.fullRoom || room.display || room.number || '';
@@ -342,19 +355,18 @@ Object.assign(window.PmsAPI, {
                         if (allocated >= needed) break;
                         if (existing.some(r => r.room === rm.id)) continue;
                         
-                        const epo = new Date(2026, 4, 12);
-                        const cin = new Date(g.checkin);
-                        const cout = new Date(g.checkout);
+                        const epo = epoch;
+                        const cin = toDate(g.checkin);
+                        const cout = toDate(g.checkout);
+                        if (!cin || !cout) continue;
                         
                         // Check if room is already occupied for these dates
                         const hasConflict = reservations.some(r => {
                             if (r.room !== rm.id) return false;
                             try {
-                                const rCinParts = r.cin.split('/');
-                                const rCoutParts = r.cout.split('/');
-                                // Assume year is 2026 for mock data
-                                const rCin = new Date(2026, parseInt(rCinParts[0]) - 1, parseInt(rCinParts[1]));
-                                const rCout = new Date(2026, parseInt(rCoutParts[0]) - 1, parseInt(rCoutParts[1]));
+                                const rCin = toDate(r.cin);
+                                const rCout = toDate(r.cout);
+                                if (!rCin || !rCout) return false;
                                 return (cin < rCout && cout > rCin);
                             } catch(e) { return false; }
                         });

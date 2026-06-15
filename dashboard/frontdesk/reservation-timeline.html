@@ -206,7 +206,6 @@ let rooms = [];
 window.reservations = [];
 
 const DAYS = 14;
-const EPOCH = new Date(2026, 4, 12); // Base reference date
 function timelineTodayDate() {
     const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
     date.setHours(0, 0, 0, 0);
@@ -214,6 +213,7 @@ function timelineTodayDate() {
 }
 let baseDate = timelineTodayDate();
 baseDate.setHours(0,0,0,0);
+const EPOCH = timelineTodayDate();
 
 const TL_TEXT = {
     ko: {
@@ -719,10 +719,9 @@ function buildTimeline() {
         let renderStart, renderEnd;
         if (res.cin && res.cout) {
             try {
-                const cinParts = res.cin.split('/');
-                const coutParts = res.cout.split('/');
-                const rCinDate = new Date(2026, parseInt(cinParts[0])-1, parseInt(cinParts[1]));
-                const rCoutDate = new Date(2026, parseInt(coutParts[0])-1, parseInt(coutParts[1]));
+                const rCinDate = parseTimelineDate(res.cin);
+                const rCoutDate = parseTimelineDate(res.cout);
+                if (!rCinDate || !rCoutDate) throw new Error('invalid timeline dates');
                 renderStart = Math.round((rCinDate - baseDate) / 86400000);
                 renderEnd = Math.round((rCoutDate - baseDate) / 86400000);
             } catch(e) {
@@ -857,11 +856,9 @@ function goToday() {
 function reservationWindow(res) {
     if (res.cin && res.cout) {
         try {
-            const cinParts = res.cin.split('/');
-            const coutParts = res.cout.split('/');
             return {
-                start: new Date(2026, parseInt(cinParts[0], 10) - 1, parseInt(cinParts[1], 10)),
-                end: new Date(2026, parseInt(coutParts[0], 10) - 1, parseInt(coutParts[1], 10))
+                start: parseTimelineDate(res.cin),
+                end: parseTimelineDate(res.cout)
             };
         } catch(e) {}
     }
@@ -935,10 +932,9 @@ function buildMobileView() {
             let renderStart, renderEnd;
             if (r.cin && r.cout) {
                 try {
-                    const cinParts = r.cin.split('/');
-                    const coutParts = r.cout.split('/');
-                    const rCinDate = new Date(2026, parseInt(cinParts[0])-1, parseInt(cinParts[1]));
-                    const rCoutDate = new Date(2026, parseInt(coutParts[0])-1, parseInt(coutParts[1]));
+                    const rCinDate = parseTimelineDate(r.cin);
+                    const rCoutDate = parseTimelineDate(r.cout);
+                    if (!rCinDate || !rCoutDate) throw new Error('invalid timeline dates');
                     renderStart = Math.round((rCinDate - baseDate) / 86400000);
                     renderEnd = Math.round((rCoutDate - baseDate) / 86400000);
                 } catch(e) {

@@ -1,25 +1,36 @@
 // api-core.js
-const API_VERSION = 'v2.6'; // Bumped to refresh Wednesday demo date data
+const API_VERSION = 'v2.6';
 
 window.PmsDate = window.PmsDate || (function() {
-    const DEMO_ISO_DATE = '2026-06-10';
+    function todayIsoDate() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
-    function fromIso(isoDate) {
-        const [year, month, day] = String(isoDate || DEMO_ISO_DATE).slice(0, 10).split('-').map(Number);
+    function fromCurrentIso(isoDate) {
+        const [year, month, day] = String(isoDate || todayIsoDate()).slice(0, 10).split('-').map(Number);
         const date = new Date(year, month - 1, day);
         date.setHours(0, 0, 0, 0);
         return date;
     }
 
+    function fromIso(isoDate) {
+        const isoTarget = String(isoDate || todayIsoDate());
+        return fromCurrentIso(isoTarget);
+    }
+
     function localIso(date) {
-        if (!date) return DEMO_ISO_DATE;
+        if (!date) return todayIsoDate();
         const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
         return shifted.toISOString().slice(0, 10);
     }
 
     function now() {
         const clock = new Date();
-        const date = fromIso(DEMO_ISO_DATE);
+        const date = fromIso(todayIsoDate());
         date.setHours(clock.getHours(), clock.getMinutes(), clock.getSeconds(), clock.getMilliseconds());
         return date;
     }
@@ -30,13 +41,13 @@ window.PmsDate = window.PmsDate || (function() {
 
     function nowIso() {
         const clock = new Date();
-        return `${DEMO_ISO_DATE}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}+09:00`;
+        return `${todayIsoDate()}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}+09:00`;
     }
 
     return {
-        demoIsoDate: DEMO_ISO_DATE,
-        todayIso: () => DEMO_ISO_DATE,
-        today: () => fromIso(DEMO_ISO_DATE),
+        demoIsoDate: todayIsoDate(),
+        todayIso: todayIsoDate,
+        today: () => fromIso(todayIsoDate()),
         now,
         nowIso,
         localIso
