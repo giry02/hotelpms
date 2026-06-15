@@ -1,5 +1,5 @@
 // api-core.js
-const API_VERSION = 'v2.6';
+const API_VERSION = 'v2.7';
 
 window.PmsDate = window.PmsDate || (function() {
     function todayIsoDate() {
@@ -169,6 +169,52 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         return JSON.parse(JSON.stringify(value));
     }
 
+    function mockToday() {
+        return window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    }
+
+    function dateShiftDays() {
+        const today = mockToday();
+        today.setHours(0, 0, 0, 0);
+        const anchor = new Date(2026, 5, 10);
+        anchor.setHours(0, 0, 0, 0);
+        return Math.round((today - anchor) / 86400000);
+    }
+
+    function shiftIsoDateString(text, days) {
+        return String(text).replace(/\b(2026-\d{2}-\d{2})(T[0-9:.+-]+)?\b/g, (match, isoDate, suffix = '') => {
+            const [year, month, day] = isoDate.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            date.setDate(date.getDate() + days);
+            const shifted = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            return `${shifted}${suffix}`;
+        });
+    }
+
+    function shiftMonthDayString(text, days) {
+        const match = String(text || '').match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (!match) return text;
+        const date = new Date(2026, Number(match[1]) - 1, Number(match[2]));
+        date.setDate(date.getDate() + days);
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+
+    function shiftMockDates(value, days, key = '') {
+        if (!days) return value;
+        if (Array.isArray(value)) return value.map(item => shiftMockDates(item, days, key));
+        if (value && typeof value === 'object') {
+            const next = {};
+            Object.entries(value).forEach(([childKey, childValue]) => {
+                next[childKey] = shiftMockDates(childValue, days, childKey);
+            });
+            return next;
+        }
+        if (typeof value !== 'string') return value;
+        let text = shiftIsoDateString(value, days);
+        if (['cin', 'cout', 'in', 'out'].includes(key)) text = shiftMonthDayString(text, days);
+        return text;
+    }
+
     function overlayData(resource) {
         if (!resource) return null;
         try {
@@ -192,7 +238,7 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         if (!payload || payload.success !== true || !payload.data || !payload.meta) {
             throw new Error(`Mock API invalid envelope: ${route.file}`);
         }
-        return payload;
+        return shiftMockDates(payload, dateShiftDays());
     }
 
     function isListPayload(payload) {

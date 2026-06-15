@@ -65,6 +65,7 @@
         .reservation-board-box.cancelled{border-top:3px solid var(--danger)}
         .reservation-board-box.blocked{border-top:3px solid #111827}
         .reservation-board-box.oos{border-top:3px solid var(--danger);opacity:.82}
+        .reservation-board-box.room-moved{box-shadow:inset 0 0 0 1px rgba(249,115,22,.45),0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box .room-box-num{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px}
         .board-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;font-size:.63rem;font-weight:900;white-space:nowrap}
         .board-status.vacant{background:#f1f5f9;color:#475569}
@@ -87,6 +88,10 @@
         .board-time-line{display:flex;align-items:center;gap:4px;font-size:.66rem;color:var(--txt3);font-weight:850;line-height:1.25;white-space:nowrap}
         .board-time-line i{font-size:.6rem;color:var(--primary)}
         .board-late-pill{display:inline-flex;align-items:center;gap:4px;width:max-content;border-radius:999px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;padding:2px 7px;font-size:.63rem;font-weight:900;line-height:1.2}
+        .board-flags{display:flex;flex-wrap:wrap;gap:4px;width:100%}
+        .board-flag{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 7px;font-size:.62rem;font-weight:900;line-height:1.2;max-width:100%;white-space:nowrap}
+        .board-flag.move{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+        .board-flag.late{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
         .board-empty{font-size:.74rem;color:var(--txt3);font-weight:750;margin-top:8px}
         .board-money{font-size:.68rem;color:var(--txt2);font-weight:800;margin-top:auto}
         @media(max-width:768px){
@@ -135,6 +140,8 @@
                     <button class="chip" data-filter="checkin" onclick="setBoardFilter('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="chip-count">0</span></button>
                     <button class="chip" data-filter="inhouse" onclick="setBoardFilter('inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="chip-count">0</span></button>
                     <button class="chip" data-filter="checkout" onclick="setBoardFilter('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="late" onclick="setBoardFilter('late')"><i class="fa-solid fa-clock"></i> 레이트 <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="roommove" onclick="setBoardFilter('roommove')"><i class="fa-solid fa-right-left"></i> 객실 변경 <span class="chip-count">0</span></button>
                     <button class="chip" data-filter="completed" onclick="setBoardFilter('completed')"><i class="fa-solid fa-check-double"></i> 완료 <span class="chip-count">0</span></button>
                     <button class="chip" data-filter="cancelled" onclick="setBoardFilter('cancelled')"><i class="fa-solid fa-ban"></i> 취소/노쇼 <span class="chip-count">0</span></button>
                 </div>
@@ -321,12 +328,14 @@ function reservationBucket(res) {
 }
 
 function boardReservationCounts() {
-    const counts = { all: 0, checkin: 0, inhouse: 0, checkout: 0, reserved: 0, completed: 0, cancelled: 0 };
+    const counts = { all: 0, checkin: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, completed: 0, cancelled: 0 };
     reservations.forEach(res => {
         const bucket = reservationBucket(res);
         if (!bucket) return;
         counts.all++;
         if (counts[bucket] !== undefined) counts[bucket]++;
+        if (reservationLateCheckoutEnabled(res)) counts.late++;
+        if (reservationHasRoomChange(res)) counts.roommove++;
     });
     return counts;
 }
@@ -362,6 +371,36 @@ function companionGuests(res) {
     ];
     const seen = new Set();
     return values.map(name => String(name || '').trim()).filter(name => name && name !== primary && !seen.has(name) && seen.add(name));
+}
+
+function reservationRoomChangeHistory(res) {
+    const sources = [
+        ...(Array.isArray(res?.roomChangeHistory) ? res.roomChangeHistory : []),
+        ...(Array.isArray(res?.roomMoveHistory) ? res.roomMoveHistory : []),
+        ...(Array.isArray(res?.settlementRoomChanges) ? res.settlementRoomChanges : [])
+    ];
+    const seen = new Set();
+    return sources.filter(item => {
+        const fromRoom = item?.fromRoom || item?.beforeRoom || item?.from || '';
+        const toRoom = item?.toRoom || item?.afterRoom || item?.to || '';
+        const key = `${fromRoom}->${toRoom}-${item?.changedAt || item?.createdAt || ''}`;
+        if (!fromRoom && !toRoom) return false;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+function reservationHasRoomChange(res) {
+    return reservationRoomChangeHistory(res).length > 0;
+}
+
+function reservationRoomChangeText(res) {
+    const last = reservationRoomChangeHistory(res).slice(-1)[0];
+    if (!last) return '';
+    const fromRoom = last.fromRoom || last.beforeRoom || last.from || '-';
+    const toRoom = last.toRoom || last.afterRoom || last.to || res?.room || res?.roomNo || '-';
+    return `${fromRoom} → ${toRoom}`;
 }
 
 function amountValue(res) {
@@ -482,10 +521,18 @@ function reservationStateForFilter(res) {
     };
 }
 
+function reservationMatchesBoardFilter(res, filter) {
+    if (filter === 'all') return reservationOverlapsRange(res);
+    if (!reservationOverlapsRange(res)) return false;
+    if (filter === 'late') return reservationLateCheckoutEnabled(res);
+    if (filter === 'roommove') return reservationHasRoomChange(res);
+    return reservationBucket(res) === filter;
+}
+
 function reservationForRoomFilter(room) {
     if (boardFilter === 'all') return null;
     return reservations
-        .filter(res => roomMatchesReservation(room, res) && reservationBucket(res) === boardFilter)
+        .filter(res => roomMatchesReservation(room, res) && reservationMatchesBoardFilter(res, boardFilter))
         .sort((a, b) => {
             const left = parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0;
             const right = parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0;
@@ -513,11 +560,16 @@ function boardCard(room) {
     if (boardFilter !== 'all') {
         const filteredRes = reservationForRoomFilter(room);
         if (!filteredRes) return '';
-        state = reservationStateForFilter(filteredRes);
+        state = boardFilter === 'late'
+            ? { status: 'late', label: '레이트 체크아웃', res: filteredRes }
+            : reservationStateForFilter(filteredRes);
     }
     const res = state.res;
     const primary = res ? primaryGuest(res) : '';
     const companions = res ? companionGuests(res) : [];
+    const hasRoomChange = !!(res && reservationHasRoomChange(res));
+    const roomChangeText = hasRoomChange ? reservationRoomChangeText(res) : '';
+    const hasLateCheckout = !!(res && reservationLateCheckoutEnabled(res));
     const searchText = [
         room.id,
         room.fullRoom,
@@ -525,6 +577,7 @@ function boardCard(room) {
         state.label,
         primary,
         companions.join(' '),
+        hasRoomChange ? `객실 변경 ${roomChangeText}` : '',
         res ? reservationCheckInTime(res) : '',
         res ? reservationCheckOutTime(res) : '',
         res && reservationLateCheckoutEnabled(res) ? `레이트 체크아웃 ${reservationLateCheckoutTime(res)}` : ''
@@ -532,7 +585,11 @@ function boardCard(room) {
     const query = document.getElementById('boardSearch')?.value.trim().toLowerCase() || '';
     if (query && !searchText.includes(query)) return '';
     const click = res ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"` : '';
-    return `<div class="room-box reservation-board-box ${state.status}" ${click} style="${res ? 'cursor:pointer' : ''}">
+    const flags = res ? [
+        hasRoomChange ? `<span class="board-flag move"><i class="fa-solid fa-right-left"></i>객실 변경 ${escapeHtml(roomChangeText)}</span>` : '',
+        hasLateCheckout ? `<span class="board-flag late"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(reservationLateCheckoutTime(res))}</span>` : ''
+    ].filter(Boolean).join('') : '';
+    return `<div class="room-box reservation-board-box ${state.status}${hasRoomChange ? ' room-moved' : ''}" ${click} style="${res ? 'cursor:pointer' : ''}">
         <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${boardStatusIcon(state.status)}"></i>${state.label}</span></div>
         <div class="room-box-type">${escapeHtml(roomType(room))}</div>
         ${res ? `<div class="board-guest">
@@ -540,6 +597,7 @@ function boardCard(room) {
             ${companions.length ? `<div class="board-companions" title="${escapeHtml(companions.join(', '))}">${companions.map(name => `<div class="board-companion">${escapeHtml(name)}</div>`).join('')}</div>` : ''}
         </div>
         <div class="board-date">${escapeHtml(reservationDates(res))}</div>
+        ${flags ? `<div class="board-flags">${flags}</div>` : ''}
         ${reservationStayTimeHtml(res)}
         <div class="board-money">${formatMoney(amountValue(res))}${res.balanceDue ? ` · 잔액 ${formatMoney(res.balanceDue)}` : ''}</div>` : '<div class="board-empty">배정된 예약 없음</div>'}
     </div>`;
