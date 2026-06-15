@@ -77,20 +77,20 @@
 #resTable{table-layout:fixed;width:100%;min-width:0}
 #resTable th,#resTable td{white-space:normal;min-width:0}
 #resTable tbody td{vertical-align:top;padding-top:12px;padding-bottom:12px}
-#resTable th:nth-child(1),#resTable td:nth-child(1){width:8%}
-#resTable th:nth-child(2),#resTable td:nth-child(2){width:27%}
-#resTable th:nth-child(3),#resTable td:nth-child(3){width:8%}
-#resTable th:nth-child(4),#resTable td:nth-child(4),#resTable th:nth-child(5),#resTable td:nth-child(5){width:7%}
-#resTable th:nth-child(6),#resTable td:nth-child(6){width:5%}
-#resTable th:nth-child(7),#resTable td:nth-child(7){width:6%}
-#resTable th:nth-child(8),#resTable td:nth-child(8){width:8%}
-#resTable th:nth-child(9),#resTable td:nth-child(9){width:7%}
-#resTable th:nth-child(10),#resTable td:nth-child(10){width:17%}
+#resTable th:nth-child(1),#resTable td:nth-child(1){width:10%}
+#resTable th:nth-child(2),#resTable td:nth-child(2){width:29%}
+#resTable th:nth-child(3),#resTable td:nth-child(3),#resTable th:nth-child(4),#resTable td:nth-child(4){width:8%}
+#resTable th:nth-child(5),#resTable td:nth-child(5){width:5%}
+#resTable th:nth-child(6),#resTable td:nth-child(6){width:7%}
+#resTable th:nth-child(7),#resTable td:nth-child(7){width:9%}
+#resTable th:nth-child(8),#resTable td:nth-child(8){width:7%}
+#resTable th:nth-child(9),#resTable td:nth-child(9){width:17%}
 .res-room-cell{text-align:left}
 .res-room-booking{display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:100%;white-space:normal}
 .res-id{display:block;max-width:145px;white-space:normal;overflow-wrap:anywhere;line-height:1.25;word-break:break-word}
 .reservation-room-tag{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:28px;padding:0 10px;border-radius:8px;background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;font-size:.78rem;font-weight:900;letter-spacing:.01em}
 .reservation-room-tag i{font-size:.72rem;margin-right:5px}
+.res-room-type{display:block;max-width:100%;color:#64748b;font-size:.72rem;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .res-room-change-chip{display:inline-flex;align-items:center;gap:4px;max-width:132px;height:22px;padding:0 7px;border-radius:999px;background:#fff7ed;color:#b45309;border:1px solid #fde68a;font-size:.64rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .res-room-change-chip i{font-size:.6rem}
 .res-actions-cell{min-width:0;text-align:right}
@@ -113,8 +113,8 @@
 .m-res-card.res-click-card{cursor:pointer}
 .m-res-card.res-click-card:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 @media(max-width:1200px){
-    #resTable th:nth-child(2),#resTable td:nth-child(2){width:25%}
-    #resTable th:nth-child(10),#resTable td:nth-child(10){width:18%}
+    #resTable th:nth-child(2),#resTable td:nth-child(2){width:27%}
+    #resTable th:nth-child(9),#resTable td:nth-child(9){width:18%}
     .res-work-action{min-width:74px}
 }
 @media(min-width:769px){
@@ -172,6 +172,7 @@
             <button class="ops-tab" data-filter="checkin" onclick="setFilter(this,'checkin')"><i class="fa-solid fa-right-to-bracket"></i> <span class="ops-label">오늘 체크인</span> <span class="ops-count">0</span></button>
             <button class="ops-tab" data-filter="inhouse" onclick="setFilter(this,'inhouse')"><i class="fa-solid fa-bed"></i> <span class="ops-label">투숙 중</span> <span class="ops-count">0</span></button>
             <button class="ops-tab" data-filter="checkout" onclick="setFilter(this,'checkout')"><i class="fa-solid fa-right-from-bracket"></i> <span class="ops-label">체크아웃</span> <span class="ops-count">0</span></button>
+            <button class="ops-tab" data-filter="lateCheckout" onclick="setFilter(this,'lateCheckout')"><i class="fa-solid fa-clock"></i> <span class="ops-label">레이트 체크아웃</span> <span class="ops-count">0</span></button>
             <button class="ops-tab" data-filter="completed" onclick="setFilter(this,'completed')"><i class="fa-solid fa-check-double"></i> <span class="ops-label">완료</span> <span class="ops-count">0</span></button>
             <button class="ops-tab" data-filter="cancelled" onclick="setFilter(this,'cancelled')"><i class="fa-solid fa-ban"></i> <span class="ops-label">취소/노쇼</span> <span class="ops-count">0</span></button>
         </div>
@@ -192,12 +193,14 @@
                 <div class="reservation-sort-group" aria-label="예약 정렬">
                     <button type="button" class="sort-btn active" data-sort="recent" onclick="setReservationSort('recent')" aria-label="최근순 정렬"><i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i> <span class="sort-label">최근순</span></button>
                     <button type="button" class="sort-btn" data-sort="room" onclick="setReservationSort('room')" aria-label="호실 오름차순 정렬"><i class="fa-solid fa-arrow-up-1-9" aria-hidden="true"></i> <span class="sort-label">호실 오름</span></button>
+                    <button type="button" class="sort-btn" data-sort="lateCheckout" onclick="setReservationSort('lateCheckout')" aria-label="레이트 체크아웃 우선 정렬"><i class="fa-solid fa-clock" aria-hidden="true"></i> <span class="sort-label">레이트 체크아웃</span></button>
                 </div>
                 <div class="filter-chips">
                     <button class="chip active" data-filter="all" onclick="setFilter(this,'all')">전체 <span class="chip-count">0</span></button>
                     <button class="chip" data-filter="checkin" onclick="setFilter(this,'checkin')">오늘 체크인 <span class="chip-count">0</span></button>
                     <button class="chip" data-filter="inhouse" onclick="setFilter(this,'inhouse')">재실 중 <span class="chip-count">0</span></button>
                     <button class="chip" data-filter="checkout" onclick="setFilter(this,'checkout')">체크아웃 <span class="chip-count">0</span></button>
+                    <button class="chip" data-filter="lateCheckout" onclick="setFilter(this,'lateCheckout')">레이트 체크아웃 <span class="chip-count">0</span></button>
                     <button class="chip" data-filter="cancelled" onclick="setFilter(this,'cancelled')">취소 <span class="chip-count">0</span></button>
                 </div>
                 <button class="m-filter-trigger" onclick="openResBS()">
@@ -221,7 +224,6 @@
                             <tr>
                                 <th>객실 / 예약번호</th>
                                 <th>고객 / 주의사항</th>
-                                <th>유형</th>
                                 <th>체크인</th>
                                 <th>체크아웃</th>
                                 <th>숙박</th>
@@ -287,6 +289,12 @@
             <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
+        <button class="bs-option" onclick="selectResFilter(this,'lateCheckout','레이트 체크아웃')">
+            <div class="bs-option-icon" style="background:#fff7ed;color:#c2410c"><i class="fa-solid fa-clock"></i></div>
+            <span class="bs-option-label">레이트 체크아웃</span>
+            <span class="bs-option-count">0</span>
+            <i class="fa-solid fa-check bs-option-check"></i>
+        </button>
         <button class="bs-option" onclick="selectResFilter(this,'cancelled','취소')">
             <div class="bs-option-icon" style="background:rgba(239,68,68,.1);color:#DC2626"><i class="fa-solid fa-ban"></i></div>
             <span class="bs-option-label">취소</span>
@@ -326,6 +334,7 @@ const reservationLabels = {
         'filter.checkin': '오늘 체크인',
         'filter.inhouse': '투숙 중',
         'filter.checkout': '체크아웃',
+        'filter.lateCheckout': '레이트 체크아웃',
         'filter.completed': '완료',
         'filter.cancelled': '취소/노쇼',
         'filter.title': '예약 상태 필터',
@@ -385,6 +394,7 @@ const reservationLabels = {
         'filter.checkin': 'Today Check-in',
         'filter.inhouse': 'In-house',
         'filter.checkout': 'Check-out',
+        'filter.lateCheckout': 'Late checkout',
         'filter.completed': 'Completed',
         'filter.cancelled': 'Cancelled / No-show',
         'filter.title': 'Reservation Status Filter',
@@ -922,6 +932,17 @@ function roomSortKey(res) {
     return { prefix, number, room };
 }
 
+function lateCheckoutSortKey(res) {
+    const enabled = reservationLateCheckoutEnabled(res) ? 1 : 0;
+    const checkoutDate = parseListDate(res?.checkOutDate || res?.checkout || res?.cout)?.getTime() || 0;
+    return {
+        enabled,
+        checkoutDate,
+        lateTime: reservationLateCheckoutTime(res) || reservationCheckOutTime(res),
+        recent: reservationRecentValue(res)
+    };
+}
+
 function compareReservations(left, right) {
     let result;
     if (currentSort === 'room') {
@@ -930,6 +951,12 @@ function compareReservations(left, right) {
         if (a.prefix !== b.prefix) result = a.prefix - b.prefix;
         else if (a.number !== b.number) result = a.number - b.number;
         else result = a.room.localeCompare(b.room);
+    } else if (currentSort === 'lateCheckout') {
+        const a = lateCheckoutSortKey(left);
+        const b = lateCheckoutSortKey(right);
+        if (a.enabled !== b.enabled) result = a.enabled - b.enabled;
+        else if (a.checkoutDate !== b.checkoutDate) result = a.checkoutDate - b.checkoutDate;
+        else result = a.lateTime.localeCompare(b.lateTime) || (a.recent - b.recent);
     } else {
         result = reservationRecentValue(left) - reservationRecentValue(right);
         if (!result) result = reservationNumericId(left) - reservationNumericId(right);
@@ -951,6 +978,10 @@ function sortButtonMeta(mode, direction) {
         room: {
             asc: { label: en ? 'Room asc' : '호실 오름', icon: 'fa-arrow-up-1-9', title: en ? 'Sort rooms ascending' : '호실 오름차순 정렬' },
             desc: { label: en ? 'Room desc' : '호실 내림', icon: 'fa-arrow-down-9-1', title: en ? 'Sort rooms descending' : '호실 내림차순 정렬' }
+        },
+        lateCheckout: {
+            asc: { label: en ? 'Late checkout' : '레이트 체크아웃', icon: 'fa-clock-rotate-left', title: en ? 'Put late checkout bookings last' : '레이트 체크아웃 예약을 뒤로 정렬' },
+            desc: { label: en ? 'Late checkout' : '레이트 체크아웃', icon: 'fa-clock', title: en ? 'Put late checkout bookings first' : '레이트 체크아웃 예약 먼저 정렬' }
         }
     };
     return labels[mode]?.[direction] || labels.recent.desc;
@@ -958,7 +989,7 @@ function sortButtonMeta(mode, direction) {
 
 function updateSortButtons() {
     document.querySelectorAll('.sort-btn').forEach(btn => {
-        const mode = btn.dataset.sort === 'room' ? 'room' : 'recent';
+        const mode = ['room', 'lateCheckout'].includes(btn.dataset.sort) ? btn.dataset.sort : 'recent';
         const active = mode === currentSort;
         const direction = active ? currentSortDirection : defaultSortDirection(mode);
         const meta = sortButtonMeta(mode, direction);
@@ -974,7 +1005,7 @@ function updateSortButtons() {
 }
 
 function setReservationSort(mode) {
-    const nextSort = mode === 'room' ? 'room' : 'recent';
+    const nextSort = ['room', 'lateCheckout'].includes(mode) ? mode : 'recent';
     if (currentSort === nextSort) {
         currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
@@ -995,6 +1026,7 @@ function setPeriodFilter(filter) {
 
 function rowMatchesFilter(res) {
     if (currentFilter === 'all') return true;
+    if (currentFilter === 'lateCheckout') return reservationLateCheckoutEnabled(res);
     if (['checkin', 'inhouse', 'checkout', 'completed', 'cancelled'].includes(currentFilter)) {
         return periodOperationalBucket(res) === currentFilter;
     }
@@ -1104,8 +1136,8 @@ function reservationEmptyState() {
     const isEn = (document.getElementById('langSelect')?.value || window.currentLang || localStorage.getItem('pms_lang')) === 'en';
     const hasSearch = !!document.getElementById('searchInput')?.value.trim();
     const labels = isEn
-        ? { all: 'reservations', checkin: "today's check-ins", inhouse: 'in-house stays', checkout: 'check-outs', completed: 'completed reservations', cancelled: 'cancelled/no-show reservations' }
-        : { all: '예약', checkin: '오늘 체크인 대상', inhouse: '투숙 중 예약', checkout: '체크아웃 대상', completed: '완료 예약', cancelled: '취소/노쇼 예약' };
+        ? { all: 'reservations', checkin: "today's check-ins", inhouse: 'in-house stays', checkout: 'check-outs', lateCheckout: 'late checkout reservations', completed: 'completed reservations', cancelled: 'cancelled/no-show reservations' }
+        : { all: '예약', checkin: '오늘 체크인 대상', inhouse: '투숙 중 예약', checkout: '체크아웃 대상', lateCheckout: '레이트 체크아웃 예약', completed: '완료 예약', cancelled: '취소/노쇼 예약' };
     const target = labels[currentFilter] || labels.all;
     const title = isEn ? `No ${target} to display.` : `표시할 ${target}이 없습니다.`;
     const desc = hasSearch
@@ -1154,7 +1186,7 @@ function renderTable() {
 
     if (paginated.length === 0) {
         const emptyState = reservationEmptyState();
-        tbody.innerHTML = `<tr><td colspan="10">${emptyState}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9">${emptyState}</td></tr>`;
         mobileContainer.innerHTML = emptyState;
         return;
     }
@@ -1167,7 +1199,7 @@ function renderTable() {
         const displayGuest = displayGuestName(r);
         return `
         <tr class="res-click-row" tabindex="0" data-res-id="${escapeHtml(r.id)}" onclick="openReservationRow(event, this.dataset.resId)" onkeydown="handleReservationRowKey(event)">
-            <td class="res-room-cell"><div class="res-room-booking"><span class="reservation-room-tag"><i class="fa-solid fa-door-open"></i>${escapeHtml(r.room)}</span>${roomChangeBadge(r)}<span class="res-id">${r.id}</span></div></td>
+            <td class="res-room-cell"><div class="res-room-booking"><span class="reservation-room-tag"><i class="fa-solid fa-door-open"></i>${escapeHtml(r.room)}</span><span class="res-room-type">${escapeHtml(roomTypeDisplay(r.type))}</span>${roomChangeBadge(r)}<span class="res-id">${r.id}</span></div></td>
             <td>
                 <div class="guest-cell">
                     <div>
@@ -1177,7 +1209,6 @@ function renderTable() {
                     </div>
                 </div>
             </td>
-            <td>${escapeHtml(roomTypeDisplay(r.type))}</td>
             <td>${reservationDateTimeCell(r, 'in')}</td>
             <td>${reservationDateTimeCell(r, 'out')}</td>
             <td>${stayLabel(r.nights)}</td>
@@ -1277,7 +1308,7 @@ function refreshReservationLabels() {
     });
     document.querySelectorAll('.bs-option').forEach(option => {
         const click = option.getAttribute('onclick') || '';
-        const filter = ['all', 'checkin', 'inhouse', 'checkout', 'completed', 'cancelled'].find(key => click.includes(`'${key}'`));
+        const filter = ['all', 'checkin', 'inhouse', 'checkout', 'lateCheckout', 'completed', 'cancelled'].find(key => click.includes(`'${key}'`));
         const label = option.querySelector('.bs-option-label');
         if (filter && label) label.textContent = filterLabel(filter);
     });
@@ -1299,8 +1330,12 @@ function setFilter(btn, filter) {
 
 function updateChipCounts() {
     const periodReservations = reservations.filter(rowMatchesPeriod);
-    const counts = { all: periodReservations.length, checkin: 0, inhouse: 0, checkout: 0, completed: 0, cancelled: 0 };
-    periodReservations.forEach(r => { const bucket = periodOperationalBucket(r); if (counts[bucket] !== undefined) counts[bucket]++; });
+    const counts = { all: periodReservations.length, checkin: 0, inhouse: 0, checkout: 0, lateCheckout: 0, completed: 0, cancelled: 0 };
+    periodReservations.forEach(r => {
+        const bucket = periodOperationalBucket(r);
+        if (counts[bucket] !== undefined) counts[bucket]++;
+        if (reservationLateCheckoutEnabled(r)) counts.lateCheckout++;
+    });
     
     document.querySelectorAll('.chip, .ops-tab').forEach(c => {
         const f = c.getAttribute('data-filter');
