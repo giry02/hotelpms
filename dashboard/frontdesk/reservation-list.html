@@ -1066,15 +1066,18 @@ function stayoverFlagControls(res) {
     const cleaningState = normalizedRoomOpsValue(room.housekeepingStatus || room.hkStatus || room.cleaningStatus);
     const isCleanRequested = flag === 'mur' || ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState);
     const isCleanComplete = ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState);
-    const stayKey = flag === 'dnd' || flag === 'away' ? flag : 'none';
-    const stayLabels = {
+    const stateLabels = {
         dnd: resText('flag.dnd'),
         away: resText('flag.away'),
-        none: resText('flag.none')
+        none: resText('flag.none'),
+        mur: resText('flag.mur'),
+        clean: resText('flag.clean')
     };
-    const cleaningLabel = isCleanRequested ? resText('flag.mur') : (isCleanComplete ? resText('flag.clean') : '');
-    const summary = cleaningLabel ? `${stayLabels[stayKey]} · ${cleaningLabel}` : stayLabels[stayKey];
-    const cls = isCleanRequested ? 'mur' : (isCleanComplete ? 'clean' : stayKey);
+    const activeKey = flag === 'dnd' || flag === 'away'
+        ? flag
+        : (isCleanRequested ? 'mur' : (isCleanComplete ? 'clean' : 'none'));
+    const summary = stateLabels[activeKey];
+    const cls = activeKey;
     const encodedRoomKey = encodeURIComponent(roomKey || '');
     const options = [
         { key: 'dnd', label: resText('flag.dnd') },
@@ -1442,11 +1445,9 @@ window.setReservationCleaningStatus = async function(resId, mode, roomKey = '') 
     const roomId = room.roomId || room.fullRoom || room.id || roomKey || res?.room;
     const roomLabel = room.id || room.number || room.roomNo || roomKey || res?.room || '-';
     const isComplete = mode === 'complete';
-    const currentGuestFlag = room.guestFlag || res?.guestFlag || 'none';
-    const nextGuestFlag = currentGuestFlag === 'mur' ? 'none' : currentGuestFlag;
     room.housekeepingStatus = isComplete ? 'clean' : 'dirty';
     room.cleaningStatus = isComplete ? 'clean' : 'dirty';
-    room.guestFlag = nextGuestFlag;
+    room.guestFlag = 'none';
     if (res) res.guestFlag = room.guestFlag;
 
     await persistReservationAndRoom(res, room);
