@@ -386,13 +386,17 @@
         const groups = Array.from(events.querySelectorAll('.ad-event-group'));
         const prev = events.querySelector('[data-ad-events-prev]');
         const next = events.querySelector('[data-ad-events-next]');
-        let index = 0;
+        let index = groups.length > 1 ? 1 : 0;
         let locked = false;
 
         if (groups.length > 1) {
+            const lastClone = groups[groups.length - 1].cloneNode(true);
             const firstClone = groups[0].cloneNode(true);
+            lastClone.setAttribute('aria-hidden', 'true');
             firstClone.setAttribute('aria-hidden', 'true');
+            lastClone.dataset.eventClone = 'true';
             firstClone.dataset.eventClone = 'true';
+            track.insertBefore(lastClone, groups[0]);
             track.appendChild(firstClone);
         }
 
@@ -404,23 +408,26 @@
                 track.style.transition = '';
             }
         };
-        const moveEvents = () => {
+        const moveEvents = (direction) => {
             if (locked || groups.length < 2) return;
             locked = true;
-            index += 1;
+            index += direction;
             renderEvents();
         };
         const finishEventsMove = (event) => {
             if (event.propertyName !== 'transform') return;
-            if (index >= groups.length) {
-                index = 0;
+            if (index >= groups.length + 1) {
+                index = 1;
+                renderEvents(false);
+            } else if (index <= 0) {
+                index = groups.length;
                 renderEvents(false);
             }
             locked = false;
         };
 
-        prev?.addEventListener('click', () => moveEvents());
-        next?.addEventListener('click', () => moveEvents());
+        prev?.addEventListener('click', () => moveEvents(-1));
+        next?.addEventListener('click', () => moveEvents(1));
         track.addEventListener('transitionend', finishEventsMove);
         window.addEventListener('resize', () => renderEvents(false));
         renderEvents(false);
