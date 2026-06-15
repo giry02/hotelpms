@@ -240,6 +240,240 @@
         }
     }
 
+    let unifiedRateRowsCache = null;
+    let unifiedRoomTypesCache = null;
+    let unifiedRateQuoteSeq = 0;
+    let unifiedLastRateQuote = null;
+
+    function unifiedAmountValue(value) {
+        if (window.PmsMockApi?.amountValue) return window.PmsMockApi.amountValue(value);
+        if (value && typeof value === 'object') return Number(value.amount || 0);
+        return Number(value || 0);
+    }
+
+    function unifiedCurrencyOf(value, fallback = 'PHP') {
+        return (value && typeof value === 'object' && value.currency) || fallback;
+    }
+
+    async function unifiedRateRows() {
+        if (Array.isArray(unifiedRateRowsCache)) return unifiedRateRowsCache;
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/rates/calendar');
+                unifiedRateRowsCache = window.PmsMockApi.items(env);
+                return unifiedRateRowsCache;
+            }
+        } catch (error) {
+            console.warn('Rate calendar lookup failed', error);
+        }
+        try {
+            const res = await fetch('../data/api/v1/rates/calendar.json', { cache: 'no-store' });
+            const payload = await res.json();
+            unifiedRateRowsCache = Array.isArray(payload?.data?.items) ? payload.data.items : [];
+        } catch (error) {
+            console.warn('Rate calendar fallback failed', error);
+            unifiedRateRowsCache = [];
+        }
+        return unifiedRateRowsCache;
+    }
+
+    async function unifiedRoomTypes() {
+        if (Array.isArray(unifiedRoomTypesCache)) return unifiedRoomTypesCache;
+        try {
+            if (window.PmsAPI?.getAllRoomTypes) {
+                const items = await window.PmsAPI.getAllRoomTypes();
+                if (Array.isArray(items) && items.length) {
+                    unifiedRoomTypesCache = items;
+                    return unifiedRoomTypesCache;
+                }
+            }
+        } catch (error) {
+            console.warn('Room type lookup failed', error);
+        }
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/room-types');
+                unifiedRoomTypesCache = window.PmsMockApi.items(env).map(item => window.PmsMockApi.toLegacyRoomType ? window.PmsMockApi.toLegacyRoomType(item) : item);
+                return unifiedRoomTypesCache;
+            }
+        } catch (error) {
+            console.warn('Room type mock fallback failed', error);
+        }
+        try {
+            const res = await fetch('../data/api/v1/room-types/index.json', { cache: 'no-store' });
+            const payload = await res.json();
+            unifiedRoomTypesCache = Array.isArray(payload?.data?.items) ? payload.data.items : [];
+        } catch (error) {
+            console.warn('Room type static fallback failed', error);
+            unifiedRoomTypesCache = [];
+        }
+        return unifiedRoomTypesCache;
+    }
+
+    function unifiedNormalizeKey(value) {
+        return String(value || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+    }
+
+    function unifiedRoomTypeKeys(room = null) {
+        return [
+            room?.roomTypeId,
+            room?.typeId,
+            room?.type,
+            room?.roomTypeName,
+            room?.code,
+            room?.name
+        ].map(unifiedNormalizeKey).filter(Boolean);
+    }
+
+    function unifiedRateRowMatchesRoom(row, room) {
+        const roomKeys = unifiedRoomTypeKeys(room);
+        if (!roomKeys.length) return false;
+        const rowKeys = [
+            row?.roomTypeId,
+            row?.roomTypeName,
+            row?.typeId,
+            row?.type,
+            row?.code
+        ].map(unifiedNormalizeKey).filter(Boolean);
+        return rowKeys.some(key => roomKeys.includes(key));
+    }
+
+    function unifiedBaseRateForRoom(room, roomTypes = []) {
+        const direct = unifiedAmountValue(room?.baseRate ?? room?.rate ?? room?.price ?? room?.defaultRate ?? room?.rackRate);
+        if (Number.isFinite(direct) && direct > 0) return {
+            amount: direct,
+            currency: unifiedCurrencyOf(room?.baseRate ?? room?.rate, 'PHP'),
+            source: 'room'
+        };
+        const keys = unifiedRoomTypeKeys(room);
+        const matched = roomTypes.find(type => unifiedRoomTypeKeys(type).some(key => keys.includes(key)));
+        const typeRate = unifiedAmountValue(matched?.baseRate ?? matched?.basePrice ?? matched?.rate ?? matched?.price);
+        return {
+            amount: Number.isFinite(typeRate) ? typeRate : 0,
+            currency: unifiedCurrencyOf(matched?.baseRate ?? matched?.rate, 'PHP'),
+            source: matched ? 'room-type' : 'none'
+        };
+    }
+
+    function unifiedGuestTierDiscountPercent(tier, rateRow = null) {
+        const value = unifiedNormalizeKey(tier || 'standard');
+        if (!value || value === 'standard' || value === 'regular') return 0;
+        if (value.includes('silver')) return 5;
+        if (value.includes('gold')) return 10;
+        if (value.includes('vip') || value.includes('platinum') || value.includes('diamond')) {
+            const rowDiscount = Number(rateRow?.vipDiscountPercent ?? rateRow?.customerDiscountPercent);
+            return Number.isFinite(rowDiscount) ? rowDiscount : 20;
+        }
+        const explicit = Number(rateRow?.customerDiscountPercent);
+        return Number.isFinite(explicit) ? explicit : 0;
+    }
+
+    function unifiedPrimaryGuestTier() {
+        const primary = getUnifiedPrimaryGuestEntry();
+        return compactValue(primary?.tier || primary?.vip) || 'standard';
+    }
+
+    function unifiedSelectedRoom() {
+        const selectedValue = document.getElementById('unifiedRoom')?.value || '';
+        return (Array.isArray(window.rooms) ? window.rooms : []).find(room =>
+            roomLabel(room) === selectedValue ||
+            room?.id === selectedValue ||
+            room?.fullRoom === selectedValue ||
+            room?.roomId === selectedValue ||
+            room?.number === selectedValue ||
+            room?.display === selectedValue
+        ) || null;
+    }
+
+    async function buildUnifiedRoomRateQuote() {
+        const room = unifiedSelectedRoom();
+        const range = getUnifiedDateRange({ autoFix: true });
+        if (!room || !range.valid) return null;
+        const rows = await unifiedRateRows();
+        const roomTypes = await unifiedRoomTypes();
+        const fallback = unifiedBaseRateForRoom(room, roomTypes);
+        const currency = reservationCurrency(null) || fallback.currency || 'PHP';
+        const tier = unifiedPrimaryGuestTier();
+        const nights = Math.max(1, Math.round((range.checkout - range.checkin) / 86400000));
+        let baseTotal = 0;
+        let finalTotal = 0;
+        let calendarNights = 0;
+        let discountPercent = 0;
+
+        for (let offset = 0; offset < nights; offset += 1) {
+            const day = new Date(range.checkin);
+            day.setDate(day.getDate() + offset);
+            const dateKey = toDateInputValue(day);
+            const row = rows.find(item => item?.date === dateKey && unifiedRateRowMatchesRoom(item, room));
+            const nightlyBase = row ? unifiedAmountValue(row.publicRate ?? row.baseRate) : fallback.amount;
+            const nightlyDiscount = unifiedGuestTierDiscountPercent(tier, row);
+            const nightlyFinal = normalizeMoneyAmount(nightlyBase * (100 - nightlyDiscount) / 100, currency);
+            baseTotal += nightlyBase;
+            finalTotal += nightlyFinal;
+            discountPercent = Math.max(discountPercent, nightlyDiscount);
+            if (row) calendarNights += 1;
+        }
+
+        return {
+            roomId: roomLabel(room),
+            roomType: roomTypeDisplay(room.type || room.roomTypeName || room.roomTypeId),
+            nights,
+            baseTotal: normalizeMoneyAmount(baseTotal, currency),
+            total: normalizeMoneyAmount(finalTotal, currency),
+            averageRate: normalizeMoneyAmount(finalTotal / nights, currency),
+            discountPercent,
+            tier,
+            currency,
+            source: calendarNights === nights ? 'calendar' : (calendarNights ? 'mixed' : fallback.source),
+            calendarNights
+        };
+    }
+
+    function unifiedRateQuoteText(quote) {
+        if (!quote) return '';
+        const sourceText = quote.source === 'calendar'
+            ? '요금 캘린더'
+            : (quote.source === 'mixed' ? '요금 캘린더+기본요금' : '객실 기본요금');
+        const discountText = quote.discountPercent
+            ? ` · 고객 할인 ${quote.discountPercent}% 적용`
+            : ' · 고객 할인 없음';
+        return `${sourceText} 기준 ${formatSettlementMoney(quote.baseTotal, quote.currency)} / ${quote.nights}박${discountText} = ${formatSettlementMoney(quote.total, quote.currency)}`;
+    }
+
+    function shouldApplyUnifiedRateQuote(input, quote, force = false) {
+        if (!input || !quote) return false;
+        if (force) return true;
+        if (input.dataset.manualAmount === 'true') return false;
+        const current = parseMoneyInput(input.value, quote.currency);
+        const previousAuto = Number(input.dataset.autoQuoteTotal || 0);
+        if (!current) return true;
+        return !!previousAuto && current === normalizeMoneyAmount(previousAuto, quote.currency);
+    }
+
+    async function refreshUnifiedRateQuote(options = {}) {
+        const seq = ++unifiedRateQuoteSeq;
+        const hint = document.getElementById('unifiedRateQuoteHint');
+        const amountInput = document.getElementById('unifiedAmount');
+        if (!amountInput) return null;
+        const quote = await buildUnifiedRoomRateQuote();
+        if (seq !== unifiedRateQuoteSeq) return quote;
+        unifiedLastRateQuote = quote;
+        if (hint) hint.textContent = quote ? unifiedRateQuoteText(quote) : '';
+        if (quote && shouldApplyUnifiedRateQuote(amountInput, quote, !!options.force)) {
+            amountInput.dataset.currency = quote.currency;
+            amountInput.dataset.autoQuoteTotal = String(quote.total);
+            amountInput.value = formatMoneyInputValue(quote.total, quote.currency);
+            configureUnifiedMoneyInput(amountInput, quote.currency);
+            const prepaidInput = document.getElementById('unifiedPrepaid');
+            if (prepaidInput) {
+                prepaidInput.dataset.currency = quote.currency;
+                configureUnifiedMoneyInput(prepaidInput, quote.currency);
+            }
+            syncUnifiedBalance();
+        }
+        return quote;
+    }
+
     function currentReservationActor() {
         const role = localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
         const profiles = {
@@ -556,6 +790,7 @@
         const roster = orderedUnifiedRoster();
         if (count) count.textContent = `${roster.length}명`;
         if (!roster.length) {
+            refreshUnifiedRateQuote();
             list.innerHTML = `<div style="padding:14px;border:1px dashed var(--border);border-radius:8px;background:#fff;color:var(--txt3);font-size:.78rem;font-weight:700;text-align:center">상단에서 투숙객을 검색한 뒤 대표 또는 동반으로 추가하세요.</div>`;
             return;
         }
@@ -584,6 +819,7 @@
                 </div>
             </div>`;
         }).join('');
+        refreshUnifiedRateQuote();
     }
 
     function setUnifiedGuestRoster(entries = []) {
@@ -755,6 +991,8 @@
         const prepaid = options.prepaid !== undefined ? options.prepaid : reservationPrepaidValue(res);
         amountInput.dataset.currency = currency;
         prepaidInput.dataset.currency = currency;
+        amountInput.dataset.manualAmount = 'false';
+        amountInput.dataset.autoQuoteTotal = '';
         configureUnifiedMoneyInput(amountInput, currency);
         configureUnifiedMoneyInput(prepaidInput, currency);
         amountInput.value = formatMoneyInputValue(amount, currency);
@@ -1012,7 +1250,8 @@
                                 <input type="text" id="unifiedBalance" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:800;box-sizing:border-box;background:#f8fafc;color:var(--primary);">
                             </div>
                         </div>
-                        <div id="unifiedFinanceHelp" style="margin-top:8px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
+                        <div id="unifiedRateQuoteHint" style="margin-top:8px;font-size:0.72rem;color:var(--primary);font-weight:800;line-height:1.45"></div>
+                        <div id="unifiedFinanceHelp" style="margin-top:4px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
                     </div>
                 </div>
                 <div id="unifiedRoomHistoryPanel" style="display:none;margin-bottom:20px;background:#fff;border:1px solid var(--border2);border-radius:10px;overflow:hidden;">
@@ -1045,8 +1284,11 @@
                 if (input) input.addEventListener('change', () => {
                     if (id === 'unifiedCin' && input.min && input.value && input.value < input.min) input.value = input.min;
                     window.updateUnifiedStayAndRooms();
+                    refreshUnifiedRateQuote();
                 });
             });
+            const roomInput = document.getElementById('unifiedRoom');
+            if (roomInput) roomInput.addEventListener('change', () => refreshUnifiedRateQuote());
             ['unifiedCheckInTime', 'unifiedCheckOutTime', 'unifiedLateCheckoutTime'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) input.addEventListener('change', syncUnifiedLateCheckoutControls);
@@ -1056,7 +1298,10 @@
             ['unifiedAmount', 'unifiedPrepaid'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) {
-                    input.addEventListener('input', syncUnifiedBalance);
+                    input.addEventListener('input', () => {
+                        if (id === 'unifiedAmount') input.dataset.manualAmount = 'true';
+                        syncUnifiedBalance();
+                    });
                     input.addEventListener('change', () => normalizeUnifiedMoneyInput(input));
                     input.addEventListener('blur', () => normalizeUnifiedMoneyInput(input));
                 }
@@ -1628,6 +1873,7 @@
     window.updateUnifiedStayAndRooms = function(preferredValue = '') {
         updateUnifiedNightsLabel();
         refreshUnifiedRoomOptions(preferredValue || document.getElementById('unifiedRoom')?.value || '');
+        refreshUnifiedRateQuote();
     };
 
     function isRoomInHouse(res) {
@@ -1889,6 +2135,7 @@
             resId = null;
         }
         ensureModal();
+        unifiedLastRateQuote = null;
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
         if (!allRes) {
             alert('Error: reservations variable not found!');
@@ -1974,6 +2221,7 @@
                 amount: Number(prefill?.amount || prefill?.totalAmount?.amount || 0),
                 prepaid: Number(prefill?.prepaidAmount || prefill?.paymentPlan?.prepaidAmount || 0)
             });
+            refreshUnifiedRateQuote({ force: !Number(prefill?.amount || prefill?.totalAmount?.amount || 0) });
             renderUnifiedRoomHistory(null);
             renderUnifiedFlowActions(null);
         } else {
@@ -2050,6 +2298,7 @@
             const shouldLoadRoster = !isEditingBlock || (isEditableGroupBlock && !res.isGroupPlaceholder);
             setUnifiedGuestRoster(shouldLoadRoster ? await rosterGuestsForReservation(res) : []);
             setUnifiedFinanceValues(res);
+            refreshUnifiedRateQuote();
             setUnifiedReservationReadonly(isReadonlyReservation, res);
             renderUnifiedFlowActions(res);
             await renderUnifiedGuestPrivacy(res);
@@ -2156,6 +2405,8 @@
         const prepaidAmount = Math.min(parseMoneyInput(document.getElementById('unifiedPrepaid')?.value, currency), totalAmount);
         const balanceDue = normalizeMoneyAmount(totalAmount - prepaidAmount, currency);
         const nightlyRate = nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount;
+        const rateQuote = unifiedLastRateQuote;
+        const manualAmountOverride = !!(rateQuote && totalAmount !== normalizeMoneyAmount(rateQuote.total, currency));
         const shouldWriteGuest = !isBlockSave && (!isEditableGroupBlockSave || !!guest.trim() || getUnifiedCompanionGuestEntries().length > 0);
         const existingGuestName = compactValue(guestNameForReservation(currentRes));
         const guestPayload = shouldWriteGuest
@@ -2216,6 +2467,9 @@
                 amount: totalAmount,
                 rate: { amount: nightlyRate, currency },
                 totalAmount: { amount: totalAmount, currency },
+                discountPercent: rateQuote?.discountPercent || 0,
+                roomRateQuote: rateQuote ? { ...rateQuote } : null,
+                manualAmountOverride,
                 prepaidAmount,
                 balanceDue,
                 paymentPlan: {
@@ -2223,7 +2477,9 @@
                     prepaidAmount,
                     balanceDue,
                     currency,
-                    settlementBasis: 'reservation-room-total'
+                    settlementBasis: 'reservation-room-total',
+                    rateQuote: rateQuote ? { ...rateQuote } : null,
+                    manualAmountOverride
                 },
                 roomChangeHistory: [],
                 roomMoveHistory: [],
@@ -2319,6 +2575,9 @@
                 res.amount = totalAmount;
                 res.rate = { amount: nightlyRate, currency };
                 res.totalAmount = { amount: totalAmount, currency };
+                res.discountPercent = rateQuote?.discountPercent || 0;
+                res.roomRateQuote = rateQuote ? { ...rateQuote } : null;
+                res.manualAmountOverride = manualAmountOverride;
                 res.prepaidAmount = prepaidAmount;
                 res.balanceDue = balanceDue;
                 res.paymentPlan = {
@@ -2327,7 +2586,9 @@
                     prepaidAmount,
                     balanceDue,
                     currency,
-                    settlementBasis: 'reservation-room-total'
+                    settlementBasis: 'reservation-room-total',
+                    rateQuote: rateQuote ? { ...rateQuote } : null,
+                    manualAmountOverride
                 };
                 const roomChanged = !sameRoomValue(beforeRoom, room) && !sameRoomValue(beforeFullRoom, res.fullRoom);
                 if (res.groupId) {
