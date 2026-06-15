@@ -2248,7 +2248,8 @@
             setUnifiedDateValue('unifiedCin', prefill?.checkin || prefill?.cin || prefill?.checkInDate, today);
             setUnifiedDateValue('unifiedCout', prefill?.checkout || prefill?.cout || prefill?.checkOutDate, tomorrow);
             setUnifiedStayTimeValues(null, prefill || {});
-            window.updateUnifiedStayAndRooms(prefill?.room || prefill?.fullRoom || '');
+            const preferredRoom = prefill?.room || prefill?.fullRoom || prefill?.roomId || prefill?.roomNo || prefill?.roomLabel || '';
+            window.updateUnifiedStayAndRooms(preferredRoom);
             if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
             }

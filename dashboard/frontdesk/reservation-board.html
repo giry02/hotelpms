@@ -55,6 +55,8 @@
         .floor-title i{color:var(--txt3);font-size:.86rem}
         .floor-count{font-size:.8rem;color:var(--txt3);font-weight:500;margin-left:8px;line-height:1.2}
         .reservation-board-box{min-height:150px;align-items:flex-start;text-align:left;padding:13px 12px;gap:7px}
+        .reservation-board-box.is-bookable{cursor:pointer}
+        .reservation-board-box.is-bookable:hover{border-color:var(--primary-lt);box-shadow:0 8px 22px rgba(59,130,246,.12);transform:translateY(-2px)}
         .reservation-board-box.vacant{border-top:3px solid #cbd5e1}
         .reservation-board-box.arrival{border-top:3px solid var(--primary)}
         .reservation-board-box.inhouse{border-top:3px solid var(--success)}
@@ -555,6 +557,39 @@ function boardStatusIcon(status) {
     })[status] || 'fa-calendar-check';
 }
 
+function boardDateInputValue(date) {
+    const target = date || todayDate();
+    return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+}
+
+function openBoardRoomBooking(encodedRoomId) {
+    const roomId = decodeURIComponent(encodedRoomId || '');
+    const room = rooms.find(item => sameRoomValue(item?.id, roomId)
+        || sameRoomValue(item?.fullRoom, roomId)
+        || sameRoomValue(item?.roomNo, roomId)
+        || sameRoomValue(item?.number, roomId)
+        || sameRoomValue(item?.display, roomId)
+        || sameRoomValue(item?.roomLabel, roomId));
+    const range = boardRange();
+    const checkin = range.start || todayDate();
+    const checkout = addDays(checkin, 1);
+    const roomValue = room?.id || room?.fullRoom || room?.roomNo || room?.number || roomId;
+    if (typeof window.openUnifiedResModal === 'function') {
+        window.openUnifiedResModal({
+            room: roomValue,
+            fullRoom: roomValue,
+            roomId: roomValue,
+            roomNo: roomValue,
+            roomLabel: roomValue,
+            type: roomType(room),
+            checkin: boardDateInputValue(checkin),
+            checkout: boardDateInputValue(checkout),
+            checkInDate: boardDateInputValue(checkin),
+            checkOutDate: boardDateInputValue(checkout)
+        });
+    }
+}
+
 function boardCard(room) {
     let state = boardStatusFor(room);
     if (boardFilter !== 'all') {
@@ -584,12 +619,16 @@ function boardCard(room) {
     ].join(' ').toLowerCase();
     const query = document.getElementById('boardSearch')?.value.trim().toLowerCase() || '';
     if (query && !searchText.includes(query)) return '';
-    const click = res ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"` : '';
+    const roomId = room.id || room.fullRoom || room.roomNo || room.number || room.display || '';
+    const canCreateBooking = !res && state.status === 'vacant' && !!roomId;
+    const click = res
+        ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"`
+        : (canCreateBooking ? `onclick="openBoardRoomBooking('${encodeURIComponent(roomId)}')"` : '');
     const flags = res ? [
         hasRoomChange ? `<span class="board-flag move"><i class="fa-solid fa-right-left"></i>이동 ${escapeHtml(roomChangeText)}</span>` : '',
         hasLateCheckout ? `<span class="board-flag late"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(reservationLateCheckoutTime(res))}</span>` : ''
     ].filter(Boolean).join('') : '';
-    return `<div class="room-box reservation-board-box ${state.status}${hasRoomChange ? ' room-moved' : ''}" ${click} style="${res ? 'cursor:pointer' : ''}">
+    return `<div class="room-box reservation-board-box ${state.status}${hasRoomChange ? ' room-moved' : ''}${canCreateBooking ? ' is-bookable' : ''}" ${click} style="${res ? 'cursor:pointer' : ''}">
         <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${boardStatusIcon(state.status)}"></i>${state.label}</span></div>
         <div class="room-box-type">${escapeHtml(roomType(room))}</div>
         ${res ? `<div class="board-guest">
