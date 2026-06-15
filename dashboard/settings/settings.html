@@ -214,18 +214,7 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="form-section" id="sec-menu-policy" style="margin-bottom: 0;">
-                    <div class="form-header">
-                        <div class="form-title" data-i18n-key="Hotel Menu Activation">호텔별 메뉴 활성화</div>
-                        <div class="form-desc" data-i18n-key="Control tenant menu visibility separately from staff permissions.">직원 권한과 별도로 이 호텔에서 사용할 메뉴와 기능을 설정합니다.</div>
-                    </div>
-                    <div class="form-body">
-                        <div class="menu-policy-note" data-i18n-key="Menu policy note">이 설정은 호텔/테넌트 단위 메뉴 노출 정책입니다. 직원별 접근 범위는 역할/권한 메뉴에서 별도로 관리합니다.</div>
-                        <div class="menu-policy-grid" id="menuPolicyGrid"></div>
-                    </div>
-                </div>
-            </div>
+        </div>
         </div>
 
         <div class="settings-save-legacy">
@@ -382,16 +371,6 @@ Object.assign(translations.en, {
     "Free cancellation until 48h before check-in": "Free cancellation until 48h before check-in (1 night charged after that)",
     "Non-refundable": "Non-refundable"
 });
-Object.assign(translations.ko, {
-    "Hotel Menu Activation": "호텔별 메뉴 활성화",
-    "Control tenant menu visibility separately from staff permissions.": "직원 권한과 별도로 이 호텔에서 사용할 메뉴와 기능을 설정합니다.",
-    "Menu policy note": "이 설정은 호텔/테넌트 단위 메뉴 노출 정책입니다. 직원별 접근 범위는 역할/권한 메뉴에서 별도로 관리합니다."
-});
-Object.assign(translations.en, {
-    "Hotel Menu Activation": "Hotel Menu Activation",
-    "Control tenant menu visibility separately from staff permissions.": "Control tenant menu visibility separately from staff permissions.",
-    "Menu policy note": "This is a hotel/tenant-level menu visibility policy. Staff access remains managed separately in Role & Perms."
-});
 function setupSettingsI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function applySettingsI18n(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
@@ -416,124 +395,6 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
 <script>
 (function(){
     let currentHotelSettings = null;
-    let menuPolicyOptions = [];
-
-    const MENU_POLICY_FALLBACK = [
-        { key: 'dashboard', icon: 'fa-gauge-high', labelKo: '대시보드', labelEn: 'Dashboard', descKo: '운영 요약과 광고 영역', descEn: 'Operational overview and ads' },
-        { key: 'reservation', icon: 'fa-calendar-check', labelKo: '예약 관리', labelEn: 'Reservations', descKo: '타임라인, 현황, 목록', descEn: 'Timeline, board, list' },
-        { key: 'checkin', icon: 'fa-right-to-bracket', labelKo: '체크인/아웃', labelEn: 'Check-in/out', descKo: '프론트 처리 화면', descEn: 'Front desk processing' },
-        { key: 'crm', icon: 'fa-address-book', labelKo: '투숙객 관리', labelEn: 'Guest CRM', descKo: '고객 정보와 블랙리스트', descEn: 'Guest profile and blacklist' },
-        { key: 'groups', icon: 'fa-users-line', labelKo: '단체 관리', labelEn: 'Group Management', descKo: '단체 예약과 업체', descEn: 'Group blocks and companies' },
-        { key: 'rooms', icon: 'fa-bed', labelKo: '객실 관리', labelEn: 'Room Management', descKo: '객실 목록과 상태', descEn: 'Room list and status' },
-        { key: 'rates', icon: 'fa-tags', labelKo: '요금 캘린더', labelEn: 'Rates Calendar', descKo: '객실 요금 운영', descEn: 'Room rate operation' },
-        { key: 'housekeeping', icon: 'fa-broom', labelKo: '하우스키핑', labelEn: 'Housekeeping', descKo: '청소 요청과 완료', descEn: 'Cleaning requests and completion' },
-        { key: 'maintenance', icon: 'fa-wrench', labelKo: '시설 보수', labelEn: 'Maintenance', descKo: '점검과 수리 관리', descEn: 'Inspection and repair' },
-        { key: 'folio', icon: 'fa-file-invoice-dollar', labelKo: '통합 정산', labelEn: 'Folio & Billing', descKo: '정산 목록과 마감', descEn: 'Folio list and closing' },
-        { key: 'ancillary', icon: 'fa-concierge-bell', labelKo: '부가서비스', labelEn: 'Ancillary Services', descKo: 'POS, 골프, 렌터카', descEn: 'POS, golf, rent-a-car' },
-        { key: 'settings', icon: 'fa-gear', labelKo: '호텔 설정', labelEn: 'Hotel Settings', descKo: '호텔 기본 정책', descEn: 'Hotel base policies' },
-        { key: 'staff', icon: 'fa-user-shield', labelKo: '직원/권한', labelEn: 'Staff & Roles', descKo: '직원과 역할 권한', descEn: 'Staff and role permissions' },
-        { key: 'billing', icon: 'fa-credit-card', labelKo: '요금/결제 설정', labelEn: 'Billing Settings', descKo: '가입 통화와 결제 정책', descEn: 'Currency and billing policy' }
-    ];
-
-    function currentLanguage() {
-        return window.currentLang || localStorage.getItem('pms_lang') || 'ko';
-    }
-
-    function menuLabel(option) {
-        return currentLanguage() === 'en' ? (option.labelEn || option.label) : (option.labelKo || option.label);
-    }
-
-    function menuDescription(option) {
-        return currentLanguage() === 'en' ? (option.descEn || '') : (option.descKo || '');
-    }
-
-    function fallbackByKey(key) {
-        return MENU_POLICY_FALLBACK.find(item => item.key === key) || { key, icon: 'fa-circle', labelKo: key, labelEn: key };
-    }
-
-    function normalizeMenuOptions(apiMenus) {
-        const knownKeys = new Set();
-        const normalized = [];
-        (Array.isArray(apiMenus) ? apiMenus : []).forEach(menu => {
-            if (!menu?.key) return;
-            const fallback = fallbackByKey(menu.key);
-            knownKeys.add(menu.key);
-            normalized.push({
-                ...fallback,
-                key: menu.key,
-                icon: menu.icon || fallback.icon,
-                label: menu.label || fallback.labelKo
-            });
-        });
-        MENU_POLICY_FALLBACK.forEach(menu => {
-            if (!knownKeys.has(menu.key)) normalized.push(menu);
-        });
-        return normalized;
-    }
-
-    function isMenuEnabled(settings, key) {
-        const featureFlags = settings?.featureFlags || {};
-        const menuPolicy = settings?.menuPolicy || {};
-        const enabledMenus = Array.isArray(menuPolicy.enabledMenus) ? menuPolicy.enabledMenus : null;
-        const disabledMenus = Array.isArray(menuPolicy.disabledMenus) ? menuPolicy.disabledMenus : [];
-        if (featureFlags[key] === false) return false;
-        if (disabledMenus.includes(key)) return false;
-        if (enabledMenus && enabledMenus.length > 0 && !enabledMenus.includes(key)) return false;
-        return true;
-    }
-
-    function renderMenuPolicyGrid(settings) {
-        const grid = document.getElementById('menuPolicyGrid');
-        if (!grid) return;
-        grid.innerHTML = menuPolicyOptions.map(option => {
-            const checked = isMenuEnabled(settings, option.key) ? 'checked' : '';
-            return `
-                <div class="menu-policy-item">
-                    <div class="menu-policy-main">
-                        <span class="menu-policy-icon"><i class="fa-solid ${option.icon || 'fa-circle'}"></i></span>
-                        <span class="menu-policy-text">
-                            <span class="menu-policy-name">${menuLabel(option)}</span>
-                            <span class="menu-policy-desc">${menuDescription(option)}</span>
-                        </span>
-                    </div>
-                    <label class="toggle-switch" title="${menuLabel(option)}">
-                        <input type="checkbox" data-menu-policy-key="${option.key}" ${checked}>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            `;
-        }).join('');
-    }
-
-    async function loadMenuPolicyOptions() {
-        let apiMenus = [];
-        try {
-            apiMenus = window.PmsAPI?.getALL_MENUS ? await window.PmsAPI.getALL_MENUS() : [];
-        } catch (error) {
-            console.warn('Menu policy options load failed', error);
-        }
-        menuPolicyOptions = normalizeMenuOptions(apiMenus);
-    }
-
-    function collectMenuPolicy() {
-        const enabledMenus = [];
-        const disabledMenus = [];
-        const featureFlags = {};
-        document.querySelectorAll('[data-menu-policy-key]').forEach(input => {
-            const key = input.getAttribute('data-menu-policy-key');
-            if (!key) return;
-            featureFlags[key] = input.checked;
-            if (input.checked) enabledMenus.push(key);
-            else disabledMenus.push(key);
-        });
-        return {
-            featureFlags,
-            menuPolicy: {
-                enabledMenus,
-                disabledMenus
-            }
-        };
-    }
 
     function setSelectValue(id, value) {
         const el = document.getElementById(id);
@@ -622,17 +483,13 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
         if (adminPhone) adminPhone.value = admin.phone || '+84 90 000 1000';
         const recovery = document.getElementById('adminRecoveryEnabled');
         if (recovery) recovery.checked = admin.recoveryEnabled !== false;
-        await loadMenuPolicyOptions();
-        renderMenuPolicyGrid(currentHotelSettings);
-
         const saveBtn = document.getElementById('hotelSettingsSaveBtn');
         if (saveBtn) {
             saveBtn.addEventListener('click', async () => {
                 const next = {
                     ...(currentHotelSettings || {}),
                     adminContact: collectAdminContact(),
-                    stayoverCleaningPolicy: collectStayoverPolicy(),
-                    ...collectMenuPolicy()
+                    stayoverCleaningPolicy: collectStayoverPolicy()
                 };
                 currentHotelSettings = window.PmsAPI && window.PmsAPI.saveHotelSettings
                     ? await window.PmsAPI.saveHotelSettings(next)

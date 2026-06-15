@@ -121,57 +121,103 @@
     const HOTEL_MENU_KEYS = [
         'dashboard',
         'reservation',
+        'reservation.timeline',
+        'reservation.board',
+        'reservation.list',
         'checkin',
         'crm',
+        'crm.guests',
+        'crm.membership',
         'groups',
+        'groups.list',
+        'groups.companies',
         'rooms',
+        'rooms.list',
+        'rooms.types',
         'rates',
         'housekeeping',
         'maintenance',
         'folio',
+        'folio.reports',
+        'folio.list',
+        'folio.night-audit',
         'ancillary',
+        'ancillary.pos',
+        'ancillary.golf',
+        'ancillary.rentacar',
         'settings',
+        'settings.hotel',
         'staff',
-        'billing'
+        'staff.list',
+        'staff.roles',
+        'billing',
+        'settings.audit-logs',
+        'settings.notices',
+        'settings.support'
     ];
 
     const MENU_KEY_BY_FILE = {
         'dashboard.html': 'dashboard',
-        'reservation-timeline.html': 'reservation',
-        'reservation-board.html': 'reservation',
-        'reservation-list.html': 'reservation',
+        'reservation-timeline.html': 'reservation.timeline',
+        'reservation-board.html': 'reservation.board',
+        'reservation-list.html': 'reservation.list',
         'checkin.html': 'checkin',
-        'guests.html': 'crm',
-        'membership.html': 'crm',
-        'groups_blocks.html': 'groups',
-        'groups_block_detail.html': 'groups',
-        'groups_companies.html': 'groups',
-        'rooms.html': 'rooms',
-        'room-setup.html': 'rooms',
+        'guests.html': 'crm.guests',
+        'membership.html': 'crm.membership',
+        'groups_blocks.html': 'groups.list',
+        'groups_block_detail.html': 'groups.list',
+        'groups_companies.html': 'groups.companies',
+        'rooms.html': 'rooms.list',
+        'room-setup.html': 'rooms.types',
         'rates.html': 'rates',
         'housekeeping.html': 'housekeeping',
         'maintenance.html': 'maintenance',
-        'reports.html': 'folio',
-        'folio.html': 'folio',
-        'night-audit.html': 'folio',
-        'unified-pos.html': 'ancillary',
-        'golf.html': 'ancillary',
-        'rentacar.html': 'ancillary',
-        'settings.html': 'settings',
-        'staff.html': 'staff',
-        'roles.html': 'staff',
+        'reports.html': 'folio.reports',
+        'folio.html': 'folio.list',
+        'night-audit.html': 'folio.night-audit',
+        'unified-pos.html': 'ancillary.pos',
+        'golf.html': 'ancillary.golf',
+        'rentacar.html': 'ancillary.rentacar',
+        'settings.html': 'settings.hotel',
+        'staff.html': 'staff.list',
+        'roles.html': 'staff.roles',
         'billing.html': 'billing',
-        'audit-logs.html': 'settings',
-        'notices.html': 'settings',
-        'support.html': 'settings'
+        'audit-logs.html': 'settings.audit-logs',
+        'notices.html': 'settings.notices',
+        'support.html': 'settings.support'
     };
 
-    function readHotelSettingsForSidebar() {
+    function safeJsonParse(value, fallback = {}) {
         try {
-            return JSON.parse(localStorage.getItem('pms_hotel_settings') || '{}') || {};
+            return value ? (JSON.parse(value) || fallback) : fallback;
         } catch (error) {
-            return {};
+            return fallback;
         }
+    }
+
+    function readHotelSettingsForSidebar() {
+        const settings = safeJsonParse(localStorage.getItem('pms_hotel_settings'), {});
+        const tenantId =
+            settings.id
+            || settings.tenantId
+            || localStorage.getItem('pms_tenant_id')
+            || 'TENANT-GRAND-SAIGON';
+        const adminPolicy = safeJsonParse(
+            localStorage.getItem(`admin_tenant_menu_policy:${tenantId}`)
+            || localStorage.getItem(`mockapi:v1:ADMIN:tenant-menu-policy:${tenantId}`),
+            {}
+        );
+        return {
+            ...settings,
+            featureFlags: {
+                ...(settings.featureFlags || {}),
+                ...(adminPolicy.featureFlags || {})
+            },
+            menuPolicy: {
+                ...(settings.menuPolicy || {}),
+                ...(adminPolicy.menuPolicy || {})
+            }
+        };
     }
 
     function hrefFile(href) {
@@ -193,6 +239,13 @@
         return !item?.roles || item.roles.includes(window.currentUserRole);
     }
 
+    function parentMenuKey(key) {
+        if (!key || !String(key).includes('.')) {
+            return key === 'rates' ? 'rooms' : '';
+        }
+        return String(key).split('.')[0];
+    }
+
     function hotelMenuPolicyAllows(key) {
         if (!key) return true;
         const settings = readHotelSettingsForSidebar();
@@ -200,9 +253,16 @@
         const menuPolicy = settings.menuPolicy || {};
         const enabledMenus = Array.isArray(menuPolicy.enabledMenus) ? menuPolicy.enabledMenus : null;
         const disabledMenus = Array.isArray(menuPolicy.disabledMenus) ? menuPolicy.disabledMenus : [];
+        const parentKey = parentMenuKey(key);
         if (featureFlags[key] === false) return false;
         if (disabledMenus.includes(key)) return false;
-        if (enabledMenus && enabledMenus.length > 0 && !enabledMenus.includes(key)) return false;
+        if (parentKey && featureFlags[parentKey] === false) return false;
+        if (parentKey && disabledMenus.includes(parentKey)) return false;
+        if (enabledMenus && enabledMenus.length > 0) {
+            if (enabledMenus.includes(key)) return true;
+            if (parentKey && enabledMenus.includes(parentKey)) return true;
+            return false;
+        }
         return true;
     }
 
@@ -213,7 +273,7 @@
         if (Array.isArray(item.children)) {
             const children = item.children
                 .filter(child => rolePolicyAllows(child) && hotelMenuPolicyAllows(resolveMenuKey(child, item)));
-            if (!directAllowed && children.length === 0) return null;
+            if (children.length === 0) return null;
             const next = { ...item, key, children };
             if (!directAllowed && children[0]?.href) next.mainHref = children[0].href;
             return next;

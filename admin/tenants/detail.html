@@ -158,19 +158,67 @@
 <script>
 const ADMIN_TENANT_MENU_OPTIONS = [
 	{ key: 'dashboard', icon: 'fa-gauge-high', label: '대시보드', desc: '운영 요약과 광고 영역' },
-	{ key: 'reservation', icon: 'fa-calendar-days', label: '예약 관리', desc: '타임라인, 현황, 목록' },
+	{
+		key: 'reservation', icon: 'fa-calendar-days', label: '예약 관리', desc: '예약 운영 메뉴',
+		children: [
+			{ key: 'reservation.timeline', label: '예약 타임라인', desc: '날짜별 예약 배치' },
+			{ key: 'reservation.board', label: '예약 현황', desc: '객실 보드형 현황' },
+			{ key: 'reservation.list', label: '예약 목록', desc: '목록 조회와 처리' }
+		]
+	},
 	{ key: 'checkin', icon: 'fa-right-to-bracket', label: '체크인/아웃', desc: '프론트 처리 화면' },
-	{ key: 'crm', icon: 'fa-users', label: '투숙객 관리', desc: '고객 정보와 블랙리스트' },
-	{ key: 'groups', icon: 'fa-users-line', label: '단체 관리', desc: '단체 예약과 업체' },
-	{ key: 'rooms', icon: 'fa-bed', label: '객실 관리', desc: '객실 목록과 상태' },
-	{ key: 'rates', icon: 'fa-tags', label: '요금 캘린더', desc: '객실 요금 운영' },
+	{
+		key: 'crm', icon: 'fa-users', label: '투숙객 관리', desc: '고객 정보와 멤버십',
+		children: [
+			{ key: 'crm.guests', label: '투숙객 관리', desc: '고객 상세와 블랙리스트' },
+			{ key: 'crm.membership', label: '우수 고객 멤버십', desc: '등급과 혜택 관리' }
+		]
+	},
+	{
+		key: 'groups', icon: 'fa-users-line', label: '단체 관리', desc: '단체 예약과 업체',
+		children: [
+			{ key: 'groups.list', label: '단체/행사 목록', desc: '단체 예약 상세' },
+			{ key: 'groups.companies', label: '단체업체 관리', desc: '거래처와 계약 조건' }
+		]
+	},
+	{
+		key: 'rooms', icon: 'fa-bed', label: '객실 관리', desc: '객실 목록과 요금',
+		children: [
+			{ key: 'rooms.list', label: '객실 목록', desc: '호실별 상태' },
+			{ key: 'rooms.types', label: '객실 유형', desc: '객실 타입 설정' },
+			{ key: 'rates', label: '요금 캘린더', desc: '객실 요금 운영' }
+		]
+	},
 	{ key: 'housekeeping', icon: 'fa-broom', label: '하우스키핑', desc: '청소 요청과 완료' },
 	{ key: 'maintenance', icon: 'fa-toolbox', label: '시설 보수', desc: '점검과 수리 관리' },
-	{ key: 'folio', icon: 'fa-file-invoice-dollar', label: '통합 정산', desc: '정산 목록과 마감' },
-	{ key: 'ancillary', icon: 'fa-concierge-bell', label: '부가서비스', desc: 'POS, 골프, 렌터카' },
-	{ key: 'settings', icon: 'fa-gear', label: '호텔 설정', desc: '호텔 기본 정책' },
-	{ key: 'staff', icon: 'fa-users-gear', label: '직원/권한 관리', desc: '직원과 역할 권한' },
-	{ key: 'billing', icon: 'fa-credit-card', label: '요금/결제 설정', desc: '가입 통화와 결제 정책' }
+	{
+		key: 'folio', icon: 'fa-file-invoice-dollar', label: '통합 정산', desc: '정산과 마감',
+		children: [
+			{ key: 'folio.reports', label: '매출 분석', desc: '부서별 매출' },
+			{ key: 'folio.list', label: '정산 목록', desc: 'Folio 및 명세서' },
+			{ key: 'folio.night-audit', label: '일일 마감', desc: '시재와 정산 마감' }
+		]
+	},
+	{
+		key: 'ancillary', icon: 'fa-concierge-bell', label: '부가서비스', desc: 'POS, 골프, 렌터카',
+		children: [
+			{ key: 'ancillary.pos', label: '통합 POS', desc: '부가 주문 관리' },
+			{ key: 'ancillary.golf', label: '골프 예약', desc: '제휴 골프장 예약' },
+			{ key: 'ancillary.rentacar', label: '렌터카', desc: '제휴 렌터카 예약' }
+		]
+	},
+	{
+		key: 'settings', icon: 'fa-gear', label: '설정', desc: '호텔 및 운영 설정',
+		children: [
+			{ key: 'settings.hotel', label: '호텔 설정', desc: '호텔 기본 정책' },
+			{ key: 'staff.list', label: '직원 목록', desc: '직원 계정' },
+			{ key: 'staff.roles', label: '권한 설정', desc: '역할별 접근 권한' },
+			{ key: 'billing', label: '요금/결제 설정', desc: '가입 통화와 결제 정책' },
+			{ key: 'settings.audit-logs', label: '감사 로그', desc: '변경 이력 확인' },
+			{ key: 'settings.notices', label: '공지사항', desc: '호텔 공지 관리' },
+			{ key: 'settings.support', label: '고객지원', desc: '지원 요청 관리' }
+		]
+	}
 ];
 const ADMIN_TENANT_STATUS_LABELS = {
 	active: '운영 중',
@@ -193,6 +241,18 @@ let adminTenantMenuInitialized = false;
 let adminTenantMenuState = null;
 let adminTenantOperationalPolicyState = null;
 let adminTenantDetail = null;
+
+function flattenAdminTenantMenuOptions(options = ADMIN_TENANT_MENU_OPTIONS) {
+	return options.flatMap(option => [option, ...(option.children || [])]);
+}
+
+function adminTenantMenuKeys() {
+	return flattenAdminTenantMenuOptions().map(option => option.key);
+}
+
+function adminTenantChildKeys(option) {
+	return (option.children || []).map(child => child.key);
+}
 
 function escapeHtml(value) {
 	return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -231,7 +291,7 @@ function getAdminTenantOperationalPolicyApiStorageKey(tenantId) {
 }
 
 function defaultAdminTenantMenuPolicy() {
-	const enabledMenus = ADMIN_TENANT_MENU_OPTIONS.map(option => option.key);
+	const enabledMenus = adminTenantMenuKeys();
 	const featureFlags = enabledMenus.reduce((flags, key) => {
 		flags[key] = true;
 		return flags;
@@ -263,19 +323,38 @@ function normalizeAdminTenantOperationalPolicy(source = {}) {
 }
 
 function normalizeAdminTenantMenuPolicy(source = {}) {
-	const keys = ADMIN_TENANT_MENU_OPTIONS.map(option => option.key);
+	const keys = adminTenantMenuKeys();
 	const base = defaultAdminTenantMenuPolicy();
 	const incomingFlags = source.featureFlags || {};
 	const incomingPolicy = source.menuPolicy || {};
 	const disabledMenus = Array.isArray(incomingPolicy.disabledMenus)
 		? incomingPolicy.disabledMenus.filter(key => keys.includes(key))
 		: [];
-	let enabledMenus = Array.isArray(incomingPolicy.enabledMenus)
+	const incomingEnabledMenus = Array.isArray(incomingPolicy.enabledMenus)
 		? incomingPolicy.enabledMenus.filter(key => keys.includes(key))
-		: keys.filter(key => !disabledMenus.includes(key));
+		: null;
+	let enabledMenus = incomingEnabledMenus || keys.filter(key => !disabledMenus.includes(key));
 	const featureFlags = { ...base.featureFlags, ...incomingFlags };
 	enabledMenus = enabledMenus.filter(key => featureFlags[key] !== false && !disabledMenus.includes(key));
 	const enabledSet = new Set(enabledMenus);
+	ADMIN_TENANT_MENU_OPTIONS.forEach(option => {
+		const children = adminTenantChildKeys(option);
+		if (!children.length) return;
+		const hasExplicitChildPolicy = children.some(key =>
+			Object.prototype.hasOwnProperty.call(incomingFlags, key)
+			|| (incomingEnabledMenus || []).includes(key)
+			|| disabledMenus.includes(key)
+		);
+		if (!hasExplicitChildPolicy && enabledSet.has(option.key) && featureFlags[option.key] !== false) {
+			children.forEach(key => enabledSet.add(key));
+		}
+		if (featureFlags[option.key] === false || disabledMenus.includes(option.key)) {
+			children.forEach(key => enabledSet.delete(key));
+		}
+		const anyChildEnabled = children.some(key => enabledSet.has(key));
+		if (anyChildEnabled) enabledSet.add(option.key);
+		else enabledSet.delete(option.key);
+	});
 	keys.forEach(key => {
 		featureFlags[key] = enabledSet.has(key);
 	});
@@ -393,22 +472,56 @@ function renderAdminTenantMenuPolicy() {
 	const grid = document.getElementById('adminTenantMenuPolicyGrid');
 	if (!grid) return;
 	grid.innerHTML = ADMIN_TENANT_MENU_OPTIONS.map(option => `
-		<div class="tenant-menu-policy-item" data-admin-menu-key="${escapeHtml(option.key)}">
-			<div class="tenant-menu-policy-main">
-				<div class="tenant-menu-policy-icon"><i class="fa-solid ${escapeHtml(option.icon)}"></i></div>
-				<div class="tenant-menu-policy-text">
-					<div class="tenant-menu-policy-name">${escapeHtml(option.label)}</div>
-					<div class="tenant-menu-policy-desc">${escapeHtml(option.desc)}</div>
+		<div class="tenant-menu-policy-item tenant-menu-policy-group" data-admin-menu-key="${escapeHtml(option.key)}">
+			<div class="tenant-menu-policy-parent">
+				<div class="tenant-menu-policy-main">
+					<div class="tenant-menu-policy-icon"><i class="fa-solid ${escapeHtml(option.icon)}"></i></div>
+					<div class="tenant-menu-policy-text">
+						<div class="tenant-menu-policy-name">${escapeHtml(option.label)}</div>
+						<div class="tenant-menu-policy-desc">${escapeHtml(option.desc)}</div>
+					</div>
 				</div>
+				<label class="toggle" title="${escapeHtml(option.label)}">
+					<input type="checkbox" data-admin-menu-toggle="${escapeHtml(option.key)}" data-admin-menu-parent-toggle="${escapeHtml(option.key)}" ${isAdminTenantMenuEnabled(option.key) ? 'checked' : ''}>
+					<span class="slider"></span>
+				</label>
 			</div>
-			<label class="toggle" title="${escapeHtml(option.label)}">
-				<input type="checkbox" data-admin-menu-toggle="${escapeHtml(option.key)}" ${isAdminTenantMenuEnabled(option.key) ? 'checked' : ''}>
-				<span class="slider"></span>
-			</label>
+			${option.children?.length ? `
+				<div class="tenant-menu-policy-children">
+					${option.children.map(child => `
+						<div class="tenant-menu-policy-child">
+							<div class="tenant-menu-policy-child-text">
+								<div class="tenant-menu-policy-child-name">${escapeHtml(child.label)}</div>
+								<div class="tenant-menu-policy-child-desc">${escapeHtml(child.desc || '')}</div>
+							</div>
+							<label class="toggle" title="${escapeHtml(child.label)}">
+								<input type="checkbox" data-admin-menu-toggle="${escapeHtml(child.key)}" data-admin-menu-child="${escapeHtml(child.key)}" data-admin-menu-parent="${escapeHtml(option.key)}" ${isAdminTenantMenuEnabled(child.key) ? 'checked' : ''}>
+								<span class="slider"></span>
+							</label>
+						</div>
+					`).join('')}
+				</div>
+			` : ''}
 		</div>
 	`).join('');
 	grid.querySelectorAll('[data-admin-menu-toggle]').forEach(input => {
 		input.addEventListener('change', () => {
+			const parentKey = input.dataset.adminMenuParentToggle;
+			if (parentKey) {
+				[...grid.querySelectorAll('[data-admin-menu-parent]')]
+					.filter(child => child.dataset.adminMenuParent === parentKey)
+					.forEach(child => {
+						child.checked = input.checked;
+					});
+			}
+			const childParentKey = input.dataset.adminMenuParent;
+			if (childParentKey) {
+				const parentInput = [...grid.querySelectorAll('[data-admin-menu-parent-toggle]')]
+					.find(parent => parent.dataset.adminMenuParentToggle === childParentKey);
+				const siblings = [...grid.querySelectorAll('[data-admin-menu-parent]')]
+					.filter(child => child.dataset.adminMenuParent === childParentKey);
+				if (parentInput) parentInput.checked = siblings.some(child => child.checked);
+			}
 			updateAdminTenantMenuSummary();
 			const savedAt = document.getElementById('adminTenantMenuPolicySavedAt');
 			if (savedAt) savedAt.textContent = '변경사항 있음';
@@ -441,6 +554,20 @@ function saveAdminTenantMenuPolicy() {
 	};
 	localStorage.setItem(getAdminTenantPolicyStorageKey(tenantId), JSON.stringify(payload));
 	localStorage.setItem(getAdminTenantPolicyApiStorageKey(tenantId), JSON.stringify(payload));
+	try {
+		const hotelSettings = JSON.parse(localStorage.getItem('pms_hotel_settings') || '{}') || {};
+		localStorage.setItem('pms_hotel_settings', JSON.stringify({
+			...hotelSettings,
+			tenantId,
+			featureFlags: {
+				...(hotelSettings.featureFlags || {}),
+				...payload.featureFlags
+			},
+			menuPolicy: payload.menuPolicy
+		}));
+	} catch (error) {
+		console.warn('Failed to sync tenant menu policy to PMS settings', error);
+	}
 	const savedAt = document.getElementById('adminTenantMenuPolicySavedAt');
 	if (savedAt) savedAt.textContent = '저장 완료';
 	updateAdminTenantMenuSummary();
