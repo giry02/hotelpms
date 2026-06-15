@@ -314,13 +314,30 @@
         const prev = hero.querySelector('[data-ad-hero-prev]');
         const next = hero.querySelector('[data-ad-hero-next]');
         const dots = Array.from(hero.querySelectorAll('[data-ad-hero-dot]'));
-        let index = 0;
+        let index = slides.length > 1 ? 1 : 0;
         let timer = null;
         let locked = false;
 
-        const renderHero = () => {
+        if (slides.length > 1) {
+            const lastClone = slides[slides.length - 1].cloneNode(true);
+            const firstClone = slides[0].cloneNode(true);
+            lastClone.setAttribute('aria-hidden', 'true');
+            firstClone.setAttribute('aria-hidden', 'true');
+            lastClone.dataset.heroClone = 'true';
+            firstClone.dataset.heroClone = 'true';
+            track.insertBefore(lastClone, slides[0]);
+            track.appendChild(firstClone);
+        }
+
+        const heroDotIndex = () => slides.length ? (index - 1 + slides.length) % slides.length : 0;
+        const renderHero = (animate = true) => {
+            track.style.transition = animate ? '' : 'none';
             track.style.transform = `translateX(-${index * 100}%)`;
-            dots.forEach((dot, dotIndex) => dot.classList.toggle('active', dotIndex === index));
+            dots.forEach((dot, dotIndex) => dot.classList.toggle('active', dotIndex === heroDotIndex()));
+            if (!animate) {
+                track.offsetHeight;
+                track.style.transition = '';
+            }
         };
         const stopHero = () => {
             if (timer) clearInterval(timer);
@@ -330,26 +347,36 @@
             stopHero();
             if (slides.length < 2) return;
             timer = setInterval(() => {
-                index = (index + 1) % slides.length;
-                renderHero();
+                moveHero(1, false);
             }, 6200);
         };
-        const moveHero = (direction) => {
-            if (locked) return;
+        const moveHero = (direction, restartTimer = true) => {
+            if (locked || slides.length < 2) return;
             locked = true;
-            index = (index + direction + slides.length) % slides.length;
+            index += direction;
             renderHero();
-            startHero();
-            setTimeout(() => { locked = false; }, 520);
+            if (restartTimer) startHero();
+        };
+        const finishHeroMove = (event) => {
+            if (event.propertyName !== 'transform') return;
+            if (index >= slides.length + 1) {
+                index = 1;
+                renderHero(false);
+            } else if (index <= 0) {
+                index = slides.length;
+                renderHero(false);
+            }
+            locked = false;
         };
 
         prev?.addEventListener('click', () => moveHero(-1));
         next?.addEventListener('click', () => moveHero(1));
+        track.addEventListener('transitionend', finishHeroMove);
         hero.addEventListener('mouseenter', stopHero);
         hero.addEventListener('mouseleave', startHero);
         hero.addEventListener('focusin', stopHero);
         hero.addEventListener('focusout', startHero);
-        renderHero();
+        renderHero(false);
         startHero();
     }
 
