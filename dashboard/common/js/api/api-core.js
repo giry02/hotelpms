@@ -356,10 +356,15 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         return `${date.getMonth() + 1}/${date.getDate()}`;
     }
 
-    function roomStatus(status) {
+    function roomStatus(status, housekeepingStatus = '') {
         const value = String(status || '').toLowerCase();
         if (['in-house', 'checked-in', 'occupied'].includes(value)) return 'occupied';
         if (value === 'out-of-service') return 'oos';
+        if (value === 'vacant') {
+            const housekeeping = String(housekeepingStatus || '').toLowerCase();
+            if (['dirty', 'vacant-dirty', 'pending-clean', 'needs-cleaning', 'inspect'].includes(housekeeping)) return 'vacant-dirty';
+            return 'vacant-clean';
+        }
         return value || 'vacant-clean';
     }
 
@@ -375,7 +380,7 @@ window.PmsMockApi = window.PmsMockApi || (function() {
             floor: item.floor,
             type: item.roomTypeName || item.type || item.roomTypeId,
             typeId: item.roomTypeId,
-            status: roomStatus(item.frontStatus || item.status),
+            status: roomStatus(item.frontStatus || item.status, item.housekeepingStatus || item.status),
             building: item.buildingName || item.building || item.buildingId,
             bldgCode: item.buildingId,
             baseRate: amountValue(item.baseRate),
