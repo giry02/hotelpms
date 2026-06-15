@@ -580,7 +580,7 @@ function showToast(msg) {
 
 const typeIcons = {
     '전기/조명':'fa-lightbulb', '배관/수도':'fa-faucet-drip', '에어컨/냉난방':'fa-temperature-arrow-down',
-    '가구/비품':'fa-couch', '도어/잠금장치':'fa-door-closed', '엘리베이터':'fa-elevator', '기타':'fa-toolbox'
+    '가구/비품':'fa-couch', '도어/잠금장치':'fa-door-closed', '엘리베이터':'fa-elevator', '객실 점검':'fa-clipboard-check', '기타':'fa-toolbox'
 };
 const typeLabels = {
     electrical: '전기/조명',
@@ -596,6 +596,10 @@ const typeLabels = {
     lock: '도어/잠금장치',
     elevator: '엘리베이터',
     lift: '엘리베이터',
+    inspection: '객실 점검',
+    roominspection: '객실 점검',
+    housekeepinginspection: '객실 점검',
+    객실점검: '객실 점검',
     other: '기타',
     maintenance: '기타'
 };
@@ -673,7 +677,7 @@ function maintenanceElapsedHours(value) {
 }
 
 function persistMaintenanceRequests() {
-    localStorage.setItem('pms_maintenance', JSON.stringify(requests));
+    localStorage.setItem('pms_maintenance', JSON.stringify(requests.filter(item => !isHousekeepingInspectionRequest(item))));
 }
 
 function hydrateMaintenanceRequests() {
@@ -728,6 +732,95 @@ function normalizeMaintenanceRequest(item) {
     };
 }
 
+function normalizeMaintenanceRoomKey(value) {
+    const text = String(value || '').trim().toLowerCase();
+    const compact = text.replace(/[^a-z0-9]/g, '');
+    const digits = (text.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
+    return { text, compact, digits };
+}
+
+function maintenanceRoomMatches(left, right) {
+    const a = normalizeMaintenanceRoomKey(left);
+    const b = normalizeMaintenanceRoomKey(right);
+    return Boolean(
+        (a.text && b.text && a.text === b.text) ||
+        (a.compact && b.compact && a.compact === b.compact) ||
+        (a.digits && b.digits && a.digits === b.digits)
+    );
+}
+
+function isHousekeepingInspectionRequest(item) {
+    return item?.source === 'housekeeping-inspection';
+}
+
+async function loadHousekeepingInspectionRequests() {
+    if (!window.PmsAPI?.getTasks) return [];
+    try {
+        const tasks = await PmsAPI.getTasks();
+        return (Array.isArray(tasks) ? tasks : [])
+            .filter(task => String(task.status || '').replace(/[-_\s]/g, '').toLowerCase() === 'inspect')
+            .map(task => normalizeMaintenanceRequest({
+                id: `HKI-${task.id}`,
+                source: 'housekeeping-inspection',
+                taskId: task.id,
+                room: task.room || task.roomNo || (task.roomId ? String(task.roomId).split('-').pop() : ''),
+                roomId: task.roomId || task.fullRoom || task.roomNo || task.room,
+                type: '객실 점검',
+                desc: task.note || `${task.room || task.roomNo || '객실'} 청소 후 점검`,
+                priority: task.priority ? 'high' : 'normal',
+                assignee: task.assignee || '시설팀',
+                status: task.inspectionStartedAt ? 'in-progress' : 'open',
+                issuedAt: task.inspectionRequestedAt || task.completedAt || task.updatedAt || task.createdAt || task.date || '',
+                startedAt: task.inspectionStartedAt || '',
+                completedAt: '',
+                date: task.date
+            }));
+    } catch(e) {
+        console.warn('Housekeeping inspection tasks load failed', e);
+        return [];
+    }
+}
+
+async function updateHousekeepingInspectionTask(request, updater) {
+    if (!window.PmsAPI?.getTasks || !window.PmsAPI?.saveTasks) return;
+    const tasks = await PmsAPI.getTasks();
+    const taskIndex = tasks.findIndex(task => task.id === request.taskId || `HKI-${task.id}` === request.id);
+    if (taskIndex === -1) return;
+    updater(tasks[taskIndex]);
+    await PmsAPI.saveTasks(tasks);
+}
+
+async function syncInspectionRoomClean(request) {
+    if (!window.PmsAPI?.getAllRooms || !window.PmsAPI?.saveRooms) return;
+    const rooms = await PmsAPI.getAllRooms();
+    const targetRoomKey = request.roomId || request.fullRoom || request.roomNo || request.room;
+    const roomIndex = rooms.findIndex(room =>
+        maintenanceRoomMatches(room.id, targetRoomKey) ||
+        maintenanceRoomMatches(room.roomId, targetRoomKey) ||
+        maintenanceRoomMatches(room.fullRoom, targetRoomKey) ||
+        maintenanceRoomMatches(room.roomNo, targetRoomKey) ||
+        maintenanceRoomMatches(room.roomNo, request.room)
+    );
+    if (roomIndex === -1) return;
+    rooms[roomIndex].housekeepingStatus = 'clean';
+    if (!['oos', 'out-of-service', 'maintenance'].includes(String(rooms[roomIndex].status || '').toLowerCase())) {
+        rooms[roomIndex].status = 'vacant-clean';
+    }
+    await PmsAPI.saveRooms(rooms);
+}
+
+async function completeHousekeepingInspection(request, now) {
+    const currentUser = window.PmsAPI?.getCurrentUser ? await PmsAPI.getCurrentUser().catch(() => null) : null;
+    const inspector = currentUser?.name || 'Maintenance';
+    await updateHousekeepingInspectionTask(request, task => {
+        task.status = 'clean';
+        task.inspectedBy = inspector;
+        task.inspectionCompletedAt = now;
+        task.completedAt = now;
+    });
+    await syncInspectionRoomClean(request);
+}
+
 function refreshNextMaintenanceId() {
     const numericIds = requests
         .map(item => Number(String(item.id || '').replace(/\D/g, '')))
@@ -744,6 +837,12 @@ async function loadMaintenanceRequests() {
         requests = [];
     }
     hydrateMaintenanceRequests();
+    const inspectionRequests = await loadHousekeepingInspectionRequests();
+    const requestIds = new Set(requests.map(item => item.id));
+    requests = [
+        ...inspectionRequests.filter(item => !requestIds.has(item.id)),
+        ...requests
+    ];
     refreshNextMaintenanceId();
     updateKPI();
     render();
@@ -912,10 +1011,28 @@ function switchView(btn, view) {
     document.getElementById('tableView').style.display = view === 'table' ? 'block' : 'none';
 }
 
-function changeStatus(id, newStatus) {
+async function changeStatus(id, newStatus) {
     const r = requests.find(x => x.id === id);
     if (r) {
         const now = new Date().toISOString();
+        if (isHousekeepingInspectionRequest(r)) {
+            if (newStatus === 'in-progress') {
+                if (!r.startedAt) r.startedAt = now;
+                await updateHousekeepingInspectionTask(r, task => {
+                    task.inspectionStartedAt = task.inspectionStartedAt || now;
+                });
+            }
+            if (newStatus === 'done') {
+                if (!r.startedAt) r.startedAt = now;
+                r.completedAt = now;
+                await completeHousekeepingInspection(r, now);
+            }
+            r.status = newStatus;
+            updateKPI();
+            render();
+            showToast(`${id} 상태가 '${statusLabel[newStatus]}'(으)로 변경되었습니다.`);
+            return;
+        }
         if (newStatus === 'in-progress' && !r.startedAt) r.startedAt = now;
         if (newStatus === 'done') {
             if (!r.startedAt) r.startedAt = now;

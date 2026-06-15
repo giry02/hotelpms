@@ -773,17 +773,11 @@ function renderRoomBox(r, appendHtml) {
         if (r.hkStatus === 'dirty') {
             const btnText = isEn ? 'Start Stayover Clean' : '투숙중 청소시작';
             actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'inspect'); event.stopPropagation();">${btnText}</button>`;
-        } else if (r.hkStatus === 'inspect') {
-            const btnText = isEn ? 'Pass Inspect' : '점검완료';
-            actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'clean'); event.stopPropagation();">${btnText}</button>`;
         }
     } else if (!isOccupied && r.taskId) {
         if (r.hkStatus === 'dirty') {
             const btnText = isEn ? 'Start Clean' : '청소시작';
             actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'inspect'); event.stopPropagation();">${btnText}</button>`;
-        } else if (r.hkStatus === 'inspect') {
-            const btnText = isEn ? 'Pass Inspect' : '점검완료';
-            actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'clean'); event.stopPropagation();">${btnText}</button>`;
         }
     } else if (!isOccupied && r.hkStatus === 'dirty') {
         const btnText = isEn ? 'Start Clean' : '청소시작';
@@ -848,7 +842,6 @@ function renderTasks() {
         let lblClean = isEn ? 'Clean' : '청소 완료';
         
         let btnStartClean = isEn ? 'Start Clean' : '청소 시작';
-        let btnPassInspect = isEn ? 'Pass Inspect' : '점검 통과';
         let btnCompleted = isEn ? 'Completed' : '완료됨';
         let logText = isEn ? 'View Log' : 'Log 보기';
 
@@ -858,7 +851,7 @@ function renderTasks() {
         } else if(t.status === 'inspect') {
             statusHtml = `<span style="color:var(--purple);font-weight:700"><i class="fa-solid fa-eye"></i> ${lblToInspect}</span>`;
             if (t.cleanedBy) statusHtml += ` <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:4px">(청소: ${t.cleanedBy})</span>`;
-            actionHtml = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)" onclick="completeTask('${t.id}', 'clean')"><i class="fa-solid fa-check"></i> ${btnPassInspect}</button>`;
+            actionHtml = `<span class="btn-outline-sm" style="pointer-events:none;color:var(--txt3);background:#fff"><i class="fa-solid fa-wrench"></i> ${isEn ? 'Maintenance only' : '시설보수 처리'}</span>`;
         } else {
             statusHtml = `<span style="color:var(--success)"><i class="fa-solid fa-check-circle"></i> ${lblClean}</span>`;
             let names = [];
@@ -921,6 +914,10 @@ function updateFilterCounts() {
 function completeTask(id, nextStatus) {
     const task = tasks.find(t => t.id === id);
     if(task) {
+        if (task.status === 'inspect' && nextStatus === 'clean') {
+            showToast('점검 완료는 시설보수에서 처리하세요.');
+            return;
+        }
         task.status = nextStatus;
         const isStayoverTask = task.type === 'stayover';
         const currentUserName = 'Nguyen Kim'; // Mock user
