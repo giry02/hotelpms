@@ -1188,7 +1188,7 @@
                     <div id="unifiedGuestPrivacyBody" style="padding:14px;"></div>
                 </div>
                 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+                <div id="unifiedStayRoomSection" style="display:grid;grid-template-columns:1fr 1fr;gap:18px 20px;margin-bottom:20px;padding:16px;border:1px solid #d5dde8;border-left:4px solid var(--primary);border-radius:12px;background:#fbfdff;box-shadow:0 8px 18px rgba(15,23,42,.04);">
                     <div class="md-item">
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Check-in">체크인 일자</div>
                         <input type="date" id="unifiedCin" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
