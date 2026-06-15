@@ -34,12 +34,25 @@
 .search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
 #btnUnpaidToggle { margin-left: 12px; border: 1px solid var(--danger); color: var(--danger); background: transparent; display: flex; align-items: center; gap: 6px; }
 #btnUnpaidToggle.active { background: var(--danger) !important; color: #fff !important; }
-.folio-table { table-layout: fixed; min-width: 1100px; }
-.folio-table th, .folio-table td { overflow: hidden; text-overflow: ellipsis; }
+.folio-table { table-layout: fixed; min-width: 1280px; }
+.folio-table th, .folio-table td { overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
+.folio-table tbody tr.folio-group-row td { padding-top: 14px; padding-bottom: 14px; background: #fff; }
+.folio-id-cell .folio-id-text { display: block; color: var(--txt2); font-family: 'Courier New', monospace; font-size: .76rem; white-space: nowrap; }
 .folio-table .folio-room-cell{overflow:hidden;white-space:normal}
-.folio-table .folio-actions { display: grid; grid-template-columns: 64px 52px; gap: 6px; justify-content: start; align-items: center; min-width: 122px; max-width: 128px; }
+.folio-room-title{font-weight:900;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.folio-customer-cell{white-space:normal}
+.folio-customer-name{display:block;font-weight:800;line-height:1.32;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folio-group-row .folio-customer-name{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.folio-date-cell,.folio-money-cell,.folio-status-cell{white-space:nowrap}
+.folio-money-cell{font-weight:800;color:var(--txt)}
+.folio-balance-cell{font-weight:800;white-space:nowrap}
+.folio-table .folio-actions { display: grid; grid-template-columns: 60px 54px; gap: 6px; justify-content: start; align-items: center; min-width: 120px; max-width: 120px; }
 .folio-table .folio-actions .btn-outline-sm,
 .folio-table .folio-actions .btn-primary-sm { width: 100%; height: 32px; padding: 0 8px; justify-content: center; }
+.folio-group-row .folio-actions{grid-template-columns:minmax(0,76px);min-width:76px;max-width:80px;gap:6px}
+.folio-group-row .folio-actions .btn-outline-sm,
+.folio-group-row .folio-actions .btn-primary-sm{padding:0 6px;font-size:.7rem}
+.folio-status-cell .status-badge{display:inline-flex;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .folio-action-placeholder { visibility: hidden; pointer-events: none; }
 .folio-mobile-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 10px; min-height: 36px; }
 #folioMobile .m-res-top > div:first-child { min-width: 0; }
@@ -53,13 +66,15 @@
 .folio-table td.folio-total-cell{overflow:visible}
 .folio-total-cell .folio-breakdown{margin-top:0}
 .folio-group-chip{display:inline-flex;align-items:center;gap:5px;margin-top:5px;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;font-size:.66rem;font-weight:900;white-space:nowrap;max-width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis}
-.folio-group-meta{display:grid;gap:4px;margin-top:5px;color:var(--txt3);font-size:.68rem;font-weight:800;line-height:1.35}
-.folio-group-meta span{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.folio-group-meta{display:grid;gap:5px;margin-top:6px;color:var(--txt3);font-size:.7rem;font-weight:800;line-height:1.35}
+.folio-group-meta span{display:inline-flex;align-items:center;gap:5px;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .folio-group-meta i{width:12px;text-align:center;color:var(--primary)}
-.folio-group-manage-link{display:inline-flex;align-items:center;gap:5px;width:max-content;margin-top:2px;color:var(--primary);font-size:.68rem;font-weight:900;text-decoration:none}
+.folio-group-manage-link{display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;margin-top:2px;color:var(--primary);font-size:.7rem;font-weight:900;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .folio-group-manage-link:hover{text-decoration:underline}
 .folio-breakdown{display:grid;gap:5px;margin-top:8px;min-width:190px}
+.folio-group-row .folio-breakdown{min-width:220px;max-width:250px;gap:6px}
 .folio-breakdown-row{display:grid;grid-template-columns:minmax(78px,1fr) auto;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--border2);border-radius:7px;background:#f8fafc;font-size:.68rem}
+.folio-group-row .folio-breakdown-row{padding:6px 10px;font-size:.72rem}
 .folio-breakdown-row.total{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8;font-weight:900}
 .folio-breakdown-label{display:inline-flex;align-items:center;gap:5px;min-width:0;font-weight:900;color:var(--txt2);white-space:nowrap}
 .folio-breakdown-row.total .folio-breakdown-label{color:#1d4ed8}
@@ -163,16 +178,16 @@
                 <div class="table-wrap">
                     <table class="folio-table">
                         <colgroup>
-                            <col style="width:10%">
-                            <col style="width:10%">
-                            <col style="width:9%">
-                            <col style="width:8%">
-                            <col style="width:21%">
-                            <col style="width:8%">
-                            <col style="width:7%">
-                            <col style="width:9%">
-                            <col style="width:7%">
-                            <col style="width:11%">
+                            <col style="width:95px">
+                            <col style="width:105px">
+                            <col style="width:255px">
+                            <col style="width:100px">
+                            <col style="width:250px">
+                            <col style="width:80px">
+                            <col style="width:80px">
+                            <col style="width:100px">
+                            <col style="width:95px">
+                            <col style="width:120px">
                         </colgroup>
                         <thead><tr>
                         <th>정산 번호</th><th>객실</th><th>고객명</th><th>체크아웃</th><th>총 금액</th><th>결제액</th><th>예치금</th><th>미수금 잔액</th><th>상태</th><th>관리</th>
@@ -1635,17 +1650,18 @@ function renderFolios() {
         const s = stMap[f.status] || stMap.unpaid;
         const balColor = f.bal > 0 ? 'var(--danger)' : 'var(--txt)';
         const depositAmount = folioDepositValue(f);
-        return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
-            <td style="color:var(--txt2)">${f.id}${folioSourceCountHtml(f)}</td>
-            <td class="folio-room-cell"><div><strong>${f.room}</strong></div>${folioGroupBadgeHtml(f)}${folioRoomChangeBadgeHtml(f)}</td>
-            <td>${escapeHtml(f.guest)}${folioGroupMetaHtml(f)}</td>
-            <td>${f.out}</td>
+        const groupRowClass = isGroupFolio(f) ? ' folio-group-row' : '';
+        return `<tr class="folio-row${groupRowClass}" role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
+            <td class="folio-id-cell"><span class="folio-id-text">${f.id}</span>${folioSourceCountHtml(f)}</td>
+            <td class="folio-room-cell"><div class="folio-room-title"><strong>${f.room}</strong></div>${folioGroupBadgeHtml(f)}${folioRoomChangeBadgeHtml(f)}</td>
+            <td class="folio-customer-cell"><span class="folio-customer-name">${escapeHtml(f.guest)}</span>${folioGroupMetaHtml(f)}</td>
+            <td class="folio-date-cell">${f.out}</td>
             <td class="folio-total-cell">${folioBreakdownHtml(f)}</td>
-            <td>${fmtMoney(f.paid, f.currency)}</td>
-            <td>${fmtMoney(depositAmount, f.currency)}</td>
-            <td style="color:${balColor};font-weight:700">${fmtMoney(f.bal, f.currency)}</td>
-            <td><span class="status-badge ${s.badge}">${s.label}</span></td>
-            <td>
+            <td class="folio-money-cell">${fmtMoney(f.paid, f.currency)}</td>
+            <td class="folio-money-cell">${fmtMoney(depositAmount, f.currency)}</td>
+            <td class="folio-balance-cell" style="color:${balColor}">${fmtMoney(f.bal, f.currency)}</td>
+            <td class="folio-status-cell"><span class="status-badge ${s.badge}">${s.label}</span></td>
+            <td class="folio-action-cell">
                 <div class="folio-actions">
                     <button class="btn-outline-sm" onclick="event.stopPropagation(); openInvoiceModal(${index}, 'all')">명세서</button>
                     <button class="btn-primary-sm" onclick="event.stopPropagation(); openPaymentModal('${f.id}', ${f.bal})">${f.bal > 0 ? '결제' : '수납'}</button>
