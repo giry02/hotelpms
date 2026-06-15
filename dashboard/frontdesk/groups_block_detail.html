@@ -64,6 +64,11 @@
         .room-assignment-table th:nth-child(5){width:12%}
         .room-assignment-table th:nth-child(6){width:18%}
         .room-assignment-table td:nth-child(2),.room-assignment-table .event-metric{white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+        .room-only-assignment-table th:nth-child(1){width:30%}
+        .room-only-assignment-table th:nth-child(2){width:26%}
+        .room-only-assignment-table th:nth-child(3){width:20%}
+        .room-only-assignment-table th:nth-child(4){width:24%}
+        .room-only-assignment-table td:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .rooming-list-table th:nth-child(1){width:14%}
         .rooming-list-table th:nth-child(2){width:18%}
         .rooming-list-table th:nth-child(3){width:12%}
@@ -2404,7 +2409,7 @@ window.addEventListener('DataReady', () => {
             <div class="room-assignment-toolbar">
                 <div>
                     <div class="section-title" style="margin-bottom:4px"><i class="fa-solid fa-bed"></i> 객실 배정</div>
-                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">배정 ${assigned.length}실 · 행사 할인 ${html(discount || 0)}% · 객실별 투숙객을 바로 편집할 수 있습니다.</div>
+                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">배정 ${assigned.length}실 · 행사 할인 ${html(discount || 0)}% · 객실과 요금만 관리합니다.</div>
                 </div>
                 <div class="room-assignment-actions">
                     <button class="mini-btn" onclick="addDetailAllocationRow()"><i class="fa-solid fa-plus"></i> 호실 추가</button>
@@ -2412,30 +2417,23 @@ window.addEventListener('DataReady', () => {
                 </div>
             </div>
             <div id="detailAllocationEditor" class="allocation-editor"></div>
-            <table class="data-table room-assignment-table" style="margin-top:14px">
-                <thead><tr><th>객실</th><th>투숙객</th><th>신분증</th><th>요금</th><th>관리</th></tr></thead>
+            <table class="data-table room-assignment-table room-only-assignment-table" style="margin-top:14px">
+                <thead><tr><th>객실</th><th>유형</th><th>기본 요금</th><th>배정 요금</th></tr></thead>
                 <tbody>
                     ${assigned.map(room => {
-                        const guests = roomGuests(room.roomId);
-                        const docs = guests.length ? `${guests.filter(guest => guest.docStatus === 'verified').length}/${guests.length} 확인` : '-';
+                        const baseRate = room.baseRate || room.rate || 0;
                         return `<tr>
-                            <td><span class="room-chip">${html(roomLabel(room.roomId))}</span><div class="event-sub">${html(room.type || '-')}</div></td>
-                            <td>${guestListHtml(room.roomId)}</td>
-                            <td>${docs}</td>
+                            <td><span class="room-chip">${html(roomLabel(room.roomId))}</span></td>
+                            <td>${html(room.type || '-')}</td>
+                            <td>${money(baseRate)}</td>
                             <td>${money(room.rate)} <small style="display:block;color:var(--txt3);font-weight:800">할인 ${html(room.discountPercent || 0)}%</small></td>
-                            <td class="room-actions-cell">
-                                <div class="room-action-buttons">
-                                    <button class="mini-btn primary" onclick="openRoomingModal('${html(room.roomId)}','','primary')"><i class="fa-solid fa-user-check"></i> 대표 등록</button>
-                                    <button class="mini-btn" onclick="openRoomingModal('${html(room.roomId)}','','companion')"><i class="fa-solid fa-user-plus"></i> 동반 추가</button>
-                                </div>
-                            </td>
                         </tr>`;
-                    }).join('') || '<tr><td colspan="5">배정된 객실이 없습니다. 위에서 호실을 추가하세요.</td></tr>'}
+                    }).join('') || '<tr><td colspan="4">배정된 객실이 없습니다. 위에서 호실을 추가하세요.</td></tr>'}
                 </tbody>
             </table>
             <div class="detail-sticky-actions">
                 <div class="hint"><i class="fa-solid fa-clock-rotate-left"></i> 객실 배정 수정은 변경 이력에 남습니다.</div>
-                <button class="mini-btn" onclick="switchTabById('rooming')"><i class="fa-solid fa-users"></i> 투숙객 명단 보기</button>
+                <button class="mini-btn" onclick="switchTabById('rooming')"><i class="fa-solid fa-users"></i> 투숙객 명단에서 관리</button>
             </div>`;
         assigned.forEach(room => addDetailAllocationRow(room));
     };
