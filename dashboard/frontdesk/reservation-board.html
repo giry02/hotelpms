@@ -83,7 +83,8 @@
         .board-companions{display:flex;flex-direction:column;gap:2px;margin-top:3px;padding-left:17px;font-size:.68rem;color:var(--txt3);font-weight:750;min-width:0}
         .board-companion{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .board-date{font-size:.68rem;color:var(--txt2);font-weight:750;line-height:1.35}
-        .board-time-line{display:flex;align-items:center;gap:4px;font-size:.66rem;color:var(--txt3);font-weight:850;line-height:1.25}
+        .board-time-list{display:flex;flex-direction:column;gap:2px;width:100%;min-width:0}
+        .board-time-line{display:flex;align-items:center;gap:4px;font-size:.66rem;color:var(--txt3);font-weight:850;line-height:1.25;white-space:nowrap}
         .board-time-line i{font-size:.6rem;color:var(--primary)}
         .board-late-pill{display:inline-flex;align-items:center;gap:4px;width:max-content;border-radius:999px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;padding:2px 7px;font-size:.63rem;font-weight:900;line-height:1.2}
         .board-empty{font-size:.74rem;color:var(--txt3);font-weight:750;margin-top:8px}
@@ -452,7 +453,10 @@ function reservationLateCheckoutTime(res) {
 function reservationStayTimeHtml(res) {
     if (!res) return '';
     const late = reservationLateCheckoutEnabled(res);
-    return `<div class="board-time-line"><i class="fa-regular fa-clock"></i>입실 ${escapeHtml(reservationCheckInTime(res))} · 퇴실 ${escapeHtml(reservationCheckOutTime(res))}</div>${late ? `<div class="board-late-pill"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(reservationLateCheckoutTime(res))}</div>` : ''}`;
+    return `<div class="board-time-list">
+        <div class="board-time-line"><i class="fa-regular fa-clock"></i>입실 ${escapeHtml(reservationCheckInTime(res))}</div>
+        <div class="board-time-line"><i class="fa-regular fa-clock"></i>퇴실 ${escapeHtml(reservationCheckOutTime(res))}</div>
+    </div>${late ? `<div class="board-late-pill"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(reservationLateCheckoutTime(res))}</div>` : ''}`;
 }
 
 function reservationStateForFilter(res) {
