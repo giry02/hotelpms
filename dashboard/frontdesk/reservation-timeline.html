@@ -80,11 +80,14 @@
     overflow:hidden;
 }
 .tl-block-text{width:100%;display:flex;flex-direction:column;gap:1px;line-height:1.08;min-width:0}
+.tl-group-title{display:flex;align-items:center;gap:4px;min-width:0;width:100%;font-size:.6rem;font-weight:950;color:#fff;white-space:nowrap;overflow:hidden;line-height:1.08}
+.tl-group-title .tl-group-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .tl-guest-row{display:flex;align-items:center;gap:5px;min-width:0;width:100%;font-size:.64rem;font-weight:850;color:rgba(255,255,255,.92);white-space:nowrap;overflow:hidden;line-height:1.1}
 .tl-guest-row span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .tl-primary-guest{font-weight:950;color:#fff}
 .tl-primary-guest i.fa-user{font-size:.6rem;color:rgba(255,255,255,.94);flex:0 0 auto}
 .tl-companion-guest{padding-left:17px;font-size:.59rem;font-weight:780;color:rgba(255,255,255,.88)}
+.tl-role-badge{flex:0 0 auto;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.22);padding:1px 4px;font-size:.5rem;font-weight:950;line-height:1;color:#fff}
 .tl-block-label{font-size:.65rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tl-time-row{display:flex;align-items:center;gap:4px;padding-left:17px;font-size:.56rem;font-weight:800;color:rgba(255,255,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tl-time-row i{font-size:.52rem;color:rgba(255,255,255,.9)}
@@ -202,6 +205,7 @@
 <script>
 // ===== ROOM & RESERVATION DATA =====
 let rooms = [];
+let timelineGroups = [];
 
 window.reservations = [];
 
@@ -231,6 +235,8 @@ const TL_TEXT = {
         checkoutDue: '체크아웃 예정',
         completed: '완료',
         group: '단체',
+        primaryGuest: '대표',
+        companionGuest: '동반',
         block: '블록',
         booking: '예약',
         occupied: '점유 중',
@@ -254,6 +260,8 @@ const TL_TEXT = {
         checkoutDue: 'Check-out Due',
         completed: 'Completed',
         group: 'Group',
+        primaryGuest: 'Primary',
+        companionGuest: 'Guest',
         block: 'Block',
         booking: 'Booking',
         occupied: 'Occupied',
@@ -358,6 +366,22 @@ function sameTimelineRoomValue(left, right) {
     return !!(a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits));
 }
 
+function timelineStoredGroups() {
+    const merged = new Map();
+    (Array.isArray(timelineGroups) ? timelineGroups : []).forEach(group => {
+        if (group?.id) merged.set(group.id, group);
+    });
+    try {
+        const stored = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+        if (Array.isArray(stored)) {
+            stored.forEach(group => {
+                if (group?.id) merged.set(group.id, { ...(merged.get(group.id) || {}), ...group });
+            });
+        }
+    } catch(e) {}
+    return [...merged.values()];
+}
+
 function timelineRoomMatchesReservation(room, res) {
     const roomValues = [
         room?.id,
@@ -439,18 +463,16 @@ function timelineGuestName(res) {
 
 function timelineGroupRoomingEntries(res) {
     if (!res?.groupId) return [];
-    let groups = [];
-    try {
-        groups = JSON.parse(localStorage.getItem('pms_groups') || '[]');
-    } catch(e) {
-        groups = [];
-    }
+    const groups = timelineStoredGroups();
     const group = groups.find(item => item && item.id === res.groupId);
     const source = Array.isArray(group?.roomingList) ? group.roomingList : (Array.isArray(group?.rooming) ? group.rooming : []);
     const roomValues = [res.room, res.fullRoom, res.roomId, res.roomNo, res.roomNumber, res.roomLabel].filter(Boolean);
     return source
         .filter(item => roomValues.some(value =>
             sameTimelineRoomValue(item?.roomId, value) ||
+            sameTimelineRoomValue(item?.roomNo, value) ||
+            sameTimelineRoomValue(item?.roomNumber, value) ||
+            sameTimelineRoomValue(item?.roomLabel, value) ||
             sameTimelineRoomValue(item?.room, value) ||
             sameTimelineRoomValue(item?.fullRoom, value)
         ))
@@ -539,11 +561,19 @@ function timelineGuestLabel(res) {
     return timelineGuestNames(res).join(' / ');
 }
 
+function timelineGroupForReservation(res) {
+    if (!res?.groupId) return null;
+    return timelineStoredGroups().find(group => group && group.id === res.groupId) || null;
+}
+
 function timelineCompanyLabel(res) {
     if (!res) return timelineText('group');
     const channel = String(res.channel || '').trim();
     const agency = String(res.agency || res.companyName || res.company || '').trim();
     const groupName = String(res.groupName || '').trim();
+    const group = timelineGroupForReservation(res);
+    const storedGroupName = String(group?.name || group?.displayName || '').trim();
+    if (res.groupId) return groupName || storedGroupName || agency || channel || timelineText('group');
     if (channel && channel !== 'Group') return channel.split(' ')[0];
     if (agency) return agency;
     if (groupName) return groupName;
@@ -607,12 +637,15 @@ function timelineBlockContent(res, groupBadge, vipIcon) {
     const primary = timelinePrimaryGuestName(res);
     const companions = timelineCompanionGuestNames(res);
     if (primary) {
-        const prefix = res?.groupId ? `${timelineCompanyLabel(res)} · ` : '';
+        const groupTitle = res?.groupId
+            ? `<span class="tl-group-title">${groupBadge}<span class="tl-group-name">${timelineEscapeHtml(timelineCompanyLabel(res))}</span></span>`
+            : '';
         const guestRows = [
-            `<span class="tl-guest-row tl-primary-guest">${groupBadge}${vipIcon}<i class="fa-solid fa-user"></i><span>${timelineEscapeHtml(prefix + primary)}</span></span>`,
-            ...companions.map(name => `<span class="tl-guest-row tl-companion-guest"><span>${timelineEscapeHtml(name)}</span></span>`),
+            groupTitle,
+            `<span class="tl-guest-row tl-primary-guest">${res?.groupId ? '' : groupBadge}${vipIcon}<i class="fa-solid fa-user"></i><span class="tl-role-badge">${timelineText('primaryGuest')}</span><span>${timelineEscapeHtml(primary)}</span></span>`,
+            ...companions.map(name => `<span class="tl-guest-row tl-companion-guest"><span class="tl-role-badge">${timelineText('companionGuest')}</span><span>${timelineEscapeHtml(name)}</span></span>`),
             timelineStayTimeRow(res)
-        ].join('');
+        ].filter(Boolean).join('');
         return `<span class="tl-block-text">
             ${guestRows}
         </span>`;
@@ -763,7 +796,7 @@ function buildTimeline() {
         const renderLen = clipEnd - clipStart;
 
         block.style.position = 'absolute';
-        const guestLineCount = Math.max(1, timelineGuestNames(res).length) + 1;
+        const guestLineCount = Math.max(1, timelineGuestNames(res).length) + (res.groupId ? 2 : 1);
         const blockHeight = Math.min(82, Math.max(36, Math.ceil(9 + (guestLineCount * 11.5))));
         const levelStep = 88;
         block.style.top = `${8 + (level * levelStep)}px`;
@@ -999,11 +1032,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.removeItem('pms_timeline_res');
         // removed init
 
-        const [rmData, resData] = await Promise.all([
+        const [rmData, resData, groupData] = await Promise.all([
             PmsAPI.getAllRooms(),
-            PmsAPI.getTimelineReservations()
+            PmsAPI.getTimelineReservations(),
+            PmsAPI.getGroups ? PmsAPI.getGroups().catch(() => []) : []
         ]);
         rooms = rmData;
+        timelineGroups = Array.isArray(groupData) ? groupData : [];
+        timelineGroups = timelineStoredGroups();
+        if (timelineGroups.length) localStorage.setItem('pms_groups', JSON.stringify(timelineGroups));
         window.reservations = dedupeTimelineReservations(resData);
         alignTimelineToFirstGroupBlock();
 
