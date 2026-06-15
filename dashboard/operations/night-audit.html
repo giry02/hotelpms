@@ -1091,6 +1091,150 @@ function settlementPayments() {
     return Array.isArray(payments) ? payments : [];
 }
 
+function sampleAuditDateTime(date, time) {
+    return `${date}T${time}:00+09:00`;
+}
+
+function sampleAuditSession(date, offset) {
+    const variants = [
+        {
+            opening: { PHP: 18200, USD: 180, KRW: 220000 },
+            openingPhpEquivalent: 32150,
+            withdrawals: [{ currency: 'PHP', amount: 5000, phpEquivalent: 5000, receiver: 'Manager / petty cash replenishment', time: '15:20', operator: 'Nguyen Kim' }],
+            closing: { PHP: 54900, USD: 300, KRW: 520000 },
+            carryover: { PHP: 25000, USD: 200, KRW: 250000 },
+            closingPhpEquivalent: 84650,
+            openingNote: 'Morning float received from previous shift. Envelope A-13.',
+            closingNote: 'Closed with no variance. PHP and USD split for next shift.'
+        },
+        {
+            opening: { PHP: 24000, USD: 120, KRW: 180000 },
+            openingPhpEquivalent: 35000,
+            withdrawals: [{ currency: 'USD', amount: 80, phpEquivalent: 4480, receiver: 'FO Manager / airport pickup cash', time: '14:10', operator: 'Tran Linh' }],
+            closing: { PHP: 61200, USD: 170, KRW: 260000 },
+            carryover: { PHP: 30000, USD: 100, KRW: 200000 },
+            closingPhpEquivalent: 78720,
+            openingNote: 'Lobby cashier handover. Mixed PHP/USD/KRW counted.',
+            closingNote: 'USD withdrawal logged separately for transport support.'
+        },
+        {
+            opening: { PHP: 15600, USD: 90, KRW: 350000 },
+            openingPhpEquivalent: 28000,
+            withdrawals: [{ currency: 'PHP', amount: 8000, phpEquivalent: 8000, receiver: 'Accounting / vendor cash-out', time: '16:35', operator: 'Park Minjae' }],
+            closing: { PHP: 47800, USD: 120, KRW: 410000 },
+            carryover: { PHP: 24000, USD: 100, KRW: 250000 },
+            closingPhpEquivalent: 59900,
+            openingNote: 'Start float includes KRW change for Korean guest payments.',
+            closingNote: 'Vendor cash-out confirmed by accounting.'
+        },
+        {
+            opening: { PHP: 30000, USD: 200, KRW: 500000 },
+            openingPhpEquivalent: 41200,
+            withdrawals: [{ currency: 'PHP', amount: 7000, phpEquivalent: 7000, receiver: 'GM / emergency guest refund', time: '17:45', operator: 'Nguyen Kim' }],
+            closing: { PHP: 84200, USD: 260, KRW: 650000 },
+            carryover: { PHP: 35000, USD: 200, KRW: 300000 },
+            closingPhpEquivalent: 102700,
+            openingNote: 'Start of current business day. Float prepared for front desk.',
+            closingNote: 'Sample close: cash receipts reconciled against folio payments.'
+        }
+    ];
+    const item = variants[((offset % variants.length) + variants.length) % variants.length];
+    const takeaway = subtractCurrencyValues(item.closing, item.carryover);
+    return {
+        id: `SAMPLE-CASH-${date}`,
+        businessDate: date,
+        opening: item.opening,
+        openingPhpEquivalent: item.openingPhpEquivalent,
+        openingNote: item.openingNote,
+        openedAt: sampleAuditDateTime(date, '08:00'),
+        openedBy: item.withdrawals[0]?.operator || 'Nguyen Kim',
+        withdrawals: item.withdrawals.map((withdrawal, index) => ({
+            id: `SAMPLE-WD-${date}-${index + 1}`,
+            currency: withdrawal.currency,
+            amount: withdrawal.amount,
+            phpEquivalent: withdrawal.phpEquivalent,
+            receiver: withdrawal.receiver,
+            createdAt: sampleAuditDateTime(date, withdrawal.time),
+            operator: withdrawal.operator
+        })),
+        closing: item.closing,
+        carryover: item.carryover,
+        takeaway,
+        closingPhpEquivalent: item.closingPhpEquivalent,
+        closingNote: item.closingNote,
+        closedAt: sampleAuditDateTime(date, '23:45'),
+        closedBy: item.withdrawals[0]?.operator || 'Nguyen Kim',
+        sampleData: true
+    };
+}
+
+function sampleAuditPayments(date, offset) {
+    const variants = [
+        [
+            ['FOL-260613-0801', 'Lee Hannah', 'payment', 37100, 'PHP', 37100, 'cash', '객실 및 통합 POS 정산', '10:25', 'Nguyen Kim'],
+            ['FOL-260613-1203', 'Wong Li', 'payment', 8400, 'USD', 150, 'cash', '레이트 체크아웃 차액 수납', '12:40', 'Tran Linh'],
+            ['DEP-260613-1401', 'Samsung Tech Conference 2026', 'deposit', 12000, 'KRW', 300000, 'cash', '단체 객실 예치금 일부 수납', '18:05', 'Nguyen Kim']
+        ],
+        [
+            ['FOL-260614-1202', 'Sarah Connor', 'payment', 30000, 'PHP', 30000, 'cash', '객실 요금 선결제 정산', '09:35', 'Tran Linh'],
+            ['FOL-260614-GOLF', 'David Chen', 'payment', 14200, 'USD', 255, 'cash', '골프장 예약 현금 수납', '13:15', 'Park Minjae'],
+            ['DEP-260614-V01', 'Park Joseph', 'deposit', 9000, 'KRW', 225000, 'cash', '풀빌라 보증금 수납', '19:30', 'Nguyen Kim']
+        ],
+        [
+            ['FOL-260615-1403', 'Al Rashid Omar', 'payment', 21400, 'PHP', 21400, 'cash', '객실 이전 후 잔액 수납', '11:10', 'Park Minjae'],
+            ['FOL-260615-POS', 'Rodriguez Van', 'payment', 9800, 'USD', 175, 'cash', '통합 POS 및 미니바 정산', '15:50', 'Nguyen Kim'],
+            ['DEP-260615-1206', 'Robert Ford', 'deposit', 8700, 'KRW', 218000, 'cash', '연장 숙박 예치금', '20:05', 'Tran Linh']
+        ],
+        [
+            ['FOL-260616-0801', 'Yamamoto K.', 'payment', 37100, 'PHP', 37100, 'cash', '체크아웃 객실 정산', '09:20', 'Nguyen Kim'],
+            ['FOL-260616-ANC', 'Samsung Tech Conference 2026', 'payment', 19700, 'USD', 350, 'cash', '렌터카 및 골프 패키지 수납', '14:25', 'Tran Linh'],
+            ['DEP-260616-1203', 'Wong Li', 'deposit', 11700, 'KRW', 292000, 'cash', '추가 숙박 예치금 수납', '18:40', 'Nguyen Kim']
+        ]
+    ];
+    const rows = variants[((offset % variants.length) + variants.length) % variants.length];
+    return rows.map((row, index) => ({
+        id: `SAMPLE-PAY-${date}-${index + 1}`,
+        folioId: row[0],
+        guest: row[1],
+        kind: row[2],
+        appliedPhpAmount: row[3],
+        receivedCurrency: row[4],
+        receivedAmount: row[5],
+        method: row[6],
+        methodLabel: row[6] === 'cash' ? 'Cash' : row[6],
+        note: row[7],
+        createdAt: sampleAuditDateTime(date, row[8]),
+        operator: row[9],
+        businessDate: date,
+        sampleData: true
+    }));
+}
+
+function ensureNightAuditSampleData() {
+    const baseDate = auditBusinessDate();
+    const sampleOffsets = [-3, -2, -1, 0];
+    const sampleDates = sampleOffsets.map((offset, index) => ({ index, date: addDaysToIsoDate(baseDate, offset) }));
+    const sessions = cashSessions();
+    let sessionChanged = false;
+    sampleDates.forEach(({ date, index }) => {
+        if (!sessions.some(session => session.businessDate === date)) {
+            sessions.push(sampleAuditSession(date, index));
+            sessionChanged = true;
+        }
+    });
+    if (sessionChanged) setStorageJson(CASH_SESSION_KEY, sessions);
+
+    const payments = settlementPayments();
+    let paymentChanged = false;
+    sampleDates.forEach(({ date, index }) => {
+        if (!payments.some(payment => payment.businessDate === date)) {
+            payments.push(...sampleAuditPayments(date, index));
+            paymentChanged = true;
+        }
+    });
+    if (paymentChanged) setStorageJson(SETTLEMENT_PAYMENTS_KEY, payments);
+}
+
 function activeCashSession(create = true) {
     const date = auditBusinessDate();
     const sessions = cashSessions();
@@ -1640,6 +1784,7 @@ async function loadAuditData() {
         document.getElementById('currentDate').textContent = todayStr;
         document.getElementById('nextDate').textContent = nextDayStr;
         document.getElementById('confirmDate').textContent = todayStr;
+        ensureNightAuditSampleData();
 
         const [dailyData, reservations, orders, golf, rentacar] = await Promise.all([
             PmsAPI.getDailyData(),
