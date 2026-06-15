@@ -56,6 +56,34 @@
 </div>
 </div>
 <div class="config-panel">
+<div class="config-panel-header">
+<h3><i class="fa-solid fa-clock"></i> <span>운영 정책</span></h3>
+<button class="btn-primary btn-sm" onclick="saveAdminTenantOperationalPolicy()"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
+</div>
+<div class="config-panel-body">
+<div class="tenant-operation-policy-desc">체크인/체크아웃 시간 및 취소 정책을 설정합니다.</div>
+<div class="tenant-operation-policy-grid">
+<div class="form-group">
+<label class="form-label" for="adminPolicyCheckinTime">기본 체크인 시간</label>
+<input type="time" class="form-control" id="adminPolicyCheckinTime" value="15:00">
+</div>
+<div class="form-group">
+<label class="form-label" for="adminPolicyCheckoutTime">기본 체크아웃 시간</label>
+<input type="time" class="form-control" id="adminPolicyCheckoutTime" value="11:00">
+</div>
+<div class="form-group full">
+<label class="form-label" for="adminPolicyCancellation">기본 취소 정책</label>
+<select class="form-control" id="adminPolicyCancellation">
+<option value="free_24h">체크인 24시간 전까지 무료 취소 (이후 1박 요금 부과)</option>
+<option value="free_48h">체크인 48시간 전까지 무료 취소 (이후 1박 요금 부과)</option>
+<option value="non_refundable">환불 불가</option>
+</select>
+</div>
+</div>
+<div class="tenant-operation-policy-status" id="adminTenantOperationalPolicySavedAt"></div>
+</div>
+</div>
+<div class="config-panel">
 <div class="config-panel-header"><h3><i class="fa-solid fa-user-shield"></i> <span>초기 관리자 계정</span></h3></div>
 <div class="config-panel-body">
 <div class="config-row"><div class="config-label"><div class="cl-title">로그인 이메일</div><div class="cl-desc">호텔 최고 관리자 계정입니다.</div></div><span style="font-weight:600">admin@grand-saigon.example</span></div>
@@ -156,8 +184,14 @@ const ADMIN_TENANT_CURRENCY_SYMBOLS = {
 	USD: '$',
 	VND: '₫'
 };
+const ADMIN_TENANT_CANCELLATION_POLICIES = {
+	free_24h: '체크인 24시간 전까지 무료 취소 (이후 1박 요금 부과)',
+	free_48h: '체크인 48시간 전까지 무료 취소 (이후 1박 요금 부과)',
+	non_refundable: '환불 불가'
+};
 let adminTenantMenuInitialized = false;
 let adminTenantMenuState = null;
+let adminTenantOperationalPolicyState = null;
 let adminTenantDetail = null;
 
 function escapeHtml(value) {
@@ -188,6 +222,14 @@ function getAdminTenantPolicyApiStorageKey(tenantId) {
 	return `mockapi:v1:ADMIN:tenant-menu-policy:${tenantId}`;
 }
 
+function getAdminTenantOperationalPolicyStorageKey(tenantId) {
+	return `admin_tenant_operational_policy:${tenantId}`;
+}
+
+function getAdminTenantOperationalPolicyApiStorageKey(tenantId) {
+	return `mockapi:v1:ADMIN:tenant-operational-policy:${tenantId}`;
+}
+
 function defaultAdminTenantMenuPolicy() {
 	const enabledMenus = ADMIN_TENANT_MENU_OPTIONS.map(option => option.key);
 	const featureFlags = enabledMenus.reduce((flags, key) => {
@@ -195,6 +237,29 @@ function defaultAdminTenantMenuPolicy() {
 		return flags;
 	}, {});
 	return { featureFlags, menuPolicy: { enabledMenus, disabledMenus: [] } };
+}
+
+function defaultAdminTenantOperationalPolicy() {
+	return {
+		defaultCheckinTime: '15:00',
+		defaultCheckoutTime: '11:00',
+		cancellationPolicy: 'free_48h',
+		cancellationPolicyLabel: ADMIN_TENANT_CANCELLATION_POLICIES.free_48h
+	};
+}
+
+function normalizeAdminTenantOperationalPolicy(source = {}) {
+	const defaults = defaultAdminTenantOperationalPolicy();
+	const incoming = source.operationalPolicy || source;
+	const cancellationPolicy = ADMIN_TENANT_CANCELLATION_POLICIES[incoming.cancellationPolicy]
+		? incoming.cancellationPolicy
+		: defaults.cancellationPolicy;
+	return {
+		defaultCheckinTime: incoming.defaultCheckinTime || defaults.defaultCheckinTime,
+		defaultCheckoutTime: incoming.defaultCheckoutTime || defaults.defaultCheckoutTime,
+		cancellationPolicy,
+		cancellationPolicyLabel: ADMIN_TENANT_CANCELLATION_POLICIES[cancellationPolicy]
+	};
 }
 
 function normalizeAdminTenantMenuPolicy(source = {}) {
@@ -231,6 +296,18 @@ function readAdminTenantStoredPolicy(tenantId) {
 			if (raw) return JSON.parse(raw);
 		} catch (error) {
 			console.warn('Invalid stored tenant menu policy', error);
+		}
+	}
+	return null;
+}
+
+function readAdminTenantStoredOperationalPolicy(tenantId) {
+	for (const key of [getAdminTenantOperationalPolicyStorageKey(tenantId), getAdminTenantOperationalPolicyApiStorageKey(tenantId)]) {
+		try {
+			const raw = localStorage.getItem(key);
+			if (raw) return JSON.parse(raw);
+		} catch (error) {
+			console.warn('Invalid stored tenant operational policy', error);
 		}
 	}
 	return null;
@@ -284,6 +361,32 @@ function updateAdminTenantMenuSummary() {
 	const inactiveCount = Math.max(inputs.length - activeCount, 0);
 	const summary = document.getElementById('adminTenantMenuPolicySummary');
 	if (summary) summary.textContent = `활성 ${activeCount}개 / 비활성 ${inactiveCount}개`;
+}
+
+function renderAdminTenantOperationalPolicy(policy) {
+	const normalized = normalizeAdminTenantOperationalPolicy(policy || {});
+	adminTenantOperationalPolicyState = normalized;
+	const checkinInput = document.getElementById('adminPolicyCheckinTime');
+	const checkoutInput = document.getElementById('adminPolicyCheckoutTime');
+	const cancellationSelect = document.getElementById('adminPolicyCancellation');
+	if (checkinInput) checkinInput.value = normalized.defaultCheckinTime;
+	if (checkoutInput) checkoutInput.value = normalized.defaultCheckoutTime;
+	if (cancellationSelect) cancellationSelect.value = normalized.cancellationPolicy;
+	[checkinInput, checkoutInput, cancellationSelect].filter(Boolean).forEach(input => {
+		input.addEventListener('change', () => {
+			const savedAt = document.getElementById('adminTenantOperationalPolicySavedAt');
+			if (savedAt) savedAt.textContent = '변경사항 있음';
+		});
+	});
+}
+
+function collectAdminTenantOperationalPolicy() {
+	const cancellationPolicy = document.getElementById('adminPolicyCancellation')?.value || 'free_48h';
+	return normalizeAdminTenantOperationalPolicy({
+		defaultCheckinTime: document.getElementById('adminPolicyCheckinTime')?.value || '15:00',
+		defaultCheckoutTime: document.getElementById('adminPolicyCheckoutTime')?.value || '11:00',
+		cancellationPolicy
+	});
 }
 
 function renderAdminTenantMenuPolicy() {
@@ -344,12 +447,30 @@ function saveAdminTenantMenuPolicy() {
 	alert('호텔별 메뉴 활성화 설정이 저장되었습니다.');
 }
 
+function saveAdminTenantOperationalPolicy() {
+	const tenantId = adminTenantDetail?.id || getAdminTenantId();
+	adminTenantOperationalPolicyState = collectAdminTenantOperationalPolicy();
+	const payload = {
+		tenantId,
+		operationalPolicy: adminTenantOperationalPolicyState,
+		updatedAt: new Date().toISOString(),
+		updatedBy: 'Super Admin'
+	};
+	localStorage.setItem(getAdminTenantOperationalPolicyStorageKey(tenantId), JSON.stringify(payload));
+	localStorage.setItem(getAdminTenantOperationalPolicyApiStorageKey(tenantId), JSON.stringify(payload));
+	const savedAt = document.getElementById('adminTenantOperationalPolicySavedAt');
+	if (savedAt) savedAt.textContent = '저장 완료';
+	alert('운영 정책이 저장되었습니다.');
+}
+
 async function initAdminTenantMenuPolicy() {
 	if (adminTenantMenuInitialized) return;
 	adminTenantMenuInitialized = true;
 	const tenantId = getAdminTenantId();
 	adminTenantDetail = await fetchAdminTenantDetail(tenantId);
 	renderAdminTenantInfo(adminTenantDetail);
+	const storedOperationalPolicy = readAdminTenantStoredOperationalPolicy(tenantId);
+	renderAdminTenantOperationalPolicy(storedOperationalPolicy || adminTenantDetail || {});
 	const storedPolicy = readAdminTenantStoredPolicy(tenantId);
 	adminTenantMenuState = normalizeAdminTenantMenuPolicy(storedPolicy || adminTenantDetail || {});
 	renderAdminTenantMenuPolicy();
