@@ -592,6 +592,11 @@ function sourceChargeItems(folio) {
         : generatedInvoiceItems(folio).map(item => ({ type: folio.dept, label: item.label, amount: item.amount }));
     return charges.map(charge => ({
         ...charge,
+        id: charge.id || charge.chargeId || '',
+        roomId: charge.roomId || charge.roomNo || charge.room || '',
+        reservationId: charge.reservationId || '',
+        groupId: charge.groupId || folio.groupId || '',
+        ref: charge.ref || charge.source || charge.orderId || '',
         type: normalizeDept(charge.type || folio.dept),
         label: charge.label || folioDisplayText(charge.desc || charge.type || '정산 항목'),
         amount: Number(charge.amount || 0),
@@ -880,13 +885,29 @@ function invoiceItems(folio) {
         : [];
     if (sourceCharges.length) {
         const items = sourceCharges.map(charge => ({
-            label: `${folio.sourceFolioCount > 1 || (folio.serviceTypes || []).length > 1 ? `${deptLabel(charge.type || folio.dept)} · ` : ''}${charge.label || folioDisplayText(charge.desc || charge.type || '정산 항목')}${charge.sourceFolioId ? ` (${charge.sourceFolioId})` : ''}`,
+            label: invoiceChargeLabel(charge, folio),
             amount: Number(charge.amount || 0)
         }));
         const hasChangeItem = items.some(item => String(item.label || '').includes('객실 변경'));
         return hasChangeItem ? items : [...items, ...changeItems];
     }
     return [...generatedInvoiceItems(folio), ...changeItems];
+}
+
+function invoiceChargeRoomLabel(charge) {
+    const room = charge.roomId || charge.roomNo || charge.room || '';
+    if (room) return room;
+    if (charge.groupId) return '단체 공용';
+    return '공용';
+}
+
+function invoiceChargeLabel(charge, folio) {
+    const showDept = folio.sourceFolioCount > 1 || (folio.serviceTypes || []).length > 1 || isGroupFolio(folio);
+    const dept = showDept ? `${deptLabel(charge.type || folio.dept)} · ` : '';
+    const room = `${invoiceChargeRoomLabel(charge)} · `;
+    const label = charge.label || folioDisplayText(charge.desc || charge.type || '정산 항목');
+    const source = charge.id || charge.sourceFolioId || folio.id;
+    return `${dept}${room}${label}${source ? ` (${source})` : ''}`;
 }
 
 function invoiceItemsHtml(folio, currency) {
@@ -1391,10 +1412,15 @@ function mapApiFolio(item) {
         + depositPayments.reduce((sum, payment) => sum + apiAmount(payment.amount), 0);
     const bal = apiAmount(item.balance) || Math.max(0, total - paid);
     const mappedCharges = charges.map(charge => ({
+        id: charge.id || charge.chargeId || '',
         type: normalizeDept(charge.type),
         desc: charge.desc,
         label: folioDisplayText(charge.desc || charge.type || '정산 항목'),
-        amount: apiAmount(charge.amount)
+        amount: apiAmount(charge.amount),
+        roomId: charge.roomId || charge.roomNo || charge.room || '',
+        reservationId: charge.reservationId || '',
+        groupId: charge.groupId || item.groupId || '',
+        ref: charge.ref || charge.source || charge.orderId || ''
     }));
     const typeTotals = charges.reduce((acc, charge) => {
         const type = normalizeDept(charge.type);
