@@ -28,10 +28,10 @@
             items: [
                 {
                     icon: 'fa-calendar-check', label: '예약 관리', id: 'reservations',
-                    mainHref: BASE + 'frontdesk/reservation-timeline.html',
+                    mainHref: BASE + 'frontdesk/reservation-board.html',
                     children: [
-                        { label: '예약 타임라인', href: BASE + 'frontdesk/reservation-timeline.html' },
                         { label: '예약 현황', href: BASE + 'frontdesk/reservation-board.html' },
+                        { label: '예약 타임라인', href: BASE + 'frontdesk/reservation-timeline.html' },
                         { label: '예약 목록', href: BASE + 'frontdesk/reservation-list.html' },
                     ]
                 },
@@ -121,8 +121,8 @@
     const HOTEL_MENU_KEYS = [
         'dashboard',
         'reservation',
-        'reservation.timeline',
         'reservation.board',
+        'reservation.timeline',
         'reservation.list',
         'checkin',
         'crm',
@@ -158,8 +158,8 @@
 
     const MENU_KEY_BY_FILE = {
         'dashboard.html': 'dashboard',
-        'reservation-timeline.html': 'reservation.timeline',
         'reservation-board.html': 'reservation.board',
+        'reservation-timeline.html': 'reservation.timeline',
         'reservation-list.html': 'reservation.list',
         'checkin.html': 'checkin',
         'guests.html': 'crm.guests',
