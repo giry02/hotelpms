@@ -1238,7 +1238,19 @@ function selectedNumber(id, fallback) {
     return match ? Number(match[0]) : fallback;
 }
 
-const CURRENT_FOLIO_PERIOD = { year: 2026, month: 6, week: 2, day: 10 };
+function currentFolioDate() {
+    const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+}
+
+const CURRENT_FOLIO_DATE = currentFolioDate();
+const CURRENT_FOLIO_PERIOD = {
+    year: CURRENT_FOLIO_DATE.getFullYear(),
+    month: CURRENT_FOLIO_DATE.getMonth() + 1,
+    week: Math.floor((CURRENT_FOLIO_DATE.getDate() - 1) / 7) + 1,
+    day: CURRENT_FOLIO_DATE.getDate()
+};
 
 function dateOnly(value) {
     const match = String(value || '').match(/(\d{4})-(\d{2})-(\d{2})/);
