@@ -360,20 +360,43 @@
         const prev = events.querySelector('[data-ad-events-prev]');
         const next = events.querySelector('[data-ad-events-next]');
         let index = 0;
+        let locked = false;
 
-        const renderEvents = () => {
+        if (groups.length > 1) {
+            const firstClone = groups[0].cloneNode(true);
+            firstClone.setAttribute('aria-hidden', 'true');
+            firstClone.dataset.eventClone = 'true';
+            track.appendChild(firstClone);
+        }
+
+        const renderEvents = (animate = true) => {
+            track.style.transition = animate ? '' : 'none';
             track.style.transform = `translateX(-${index * 100}%)`;
+            if (!animate) {
+                track.offsetHeight;
+                track.style.transition = '';
+            }
         };
-        const moveEvents = (direction) => {
-            if (!groups.length) return;
-            index = (index + direction + groups.length) % groups.length;
+        const moveEvents = () => {
+            if (locked || groups.length < 2) return;
+            locked = true;
+            index += 1;
             renderEvents();
         };
+        const finishEventsMove = (event) => {
+            if (event.propertyName !== 'transform') return;
+            if (index >= groups.length) {
+                index = 0;
+                renderEvents(false);
+            }
+            locked = false;
+        };
 
-        prev?.addEventListener('click', () => moveEvents(-1));
-        next?.addEventListener('click', () => moveEvents(1));
-        window.addEventListener('resize', renderEvents);
-        renderEvents();
+        prev?.addEventListener('click', () => moveEvents());
+        next?.addEventListener('click', () => moveEvents());
+        track.addEventListener('transitionend', finishEventsMove);
+        window.addEventListener('resize', () => renderEvents(false));
+        renderEvents(false);
     }
 })();
 </script>
