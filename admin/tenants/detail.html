@@ -17,7 +17,7 @@
 <body>
 <div class="main">
 <header class="topbar">
-<div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><a class="btn-outline btn-sm" href="list.html" style="margin-right:8px; border:none; box-shadow:none; padding:4px 8px" title="뒤로 가기"><i class="fa-solid fa-arrow-left"></i></a><h1>The Grand Saigon</h1><span class="status-badge active" style="margin-left:8px">운영 중</span></div>
+<div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><a class="btn-outline btn-sm" href="list.html" style="margin-right:8px; border:none; box-shadow:none; padding:4px 8px" title="뒤로 가기"><i class="fa-solid fa-arrow-left"></i></a><h1 id="tenantHotelNameTitle">The Grand Saigon</h1><span class="status-badge active" id="tenantStatusBadge" style="margin-left:8px">운영 중</span></div>
 <div class="topbar-right">
 <button class="btn-outline" onclick="openModal('suspendModal')" style="color:var(--danger);border-color:var(--danger)">서비스 정지</button>
 <select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px"><option value="ko">한국어</option><option value="en">English</option></select>
@@ -36,19 +36,19 @@
 <div class="config-panel">
 <div class="config-panel-header"><h3><i class="fa-solid fa-building"></i> <span>호텔 정보</span></h3></div>
 <div class="config-panel-body">
-<div class="config-row"><div class="config-label"><div class="cl-title">호텔명</div></div><span style="font-weight:600">The Grand Saigon</span></div>
-<div class="config-row"><div class="config-label"><div class="cl-title">국가/도시</div></div><span>Ho Chi Minh, Vietnam</span></div>
+<div class="config-row"><div class="config-label"><div class="cl-title">호텔명</div></div><span id="tenantHotelName" style="font-weight:600">The Grand Saigon</span></div>
+<div class="config-row"><div class="config-label"><div class="cl-title">국가/도시</div></div><span id="tenantCityCountry">Ho Chi Minh, Vietnam</span></div>
 <div class="config-row"><div class="config-label"><div class="cl-title" data-i18n="type">타임존</div></div><span>Asia/Ho_Chi_Minh (UTC+7)</span></div>
-<div class="config-row"><div class="config-label"><div class="cl-title">통화</div></div><span>PHP (₱)</span></div>
-<div class="config-row"><div class="config-label"><div class="cl-title">Hotel ID</div></div><span style="font-family:monospace;font-size:.8rem;color:var(--txt3)">HTL-VN-SGN-001</span></div>
+<div class="config-row"><div class="config-label"><div class="cl-title">통화</div></div><span id="tenantCurrency">PHP (₱)</span></div>
+<div class="config-row"><div class="config-label"><div class="cl-title">Hotel ID</div></div><span id="tenantIdValue" style="font-family:monospace;font-size:.8rem;color:var(--txt3)">TENANT-GRAND-SAIGON</span></div>
 </div>
 </div>
 <!-- 계약 정보 -->
 <div class="config-panel">
 <div class="config-panel-header"><h3><i class="fa-solid fa-file-contract"></i> <span>계약 정보</span></h3></div>
 <div class="config-panel-body">
-<div class="config-row"><div class="config-label"><div class="cl-title">플랜</div></div><span class="status-badge" style="background:var(--purple-lt);color:var(--purple)">Premium</span></div>
-<div class="config-row"><div class="config-label"><div class="cl-title">계약 기간</div></div><span>2025.01.01 ~ 2027.12.31</span></div>
+<div class="config-row"><div class="config-label"><div class="cl-title">플랜</div></div><span class="status-badge" id="tenantPlanBadge" style="background:var(--purple-lt);color:var(--purple)">Premium</span></div>
+<div class="config-row"><div class="config-label"><div class="cl-title">계약 기간</div></div><span id="tenantContractPeriod">2025.01.01 ~ 2027.12.31</span></div>
 <div class="config-row"><div class="config-label"><div class="cl-title">월 이용료</div></div><span style="font-weight:700;color:var(--primary)">$299/월</span></div>
 <div class="config-row"><div class="config-label"><div class="cl-title">플랜 변경</div></div>
 <select class="form-control" style="width:160px;height:36px"><option>Premium</option><option>Standard</option><option>Free</option></select>
@@ -60,6 +60,22 @@
 <div class="config-panel-body">
 <div class="config-row"><div class="config-label"><div class="cl-title">로그인 이메일</div><div class="cl-desc">호텔 최고 관리자 계정입니다.</div></div><span style="font-weight:600">admin@grand-saigon.example</span></div>
 <div class="config-row"><div class="config-label"><div class="cl-title">비밀번호 초기화</div><div class="cl-desc">분실 시 임시 비밀번호 또는 재설정 링크를 이메일로 발송합니다.</div></div><button class="btn-outline" onclick="sendTenantAdminReset()"><i class="fa-solid fa-envelope"></i> 재설정 메일 발송</button></div>
+</div>
+</div>
+</div>
+<div class="config-panel">
+<div class="config-panel-header">
+<h3><i class="fa-solid fa-sliders"></i> <span>호텔별 메뉴 활성화</span></h3>
+<button class="btn-primary btn-sm" onclick="saveAdminTenantMenuPolicy()"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
+</div>
+<div class="config-panel-body">
+<div class="tenant-menu-notice"><i class="fa-solid fa-circle-info"></i><span>이 설정은 호텔/테넌트 단위 메뉴 노출 정책입니다. 직원별 접근 범위는 호텔 PMS의 역할/권한 메뉴에서 별도로 관리됩니다.</span></div>
+<div class="tenant-menu-policy-grid" id="adminTenantMenuPolicyGrid">
+<div class="empty-state" style="grid-column:1/-1;padding:20px">메뉴 설정을 불러오는 중입니다.</div>
+</div>
+<div class="tenant-menu-policy-footer">
+<span id="adminTenantMenuPolicySummary">활성 0개 / 비활성 0개</span>
+<span class="tenant-menu-policy-status" id="adminTenantMenuPolicySavedAt"></span>
 </div>
 </div>
 </div>
@@ -112,6 +128,238 @@
 </div>
 </div>
 <script>
+const ADMIN_TENANT_MENU_OPTIONS = [
+	{ key: 'dashboard', icon: 'fa-gauge-high', label: '대시보드', desc: '운영 요약과 광고 영역' },
+	{ key: 'reservation', icon: 'fa-calendar-days', label: '예약 관리', desc: '타임라인, 현황, 목록' },
+	{ key: 'checkin', icon: 'fa-right-to-bracket', label: '체크인/아웃', desc: '프론트 처리 화면' },
+	{ key: 'crm', icon: 'fa-users', label: '투숙객 관리', desc: '고객 정보와 블랙리스트' },
+	{ key: 'groups', icon: 'fa-users-line', label: '단체 관리', desc: '단체 예약과 업체' },
+	{ key: 'rooms', icon: 'fa-bed', label: '객실 관리', desc: '객실 목록과 상태' },
+	{ key: 'rates', icon: 'fa-tags', label: '요금 캘린더', desc: '객실 요금 운영' },
+	{ key: 'housekeeping', icon: 'fa-broom', label: '하우스키핑', desc: '청소 요청과 완료' },
+	{ key: 'maintenance', icon: 'fa-toolbox', label: '시설 보수', desc: '점검과 수리 관리' },
+	{ key: 'folio', icon: 'fa-file-invoice-dollar', label: '통합 정산', desc: '정산 목록과 마감' },
+	{ key: 'ancillary', icon: 'fa-concierge-bell', label: '부가서비스', desc: 'POS, 골프, 렌터카' },
+	{ key: 'settings', icon: 'fa-gear', label: '호텔 설정', desc: '호텔 기본 정책' },
+	{ key: 'staff', icon: 'fa-users-gear', label: '직원/권한 관리', desc: '직원과 역할 권한' },
+	{ key: 'billing', icon: 'fa-credit-card', label: '요금/결제 설정', desc: '가입 통화와 결제 정책' }
+];
+const ADMIN_TENANT_STATUS_LABELS = {
+	active: '운영 중',
+	trial: '체험 중',
+	suspended: '정지됨',
+	pending: '검토 중'
+};
+const ADMIN_TENANT_CURRENCY_SYMBOLS = {
+	PHP: '₱',
+	KRW: '₩',
+	USD: '$',
+	VND: '₫'
+};
+let adminTenantMenuInitialized = false;
+let adminTenantMenuState = null;
+let adminTenantDetail = null;
+
+function escapeHtml(value) {
+	return String(value ?? '').replace(/[&<>"']/g, char => ({
+		'&': '&amp;',
+		'<': '&lt;',
+		'>': '&gt;',
+		'"': '&quot;',
+		"'": '&#39;'
+	}[char]));
+}
+
+function formatDate(value) {
+	if (!value) return '-';
+	return String(value).replaceAll('-', '.');
+}
+
+function getAdminTenantId() {
+	const params = new URLSearchParams(window.location.search);
+	return params.get('id') || 'TENANT-GRAND-SAIGON';
+}
+
+function getAdminTenantPolicyStorageKey(tenantId) {
+	return `admin_tenant_menu_policy:${tenantId}`;
+}
+
+function getAdminTenantPolicyApiStorageKey(tenantId) {
+	return `mockapi:v1:ADMIN:tenant-menu-policy:${tenantId}`;
+}
+
+function defaultAdminTenantMenuPolicy() {
+	const enabledMenus = ADMIN_TENANT_MENU_OPTIONS.map(option => option.key);
+	const featureFlags = enabledMenus.reduce((flags, key) => {
+		flags[key] = true;
+		return flags;
+	}, {});
+	return { featureFlags, menuPolicy: { enabledMenus, disabledMenus: [] } };
+}
+
+function normalizeAdminTenantMenuPolicy(source = {}) {
+	const keys = ADMIN_TENANT_MENU_OPTIONS.map(option => option.key);
+	const base = defaultAdminTenantMenuPolicy();
+	const incomingFlags = source.featureFlags || {};
+	const incomingPolicy = source.menuPolicy || {};
+	const disabledMenus = Array.isArray(incomingPolicy.disabledMenus)
+		? incomingPolicy.disabledMenus.filter(key => keys.includes(key))
+		: [];
+	let enabledMenus = Array.isArray(incomingPolicy.enabledMenus)
+		? incomingPolicy.enabledMenus.filter(key => keys.includes(key))
+		: keys.filter(key => !disabledMenus.includes(key));
+	const featureFlags = { ...base.featureFlags, ...incomingFlags };
+	enabledMenus = enabledMenus.filter(key => featureFlags[key] !== false && !disabledMenus.includes(key));
+	const enabledSet = new Set(enabledMenus);
+	keys.forEach(key => {
+		featureFlags[key] = enabledSet.has(key);
+	});
+	const normalizedDisabled = keys.filter(key => !enabledSet.has(key));
+	return {
+		featureFlags,
+		menuPolicy: {
+			enabledMenus: keys.filter(key => enabledSet.has(key)),
+			disabledMenus: normalizedDisabled
+		}
+	};
+}
+
+function readAdminTenantStoredPolicy(tenantId) {
+	for (const key of [getAdminTenantPolicyStorageKey(tenantId), getAdminTenantPolicyApiStorageKey(tenantId)]) {
+		try {
+			const raw = localStorage.getItem(key);
+			if (raw) return JSON.parse(raw);
+		} catch (error) {
+			console.warn('Invalid stored tenant menu policy', error);
+		}
+	}
+	return null;
+}
+
+function getAdminTenantFromList(tenantId) {
+	const tenants = window.AdminData?.tenants || [];
+	return tenants.find(tenant => tenant.id === tenantId) || null;
+}
+
+async function fetchAdminTenantDetail(tenantId) {
+	try {
+		const response = await fetch(`../data/api/v1/admin/tenants/detail/${encodeURIComponent(tenantId)}.json`, { cache: 'no-store' });
+		if (!response.ok) throw new Error(`HTTP ${response.status}`);
+		const payload = await response.json();
+		return payload.data || payload;
+	} catch (error) {
+		return getAdminTenantFromList(tenantId) || { id: tenantId, hotelName: tenantId };
+	}
+}
+
+function renderAdminTenantInfo(tenant) {
+	if (!tenant) return;
+	const status = tenant.status || 'active';
+	const statusBadge = document.getElementById('tenantStatusBadge');
+	const planBadge = document.getElementById('tenantPlanBadge');
+	const currencySymbol = ADMIN_TENANT_CURRENCY_SYMBOLS[tenant.currency] || tenant.currency || '';
+	document.getElementById('tenantHotelNameTitle').textContent = tenant.hotelName || tenant.id || '-';
+	document.getElementById('tenantHotelName').textContent = tenant.hotelName || '-';
+	document.getElementById('tenantCityCountry').textContent = [tenant.city, tenant.country].filter(Boolean).join(', ') || '-';
+	document.getElementById('tenantCurrency').textContent = tenant.currency ? `${tenant.currency}${currencySymbol ? ` (${currencySymbol})` : ''}` : '-';
+	document.getElementById('tenantIdValue').textContent = tenant.id || '-';
+	document.getElementById('tenantContractPeriod').textContent = `${formatDate(tenant.contractStart)} ~ ${formatDate(tenant.contractEnd)}`;
+	if (statusBadge) {
+		statusBadge.textContent = ADMIN_TENANT_STATUS_LABELS[status] || status;
+		statusBadge.className = `status-badge ${status === 'active' ? 'active' : status === 'trial' ? 'pending' : ''}`;
+	}
+	if (planBadge) {
+		planBadge.textContent = tenant.plan || '-';
+	}
+}
+
+function isAdminTenantMenuEnabled(key) {
+	return adminTenantMenuState?.featureFlags?.[key] !== false
+		&& !(adminTenantMenuState?.menuPolicy?.disabledMenus || []).includes(key);
+}
+
+function updateAdminTenantMenuSummary() {
+	const inputs = [...document.querySelectorAll('[data-admin-menu-toggle]')];
+	const activeCount = inputs.filter(input => input.checked).length;
+	const inactiveCount = Math.max(inputs.length - activeCount, 0);
+	const summary = document.getElementById('adminTenantMenuPolicySummary');
+	if (summary) summary.textContent = `활성 ${activeCount}개 / 비활성 ${inactiveCount}개`;
+}
+
+function renderAdminTenantMenuPolicy() {
+	const grid = document.getElementById('adminTenantMenuPolicyGrid');
+	if (!grid) return;
+	grid.innerHTML = ADMIN_TENANT_MENU_OPTIONS.map(option => `
+		<div class="tenant-menu-policy-item" data-admin-menu-key="${escapeHtml(option.key)}">
+			<div class="tenant-menu-policy-main">
+				<div class="tenant-menu-policy-icon"><i class="fa-solid ${escapeHtml(option.icon)}"></i></div>
+				<div class="tenant-menu-policy-text">
+					<div class="tenant-menu-policy-name">${escapeHtml(option.label)}</div>
+					<div class="tenant-menu-policy-desc">${escapeHtml(option.desc)}</div>
+				</div>
+			</div>
+			<label class="toggle" title="${escapeHtml(option.label)}">
+				<input type="checkbox" data-admin-menu-toggle="${escapeHtml(option.key)}" ${isAdminTenantMenuEnabled(option.key) ? 'checked' : ''}>
+				<span class="slider"></span>
+			</label>
+		</div>
+	`).join('');
+	grid.querySelectorAll('[data-admin-menu-toggle]').forEach(input => {
+		input.addEventListener('change', () => {
+			updateAdminTenantMenuSummary();
+			const savedAt = document.getElementById('adminTenantMenuPolicySavedAt');
+			if (savedAt) savedAt.textContent = '변경사항 있음';
+		});
+	});
+	updateAdminTenantMenuSummary();
+}
+
+function collectAdminTenantMenuPolicy() {
+	const inputs = [...document.querySelectorAll('[data-admin-menu-toggle]')];
+	const featureFlags = {};
+	const enabledMenus = [];
+	const disabledMenus = [];
+	inputs.forEach(input => {
+		const key = input.dataset.adminMenuToggle;
+		featureFlags[key] = input.checked;
+		(input.checked ? enabledMenus : disabledMenus).push(key);
+	});
+	return { featureFlags, menuPolicy: { enabledMenus, disabledMenus } };
+}
+
+function saveAdminTenantMenuPolicy() {
+	const tenantId = adminTenantDetail?.id || getAdminTenantId();
+	adminTenantMenuState = normalizeAdminTenantMenuPolicy(collectAdminTenantMenuPolicy());
+	const payload = {
+		tenantId,
+		...adminTenantMenuState,
+		updatedAt: new Date().toISOString(),
+		updatedBy: 'Super Admin'
+	};
+	localStorage.setItem(getAdminTenantPolicyStorageKey(tenantId), JSON.stringify(payload));
+	localStorage.setItem(getAdminTenantPolicyApiStorageKey(tenantId), JSON.stringify(payload));
+	const savedAt = document.getElementById('adminTenantMenuPolicySavedAt');
+	if (savedAt) savedAt.textContent = '저장 완료';
+	updateAdminTenantMenuSummary();
+	alert('호텔별 메뉴 활성화 설정이 저장되었습니다.');
+}
+
+async function initAdminTenantMenuPolicy() {
+	if (adminTenantMenuInitialized) return;
+	adminTenantMenuInitialized = true;
+	const tenantId = getAdminTenantId();
+	adminTenantDetail = await fetchAdminTenantDetail(tenantId);
+	renderAdminTenantInfo(adminTenantDetail);
+	const storedPolicy = readAdminTenantStoredPolicy(tenantId);
+	adminTenantMenuState = normalizeAdminTenantMenuPolicy(storedPolicy || adminTenantDetail || {});
+	renderAdminTenantMenuPolicy();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+	if (window.onAdminDataReady) window.onAdminDataReady(initAdminTenantMenuPolicy);
+	else initAdminTenantMenuPolicy();
+});
+
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function confirmSuspend() {
