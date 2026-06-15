@@ -1721,6 +1721,11 @@
         return normalizeReservationTime(res?.lateCheckoutTime || res?.extendedCheckOutTime || res?.stayTimes?.lateCheckoutTime, reservationCheckOutTime(res));
     }
 
+    function reservationBaseStayTimesLocked(res = null) {
+        if (!res) return false;
+        return ['checkedin', 'checkout', 'completed'].includes(effectiveReservationStatus(res));
+    }
+
     function setUnifiedTimeValue(id, value, fallback = '') {
         const el = document.getElementById(id);
         if (!el) return;
@@ -1761,12 +1766,27 @@
         };
     }
 
+    function lockedBaseStayTimePayload(res, payload) {
+        if (!reservationBaseStayTimesLocked(res)) return payload;
+        const checkInTime = reservationCheckInTime(res);
+        const checkOutTime = reservationCheckOutTime(res);
+        const lateCheckout = !!payload.lateCheckout;
+        const lateCheckoutTime = lateCheckout ? normalizeReservationTime(payload.lateCheckoutTime, checkOutTime) : '';
+        return {
+            checkInTime,
+            checkOutTime,
+            lateCheckout,
+            lateCheckoutTime,
+            stayTimes: { checkInTime, checkOutTime, lateCheckout, lateCheckoutTime }
+        };
+    }
+
     function syncUnifiedLateCheckoutControls() {
         const checkoutEl = document.getElementById('unifiedCheckOutTime');
         const lateEl = document.getElementById('unifiedLateCheckout');
         const lateTimeEl = document.getElementById('unifiedLateCheckoutTime');
         const helpEl = document.getElementById('unifiedStayTimeHelp');
-        const enabled = !!lateEl?.checked;
+        const enabled = !!lateEl?.checked && !lateEl?.disabled;
         if (enabled && lateTimeEl && !lateTimeEl.value) lateTimeEl.value = checkoutEl?.value || '12:00';
         if (lateTimeEl) {
             lateTimeEl.disabled = !enabled;
@@ -1968,12 +1988,28 @@
         if (guestSection) guestSection.style.display = (isBlock && !isEditableGroupBlock) ? 'none' : 'block';
         const blockNotice = document.getElementById('unifiedBlockNotice');
         if (blockNotice) blockNotice.style.display = (!locked && isBlock) ? 'block' : 'none';
+        const baseStayTimesLocked = reservationBaseStayTimesLocked(res);
         ['unifiedCin', 'unifiedCout', 'unifiedChannel'].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.disabled = locked;
             if (el.tagName === 'SELECT' || el.tagName === 'INPUT') el.style.background = locked ? '#f1f5f9' : '#fff';
         });
+        ['unifiedCheckInTime', 'unifiedCheckOutTime'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.disabled = baseStayTimesLocked;
+            el.title = baseStayTimesLocked ? '체크인 이후 입실/기본 퇴실시간은 변경할 수 없습니다.' : '';
+            el.style.background = baseStayTimesLocked ? '#f1f5f9' : '#fff';
+            el.style.color = baseStayTimesLocked ? 'var(--txt2)' : 'var(--txt)';
+        });
+        const lateToggle = document.getElementById('unifiedLateCheckout');
+        if (lateToggle) {
+            lateToggle.disabled = ['completed', 'cancelled'].includes(effectiveReservationStatus(res));
+            lateToggle.closest('label')?.style.setProperty('background', lateToggle.disabled ? '#f1f5f9' : '#fff');
+            lateToggle.closest('label')?.style.setProperty('cursor', lateToggle.disabled ? 'not-allowed' : 'pointer');
+        }
+        syncUnifiedLateCheckoutControls();
         ['unifiedRoom', 'unifiedCompanions', 'unifiedAmount', 'unifiedPrepaid'].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -2398,7 +2434,7 @@
         const coutText = toReservationDateText(getUnifiedDateInputValue('unifiedCout'));
         const cinIso = getUnifiedDateInputValue('unifiedCin');
         const coutIso = getUnifiedDateInputValue('unifiedCout');
-        const stayTimeData = unifiedStayTimePayload();
+        const stayTimeData = lockedBaseStayTimePayload(currentRes, unifiedStayTimePayload());
         const nights = updateUnifiedNightsLabel() || 1;
         const currency = reservationCurrency(currentRes);
         const totalAmount = parseMoneyInput(document.getElementById('unifiedAmount')?.value, currency);
