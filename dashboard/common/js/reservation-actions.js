@@ -960,6 +960,25 @@
                         <input type="date" id="unifiedCout" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
                     </div>
                     <div class="md-item">
+                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">입실시간</div>
+                        <input type="time" id="unifiedCheckInTime" value="14:00" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                    </div>
+                    <div class="md-item">
+                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">퇴실시간</div>
+                        <input type="time" id="unifiedCheckOutTime" value="12:00" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                    </div>
+                    <div class="md-item">
+                        <label style="display:flex;align-items:center;gap:8px;height:38px;margin-top:20px;border:1px solid var(--border);border-radius:8px;padding:0 10px;background:#fff;font-size:.8rem;font-weight:900;color:var(--txt);cursor:pointer">
+                            <input type="checkbox" id="unifiedLateCheckout" style="width:16px;height:16px;accent-color:var(--primary);">
+                            레이트 체크아웃
+                        </label>
+                    </div>
+                    <div class="md-item">
+                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">레이트 퇴실시간</div>
+                        <input type="time" id="unifiedLateCheckoutTime" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#f8fafc;">
+                    </div>
+                    <div id="unifiedStayTimeHelp" style="grid-column:1 / -1;margin-top:-10px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
+                    <div class="md-item">
                         <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Stay">숙박 일수</div>
                         <div class="md-value" id="unifiedNights" style="font-size:0.9rem;font-weight:700;"></div>
                     </div>
@@ -1028,6 +1047,12 @@
                     window.updateUnifiedStayAndRooms();
                 });
             });
+            ['unifiedCheckInTime', 'unifiedCheckOutTime', 'unifiedLateCheckoutTime'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) input.addEventListener('change', syncUnifiedLateCheckoutControls);
+            });
+            const lateToggle = document.getElementById('unifiedLateCheckout');
+            if (lateToggle) lateToggle.addEventListener('change', syncUnifiedLateCheckoutControls);
             ['unifiedAmount', 'unifiedPrepaid'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) {
@@ -1042,6 +1067,7 @@
     }
 
     window.syncUnifiedBalance = syncUnifiedBalance;
+    window.syncUnifiedLateCheckoutControls = syncUnifiedLateCheckoutControls;
 
     async function unifiedGroups() {
         const merged = new Map();
@@ -1421,6 +1447,91 @@
         const nights = Math.max(1, Math.round((checkout - checkin) / 86400000));
         nightsEl.textContent = actionLang() === 'en' ? `${nights}N` : `${nights}박`;
         return nights;
+    }
+
+    function normalizeReservationTime(value, fallback = '') {
+        const text = String(value ?? '').trim();
+        if (!text) return fallback;
+        const match = text.match(/^(\d{1,2})(?::?(\d{2}))?$/);
+        if (!match) return fallback;
+        const hour = Number(match[1]);
+        const minute = Number(match[2] || 0);
+        if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return fallback;
+        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    }
+
+    function reservationCheckInTime(res = null) {
+        return normalizeReservationTime(res?.checkInTime || res?.arrivalTime || res?.stayTimes?.checkInTime || res?.times?.checkIn, '14:00');
+    }
+
+    function reservationCheckOutTime(res = null) {
+        return normalizeReservationTime(res?.checkOutTime || res?.departureTime || res?.stayTimes?.checkOutTime || res?.times?.checkOut, '12:00');
+    }
+
+    function reservationLateCheckoutEnabled(res = null) {
+        return !!(res?.lateCheckout || res?.isLateCheckout || res?.stayTimes?.lateCheckout || res?.lateCheckoutTime || res?.extendedCheckOutTime);
+    }
+
+    function reservationLateCheckoutTime(res = null) {
+        return normalizeReservationTime(res?.lateCheckoutTime || res?.extendedCheckOutTime || res?.stayTimes?.lateCheckoutTime, reservationCheckOutTime(res));
+    }
+
+    function setUnifiedTimeValue(id, value, fallback = '') {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = normalizeReservationTime(value, fallback);
+    }
+
+    function getUnifiedTimeValue(id, fallback = '') {
+        const el = document.getElementById(id);
+        return normalizeReservationTime(el?.value, fallback);
+    }
+
+    function stayTimeSummaryFromValues(checkInTime, checkOutTime, lateCheckout = false, lateCheckoutTime = '') {
+        const base = `입실 ${checkInTime || '-'} / 퇴실 ${checkOutTime || '-'}`;
+        return lateCheckout ? `${base} / 레이트 ${lateCheckoutTime || checkOutTime || '-'}` : base;
+    }
+
+    function setUnifiedStayTimeValues(res = null, prefill = {}) {
+        const source = { ...(res || {}), ...(prefill || {}) };
+        setUnifiedTimeValue('unifiedCheckInTime', source.checkInTime || source.arrivalTime || source.stayTimes?.checkInTime, '14:00');
+        setUnifiedTimeValue('unifiedCheckOutTime', source.checkOutTime || source.departureTime || source.stayTimes?.checkOutTime, '12:00');
+        const lateEl = document.getElementById('unifiedLateCheckout');
+        if (lateEl) lateEl.checked = reservationLateCheckoutEnabled(source);
+        setUnifiedTimeValue('unifiedLateCheckoutTime', source.lateCheckoutTime || source.extendedCheckOutTime || source.stayTimes?.lateCheckoutTime, reservationCheckOutTime(source));
+        syncUnifiedLateCheckoutControls();
+    }
+
+    function unifiedStayTimePayload() {
+        const checkInTime = getUnifiedTimeValue('unifiedCheckInTime', '14:00');
+        const checkOutTime = getUnifiedTimeValue('unifiedCheckOutTime', '12:00');
+        const lateCheckout = !!document.getElementById('unifiedLateCheckout')?.checked;
+        const lateCheckoutTime = lateCheckout ? getUnifiedTimeValue('unifiedLateCheckoutTime', checkOutTime) : '';
+        return {
+            checkInTime,
+            checkOutTime,
+            lateCheckout,
+            lateCheckoutTime,
+            stayTimes: { checkInTime, checkOutTime, lateCheckout, lateCheckoutTime }
+        };
+    }
+
+    function syncUnifiedLateCheckoutControls() {
+        const checkoutEl = document.getElementById('unifiedCheckOutTime');
+        const lateEl = document.getElementById('unifiedLateCheckout');
+        const lateTimeEl = document.getElementById('unifiedLateCheckoutTime');
+        const helpEl = document.getElementById('unifiedStayTimeHelp');
+        const enabled = !!lateEl?.checked;
+        if (enabled && lateTimeEl && !lateTimeEl.value) lateTimeEl.value = checkoutEl?.value || '12:00';
+        if (lateTimeEl) {
+            lateTimeEl.disabled = !enabled;
+            lateTimeEl.style.background = enabled ? '#fff' : '#f8fafc';
+            lateTimeEl.style.color = enabled ? 'var(--txt)' : 'var(--txt3)';
+        }
+        if (helpEl) {
+            const payload = unifiedStayTimePayload();
+            helpEl.textContent = stayTimeSummaryFromValues(payload.checkInTime, payload.checkOutTime, payload.lateCheckout, payload.lateCheckoutTime);
+        }
     }
 
     function reservationBlocksAvailability(res) {
@@ -1853,6 +1964,7 @@
             tomorrow.setDate(tomorrow.getDate() + 1);
             setUnifiedDateValue('unifiedCin', prefill?.checkin || prefill?.cin || prefill?.checkInDate, today);
             setUnifiedDateValue('unifiedCout', prefill?.checkout || prefill?.cout || prefill?.checkOutDate, tomorrow);
+            setUnifiedStayTimeValues(null, prefill || {});
             window.updateUnifiedStayAndRooms(prefill?.room || prefill?.fullRoom || '');
             if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
@@ -1933,6 +2045,7 @@
 
             setUnifiedDateValue('unifiedCin', res.checkInDate || res.checkin || res.cin);
             setUnifiedDateValue('unifiedCout', res.checkOutDate || res.checkout || res.cout);
+            setUnifiedStayTimeValues(res);
             window.updateUnifiedStayAndRooms(targetRoomValue);
             const shouldLoadRoster = !isEditingBlock || (isEditableGroupBlock && !res.isGroupPlaceholder);
             setUnifiedGuestRoster(shouldLoadRoster ? await rosterGuestsForReservation(res) : []);
@@ -2036,6 +2149,7 @@
         const coutText = toReservationDateText(getUnifiedDateInputValue('unifiedCout'));
         const cinIso = getUnifiedDateInputValue('unifiedCin');
         const coutIso = getUnifiedDateInputValue('unifiedCout');
+        const stayTimeData = unifiedStayTimePayload();
         const nights = updateUnifiedNightsLabel() || 1;
         const currency = reservationCurrency(currentRes);
         const totalAmount = parseMoneyInput(document.getElementById('unifiedAmount')?.value, currency);
@@ -2082,6 +2196,11 @@
                 checkout: coutIso,
                 checkInDate: cinIso,
                 checkOutDate: coutIso,
+                checkInTime: stayTimeData.checkInTime,
+                checkOutTime: stayTimeData.checkOutTime,
+                lateCheckout: stayTimeData.lateCheckout,
+                lateCheckoutTime: stayTimeData.lateCheckoutTime,
+                stayTimes: stayTimeData.stayTimes,
                 nights: nights,
                 len: nights,
 
@@ -2122,11 +2241,15 @@
                 status: newRes.status,
                 checkin: newRes.cin,
                 checkout: newRes.cout,
+                checkInTime: newRes.checkInTime,
+                checkOutTime: newRes.checkOutTime,
+                lateCheckout: newRes.lateCheckout,
+                lateCheckoutTime: newRes.lateCheckoutTime,
                 amount: totalAmount,
                 prepaidAmount,
                 balanceDue,
                 currency,
-                fields: ['reservationId', 'guestName', 'room', 'dates', 'amount']
+                fields: ['reservationId', 'guestName', 'room', 'dates', 'stayTimes', 'lateCheckout', 'amount']
             });
             if (window.showToast) window.showToast(actionText('booking.created'), 'success');
         } else {
@@ -2143,6 +2266,10 @@
                 const beforeGroupId = compactValue(res.groupId);
                 const beforeCinText = toReservationDateText(res.checkInDate || res.checkin || res.cin);
                 const beforeCoutText = toReservationDateText(res.checkOutDate || res.checkout || res.cout);
+                const beforeCheckInTime = reservationCheckInTime(res);
+                const beforeCheckOutTime = reservationCheckOutTime(res);
+                const beforeLateCheckout = reservationLateCheckoutEnabled(res);
+                const beforeLateCheckoutTime = beforeLateCheckout ? reservationLateCheckoutTime(res) : '';
                 const beforeGuest = guestNameForReservation(res);
                 const beforeGuestId = compactValue(res.guestId || res.roomingGuestId);
                 const beforeCompanionNames = companionNamesForReservation(res);
@@ -2173,6 +2300,11 @@
                 res.checkout = coutIso;
                 res.checkInDate = cinIso;
                 res.checkOutDate = coutIso;
+                res.checkInTime = stayTimeData.checkInTime;
+                res.checkOutTime = stayTimeData.checkOutTime;
+                res.lateCheckout = stayTimeData.lateCheckout;
+                res.lateCheckoutTime = stayTimeData.lateCheckoutTime;
+                res.stayTimes = { ...(res.stayTimes || {}), ...stayTimeData.stayTimes };
                 res.nights = nights;
                 res.len = nights;
                 res.type = selectedRoom?.type || res.type || 'Standard';
@@ -2220,6 +2352,18 @@
                 addAuditChange('room', '객실', beforeRoom || beforeFullRoom, room || res.fullRoom);
                 addAuditChange('status', '상태', beforeStatus, status);
                 addAuditChange('dates', '투숙일', `${beforeCinText} ~ ${beforeCoutText}`, `${cinText} ~ ${coutText}`);
+                addAuditChange(
+                    'stayTimes',
+                    '입퇴실 시간',
+                    stayTimeSummaryFromValues(beforeCheckInTime, beforeCheckOutTime, beforeLateCheckout, beforeLateCheckoutTime),
+                    stayTimeSummaryFromValues(stayTimeData.checkInTime, stayTimeData.checkOutTime, stayTimeData.lateCheckout, stayTimeData.lateCheckoutTime)
+                );
+                addAuditChange(
+                    'lateCheckout',
+                    '레이트 체크아웃',
+                    beforeLateCheckout ? (beforeLateCheckoutTime || beforeCheckOutTime) : '없음',
+                    stayTimeData.lateCheckout ? (stayTimeData.lateCheckoutTime || stayTimeData.checkOutTime) : '없음'
+                );
                 addAuditChange('guestName', '대표 투숙객', beforeGuest, guestNameForReservation(res));
                 addAuditChange('companionGuestNames', '동반 투숙객', beforeCompanionNames, companionGuestNames);
                 addAuditChange('amount', '총 금액', beforeAmount, totalAmount);
@@ -2244,6 +2388,20 @@
                         beforeCompanions: beforeCompanionNames,
                         afterCompanions: companionGuestNames,
                         fields: ['reservationId', 'guestName', 'companionGuestNames']
+                    });
+                }
+                const stayTimesChanged = beforeCheckInTime !== stayTimeData.checkInTime
+                    || beforeCheckOutTime !== stayTimeData.checkOutTime
+                    || beforeLateCheckout !== stayTimeData.lateCheckout
+                    || beforeLateCheckoutTime !== stayTimeData.lateCheckoutTime;
+                if (isPostCheckinEdit && stayTimesChanged) {
+                    logReservationAudit('reservation.stay_time.adjust', {
+                        reservationId: res.id,
+                        guestName: guestNameForReservation(res),
+                        room: res.room,
+                        before: stayTimeSummaryFromValues(beforeCheckInTime, beforeCheckOutTime, beforeLateCheckout, beforeLateCheckoutTime),
+                        after: stayTimeSummaryFromValues(stayTimeData.checkInTime, stayTimeData.checkOutTime, stayTimeData.lateCheckout, stayTimeData.lateCheckoutTime),
+                        fields: ['reservationId', 'guestName', 'room', 'stayTimes', 'lateCheckout']
                     });
                 }
                 if (roomChanged) {

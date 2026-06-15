@@ -90,6 +90,17 @@
         .rooming-summary-item{border:1px solid var(--border2);border-radius:8px;background:#f8fafc;padding:11px 12px}
         .rooming-summary-item .k{font-size:.7rem;color:var(--txt3);font-weight:850;margin-bottom:4px}
         .rooming-summary-item .v{font-size:1rem;color:var(--txt);font-weight:900}
+        .group-room-guests{display:flex;flex-direction:column;gap:6px;min-width:0}
+        .group-room-guest{display:grid;grid-template-columns:auto minmax(120px,1fr) auto;gap:7px;align-items:center;border:1px solid var(--border2);border-radius:8px;background:#fff;padding:7px 8px;min-width:0}
+        .group-room-guest .name{font-size:.78rem;font-weight:900;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .role-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:2px 7px;font-size:.64rem;font-weight:900;white-space:nowrap}
+        .role-pill.primary{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+        .role-pill.companion{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}
+        .inline-guest-actions{display:inline-flex;align-items:center;gap:4px;justify-content:flex-end;flex-wrap:wrap}
+        .icon-mini{width:26px;height:26px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--txt2);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+        .icon-mini:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff}
+        .icon-mini.danger:hover{border-color:#fecaca;color:#dc2626;background:#fff1f2}
+        .room-guest-empty{font-size:.76rem;font-weight:850;color:var(--txt3);padding:8px 0}
         @media(max-width:900px){.detail-sticky-actions{align-items:stretch;flex-direction:column}.detail-sticky-actions .mini-btn{justify-content:center}.rooming-summary-grid{grid-template-columns:1fr}}
     </style>
 </head>
@@ -2085,6 +2096,534 @@ window.addEventListener('DataReady', () => {
         showToast(editId ? '투숙객 정보가 수정되었습니다.' : '투숙객이 등록되었습니다.');
     };
     try { saveRoomingGuest = window.saveRoomingGuest; } catch(e) {}
+})();
+</script>
+<script>
+(function(){
+    const previousOpenRoomingModal = window.openRoomingModal;
+
+    function html(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    }
+
+    function asMoneyNumber(value) {
+        const n = Number(String(value ?? '').replace(/[^\d.-]/g, ''));
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function assignedRooms() {
+        try { return getAssignedRooms(group); } catch(e) { return []; }
+    }
+
+    function roomLabel(roomIdValue) {
+        const room = assignedRooms().find(item => item.roomId === roomIdValue);
+        return room ? (typeof roomDisplayName === 'function' ? roomDisplayName(room) : (room.roomLabel || room.roomId)) : roomIdValue;
+    }
+
+    function groupReservationForRoom(roomIdValue) {
+        const list = typeof groupReservations === 'function' ? groupReservations() : [];
+        return list.find(res => res.room === roomIdValue || res.fullRoom === roomIdValue || res.roomId === roomIdValue) || null;
+    }
+
+    function cleanGuestName(name) {
+        const text = String(name || '').trim();
+        return typeof isPendingAssignmentName === 'function' && isPendingAssignmentName(text) ? '' : text;
+    }
+
+    function reservationGuests(roomIdValue) {
+        const res = groupReservationForRoom(roomIdValue);
+        if (!res) return [];
+        const rows = [];
+        if (Array.isArray(res.roomingGuests) && res.roomingGuests.length) {
+            res.roomingGuests.forEach((item, index) => {
+                const name = cleanGuestName(item?.name || item?.guestName || item?.roomingGuestName || item?.guest);
+                if (!name) return;
+                rows.push({
+                    id: item.id || item.guestId || item.roomingGuestId || `RES-${res.id}-${index}`,
+                    guestId: item.guestId || item.id || item.roomingGuestId || '',
+                    groupId: group.id,
+                    roomId: roomIdValue,
+                    role: item.role || (index === 0 ? 'primary' : 'companion'),
+                    name,
+                    phone: item.phone || '',
+                    email: item.email || '',
+                    nation: item.nation || item.country || res.nation || '',
+                    docStatus: item.docStatus || res.docStatus || 'pending',
+                    note: item.note || item.specialNotes || res.roomingGuestNote || '',
+                    specialNotes: item.specialNotes || item.note || '',
+                    sourceReservation: true
+                });
+            });
+        }
+        const primaryName = cleanGuestName(res.roomingGuestName || res.guestName || (!res.isGroupPlaceholder ? res.guest : ''));
+        if (primaryName) {
+            rows.push({
+                id: res.roomingGuestId || res.guestId || `RES-${res.id}-primary`,
+                guestId: res.guestId || '',
+                groupId: group.id,
+                roomId: roomIdValue,
+                role: 'primary',
+                name: primaryName,
+                phone: res.phone || '',
+                email: res.email || '',
+                nation: res.nation || res.nationality || '',
+                docStatus: res.docStatus || res.documentStatus || 'pending',
+                note: res.roomingGuestNote || res.guestNote || res.specialNotes || '',
+                specialNotes: res.roomingGuestNote || res.guestNote || res.specialNotes || '',
+                sourceReservation: true
+            });
+        }
+        const companionNames = [
+            ...(Array.isArray(res.companionGuestNames) ? res.companionGuestNames : []),
+            ...(Array.isArray(res.companions) ? res.companions.map(item => typeof item === 'string' ? item : item?.name) : [])
+        ];
+        companionNames.forEach((name, index) => {
+            const clean = cleanGuestName(name);
+            if (!clean) return;
+            rows.push({
+                id: (Array.isArray(res.companionGuestIds) && res.companionGuestIds[index]) || `RES-${res.id}-companion-${index}`,
+                guestId: (Array.isArray(res.companionGuestIds) && res.companionGuestIds[index]) || '',
+                groupId: group.id,
+                roomId: roomIdValue,
+                role: 'companion',
+                name: clean,
+                nation: res.nation || res.nationality || '',
+                docStatus: res.docStatus || res.documentStatus || 'pending',
+                sourceReservation: true
+            });
+        });
+        return rows;
+    }
+
+    function roomGuests(roomIdValue) {
+        const merged = new Map();
+        reservationGuests(roomIdValue).forEach(guest => {
+            merged.set(guest.id || `${guest.name}-${guest.role}`, guest);
+        });
+        roomingList().filter(guest => guest.roomId === roomIdValue && cleanGuestName(guest.name)).forEach(guest => {
+            merged.set(guest.id || `${guest.name}-${guest.role}`, guest);
+        });
+        const list = [...merged.values()];
+        return list.sort((a, b) => {
+            const roleA = a.role === 'primary' ? 0 : 1;
+            const roleB = b.role === 'primary' ? 0 : 1;
+            return roleA - roleB || String(a.name || '').localeCompare(String(b.name || ''));
+        });
+    }
+
+    function allGroupGuests() {
+        const merged = new Map();
+        assignedRooms().forEach(room => {
+            roomGuests(room.roomId).forEach(guest => merged.set(guest.id || `${guest.name}-${guest.roomId}-${guest.role}`, guest));
+        });
+        roomingList().filter(guest => cleanGuestName(guest.name)).forEach(guest => {
+            merged.set(guest.id || `${guest.name}-${guest.roomId}-${guest.role}`, guest);
+        });
+        return [...merged.values()];
+    }
+
+    function primaryForRoom(roomIdValue) {
+        const guests = roomGuests(roomIdValue);
+        return guests.find(guest => guest.role === 'primary') || guests[0] || null;
+    }
+
+    function guestById(roomIdValue, guestId) {
+        if (!guestId) return null;
+        return roomGuests(roomIdValue).find(guest => String(guest.id) === String(guestId) || String(guest.guestId || '') === String(guestId)) ||
+            roomingList().find(guest => String(guest.id) === String(guestId) || String(guest.guestId || '') === String(guestId)) ||
+            null;
+    }
+
+    function guestDocCell(guest) {
+        if (!guest) return '<span style="color:var(--txt3);font-weight:800">-</span>';
+        return guest.docStatus === 'verified'
+            ? '<span class="stage-pill stage-live">확인 완료</span>'
+            : '<span class="stage-pill stage-upcoming">미확인</span>';
+    }
+
+    function guestListHtml(roomIdValue) {
+        const guests = roomGuests(roomIdValue);
+        if (!guests.length) return '<div class="room-guest-empty">등록된 투숙객 없음</div>';
+        return `<div class="group-room-guests">${guests.map(guest => {
+            const isStored = !guest.sourceReservation;
+            return `<div class="group-room-guest">
+                <span class="role-pill ${guest.role === 'primary' ? 'primary' : 'companion'}">${guest.role === 'primary' ? '대표' : '동반'}</span>
+                <span class="name" title="${html(guest.name)}">${html(guest.name)}</span>
+                <span class="inline-guest-actions">
+                    <button class="icon-mini" title="투숙객 편집" onclick="openRoomingModal('${html(roomIdValue)}','${html(guest.id || '')}','${html(guest.role || 'primary')}')"><i class="fa-solid fa-pen"></i></button>
+                    ${guest.role !== 'primary' ? `<button class="icon-mini" title="대표로 설정" onclick="setGroupRoomPrimary('${html(roomIdValue)}','${html(guest.id || '')}')"><i class="fa-solid fa-star"></i></button>` : ''}
+                    ${isStored ? `<button class="icon-mini danger" title="삭제" onclick="removeRoomingGuest('${html(guest.id || '')}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+                </span>
+            </div>`;
+        }).join('')}</div>`;
+    }
+
+    function syncReservationRoomGuests(roomIdValue) {
+        const res = groupReservationForRoom(roomIdValue);
+        if (!res) return null;
+        const guests = roomGuests(roomIdValue);
+        const primary = guests.find(guest => guest.role === 'primary') || guests[0] || null;
+        const companions = guests.filter(guest => guest !== primary);
+        res.roomingGuests = guests.map(guest => ({
+            id: guest.id,
+            guestId: guest.guestId || guest.id || '',
+            name: guest.name,
+            phone: guest.phone || '',
+            email: guest.email || '',
+            nation: guest.nation || '',
+            docStatus: guest.docStatus || 'pending',
+            note: guest.note || guest.specialNotes || '',
+            specialNotes: guest.specialNotes || guest.note || '',
+            role: guest === primary ? 'primary' : (guest.role || 'companion')
+        }));
+        res.roomingGuestNames = res.roomingGuests.map(guest => guest.name);
+        res.companionGuestNames = companions.map(guest => guest.name);
+        res.companionGuestIds = companions.map(guest => guest.guestId || guest.id || '');
+        res.companions = companions.map(guest => ({
+            guestId: guest.guestId || guest.id || '',
+            name: guest.name,
+            phone: guest.phone || '',
+            email: guest.email || ''
+        }));
+        if (primary) {
+            res.roomingGuestId = primary.id || primary.guestId || '';
+            res.guestId = primary.guestId || res.guestId || primary.id || '';
+            res.roomingGuestName = primary.name;
+            res.guestName = primary.name;
+            res.guest = primary.name;
+            res.phone = primary.phone || res.phone || '';
+            res.email = primary.email || res.email || '';
+            res.nation = primary.nation || res.nation || '';
+            res.docStatus = primary.docStatus || res.docStatus || 'pending';
+            res.roomingGuestNote = primary.note || primary.specialNotes || '';
+            res.guestNote = primary.note || primary.specialNotes || '';
+            res.specialNotes = primary.specialNotes || primary.note || '';
+            res.initials = primary.name.substring(0, 2).toUpperCase();
+            res.isGroupPlaceholder = false;
+            res.groupAssigned = true;
+            if (!res.status || res.status === 'blocked') res.status = 'confirmed';
+            if (!res.color || res.color === '#111827') res.color = '#2563EB';
+        }
+        return res;
+    }
+
+    function persistRoomReservation(roomIdValue) {
+        const res = syncReservationRoomGuests(roomIdValue);
+        window.reservations = reservations;
+        localStorage.setItem('pms_reservations', JSON.stringify(reservations || []));
+        if (window.PmsMockApi && res?.id) {
+            window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res })
+                .catch(err => console.warn('Mock reservation rooming update failed', err));
+        }
+    }
+
+    function recordHistory(action, note, extra = {}) {
+        group.history = Array.isArray(group.history) ? group.history : [];
+        group.history.unshift({
+            at: new Date().toLocaleString('ko-KR'),
+            action,
+            note,
+            ...extra
+        });
+    }
+
+    function collectRoomAllocations() {
+        return Array.from(document.querySelectorAll('.allocation-editor-row')).map(row => {
+            const id = row.querySelector('.detail-room')?.value || '';
+            const rm = (rooms || []).find(r => roomId(r) === id) || {};
+            const baseRate = asMoneyNumber(row.querySelector('.detail-base-rate')?.value || row.querySelector('.detail-rate')?.value || 0);
+            const discountPercent = Number(row.querySelector('.detail-discount')?.value || 0);
+            const finalInput = row.querySelector('.detail-final-rate') || row.querySelector('.detail-rate');
+            const rate = asMoneyNumber(finalInput?.value || Math.round(baseRate * (100 - discountPercent) / 100));
+            return {
+                roomId: id,
+                roomLabel: `${rm.bldgCode || rm.building || ''} ${rm.display || rm.number || id}`.trim(),
+                type: rm.type || 'Standard',
+                building: rm.bldgCode || rm.building || '',
+                baseRate,
+                discountPercent,
+                rate
+            };
+        }).filter(item => item.roomId);
+    }
+
+    function roomSummary(list) {
+        return (list || []).map(item => item.roomLabel || item.roomId).filter(Boolean).join(', ') || '-';
+    }
+
+    window.saveRoomAllocationsFromDetail = async function() {
+        if (isDraftGroup()) {
+            showToast('기본 정보를 먼저 저장해주세요.', 'error');
+            switchTabById('overview');
+            return;
+        }
+        const before = assignedRooms();
+        const allocations = collectRoomAllocations();
+        const ids = allocations.map(item => item.roomId);
+        if (new Set(ids).size !== ids.length) {
+            showToast('같은 호실이 중복되었습니다.', 'error');
+            return;
+        }
+        group.roomAllocations = allocations;
+        group.allocations = allocations;
+        group.block = allocations.length;
+        const beforeIds = new Set(before.map(item => item.roomId));
+        const afterIds = new Set(allocations.map(item => item.roomId));
+        const added = allocations.filter(item => !beforeIds.has(item.roomId));
+        const removed = before.filter(item => !afterIds.has(item.roomId));
+        recordHistory(
+            '객실 배정 수정',
+            `변경 전: ${roomSummary(before)} / 변경 후: ${roomSummary(allocations)}${added.length ? ` / 추가: ${roomSummary(added)}` : ''}${removed.length ? ` / 제외: ${roomSummary(removed)}` : ''}`,
+            {
+                type: 'room-allocation-update',
+                beforeRooms: before.map(item => item.roomId),
+                afterRooms: allocations.map(item => item.roomId),
+                addedRooms: added.map(item => item.roomId),
+                removedRooms: removed.map(item => item.roomId)
+            }
+        );
+        saveGroup();
+        if (window.PmsAPI?.getReservations) window.reservations = reservations = await PmsAPI.getReservations();
+        renderAll();
+        switchTabById('rooms');
+        showToast('객실 배정이 저장되었습니다.');
+    };
+
+    window.renderRooms = function() {
+        const panel = document.getElementById('rooms');
+        if (!panel) return;
+        if (isDraftGroup()) {
+            panel.innerHTML = '<div class="empty-guide">기본 정보를 저장하면 객실 배정을 시작할 수 있습니다.</div>';
+            return;
+        }
+        const assigned = assignedRooms();
+        const discount = group.eventDiscountPercent ?? group.discountPercent ?? group.discount ?? 0;
+        panel.innerHTML = `
+            <div class="room-assignment-toolbar">
+                <div>
+                    <div class="section-title" style="margin-bottom:4px"><i class="fa-solid fa-bed"></i> 객실 배정</div>
+                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">배정 ${assigned.length}실 · 행사 할인 ${html(discount || 0)}% · 객실별 투숙객을 바로 편집할 수 있습니다.</div>
+                </div>
+                <div class="room-assignment-actions">
+                    <button class="mini-btn" onclick="addDetailAllocationRow()"><i class="fa-solid fa-plus"></i> 호실 추가</button>
+                    <button class="mini-btn primary" onclick="saveRoomAllocationsFromDetail()"><i class="fa-solid fa-check"></i> 객실 배정 저장</button>
+                </div>
+            </div>
+            <div id="detailAllocationEditor" class="allocation-editor"></div>
+            <table class="data-table room-assignment-table" style="margin-top:14px">
+                <thead><tr><th>객실</th><th>투숙객</th><th>신분증</th><th>요금</th><th>관리</th></tr></thead>
+                <tbody>
+                    ${assigned.map(room => {
+                        const guests = roomGuests(room.roomId);
+                        const docs = guests.length ? `${guests.filter(guest => guest.docStatus === 'verified').length}/${guests.length} 확인` : '-';
+                        return `<tr>
+                            <td><span class="room-chip">${html(roomLabel(room.roomId))}</span><div class="event-sub">${html(room.type || '-')}</div></td>
+                            <td>${guestListHtml(room.roomId)}</td>
+                            <td>${docs}</td>
+                            <td>${money(room.rate)} <small style="display:block;color:var(--txt3);font-weight:800">할인 ${html(room.discountPercent || 0)}%</small></td>
+                            <td class="room-actions-cell">
+                                <div class="room-action-buttons">
+                                    <button class="mini-btn primary" onclick="openRoomingModal('${html(room.roomId)}','','primary')"><i class="fa-solid fa-user-check"></i> 대표 등록</button>
+                                    <button class="mini-btn" onclick="openRoomingModal('${html(room.roomId)}','','companion')"><i class="fa-solid fa-user-plus"></i> 동반 추가</button>
+                                </div>
+                            </td>
+                        </tr>`;
+                    }).join('') || '<tr><td colspan="5">배정된 객실이 없습니다. 위에서 호실을 추가하세요.</td></tr>'}
+                </tbody>
+            </table>
+            <div class="detail-sticky-actions">
+                <div class="hint"><i class="fa-solid fa-clock-rotate-left"></i> 객실 배정 수정은 변경 이력에 남습니다.</div>
+                <button class="mini-btn" onclick="switchTabById('rooming')"><i class="fa-solid fa-users"></i> 투숙객 명단 보기</button>
+            </div>`;
+        assigned.forEach(room => addDetailAllocationRow(room));
+    };
+    try { renderRooms = window.renderRooms; } catch(e) {}
+
+    window.renderRooming = function() {
+        const panel = document.getElementById('rooming');
+        if (!panel) return;
+        if (isDraftGroup()) {
+            panel.innerHTML = '<div class="empty-guide">기본 정보를 저장한 뒤 투숙객 명단을 등록할 수 있습니다.</div>';
+            return;
+        }
+        const assigned = assignedRooms();
+        const guests = allGroupGuests();
+        const missingDoc = guests.filter(guest => guest.docStatus !== 'verified').length;
+        const rows = guests.length ? guests.map(guest => {
+            const note = guest.note || guest.specialNotes || '';
+            return `<tr>
+                <td><span class="room-chip">${html(roomLabel(guest.roomId || ''))}</span></td>
+                <td><div class="event-metric">${html(guest.name)}</div><small style="color:var(--txt3);font-weight:800">${html(guest.phone || guest.email || '')}</small></td>
+                <td><span class="role-pill ${guest.role === 'primary' ? 'primary' : 'companion'}">${guest.role === 'primary' ? '대표' : '동반'}</span></td>
+                <td>${html(guest.nation || guest.nationality || guest.country || '-')}</td>
+                <td>${guestDocCell(guest)}</td>
+                <td>${note ? `<small class="room-note"><i class="fa-solid fa-triangle-exclamation"></i> ${html(note)}</small>` : '-'}</td>
+                <td class="room-actions-cell">
+                    <div class="room-action-buttons">
+                        <button class="mini-btn primary" onclick="openRoomingModal('${html(guest.roomId || '')}','${html(guest.id || '')}','${html(guest.role || 'primary')}')"><i class="fa-solid fa-pen"></i> 편집</button>
+                        ${guest.role !== 'primary' ? `<button class="mini-btn" onclick="setGroupRoomPrimary('${html(guest.roomId || '')}','${html(guest.id || '')}')"><i class="fa-solid fa-star"></i> 대표</button>` : ''}
+                        ${!guest.sourceReservation ? `<button class="mini-btn danger" onclick="removeRoomingGuest('${html(guest.id || '')}')"><i class="fa-solid fa-trash"></i> 삭제</button>` : ''}
+                    </div>
+                </td>
+            </tr>`;
+        }).join('') : '<tr><td colspan="7">등록된 투숙객이 없습니다.</td></tr>';
+        panel.innerHTML = `
+            <div class="rooming-tools">
+                <div>
+                    <div class="section-title" style="margin-bottom:4px"><i class="fa-solid fa-users"></i> 투숙객 명단</div>
+                    <div style="font-size:.76rem;color:var(--txt3);font-weight:800">전체 ${guests.length}/${group.pax || 0}명 · 배정 객실 ${assigned.length}실</div>
+                </div>
+                <button class="mini-btn primary" onclick="openRoomingModal()"><i class="fa-solid fa-user-plus"></i> 투숙객 등록</button>
+            </div>
+            <div class="rooming-summary-grid">
+                <div class="rooming-summary-item"><div class="k">배정 객실</div><div class="v">${assigned.length}실</div></div>
+                <div class="rooming-summary-item"><div class="k">등록 투숙객</div><div class="v">${guests.length}명</div></div>
+                <div class="rooming-summary-item"><div class="k">신분증 미확인</div><div class="v">${missingDoc}건</div></div>
+            </div>
+            <table class="data-table room-assignment-table rooming-list-table">
+                <thead><tr><th>객실</th><th>투숙객</th><th>역할</th><th>국적</th><th>신분증</th><th>특이사항</th><th>관리</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div class="detail-sticky-actions">
+                <div class="hint"><i class="fa-solid fa-user-check"></i> 대표/동반 변경은 예약 데이터와 함께 동기화됩니다.</div>
+                <button class="mini-btn" onclick="switchTabById('rooms')"><i class="fa-solid fa-bed"></i> 객실 배정으로 이동</button>
+            </div>`;
+    };
+    try { renderRooming = window.renderRooming; } catch(e) {}
+
+    window.openRoomingModal = function(roomIdValue = '', guestId = '', preferredRole = 'primary') {
+        const shouldLoadExisting = !!guestId || preferredRole !== 'companion';
+        const guest = shouldLoadExisting ? (guestById(roomIdValue, guestId) || (!guestId ? primaryForRoom(roomIdValue) : null)) : null;
+        if (typeof previousOpenRoomingModal === 'function') previousOpenRoomingModal(shouldLoadExisting ? roomIdValue : '', guest && !guest.sourceReservation ? guest.id : '');
+        setTimeout(() => {
+            const title = document.querySelector('#roomingModal .modal-title, #roomingModalTitle');
+            if (title) title.textContent = guest ? '투숙객 정보 수정' : '투숙객 등록';
+            const edit = document.getElementById('guestEditId');
+            const room = document.getElementById('guestRoomInput');
+            const role = document.getElementById('guestRoleInput');
+            const doc = document.getElementById('guestDocInput');
+            const note = document.getElementById('guestNoteInput');
+            if (edit) edit.value = guest && !guest.sourceReservation ? (guest.id || '') : '';
+            if (room) room.value = guest?.roomId || roomIdValue || '';
+            if (role) role.value = guest?.role || preferredRole || 'primary';
+            if (doc) doc.value = guest?.docStatus || 'pending';
+            if (note) note.value = guest?.note || guest?.specialNotes || '';
+            const nameInput = document.getElementById('nrGuestRooming') || document.getElementById('guestNameInput');
+            const phoneInput = document.getElementById('nrPhoneRooming');
+            const emailInput = document.getElementById('nrEmailRooming');
+            const nationInput = document.getElementById('nrNationRooming') || document.getElementById('guestNationInput');
+            if (!guest && window._roomingGuestWidget?.reset) window._roomingGuestWidget.reset();
+            if (!guest && window._roomingGuestWidget?.showNewForm) window._roomingGuestWidget.showNewForm();
+            if (nameInput) nameInput.value = guest?.name || '';
+            if (phoneInput) phoneInput.value = guest?.phone || '';
+            if (emailInput) emailInput.value = guest?.email || '';
+            if (nationInput) nationInput.value = guest?.nation || guest?.country || '';
+        }, 0);
+    };
+
+    window.saveRoomingGuest = function() {
+        const widget = window._roomingGuestWidget;
+        const selected = widget?.getSelectedGuest?.();
+        const nameInput = document.getElementById('nrGuestRooming') || document.getElementById('guestNameInput');
+        const phoneInput = document.getElementById('nrPhoneRooming');
+        const emailInput = document.getElementById('nrEmailRooming');
+        const nationInput = document.getElementById('nrNationRooming') || document.getElementById('guestNationInput');
+        const roomIdValue = document.getElementById('guestRoomInput')?.value || '';
+        const role = document.getElementById('guestRoleInput')?.value || 'primary';
+        const editId = document.getElementById('guestEditId')?.value || '';
+        const name = selected?.name || widget?.getGuestName?.() || nameInput?.value?.trim() || '';
+        if (!roomIdValue) { showToast('호실을 선택하세요.', 'error'); return; }
+        if (!name) { showToast('투숙객 이름을 입력하거나 기존 고객을 선택하세요.', 'error'); return; }
+        const data = {
+            id: editId || selected?.id || 'GG-' + Date.now(),
+            guestId: selected?.id || '',
+            groupId: group.id,
+            name,
+            phone: selected?.phone || phoneInput?.value?.trim() || '',
+            email: selected?.email || emailInput?.value?.trim() || '',
+            nation: selected?.country || selected?.nation || nationInput?.value?.trim() || '',
+            roomId: roomIdValue,
+            role,
+            docStatus: document.getElementById('guestDocInput')?.value || 'pending',
+            note: document.getElementById('guestNoteInput')?.value.trim() || '',
+            specialNotes: document.getElementById('guestNoteInput')?.value.trim() || ''
+        };
+        const list = roomingList();
+        let idx = editId ? list.findIndex(item => item.id === editId) : -1;
+        if (idx < 0 && data.guestId) idx = list.findIndex(item => item.guestId === data.guestId && item.roomId === roomIdValue);
+        if (idx < 0 && role === 'primary') idx = list.findIndex(item => item.roomId === roomIdValue && item.role === 'primary');
+        if (idx < 0 && role === 'companion') idx = list.findIndex(item => item.roomId === roomIdValue && item.role === 'companion' && item.name === data.name);
+        if (idx >= 0) list[idx] = data;
+        else list.push(data);
+        if (role === 'primary') {
+            list.forEach(item => {
+                if (item.roomId === roomIdValue && item.id !== data.id && item.role === 'primary') item.role = 'companion';
+            });
+        }
+        persistRoomReservation(roomIdValue);
+        recordHistory(role === 'primary' ? (editId ? '대표 투숙객 수정' : '대표 투숙객 등록') : (editId ? '동반 투숙객 수정' : '동반 투숙객 등록'), `${roomLabel(roomIdValue)} · ${data.name}`);
+        saveGroup();
+        closeModal('roomingModal');
+        renderAll();
+        switchTabById('rooming');
+        showToast(editId ? '투숙객 정보가 수정되었습니다.' : '투숙객이 등록되었습니다.');
+    };
+    try { saveRoomingGuest = window.saveRoomingGuest; } catch(e) {}
+
+    window.setGroupRoomPrimary = function(roomIdValue, guestId) {
+        const guest = guestById(roomIdValue, guestId);
+        if (!guest) return;
+        const list = roomingList();
+        let stored = list.find(item => item.id === guest.id || item.guestId === guest.guestId);
+        if (!stored) {
+            stored = { ...guest, sourceReservation: false };
+            list.push(stored);
+        }
+        list.forEach(item => {
+            if (item.roomId === roomIdValue) item.role = item.id === stored.id ? 'primary' : 'companion';
+        });
+        persistRoomReservation(roomIdValue);
+        recordHistory('대표 투숙객 변경', `${roomLabel(roomIdValue)} · ${stored.name}`);
+        saveGroup();
+        renderAll();
+        switchTabById('rooming');
+        showToast('대표 투숙객이 변경되었습니다.');
+    };
+
+    const previousRemoveRoomingGuest = window.removeRoomingGuest;
+    window.removeRoomingGuest = async function(id) {
+        const guest = roomingList().find(item => item.id === id);
+        if (!guest) {
+            if (typeof previousRemoveRoomingGuest === 'function') return previousRemoveRoomingGuest(id);
+            return;
+        }
+        const ok = window.showConfirm
+            ? await showConfirm(`[${guest.name}] 투숙객을 삭제하시겠습니까?`)
+            : confirm(`[${guest.name}] 투숙객을 삭제하시겠습니까?`);
+        if (!ok) return;
+        group.roomingList = roomingList().filter(item => item.id !== id);
+        persistRoomReservation(guest.roomId);
+        recordHistory('투숙객 삭제', `${roomLabel(guest.roomId)} · ${guest.name}`);
+        saveGroup();
+        renderAll();
+        switchTabById('rooming');
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            try {
+                if (group) {
+                    renderAll();
+                    const initialTab = new URLSearchParams(location.search).get('tab');
+                    if (initialTab) switchTabById(initialTab);
+                }
+            } catch(e) {
+                console.warn('Group rooming enhancement render failed', e);
+            }
+        }, 80);
+    });
 })();
 </script>
 </body>

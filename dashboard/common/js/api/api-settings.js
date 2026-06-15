@@ -1,5 +1,29 @@
 window.PmsAPI = window.PmsAPI || {};
 
+const HOTEL_MENU_KEYS = [
+    'dashboard',
+    'reservation',
+    'checkin',
+    'crm',
+    'groups',
+    'rooms',
+    'rates',
+    'housekeeping',
+    'maintenance',
+    'folio',
+    'ancillary',
+    'settings',
+    'staff',
+    'billing'
+];
+
+function defaultHotelFeatureFlags() {
+    return HOTEL_MENU_KEYS.reduce((flags, key) => {
+        flags[key] = true;
+        return flags;
+    }, {});
+}
+
 const EMPTY_HOTEL_SETTINGS = {
     id: '',
     name: '',
@@ -24,6 +48,11 @@ const EMPTY_HOTEL_SETTINGS = {
         skipDndNoService: true,
         linenChangeIntervalDays: 0,
         towelChangeMode: ''
+    },
+    featureFlags: defaultHotelFeatureFlags(),
+    menuPolicy: {
+        enabledMenus: [...HOTEL_MENU_KEYS],
+        disabledMenus: []
     }
 };
 
@@ -47,6 +76,42 @@ function mergeHotelSettings(base, override) {
         ...(base?.adminContact || {}),
         ...(override?.adminContact || {})
     };
+    const featureFlags = {
+        ...defaultHotelFeatureFlags(),
+        ...(base?.featureFlags || {}),
+        ...(override?.featureFlags || {})
+    };
+    const mergedPolicy = {
+        ...(base?.menuPolicy || {}),
+        ...(override?.menuPolicy || {})
+    };
+    const menuKeys = Array.from(new Set([
+        ...HOTEL_MENU_KEYS,
+        ...Object.keys(featureFlags),
+        ...((Array.isArray(mergedPolicy.enabledMenus) && mergedPolicy.enabledMenus) || []),
+        ...((Array.isArray(mergedPolicy.disabledMenus) && mergedPolicy.disabledMenus) || [])
+    ])).filter(Boolean);
+    const enabledMenus = Array.isArray(mergedPolicy.enabledMenus)
+        ? new Set(mergedPolicy.enabledMenus.filter(Boolean))
+        : new Set(menuKeys.filter(key => featureFlags[key] !== false));
+    if (Array.isArray(mergedPolicy.disabledMenus)) {
+        mergedPolicy.disabledMenus.filter(Boolean).forEach(key => enabledMenus.delete(key));
+    }
+    menuKeys.forEach(key => {
+        if (featureFlags[key] === false) enabledMenus.delete(key);
+    });
+    const disabledMenus = menuKeys.filter(key => !enabledMenus.has(key));
+    disabledMenus.forEach(key => {
+        featureFlags[key] = false;
+    });
+    enabledMenus.forEach(key => {
+        featureFlags[key] = featureFlags[key] !== false;
+    });
+    next.featureFlags = featureFlags;
+    next.menuPolicy = {
+        enabledMenus: menuKeys.filter(key => enabledMenus.has(key)),
+        disabledMenus
+    };
     return next;
 }
 
@@ -63,6 +128,8 @@ async function dataFromApi(path) {
 }
 
 Object.assign(window.PmsAPI, {
+    HOTEL_MENU_KEYS,
+
     getHotelSettings: async () => {
         let apiSettings = {};
         try {

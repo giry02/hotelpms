@@ -118,6 +118,115 @@
         groupsItem.children[1].label = '\uB2E8\uCCB4\uC5C5\uCCB4 \uAD00\uB9AC';
     }
 
+    const HOTEL_MENU_KEYS = [
+        'dashboard',
+        'reservation',
+        'checkin',
+        'crm',
+        'groups',
+        'rooms',
+        'rates',
+        'housekeeping',
+        'maintenance',
+        'folio',
+        'ancillary',
+        'settings',
+        'staff',
+        'billing'
+    ];
+
+    const MENU_KEY_BY_FILE = {
+        'dashboard.html': 'dashboard',
+        'reservation-timeline.html': 'reservation',
+        'reservation-board.html': 'reservation',
+        'reservation-list.html': 'reservation',
+        'checkin.html': 'checkin',
+        'guests.html': 'crm',
+        'membership.html': 'crm',
+        'groups_blocks.html': 'groups',
+        'groups_block_detail.html': 'groups',
+        'groups_companies.html': 'groups',
+        'rooms.html': 'rooms',
+        'room-setup.html': 'rooms',
+        'rates.html': 'rates',
+        'housekeeping.html': 'housekeeping',
+        'maintenance.html': 'maintenance',
+        'reports.html': 'folio',
+        'folio.html': 'folio',
+        'night-audit.html': 'folio',
+        'unified-pos.html': 'ancillary',
+        'golf.html': 'ancillary',
+        'rentacar.html': 'ancillary',
+        'settings.html': 'settings',
+        'staff.html': 'staff',
+        'roles.html': 'staff',
+        'billing.html': 'billing',
+        'audit-logs.html': 'settings',
+        'notices.html': 'settings',
+        'support.html': 'settings'
+    };
+
+    function readHotelSettingsForSidebar() {
+        try {
+            return JSON.parse(localStorage.getItem('pms_hotel_settings') || '{}') || {};
+        } catch (error) {
+            return {};
+        }
+    }
+
+    function hrefFile(href) {
+        if (!href) return '';
+        const clean = String(href).split('#')[0].split('?')[0];
+        return clean.split('/').pop() || clean;
+    }
+
+    function resolveMenuKey(item, parent) {
+        if (!item && !parent) return '';
+        if (item?.key) return item.key;
+        if (item?.id === 'reservations') return 'reservation';
+        if (item?.id && HOTEL_MENU_KEYS.includes(item.id)) return item.id;
+        const file = hrefFile(item?.href || item?.mainHref || parent?.href || parent?.mainHref);
+        return MENU_KEY_BY_FILE[file] || parent?.key || parent?.id || '';
+    }
+
+    function rolePolicyAllows(item) {
+        return !item?.roles || item.roles.includes(window.currentUserRole);
+    }
+
+    function hotelMenuPolicyAllows(key) {
+        if (!key) return true;
+        const settings = readHotelSettingsForSidebar();
+        const featureFlags = settings.featureFlags || {};
+        const menuPolicy = settings.menuPolicy || {};
+        const enabledMenus = Array.isArray(menuPolicy.enabledMenus) ? menuPolicy.enabledMenus : null;
+        const disabledMenus = Array.isArray(menuPolicy.disabledMenus) ? menuPolicy.disabledMenus : [];
+        if (featureFlags[key] === false) return false;
+        if (disabledMenus.includes(key)) return false;
+        if (enabledMenus && enabledMenus.length > 0 && !enabledMenus.includes(key)) return false;
+        return true;
+    }
+
+    function filterMenuItem(item) {
+        if (!rolePolicyAllows(item)) return null;
+        const key = resolveMenuKey(item);
+        const directAllowed = hotelMenuPolicyAllows(key);
+        if (Array.isArray(item.children)) {
+            const children = item.children
+                .filter(child => rolePolicyAllows(child) && hotelMenuPolicyAllows(resolveMenuKey(child, item)));
+            if (!directAllowed && children.length === 0) return null;
+            const next = { ...item, key, children };
+            if (!directAllowed && children[0]?.href) next.mainHref = children[0].href;
+            return next;
+        }
+        return directAllowed ? { ...item, key } : null;
+    }
+
+    window.PMS_MenuPolicy = {
+        resolveMenuKey,
+        rolePolicyAllows,
+        hotelMenuPolicyAllows
+    };
+
     function buildNavItem(item) {
         if (item.children) {
             const children = item.children.map(c =>
@@ -138,7 +247,7 @@
     function buildSidebar() {
         const groups = MENU.map(g => {
             if (g.roles && !g.roles.includes(window.currentUserRole)) return null;
-            const validItems = g.items.filter(item => !item.roles || item.roles.includes(window.currentUserRole));
+            const validItems = g.items.map(filterMenuItem).filter(Boolean);
             if (validItems.length === 0) return null;
             return `
         <div class="nav-group">

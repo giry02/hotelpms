@@ -38,6 +38,8 @@
         .search-box-mt input{border:none;outline:none;font-family:var(--font);font-size:.82rem;color:var(--txt);width:100%;background:transparent;padding:0;margin:0}
         .btn-search{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;background:var(--primary);color:#fff;font-family:var(--font);font-size:.8rem;font-weight:700;transition:background .2s}
         .btn-search:hover{background:#1D4ED8}
+        .board-period-select{height:36px;min-width:118px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:800;padding:0 30px 0 10px;outline:none;flex-shrink:0}
+        .board-period-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
         .filter-divider{width:1px;height:24px;background:var(--border2);flex-shrink:0}
         .building-section{margin-bottom:8px}
         .building-section + .building-section{margin-top:24px}
@@ -57,6 +59,7 @@
         .reservation-board-box.arrival{border-top:3px solid var(--primary)}
         .reservation-board-box.inhouse{border-top:3px solid var(--success)}
         .reservation-board-box.checkout{border-top:3px solid var(--warning)}
+        .reservation-board-box.late{border-top:3px solid #f97316}
         .reservation-board-box.reserved{border-top:3px solid var(--purple)}
         .reservation-board-box.completed{border-top:3px solid #64748b}
         .reservation-board-box.cancelled{border-top:3px solid var(--danger)}
@@ -68,6 +71,7 @@
         .board-status.arrival{background:var(--primary-lt);color:var(--primary-dk)}
         .board-status.inhouse{background:var(--success-lt);color:var(--success)}
         .board-status.checkout{background:var(--warning-lt);color:#92400e}
+        .board-status.late{background:#fff7ed;color:#c2410c}
         .board-status.reserved{background:var(--purple-lt);color:#6d28d9}
         .board-status.completed{background:#f1f5f9;color:#475569}
         .board-status.cancelled{background:var(--danger-lt);color:var(--danger)}
@@ -79,6 +83,9 @@
         .board-companions{display:flex;flex-direction:column;gap:2px;margin-top:3px;padding-left:17px;font-size:.68rem;color:var(--txt3);font-weight:750;min-width:0}
         .board-companion{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .board-date{font-size:.68rem;color:var(--txt2);font-weight:750;line-height:1.35}
+        .board-time-line{display:flex;align-items:center;gap:4px;font-size:.66rem;color:var(--txt3);font-weight:850;line-height:1.25}
+        .board-time-line i{font-size:.6rem;color:var(--primary)}
+        .board-late-pill{display:inline-flex;align-items:center;gap:4px;width:max-content;border-radius:999px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;padding:2px 7px;font-size:.63rem;font-weight:900;line-height:1.2}
         .board-empty{font-size:.74rem;color:var(--txt3);font-weight:750;margin-top:8px}
         .board-money{font-size:.68rem;color:var(--txt2);font-weight:800;margin-top:auto}
         @media(max-width:768px){
@@ -87,6 +94,7 @@
             .filter-left{flex-wrap:wrap;gap:10px}
             .search-container{width:100%;display:flex;gap:8px;flex:1}
             .search-box-mt{flex:1;min-width:0;width:auto}
+            .board-period-select{width:100%}
             #boardChips{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
             #boardChips .chip{justify-content:center}
             .filter-right .btn-outline,
@@ -115,6 +123,11 @@
                     </div>
                     <button class="btn-search" onclick="renderReservationBoard()"><i class="fa-solid fa-search"></i> 검색</button>
                 </div>
+                <select id="boardPeriodSelect" class="board-period-select" onchange="setBoardPeriod(this.value)">
+                    <option value="today">오늘</option>
+                    <option value="tomorrow">내일</option>
+                    <option value="week">1주일</option>
+                </select>
                 <div class="filter-divider desktop-only"></div>
                 <div class="filter-chips" id="boardChips">
                     <button class="chip active" data-filter="all" onclick="setBoardFilter('all')"><i class="fa-solid fa-list"></i> 전체 <span class="chip-count">0</span></button>
@@ -139,6 +152,7 @@
 let rooms = [];
 let reservations = [];
 let boardFilter = 'all';
+let boardPeriod = 'today';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -148,6 +162,31 @@ function todayDate() {
     const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
     date.setHours(0, 0, 0, 0);
     return date;
+}
+
+function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    next.setHours(0, 0, 0, 0);
+    return next;
+}
+
+function sameDate(left, right) {
+    return !!(left && right && left.getTime() === right.getTime());
+}
+
+function dateInRange(date, range) {
+    return !!(date && range && date >= range.start && date <= range.end);
+}
+
+function boardRange() {
+    const today = todayDate();
+    if (boardPeriod === 'tomorrow') {
+        const tomorrow = addDays(today, 1);
+        return { start: tomorrow, end: tomorrow, mode: 'day' };
+    }
+    if (boardPeriod === 'week') return { start: today, end: addDays(today, 6), mode: 'week' };
+    return { start: today, end: today, mode: 'day' };
 }
 
 function parseDate(value) {
@@ -162,6 +201,27 @@ function parseDate(value) {
     if (Number.isNaN(date.getTime())) return null;
     date.setHours(0, 0, 0, 0);
     return date;
+}
+
+function reservationStart(res) {
+    return parseDate(res?.checkInDate || res?.checkin || res?.cin);
+}
+
+function reservationEnd(res) {
+    return parseDate(res?.checkOutDate || res?.checkout || res?.cout);
+}
+
+function reservationOverlapsRange(res, range = boardRange()) {
+    const start = reservationStart(res);
+    const end = reservationEnd(res);
+    if (start && end) return start <= range.end && end >= range.start;
+    return dateInRange(start || end, range);
+}
+
+function reservationActiveOn(res, date) {
+    const start = reservationStart(res);
+    const end = reservationEnd(res);
+    return !!(start && end && start <= date && date < end);
 }
 
 function normalizeStatus(value) {
@@ -213,47 +273,78 @@ function isReservationRoomInHouse(res) {
     return normalizeStatus(room?.frontStatus || room?.status || room?.housekeepingStatus) === 'inhouse';
 }
 
-function checkoutDateIsDue(res) {
-    const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
-    return !!end && end <= todayDate();
+function checkoutDateIsDue(res, refDate = todayDate()) {
+    const end = reservationEnd(res);
+    return !!end && end <= refDate;
 }
 
-function checkinDateIsDue(res) {
-    const start = parseDate(res?.checkInDate || res?.checkin || res?.cin);
-    return !!start && start <= todayDate();
+function checkinDateIsDue(res, refDate = todayDate()) {
+    const start = reservationStart(res);
+    return !!start && start <= refDate;
 }
 
-function isCurrentStayWindow(res) {
-    const start = parseDate(res?.checkInDate || res?.checkin || res?.cin);
-    const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
-    const today = todayDate();
-    return !!(start && end && start <= today && today < end);
+function isCurrentStayWindow(res, refDate = todayDate()) {
+    return reservationActiveOn(res, refDate);
 }
 
-function effectiveReservationStatus(res) {
+function effectiveReservationStatus(res, refDate = todayDate()) {
     let status = normalizeReservationStatus(res?.status);
-    if (['confirmed', 'pending'].includes(status) && isReservationRoomInHouse(res) && isCurrentStayWindow(res)) status = 'checkedin';
-    if (status === 'checkedin' && checkoutDateIsDue(res)) return 'checkout';
+    if (['confirmed', 'pending'].includes(status) && isReservationRoomInHouse(res) && isCurrentStayWindow(res, refDate)) status = 'checkedin';
+    if (status === 'checkedin' && checkoutDateIsDue(res, refDate)) return 'checkout';
     return status;
 }
 
 function reservationBucket(res) {
-    const status = effectiveReservationStatus(res);
+    const range = boardRange();
+    if (!reservationOverlapsRange(res, range)) return null;
+    const start = reservationStart(res);
+    const end = reservationEnd(res);
+    const refDate = range.mode === 'day' ? range.start : todayDate();
+    const status = effectiveReservationStatus(res, refDate);
     if (status === 'cancelled') return 'cancelled';
     if (status === 'completed') return 'completed';
     if (status === 'checkout') return 'checkout';
-    if (status === 'checkedin') return 'inhouse';
-    if (['confirmed', 'pending'].includes(status) && checkinDateIsDue(res)) return 'checkin';
-    return status;
+    if (range.mode === 'day') {
+        if (status === 'checkedin' && end && sameDate(end, range.start)) return 'checkout';
+        if (status === 'checkedin' && reservationActiveOn(res, range.start)) return 'inhouse';
+        if (start && sameDate(start, range.start)) return 'checkin';
+        if (end && sameDate(end, range.start)) return 'checkout';
+        if (reservationActiveOn(res, range.start)) return status === 'checkedin' ? 'inhouse' : 'reserved';
+        return 'reserved';
+    }
+    if (status === 'checkedin' && reservationActiveOn(res, todayDate())) return 'inhouse';
+    if (start && dateInRange(start, range)) return 'checkin';
+    if (end && dateInRange(end, range) && ['checkedin', 'checkout'].includes(status)) return 'checkout';
+    if (reservationActiveOn(res, todayDate())) return 'inhouse';
+    return 'reserved';
 }
 
 function boardReservationCounts() {
-    const counts = { all: reservations.length, checkin: 0, inhouse: 0, checkout: 0, completed: 0, cancelled: 0 };
+    const counts = { all: 0, checkin: 0, inhouse: 0, checkout: 0, reserved: 0, completed: 0, cancelled: 0 };
     reservations.forEach(res => {
         const bucket = reservationBucket(res);
+        if (!bucket) return;
+        counts.all++;
         if (counts[bucket] !== undefined) counts[bucket]++;
     });
     return counts;
+}
+
+function boardCheckinLabel() {
+    if (boardPeriod === 'tomorrow') return '내일 체크인';
+    if (boardPeriod === 'week') return '1주일 체크인';
+    return '오늘 체크인';
+}
+
+function updateBoardPeriodLabels() {
+    const label = boardCheckinLabel();
+    const arrivalLabel = document.getElementById('kpiArrival')?.parentElement?.querySelector('.kpi-label');
+    if (arrivalLabel) arrivalLabel.textContent = label;
+    const chip = document.querySelector('#boardChips .chip[data-filter="checkin"]');
+    if (chip) {
+        const count = chip.querySelector('.chip-count')?.textContent || '0';
+        chip.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> ${label} <span class="chip-count">${escapeHtml(count)}</span>`;
+    }
 }
 
 function primaryGuest(res) {
@@ -282,7 +373,8 @@ function formatMoney(amount) {
 }
 
 function boardStatusFor(room) {
-    const today = todayDate();
+    const range = boardRange();
+    const focusDate = range.mode === 'day' ? range.start : todayDate();
     const roomStatus = normalizeStatus(room.status || room.frontStatus || room.housekeepingStatus);
     if (roomStatus === 'oos') return { status: 'oos', label: '점검 중', res: null };
     const related = reservations
@@ -290,24 +382,27 @@ function boardStatusFor(room) {
         .map(res => ({
             res,
             status: normalizeStatus(res.status),
-            start: parseDate(res.checkInDate || res.checkin || res.cin),
-            end: parseDate(res.checkOutDate || res.checkout || res.cout)
+            start: reservationStart(res),
+            end: reservationEnd(res)
         }))
-        .filter(item => item.start && item.end && item.status !== 'cancelled' && item.status !== 'completed')
+        .filter(item => item.start && item.end && item.status !== 'cancelled' && item.status !== 'completed' && reservationOverlapsRange(item.res, range))
         .sort((a, b) => a.start - b.start);
 
-    const active = related.find(item => item.start <= today && today < item.end);
+    const active = related.find(item => item.start <= focusDate && focusDate < item.end);
     if (active) {
         if (active.status === 'blocked' || active.res.isGroupPlaceholder) return { status: 'blocked', label: '단체 블록', res: active.res };
-        if (active.end.getTime() === today.getTime()) return { status: 'checkout', label: '체크아웃', res: active.res };
+        if (reservationLateCheckoutEnabled(active.res)) return { status: 'late', label: '레이트 체크아웃', res: active.res };
+        if (sameDate(active.end, focusDate)) return { status: 'checkout', label: '체크아웃', res: active.res };
         if (['inhouse', 'checkout'].includes(active.status) || roomStatus === 'inhouse') return { status: 'inhouse', label: '투숙 중', res: active.res };
-        if (active.start.getTime() === today.getTime()) return { status: 'arrival', label: '오늘 체크인', res: active.res };
+        if (sameDate(active.start, focusDate)) return { status: 'arrival', label: '체크인', res: active.res };
         return { status: 'reserved', label: '예약 중', res: active.res };
     }
 
-    const arrival = related.find(item => item.start.getTime() === today.getTime());
-    if (arrival) return { status: 'arrival', label: '오늘 체크인', res: arrival.res };
-    const next = related.find(item => item.start > today);
+    const arrival = range.mode === 'day'
+        ? related.find(item => sameDate(item.start, focusDate))
+        : related.find(item => dateInRange(item.start, range));
+    if (arrival) return { status: 'arrival', label: '체크인', res: arrival.res };
+    const next = related.find(item => item.start > focusDate && item.start <= range.end);
     if (next) return { status: 'reserved', label: '예약 예정', res: next.res };
     return { status: 'vacant', label: '예약 없음', res: null };
 }
@@ -325,6 +420,39 @@ function floorValue(room) {
 function reservationDates(res) {
     if (!res) return '';
     return `${res.cin || (res.checkInDate || '').slice(5)} → ${res.cout || (res.checkOutDate || '').slice(5)}`;
+}
+
+function normalizeReservationTime(value, fallback = '') {
+    const text = String(value ?? '').trim();
+    if (!text) return fallback;
+    const match = text.match(/^(\d{1,2})(?::?(\d{2}))?$/);
+    if (!match) return fallback;
+    const hour = Number(match[1]);
+    const minute = Number(match[2] || 0);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return fallback;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function reservationCheckInTime(res) {
+    return normalizeReservationTime(res?.checkInTime || res?.arrivalTime || res?.stayTimes?.checkInTime || res?.times?.checkIn, '14:00');
+}
+
+function reservationCheckOutTime(res) {
+    return normalizeReservationTime(res?.checkOutTime || res?.departureTime || res?.stayTimes?.checkOutTime || res?.times?.checkOut, '12:00');
+}
+
+function reservationLateCheckoutEnabled(res) {
+    return !!(res?.lateCheckout || res?.isLateCheckout || res?.stayTimes?.lateCheckout || res?.lateCheckoutTime || res?.extendedCheckOutTime);
+}
+
+function reservationLateCheckoutTime(res) {
+    return normalizeReservationTime(res?.lateCheckoutTime || res?.extendedCheckOutTime || res?.stayTimes?.lateCheckoutTime, reservationCheckOutTime(res));
+}
+
+function reservationStayTimeHtml(res) {
+    if (!res) return '';
+    const late = reservationLateCheckoutEnabled(res);
+    return `<div class="board-time-line"><i class="fa-regular fa-clock"></i>입실 ${escapeHtml(reservationCheckInTime(res))} · 퇴실 ${escapeHtml(reservationCheckOutTime(res))}</div>${late ? `<div class="board-late-pill"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(reservationLateCheckoutTime(res))}</div>` : ''}`;
 }
 
 function reservationStateForFilter(res) {
@@ -367,6 +495,7 @@ function boardStatusIcon(status) {
         arrival: 'fa-right-to-bracket',
         inhouse: 'fa-bed',
         checkout: 'fa-right-from-bracket',
+        late: 'fa-clock',
         reserved: 'fa-calendar-check',
         completed: 'fa-check-double',
         cancelled: 'fa-ban',
@@ -385,7 +514,17 @@ function boardCard(room) {
     const res = state.res;
     const primary = res ? primaryGuest(res) : '';
     const companions = res ? companionGuests(res) : [];
-    const searchText = [room.id, room.fullRoom, roomType(room), state.label, primary, companions.join(' ')].join(' ').toLowerCase();
+    const searchText = [
+        room.id,
+        room.fullRoom,
+        roomType(room),
+        state.label,
+        primary,
+        companions.join(' '),
+        res ? reservationCheckInTime(res) : '',
+        res ? reservationCheckOutTime(res) : '',
+        res && reservationLateCheckoutEnabled(res) ? `레이트 체크아웃 ${reservationLateCheckoutTime(res)}` : ''
+    ].join(' ').toLowerCase();
     const query = document.getElementById('boardSearch')?.value.trim().toLowerCase() || '';
     if (query && !searchText.includes(query)) return '';
     const click = res ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"` : '';
@@ -397,22 +536,31 @@ function boardCard(room) {
             ${companions.length ? `<div class="board-companions" title="${escapeHtml(companions.join(', '))}">${companions.map(name => `<div class="board-companion">${escapeHtml(name)}</div>`).join('')}</div>` : ''}
         </div>
         <div class="board-date">${escapeHtml(reservationDates(res))}</div>
+        ${reservationStayTimeHtml(res)}
         <div class="board-money">${formatMoney(amountValue(res))}${res.balanceDue ? ` · 잔액 ${formatMoney(res.balanceDue)}` : ''}</div>` : '<div class="board-empty">배정된 예약 없음</div>'}
     </div>`;
 }
 
 function updateBoardKpis() {
-    const counts = { arrival: 0, inhouse: 0, checkout: 0, reserved: 0, vacant: 0 };
-    rooms.forEach(room => {
-        const state = boardStatusFor(room);
-        if (counts[state.status] !== undefined) counts[state.status]++;
-    });
     const reservationCounts = boardReservationCounts();
-    document.getElementById('kpiArrival').textContent = counts.arrival;
-    document.getElementById('kpiInhouse').textContent = counts.inhouse;
-    document.getElementById('kpiCheckout').textContent = counts.checkout;
-    document.getElementById('kpiReserved').textContent = counts.reserved;
-    document.getElementById('kpiVacant').textContent = counts.vacant;
+    let vacant = 0;
+    const range = boardRange();
+    rooms.forEach(room => {
+        const roomStatus = normalizeStatus(room.status || room.frontStatus || room.housekeepingStatus);
+        if (roomStatus === 'oos') return;
+        const hasReservation = reservations.some(res => {
+            const status = normalizeReservationStatus(res?.status);
+            if (['cancelled', 'completed'].includes(status)) return false;
+            return roomMatchesReservation(room, res) && reservationOverlapsRange(res, range);
+        });
+        if (!hasReservation) vacant++;
+    });
+    document.getElementById('kpiArrival').textContent = reservationCounts.checkin;
+    document.getElementById('kpiInhouse').textContent = reservationCounts.inhouse;
+    document.getElementById('kpiCheckout').textContent = reservationCounts.checkout;
+    document.getElementById('kpiReserved').textContent = reservationCounts.reserved;
+    document.getElementById('kpiVacant').textContent = vacant;
+    updateBoardPeriodLabels();
     document.querySelectorAll('#boardChips .chip').forEach(chip => {
         const filter = chip.dataset.filter;
         const count = reservationCounts[filter] || 0;
@@ -458,6 +606,13 @@ function renderReservationBoard() {
     if (!rendered) container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3);font-weight:800">조건에 맞는 예약 현황이 없습니다.</div>';
 }
 
+function setBoardPeriod(period) {
+    boardPeriod = ['today', 'tomorrow', 'week'].includes(period) ? period : 'today';
+    const select = document.getElementById('boardPeriodSelect');
+    if (select && select.value !== boardPeriod) select.value = boardPeriod;
+    renderReservationBoard();
+}
+
 function setBoardFilter(filter) {
     boardFilter = filter;
     document.querySelectorAll('#boardChips .chip').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === filter));
@@ -466,6 +621,7 @@ function setBoardFilter(filter) {
 
 window.renderReservationBoard = renderReservationBoard;
 window.renderTable = renderReservationBoard;
+window.setBoardPeriod = setBoardPeriod;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const [roomData, resData] = await Promise.all([

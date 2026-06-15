@@ -59,6 +59,11 @@
 .res-guest-companion:first-child::before{content:"동반 ";color:#94a3b8;font-weight:800;margin-right:2px}
 .res-money-stack{display:flex;flex-direction:column;gap:2px;font-weight:800;color:var(--txt)}
 .res-money-sub{font-size:.68rem;color:var(--txt3);font-weight:700;line-height:1.35}
+.res-date-cell{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.res-time-meta{display:inline-flex;align-items:center;gap:4px;font-size:.66rem;font-weight:850;color:var(--txt3);white-space:nowrap}
+.res-time-meta i{font-size:.62rem;color:var(--primary)}
+.late-checkout-pill{display:inline-flex;align-items:center;gap:4px;width:max-content;max-width:100%;border-radius:999px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;padding:2px 7px;font-size:.64rem;font-weight:900;white-space:nowrap}
+.late-checkout-pill i{font-size:.6rem}
 .res-work-action{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:0;border-radius:8px;color:#fff;font-family:var(--font);font-size:.72rem;font-weight:800;cursor:pointer;white-space:nowrap}
 .res-work-action.checkin{background:#2563eb}
 .res-work-action.checkout{background:#ef4444}
@@ -171,8 +176,9 @@
                     <input type="text" id="searchInput" placeholder="이름, 객실번호, 예약번호 검색..." oninput="filterTable()">
                 </div>
                 <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
-                    <option value="week">최근 7일</option>
+                    <option value="week">1주일</option>
                     <option value="today">오늘</option>
+                    <option value="tomorrow">내일</option>
                     <option value="month">이번 달</option>
                     <option value="all">전체 기간</option>
                 </select>
@@ -445,6 +451,11 @@ function statusMeta(status) {
 }
 
 function filterLabel(filter) {
+    if (filter === 'checkin') {
+        const en = reservationLang() === 'en';
+        if (currentPeriodFilter === 'tomorrow') return en ? 'Tomorrow check-ins' : '내일 체크인';
+        if (currentPeriodFilter === 'week') return en ? '7-day check-ins' : '1주일 체크인';
+    }
     return resText(`filter.${filter}`);
 }
 
@@ -520,23 +531,36 @@ function todayDate() {
     return today;
 }
 
+function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    next.setHours(0, 0, 0, 0);
+    return next;
+}
+
 function periodRange(filter) {
     if (filter === 'all') return null;
     const today = todayDate();
     if (filter === 'today') return { start: today, end: today };
+    if (filter === 'tomorrow') {
+        const tomorrow = addDays(today, 1);
+        return { start: tomorrow, end: tomorrow };
+    }
     if (filter === 'month') {
         return {
             start: new Date(today.getFullYear(), today.getMonth(), 1),
             end: new Date(today.getFullYear(), today.getMonth() + 1, 0)
         };
     }
-    const start = new Date(today);
-    start.setDate(today.getDate() - 6);
-    return { start, end: today };
+    return { start: today, end: addDays(today, 6) };
 }
 
 function dateInRange(date, range) {
     return !!(date && range && date >= range.start && date <= range.end);
+}
+
+function sameDate(left, right) {
+    return !!(left && right && left.getTime() === right.getTime());
 }
 
 function stayOverlapsRange(res, range) {
@@ -579,27 +603,26 @@ function isRoomInHouse(res) {
     return normalizeListStatus(room?.frontStatus || room?.status || room?.housekeepingStatus) === 'checkedin';
 }
 
-function checkoutDateIsDue(res) {
+function checkoutDateIsDue(res, refDate = todayDate()) {
     const end = parseListDate(res?.checkOutDate || res?.checkout || res?.cout);
-    return !!end && end <= todayDate();
+    return !!end && end <= refDate;
 }
 
-function checkinDateIsDue(res) {
+function checkinDateIsDue(res, refDate = todayDate()) {
     const start = parseListDate(res?.checkInDate || res?.checkin || res?.cin);
-    return !!start && start <= todayDate();
+    return !!start && start <= refDate;
 }
 
-function isCurrentStayWindow(res) {
+function isCurrentStayWindow(res, refDate = todayDate()) {
     const start = parseListDate(res?.checkInDate || res?.checkin || res?.cin);
     const end = parseListDate(res?.checkOutDate || res?.checkout || res?.cout);
-    const today = todayDate();
-    return !!(start && end && start <= today && today < end);
+    return !!(start && end && start <= refDate && refDate < end);
 }
 
-function effectiveRowStatus(res) {
+function effectiveRowStatus(res, refDate = todayDate()) {
     let status = normalizeListStatus(res?.status);
-    if (['confirmed', 'pending'].includes(status) && isRoomInHouse(res) && isCurrentStayWindow(res)) status = 'checkedin';
-    if (status === 'checkedin' && checkoutDateIsDue(res)) return 'checkout';
+    if (['confirmed', 'pending'].includes(status) && isRoomInHouse(res) && isCurrentStayWindow(res, refDate)) status = 'checkedin';
+    if (status === 'checkedin' && checkoutDateIsDue(res, refDate)) return 'checkout';
     return status;
 }
 
@@ -638,6 +661,55 @@ function companionGuestNames(res) {
     const names = reservationGuestNames(res);
     const primary = reservationGuestName(res);
     return names.filter(name => name !== primary);
+}
+
+function normalizeReservationTime(value, fallback = '') {
+    const text = String(value ?? '').trim();
+    if (!text) return fallback;
+    const match = text.match(/^(\d{1,2})(?::?(\d{2}))?$/);
+    if (!match) return fallback;
+    const hour = Number(match[1]);
+    const minute = Number(match[2] || 0);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return fallback;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function reservationCheckInTime(res) {
+    return normalizeReservationTime(res?.checkInTime || res?.arrivalTime || res?.stayTimes?.checkInTime || res?.times?.checkIn, '14:00');
+}
+
+function reservationCheckOutTime(res) {
+    return normalizeReservationTime(res?.checkOutTime || res?.departureTime || res?.stayTimes?.checkOutTime || res?.times?.checkOut, '12:00');
+}
+
+function reservationLateCheckoutEnabled(res) {
+    return !!(res?.lateCheckout || res?.isLateCheckout || res?.stayTimes?.lateCheckout || res?.lateCheckoutTime || res?.extendedCheckOutTime);
+}
+
+function reservationLateCheckoutTime(res) {
+    return normalizeReservationTime(res?.lateCheckoutTime || res?.extendedCheckOutTime || res?.stayTimes?.lateCheckoutTime, reservationCheckOutTime(res));
+}
+
+function lateCheckoutBadge(res) {
+    if (!reservationLateCheckoutEnabled(res)) return '';
+    return `<span class="late-checkout-pill"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(reservationLateCheckoutTime(res))}</span>`;
+}
+
+function reservationDateTimeCell(res, kind) {
+    const isIn = kind === 'in';
+    const date = isIn ? (res.cin || (res.checkInDate || '').slice(5)) : (res.cout || (res.checkOutDate || '').slice(5));
+    const time = isIn ? reservationCheckInTime(res) : reservationCheckOutTime(res);
+    return `<div class="res-date-cell">
+        <span>${escapeHtml(date || '-')}</span>
+        <span class="res-time-meta"><i class="fa-regular fa-clock"></i>${isIn ? '입실' : '퇴실'} ${escapeHtml(time)}</span>
+        ${!isIn ? lateCheckoutBadge(res) : ''}
+    </div>`;
+}
+
+function reservationDateTimeLine(res) {
+    const cin = res.cin || (res.checkInDate || '').slice(5) || '-';
+    const cout = res.cout || (res.checkOutDate || '').slice(5) || '-';
+    return `${escapeHtml(cin)} ${escapeHtml(reservationCheckInTime(res))} &rarr; ${escapeHtml(cout)} ${escapeHtml(reservationCheckOutTime(res))} ${lateCheckoutBadge(res)}`;
 }
 
 function reservationGuestStack(res, isVip = false) {
@@ -769,6 +841,35 @@ function operationalBucket(res) {
     return status;
 }
 
+function periodOperationalBucket(res) {
+    const range = periodRange(currentPeriodFilter);
+    if (!range) return operationalBucket(res);
+    const start = parseListDate(res?.checkInDate || res?.checkin || res?.cin);
+    const end = parseListDate(res?.checkOutDate || res?.checkout || res?.cout);
+    const isDayRange = range.start && range.end && sameDate(range.start, range.end);
+    const refDate = isDayRange ? range.start : todayDate();
+    const status = effectiveRowStatus(res, refDate);
+    if (status === 'cancelled') return 'cancelled';
+    if (status === 'completed') return 'completed';
+    if (status === 'checkout') return 'checkout';
+    if (isDayRange) {
+        const day = range.start;
+        if (status === 'checkedin' && end && sameDate(end, day)) return 'checkout';
+        if (status === 'checkedin' && isCurrentStayWindow(res, day)) return 'inhouse';
+        if (start && sameDate(start, day)) return 'checkin';
+        if (end && sameDate(end, day)) return 'checkout';
+        if (start && end && start < day && day < end) {
+            return status === 'checkedin' ? 'inhouse' : 'confirmed';
+        }
+        return status;
+    }
+    if (status === 'checkedin' && isCurrentStayWindow(res)) return 'inhouse';
+    if (start && dateInRange(start, range)) return 'checkin';
+    if (end && dateInRange(end, range) && ['checkedin', 'checkout'].includes(status)) return 'checkout';
+    if (isCurrentStayWindow(res)) return 'inhouse';
+    return status;
+}
+
 function canCancelReservationRow(res) {
     const status = effectiveRowStatus(res);
     return !['checkedin', 'checkout', 'completed', 'cancelled'].includes(status);
@@ -880,13 +981,14 @@ function setReservationSort(mode) {
 function setPeriodFilter(filter) {
     currentPeriodFilter = filter || 'week';
     currentPage = 1;
+    updateChipCounts();
     renderTable();
 }
 
 function rowMatchesFilter(res) {
     if (currentFilter === 'all') return true;
     if (['checkin', 'inhouse', 'checkout', 'completed', 'cancelled'].includes(currentFilter)) {
-        return operationalBucket(res) === currentFilter;
+        return periodOperationalBucket(res) === currentFilter;
     }
     return effectiveRowStatus(res) === currentFilter;
 }
@@ -894,11 +996,9 @@ function rowMatchesFilter(res) {
 function rowMatchesPeriod(res) {
     const range = periodRange(currentPeriodFilter);
     if (!range) return true;
-    const bucket = operationalBucket(res);
-    if (['checkin', 'inhouse', 'checkout'].includes(bucket)) return true;
     if (stayOverlapsRange(res, range)) return true;
     const fallback = reservationFallbackDate(res);
-    return fallback ? dateInRange(fallback, range) : true;
+    return fallback ? dateInRange(fallback, range) : false;
 }
 
 function workActionButton(res, mobile = false) {
@@ -994,6 +1094,9 @@ function renderTable() {
             r.groupName,
             displayGuestName(r),
             companionGuestNames(r).join(' '),
+            reservationCheckInTime(r),
+            reservationCheckOutTime(r),
+            reservationLateCheckoutEnabled(r) ? `레이트 체크아웃 ${reservationLateCheckoutTime(r)}` : '',
             operationalNotes(r).join(' '),
             roomChangeSearchText(r)
         ].join(' ').toLowerCase();
@@ -1036,8 +1139,8 @@ function renderTable() {
                 </div>
             </td>
             <td>${escapeHtml(roomTypeDisplay(r.type))}</td>
-            <td>${escapeHtml(r.cin)}</td>
-            <td>${escapeHtml(r.cout)}</td>
+            <td>${reservationDateTimeCell(r, 'in')}</td>
+            <td>${reservationDateTimeCell(r, 'out')}</td>
             <td>${stayLabel(r.nights)}</td>
             <td>${reservationKindBadge(r)}</td>
             <td>${moneyStack(r)}</td>
@@ -1078,7 +1181,7 @@ function renderTable() {
             <div class="m-res-details">
                 <div class="m-res-detail"><i class="fa-solid fa-door-open"></i> <span class="room-tag">${escapeHtml(r.room)}</span> ${escapeHtml(roomTypeDisplay(r.type))}</div>
                 ${roomChangeBadge(r, true) ? `<div class="m-res-detail">${roomChangeBadge(r, true)}</div>` : ''}
-                <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> ${escapeHtml(r.cin)} → ${escapeHtml(r.cout)} (${stayLabel(r.nights)})</div>
+                <div class="m-res-detail"><i class="fa-solid fa-calendar"></i> ${reservationDateTimeLine(r)} (${stayLabel(r.nights)})</div>
                 <div class="m-res-detail"><i class="fa-solid fa-user-tag"></i> ${reservationKindBadge(r)}</div>
                 ${alertBadges(r)}
             </div>
@@ -1156,11 +1259,14 @@ function setFilter(btn, filter) {
 }
 
 function updateChipCounts() {
-    const counts = { all: reservations.length, checkin: 0, inhouse: 0, checkout: 0, completed: 0, cancelled: 0 };
-    reservations.forEach(r => { const bucket = operationalBucket(r); if (counts[bucket] !== undefined) counts[bucket]++; });
+    const periodReservations = reservations.filter(rowMatchesPeriod);
+    const counts = { all: periodReservations.length, checkin: 0, inhouse: 0, checkout: 0, completed: 0, cancelled: 0 };
+    periodReservations.forEach(r => { const bucket = periodOperationalBucket(r); if (counts[bucket] !== undefined) counts[bucket]++; });
     
     document.querySelectorAll('.chip, .ops-tab').forEach(c => {
         const f = c.getAttribute('data-filter');
+        const label = c.querySelector('.ops-label');
+        if (label && f) label.textContent = filterLabel(f);
         const span = c.querySelector('.chip-count, .ops-count');
         if(span && counts[f] !== undefined) span.textContent = counts[f];
     });

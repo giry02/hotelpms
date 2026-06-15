@@ -130,6 +130,9 @@
 .stay-info-companions{display:flex;flex-direction:column;gap:3px}
 .stay-info-companion{font-size:.78rem;font-weight:750;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stay-info-empty{padding:28px 18px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--txt3);font-weight:800;background:#f8fafc}
+.room-stay-time{margin-top:4px;font-size:.68rem;font-weight:850;color:var(--txt3);display:flex;align-items:center;gap:4px;justify-content:center;line-height:1.25}
+.room-stay-time i{font-size:.6rem;color:var(--primary)}
+.room-late-pill{display:inline-flex;align-items:center;gap:4px;margin-top:4px;border-radius:999px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;padding:2px 7px;font-size:.63rem;font-weight:900;line-height:1.2}
 @media(max-width:768px){.stay-info-grid{grid-template-columns:1fr}.stay-info-head{flex-direction:column}.stay-info-badge{align-self:flex-start}}
 </style>
     <script src="../common/js/api/api-core.js"></script>
@@ -516,6 +519,39 @@ function stayDateText(value) {
     return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, '0')}. ${String(date.getDate()).padStart(2, '0')}.`;
 }
 
+function normalizeReservationTime(value, fallback = '') {
+    const text = String(value ?? '').trim();
+    if (!text) return fallback;
+    const match = text.match(/^(\d{1,2})(?::?(\d{2}))?$/);
+    if (!match) return fallback;
+    const hour = Number(match[1]);
+    const minute = Number(match[2] || 0);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return fallback;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function stayCheckInTime(res) {
+    return normalizeReservationTime(res?.checkInTime || res?.arrivalTime || res?.stayTimes?.checkInTime || res?.times?.checkIn, '14:00');
+}
+
+function stayCheckOutTime(res) {
+    return normalizeReservationTime(res?.checkOutTime || res?.departureTime || res?.stayTimes?.checkOutTime || res?.times?.checkOut, '12:00');
+}
+
+function stayLateCheckoutEnabled(res) {
+    return !!(res?.lateCheckout || res?.isLateCheckout || res?.stayTimes?.lateCheckout || res?.lateCheckoutTime || res?.extendedCheckOutTime);
+}
+
+function stayLateCheckoutTime(res) {
+    return normalizeReservationTime(res?.lateCheckoutTime || res?.extendedCheckOutTime || res?.stayTimes?.lateCheckoutTime, stayCheckOutTime(res));
+}
+
+function roomStayTimeHtml(res) {
+    if (!res) return '';
+    const late = stayLateCheckoutEnabled(res);
+    return `<div class="room-stay-time"><i class="fa-regular fa-clock"></i>입실 ${escapeHtml(stayCheckInTime(res))} · 퇴실 ${escapeHtml(stayCheckOutTime(res))}</div>${late ? `<div class="room-late-pill"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(stayLateCheckoutTime(res))}</div>` : ''}`;
+}
+
 function stayStatusLabel(res) {
     const key = normalizeStayStatus(res?.status);
     if (['checkedin', 'inhouse', 'occupied'].includes(key)) return '투숙 중';
@@ -578,6 +614,9 @@ function openStayInfoModal(roomId) {
         ${stayField('동반 투숙객', companionHtml)}
         ${stayField('체크인', escapeHtml(stayDateText(res.checkin || res.checkInDate || res.cin)))}
         ${stayField('체크아웃', escapeHtml(stayDateText(res.checkout || res.checkOutDate || res.cout)), `${Number(res.nights || res.len || 1)}박`)}
+        ${stayField('입실시간', escapeHtml(stayCheckInTime(res)))}
+        ${stayField('퇴실시간', escapeHtml(stayCheckOutTime(res)), stayLateCheckoutEnabled(res) ? `레이트 ${stayLateCheckoutTime(res)}` : '')}
+        ${stayField('레이트 체크아웃', stayLateCheckoutEnabled(res) ? '<span class="room-late-pill" style="margin-top:0"><i class="fa-solid fa-clock"></i>적용</span>' : '미적용')}
         ${stayField('예약번호', escapeHtml(res.id || res.reservationId || '-'), res.channel ? `채널 ${res.channel}` : '')}
         ${stayField('금액', escapeHtml(formatStayMoney(total, currency)), `선결제 ${formatStayMoney(prepaid, currency)} · 잔액 ${formatStayMoney(balance, currency)}`)}
         ${res.groupName ? stayField('단체/행사', escapeHtml(res.groupName)) : ''}
@@ -589,7 +628,7 @@ function openStayInfoModal(roomId) {
             roomId: roomNo,
             reservationId: res.id || res.reservationId || '',
             guestName: stayGuestName(res),
-            fields: ['guestName', 'companionGuestNames', 'stayDates', 'amount']
+            fields: ['guestName', 'companionGuestNames', 'stayDates', 'stayTimes', 'lateCheckout', 'amount']
         });
     }
     openModal('stayInfoModal');
@@ -666,7 +705,8 @@ function renderRooms() {
                     const stayRes = r.status === 'occupied' ? stayReservationForRoom(r) : null;
                     const displayGuest = stayRes ? stayGuestName(stayRes) : r.guest;
                     const guestHtml = displayGuest ? `<div class="room-guest-name">${escapeHtml(displayGuest)}</div>` : '';
-                    html += `<div class="room-box ${r.status}" style="cursor:pointer" data-room-id="${escapeHtml(r.id || '')}" data-room-status="${escapeHtml(r.status || '')}" onclick="handleRoomClick(this.dataset.roomId, this.dataset.roomStatus)"><div class="room-box-num">${escapeHtml(r.id || 'N/A')}</div><div class="room-box-type">${escapeHtml(displayRoomType(r.type))}</div><div class="room-box-status">${escapeHtml(stLabel)}</div>${guestHtml}</div>`;
+                    const stayTimeHtml = stayRes ? roomStayTimeHtml(stayRes) : '';
+                    html += `<div class="room-box ${r.status}" style="cursor:pointer" data-room-id="${escapeHtml(r.id || '')}" data-room-status="${escapeHtml(r.status || '')}" onclick="handleRoomClick(this.dataset.roomId, this.dataset.roomStatus)"><div class="room-box-num">${escapeHtml(r.id || 'N/A')}</div><div class="room-box-type">${escapeHtml(displayRoomType(r.type))}</div><div class="room-box-status">${escapeHtml(stLabel)}</div>${guestHtml}${stayTimeHtml}</div>`;
                 });
                 html += `</div></div>`;
             });
@@ -686,7 +726,8 @@ function renderRooms() {
                 const stayRes = r.status === 'occupied' ? stayReservationForRoom(r) : null;
                 const displayGuest = stayRes ? stayGuestName(stayRes) : r.guest;
                 const guestHtml = displayGuest ? `<div class="room-guest-name">${escapeHtml(displayGuest)}</div>` : '';
-                html += `<div class="room-box ${r.status}" style="cursor:pointer" data-room-id="${escapeHtml(r.id || '')}" data-room-status="${escapeHtml(r.status || '')}" onclick="handleRoomClick(this.dataset.roomId, this.dataset.roomStatus)"><div class="room-box-num">${escapeHtml(r.id || 'N/A')}</div><div class="room-box-type">${escapeHtml(displayRoomType(r.type))}</div><div class="room-box-status">${escapeHtml(stLabel)}</div>${guestHtml}</div>`;
+                const stayTimeHtml = stayRes ? roomStayTimeHtml(stayRes) : '';
+                html += `<div class="room-box ${r.status}" style="cursor:pointer" data-room-id="${escapeHtml(r.id || '')}" data-room-status="${escapeHtml(r.status || '')}" onclick="handleRoomClick(this.dataset.roomId, this.dataset.roomStatus)"><div class="room-box-num">${escapeHtml(r.id || 'N/A')}</div><div class="room-box-type">${escapeHtml(displayRoomType(r.type))}</div><div class="room-box-status">${escapeHtml(stLabel)}</div>${guestHtml}${stayTimeHtml}</div>`;
             });
             html += `</div></div>`;
             container.innerHTML += html;

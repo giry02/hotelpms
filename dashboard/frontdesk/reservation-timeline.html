@@ -86,6 +86,8 @@
 .tl-primary-guest i.fa-user{font-size:.6rem;color:rgba(255,255,255,.94);flex:0 0 auto}
 .tl-companion-guest{padding-left:17px;font-size:.59rem;font-weight:780;color:rgba(255,255,255,.88)}
 .tl-block-label{font-size:.65rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-time-row{display:flex;align-items:center;gap:4px;padding-left:17px;font-size:.56rem;font-weight:800;color:rgba(255,255,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-time-row i{font-size:.52rem;color:rgba(255,255,255,.9)}
 .tl-block.group-assigned {
     background: #2563EB !important;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
@@ -566,6 +568,41 @@ function timelineDisplayName(res) {
     return guestName || (res && (res.guest || res.groupName)) || timelineText('booking');
 }
 
+function normalizeReservationTime(value, fallback = '') {
+    const text = String(value ?? '').trim();
+    if (!text) return fallback;
+    const match = text.match(/^(\d{1,2})(?::?(\d{2}))?$/);
+    if (!match) return fallback;
+    const hour = Number(match[1]);
+    const minute = Number(match[2] || 0);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return fallback;
+    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function timelineCheckInTime(res) {
+    return normalizeReservationTime(res?.checkInTime || res?.arrivalTime || res?.stayTimes?.checkInTime || res?.times?.checkIn, '14:00');
+}
+
+function timelineCheckOutTime(res) {
+    return normalizeReservationTime(res?.checkOutTime || res?.departureTime || res?.stayTimes?.checkOutTime || res?.times?.checkOut, '12:00');
+}
+
+function timelineLateCheckoutEnabled(res) {
+    return !!(res?.lateCheckout || res?.isLateCheckout || res?.stayTimes?.lateCheckout || res?.lateCheckoutTime || res?.extendedCheckOutTime);
+}
+
+function timelineLateCheckoutTime(res) {
+    return normalizeReservationTime(res?.lateCheckoutTime || res?.extendedCheckOutTime || res?.stayTimes?.lateCheckoutTime, timelineCheckOutTime(res));
+}
+
+function timelineStayTimeRow(res) {
+    const late = timelineLateCheckoutEnabled(res);
+    const text = late
+        ? `입실 ${timelineCheckInTime(res)} · 레이트 ${timelineLateCheckoutTime(res)}`
+        : `입실 ${timelineCheckInTime(res)} · 퇴실 ${timelineCheckOutTime(res)}`;
+    return `<span class="tl-time-row"><i class="fa-regular fa-clock"></i><span>${timelineEscapeHtml(text)}</span></span>`;
+}
+
 function timelineBlockContent(res, groupBadge, vipIcon) {
     const primary = timelinePrimaryGuestName(res);
     const companions = timelineCompanionGuestNames(res);
@@ -573,13 +610,14 @@ function timelineBlockContent(res, groupBadge, vipIcon) {
         const prefix = res?.groupId ? `${timelineCompanyLabel(res)} · ` : '';
         const guestRows = [
             `<span class="tl-guest-row tl-primary-guest">${groupBadge}${vipIcon}<i class="fa-solid fa-user"></i><span>${timelineEscapeHtml(prefix + primary)}</span></span>`,
-            ...companions.map(name => `<span class="tl-guest-row tl-companion-guest"><span>${timelineEscapeHtml(name)}</span></span>`)
+            ...companions.map(name => `<span class="tl-guest-row tl-companion-guest"><span>${timelineEscapeHtml(name)}</span></span>`),
+            timelineStayTimeRow(res)
         ].join('');
         return `<span class="tl-block-text">
             ${guestRows}
         </span>`;
     }
-    return `<span class="tl-block-text"><span class="tl-block-label">${groupBadge}${vipIcon}${timelineEscapeHtml(timelineDisplayName(res))}</span></span>`;
+    return `<span class="tl-block-text"><span class="tl-block-label">${groupBadge}${vipIcon}${timelineEscapeHtml(timelineDisplayName(res))}</span>${timelineStayTimeRow(res)}</span>`;
 }
 
 function timelineGroupBadge(res) {
@@ -726,9 +764,9 @@ function buildTimeline() {
         const renderLen = clipEnd - clipStart;
 
         block.style.position = 'absolute';
-        const guestLineCount = Math.max(1, timelineGuestNames(res).length);
-        const blockHeight = Math.min(70, Math.max(30, Math.ceil(9 + (guestLineCount * 11.5))));
-        const levelStep = 76;
+        const guestLineCount = Math.max(1, timelineGuestNames(res).length) + 1;
+        const blockHeight = Math.min(82, Math.max(36, Math.ceil(9 + (guestLineCount * 11.5))));
+        const levelStep = 88;
         block.style.top = `${8 + (level * levelStep)}px`;
         block.style.left = `calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px)`;
         block.style.width = `calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px)`;
@@ -747,7 +785,10 @@ function buildTimeline() {
         const groupBadge = timelineGroupBadge(res);
         const vipIcon = isVip ? `<i class="fa-solid fa-crown" style="color:#F59E0B; margin-right:4px; font-size:0.7rem;"></i>` : '';
         const companionTitle = timelineCompanionGuestNames(res).join(', ');
-        block.title = companionTitle ? `${displayName} / ${companionTitle}` : displayName;
+        const timeTitle = timelineLateCheckoutEnabled(res)
+            ? `입실 ${timelineCheckInTime(res)} / 레이트 ${timelineLateCheckoutTime(res)}`
+            : `입실 ${timelineCheckInTime(res)} / 퇴실 ${timelineCheckOutTime(res)}`;
+        block.title = [displayName, companionTitle, timeTitle].filter(Boolean).join(' / ');
         block.innerHTML = timelineBlockContent(res, groupBadge, vipIcon);
 
         block.onclick = () => openTimelineReservation(res);
