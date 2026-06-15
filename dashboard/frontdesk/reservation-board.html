@@ -604,7 +604,6 @@ function boardCard(room) {
     const companions = res ? companionGuests(res) : [];
     const hasRoomChange = !!(res && reservationHasRoomChange(res));
     const roomChangeText = hasRoomChange ? reservationRoomChangeText(res) : '';
-    const hasLateCheckout = !!(res && reservationLateCheckoutEnabled(res));
     const searchText = [
         room.id,
         room.fullRoom,
@@ -625,8 +624,7 @@ function boardCard(room) {
         ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"`
         : (canCreateBooking ? `onclick="openBoardRoomBooking('${encodeURIComponent(roomId)}')"` : '');
     const flags = res ? [
-        hasRoomChange ? `<span class="board-flag move"><i class="fa-solid fa-right-left"></i>이동 ${escapeHtml(roomChangeText)}</span>` : '',
-        hasLateCheckout ? `<span class="board-flag late"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(reservationLateCheckoutTime(res))}</span>` : ''
+        hasRoomChange ? `<span class="board-flag move"><i class="fa-solid fa-right-left"></i>이동 ${escapeHtml(roomChangeText)}</span>` : ''
     ].filter(Boolean).join('') : '';
     return `<div class="room-box reservation-board-box ${state.status}${hasRoomChange ? ' room-moved' : ''}${canCreateBooking ? ' is-bookable' : ''}" ${click} style="${res ? 'cursor:pointer' : ''}">
         <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${boardStatusIcon(state.status)}"></i>${state.label}</span></div>
