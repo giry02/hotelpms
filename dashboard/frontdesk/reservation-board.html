@@ -431,7 +431,7 @@ function boardStatusFor(room) {
     const active = related.find(item => item.start <= focusDate && focusDate < item.end);
     if (active) {
         if (active.status === 'blocked' || active.res.isGroupPlaceholder) return { status: 'blocked', label: '단체 블록', res: active.res };
-        if (reservationLateCheckoutEnabled(active.res)) return { status: 'late', label: '레이트 체크아웃', res: active.res };
+        if (reservationLateCheckoutEnabled(active.res)) return { status: 'late', label: '레이트', res: active.res };
         if (sameDate(active.end, focusDate)) return { status: 'checkout', label: '체크아웃', res: active.res };
         if (['inhouse', 'checkout'].includes(active.status) || roomStatus === 'inhouse') return { status: 'inhouse', label: '투숙 중', res: active.res };
         if (sameDate(active.start, focusDate)) return { status: 'arrival', label: '체크인', res: active.res };
@@ -561,7 +561,7 @@ function boardCard(room) {
         const filteredRes = reservationForRoomFilter(room);
         if (!filteredRes) return '';
         state = boardFilter === 'late'
-            ? { status: 'late', label: '레이트 체크아웃', res: filteredRes }
+            ? { status: 'late', label: '레이트', res: filteredRes }
             : reservationStateForFilter(filteredRes);
     }
     const res = state.res;
@@ -580,7 +580,7 @@ function boardCard(room) {
         hasRoomChange ? `객실 이동 ${roomChangeText}` : '',
         res ? reservationCheckInTime(res) : '',
         res ? reservationCheckOutTime(res) : '',
-        res && reservationLateCheckoutEnabled(res) ? `레이트 체크아웃 ${reservationLateCheckoutTime(res)}` : ''
+        res && reservationLateCheckoutEnabled(res) ? `레이트 ${reservationLateCheckoutTime(res)}` : ''
     ].join(' ').toLowerCase();
     const query = document.getElementById('boardSearch')?.value.trim().toLowerCase() || '';
     if (query && !searchText.includes(query)) return '';
