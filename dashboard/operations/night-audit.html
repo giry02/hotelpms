@@ -97,6 +97,13 @@
         .cash-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font-size: .7rem; font-weight: 900; background: #eef2ff; color: #4338ca; }
         .cash-pill.deposit { background: #ecfdf5; color: #047857; }
         .cash-status { font-size: .72rem; font-weight: 900; color: var(--success); }
+        .history-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding: 12px; border: 1px solid var(--border2); border-radius: 12px; background: #f8fafc; }
+        .history-date-controls { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .history-date-controls input { height: 36px; border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; font-family: var(--font); font-size: .82rem; background: #fff; }
+        .history-date-chip-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+        .history-date-chip { height: 30px; border: 1px solid var(--border); border-radius: 999px; background: #fff; padding: 0 10px; font-family: var(--font); font-size: .72rem; font-weight: 900; color: var(--txt2); cursor: pointer; }
+        .history-date-chip.active { border-color: var(--primary); background: var(--primary-lt); color: var(--primary); }
+        .history-empty { padding: 24px 16px; text-align: center; color: var(--txt3); font-weight: 800; }
         
         @media (max-width: 768px) {
             .check-grid { grid-template-columns: 1fr; }
@@ -105,6 +112,10 @@
             .audit-tabs { overflow-x: auto; }
             .cash-summary-grid, .cash-workflow-grid { grid-template-columns: 1fr; }
             .currency-mini-grid { grid-template-columns: 1fr; }
+            .history-toolbar { align-items: stretch; flex-direction: column; }
+            .history-date-controls { width: 100%; }
+            .history-date-controls input { flex: 1; min-width: 0; }
+            .history-date-chip-row { justify-content: flex-start; }
             .audit-issue-row { grid-template-columns: 1fr; align-items: stretch; }
             .audit-issue-row .btn-outline-sm { width: 100%; height: 34px; }
         }
@@ -129,6 +140,7 @@
         <div class="audit-tabs" role="tablist">
             <button type="button" class="audit-tab active" id="auditTabBtnClose" onclick="setAuditTab('close')"><i class="fa-solid fa-list-check"></i> 마감 체크</button>
             <button type="button" class="audit-tab" id="auditTabBtnCash" onclick="setAuditTab('cash')"><i class="fa-solid fa-cash-register"></i> 시재 인수인계</button>
+            <button type="button" class="audit-tab" id="auditTabBtnHistory" onclick="setAuditTab('history')"><i class="fa-solid fa-calendar-days"></i> 일자별 내역</button>
         </div>
 
         <div id="auditTabClose" class="audit-tab-panel active">
@@ -366,6 +378,63 @@
             </div>
         </div>
 
+        <div id="auditTabHistory" class="audit-tab-panel">
+            <div class="audit-section">
+                <div class="audit-header">
+                    <i class="fa-solid fa-calendar-days" style="color:var(--primary)"></i> 일자별 시재 / 정산 내역
+                </div>
+                <div class="audit-body">
+                    <div class="history-toolbar">
+                        <div class="history-date-controls">
+                            <button type="button" class="btn-outline-sm" onclick="shiftHistoryDate(-1)" aria-label="전일"><i class="fa-solid fa-chevron-left"></i></button>
+                            <input id="historyDateInput" type="date" onchange="renderDailyHistory()">
+                            <button type="button" class="btn-outline-sm" onclick="shiftHistoryDate(1)" aria-label="다음일"><i class="fa-solid fa-chevron-right"></i></button>
+                            <button type="button" class="btn-primary-sm" onclick="setHistoryDate(auditBusinessDate())">오늘</button>
+                        </div>
+                        <div class="history-date-chip-row" id="historyDateChips"></div>
+                    </div>
+
+                    <div class="cash-summary-grid">
+                        <div class="cash-summary-card">
+                            <div class="cash-summary-label">시작 시재</div>
+                            <div class="cash-summary-value" id="historyOpeningPhp">₱0</div>
+                            <div class="cash-summary-sub" id="historyOpeningDetail" data-no-currency-normalize="true">PHP 0 · USD 0 · KRW 0</div>
+                        </div>
+                        <div class="cash-summary-card">
+                            <div class="cash-summary-label">정산/예치 수납</div>
+                            <div class="cash-summary-value" id="historySettlementPhp">₱0</div>
+                            <div class="cash-summary-sub" id="historySettlementDetail" data-no-currency-normalize="true">수납 기록 없음</div>
+                        </div>
+                        <div class="cash-summary-card">
+                            <div class="cash-summary-label">중간 출금</div>
+                            <div class="cash-summary-value" id="historyWithdrawPhp">₱0</div>
+                            <div class="cash-summary-sub" id="historyWithdrawDetail" data-no-currency-normalize="true">출금 기록 없음</div>
+                        </div>
+                        <div class="cash-summary-card">
+                            <div class="cash-summary-label">마감 차이</div>
+                            <div class="cash-summary-value" id="historyDiffPhp">₱0</div>
+                            <div class="cash-summary-sub" id="historyDiffDetail" data-no-currency-normalize="true">마감 시재 미등록</div>
+                        </div>
+                    </div>
+
+                    <div class="cash-ledger" style="margin-top:0">
+                        <div class="cash-ledger-head">
+                            <span><i class="fa-solid fa-book-open" style="color:var(--primary)"></i> 선택 일자 장부 내역</span>
+                            <span id="historyLedgerCount" style="font-size:.75rem;color:var(--txt3)">0건</span>
+                        </div>
+                        <div class="cash-ledger-body">
+                            <table>
+                                <thead>
+                                    <tr><th>시간</th><th>구분</th><th>대상</th><th>PHP 기준</th><th>실제 통화/구성</th><th>담당자</th><th>메모</th></tr>
+                                </thead>
+                                <tbody id="historyLedgerBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -401,6 +470,7 @@ const NIGHT_AUDIT_I18N = {
         'page.rolloverDate': '롤오버 예정일',
         'tab.close': '마감 체크',
         'tab.cash': '시재 인수인계',
+        'tab.history': '일자별 내역',
         'section.requiredChecks': '1. 마감 전 필수 체크',
         'check.description': '미처리 항목이 있을 경우 정상적인 마감 및 롤오버가 제한될 수 있습니다.',
         'issue.departures.title': '미처리 체크아웃',
@@ -501,6 +571,19 @@ const NIGHT_AUDIT_I18N = {
         'cash.type.withdraw': '출금',
         'cash.type.deposit': '예치금',
         'cash.type.payment': '정산 결제',
+        'history.section': '일자별 시재 / 정산 내역',
+        'history.today': '오늘',
+        'history.opening': '시작 시재',
+        'history.settlement': '정산/예치 수납',
+        'history.withdraw': '중간 출금',
+        'history.diff': '마감 차이',
+        'history.noSettlement': '수납 기록 없음',
+        'history.closeMissing': '마감 시재 미등록',
+        'history.ledgerTitle': '선택 일자 장부 내역',
+        'history.noRecords': '선택한 날짜의 시재 또는 정산 기록이 없습니다.',
+        'history.openRow': '시작 시재',
+        'history.closeRow': '마감 시재',
+        'history.recentDates': '기록 일자',
         'toast.openSaved': '시작 시재가 저장되었습니다.',
         'toast.withdrawRequired': '출금 금액과 PHP 환산 기준을 입력해주세요.',
         'toast.withdrawAdded': '중간 출금 기록이 추가되었습니다.',
@@ -520,6 +603,7 @@ const NIGHT_AUDIT_I18N = {
         'page.rolloverDate': 'Rollover date',
         'tab.close': 'Close Checklist',
         'tab.cash': 'Cash Handover',
+        'tab.history': 'Daily History',
         'section.requiredChecks': '1. Required Pre-Close Checks',
         'check.description': 'Unresolved items can block a normal close and business-date rollover.',
         'issue.departures.title': 'Pending Check-outs',
@@ -620,6 +704,19 @@ const NIGHT_AUDIT_I18N = {
         'cash.type.withdraw': 'Withdrawal',
         'cash.type.deposit': 'Deposit',
         'cash.type.payment': 'Settlement payment',
+        'history.section': 'Daily Cash / Settlement History',
+        'history.today': 'Today',
+        'history.opening': 'Opening cash',
+        'history.settlement': 'Settlement / deposit receipts',
+        'history.withdraw': 'Mid-shift withdrawals',
+        'history.diff': 'Closing difference',
+        'history.noSettlement': 'No receipt records',
+        'history.closeMissing': 'Closing cash not registered',
+        'history.ledgerTitle': 'Selected Date Ledger',
+        'history.noRecords': 'No cash or settlement records exist for the selected date.',
+        'history.openRow': 'Opening cash',
+        'history.closeRow': 'Closing cash',
+        'history.recentDates': 'Recorded dates',
         'toast.openSaved': 'Opening cash has been saved.',
         'toast.withdrawRequired': 'Enter both the withdrawal amount and PHP equivalent.',
         'toast.withdrawAdded': 'Mid-shift withdrawal record has been added.',
@@ -1006,6 +1103,10 @@ function activeCashSession(create = true) {
     return session || null;
 }
 
+function cashSessionForDate(date) {
+    return cashSessions().find(item => item.businessDate === date) || null;
+}
+
 function saveCashSession(session) {
     const sessions = cashSessions();
     const index = sessions.findIndex(item => item.businessDate === session.businessDate);
@@ -1018,8 +1119,7 @@ function formatCurrencyBreakdown(values = {}) {
     return `PHP ${Number(values.PHP || 0).toLocaleString()} · USD ${Number(values.USD || 0).toLocaleString()} · KRW ${Number(values.KRW || 0).toLocaleString()}`;
 }
 
-function paymentsForBusinessDate() {
-    const date = auditBusinessDate();
+function paymentsForBusinessDate(date = auditBusinessDate()) {
     return settlementPayments().filter(item => item.businessDate === date);
 }
 
@@ -1039,12 +1139,164 @@ function withdrawalCurrencyTotals(session) {
     }, { PHP: 0, USD: 0, KRW: 0 });
 }
 
+function addDaysToIsoDate(dateText, days) {
+    const base = auditDateOnly(dateText) || auditBusinessDate();
+    const [year, month, day] = base.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + days);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function historyDateValue() {
+    const input = document.getElementById('historyDateInput');
+    if (input && !input.value) input.value = auditBusinessDate();
+    return input?.value || auditBusinessDate();
+}
+
+function setHistoryDate(dateText) {
+    const input = document.getElementById('historyDateInput');
+    if (input) input.value = auditDateOnly(dateText) || auditBusinessDate();
+    renderDailyHistory();
+}
+
+function shiftHistoryDate(days) {
+    setHistoryDate(addDaysToIsoDate(historyDateValue(), days));
+}
+
+function historyRecordDates() {
+    const dates = new Set();
+    cashSessions().forEach(session => {
+        if (session?.businessDate) dates.add(session.businessDate);
+    });
+    settlementPayments().forEach(payment => {
+        if (payment?.businessDate) dates.add(payment.businessDate);
+    });
+    dates.add(auditBusinessDate());
+    return [...dates].sort((a, b) => String(b).localeCompare(String(a))).slice(0, 10);
+}
+
+function settlementSummaryText(payments) {
+    if (!payments.length) return nightAuditText('history.noSettlement');
+    const depositPhp = payments
+        .filter(item => item.kind === 'deposit')
+        .reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const settlementPhp = payments
+        .filter(item => item.kind !== 'deposit')
+        .reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    return `${formatCurrencyBreakdown(currencyTotals(payments))} · ${nightAuditText('cash.type.payment')} ${moneyPhp(settlementPhp)} · ${nightAuditText('cash.type.deposit')} ${moneyPhp(depositPhp)}`;
+}
+
+function dailyHistoryRows(date) {
+    const session = cashSessionForDate(date);
+    const payments = paymentsForBusinessDate(date);
+    const rows = [];
+    if (session?.openedAt || Number(session?.openingPhpEquivalent || 0) || CASH_CURRENCIES.some(currency => Number(session?.opening?.[currency] || 0))) {
+        rows.push({
+            at: session.openedAt || `${date}T00:00:00+09:00`,
+            type: nightAuditText('history.openRow'),
+            pill: 'deposit',
+            target: '시재 인수',
+            php: session.openingPhpEquivalent || 0,
+            actual: formatCurrencyBreakdown(session.opening),
+            operator: session.openedBy || '-',
+            note: session.openingNote || '-'
+        });
+    }
+    payments.forEach(item => rows.push({
+        at: item.createdAt || `${date}T12:00:00+09:00`,
+        type: item.kind === 'deposit' ? nightAuditText('cash.type.deposit') : nightAuditText('cash.type.payment'),
+        pill: item.kind === 'deposit' ? 'deposit' : 'payment',
+        target: `${item.folioId || '-'} / ${item.guest || '-'}`,
+        php: item.appliedPhpAmount || 0,
+        actual: `${item.receivedCurrency || 'PHP'} ${Number(item.receivedAmount || 0).toLocaleString()} · ${item.methodLabel || item.method || '-'}`,
+        operator: item.operator || '-',
+        note: item.note || '-'
+    }));
+    (session?.withdrawals || []).forEach(item => rows.push({
+        at: item.createdAt || `${date}T13:00:00+09:00`,
+        type: nightAuditText('cash.type.withdraw'),
+        pill: 'withdraw',
+        target: item.receiver || '-',
+        php: item.phpEquivalent || 0,
+        actual: `${item.currency || 'PHP'} ${Number(item.amount || 0).toLocaleString()}`,
+        operator: item.operator || '-',
+        note: item.receiver || '-'
+    }));
+    if (session?.closedAt || session?.closing) {
+        const carryover = currencyValues(session.carryover);
+        const takeaway = session.takeaway ? currencyValues(session.takeaway) : subtractCurrencyValues(session.closing, carryover);
+        rows.push({
+            at: session.closedAt || `${date}T23:59:00+09:00`,
+            type: nightAuditText('history.closeRow'),
+            pill: 'payment',
+            target: '시재 인계',
+            php: session.closingPhpEquivalent || 0,
+            actual: `실사 ${formatCurrencyBreakdown(session.closing)} · 남김 ${formatCurrencyBreakdown(carryover)} · 회수 ${formatCurrencyBreakdown(takeaway)}`,
+            operator: session.closedBy || '-',
+            note: session.closingNote || '-'
+        });
+    }
+    return rows.sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
+}
+
+function renderDailyHistory() {
+    const date = historyDateValue();
+    const session = cashSessionForDate(date);
+    const payments = paymentsForBusinessDate(date);
+    const cashPayments = payments.filter(item => item.method === 'cash');
+    const settlementPhp = payments.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const receivedCashPhp = cashPayments.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const withdrawalPhp = (session?.withdrawals || []).reduce((sum, item) => sum + Number(item.phpEquivalent || 0), 0);
+    const expectedPhp = Number(session?.openingPhpEquivalent || 0) + receivedCashPhp - withdrawalPhp;
+    const closingPhp = Number(session?.closingPhpEquivalent || 0);
+    const diff = session?.closing ? closingPhp - expectedPhp : 0;
+    const rows = dailyHistoryRows(date);
+
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    set('historyOpeningPhp', moneyPhp(session?.openingPhpEquivalent || 0));
+    set('historyOpeningDetail', formatCurrencyBreakdown(session?.opening || {}));
+    set('historySettlementPhp', moneyPhp(settlementPhp));
+    set('historySettlementDetail', settlementSummaryText(payments));
+    set('historyWithdrawPhp', moneyPhp(withdrawalPhp));
+    set('historyWithdrawDetail', (session?.withdrawals || []).length ? formatCurrencyBreakdown(withdrawalCurrencyTotals(session)) : nightAuditText('cash.noWithdrawals'));
+    set('historyDiffPhp', session?.closing ? moneyPhp(diff) : moneyPhp(0));
+    set('historyDiffDetail', session?.closing
+        ? `${nightAuditText('cash.expectedActual', { expected: moneyPhp(expectedPhp), actual: moneyPhp(closingPhp) })} · ${nightAuditText('cash.carryoverSummary', { values: formatCurrencyBreakdown(session.carryover) })}`
+        : nightAuditText('history.closeMissing'));
+
+    const chipWrap = document.getElementById('historyDateChips');
+    if (chipWrap) {
+        const dates = historyRecordDates();
+        chipWrap.innerHTML = dates.length
+            ? dates.map(item => `<button type="button" class="history-date-chip ${item === date ? 'active' : ''}" onclick="setHistoryDate('${escapeAudit(item)}')">${escapeAudit(item)}</button>`).join('')
+            : `<span style="font-size:.72rem;color:var(--txt3);font-weight:800">${nightAuditText('history.recentDates')}</span>`;
+    }
+    set('historyLedgerCount', nightAuditText('cash.ledgerCount', { count: rows.length }));
+    const body = document.getElementById('historyLedgerBody');
+    if (body) {
+        body.innerHTML = rows.length ? rows.map(item => `
+            <tr>
+                <td>${escapeAudit(formatAuditTime(item.at))}</td>
+                <td><span class="cash-pill ${item.pill === 'deposit' ? 'deposit' : ''}">${escapeAudit(item.type)}</span></td>
+                <td>${escapeAudit(item.target)}</td>
+                <td>${moneyPhp(item.php)}</td>
+                <td><span data-no-currency-normalize="true">${escapeAudit(item.actual)}</span></td>
+                <td>${escapeAudit(item.operator)}</td>
+                <td>${escapeAudit(item.note || '-')}</td>
+            </tr>
+        `).join('') : `<tr><td colspan="7" class="history-empty">${nightAuditText('history.noRecords')}</td></tr>`;
+    }
+}
+
 function setAuditTab(tab) {
     document.getElementById('auditTabClose')?.classList.toggle('active', tab === 'close');
     document.getElementById('auditTabCash')?.classList.toggle('active', tab === 'cash');
+    document.getElementById('auditTabHistory')?.classList.toggle('active', tab === 'history');
     document.getElementById('auditTabBtnClose')?.classList.toggle('active', tab === 'close');
     document.getElementById('auditTabBtnCash')?.classList.toggle('active', tab === 'cash');
+    document.getElementById('auditTabBtnHistory')?.classList.toggle('active', tab === 'history');
     if (tab === 'cash') renderCashHandover();
+    if (tab === 'history') renderDailyHistory();
 }
 
 function saveOpeningCash() {
@@ -1192,6 +1444,7 @@ function renderCashHandover() {
             </tr>
         `).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:18px">${nightAuditText('cash.ledger.empty')}</td></tr>`;
     }
+    renderDailyHistory();
 }
 
 function formatAuditTime(value) {
@@ -1259,6 +1512,7 @@ function applyNightAuditI18n() {
 
     setNightHtml('#auditTabBtnClose', `<i class="fa-solid fa-list-check"></i> ${t('tab.close')}`);
     setNightHtml('#auditTabBtnCash', `<i class="fa-solid fa-cash-register"></i> ${t('tab.cash')}`);
+    setNightHtml('#auditTabBtnHistory', `<i class="fa-solid fa-calendar-days"></i> ${t('tab.history')}`);
 
     const closeSections = document.querySelectorAll('#auditTabClose .audit-section');
     setNightHeader(closeSections[0], 'section.requiredChecks', '<i class="fa-solid fa-clipboard-check" style="color:var(--orange)"></i>');
@@ -1347,11 +1601,26 @@ function applyNightAuditI18n() {
     if (cashButtons[1]) cashButtons[1].innerHTML = `<i class="fa-solid fa-plus"></i> ${t('cash.withdrawAdd')}`;
     if (cashButtons[2]) cashButtons[2].innerHTML = `<i class="fa-solid fa-lock"></i> ${t('cash.closeSave')}`;
 
-    const ledgerTitle = document.querySelector('.cash-ledger-head span:first-child');
+    const ledgerTitle = document.querySelector('#auditTabCash .cash-ledger-head span:first-child');
     if (ledgerTitle) ledgerTitle.innerHTML = `<i class="fa-solid fa-receipt" style="color:var(--primary)"></i> ${t('cash.ledgerTitle')}`;
-    const ths = document.querySelectorAll('.cash-ledger th');
+    const ths = document.querySelectorAll('#auditTabCash .cash-ledger th');
     ['cash.ledger.time', 'cash.ledger.type', 'cash.ledger.target', 'cash.ledger.php', 'cash.ledger.actual', 'cash.ledger.operator', 'cash.ledger.memo'].forEach((key, index) => {
         if (ths[index]) ths[index].textContent = t(key);
+    });
+
+    const historySection = document.querySelector('#auditTabHistory .audit-section');
+    setNightHeader(historySection, 'history.section', '<i class="fa-solid fa-calendar-days" style="color:var(--primary)"></i>');
+    const historyLabels = document.querySelectorAll('#auditTabHistory .cash-summary-label');
+    ['history.opening', 'history.settlement', 'history.withdraw', 'history.diff'].forEach((key, index) => {
+        if (historyLabels[index]) historyLabels[index].textContent = t(key);
+    });
+    const historyTodayBtn = document.querySelector('#auditTabHistory .history-date-controls .btn-primary-sm');
+    if (historyTodayBtn) historyTodayBtn.textContent = t('history.today');
+    const historyLedgerTitle = document.querySelector('#auditTabHistory .cash-ledger-head span:first-child');
+    if (historyLedgerTitle) historyLedgerTitle.innerHTML = `<i class="fa-solid fa-book-open" style="color:var(--primary)"></i> ${t('history.ledgerTitle')}`;
+    const historyThs = document.querySelectorAll('#auditTabHistory .cash-ledger th');
+    ['cash.ledger.time', 'cash.ledger.type', 'cash.ledger.target', 'cash.ledger.php', 'cash.ledger.actual', 'cash.ledger.operator', 'cash.ledger.memo'].forEach((key, index) => {
+        if (historyThs[index]) historyThs[index].textContent = t(key);
     });
 
     setNightText('#auditIssueTitle', 'issue.modalTitle');
