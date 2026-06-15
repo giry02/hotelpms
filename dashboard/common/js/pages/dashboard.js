@@ -13,6 +13,7 @@
     let weekData = [];
     let monthData = [];
     let weeklySvcData = [];
+    let ancillaryWeeklyActive = false;
     let currentLang = window.currentLang || localStorage.getItem("pms_lang") || "ko";
     window.svcData = [];
 
@@ -325,12 +326,13 @@
         const list = document.getElementById("svcBreakdown");
         const shareGrid = document.getElementById("svcShareGrid");
         if (!list) return;
+        const services = Array.isArray(data) ? data : normalizeServices({ pos: 0, golf: 0, car: 0 });
         list.innerHTML = "";
         if (shareGrid) shareGrid.innerHTML = "";
-        data.forEach((service) => {
+        services.forEach((service) => {
             const row = document.createElement("div");
             row.className = "svc-row";
-            const label = serviceLabel(service, data.indexOf(service));
+            const label = serviceLabel(service);
             const tooltipTitle = `${tr("Ancillary Rev")} - ${label}`;
             const tooltipContent = `
                     <div style="display:flex;justify-content:space-between;gap:20px"><span>${tr("Revenue Amount")}:</span><strong style="color:${service.color}">${formatMoney(service.val)}</strong></div>
@@ -381,14 +383,19 @@
     }
 
     function toggleAncillary(isWeekly) {
+        ancillaryWeeklyActive = Boolean(isWeekly);
         const total = document.getElementById("ancillaryTotal");
         const label = document.getElementById("ancillaryLabel");
-        const data = isWeekly ? weeklySvcData : window.svcData;
+        const data = ancillaryWeeklyActive ? weeklySvcData : window.svcData;
         document.querySelectorAll("#ancillaryBtns button").forEach((button, index) => {
-            button.classList.toggle("active", index === (isWeekly ? 1 : 0));
+            button.classList.toggle("active", index === (ancillaryWeeklyActive ? 1 : 0));
         });
         if (total) total.textContent = formatMoney(data.reduce((sum, service) => sum + service.val, 0));
-        if (label) label.textContent = isWeekly ? tr("Weekly Ancillary Revenue") : tr("Today's Ancillary Revenue");
+        if (label) {
+            const labelKey = ancillaryWeeklyActive ? "Weekly Ancillary Revenue" : "Today's Ancillary Revenue";
+            label.setAttribute("data-i18n-key", labelKey);
+            label.textContent = tr(labelKey);
+        }
         renderServiceBreakdown(data);
     }
     window.toggleAncillary = toggleAncillary;
@@ -396,7 +403,7 @@
     window.addEventListener("languagechange", () => {
         currentLang = window.currentLang || localStorage.getItem("pms_lang") || currentLang;
         renderRoomChart(document.querySelector("#roomChartBtns button:nth-child(2)")?.classList.contains("active") ? monthData : weekData, document.querySelector("#roomChartBtns button:nth-child(2)")?.classList.contains("active"));
-        renderServiceBreakdown(window.svcData);
+        toggleAncillary(ancillaryWeeklyActive);
     });
     document.addEventListener("change", (event) => {
         if (event.target && event.target.id === "langSelect") {
