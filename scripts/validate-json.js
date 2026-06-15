@@ -1,11 +1,19 @@
-// scripts/validate-json.js – Validate JSON files against their schemas using AJV
-const fs = require('fs');
-const path = require('path');
-const Ajv = require('ajv');
+// Validate JSON files against sibling *.schema.json files using AJV.
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import Ajv from 'ajv';
+
 const ajv = new Ajv({ allErrors: true, strict: false });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function loadJSON(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch (error) {
+    throw new Error(`${filePath}: ${error.message}`);
+  }
 }
 
 function validateFile(dataFile, schemaFile) {
@@ -18,7 +26,7 @@ function validateFile(dataFile, schemaFile) {
     console.error(validate.errors);
     process.exitCode = 1;
   } else {
-    console.log(`${dataFile} ✅`);
+    console.log(`${dataFile} ok`);
   }
 }
 
