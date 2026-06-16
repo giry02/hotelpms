@@ -75,7 +75,11 @@
         .cash-summary-card { border: 1px solid var(--border2); border-radius: 10px; padding: 14px; background: #fff; }
         .cash-summary-label { font-size: .72rem; color: var(--txt3); font-weight: 800; margin-bottom: 6px; }
         .cash-summary-value { font-size: 1.12rem; color: var(--txt); font-weight: 900; }
-        .cash-summary-sub { font-size: .72rem; color: var(--txt3); margin-top: 5px; line-height: 1.35; font-weight: 700; }
+        .cash-summary-sub { font-size: .72rem; color: var(--txt3); margin-top: 5px; line-height: 1.45; font-weight: 400; }
+        .cash-summary-lines { display: flex; flex-direction: column; gap: 4px; }
+        .cash-summary-line { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+        .cash-summary-line-label { flex: 0 0 auto; min-width: 74px; padding: 1px 6px; border-radius: 5px; background: var(--primary-lt); color: var(--primary); font-weight: 400; text-align: center; white-space: nowrap; }
+        .cash-summary-line-value { min-width: 0; color: var(--txt2); overflow-wrap: anywhere; }
         .cash-workflow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
         .cash-work-card { border: 1px solid var(--border2); border-radius: 12px; background: #fff; overflow: hidden; }
         .cash-work-head { padding: 12px 14px; border-bottom: 1px solid var(--border2); background: #f8fafc; font-size: .88rem; font-weight: 900; display: flex; align-items: center; gap: 8px; }
@@ -1274,6 +1278,33 @@ function formatCurrencyBreakdown(values = {}) {
     return `PHP ${Number(values.PHP || 0).toLocaleString()} · USD ${Number(values.USD || 0).toLocaleString()} · KRW ${Number(values.KRW || 0).toLocaleString()}`;
 }
 
+function currencySummaryLines(values = {}) {
+    return [
+        { label: 'PHP', value: Number(values.PHP || 0).toLocaleString() },
+        { label: 'USD', value: Number(values.USD || 0).toLocaleString() },
+        { label: 'KRW', value: Number(values.KRW || 0).toLocaleString() }
+    ];
+}
+
+function renderSummaryLines(lines) {
+    const normalized = Array.isArray(lines) ? lines.filter(Boolean) : [];
+    if (!normalized.length) return '';
+    return `<span class="cash-summary-lines">${
+        normalized.map(item => `<span class="cash-summary-line"><span class="cash-summary-line-label">${escapeAudit(item.label)}</span><span class="cash-summary-line-value">${escapeAudit(item.value)}</span></span>`).join('')
+    }</span>`;
+}
+
+function renderCurrencySummary(values = {}) {
+    return renderSummaryLines(currencySummaryLines(values));
+}
+
+function prefixedCurrencySummaryLines(prefix, values = {}) {
+    return currencySummaryLines(values).map(item => ({
+        label: `${prefix} ${item.label}`,
+        value: item.value
+    }));
+}
+
 function paymentsForBusinessDate(date = auditBusinessDate()) {
     return settlementPayments().filter(item => item.businessDate === date);
 }
@@ -1338,7 +1369,20 @@ function settlementSummaryText(payments) {
     const settlementPhp = payments
         .filter(item => item.kind !== 'deposit')
         .reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
-    return `${formatCurrencyBreakdown(currencyTotals(payments))} · ${nightAuditText('cash.type.payment')} ${moneyPhp(settlementPhp)} · ${nightAuditText('cash.type.deposit')} ${moneyPhp(depositPhp)}`;
+    return renderSummaryLines([
+        ...currencySummaryLines(currencyTotals(payments)),
+        { label: nightAuditText('cash.type.payment'), value: moneyPhp(settlementPhp) },
+        { label: nightAuditText('cash.type.deposit'), value: moneyPhp(depositPhp) }
+    ]);
+}
+
+function closingSummaryLines(expectedPhp, closingPhp, carryover, takeaway) {
+    return renderSummaryLines([
+        { label: '예상', value: moneyPhp(expectedPhp) },
+        { label: '실사', value: moneyPhp(closingPhp) },
+        ...prefixedCurrencySummaryLines('남김', carryover),
+        ...prefixedCurrencySummaryLines('회수', takeaway)
+    ]);
 }
 
 function dailyHistoryRows(date) {
@@ -1425,16 +1469,17 @@ function renderDailyHistory() {
     const rows = dailyHistoryRows(date);
 
     const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    const setHtml = (id, value) => { const el = document.getElementById(id); if (el) el.innerHTML = value; };
     set('historyOpeningPhp', moneyPhp(session?.openingPhpEquivalent || 0));
-    set('historyOpeningDetail', formatCurrencyBreakdown(session?.opening || {}));
+    setHtml('historyOpeningDetail', renderCurrencySummary(session?.opening || {}));
     set('historySettlementPhp', moneyPhp(settlementPhp));
-    set('historySettlementDetail', settlementSummaryText(payments));
+    setHtml('historySettlementDetail', settlementSummaryText(payments));
     set('historyWithdrawPhp', moneyPhp(withdrawalPhp));
-    set('historyWithdrawDetail', (session?.withdrawals || []).length ? formatCurrencyBreakdown(withdrawalCurrencyTotals(session)) : nightAuditText('cash.noWithdrawals'));
+    setHtml('historyWithdrawDetail', (session?.withdrawals || []).length ? renderCurrencySummary(withdrawalCurrencyTotals(session)) : escapeAudit(nightAuditText('cash.noWithdrawals')));
     set('historyDiffPhp', session?.closing ? moneyPhp(diff) : moneyPhp(0));
-    set('historyDiffDetail', session?.closing
-        ? `${nightAuditText('cash.expectedActual', { expected: moneyPhp(expectedPhp), actual: moneyPhp(closingPhp) })} · ${nightAuditText('cash.carryoverSummary', { values: formatCurrencyBreakdown(session.carryover) })}`
-        : nightAuditText('history.closeMissing'));
+    setHtml('historyDiffDetail', session?.closing
+        ? closingSummaryLines(expectedPhp, closingPhp, session.carryover, session.takeaway || subtractCurrencyValues(session.closing, session.carryover))
+        : escapeAudit(nightAuditText('history.closeMissing')));
 
     const chipWrap = document.getElementById('historyDateChips');
     if (chipWrap) {
@@ -1544,20 +1589,17 @@ function renderCashHandover() {
     const diff = session.closing ? closingPhp - expectedPhp : 0;
 
     const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    const setHtml = (id, value) => { const el = document.getElementById(id); if (el) el.innerHTML = value; };
     set('cashOpeningPhp', moneyPhp(session.openingPhpEquivalent || 0));
-    set('cashOpeningDetail', formatCurrencyBreakdown(session.opening));
+    setHtml('cashOpeningDetail', renderCurrencySummary(session.opening));
     set('cashReceivedPhp', moneyPhp(receivedPhp));
-    set('cashReceivedDetail', formatCurrencyBreakdown(receivedCurrencies));
+    setHtml('cashReceivedDetail', renderCurrencySummary(receivedCurrencies));
     set('cashWithdrawPhp', moneyPhp(withdrawalPhp));
-    set('cashWithdrawDetail', (session.withdrawals || []).length ? formatCurrencyBreakdown(withdrawalCurrencies) : nightAuditText('cash.noWithdrawals'));
+    setHtml('cashWithdrawDetail', (session.withdrawals || []).length ? renderCurrencySummary(withdrawalCurrencies) : escapeAudit(nightAuditText('cash.noWithdrawals')));
     set('cashDiffPhp', session.closing ? moneyPhp(diff) : moneyPhp(0));
-    set('cashDiffDetail', session.closing
-        ? [
-            nightAuditText('cash.expectedActual', { expected: moneyPhp(expectedPhp), actual: moneyPhp(closingPhp) }),
-            nightAuditText('cash.carryoverSummary', { values: formatCurrencyBreakdown(carryoverCurrencies) }),
-            nightAuditText('cash.takeawaySummary', { values: formatCurrencyBreakdown(takeawayCurrencies) })
-        ].join(' · ')
-        : nightAuditText('cash.diffHelp'));
+    setHtml('cashDiffDetail', session.closing
+        ? closingSummaryLines(expectedPhp, closingPhp, carryoverCurrencies, takeawayCurrencies)
+        : escapeAudit(nightAuditText('cash.diffHelp')));
     set('openStatus', session.openedAt ? `${session.openedBy || '-'} · ${formatAuditTime(session.openedAt)}` : nightAuditText('cash.unregistered'));
     set('withdrawStatus', (session.withdrawals || []).length ? nightAuditText('cash.withdrawCount', { count: session.withdrawals.length }) : nightAuditText('cash.noWithdrawals'));
     set('closeStatus', session.closedAt ? `${session.closedBy || '-'} · ${formatAuditTime(session.closedAt)}` : nightAuditText('cash.unregistered'));
