@@ -80,13 +80,23 @@
         .cash-summary-line { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
         .cash-summary-line-label,
         .cash-ledger-actual-label { flex: 0 0 auto; min-width: 74px; padding: 2px 7px; border: 1px solid rgba(59, 130, 246, .22); border-radius: 999px; background: var(--primary-lt); color: var(--primary); font-weight: 500; text-align: center; white-space: nowrap; line-height: 1.25; }
+        .cash-summary-line-label.category { border-color: rgba(16, 185, 129, .28); background: #ecfdf5; color: #047857; }
+        .cash-summary-line-label.deposit { border-color: rgba(245, 158, 11, .34); background: #fff7ed; color: #b45309; }
+        .cash-summary-line-label.total { border-color: #bfdbfe; background: #eff6ff; color: var(--primary); font-weight: 800; }
+        .cash-summary-line-label.actual { border-color: #c7d2fe; background: #eef2ff; color: #4338ca; }
+        .cash-summary-line-label.variance { border-color: rgba(239, 68, 68, .24); background: #fef2f2; color: #dc2626; }
         .cash-summary-line-value { min-width: 0; color: var(--txt2); overflow-wrap: anywhere; }
+        .cash-summary-block { display: flex; flex-direction: column; gap: 5px; }
+        .cash-summary-block + .cash-summary-block { margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--border2); }
+        .cash-summary-block-title { font-size: .68rem; color: var(--txt3); font-weight: 900; letter-spacing: 0; }
         .history-formula-grid { display: grid; grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr); gap: 10px; align-items: stretch; margin-bottom: 18px; }
         .history-formula-card { min-height: 100%; }
         .history-formula-op { align-self: center; width: 34px; height: 34px; border: 1px solid var(--border2); border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: #f8fafc; color: var(--txt2); font-size: .86rem; font-weight: 900; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
         .history-formula-op.plus { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
         .history-formula-op.minus { color: #b45309; background: #fff7ed; border-color: #fed7aa; }
         .history-formula-op.equals { color: var(--primary); background: var(--primary-lt); border-color: #bfdbfe; }
+        .history-reconcile-note { margin: -6px 0 18px; border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; color: #1e3a8a; padding: 10px 12px; font-size: .76rem; line-height: 1.55; font-weight: 600; }
+        .history-reconcile-note strong { color: var(--primary); font-weight: 900; }
         .cash-workflow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
         .cash-work-card { border: 1px solid var(--border2); border-radius: 12px; background: #fff; overflow: hidden; }
         .cash-work-head { padding: 12px 14px; border-bottom: 1px solid var(--border2); background: #f8fafc; font-size: .88rem; font-weight: 900; display: flex; align-items: center; gap: 8px; }
@@ -302,7 +312,7 @@
                             <div class="cash-summary-sub" id="cashOpeningDetail" data-no-currency-normalize="true">PHP 0 · USD 0 · KRW 0</div>
                         </div>
                         <div class="cash-summary-card">
-                            <div class="cash-summary-label">현금 수납(PHP 기준)</div>
+                            <div class="cash-summary-label">현금 수납 합계(PHP 기준)</div>
                             <div class="cash-summary-value" id="cashReceivedPhp">₱0</div>
                             <div class="cash-summary-sub" id="cashReceivedDetail" data-no-currency-normalize="true">PHP 0 · USD 0 · KRW 0</div>
                         </div>
@@ -312,9 +322,9 @@
                             <div class="cash-summary-sub" id="cashWithdrawDetail" data-no-currency-normalize="true">출금 기록 없음</div>
                         </div>
                         <div class="cash-summary-card">
-                            <div class="cash-summary-label">마감 차이(PHP 기준)</div>
+                            <div class="cash-summary-label">마감 시재(PHP 기준)</div>
                             <div class="cash-summary-value" id="cashDiffPhp">₱0</div>
-                            <div class="cash-summary-sub" id="cashDiffDetail" data-no-currency-normalize="true">마감 시재를 입력하면 차이가 계산됩니다.</div>
+                            <div class="cash-summary-sub" id="cashDiffDetail" data-no-currency-normalize="true">마감 실사 시재를 입력하면 예상 시재와 차이를 함께 표시합니다.</div>
                         </div>
                     </div>
 
@@ -419,7 +429,7 @@
                         </div>
                         <div class="history-formula-op plus" aria-hidden="true">+</div>
                         <div class="cash-summary-card history-formula-card">
-                            <div class="cash-summary-label">정산/예치 수납</div>
+                            <div class="cash-summary-label">수납 합계</div>
                             <div class="cash-summary-value" id="historySettlementPhp">₱0</div>
                             <div class="cash-summary-sub" id="historySettlementDetail" data-no-currency-normalize="true">수납 기록 없음</div>
                         </div>
@@ -431,10 +441,13 @@
                         </div>
                         <div class="history-formula-op equals" aria-hidden="true">=</div>
                         <div class="cash-summary-card history-formula-card">
-                            <div class="cash-summary-label">마감 차이</div>
+                            <div class="cash-summary-label">마감 시재</div>
                             <div class="cash-summary-value" id="historyDiffPhp">₱0</div>
                             <div class="cash-summary-sub" id="historyDiffDetail" data-no-currency-normalize="true">마감 시재 미등록</div>
                         </div>
+                    </div>
+                    <div class="history-reconcile-note" id="historyFormulaNote" data-no-currency-normalize="true">
+                        예상 마감 시재 = 시작 시재 + 현금 수납 - 중간 출금입니다. 실제 마감 시재를 입력하면 차이 금액을 검산합니다.
                     </div>
 
                     <div class="cash-ledger" style="margin-top:0">
@@ -547,11 +560,11 @@ const NIGHT_AUDIT_I18N = {
         'close.run': '일일 영업 마감 실행',
         'cash.section': '시재 시작 / 출금 / 마감 인수인계',
         'cash.opening': '시작 시재(PHP 기준)',
-        'cash.received': '현금 수납(PHP 기준)',
+        'cash.received': '현금 수납 합계(PHP 기준)',
         'cash.withdraw': '중간 출금(PHP 기준)',
-        'cash.diff': '마감 차이(PHP 기준)',
+        'cash.diff': '마감 시재(PHP 기준)',
         'cash.noWithdrawals': '출금 기록 없음',
-        'cash.diffHelp': '마감 시재를 입력하면 차이가 계산됩니다.',
+        'cash.diffHelp': '마감 실사 시재를 입력하면 예상 시재와 차이를 함께 표시합니다.',
         'cash.openCard': '시작 시재 등록',
         'cash.openEquivalent': '시작 시재 PHP 환산 기준',
         'cash.openNote': '인수 메모',
@@ -574,6 +587,14 @@ const NIGHT_AUDIT_I18N = {
         'cash.closeNotePlaceholder': '예: 다음 근무자에게 인계, 차이 사유',
         'cash.closeSave': '마감 시재 저장',
         'cash.unregistered': '미등록',
+        'cash.receivedCurrencies': '실제 받은 통화',
+        'cash.receivedBreakdown': '수납 구분',
+        'cash.receivedTotal': '수납 합계',
+        'cash.closingActual': '실제 마감',
+        'cash.closingExpected': '예상 마감',
+        'cash.closingVariance': '차이',
+        'cash.carryoverShort': '남김',
+        'cash.takeawayShort': '회수',
         'cash.expectedActual': '예상 {expected} · 실사 {actual}',
         'cash.carryoverSummary': '남김 {values}',
         'cash.takeawaySummary': '회수 {values}',
@@ -594,11 +615,12 @@ const NIGHT_AUDIT_I18N = {
         'history.section': '일자별 시재 / 정산 내역',
         'history.today': '오늘',
         'history.opening': '시작 시재',
-        'history.settlement': '정산/예치 수납',
+        'history.settlement': '수납 합계',
         'history.withdraw': '중간 출금',
-        'history.diff': '마감 차이',
+        'history.diff': '마감 시재',
         'history.noSettlement': '수납 기록 없음',
         'history.closeMissing': '마감 시재 미등록',
+        'history.formula': '<strong>예상 마감 시재</strong> = 시작 시재 {opening} + 현금 수납 {received} - 중간 출금 {withdrawal} = {expected} · <strong>실제 마감 시재</strong> {actual} · <strong>차이</strong> {diff}',
         'history.ledgerTitle': '선택 일자 장부 내역',
         'history.noRecords': '선택한 날짜의 시재 또는 정산 기록이 없습니다.',
         'history.openRow': '시작 시재',
@@ -679,11 +701,11 @@ const NIGHT_AUDIT_I18N = {
         'close.run': 'Run Daily Close',
         'cash.section': 'Cash Opening / Withdrawal / Closing Handover',
         'cash.opening': 'Opening cash (PHP basis)',
-        'cash.received': 'Cash received (PHP basis)',
+        'cash.received': 'Cash receipts total (PHP basis)',
         'cash.withdraw': 'Mid-shift withdrawals (PHP basis)',
-        'cash.diff': 'Closing difference (PHP basis)',
+        'cash.diff': 'Closing cash (PHP basis)',
         'cash.noWithdrawals': 'No withdrawal records',
-        'cash.diffHelp': 'Enter closing cash to calculate the difference.',
+        'cash.diffHelp': 'Enter counted closing cash to compare it with expected closing cash.',
         'cash.openCard': 'Register opening cash',
         'cash.openEquivalent': 'Opening cash PHP equivalent',
         'cash.openNote': 'Opening note',
@@ -706,6 +728,14 @@ const NIGHT_AUDIT_I18N = {
         'cash.closeNotePlaceholder': 'Example: handed to next shift, difference reason',
         'cash.closeSave': 'Save closing cash',
         'cash.unregistered': 'Not registered',
+        'cash.receivedCurrencies': 'Actual received currencies',
+        'cash.receivedBreakdown': 'Receipt breakdown',
+        'cash.receivedTotal': 'Receipts total',
+        'cash.closingActual': 'Actual closing',
+        'cash.closingExpected': 'Expected closing',
+        'cash.closingVariance': 'Variance',
+        'cash.carryoverShort': 'Left',
+        'cash.takeawayShort': 'Collected',
         'cash.expectedActual': 'Expected {expected} · Counted {actual}',
         'cash.carryoverSummary': 'Left {values}',
         'cash.takeawaySummary': 'Collected {values}',
@@ -726,11 +756,12 @@ const NIGHT_AUDIT_I18N = {
         'history.section': 'Daily Cash / Settlement History',
         'history.today': 'Today',
         'history.opening': 'Opening cash',
-        'history.settlement': 'Settlement / deposit receipts',
+        'history.settlement': 'Receipts total',
         'history.withdraw': 'Mid-shift withdrawals',
-        'history.diff': 'Closing difference',
+        'history.diff': 'Closing cash',
         'history.noSettlement': 'No receipt records',
         'history.closeMissing': 'Closing cash not registered',
+        'history.formula': '<strong>Expected closing cash</strong> = opening cash {opening} + cash receipts {received} - withdrawals {withdrawal} = {expected} · <strong>Actual closing cash</strong> {actual} · <strong>Variance</strong> {diff}',
         'history.ledgerTitle': 'Selected Date Ledger',
         'history.noRecords': 'No cash or settlement records exist for the selected date.',
         'history.openRow': 'Opening cash',
@@ -1293,8 +1324,15 @@ function renderSummaryLines(lines) {
     const normalized = Array.isArray(lines) ? lines.filter(Boolean) : [];
     if (!normalized.length) return '';
     return `<span class="cash-summary-lines">${
-        normalized.map(item => `<span class="cash-summary-line"><span class="cash-summary-line-label">${escapeAudit(item.label)}</span><span class="cash-summary-line-value">${escapeAudit(item.value)}</span></span>`).join('')
+        normalized.map(item => {
+            const tone = ['category', 'deposit', 'total', 'actual', 'variance'].includes(item.tone) ? ` ${item.tone}` : '';
+            return `<span class="cash-summary-line"><span class="cash-summary-line-label${tone}">${escapeAudit(item.label)}</span><span class="cash-summary-line-value">${escapeAudit(item.value)}</span></span>`;
+        }).join('')
     }</span>`;
+}
+
+function renderSummaryBlock(title, lines) {
+    return `<span class="cash-summary-block"><span class="cash-summary-block-title">${escapeAudit(title)}</span>${renderSummaryLines(lines)}</span>`;
 }
 
 function renderCurrencySummary(values = {}) {
@@ -1360,20 +1398,38 @@ function settlementSummaryText(payments) {
     const settlementPhp = payments
         .filter(item => item.kind !== 'deposit')
         .reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
-    return renderSummaryLines([
-        ...currencySummaryLines(currencyTotals(payments)),
-        { label: nightAuditText('cash.type.payment'), value: moneyPhp(settlementPhp) },
-        { label: nightAuditText('cash.type.deposit'), value: moneyPhp(depositPhp) }
-    ]);
+    const totalPhp = settlementPhp + depositPhp;
+    return [
+        renderSummaryBlock(nightAuditText('cash.receivedCurrencies'), currencySummaryLines(currencyTotals(payments))),
+        renderSummaryBlock(nightAuditText('cash.receivedBreakdown'), [
+            { label: nightAuditText('cash.type.payment'), value: moneyPhp(settlementPhp), tone: 'category' },
+            { label: nightAuditText('cash.type.deposit'), value: moneyPhp(depositPhp), tone: 'deposit' },
+            { label: nightAuditText('cash.receivedTotal'), value: moneyPhp(totalPhp), tone: 'total' }
+        ])
+    ].join('');
 }
 
 function closingSummaryLines(expectedPhp, closingPhp, carryover, takeaway) {
     return renderSummaryLines([
-        { label: '예상', value: moneyPhp(expectedPhp) },
-        { label: '실사', value: moneyPhp(closingPhp) },
-        ...prefixedCurrencySummaryLines('남김', carryover),
-        ...prefixedCurrencySummaryLines('회수', takeaway)
+        { label: nightAuditText('cash.closingActual'), value: moneyPhp(closingPhp), tone: 'actual' },
+        { label: nightAuditText('cash.closingExpected'), value: moneyPhp(expectedPhp), tone: 'total' },
+        { label: nightAuditText('cash.closingVariance'), value: moneyPhp(closingPhp - expectedPhp), tone: 'variance' },
+        ...prefixedCurrencySummaryLines(nightAuditText('cash.carryoverShort'), carryover),
+        ...prefixedCurrencySummaryLines(nightAuditText('cash.takeawayShort'), takeaway)
     ]);
+}
+
+function closingFormulaText(openingPhp, receivedPhp, withdrawalPhp, expectedPhp, closingPhp, diff, hasClosing) {
+    const actualText = hasClosing ? moneyPhp(closingPhp) : nightAuditText('history.closeMissing');
+    const diffText = hasClosing ? moneyPhp(diff) : '-';
+    return nightAuditText('history.formula', {
+        opening: moneyPhp(openingPhp),
+        received: moneyPhp(receivedPhp),
+        withdrawal: moneyPhp(withdrawalPhp),
+        expected: moneyPhp(expectedPhp),
+        actual: actualText,
+        diff: diffText
+    });
 }
 
 function dailyHistoryRows(date) {
@@ -1466,10 +1522,19 @@ function renderDailyHistory() {
     setHtml('historySettlementDetail', settlementSummaryText(payments));
     set('historyWithdrawPhp', moneyPhp(withdrawalPhp));
     setHtml('historyWithdrawDetail', (session?.withdrawals || []).length ? renderCurrencySummary(withdrawalCurrencyTotals(session)) : escapeAudit(nightAuditText('cash.noWithdrawals')));
-    set('historyDiffPhp', session?.closing ? moneyPhp(diff) : moneyPhp(0));
+    set('historyDiffPhp', session?.closing ? moneyPhp(closingPhp) : moneyPhp(0));
     setHtml('historyDiffDetail', session?.closing
         ? closingSummaryLines(expectedPhp, closingPhp, session.carryover, session.takeaway || subtractCurrencyValues(session.closing, session.carryover))
         : escapeAudit(nightAuditText('history.closeMissing')));
+    setHtml('historyFormulaNote', closingFormulaText(
+        Number(session?.openingPhpEquivalent || 0),
+        receivedCashPhp,
+        withdrawalPhp,
+        expectedPhp,
+        closingPhp,
+        diff,
+        !!session?.closing
+    ));
 
     set('historyLedgerCount', nightAuditText('cash.ledgerCount', { count: rows.length }));
     const body = document.getElementById('historyLedgerBody');
@@ -1597,7 +1662,7 @@ function renderCashHandover() {
     setHtml('cashReceivedDetail', renderCurrencySummary(receivedCurrencies));
     set('cashWithdrawPhp', moneyPhp(withdrawalPhp));
     setHtml('cashWithdrawDetail', (session.withdrawals || []).length ? renderCurrencySummary(withdrawalCurrencies) : escapeAudit(nightAuditText('cash.noWithdrawals')));
-    set('cashDiffPhp', session.closing ? moneyPhp(diff) : moneyPhp(0));
+    set('cashDiffPhp', session.closing ? moneyPhp(closingPhp) : moneyPhp(0));
     setHtml('cashDiffDetail', session.closing
         ? closingSummaryLines(expectedPhp, closingPhp, carryoverCurrencies, takeawayCurrencies)
         : escapeAudit(nightAuditText('cash.diffHelp')));
