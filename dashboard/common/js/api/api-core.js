@@ -1,5 +1,5 @@
 // api-core.js
-const API_VERSION = 'v2.7';
+const API_VERSION = 'v2.8';
 
 window.PmsDate = window.PmsDate || (function() {
     function todayIsoDate() {
