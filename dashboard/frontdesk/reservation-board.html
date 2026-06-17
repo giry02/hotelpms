@@ -29,9 +29,10 @@
         .reservation-board-kpis .kpi-icon{width:46px;height:46px;border-radius:12px;font-size:1.1rem}
         .reservation-board-kpis .kpi-value{font-size:1.55rem;line-height:1;font-weight:800}
         .reservation-board-kpis .kpi-label{font-size:.82rem;font-weight:650}
-        .filter-bar-mt{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:24px;padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px}
-        .filter-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
-        .filter-right{display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
+        .filter-bar-mt{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-bottom:24px;padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px}
+        .reservation-board-topline{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
+        .reservation-board-filters{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+        .reservation-board-filters .chip{flex:0 0 auto}
         .search-container{display:flex;align-items:center;gap:8px;flex-shrink:0}
         .search-box-mt{display:flex;align-items:center;gap:8px;padding:7px 14px;border:1.5px solid var(--border);border-radius:8px;background:#fff;transition:border-color .2s;width:220px}
         .search-box-mt:focus-within{border-color:var(--primary)}
@@ -39,9 +40,6 @@
         .search-box-mt input{border:none;outline:none;font-family:var(--font);font-size:.82rem;color:var(--txt);width:100%;background:transparent;padding:0;margin:0}
         .btn-search{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;border:none;cursor:pointer;background:var(--primary);color:#fff;font-family:var(--font);font-size:.8rem;font-weight:700;transition:background .2s}
         .btn-search:hover{background:#1D4ED8}
-        .board-period-select{height:36px;min-width:118px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:800;padding:0 30px 0 10px;outline:none;flex-shrink:0}
-        .board-period-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
-        .filter-divider{width:1px;height:24px;background:var(--border2);flex-shrink:0}
         .building-section{margin-bottom:8px}
         .building-section + .building-section{margin-top:24px}
         .building-header{display:flex;align-items:center;gap:10px;padding:0 0 8px;cursor:pointer;user-select:none}
@@ -111,15 +109,13 @@
         .board-money{font-size:.68rem;color:var(--txt2);font-weight:800;margin-top:auto}
         @media(max-width:768px){
             .reservation-board-kpis{grid-template-columns:1fr 1fr}
-            .filter-bar-mt{flex-direction:column;align-items:stretch;padding:12px;gap:10px}
-            .filter-left{flex-wrap:wrap;gap:10px}
+            .filter-bar-mt{padding:12px;gap:10px}
+            .reservation-board-topline{align-items:stretch}
             .search-container{width:100%;display:flex;gap:8px;flex:1}
             .search-box-mt{flex:1;min-width:0;width:auto}
-            .board-period-select{width:100%}
-            #boardChips{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+            .reservation-board-topline .btn-primary-sm{flex:0 0 auto;justify-content:center}
+            #boardChips{width:100%}
             #boardChips .chip{justify-content:center}
-            .filter-right .btn-outline,
-            .filter-right .btn-primary-sm{width:100%;justify-content:center}
             .reservation-board-page .room-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
             .board-stay-btn{width:28px;height:28px;border-radius:8px}
             .board-stay-btn i{font-size:.76rem}
@@ -139,7 +135,7 @@
         </div>
 
         <div class="filter-bar-mt reservation-board-toolbar">
-            <div class="filter-left">
+            <div class="reservation-board-topline">
                 <div class="search-container">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -147,26 +143,17 @@
                     </div>
                     <button class="btn-search" onclick="renderReservationBoard()"><i class="fa-solid fa-search"></i> 검색</button>
                 </div>
-                <select id="boardPeriodSelect" class="board-period-select" onchange="setBoardPeriod(this.value)">
-                    <option value="today">오늘</option>
-                    <option value="tomorrow">내일</option>
-                    <option value="week">1주일</option>
-                </select>
-                <div class="filter-divider desktop-only"></div>
-                <div class="filter-chips" id="boardChips">
-                    <button class="chip active" data-filter="all" onclick="setBoardFilter('all')"><i class="fa-solid fa-list"></i> 전체 <span class="chip-count">0</span></button>
-                    <button class="chip" data-filter="checkin" onclick="setBoardFilter('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="chip-count">0</span></button>
-                    <button class="chip" data-filter="inhouse" onclick="setBoardFilter('inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="chip-count">0</span></button>
-                    <button class="chip" data-filter="checkout" onclick="setBoardFilter('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 <span class="chip-count">0</span></button>
-                    <button class="chip" data-filter="late" onclick="setBoardFilter('late')"><i class="fa-solid fa-clock"></i> 레이트 <span class="chip-count">0</span></button>
-                    <button class="chip" data-filter="roommove" onclick="setBoardFilter('roommove')"><i class="fa-solid fa-right-left"></i> 객실 변경 <span class="chip-count">0</span></button>
-                    <button class="chip" data-filter="completed" onclick="setBoardFilter('completed')"><i class="fa-solid fa-check-double"></i> 완료 <span class="chip-count">0</span></button>
-                    <button class="chip" data-filter="cancelled" onclick="setBoardFilter('cancelled')"><i class="fa-solid fa-ban"></i> 취소/노쇼 <span class="chip-count">0</span></button>
-                </div>
-            </div>
-            <div class="filter-right">
-                <button class="btn-outline" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> 엑셀 다운로드</button>
                 <button class="btn-primary-sm" onclick="openUnifiedResModal()"><i class="fa-solid fa-plus"></i> 신규 예약</button>
+            </div>
+            <div class="filter-chips reservation-board-filters" id="boardChips">
+                <button class="chip active" data-filter="all" onclick="setBoardFilter('all')"><i class="fa-solid fa-list"></i> 전체 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="checkin" onclick="setBoardFilter('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="inhouse" onclick="setBoardFilter('inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="checkout" onclick="setBoardFilter('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="late" onclick="setBoardFilter('late')"><i class="fa-solid fa-clock"></i> 레이트 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="roommove" onclick="setBoardFilter('roommove')"><i class="fa-solid fa-right-left"></i> 객실 변경 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="completed" onclick="setBoardFilter('completed')"><i class="fa-solid fa-check-double"></i> 완료 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="cancelled" onclick="setBoardFilter('cancelled')"><i class="fa-solid fa-ban"></i> 취소/노쇼 <span class="chip-count">0</span></button>
             </div>
         </div>
 
