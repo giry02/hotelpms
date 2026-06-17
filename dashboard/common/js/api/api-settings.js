@@ -12,6 +12,7 @@ const HOTEL_MENU_KEYS = [
     'maintenance',
     'folio',
     'ancillary',
+    'operationLogs',
     'settings',
     'staff',
     'billing'

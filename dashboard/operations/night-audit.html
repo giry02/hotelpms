@@ -81,6 +81,12 @@
         .cash-summary-line-label,
         .cash-ledger-actual-label { flex: 0 0 auto; min-width: 74px; padding: 2px 7px; border: 1px solid rgba(59, 130, 246, .22); border-radius: 999px; background: var(--primary-lt); color: var(--primary); font-weight: 500; text-align: center; white-space: nowrap; line-height: 1.25; }
         .cash-summary-line-value { min-width: 0; color: var(--txt2); overflow-wrap: anywhere; }
+        .history-formula-grid { display: grid; grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr); gap: 10px; align-items: stretch; margin-bottom: 18px; }
+        .history-formula-card { min-height: 100%; }
+        .history-formula-op { align-self: center; width: 34px; height: 34px; border: 1px solid var(--border2); border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; background: #f8fafc; color: var(--txt2); font-size: .86rem; font-weight: 900; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+        .history-formula-op.plus { color: #047857; background: #ecfdf5; border-color: #a7f3d0; }
+        .history-formula-op.minus { color: #b45309; background: #fff7ed; border-color: #fed7aa; }
+        .history-formula-op.equals { color: var(--primary); background: var(--primary-lt); border-color: #bfdbfe; }
         .cash-workflow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
         .cash-work-card { border: 1px solid var(--border2); border-radius: 12px; background: #fff; overflow: hidden; }
         .cash-work-head { padding: 12px 14px; border-bottom: 1px solid var(--border2); background: #f8fafc; font-size: .88rem; font-weight: 900; display: flex; align-items: center; gap: 8px; }
@@ -122,6 +128,8 @@
             .revenue-row-actions { justify-content: space-between; min-width: 0; }
             .audit-tabs { overflow-x: auto; }
             .cash-summary-grid, .cash-workflow-grid { grid-template-columns: 1fr; }
+            .history-formula-grid { grid-template-columns: 1fr; gap: 8px; }
+            .history-formula-op { width: 100%; height: 28px; border-radius: 8px; }
             .currency-mini-grid { grid-template-columns: 1fr; }
             .history-toolbar { align-items: stretch; flex-direction: column; }
             .history-date-controls { width: 100%; }
@@ -403,23 +411,26 @@
                         </div>
                     </div>
 
-                    <div class="cash-summary-grid">
-                        <div class="cash-summary-card">
+                    <div class="history-formula-grid" aria-label="시작시재 + 정산/예치 수납 - 중간출금 = 마감차이">
+                        <div class="cash-summary-card history-formula-card">
                             <div class="cash-summary-label">시작 시재</div>
                             <div class="cash-summary-value" id="historyOpeningPhp">₱0</div>
                             <div class="cash-summary-sub" id="historyOpeningDetail" data-no-currency-normalize="true">PHP 0 · USD 0 · KRW 0</div>
                         </div>
-                        <div class="cash-summary-card">
+                        <div class="history-formula-op plus" aria-hidden="true">+</div>
+                        <div class="cash-summary-card history-formula-card">
                             <div class="cash-summary-label">정산/예치 수납</div>
                             <div class="cash-summary-value" id="historySettlementPhp">₱0</div>
                             <div class="cash-summary-sub" id="historySettlementDetail" data-no-currency-normalize="true">수납 기록 없음</div>
                         </div>
-                        <div class="cash-summary-card">
+                        <div class="history-formula-op minus" aria-hidden="true">-</div>
+                        <div class="cash-summary-card history-formula-card">
                             <div class="cash-summary-label">중간 출금</div>
                             <div class="cash-summary-value" id="historyWithdrawPhp">₱0</div>
                             <div class="cash-summary-sub" id="historyWithdrawDetail" data-no-currency-normalize="true">출금 기록 없음</div>
                         </div>
-                        <div class="cash-summary-card">
+                        <div class="history-formula-op equals" aria-hidden="true">=</div>
+                        <div class="cash-summary-card history-formula-card">
                             <div class="cash-summary-label">마감 차이</div>
                             <div class="cash-summary-value" id="historyDiffPhp">₱0</div>
                             <div class="cash-summary-sub" id="historyDiffDetail" data-no-currency-normalize="true">마감 시재 미등록</div>
@@ -1477,15 +1488,33 @@ function renderDailyHistory() {
     }
 }
 
-function setAuditTab(tab) {
-    document.getElementById('auditTabClose')?.classList.toggle('active', tab === 'close');
-    document.getElementById('auditTabCash')?.classList.toggle('active', tab === 'cash');
-    document.getElementById('auditTabHistory')?.classList.toggle('active', tab === 'history');
-    document.getElementById('auditTabBtnClose')?.classList.toggle('active', tab === 'close');
-    document.getElementById('auditTabBtnCash')?.classList.toggle('active', tab === 'cash');
-    document.getElementById('auditTabBtnHistory')?.classList.toggle('active', tab === 'history');
-    if (tab === 'cash') renderCashHandover();
-    if (tab === 'history') renderDailyHistory();
+function nightAuditTabFromLocation() {
+    const params = new URLSearchParams(window.location.search);
+    const raw = (params.get('tab') || window.location.hash.replace('#', '') || '').toLowerCase();
+    if (['close', 'cash', 'history'].includes(raw)) return raw;
+    if (['close-log', 'closing-log', 'logs'].includes(raw)) return 'history';
+    return 'close';
+}
+
+function setAuditTab(tab, options = {}) {
+    const nextTab = ['close', 'cash', 'history'].includes(tab) ? tab : 'close';
+    document.getElementById('auditTabClose')?.classList.toggle('active', nextTab === 'close');
+    document.getElementById('auditTabCash')?.classList.toggle('active', nextTab === 'cash');
+    document.getElementById('auditTabHistory')?.classList.toggle('active', nextTab === 'history');
+    document.getElementById('auditTabBtnClose')?.classList.toggle('active', nextTab === 'close');
+    document.getElementById('auditTabBtnCash')?.classList.toggle('active', nextTab === 'cash');
+    document.getElementById('auditTabBtnHistory')?.classList.toggle('active', nextTab === 'history');
+    if (options.updateHash !== false) {
+        if (nextTab === 'history') {
+            if (window.location.hash !== '#history') {
+                history.replaceState(null, '', '#history');
+            }
+        } else if (window.location.hash) {
+            history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+        }
+    }
+    if (nextTab === 'cash') renderCashHandover();
+    if (nextTab === 'history') renderDailyHistory();
 }
 
 function saveOpeningCash() {
@@ -1895,8 +1924,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById(id)?.addEventListener('input', updateTakeawayPreview);
     });
     renderCashHandover();
+    setAuditTab(nightAuditTabFromLocation(), { updateHash: false });
     applyNightAuditI18n();
     refreshNightAuditDynamicText();
+});
+
+window.addEventListener('hashchange', () => {
+    setAuditTab(nightAuditTabFromLocation(), { updateHash: false });
 });
 
 window.addEventListener('languagechange', () => {

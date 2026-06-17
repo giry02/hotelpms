@@ -90,6 +90,21 @@
             ]
         },
         {
+            group: 'Operation Logs',
+            roles: ['sys_admin', 'sys_gm', 'sys_desk'],
+            items: [
+                {
+                    icon: 'fa-clipboard-list', label: 'Operation Logs', id: 'operationLogs', key: 'operationLogs',
+                    roles: ['sys_admin', 'sys_gm', 'sys_desk'],
+                    mainHref: BASE + 'operations/night-audit.html#history',
+                    children: [
+                        { label: 'Audit Log', href: BASE + 'settings/audit-logs.html', key: 'operationLogs.audit', roles: ['sys_admin'] },
+                        { label: 'Close Log', href: BASE + 'operations/night-audit.html#history', key: 'operationLogs.close', roles: ['sys_admin', 'sys_gm', 'sys_desk'] },
+                    ]
+                },
+            ]
+        },
+        {
             group: 'Settings',
             roles: ['sys_admin', 'sys_gm'],
             items: [
@@ -103,7 +118,6 @@
                     ]
                 },
                 { icon: 'fa-credit-card', label: 'Billing & Payment', href: BASE + 'settings/billing.html' },
-                { icon: 'fa-shield-halved', label: 'Audit Logs', href: BASE + 'settings/audit-logs.html', roles: ['sys_admin'] },
                 { icon: 'fa-bullhorn',    label: 'Notices',           href: BASE + 'settings/notices.html' },
                 { icon: 'fa-headset',     label: 'Support',           href: BASE + 'settings/support.html' },
             ]
@@ -145,13 +159,15 @@
         'ancillary.pos',
         'ancillary.golf',
         'ancillary.rentacar',
+        'operationLogs',
+        'operationLogs.audit',
+        'operationLogs.close',
         'settings',
         'settings.hotel',
         'staff',
         'staff.list',
         'staff.roles',
         'billing',
-        'settings.audit-logs',
         'settings.notices',
         'settings.support'
     ];
@@ -182,7 +198,7 @@
         'staff.html': 'staff.list',
         'roles.html': 'staff.roles',
         'billing.html': 'billing',
-        'audit-logs.html': 'settings.audit-logs',
+        'audit-logs.html': 'operationLogs.audit',
         'notices.html': 'settings.notices',
         'support.html': 'settings.support'
     };
@@ -409,6 +425,8 @@
         });
 
         document.querySelectorAll('.sidebar-nav div.nav-item[onclick]').forEach(div => {
+            const hasActiveChild = !!div.nextElementSibling?.querySelector?.('.nav-sub-item.active');
+            if (hasActiveChild) return;
             div.classList.remove('active');
             if (div.getAttribute('onclick').includes(activePath)) div.classList.add('active');
         });
