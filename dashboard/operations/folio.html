@@ -326,6 +326,7 @@ let currentInvoiceScope = 'all';
 
 const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
 const PAYMENT_CURRENCIES = ['PHP', 'USD', 'KRW'];
+const PAYMENT_CURRENCY_LABELS = { PHP: '페소', USD: '달러', KRW: '원화' };
 
 function fmtMoney(value, currency = 'PHP') {
     return new Intl.NumberFormat('en-PH', {
@@ -1945,11 +1946,10 @@ function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function syncPaymentKindLabels() {
-    const kind = document.getElementById('paymentKind')?.value || 'settlement';
     const label = document.getElementById('paymentBaseLabel');
     const completeWrap = document.getElementById('paymentCompleteWrap');
-    if (label) label.textContent = kind === 'deposit' ? '예치금 기준 페소금액' : '정산 반영 페소금액';
-    if (completeWrap) completeWrap.style.display = kind === 'deposit' ? 'none' : 'flex';
+    if (label) label.textContent = '정산 반영 페소금액';
+    if (completeWrap) completeWrap.style.display = 'flex';
 }
 
 function parsePaymentAmount(value) {
@@ -2001,7 +2001,7 @@ function formatPaymentBreakdown(values = {}) {
     const breakdown = normalizePaymentBreakdown(values);
     const parts = PAYMENT_CURRENCIES
         .filter(currency => Number(breakdown[currency] || 0) > 0)
-        .map(currency => `${currency} ${Number(breakdown[currency]).toLocaleString()}`);
+        .map(currency => `${PAYMENT_CURRENCY_LABELS[currency] || currency} ${Number(breakdown[currency]).toLocaleString()}`);
     return parts.length ? parts.join(' · ') : '미입력';
 }
 
@@ -2024,7 +2024,6 @@ function openPaymentModal(folioId, bal) {
         const input = document.getElementById(id);
         if (input) input.value = '';
     });
-    document.getElementById('paymentKind').value = due > 0 ? 'settlement' : 'deposit';
     document.getElementById('paymentMethod').value = 'cash';
     document.getElementById('paymentCompleteFolio').checked = due > 0;
     document.getElementById('paymentNote').value = '';
@@ -2038,24 +2037,22 @@ function processPayment() {
         showToast('정산 대상을 찾지 못했습니다.', 'error');
         return;
     }
-    const kind = document.getElementById('paymentKind')?.value || 'settlement';
+    const kind = 'settlement';
     const complete = !!document.getElementById('paymentCompleteFolio')?.checked;
     const balance = parsePaymentAmount(folio.bal);
     const enteredPhp = readPaymentAmount('paymentInputAmount');
-    const appliedPhpAmount = kind === 'deposit'
-        ? enteredPhp
-        : (balance > 0 ? Math.min(enteredPhp, balance) : enteredPhp);
+    const appliedPhpAmount = balance > 0 ? Math.min(enteredPhp, balance) : enteredPhp;
     const receivedBreakdown = paymentBreakdownFromInputs();
     const receivedTotal = paymentBreakdownTotal(receivedBreakdown);
     const primaryReceived = paymentBreakdownPrimary(receivedBreakdown);
     const method = document.getElementById('paymentMethod')?.value || 'cash';
     const methodLabel = document.getElementById('paymentMethod')?.selectedOptions?.[0]?.textContent || method;
     if (!enteredPhp) {
-        showToast(kind === 'deposit' ? '예치금 기준 페소금액을 입력해주세요.' : '정산 반영 페소금액을 입력해주세요.', 'error');
+        showToast('정산 반영 페소금액을 입력해주세요.', 'error');
         return;
     }
     if (!receivedTotal) {
-        showToast('실제 받은 금액을 PHP/USD/KRW 중 하나 이상 입력해주세요.', 'error');
+        showToast('실제 받은 금액을 페소/달러/원화 중 하나 이상 입력해주세요.', 'error');
         return;
     }
     const records = settlementPaymentRecords();
@@ -2074,14 +2071,14 @@ function processPayment() {
         receivedAmount: primaryReceived.amount,
         receivedBreakdown,
         receivedSummary: formatPaymentBreakdown(receivedBreakdown),
-        completeSettlement: kind !== 'deposit' && complete,
+        completeSettlement: complete,
         businessDate: currentBusinessDate(),
         createdAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
         operator: currentOperatorName(),
         note: document.getElementById('paymentNote')?.value || ''
     });
     saveSettlementPaymentRecords(records);
-    showToast(kind === 'deposit' ? '예치금 수납 기록이 저장되었습니다.' : '정산 수납이 완료 처리되었습니다.', 'success');
+    showToast('정산 수납이 완료 처리되었습니다.', 'success');
     closeModal('paymentModal');
     renderFolios();
 }
@@ -2100,14 +2097,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <div style="background:var(--warning-lt);color:var(--warning);padding:12px;border-radius:4px;text-align:center;font-weight:700;font-size:1.1rem" id="paymentBalAmount">
                 미수금 기준: ₱0
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">처리 유형</label>
-                    <select id="paymentKind" onchange="syncPaymentKindLabels();syncPaymentCompleteAmount()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option value="settlement">정산 결제</option>
-                        <option value="deposit">예치금 보관</option>
-                    </select>
-                </div>
+            <div style="display:grid;grid-template-columns:1fr;gap:12px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">결제 수단</label>
                     <select id="paymentMethod" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
@@ -2122,26 +2112,26 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label id="paymentBaseLabel" style="font-size:.8rem;font-weight:600;color:var(--txt2)">정산 반영 페소금액</label>
                     <input type="number" min="0" step="1" id="paymentInputAmount" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" value="0">
-                    <div style="font-size:.7rem;color:var(--txt3);font-weight:700">잔액 차감 기준은 페소(PHP)로 직접 입력합니다.</div>
+                    <div style="font-size:.7rem;color:var(--txt3);font-weight:700">잔액 차감 기준은 페소로 직접 입력합니다.</div>
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">실제 받은 금액</label>
                 <div class="payment-currency-grid">
                     <div class="payment-currency-field">
-                        <label><i class="fa-solid fa-peso-sign"></i> PHP 페소</label>
+                        <label><i class="fa-solid fa-peso-sign"></i> 페소</label>
                         <input type="number" min="0" step="1" id="paymentReceivedPhp" data-no-currency-normalize="true" placeholder="0">
                     </div>
                     <div class="payment-currency-field">
-                        <label><i class="fa-solid fa-dollar-sign"></i> USD 달러</label>
+                        <label><i class="fa-solid fa-dollar-sign"></i> 달러</label>
                         <input type="number" min="0" step="1" id="paymentReceivedUsd" data-no-currency-normalize="true" placeholder="0">
                     </div>
                     <div class="payment-currency-field">
-                        <label><i class="fa-solid fa-won-sign"></i> KRW 원화</label>
+                        <label><i class="fa-solid fa-won-sign"></i> 원화</label>
                         <input type="number" min="0" step="1" id="paymentReceivedKrw" data-no-currency-normalize="true" placeholder="0">
                     </div>
                 </div>
-                <div class="payment-help">여러 통화로 나누어 받은 경우 각 칸에 그대로 입력합니다. 페소 환산/정산 반영 금액은 위의 페소 기준 금액으로 별도 관리합니다.</div>
+                <div class="payment-help">여러 통화로 나누어 받은 경우 각 칸에 실제 받은 금액을 그대로 입력합니다. 정산 반영 금액은 위 페소 기준 금액으로 별도 관리합니다.</div>
             </div>
             <label id="paymentCompleteWrap" style="display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid var(--border2);border-radius:8px;padding:10px 12px;font-size:.78rem;font-weight:800;color:var(--txt);cursor:pointer">
                 <input type="checkbox" id="paymentCompleteFolio" onchange="syncPaymentCompleteAmount()" style="width:16px;height:16px">
@@ -2149,8 +2139,8 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             </label>
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">메모</label>
-                <input type="text" id="paymentNote" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: PHP 500 + USD 20 수령, 페소 기준은 담당자 확인">
-                <div style="font-size:.7rem;color:var(--txt3);font-weight:700;line-height:1.45">실시간 환율 자동 계산 대신, 담당자가 인정할 페소 기준 금액과 실제 수납 통화를 별도로 기록합니다.</div>
+                <input type="text" id="paymentNote" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 달러와 원화를 함께 수납, 페소 기준 금액 확인 완료">
+                <div style="font-size:.7rem;color:var(--txt3);font-weight:700;line-height:1.45">담당자가 확정한 페소 기준 금액과 실제 받은 통화 내역을 함께 기록합니다.</div>
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
