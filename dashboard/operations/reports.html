@@ -298,12 +298,12 @@ function chartMoney(v){
 const REPORT_TEXT = {
     ko: {
         weekBtn:'주별', monthBtn:'월별', yearBtn:'연도별',
-        dailyTotal:'일별 총 매출', weeklyTotal:'주별 총 매출', monthlyTotal:'월별 총 매출', yearlyTotal:'연도별 총 매출',
+        dailyTotal:'일별 총 매출', weeklyTotal:'주별 총 매출', recentSevenTotal:'최근 7일 총 매출', monthlyTotal:'월별 총 매출', yearlyTotal:'연도별 총 매출',
         roomRevenue:'객실 매출', ancillaryRevenue:'부가서비스 매출',
-        vsYesterday:'전일 대비', vsLastWeek:'전주 대비', vsLastMonth:'전월 대비', vsLastYear:'전년 대비',
+        vsYesterday:'전일 대비', vsLastWeek:'전주 대비', vsPreviousSeven:'이전 7일 대비', vsLastMonth:'전월 대비', vsLastYear:'전년 대비',
         dailyTitle:'일별 매출 추이', monthlyTitle:'월별 매출 추이', yoyTitle:'작년 vs 올해 비교',
         lastYear:'작년', thisYear:'올해', currentYear:'올해', previousYear:'전년',
-        weeklySummary:'해당 주차 총 매출', monthlySummary:'해당 월 총 매출', yearlySummary:'올해 누적 총 매출',
+        weeklySummary:'해당 주차 총 매출', recentSevenSummary:'오늘 기준 최근 7일', monthlySummary:'해당 월 총 매출', yearlySummary:'올해 누적 총 매출',
         deptTitle:'항목별 매출', trendTitle:'최근 7일 추이',
         room:'객실', totalPos:'통합 포스', golf:'골프장', rentacar:'렌트카',
         roomsName:'객실', roomsSub:'객실 매출', posName:'통합 포스', posSub:'식음료, 리테일',
@@ -313,12 +313,12 @@ const REPORT_TEXT = {
     },
     en: {
         weekBtn:'Weekly', monthBtn:'Monthly', yearBtn:'Yearly',
-        dailyTotal:'Daily Total Revenue', weeklyTotal:'Weekly Total Revenue', monthlyTotal:'Monthly Total Revenue', yearlyTotal:'Yearly Total Revenue',
+        dailyTotal:'Daily Total Revenue', weeklyTotal:'Weekly Total Revenue', recentSevenTotal:'Recent 7-Day Total', monthlyTotal:'Monthly Total Revenue', yearlyTotal:'Yearly Total Revenue',
         roomRevenue:'Room Revenue', ancillaryRevenue:'Ancillary Revenue',
-        vsYesterday:'vs Yesterday', vsLastWeek:'vs Last Week', vsLastMonth:'vs Last Month', vsLastYear:'vs Last Year',
+        vsYesterday:'vs Yesterday', vsLastWeek:'vs Last Week', vsPreviousSeven:'vs Previous 7 Days', vsLastMonth:'vs Last Month', vsLastYear:'vs Last Year',
         dailyTitle:'Daily Revenue Trend', monthlyTitle:'Monthly Revenue Trend', yoyTitle:'Last Year vs This Year',
         lastYear:'Last Year', thisYear:'This Year', currentYear:'This Year', previousYear:'Last Year',
-        weeklySummary:'This Week Total Revenue', monthlySummary:'This Month Total Revenue', yearlySummary:'YTD Total Revenue',
+        weeklySummary:'This Week Total Revenue', recentSevenSummary:'Last 7 Days Through Today', monthlySummary:'This Month Total Revenue', yearlySummary:'YTD Total Revenue',
         deptTitle:'Revenue by Department', trendTitle:'Recent 7-Day Trend',
         room:'Room', totalPos:'Unified POS', golf:'Golf', rentacar:'Rent-a-car',
         roomsName:'Rooms', roomsSub:'Room Revenue', posName:'Unified POS', posSub:'F&B, Retail',
@@ -625,7 +625,23 @@ function selectedNumber(id, fallback){
     const match = String(el?.value || el?.textContent || '').match(/\d+/);
     return match ? Number(match[0]) : fallback;
 }
-const CURRENT_REPORT_PERIOD = { year: 2026, month: 6, week: 2, day: 10 };
+function reportToday(){
+    const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+function reportPeriodFromDate(date){
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+    return {
+        year: target.getFullYear(),
+        month: target.getMonth() + 1,
+        week: Math.floor((target.getDate() - 1) / 7) + 1,
+        day: target.getDate(),
+        date: target
+    };
+}
+const CURRENT_REPORT_PERIOD = reportPeriodFromDate(reportToday());
 function setSelectByNumber(id, number){
     const el = document.getElementById(id);
     if(!el) return;
@@ -655,6 +671,20 @@ function reportRowDate(row, fallbackYear = selectedNumber('selYear', CURRENT_REP
     const parts = monthAndDay(row);
     return new Date(fallbackYear, parts.month - 1, parts.day);
 }
+function dailyRowsInRange(sourceRows, startDate, endDate){
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const year = end.getFullYear();
+    return sourceRows
+        .filter(row => {
+            const rowDate = reportRowDate(row, year);
+            rowDate.setHours(0, 0, 0, 0);
+            return rowDate >= start && rowDate <= end;
+        })
+        .sort((a, b) => reportRowDate(a, year) - reportRowDate(b, year));
+}
 function daysInReportMonth(year, month){
     return new Date(year, month, 0).getDate();
 }
@@ -667,18 +697,20 @@ function reportAnchorDay(month, week){
 }
 function recentSevenDailyRows(sourceRows, month, anchorDay){
     const year = selectedNumber('selYear', CURRENT_REPORT_PERIOD.year);
-    const anchor = new Date(year, month - 1, anchorDay);
+    const anchor = month && anchorDay
+        ? new Date(year, month - 1, anchorDay)
+        : new Date(CURRENT_REPORT_PERIOD.date);
     anchor.setHours(0, 0, 0, 0);
     const start = new Date(anchor);
     start.setDate(anchor.getDate() - 6);
-    return sourceRows
-        .filter(row => {
-            const rowDate = reportRowDate(row, year);
-            rowDate.setHours(0, 0, 0, 0);
-            return rowDate >= start && rowDate <= anchor;
-        })
-        .sort((a, b) => reportRowDate(a, year) - reportRowDate(b, year))
-        .slice(-7);
+    return dailyRowsInRange(sourceRows, start, anchor).slice(-7);
+}
+function previousSevenDailyRows(sourceRows){
+    const end = new Date(CURRENT_REPORT_PERIOD.date);
+    end.setDate(end.getDate() - 7);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 6);
+    return dailyRowsInRange(sourceRows, start, end).slice(-7);
 }
 function weekOfMonth(row){
     const { day } = monthAndDay(row);
@@ -702,7 +734,9 @@ function syncSelectedPeriodData(){
     const month = selectedNumber('selMonth', 6);
     const week = selectedNumber('selWeek', 2);
     const day = reportAnchorDay(month, currentChartPeriod === 'week' ? week : null);
-    const rollingDailyRows = recentSevenDailyRows(allDailyData, month, day);
+    const rollingDailyRows = currentChartPeriod === 'week'
+        ? recentSevenDailyRows(allDailyData)
+        : recentSevenDailyRows(allDailyData, month, day);
     const rows = (currentChartPeriod === 'day' || currentChartPeriod === 'week')
         ? rollingDailyRows
         : currentWeekToDateRows(filterDailyRows(month, week), month, week);
@@ -710,7 +744,7 @@ function syncSelectedPeriodData(){
     selectedDailyIndex = dailyData.length ? Math.min(selectedDailyIndex ?? dailyData.length - 1, dailyData.length - 1) : null;
 
     const trendRows = (currentChartPeriod === 'day' || currentChartPeriod === 'week')
-        ? recentSevenDailyRows(allTrendData, month, day)
+        ? (currentChartPeriod === 'week' ? recentSevenDailyRows(allTrendData) : recentSevenDailyRows(allTrendData, month, day))
         : allTrendData.filter(row => {
             const parts = monthAndDay(row);
             return parts.month === month && (!week || weekOfMonth(row) === week) && (!isCurrentReportWeek(month, week) || parts.day <= day);
@@ -765,7 +799,7 @@ function getPeriodBreakdown(type = currentChartPeriod){
     const week = selectedNumber('selWeek', 2);
     const day = CURRENT_REPORT_PERIOD.day;
     if(type === 'day') return sumRevenueBreakdown(filterDailyRows(month, null, day));
-    if(type === 'week') return sumRevenueBreakdown(currentWeekToDateRows(filterDailyRows(month, week), month, week));
+    if(type === 'week') return sumRevenueBreakdown(recentSevenDailyRows(allDailyData));
     if(type === 'month') return monthlyBreakdown(getMonthlyRow(month));
     return yoyBreakdown(yoyData);
 }
@@ -780,8 +814,8 @@ function getPeriodKpiData(type = currentChartPeriod){
     }
     if(type === 'week'){
         const current = getPeriodBreakdown('week');
-        const prevRows = filterDailyRows(month, Math.max(1, week - 1));
-        return { total: formatMoney(current.total), room: formatMoney(current.room), anc: formatMoney(current.fnb + current.spa + current.other), diff: formatDiff(percentDiff(current.total, periodTotal(prevRows))), labelKey:'vsLastWeek', titleKey:'weeklyTotal' };
+        const prevRows = previousSevenDailyRows(allDailyData);
+        return { total: formatMoney(current.total), room: formatMoney(current.room), anc: formatMoney(current.fnb + current.spa + current.other), diff: formatDiff(percentDiff(current.total, periodTotal(prevRows))), labelKey:'vsPreviousSeven', titleKey:'recentSevenTotal' };
     }
     if(type === 'month'){
         const current = getPeriodBreakdown('month');
@@ -924,9 +958,9 @@ function changeChartPeriod(btn, type, resetPeriod = true) {
     btn.classList.add('active');
     if(resetPeriod) resetToCurrentReportPeriod(type);
     
-    document.getElementById('selYear').style.display = 'inline-block';
-    document.getElementById('selMonth').style.display = (type === 'week' || type === 'month') ? 'inline-block' : 'none';
-    document.getElementById('selWeek').style.display = (type === 'week') ? 'inline-block' : 'none';
+    document.getElementById('selYear').style.display = type === 'week' ? 'none' : 'inline-block';
+    document.getElementById('selMonth').style.display = type === 'month' ? 'inline-block' : 'none';
+    document.getElementById('selWeek').style.display = 'none';
     
     document.getElementById('cardDaily').style.display = (type === 'day' || type === 'week') ? 'block' : 'none';
     document.getElementById('cardMonthly').style.display = (type === 'month') ? 'block' : 'none';
