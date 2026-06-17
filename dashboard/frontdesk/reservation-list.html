@@ -311,6 +311,27 @@ let rooms = [];
 let guests = [];
 let guestMap = new Map();
 
+function syncReservationListGlobals() {
+    window.reservations = reservations;
+    window.rooms = rooms;
+    window.guests = guests;
+}
+
+window.syncUnifiedReservationPageState = function() {
+    if (Array.isArray(window.reservations) && window.reservations !== reservations) {
+        reservations = window.reservations;
+    }
+    if (Array.isArray(window.rooms) && window.rooms !== rooms) {
+        rooms = window.rooms;
+    }
+    if (Array.isArray(window.guests) && window.guests !== guests) {
+        guests = window.guests;
+        guestMap = new Map(guests.map(guest => [guest.id, guest]));
+    }
+    syncReservationListGlobals();
+    updateChipCounts();
+};
+
 const statusConfig = {
     blocked: {cls:'pending'},
     pending: {cls:'pending'},
@@ -1812,6 +1833,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             r._listOrder = index;
             return r;
         });
+        syncReservationListGlobals();
     }
 
     if (requestedTab && document.querySelector(`[data-filter="${requestedTab}"]`)) {

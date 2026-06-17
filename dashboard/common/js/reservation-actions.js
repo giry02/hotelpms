@@ -1857,7 +1857,7 @@
             if (!value) return;
             const conflict = roomConflictForDates(room, checkin, checkout, currentRes);
             const isCurrentRoom = !!(currentRes && roomMatchesReservation(room, currentRes));
-            const blocked = !isCurrentRoom && (!!conflict || roomMaintenanceBlocked(room));
+            const blocked = !isCurrentRoom && (roomMaintenanceBlocked(room) || (!currentRes && !!conflict));
             (blocked ? unavailable : available).push({ room, value, conflict: isCurrentRoom ? null : conflict, blocked });
         });
 
@@ -1872,7 +1872,8 @@
             const opt = document.createElement('option');
             opt.value = value;
             opt.disabled = blocked;
-            const suffix = conflict ? ` - ${actionText('booking.conflictSuffix')}` : '';
+            const moveSuffix = actionLang() === 'en' ? 'move allowed' : '이동 가능';
+            const suffix = conflict ? ` - ${currentRes ? moveSuffix : actionText('booking.conflictSuffix')}` : '';
             opt.textContent = `${value} (${roomTypeDisplay(room.type)})${suffix}`;
             roomSelect.appendChild(opt);
         };
@@ -1884,8 +1885,11 @@
         roomSelect.value = preferred || enabledValues[0] || '';
         if (!enabledValues.length) roomSelect.disabled = true;
         if (help) {
+            const countText = actionLang() === 'en'
+                ? `${enabledValues.length}${currentRes ? ' rooms available for move' : ' available rooms'}`
+                : `${enabledValues.length}${currentRes ? '개 객실 이동 가능' : '개 객실 예약 가능'}`;
             help.textContent = enabledValues.length
-                ? `${enabledValues.length}${actionLang() === 'en' ? ' available rooms' : '개 객실 예약 가능'}`
+                ? countText
                 : actionText('booking.noRooms');
         }
     }
@@ -2075,6 +2079,20 @@
         }
     }
 
+    function refreshUnifiedReservationViews(context = {}) {
+        if (typeof window.syncUnifiedReservationPageState === 'function') {
+            try {
+                window.syncUnifiedReservationPageState(context);
+            } catch(e) {
+                console.warn('Unified page state sync failed', e);
+            }
+        }
+        if (typeof window.renderTable === 'function') window.renderTable();
+        if (typeof window.buildTimeline === 'function') window.buildTimeline();
+        if (typeof window.buildMobileView === 'function') window.buildMobileView();
+        if (typeof window.renderResTable === 'function') window.renderResTable();
+    }
+
     window.processUnifiedReservationFlow = async function(action) {
         const id = document.getElementById('unifiedResId')?.value;
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
@@ -2153,10 +2171,7 @@
             const toastKey = checkinWarning ? 'flow.completedRoomNotReady' : 'flow.completed';
             window.showToast(actionText(toastKey, { action: label }), 'success');
         }
-        if (typeof window.buildTimeline === 'function') window.buildTimeline();
-        if (typeof window.buildMobileView === 'function') window.buildMobileView();
-        if (typeof window.renderTable === 'function') window.renderTable();
-        if (typeof window.renderResTable === 'function') window.renderResTable();
+        refreshUnifiedReservationViews({ action: `flow:${action}`, reservation: res });
         window.openUnifiedResModal(res.id);
     };
     
@@ -2417,7 +2432,7 @@
         }
         const selectedRoom = (window.rooms || []).find(r => r.id === room || r.fullRoom === room || r.number === room || r.display === room || roomLabel(r) === room);
         const selectedIsCurrentRoom = !!(currentRes && selectedRoom && roomMatchesReservation(selectedRoom, currentRes));
-        if (!selectedIsCurrentRoom && roomConflictForDates(selectedRoom || { id: room }, dateRange.checkin, dateRange.checkout, currentRes)) {
+        if (!selectedIsCurrentRoom && !currentRes && roomConflictForDates(selectedRoom || { id: room }, dateRange.checkin, dateRange.checkout, currentRes)) {
             alert(actionText('booking.roomUnavailable'));
             return;
         }
@@ -2793,10 +2808,7 @@
         
         closeUnifiedResModal();
         
-        // 화면 재랜더링
-        if (typeof window.renderTable === 'function') window.renderTable();
-        if (typeof window.buildTimeline === 'function') window.buildTimeline();
-        if (typeof window.renderResTable === 'function') window.renderResTable();
+        refreshUnifiedReservationViews({ action: id ? 'reservation.update' : 'reservation.create', reservation: savedRes });
     };
 
     window.cancelUnifiedRes = async function() {
@@ -2848,8 +2860,7 @@
             
             closeUnifiedResModal();
 
-            if (typeof window.renderTable === 'function') window.renderTable();
-            if (typeof window.buildTimeline === 'function') window.buildTimeline();
+            refreshUnifiedReservationViews({ action: 'reservation.cancel', reservation: res });
         }
     };
 })();
