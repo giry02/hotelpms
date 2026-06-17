@@ -32,6 +32,12 @@
 .search-box-mt:focus-within { border-color: var(--primary); }
 .search-box-mt i { color: var(--txt3); font-size: .85rem; }
 .search-box-mt input { border: none; outline: none; font-family: var(--font); font-size: .82rem; color: var(--txt); width: 100%; background: transparent; padding: 0; margin: 0; }
+.folio-period-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.folio-date-range{display:none;align-items:center;gap:8px;flex-wrap:wrap}
+.folio-date-range.active{display:flex}
+.folio-date-input{height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;background:#fff;font-family:var(--font);font-size:.78rem;color:var(--txt);font-weight:700}
+.folio-period-note{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#f8fafc;border:1px solid var(--border2);color:var(--txt2);font-size:.74rem;font-weight:800;white-space:nowrap}
+.folio-period-note i{color:var(--primary)}
 #btnUnpaidToggle { margin-left: 12px; border: 1px solid var(--danger); color: var(--danger); background: transparent; display: flex; align-items: center; gap: 6px; }
 #btnUnpaidToggle.active { background: var(--danger) !important; color: #fff !important; }
 .folio-table { table-layout: fixed; min-width: 1350px; }
@@ -124,6 +130,14 @@
 .payment-history-row-main span{display:block;margin-top:2px;color:var(--txt2);font-size:.68rem;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .payment-history-row-amount{text-align:right;font-size:.74rem;font-weight:900;color:var(--primary);white-space:nowrap}
 .payment-history-empty{border:1px dashed var(--border);border-radius:8px;background:#fff;padding:10px;font-size:.74rem;font-weight:800;color:var(--txt3);text-align:center}
+.folio-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:#fff}
+.folio-page-info{font-size:.78rem;font-weight:800;color:var(--txt2)}
+.folio-page-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.folio-page-buttons{display:flex;align-items:center;gap:5px}
+.folio-page-btn{min-width:34px;height:34px;padding:0 9px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.78rem;font-weight:900;cursor:pointer}
+.folio-page-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.folio-page-btn:disabled{opacity:.45;cursor:not-allowed}
+.folio-page-size{height:34px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.76rem;font-weight:800;padding:0 8px}
 @media(max-width:768px){
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
     .filter-left { flex-direction: column; align-items: stretch; overflow: visible; gap: 10px; }
@@ -132,12 +146,16 @@
     .filter-left > div[style*="display:flex"]:not(.filter-chips) .btn-primary-sm { flex: 0 0 82px; justify-content: center; padding-inline: 10px !important; }
     .filter-chips { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; margin-right: 0 !important; }
     .filter-chips .chip { justify-content: center; min-width: 0; padding-inline: 8px; }
+    .folio-period-tools,.folio-date-range{width:100%}
+    .folio-date-input{flex:1;min-width:0}
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
     .folio-breakdown{min-width:0}
     .payment-currency-grid{grid-template-columns:1fr}
     .payment-history-summary{grid-template-columns:1fr}
     .payment-history-row{grid-template-columns:1fr;gap:5px}
     .payment-history-row-amount{text-align:left}
+    .folio-pagination{flex-direction:column;align-items:stretch}
+    .folio-page-controls{justify-content:space-between}
 }
 </style>
 </head>
@@ -152,27 +170,18 @@
             <div class="filter-left" style="flex-wrap:wrap">
                 <div class="filter-chips" style="margin-right:10px">
                     <button class="chip active" onclick="setKpiPeriod(this, 'day')">금일</button>
-                    <button class="chip" onclick="setKpiPeriod(this, 'week')">주별</button>
-                    <button class="chip" onclick="setKpiPeriod(this, 'month')">월별</button>
-                    <button class="chip" onclick="setKpiPeriod(this, 'year')">년도별</button>
+                    <button class="chip" onclick="setKpiPeriod(this, 'week')">주간</button>
+                    <button class="chip" onclick="setKpiPeriod(this, 'month')">월간</button>
+                    <button class="chip" onclick="setKpiPeriod(this, 'custom')">기간 선택</button>
                 </div>
-                <div style="display:flex;gap:10px;align-items:center">
-                    <select id="selYear" class="hotel-select" onchange="handleFolioPeriodChange()" style="display:none;width:100px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
-                        <option>2026년</option>
-                        <option>2025년</option>
-                    </select>
-                    <select id="selMonth" class="hotel-select" onchange="handleFolioPeriodChange()" style="display:none;width:80px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
-                        <option>6월</option>
-                        <option>5월</option>
-                        <option>4월</option>
-                        <option>3월</option>
-                    </select>
-                    <select id="selWeek" class="hotel-select" onchange="handleFolioPeriodChange()" style="display:none;width:90px;height:36px;border:1px solid var(--border);border-radius:4px;padding:0 10px;background:#fff;font-family:var(--font)">
-                        <option>1주차</option>
-                        <option selected>2주차</option>
-                        <option>3주차</option>
-                        <option>4주차</option>
-                    </select>
+                <div class="folio-period-tools">
+                    <div class="folio-date-range" id="folioCustomRange">
+                        <input type="date" id="folioStartDate" class="folio-date-input" onchange="handleFolioPeriodChange()">
+                        <span style="color:var(--txt3);font-weight:900">~</span>
+                        <input type="date" id="folioEndDate" class="folio-date-input" onchange="handleFolioPeriodChange()">
+                        <button class="btn-primary-sm" style="height:36px;padding:0 13px;border-radius:8px" onclick="handleFolioPeriodChange()">적용</button>
+                    </div>
+                    <span class="folio-period-note" id="folioPeriodLabel"><i class="fa-solid fa-calendar-day"></i> 금일 정산</span>
                 </div>
             </div>
         </div>
@@ -192,9 +201,9 @@
                 <div style="display:flex;align-items:center;gap:8px">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="searchInput" placeholder="객실번호, 고객명, 정산번호 검색..." onkeydown="if(event.key==='Enter') renderFolios()">
+                        <input type="text" id="searchInput" placeholder="객실번호, 고객명, 정산번호 검색..." onkeydown="if(event.key==='Enter') applyFolioSearch()">
                     </div>
-                    <button class="btn-primary-sm" style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap" onclick="renderFolios()">
+                    <button class="btn-primary-sm" style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap" onclick="applyFolioSearch()">
                         <i class="fa-solid fa-magnifying-glass"></i> 검색
                     </button>
                 </div>
@@ -242,6 +251,19 @@
 
         <!-- CARDS (mobile) -->
         <div class="mobile-cards mobile-only" id="folioMobile"></div>
+        <div class="folio-pagination" id="folioPagination">
+            <div class="folio-page-info" id="folioPageInfo">총 0건</div>
+            <div class="folio-page-controls">
+                <select id="folioPageSize" class="folio-page-size" onchange="setFolioPageSize(this.value)">
+                    <option value="10">10건씩</option>
+                    <option value="20" selected>20건씩</option>
+                    <option value="50">50건씩</option>
+                </select>
+                <button class="folio-page-btn" id="folioPrevPage" onclick="changeFolioPage(-1)" aria-label="이전 페이지"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="folio-page-buttons" id="folioPageButtons"></div>
+                <button class="folio-page-btn" id="folioNextPage" onclick="changeFolioPage(1)" aria-label="다음 페이지"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -341,7 +363,7 @@ const kpiData = {
     'day': { total:'$22,970', room:'$18,240', anc:'$3,450', diff:'+12.4%', label:'전일 대비' },
     'week': { total:'$164,250', room:'$131,000', anc:'$22,800', diff:'+5.8%', label:'전주 대비' },
     'month': { total:'$690,000', room:'$560,000', anc:'$95,000', diff:'+18.2%', label:'전월 대비' },
-    'year': { total:'$3,140,000', room:'$2,450,000', anc:'$520,000', diff:'+18.2%', label:'전년 대비' }
+    'custom': { total:'$0', room:'$0', anc:'$0', diff:'-', label:'이전 기간 대비' }
 };
 
 let apiFolios = [];
@@ -351,6 +373,8 @@ let folioGroups = [];
 let currentPaymentFolioId = '';
 let currentInvoiceIndex = -1;
 let currentInvoiceScope = 'all';
+let folioCurrentPage = 1;
+let folioPageSize = 20;
 
 const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
 const SETTLEMENT_COMPLETIONS_KEY = 'pms_settlement_completions';
@@ -1442,25 +1466,62 @@ function formatDateObject(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+function formatShortDate(date) {
+    if (!date) return '-';
+    return `${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function addDays(date, days) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    next.setHours(0, 0, 0, 0);
+    return next;
+}
+
+function rangeLengthDays(range) {
+    if (!range?.start || !range?.end) return 0;
+    return Math.max(0, Math.round((range.end - range.start) / 86400000));
+}
+
+function inputDateValue(id) {
+    const value = document.getElementById(id)?.value || '';
+    return dateOnly(value);
+}
+
+function normalizedRange(start, end) {
+    const safeStart = start || new Date(CURRENT_FOLIO_DATE);
+    const safeEnd = end || safeStart;
+    if (safeStart > safeEnd) return { start: safeEnd, end: safeStart };
+    return { start: safeStart, end: safeEnd };
+}
+
 function selectedPeriodRange() {
-    const year = selectedNumber('selYear', CURRENT_FOLIO_PERIOD.year);
-    const month = selectedNumber('selMonth', CURRENT_FOLIO_PERIOD.month);
-    const week = selectedNumber('selWeek', CURRENT_FOLIO_PERIOD.week);
-    if (currentPeriod === 'year') {
-        return { start: new Date(year, 0, 1), end: new Date(year, 11, 31) };
-    }
     if (currentPeriod === 'month') {
-        return { start: new Date(year, month - 1, 1), end: new Date(year, month, 0) };
+        return { start: new Date(CURRENT_FOLIO_PERIOD.year, CURRENT_FOLIO_PERIOD.month - 1, 1), end: new Date(CURRENT_FOLIO_DATE) };
     }
     if (currentPeriod === 'week') {
-        const start = new Date(year, month - 1, 1 + ((week - 1) * 7));
-        const end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        const monthEnd = new Date(year, month, 0);
-        return { start, end: end > monthEnd ? monthEnd : end };
+        return { start: addDays(CURRENT_FOLIO_DATE, -6), end: new Date(CURRENT_FOLIO_DATE) };
+    }
+    if (currentPeriod === 'custom') {
+        return normalizedRange(inputDateValue('folioStartDate'), inputDateValue('folioEndDate'));
     }
     const day = new Date(CURRENT_FOLIO_PERIOD.year, CURRENT_FOLIO_PERIOD.month - 1, CURRENT_FOLIO_PERIOD.day);
     return { start: day, end: day };
+}
+
+function periodLabelText() {
+    const range = selectedPeriodRange();
+    if (currentPeriod === 'day') return `금일 정산 · ${formatShortDate(range.start)}`;
+    if (currentPeriod === 'week') return `최근 7일 · ${formatShortDate(range.start)} ~ ${formatShortDate(range.end)}`;
+    if (currentPeriod === 'month') return `월간 누적 · ${formatShortDate(range.start)} ~ ${formatShortDate(range.end)}`;
+    return `선택 기간 · ${formatShortDate(range.start)} ~ ${formatShortDate(range.end)}`;
+}
+
+function updateFolioPeriodControls() {
+    const customRange = document.getElementById('folioCustomRange');
+    if (customRange) customRange.classList.toggle('active', currentPeriod === 'custom');
+    const label = document.getElementById('folioPeriodLabel');
+    if (label) label.innerHTML = `<i class="fa-solid fa-calendar-day"></i> ${periodLabelText()}`;
 }
 
 function rangesOverlap(aStart, aEnd, bStart, bEnd) {
@@ -1485,10 +1546,20 @@ function setSelectByNumber(id, number) {
 }
 
 function resetToCurrentFolioPeriod(period) {
-    if (period === 'year') return;
-    setSelectByNumber('selYear', CURRENT_FOLIO_PERIOD.year);
-    setSelectByNumber('selMonth', CURRENT_FOLIO_PERIOD.month);
-    if (period === 'week') setSelectByNumber('selWeek', CURRENT_FOLIO_PERIOD.week);
+    if (period === 'custom') {
+        const endInput = document.getElementById('folioEndDate');
+        const startInput = document.getElementById('folioStartDate');
+        if (startInput && !startInput.value) startInput.value = formatDateObject(addDays(CURRENT_FOLIO_DATE, -6));
+        if (endInput && !endInput.value) endInput.value = formatDateObject(CURRENT_FOLIO_DATE);
+    }
+}
+
+function initializeFolioPeriodControls() {
+    const startInput = document.getElementById('folioStartDate');
+    const endInput = document.getElementById('folioEndDate');
+    if (startInput) startInput.value = formatDateObject(addDays(CURRENT_FOLIO_DATE, -6));
+    if (endInput) endInput.value = formatDateObject(CURRENT_FOLIO_DATE);
+    updateFolioPeriodControls();
 }
 
 function folioPeriodDate(folio) {
@@ -1510,19 +1581,15 @@ function periodMatchesFolio(folio) {
         const group = groupById(folio.groupId);
         if (group && periodMatchesGroup(group)) return true;
     }
-    const parts = folioDateParts(folio);
-    const year = selectedNumber('selYear', 2026);
-    const month = selectedNumber('selMonth', 6);
-    const week = selectedNumber('selWeek', 2);
-    if (currentPeriod === 'year') return parts.year === year;
-    if (currentPeriod === 'month') return parts.year === year && parts.month === month;
-    if (currentPeriod === 'week') return parts.year === year && parts.month === month && folioWeekOfMonth(folio) === week;
-    return parts.year === CURRENT_FOLIO_PERIOD.year && parts.month === CURRENT_FOLIO_PERIOD.month && parts.day === CURRENT_FOLIO_PERIOD.day;
+    const date = dateOnly(folioPeriodDate(folio));
+    const range = selectedPeriodRange();
+    return !!date && date >= range.start && date <= range.end;
 }
 
 function periodFolios() {
-    const source = apiFolios.length ? apiFolios : (foliosData[currentPeriod] || []);
-    const rows = apiFolios.length ? source.filter(periodMatchesFolio) : source;
+    const fallbackRows = Object.values(foliosData).flat();
+    const source = apiFolios.length ? apiFolios : fallbackRows;
+    const rows = source.filter(periodMatchesFolio);
     const enriched = rows.map(enrichFolioWithReservation).map(enrichFolioWithGroup);
     const synthetic = reservationSettlementFolios();
     const existingKeys = new Set(enriched.map(folio => folio.id));
@@ -1538,15 +1605,13 @@ function periodFolios() {
 
 function comparePeriodFolios() {
     if (!apiFolios.length) return [];
-    const year = selectedNumber('selYear', 2026);
-    const month = selectedNumber('selMonth', 6);
-    const week = selectedNumber('selWeek', 2);
+    const range = selectedPeriodRange();
+    const days = rangeLengthDays(range);
+    const prevEnd = addDays(range.start, -1);
+    const prevStart = addDays(prevEnd, -days);
     return apiFolios.filter(folio => {
-        const parts = folioDateParts(folio);
-        if (currentPeriod === 'year') return parts.year === year - 1;
-        if (currentPeriod === 'month') return parts.year === year && parts.month === month - 1;
-        if (currentPeriod === 'week') return parts.year === year && parts.month === month && folioWeekOfMonth(folio) === week - 1;
-        return parts.year === CURRENT_FOLIO_PERIOD.year && parts.month === CURRENT_FOLIO_PERIOD.month && parts.day === CURRENT_FOLIO_PERIOD.day - 1;
+        const date = dateOnly(folioPeriodDate(folio));
+        return !!date && date >= prevStart && date <= prevEnd;
     });
 }
 
@@ -1634,7 +1699,6 @@ function mapApiFolio(item) {
 }
 
 function updateApiKpis() {
-    if (!apiFolios.length) return false;
     const rows = periodFolios();
     const totals = rows.reduce((acc, folio) => {
         acc.total += folio.total;
@@ -1642,7 +1706,7 @@ function updateApiKpis() {
         acc.anc += folio.ancillaryRevenue || 0;
         return acc;
     }, { total: 0, room: 0, anc: 0 });
-    const currency = apiFolios[0]?.currency || localStorage.getItem('pms_default_currency') || 'PHP';
+    const currency = rows[0]?.currency || apiFolios[0]?.currency || localStorage.getItem('pms_default_currency') || 'PHP';
     document.getElementById('kpiTotal').textContent = fmtMoney(totals.total, currency);
     document.getElementById('kpiRoom').textContent = fmtMoney(totals.room, currency);
     document.getElementById('kpiAnc').textContent = fmtMoney(totals.anc, currency);
@@ -1718,28 +1782,25 @@ async function loadGroupSettlementLinks() {
 
 function setKpiPeriod(btn, period) {
     currentPeriod = period;
+    folioCurrentPage = 1;
     clearUnpaidFilter();
     btn.parentElement.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     resetToCurrentFolioPeriod(period);
-    
-    document.getElementById('selYear').style.display = (period === 'day') ? 'none' : 'inline-block';
-    document.getElementById('selMonth').style.display = (period === 'week' || period === 'month') ? 'inline-block' : 'none';
-    document.getElementById('selWeek').style.display = (period === 'week') ? 'inline-block' : 'none';
-    
-    if (!updateApiKpis()) {
-        document.getElementById('kpiTotal').textContent = kpiData[period].total;
-        document.getElementById('kpiRoom').textContent = kpiData[period].room;
-        document.getElementById('kpiAnc').textContent = kpiData[period].anc;
-        document.getElementById('kpiDiff').textContent = kpiData[period].diff;
-        document.getElementById('kpiDiff').nextElementSibling.textContent = kpiData[period].label;
-    }
-    
+    updateFolioPeriodControls();
+    updateApiKpis();
     renderFolios();
 }
 
 function handleFolioPeriodChange() {
+    currentPeriod = 'custom';
+    folioCurrentPage = 1;
     clearUnpaidFilter();
+    document.querySelectorAll('.filter-chips .chip').forEach(button => {
+        if (button.textContent.trim() === '기간 선택') button.classList.add('active');
+        else if (['금일', '주간', '월간'].includes(button.textContent.trim())) button.classList.remove('active');
+    });
+    updateFolioPeriodControls();
     updateApiKpis();
     renderFolios();
 }
@@ -1758,6 +1819,7 @@ function clearUnpaidFilter() {
 function toggleUnpaidOnly() {
     const checkbox = document.getElementById('chkUnpaid');
     setUnpaidFilter(!(checkbox && checkbox.checked));
+    folioCurrentPage = 1;
     renderFolios();
 }
 
@@ -1790,10 +1852,10 @@ function folioActionsHtml(folio, index, mode = 'table') {
     return buttons.join('');
 }
 
-function renderFolios() {
+function filteredFoliosForCurrentView() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const folios = periodFolios();
-    const filtered = folios.filter(f => {
+    return folios.filter(f => {
         const showUnpaidOnly = document.getElementById('chkUnpaid') ? document.getElementById('chkUnpaid').checked : false;
         if (typeof currentDept !== 'undefined' && currentDept !== 'all' && !folioHasDept(f, currentDept)) return false;
         if (showUnpaidOnly && f.bal <= 0) return false;
@@ -1814,12 +1876,74 @@ function renderFolios() {
         if (search && !haystack.includes(search)) return false;
         return true;
     });
+}
+
+function renderFolioPagination(totalCount) {
+    const totalPages = Math.max(1, Math.ceil(totalCount / folioPageSize));
+    folioCurrentPage = Math.min(Math.max(1, folioCurrentPage), totalPages);
+    const startNo = totalCount ? ((folioCurrentPage - 1) * folioPageSize) + 1 : 0;
+    const endNo = Math.min(totalCount, folioCurrentPage * folioPageSize);
+    const info = document.getElementById('folioPageInfo');
+    if (info) info.textContent = `총 ${totalCount.toLocaleString()}건 · ${startNo.toLocaleString()}-${endNo.toLocaleString()} 표시`;
+    const prev = document.getElementById('folioPrevPage');
+    const next = document.getElementById('folioNextPage');
+    if (prev) prev.disabled = folioCurrentPage <= 1;
+    if (next) next.disabled = folioCurrentPage >= totalPages;
+
+    const buttons = document.getElementById('folioPageButtons');
+    if (!buttons) return;
+    const pages = [];
+    const windowSize = 5;
+    let start = Math.max(1, folioCurrentPage - Math.floor(windowSize / 2));
+    const end = Math.min(totalPages, start + windowSize - 1);
+    start = Math.max(1, end - windowSize + 1);
+    for (let page = start; page <= end; page += 1) pages.push(page);
+    buttons.innerHTML = pages.map(page => `
+        <button class="folio-page-btn${page === folioCurrentPage ? ' active' : ''}" onclick="goFolioPage(${page})">${page}</button>
+    `).join('');
+}
+
+function changeFolioPage(delta) {
+    folioCurrentPage += Number(delta || 0);
+    renderFolios();
+}
+
+function goFolioPage(page) {
+    folioCurrentPage = Number(page || 1);
+    renderFolios();
+}
+
+function setFolioPageSize(value) {
+    folioPageSize = Number(value || 20);
+    folioCurrentPage = 1;
+    renderFolios();
+}
+
+function applyFolioSearch() {
+    folioCurrentPage = 1;
+    renderFolios();
+}
+
+function renderFolios() {
+    const filtered = filteredFoliosForCurrentView();
     visibleFolios = filtered;
+    const totalPages = Math.max(1, Math.ceil(filtered.length / folioPageSize));
+    folioCurrentPage = Math.min(Math.max(1, folioCurrentPage), totalPages);
+    const pageStart = (folioCurrentPage - 1) * folioPageSize;
+    const pagedFolios = filtered.slice(pageStart, pageStart + folioPageSize);
 
     const tbody = document.getElementById('folioBody');
     const mobile = document.getElementById('folioMobile');
+    renderFolioPagination(filtered.length);
 
-    tbody.innerHTML = filtered.map((f, index) => {
+    if (!pagedFolios.length) {
+        tbody.innerHTML = `<tr><td colspan="10" style="padding:34px;text-align:center;color:var(--txt3);font-weight:800">선택한 기간에 표시할 정산 내역이 없습니다.</td></tr>`;
+        mobile.innerHTML = `<div class="m-res-card" style="text-align:center;color:var(--txt3);font-weight:800">선택한 기간에 표시할 정산 내역이 없습니다.</div>`;
+        return;
+    }
+
+    tbody.innerHTML = pagedFolios.map((f, pageIndex) => {
+        const index = pageStart + pageIndex;
         const s = stMap[f.status] || stMap.unpaid;
         const balColor = f.bal > 0 ? 'var(--danger)' : 'var(--txt)';
         const depositAmount = folioDepositValue(f);
@@ -1842,7 +1966,8 @@ function renderFolios() {
         </tr>`;
     }).join('');
 
-    mobile.innerHTML = filtered.map((f, index) => {
+    mobile.innerHTML = pagedFolios.map((f, pageIndex) => {
+        const index = pageStart + pageIndex;
         const s = stMap[f.status] || stMap.unpaid;
         const depositAmount = folioDepositValue(f);
         return `<div class="m-res-card" role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
@@ -1875,6 +2000,7 @@ function renderFolios() {
 
 function setDept(btn, dept) {
     currentDept = dept;
+    folioCurrentPage = 1;
     clearUnpaidFilter();
     btn.parentElement.querySelectorAll('.dept-chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
@@ -1882,6 +2008,7 @@ function setDept(btn, dept) {
 }
 
 
+initializeFolioPeriodControls();
 renderFolios();
 loadApiFolios();
 loadReservationSettlementLinks();
