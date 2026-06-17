@@ -85,6 +85,16 @@
 .invoice-scope-tab{height:30px;padding:0 10px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--txt2);font-size:.72rem;font-weight:900;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .invoice-scope-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .invoice-subtitle{font-family:var(--font);font-size:.78rem;color:var(--txt2);text-align:center;margin-top:-10px;margin-bottom:14px;font-weight:800}
+.invoice-payment-section{font-family:var(--font);margin-top:12px}
+.invoice-payment-title{display:flex;align-items:center;gap:7px;font-size:.9rem;font-weight:900;margin-bottom:7px;color:var(--txt)}
+.invoice-payment-note{font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:8px;line-height:1.45}
+.invoice-payment-table{width:100%;border-collapse:collapse;border:1px solid var(--border2);border-radius:8px;overflow:hidden;font-size:.72rem;table-layout:fixed}
+.invoice-payment-table th,.invoice-payment-table td{padding:7px 8px;border-bottom:1px solid var(--border2);text-align:left;vertical-align:top;line-height:1.35;overflow-wrap:anywhere}
+.invoice-payment-table th{background:#f8fafc;color:var(--txt2);font-weight:900;white-space:normal}
+.invoice-payment-table tr:last-child td{border-bottom:0}
+.invoice-payment-php{text-align:right;white-space:nowrap;font-weight:900}
+.invoice-payment-actual{font-weight:800;color:var(--primary)}
+.invoice-payment-empty{border:1px dashed var(--border2);border-radius:8px;padding:10px;color:var(--txt3);font-size:.76rem;font-weight:800;background:#f8fafc}
 .payment-currency-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .payment-currency-field{display:flex;flex-direction:column;gap:5px}
 .payment-currency-field label{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;font-weight:900;color:var(--txt2)}
@@ -850,6 +860,50 @@ function folioForInvoiceScope(folio, scope) {
         invoiceScope: dept,
         invoiceScopeLabel: invoiceScopeLabel(dept)
     };
+}
+
+function paymentRecordsForInvoice(folio, scope) {
+    if (!folio || scope !== 'all') return [];
+    return Array.isArray(folio.settlementPaymentRecords) ? folio.settlementPaymentRecords : [];
+}
+
+function invoicePaymentDetailsHtml(records = [], currency = 'PHP') {
+    if (!records.length) {
+        return `
+        <div class="invoice-payment-section">
+            <div class="invoice-payment-title"><i class="fa-solid fa-receipt"></i> 실제 수납 내역</div>
+            <div class="invoice-payment-empty">등록된 수납/예치 기록이 없습니다.</div>
+        </div>`;
+    }
+    return `
+    <div class="invoice-payment-section">
+        <div class="invoice-payment-title"><i class="fa-solid fa-receipt"></i> 실제 수납 내역</div>
+        <div class="invoice-payment-note">명세서 합계는 페소 기준으로 표시하고, 실제 받은 금액은 아래 통화별 수납 기록으로 별도 확인합니다.</div>
+        <table class="invoice-payment-table">
+            <thead>
+                <tr>
+                    <th>일시</th>
+                    <th>구분</th>
+                    <th>수단</th>
+                    <th>정산 반영</th>
+                    <th>실제 수납 통화</th>
+                    <th>담당/메모</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${records.map(item => `
+                    <tr>
+                        <td>${escapeHtml(formatDateTime(item.createdAt))}</td>
+                        <td>${escapeHtml(item.kind === 'deposit' ? '예치금' : '정산 결제')}</td>
+                        <td>${escapeHtml(item.methodLabel || item.method || '-')}</td>
+                        <td class="invoice-payment-php">${fmtInvoiceMoney(item.appliedPhpAmount, currency)}</td>
+                        <td class="invoice-payment-actual" data-no-currency-normalize="true">${escapeHtml(formatPaymentBreakdown(paymentBreakdownForRecord(item)))}</td>
+                        <td>${escapeHtml([item.operator, item.note].filter(Boolean).join(' / ') || '-')}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    </div>`;
 }
 
 function splitInvoiceAmount(total, ratios) {
@@ -1821,17 +1875,9 @@ function renderInvoiceModal() {
     `).join('');
     const paidPrefix = Number(scopedFolio.paid || 0) > 0 ? '-' : '';
     const depositAmount = folioDepositValue(scopedFolio);
-    const paymentRecordsHtml = (scopedFolio.settlementPaymentRecords || []).length && currentInvoiceScope === 'all'
-        ? `
-        <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
-        <div style="font-weight:700;margin-bottom:4px">수납/예치 기록</div>
-        ${(scopedFolio.settlementPaymentRecords || []).map(item => `
-            <div style="display:flex;justify-content:space-between;gap:12px;font-size:.82rem">
-                <span>${escapeHtml(item.kind === 'deposit' ? '예치금' : '정산 결제')} · <span data-no-currency-normalize="true">${escapeHtml(formatPaymentBreakdown(paymentBreakdownForRecord(item)))}</span> (${escapeHtml(item.methodLabel || item.method || '-')})</span>
-                <span>${fmtInvoiceMoney(item.appliedPhpAmount, currency)}</span>
-            </div>
-        `).join('')}
-        ` : '';
+    const paymentRecordsHtml = currentInvoiceScope === 'all'
+        ? `<hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">${invoicePaymentDetailsHtml(paymentRecordsForInvoice(folio, currentInvoiceScope), currency)}`
+        : '';
     content.innerHTML = `
         ${invoiceScopeTabsHtml(folio, currentInvoiceScope)}
         <div class="invoice-title" style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${escapeHtml(invoiceTitleForFolio(scopedFolio))}</div>
@@ -1877,6 +1923,14 @@ function printCurrentInvoice() {
                 body{font-family:'Inter','Noto Sans KR',sans-serif;margin:32px;color:#111827}
                 button,.invoice-scope-tabs{display:none!important}
                 hr{border:0;border-top:1px dashed #d1d5db;margin:12px 0}
+                .invoice-payment-section{font-family:'Inter','Noto Sans KR',sans-serif;margin-top:12px}
+                .invoice-payment-title{font-weight:800;margin-bottom:6px}
+                .invoice-payment-note{font-size:12px;color:#6b7280;margin-bottom:8px}
+                .invoice-payment-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+                .invoice-payment-table th,.invoice-payment-table td{padding:6px;border:1px solid #e5e7eb;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+                .invoice-payment-table th{background:#f8fafc}
+                .invoice-payment-php{text-align:right;white-space:nowrap;font-weight:800}
+                .invoice-payment-actual{font-weight:800;color:#2563eb}
             </style>
         </head>
         <body>${content}</body>
