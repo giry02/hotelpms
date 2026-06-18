@@ -983,50 +983,6 @@ function folioForInvoiceScope(folio, scope) {
     };
 }
 
-function paymentRecordsForInvoice(folio, scope) {
-    if (!folio || scope !== 'all') return [];
-    return Array.isArray(folio.settlementPaymentRecords) ? folio.settlementPaymentRecords : [];
-}
-
-function invoicePaymentDetailsHtml(records = [], currency = 'PHP') {
-    if (!records.length) {
-        return `
-        <div class="invoice-payment-section">
-            <div class="invoice-payment-title"><i class="fa-solid fa-receipt"></i> 실제 수납 내역</div>
-            <div class="invoice-payment-empty">등록된 수납/예치 기록이 없습니다.</div>
-        </div>`;
-    }
-    return `
-    <div class="invoice-payment-section">
-        <div class="invoice-payment-title"><i class="fa-solid fa-receipt"></i> 실제 수납 내역</div>
-        <div class="invoice-payment-note">명세서 합계는 페소 기준으로 표시하고, 실제 받은 금액은 아래 통화별 수납 기록으로 별도 확인합니다.</div>
-        <table class="invoice-payment-table">
-            <thead>
-                <tr>
-                    <th>일시</th>
-                    <th>구분</th>
-                    <th>수단</th>
-                    <th>정산 반영</th>
-                    <th>실제 수납 통화</th>
-                    <th>담당/메모</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${records.map(item => `
-                    <tr>
-                        <td>${escapeHtml(formatDateTime(item.createdAt))}</td>
-                        <td>${escapeHtml(item.kind === 'deposit' ? '예치금' : '정산 결제')}</td>
-                        <td>${escapeHtml(item.methodLabel || item.method || '-')}</td>
-                        <td class="invoice-payment-php">${fmtInvoiceMoney(item.appliedPhpAmount, currency)}</td>
-                        <td class="invoice-payment-actual" data-no-currency-normalize="true">${escapeHtml(formatPaymentBreakdown(paymentBreakdownForRecord(item)))}</td>
-                        <td>${escapeHtml([item.operator, item.note].filter(Boolean).join(' / ') || '-')}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    </div>`;
-}
-
 function splitInvoiceAmount(total, ratios) {
     const base = Number(total || 0);
     let used = 0;
@@ -2129,9 +2085,6 @@ function renderInvoiceModal() {
     `).join('');
     const paidPrefix = Number(scopedFolio.paid || 0) > 0 ? '-' : '';
     const depositAmount = folioDepositValue(scopedFolio);
-    const paymentRecordsHtml = currentInvoiceScope === 'all'
-        ? `<hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">${invoicePaymentDetailsHtml(paymentRecordsForInvoice(folio, currentInvoiceScope), currency)}`
-        : '';
     content.innerHTML = `
         ${invoiceScopeTabsHtml(folio, currentInvoiceScope)}
         <div class="invoice-title" style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${escapeHtml(invoiceTitleForFolio(scopedFolio))}</div>
@@ -2147,7 +2100,6 @@ function renderInvoiceModal() {
         <div style="display:flex;justify-content:space-between"><span>결제액</span><span>${paidPrefix}${fmtInvoiceMoney(scopedFolio.paid, currency)}</span></div>
         <div style="display:flex;justify-content:space-between"><span>예치금</span><span>${fmtInvoiceMoney(depositAmount, currency)}</span></div>
         <div style="display:flex;justify-content:space-between;color:${scopedFolio.bal > 0 ? 'var(--danger)' : 'var(--success)'};font-weight:700;margin-top:8px"><span>미수금 잔액</span><span>${fmtInvoiceMoney(scopedFolio.bal, currency)}</span></div>
-        ${paymentRecordsHtml}
     `;
 }
 
