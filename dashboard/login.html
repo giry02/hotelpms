@@ -12,12 +12,13 @@
     <script src="common/js/ui-components.js"></script>
     <script src="common/js/topbar.js"></script>
 </head>
-<body>
+<body class="login-focus">
 
 <!-- LEFT HERO -->
 <div class="login-hero">
     <div class="hero-content">
         <div class="hero-logo">H</div>
+        <div class="hero-scene" id="heroSceneLabel">호텔 포커스 배경</div>
         <h1 class="hero-title">HOTEL PMS</h1>
         <p class="hero-sub">동남아시아 호텔을 위한 올인원 클라우드 운영 시스템. 예약, 고객 관리, 정산을 하나로.</p>
         <div class="hero-features">
@@ -27,7 +28,7 @@
             <div class="hero-feat"><i class="fa-solid fa-chart-pie"></i> 실시간 주요 지표 대시보드</div>
         </div>
     </div>
-    <div class="hero-dots"><span class="active"></span><span></span><span></span></div>
+    <div class="hero-dots" id="heroThemeDots"><span></span><span></span><span></span><span></span><span></span></div>
 </div>
 
 <!-- RIGHT PANEL -->
@@ -449,6 +450,43 @@ const translations = {
 };
 
 let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+let activeLoginTheme = null;
+
+const loginFocusThemes = [
+    { key:'golf', label:{ ko:'골프장 배경', en:'Golf course view' } },
+    { key:'beach', label:{ ko:'해변 배경', en:'Beach view' } },
+    { key:'resort', label:{ ko:'리조트 배경', en:'Resort view' } },
+    { key:'green', label:{ ko:'그린 풍경 배경', en:'Green landscape view' } },
+    { key:'night', label:{ ko:'필리핀 야경 배경', en:'Philippines night view' } }
+];
+
+function applyRandomLoginTheme() {
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('theme');
+    const theme = loginFocusThemes.find(item => item.key === requested)
+        || loginFocusThemes[Math.floor(Math.random() * loginFocusThemes.length)];
+    activeLoginTheme = theme;
+    document.body.classList.remove(...loginFocusThemes.map(item => `login-theme-${item.key}`));
+    document.body.classList.add('login-focus', `login-theme-${theme.key}`);
+    document.body.dataset.loginTheme = theme.key;
+    updateLoginThemeCopy();
+    updateLoginThemeDots();
+}
+
+function updateLoginThemeCopy() {
+    if (!activeLoginTheme) return;
+    const label = document.getElementById('heroSceneLabel');
+    if (label) label.textContent = activeLoginTheme.label[currentLang] || activeLoginTheme.label.ko;
+}
+
+function updateLoginThemeDots() {
+    const dots = document.querySelectorAll('#heroThemeDots span');
+    dots.forEach((dot, index) => {
+        const theme = loginFocusThemes[index];
+        dot.classList.toggle('active', theme?.key === activeLoginTheme?.key);
+        dot.title = theme?.label[currentLang] || theme?.label.ko || '';
+    });
+}
 
 function setupI18n() {
     const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
@@ -524,9 +562,12 @@ function changeLang(lang) {
             : ['직접 신청','영업 담당자 안내','기존 호텔 추천','기타'];
         Array.from(source.options).forEach((opt,idx)=>{opt.textContent=labels[idx] || opt.textContent});
     }
+    updateLoginThemeCopy();
+    updateLoginThemeDots();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    applyRandomLoginTheme();
     setupI18n();
     changeLang(currentLang);
 });
