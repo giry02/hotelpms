@@ -96,10 +96,10 @@
                 {
                     icon: 'fa-clipboard-list', label: 'Operation Logs', id: 'operationLogs', key: 'operationLogs',
                     roles: ['sys_admin', 'sys_gm', 'sys_desk'],
-                    mainHref: BASE + 'operations/night-audit.html#history',
+                    mainHref: BASE + 'operations/closing-log.html',
                     children: [
                         { label: 'Audit Log', href: BASE + 'settings/audit-logs.html', key: 'operationLogs.audit', roles: ['sys_admin'] },
-                        { label: 'Close Log', href: BASE + 'operations/night-audit.html#history', key: 'operationLogs.close', roles: ['sys_admin', 'sys_gm', 'sys_desk'] },
+                        { label: 'Close Log', href: BASE + 'operations/closing-log.html', key: 'operationLogs.close', roles: ['sys_admin', 'sys_gm', 'sys_desk'] },
                     ]
                 },
             ]
@@ -191,6 +191,7 @@
         'reports.html': 'folio.reports',
         'folio.html': 'folio.list',
         'night-audit.html': 'folio.night-audit',
+        'closing-log.html': 'operationLogs.close',
         'unified-pos.html': 'ancillary.pos',
         'golf.html': 'ancillary.golf',
         'rentacar.html': 'ancillary.rentacar',
