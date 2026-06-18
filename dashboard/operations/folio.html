@@ -38,7 +38,7 @@
 .folio-date-input{height:36px;border:1px solid var(--border);border-radius:8px;padding:0 10px;background:#fff;font-family:var(--font);font-size:.78rem;color:var(--txt);font-weight:700}
 .folio-period-note{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#f8fafc;border:1px solid var(--border2);color:var(--txt2);font-size:.74rem;font-weight:800;white-space:nowrap}
 .folio-period-note i{color:var(--primary)}
-#btnUnpaidToggle { margin-left: 12px; border: 1px solid var(--danger); color: var(--danger); background: transparent; display: flex; align-items: center; gap: 6px; }
+#btnUnpaidToggle { margin-left: 0; border: 1px solid var(--danger); color: var(--danger); background: transparent; display: flex; align-items: center; gap: 6px; }
 #btnUnpaidToggle.active { background: var(--danger) !important; color: #fff !important; }
 .folio-table { table-layout: fixed; min-width: 1350px; }
 .folio-table th, .folio-table td { overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
@@ -226,12 +226,8 @@
                     </button>
                 </div>
                 <div class="filter-chips" style="display:flex; align-items:center; gap:8px">
-                    <button class="chip dept-chip active" onclick="setDept(this,'all')">전체</button>
-                    <button class="chip dept-chip" onclick="setDept(this,'room')">객실</button>
-                    <button class="chip dept-chip" onclick="setDept(this,'pos')">통합 포스</button>
-                    <button class="chip dept-chip" onclick="setDept(this,'golf')">골프장</button>
-                    <button class="chip dept-chip" onclick="setDept(this,'car')">렌터카</button>
-                    <button class="chip dept-chip" onclick="setDept(this,'group')">단체</button>
+                    <button class="chip dept-chip active" onclick="setDept(this,'individual')"><i class="fa-solid fa-user"></i> 개인</button>
+                    <button class="chip dept-chip" onclick="setDept(this,'group')"><i class="fa-solid fa-people-group"></i> 단체</button>
                     
                     <button class="chip" id="btnUnpaidToggle" onclick="toggleUnpaidOnly()"><i class="fa-solid fa-exclamation-circle"></i> <span data-i18n-key="folio.filter.hasOutstanding">미수금 있음</span></button>
 <input type="checkbox" id="chkUnpaid" style="display:none;">
@@ -374,7 +370,7 @@ const stMap = {
     'group': { label:'단체 관리', badge:'confirmed' }
 };
 
-let currentDept = 'all';
+let currentDept = 'individual';
 let currentPeriod = 'day';
 
 const kpiData = {
@@ -1876,7 +1872,8 @@ function filteredFoliosForCurrentView() {
     const folios = periodFolios();
     return folios.filter(f => {
         const showUnpaidOnly = document.getElementById('chkUnpaid') ? document.getElementById('chkUnpaid').checked : false;
-        if (typeof currentDept !== 'undefined' && currentDept !== 'all' && !folioHasDept(f, currentDept)) return false;
+        if (currentDept === 'individual' && isGroupFolio(f)) return false;
+        if (currentDept === 'group' && !isGroupFolio(f)) return false;
         if (showUnpaidOnly && f.bal <= 0) return false;
         const changeText = String(f.roomChangeText || roomChangeText(f.settlementRoomChanges || []) || '').toLowerCase();
         const haystack = [
