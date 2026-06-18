@@ -87,6 +87,9 @@
         .settlement-status-label { display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; color: var(--txt3); font-weight: 900; }
         .currency-chip-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 9px; width: 100%; }
         .cash-summary-sub .currency-chip-list { margin-top: 0; }
+        .currency-chip-group { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+        .currency-chip-group-label { font-size: .68rem; color: var(--txt3); font-weight: 900; }
+        .currency-chip-group .currency-chip-list { margin-top: 0; }
         .currency-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #a7f3d0; border-radius: 999px; background: #ecfdf5; color: #047857; padding: 5px 11px; font-size: .78rem; font-weight: 900; white-space: nowrap; line-height: 1.1; }
         .currency-chip strong { color: var(--txt); font-size: .92rem; font-weight: 950; }
         .currency-chip.warning { border-color: #fed7aa; background: #fff7ed; color: #b45309; }
@@ -147,6 +150,12 @@
         .unsettled-title { font-size: .88rem; font-weight: 900; color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .unsettled-meta { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 7px; color: var(--txt3); font-size: .72rem; font-weight: 800; }
         .unsettled-amount { font-size: .9rem; font-weight: 900; color: var(--danger); white-space: nowrap; }
+        .cash-payment-modal { max-width: 560px; width: 94vw; }
+        .cash-payment-alert { border: 1px solid #fed7aa; border-radius: 10px; background: #fff7ed; color: #b45309; padding: 12px; text-align: center; font-size: .9rem; font-weight: 900; }
+        .cash-payment-history { border: 1px solid var(--border2); border-radius: 10px; background: #f8fafc; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: .75rem; color: var(--txt2); font-weight: 800; }
+        .cash-payment-history strong { color: var(--txt); }
+        .cash-payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .cash-payment-help { color: var(--txt3); font-size: .7rem; font-weight: 700; line-height: 1.45; margin-top: -2px; }
         
         @media (max-width: 768px) {
             .check-grid { grid-template-columns: 1fr; }
@@ -154,6 +163,7 @@
             .revenue-row-actions { justify-content: space-between; min-width: 0; }
             .audit-tabs { overflow-x: auto; }
             .cash-summary-grid, .cash-workflow-grid, .settlement-status-grid { grid-template-columns: 1fr; }
+            .cash-payment-grid { grid-template-columns: 1fr; }
             .settlement-status-head { align-items: flex-start; flex-direction: column; }
             .currency-mini-grid { grid-template-columns: 1fr; }
             .audit-issue-row { grid-template-columns: 1fr; align-items: stretch; }
@@ -319,17 +329,17 @@
                 <div class="audit-body">
                     <div class="cash-summary-grid">
                         <div class="cash-summary-card">
-                            <div class="cash-summary-label">시작 시재(페소 기준)</div>
+                            <div class="cash-summary-label">시작 시재</div>
                             <div class="cash-summary-value" id="cashOpeningPhp">₱0</div>
                             <div class="cash-summary-sub" id="cashOpeningDetail" data-no-currency-normalize="true">페소 0 · 달러 0 · 원화 0</div>
                         </div>
                         <div class="cash-summary-card">
-                            <div class="cash-summary-label">금일 정산금액(페소 기준)</div>
+                            <div class="cash-summary-label">금일 정산금액</div>
                             <div class="cash-summary-value" id="cashReceivedPhp">₱0</div>
                             <div class="cash-summary-sub" id="cashReceivedDetail" data-no-currency-normalize="true">페소 0 · 달러 0 · 원화 0</div>
                         </div>
                         <div class="cash-summary-card">
-                            <div class="cash-summary-label">중간 출금(페소 기준)</div>
+                            <div class="cash-summary-label">중간 출금</div>
                             <div class="cash-summary-value" id="cashWithdrawPhp">₱0</div>
                             <div class="cash-summary-sub" id="cashWithdrawDetail" data-no-currency-normalize="true">출금 기록 없음</div>
                         </div>
@@ -376,12 +386,13 @@
                         <div class="cash-work-card">
                             <div class="cash-work-head"><i class="fa-solid fa-play" style="color:var(--success)"></i> 시작 시재 등록</div>
                             <div class="cash-work-body">
+                                <div class="cash-field"><label>시작 시재 페소 기준 금액</label><input id="openEquivalent" type="number" min="0" step="1" placeholder="직접 입력"></div>
+                                <div class="cash-split-title"><i class="fa-solid fa-coins"></i> 보유 통화</div>
                                 <div class="currency-mini-grid">
                                     <div class="cash-field"><label>페소</label><input id="openPhp" type="number" min="0" step="1" placeholder="0"></div>
                                     <div class="cash-field"><label>달러</label><input id="openUsd" type="number" min="0" step="1" placeholder="0"></div>
                                     <div class="cash-field"><label>원화</label><input id="openKrw" type="number" min="0" step="1" placeholder="0"></div>
                                 </div>
-                                <div class="cash-field"><label>시작 시재 페소 환산 기준</label><input id="openEquivalent" type="number" min="0" step="1" placeholder="직접 입력"></div>
                                 <div class="cash-field"><label>인수 메모</label><textarea id="openNote" placeholder="예: 전 근무자에게 받은 잔돈, 봉투 번호"></textarea></div>
                                 <button class="btn-primary-sm" onclick="saveOpeningCash()"><i class="fa-solid fa-check"></i> 시작 시재 저장</button>
                                 <div class="cash-status" id="openStatus">미등록</div>
@@ -391,11 +402,13 @@
                         <div class="cash-work-card">
                             <div class="cash-work-head"><i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--warning)"></i> 중간 출금 처리</div>
                             <div class="cash-work-body">
-                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                                    <div class="cash-field"><label>출금 통화</label><select id="withdrawCurrency" data-no-currency-normalize="true"><option value="PHP">페소</option><option value="USD">달러</option><option value="KRW">원화</option></select></div>
-                                    <div class="cash-field"><label>출금 금액</label><input id="withdrawAmount" type="number" min="0" step="1" placeholder="0"></div>
+                                <div class="cash-field"><label>출금 페소 기준 금액</label><input id="withdrawEquivalent" type="number" min="0" step="1" placeholder="직접 입력"></div>
+                                <div class="cash-split-title"><i class="fa-solid fa-money-bill-transfer"></i> 실제 출금 통화</div>
+                                <div class="currency-mini-grid">
+                                    <div class="cash-field"><label>페소</label><input id="withdrawPhp" type="number" min="0" step="1" placeholder="0"></div>
+                                    <div class="cash-field"><label>달러</label><input id="withdrawUsd" type="number" min="0" step="1" placeholder="0"></div>
+                                    <div class="cash-field"><label>원화</label><input id="withdrawKrw" type="number" min="0" step="1" placeholder="0"></div>
                                 </div>
-                                <div class="cash-field"><label>출금 페소 환산 기준</label><input id="withdrawEquivalent" type="number" min="0" step="1" placeholder="직접 입력"></div>
                                 <div class="cash-field"><label>수령자 / 사유</label><input id="withdrawReceiver" type="text" placeholder="예: 매니저 / 환전 지급"></div>
                                 <button class="btn-primary-sm" onclick="addWithdrawal()"><i class="fa-solid fa-plus"></i> 출금 기록 추가</button>
                                 <div class="cash-status" id="withdrawStatus">출금 기록 없음</div>
@@ -457,6 +470,49 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="cashSettlementPaymentModal" onclick="if(event.target===this) closeCashSettlementPaymentModal()">
+    <div class="modal-card cash-payment-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-credit-card" style="color:var(--primary)"></i> 미정산 수납 처리</h3>
+            <button type="button" class="modal-close" onclick="closeCashSettlementPaymentModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+            <div class="cash-payment-alert" id="cashSettlementTargetSummary">미정산 Folio를 선택해주세요.</div>
+            <div class="cash-payment-history" id="cashSettlementHistory"></div>
+            <div class="cash-payment-grid">
+                <div class="cash-field">
+                    <label>정산 반영 페소금액</label>
+                    <input id="cashSettleAppliedPhp" type="number" min="0" step="1" placeholder="0">
+                </div>
+                <div class="cash-field">
+                    <label>결제 수단</label>
+                    <select id="cashSettleMethod">
+                        <option value="cash">현금</option>
+                        <option value="card">신용카드</option>
+                        <option value="bank">계좌이체</option>
+                        <option value="other">기타</option>
+                    </select>
+                </div>
+            </div>
+            <div class="cash-split-title"><i class="fa-solid fa-wallet"></i> 실제 받은 결제화폐</div>
+            <div class="currency-mini-grid">
+                <div class="cash-field"><label>페소</label><input id="cashSettleReceivedPhp" type="number" min="0" step="1" placeholder="0"></div>
+                <div class="cash-field"><label>달러</label><input id="cashSettleReceivedUsd" type="number" min="0" step="1" placeholder="0"></div>
+                <div class="cash-field"><label>원화</label><input id="cashSettleReceivedKrw" type="number" min="0" step="1" placeholder="0"></div>
+            </div>
+            <div class="cash-payment-help">실시간 환율 계산 대신 담당자가 인정한 페소 기준 금액과 실제 받은 통화를 별도로 기록합니다.</div>
+            <div class="cash-field">
+                <label>메모</label>
+                <input id="cashSettleNote" type="text" placeholder="예: 달러 10 수령, 페소 기준 560으로 정산">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-outline" onclick="closeCashSettlementPaymentModal()">취소</button>
+            <button type="button" class="btn-primary-sm" onclick="saveCashSettlementPayment()"><i class="fa-solid fa-circle-check"></i> 수납 완료 처리</button>
+        </div>
+    </div>
+</div>
+
 <script>
 let totalRev = 0;
 const CASH_SESSION_KEY = 'pms_night_audit_cash_sessions';
@@ -465,6 +521,7 @@ const SETTLEMENT_COMPLETIONS_KEY = 'pms_settlement_completions';
 const CASH_CURRENCIES = ['PHP', 'USD', 'KRW'];
 const auditIssueState = { departures: [], arrivals: [], orders: [] };
 const auditSettlementState = { folios: [], unsettled: [] };
+let currentCashSettlementFolioId = '';
 window.auditIssueState = auditIssueState;
 
 const NIGHT_AUDIT_I18N = {
@@ -530,21 +587,19 @@ const NIGHT_AUDIT_I18N = {
         'close.confirmLabel': '위 정산 내역을 확인하였으며, {date} 영업일을 마감합니다.',
         'close.run': '일일 영업 마감 실행',
         'cash.section': '시재 시작 / 출금 / 정산 현황',
-        'cash.opening': '시작 시재(페소 기준)',
-        'cash.received': '금일 정산금액(페소 기준)',
-        'cash.withdraw': '중간 출금(페소 기준)',
+        'cash.opening': '시작 시재',
+        'cash.received': '금일 정산금액',
+        'cash.withdraw': '중간 출금',
         'cash.diff': '정산 상태',
         'cash.noWithdrawals': '출금 기록 없음',
         'cash.diffHelp': '금일 수납과 미정산 현황을 기준으로 확인합니다.',
         'cash.openCard': '시작 시재 등록',
-        'cash.openEquivalent': '시작 시재 페소 환산 기준',
+        'cash.openEquivalent': '시작 시재 페소 기준 금액',
         'cash.openNote': '인수 메모',
         'cash.openNotePlaceholder': '예: 전 근무자에게 받은 잔돈, 봉투 번호',
         'cash.openSave': '시작 시재 저장',
         'cash.withdrawCard': '중간 출금 처리',
-        'cash.withdrawCurrency': '출금 통화',
-        'cash.withdrawAmount': '출금 금액',
-        'cash.withdrawEquivalent': '출금 페소 환산 기준',
+        'cash.withdrawEquivalent': '출금 페소 기준 금액',
         'cash.withdrawReceiver': '수령자 / 사유',
         'cash.withdrawReceiverPlaceholder': '예: 매니저 / 환전 지급',
         'cash.withdrawAdd': '출금 기록 추가',
@@ -595,7 +650,7 @@ const NIGHT_AUDIT_I18N = {
         'history.openRow': '시작 시재',
         'history.closeRow': '실제 정산 확인',
         'toast.openSaved': '시작 시재가 저장되었습니다.',
-        'toast.withdrawRequired': '출금 금액과 페소 환산 기준을 입력해주세요.',
+        'toast.withdrawRequired': '출금 페소 기준 금액과 실제 출금 통화를 입력해주세요.',
         'toast.withdrawAdded': '중간 출금 기록이 추가되었습니다.',
         'toast.closeSaved': '실제 잔액이 저장되었습니다.',
         'toast.dataLoadFailed': '데이터를 불러오는 데 실패했습니다.',
@@ -668,21 +723,19 @@ const NIGHT_AUDIT_I18N = {
         'close.confirmLabel': 'I have reviewed the settlement details and will close business date {date}.',
         'close.run': 'Run Daily Close',
         'cash.section': 'Cash Opening / Withdrawal / Settlement Status',
-        'cash.opening': 'Opening cash (PHP basis)',
-        'cash.received': 'Today settlement amount (PHP basis)',
-        'cash.withdraw': 'Mid-shift withdrawals (PHP basis)',
+        'cash.opening': 'Opening cash',
+        'cash.received': 'Today settlement amount',
+        'cash.withdraw': 'Mid-shift withdrawals',
         'cash.diff': 'Settlement status',
         'cash.noWithdrawals': 'No withdrawal records',
         'cash.diffHelp': 'Review today’s receipts and unsettled folios.',
         'cash.openCard': 'Register opening cash',
-        'cash.openEquivalent': 'Opening cash PHP equivalent',
+        'cash.openEquivalent': 'Opening cash PHP basis amount',
         'cash.openNote': 'Opening note',
         'cash.openNotePlaceholder': 'Example: change received from previous staff, envelope number',
         'cash.openSave': 'Save opening cash',
         'cash.withdrawCard': 'Process mid-shift withdrawal',
-        'cash.withdrawCurrency': 'Withdrawal currency',
-        'cash.withdrawAmount': 'Withdrawal amount',
-        'cash.withdrawEquivalent': 'Withdrawal PHP equivalent',
+        'cash.withdrawEquivalent': 'Withdrawal PHP basis amount',
         'cash.withdrawReceiver': 'Recipient / reason',
         'cash.withdrawReceiverPlaceholder': 'Example: manager / exchange payout',
         'cash.withdrawAdd': 'Add withdrawal record',
@@ -733,7 +786,7 @@ const NIGHT_AUDIT_I18N = {
         'history.openRow': 'Opening cash',
         'history.closeRow': 'Settlement review',
         'toast.openSaved': 'Opening cash has been saved.',
-        'toast.withdrawRequired': 'Enter both the withdrawal amount and PHP equivalent.',
+        'toast.withdrawRequired': 'Enter the withdrawal PHP basis amount and actual withdrawal currency.',
         'toast.withdrawAdded': 'Mid-shift withdrawal record has been added.',
         'toast.closeSaved': 'Counted cash has been saved.',
         'toast.dataLoadFailed': 'Failed to load data.',
@@ -1010,8 +1063,6 @@ function closeAuditIssueModal() {
 function unsettledSettlementRow(folio) {
     const room = folio.group ? '단체' : (folio.room || '-');
     const type = folio.group ? '단체 Folio' : '객실 Folio';
-    const dept = folio.group ? 'group' : 'individual';
-    const href = `folio.html?dept=${dept}&status=unpaid&receive=${encodeURIComponent(folio.id || '')}`;
     return `
         <div class="unsettled-row">
             <div class="unsettled-main">
@@ -1024,7 +1075,7 @@ function unsettledSettlementRow(folio) {
                 </div>
             </div>
             <div class="unsettled-amount">${moneyPhp(folio.bal)}</div>
-            <a class="btn-outline-sm" href="${href}">열기</a>
+            <button type="button" class="btn-outline-sm" data-folio-id="${escapeAudit(folio.id || '')}" onclick="openCashSettlementPaymentModal(this.dataset.folioId)">수납</button>
         </div>
     `;
 }
@@ -1057,6 +1108,129 @@ function toggleUnsettledSettlementPanel(force) {
             ? '<i class="fa-solid fa-chevron-up"></i> 미정산 목록 닫기'
             : '<i class="fa-solid fa-list-ul"></i> 미정산 목록';
     }
+}
+
+function cashSettlementFolioById(folioId) {
+    const candidates = [
+        ...(Array.isArray(auditSettlementState.unsettled) ? auditSettlementState.unsettled : []),
+        ...currentUnsettledFolios(),
+        ...(Array.isArray(auditSettlementState.folios) ? auditSettlementState.folios : [])
+    ];
+    return candidates.find(item => String(item.id || '') === String(folioId || '')) || null;
+}
+
+function cashSettlementBreakdownFromInputs() {
+    return {
+        PHP: amount('cashSettleReceivedPhp'),
+        USD: amount('cashSettleReceivedUsd'),
+        KRW: amount('cashSettleReceivedKrw')
+    };
+}
+
+function cashSettlementBreakdownTotal(values = {}) {
+    return CASH_CURRENCIES.reduce((sum, currency) => sum + Number(values[currency] || 0), 0);
+}
+
+function cashSettlementPrimaryBreakdown(values = {}) {
+    const active = CASH_CURRENCIES.filter(currency => Number(values[currency] || 0) > 0);
+    if (active.length === 1) return { currency: active[0], amount: Number(values[active[0]] || 0) };
+    return { currency: active.length > 1 ? 'MIXED' : 'PHP', amount: 0 };
+}
+
+function paymentHistoryForCashSettlement(folioId) {
+    return settlementPayments()
+        .filter(item => String(item.folioId || '') === String(folioId || ''))
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+}
+
+function openCashSettlementPaymentModal(folioId) {
+    const folio = cashSettlementFolioById(folioId);
+    if (!folio) {
+        showToast('수납할 Folio를 찾지 못했습니다.', 'error');
+        return;
+    }
+    currentCashSettlementFolioId = folio.id || '';
+    const due = Number(folio.bal || 0);
+    const summary = document.getElementById('cashSettlementTargetSummary');
+    const history = paymentHistoryForCashSettlement(folio.id);
+    if (summary) {
+        summary.textContent = `${folio.guest || '-'} · ${folio.group ? '단체' : (folio.room || '-')} · 미정산 ${moneyPhp(due)}`;
+    }
+    const historyPanel = document.getElementById('cashSettlementHistory');
+    if (historyPanel) {
+        const paid = history
+            .filter(item => item.kind !== 'deposit')
+            .reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+        const deposit = history
+            .filter(item => item.kind === 'deposit')
+            .reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+        historyPanel.innerHTML = history.length
+            ? `<span><strong>이전 수납</strong> ${moneyPhp(paid)} · <strong>예치금</strong> ${moneyPhp(deposit)} · ${history.length}건</span>`
+            : '<span><strong>이전 수납/예치 내역</strong> 없음</span>';
+    }
+    const appliedInput = document.getElementById('cashSettleAppliedPhp');
+    if (appliedInput) appliedInput.value = due ? String(due) : '';
+    ['cashSettleReceivedPhp', 'cashSettleReceivedUsd', 'cashSettleReceivedKrw', 'cashSettleNote'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const method = document.getElementById('cashSettleMethod');
+    if (method) method.value = 'cash';
+    document.getElementById('cashSettlementPaymentModal')?.classList.add('active');
+}
+
+function closeCashSettlementPaymentModal() {
+    currentCashSettlementFolioId = '';
+    document.getElementById('cashSettlementPaymentModal')?.classList.remove('active');
+}
+
+function saveCashSettlementPayment() {
+    const folio = cashSettlementFolioById(currentCashSettlementFolioId);
+    if (!folio) {
+        showToast('수납 대상을 찾지 못했습니다.', 'error');
+        return;
+    }
+    const enteredPhp = amount('cashSettleAppliedPhp');
+    const appliedPhpAmount = Math.min(enteredPhp, Number(folio.bal || enteredPhp || 0));
+    const receivedBreakdown = cashSettlementBreakdownFromInputs();
+    const receivedTotal = cashSettlementBreakdownTotal(receivedBreakdown);
+    if (!enteredPhp) {
+        showToast('정산 반영 페소금액을 입력해주세요.', 'error');
+        return;
+    }
+    if (!receivedTotal) {
+        showToast('실제 받은 결제화폐를 페소/달러/원화 중 하나 이상 입력해주세요.', 'error');
+        return;
+    }
+    const primary = cashSettlementPrimaryBreakdown(receivedBreakdown);
+    const method = document.getElementById('cashSettleMethod')?.value || 'cash';
+    const methodLabel = document.getElementById('cashSettleMethod')?.selectedOptions?.[0]?.textContent || method;
+    const records = settlementPayments();
+    records.push({
+        id: `PAY-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        folioId: folio.id || '',
+        reservationId: folio.reservationId || '',
+        room: folio.room || '',
+        guest: folio.guest || '',
+        kind: 'settlement',
+        method,
+        methodLabel,
+        baseCurrency: 'PHP',
+        appliedPhpAmount,
+        receivedCurrency: primary.currency,
+        receivedAmount: primary.amount,
+        receivedBreakdown,
+        receivedSummary: formatCurrencyBreakdown(receivedBreakdown),
+        completeSettlement: false,
+        businessDate: auditBusinessDate(),
+        createdAt: nowIso(),
+        operator: operatorName(),
+        note: textValue('cashSettleNote')
+    });
+    setStorageJson(SETTLEMENT_PAYMENTS_KEY, records);
+    closeCashSettlementPaymentModal();
+    renderCashHandover();
+    showToast('미정산 수납 내역이 저장되었습니다.', 'success');
 }
 
 function storageJson(key, fallback) {
@@ -1440,6 +1614,15 @@ function renderCurrencyChips(values = {}, options = {}) {
     `).join('');
 }
 
+function renderCurrencyChipGroup(label, values = {}, options = {}) {
+    return `
+        <span class="currency-chip-group">
+            <span class="currency-chip-group-label">${escapeAudit(label)}</span>
+            <span class="currency-chip-list">${renderCurrencyChips(values, options)}</span>
+        </span>
+    `;
+}
+
 function currencySummaryLines(values = {}) {
     return CASH_CURRENCIES.map(currency => ({
         label: cashCurrencyLabel(currency),
@@ -1557,8 +1740,25 @@ function formatReceivedBreakdown(item = {}) {
 
 function withdrawalCurrencyTotals(session) {
     return (session?.withdrawals || []).reduce((acc, item) => {
+        if (item.currencyBreakdown && typeof item.currencyBreakdown === 'object') {
+            CASH_CURRENCIES.forEach(currency => {
+                acc[currency] = (acc[currency] || 0) + Number(item.currencyBreakdown[currency] || 0);
+            });
+            return acc;
+        }
         const currency = item.currency || 'PHP';
         acc[currency] = (acc[currency] || 0) + Number(item.amount || 0);
+        return acc;
+    }, { PHP: 0, USD: 0, KRW: 0 });
+}
+
+function withdrawalBreakdownForRecord(item = {}) {
+    if (item.currencyBreakdown && typeof item.currencyBreakdown === 'object') {
+        return currencyValues(item.currencyBreakdown);
+    }
+    const currency = CASH_CURRENCIES.includes(item.currency) ? item.currency : 'PHP';
+    return CASH_CURRENCIES.reduce((acc, key) => {
+        acc[key] = key === currency ? Number(item.amount || 0) : 0;
         return acc;
     }, { PHP: 0, USD: 0, KRW: 0 });
 }
@@ -1689,7 +1889,7 @@ function dailyHistoryRows(date) {
         pill: 'withdraw',
         target: item.receiver || '-',
         php: item.phpEquivalent || 0,
-        actual: `${cashCurrencyLabel(item.currency || 'PHP')} ${Number(item.amount || 0).toLocaleString()}`,
+        actual: formatCurrencyBreakdown(withdrawalBreakdownForRecord(item)),
         operator: item.operator || '-',
         note: item.receiver || '-'
     }));
@@ -1824,25 +2024,27 @@ function saveOpeningCash() {
 
 function addWithdrawal() {
     const session = activeCashSession(true);
-    const currency = document.getElementById('withdrawCurrency')?.value || 'PHP';
-    const outAmount = amount('withdrawAmount');
     const phpEquivalent = amount('withdrawEquivalent');
+    const currencyBreakdown = currencyValuesFromInputs('withdraw');
+    const outAmount = cashSettlementBreakdownTotal(currencyBreakdown);
     if (!outAmount || !phpEquivalent) {
         showToast(nightAuditText('toast.withdrawRequired'), 'error');
         return;
     }
+    const primary = cashSettlementPrimaryBreakdown(currencyBreakdown);
     session.withdrawals = Array.isArray(session.withdrawals) ? session.withdrawals : [];
     session.withdrawals.push({
         id: `WD-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        currency,
-        amount: outAmount,
+        currency: primary.currency,
+        amount: primary.amount,
+        currencyBreakdown,
         phpEquivalent,
         receiver: textValue('withdrawReceiver'),
         createdAt: nowIso(),
         operator: operatorName()
     });
     saveCashSession(session);
-    ['withdrawAmount', 'withdrawEquivalent', 'withdrawReceiver'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['withdrawPhp', 'withdrawUsd', 'withdrawKrw', 'withdrawEquivalent', 'withdrawReceiver'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     renderCashHandover();
     showToast(nightAuditText('toast.withdrawAdded'), 'success');
 }
@@ -1872,17 +2074,16 @@ function renderCashHandover() {
     const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
     const setHtml = (id, value) => { const el = document.getElementById(id); if (el) el.innerHTML = value; };
     set('cashOpeningPhp', moneyPhp(session.openingPhpEquivalent || 0));
-    setHtml('cashOpeningDetail', `<span class="currency-chip-list">${renderCurrencyChips(session.opening)}</span>`);
+    setHtml('cashOpeningDetail', renderCurrencyChipGroup('결제화폐', session.opening));
     set('cashReceivedPhp', moneyPhp(snapshot.paidPhp));
-    setHtml('cashReceivedDetail', `<span class="currency-chip-list">${renderCurrencyChips(snapshot.paidCurrencies, { tone: 'success' })}</span>`);
+    setHtml('cashReceivedDetail', renderCurrencyChipGroup('결제화폐', snapshot.paidCurrencies, { tone: 'success' }));
     set('cashWithdrawPhp', moneyPhp(withdrawalPhp));
-    setHtml('cashWithdrawDetail', (session.withdrawals || []).length ? `<span class="currency-chip-list">${renderCurrencyChips(withdrawalCurrencies, { tone: 'warning' })}</span>` : escapeAudit(nightAuditText('cash.noWithdrawals')));
+    setHtml('cashWithdrawDetail', (session.withdrawals || []).length ? renderCurrencyChipGroup('결제화폐', withdrawalCurrencies, { tone: 'warning' }) : escapeAudit(nightAuditText('cash.noWithdrawals')));
     set('settlementPaidPhp', moneyPhp(snapshot.paidPhp));
     setHtml('settlementPaidDetail', renderCurrencyChips(snapshot.paidCurrencies, { tone: 'success' }));
     set('settlementUnpaidPhp', moneyPhp(snapshot.unpaidPhp));
     setHtml('settlementUnpaidDetail', `
         <span class="currency-chip warning"><span>미정산</span><strong>${snapshot.unsettled.length.toLocaleString()}건</strong></span>
-        <span class="currency-chip warning"><span>페소 기준</span><strong>${Number(snapshot.unpaidPhp || 0).toLocaleString()}</strong></span>
     `);
     set('settlementDepositPhp', moneyPhp(snapshot.depositPhp));
     setHtml('settlementDepositDetail', renderCurrencyChips(snapshot.depositCurrencies));
@@ -1913,7 +2114,7 @@ function renderCashHandover() {
         pill: 'withdraw',
         target: item.receiver || '-',
         php: item.phpEquivalent,
-        actual: `${cashCurrencyLabel(item.currency)} ${Number(item.amount || 0).toLocaleString()}`,
+        actual: formatCurrencyBreakdown(withdrawalBreakdownForRecord(item)),
         operator: item.operator || '-',
         note: item.receiver || ''
     }));
@@ -2081,8 +2282,6 @@ function applyNightAuditI18n() {
     setNightHtml('#closeCountedTitle', `<i class="fa-solid fa-coins"></i> ${t('cash.closeCountedTitle')}`);
 
     setNightFieldLabel('openEquivalent', 'cash.openEquivalent');
-    setNightFieldLabel('withdrawCurrency', 'cash.withdrawCurrency');
-    setNightFieldLabel('withdrawAmount', 'cash.withdrawAmount');
     setNightFieldLabel('withdrawEquivalent', 'cash.withdrawEquivalent');
     setNightFieldLabel('withdrawReceiver', 'cash.withdrawReceiver');
     setNightFieldLabel('closeEquivalent', 'cash.closeEquivalent');

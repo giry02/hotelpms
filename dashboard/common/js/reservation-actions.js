@@ -240,6 +240,50 @@
         }
     }
 
+    const PREPAYMENT_CURRENCIES = ['PHP', 'USD', 'KRW'];
+    const PREPAYMENT_CURRENCY_LABELS = { PHP: '페소', USD: '달러', KRW: '원화' };
+
+    function normalizeCurrencyBreakdown(values = {}) {
+        return PREPAYMENT_CURRENCIES.reduce((acc, currency) => {
+            const digits = currencyFractionDigits(currency);
+            acc[currency] = normalizeMoneyAmount(values?.[currency] || 0, currency);
+            if (!digits) acc[currency] = Math.round(acc[currency]);
+            return acc;
+        }, { PHP: 0, USD: 0, KRW: 0 });
+    }
+
+    function reservationPrepaidBreakdown(res = null) {
+        const fromPlan = res?.paymentPlan?.prepaidReceivedBreakdown || res?.prepaidReceivedBreakdown;
+        if (fromPlan && typeof fromPlan === 'object') return normalizeCurrencyBreakdown(fromPlan);
+        const prepaid = reservationPrepaidValue(res);
+        return normalizeCurrencyBreakdown(prepaid ? { PHP: prepaid } : {});
+    }
+
+    function prepaidBreakdownFromInputs() {
+        return normalizeCurrencyBreakdown({
+            PHP: parseMoneyInput(document.getElementById('unifiedPrepaidReceivedPhp')?.value, 'PHP'),
+            USD: parseMoneyInput(document.getElementById('unifiedPrepaidReceivedUsd')?.value, 'USD'),
+            KRW: parseMoneyInput(document.getElementById('unifiedPrepaidReceivedKrw')?.value, 'KRW')
+        });
+    }
+
+    function setPrepaidBreakdownInputs(values = {}) {
+        const breakdown = normalizeCurrencyBreakdown(values);
+        PREPAYMENT_CURRENCIES.forEach(currency => {
+            const id = `unifiedPrepaidReceived${currency === 'PHP' ? 'Php' : currency === 'USD' ? 'Usd' : 'Krw'}`;
+            const input = document.getElementById(id);
+            if (input) input.value = breakdown[currency] ? formatMoneyInputValue(breakdown[currency], currency) : '';
+        });
+    }
+
+    function prepaidBreakdownText(values = {}) {
+        const breakdown = normalizeCurrencyBreakdown(values);
+        const parts = PREPAYMENT_CURRENCIES
+            .filter(currency => Number(breakdown[currency] || 0) > 0)
+            .map(currency => `${PREPAYMENT_CURRENCY_LABELS[currency] || currency} ${Number(breakdown[currency]).toLocaleString()}`);
+        return parts.length ? parts.join(' · ') : '실제 결제화폐 미입력';
+    }
+
     let unifiedRateRowsCache = null;
     let unifiedRoomTypesCache = null;
     let unifiedRateQuoteSeq = 0;
@@ -997,6 +1041,7 @@
         configureUnifiedMoneyInput(prepaidInput, currency);
         amountInput.value = formatMoneyInputValue(amount, currency);
         prepaidInput.value = formatMoneyInputValue(prepaid, currency);
+        setPrepaidBreakdownInputs(options.prepaidBreakdown || reservationPrepaidBreakdown(res));
         syncUnifiedBalance();
     }
 
@@ -1012,7 +1057,7 @@
         const balance = Math.max(total - prepaid, 0);
         balanceInput.value = formatSettlementMoney(balance, currency);
         if (help) {
-            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 선결제 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)}`;
+            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 선결제 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)} · 실제 결제화폐 ${prepaidBreakdownText(prepaidBreakdownFromInputs())}`;
         }
     }
 
@@ -1249,6 +1294,26 @@
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">추후 정산 잔액</div>
                                 <input type="text" id="unifiedBalance" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:800;box-sizing:border-box;background:#f8fafc;color:var(--primary);">
                             </div>
+                        </div>
+                        <div style="margin-top:12px;">
+                            <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;font-size:0.78rem;color:var(--txt);font-weight:900;">
+                                <i class="fa-solid fa-wallet" style="color:var(--primary)"></i> 선결제 실제 결제화폐
+                            </div>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+                                <div class="md-item">
+                                    <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">페소</div>
+                                    <input type="number" min="0" step="1" id="unifiedPrepaidReceivedPhp" oninput="syncUnifiedBalance()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
+                                </div>
+                                <div class="md-item">
+                                    <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">달러</div>
+                                    <input type="number" min="0" step="0.01" id="unifiedPrepaidReceivedUsd" oninput="syncUnifiedBalance()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
+                                </div>
+                                <div class="md-item">
+                                    <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">원화</div>
+                                    <input type="number" min="0" step="1" id="unifiedPrepaidReceivedKrw" oninput="syncUnifiedBalance()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
+                                </div>
+                            </div>
+                            <div style="margin-top:6px;font-size:0.7rem;color:var(--txt3);font-weight:700;line-height:1.45">선결제 금액은 페소 기준 반영액이고, 아래는 실제 받은 통화입니다. 예: 달러 10 수령, 페소 기준 560으로 처리.</div>
                         </div>
                         <div id="unifiedRateQuoteHint" style="margin-top:8px;font-size:0.72rem;color:var(--primary);font-weight:800;line-height:1.45"></div>
                         <div id="unifiedFinanceHelp" style="margin-top:4px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
@@ -2271,7 +2336,8 @@
             setUnifiedGuestRoster(await rosterGuestsForReservation(prefill || null));
             setUnifiedFinanceValues(null, {
                 amount: Number(prefill?.amount || prefill?.totalAmount?.amount || 0),
-                prepaid: Number(prefill?.prepaidAmount || prefill?.paymentPlan?.prepaidAmount || 0)
+                prepaid: Number(prefill?.prepaidAmount || prefill?.paymentPlan?.prepaidAmount || 0),
+                prepaidBreakdown: prefill?.prepaidReceivedBreakdown || prefill?.paymentPlan?.prepaidReceivedBreakdown
             });
             refreshUnifiedRateQuote({ force: !Number(prefill?.amount || prefill?.totalAmount?.amount || 0) });
             renderUnifiedRoomHistory(null);
@@ -2455,6 +2521,7 @@
         const currency = reservationCurrency(currentRes);
         const totalAmount = parseMoneyInput(document.getElementById('unifiedAmount')?.value, currency);
         const prepaidAmount = Math.min(parseMoneyInput(document.getElementById('unifiedPrepaid')?.value, currency), totalAmount);
+        const prepaidReceivedBreakdown = prepaidBreakdownFromInputs();
         const balanceDue = normalizeMoneyAmount(totalAmount - prepaidAmount, currency);
         const nightlyRate = nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount;
         const rateQuote = unifiedLastRateQuote;
@@ -2523,10 +2590,12 @@
                 roomRateQuote: rateQuote ? { ...rateQuote } : null,
                 manualAmountOverride,
                 prepaidAmount,
+                prepaidReceivedBreakdown,
                 balanceDue,
                 paymentPlan: {
                     totalAmount,
                     prepaidAmount,
+                    prepaidReceivedBreakdown,
                     balanceDue,
                     currency,
                     settlementBasis: 'reservation-room-total',
@@ -2631,11 +2700,13 @@
                 res.roomRateQuote = rateQuote ? { ...rateQuote } : null;
                 res.manualAmountOverride = manualAmountOverride;
                 res.prepaidAmount = prepaidAmount;
+                res.prepaidReceivedBreakdown = prepaidReceivedBreakdown;
                 res.balanceDue = balanceDue;
                 res.paymentPlan = {
                     ...(res.paymentPlan || {}),
                     totalAmount,
                     prepaidAmount,
+                    prepaidReceivedBreakdown,
                     balanceDue,
                     currency,
                     settlementBasis: 'reservation-room-total',

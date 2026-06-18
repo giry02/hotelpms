@@ -29,6 +29,9 @@
         .log-summary-label { font-size:.72rem; color:var(--txt3); font-weight:900; margin-bottom:5px; }
         .log-summary-value { font-size:1rem; color:var(--txt); font-weight:900; }
         .currency-chip-list { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-top:9px; width:100%; }
+        .currency-chip-group { display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; }
+        .currency-chip-group-label { font-size:.68rem; color:var(--txt3); font-weight:900; }
+        .currency-chip-group .currency-chip-list { margin-top:0; }
         .currency-chip { display:inline-flex; align-items:center; gap:8px; border:1px solid #a7f3d0; border-radius:999px; background:#ecfdf5; color:#047857; padding:5px 11px; font-size:.78rem; font-weight:900; white-space:nowrap; line-height:1.1; }
         .currency-chip strong { color:var(--txt); font-size:.92rem; font-weight:950; }
         .currency-chip.success { border-color:#a7f3d0; background:#ecfdf5; color:#047857; }
@@ -303,6 +306,23 @@ function currencyValues(values = {}) {
     }, {});
 }
 
+function formatCurrencyBreakdown(values = {}) {
+    return CASH_CURRENCIES
+        .map(currency => `${cashCurrencyLabel(currency)} ${Number(values?.[currency] || 0).toLocaleString()}`)
+        .join(' · ');
+}
+
+function withdrawalBreakdownForRecord(item = {}) {
+    if (item.currencyBreakdown && typeof item.currencyBreakdown === 'object') {
+        return currencyValues(item.currencyBreakdown);
+    }
+    const currency = CASH_CURRENCIES.includes(item.currency) ? item.currency : 'PHP';
+    return CASH_CURRENCIES.reduce((acc, key) => {
+        acc[key] = key === currency ? Number(item.amount || 0) : 0;
+        return acc;
+    }, { PHP: 0, USD: 0, KRW: 0 });
+}
+
 function currencyTotals(records, fieldCurrency = 'receivedCurrency', fieldAmount = 'receivedAmount') {
     return records.reduce((acc, item) => {
         if (fieldCurrency === 'receivedCurrency' && item.receivedBreakdown && typeof item.receivedBreakdown === 'object') {
@@ -325,6 +345,15 @@ function renderCurrencyChips(values = {}, tone = '') {
             <strong>${Number(values[currency] || 0).toLocaleString()}</strong>
         </span>
     `).join('');
+}
+
+function renderCurrencyChipGroup(label, values = {}, tone = '') {
+    return `
+        <span class="currency-chip-group">
+            <span class="currency-chip-group-label">${escapeHtml(label)}</span>
+            <span class="currency-chip-list">${renderCurrencyChips(values, tone)}</span>
+        </span>
+    `;
 }
 
 function receivedBreakdownForPayment(item = {}) {
@@ -386,7 +415,7 @@ function dailyLogRows(date) {
         pill: 'withdraw',
         target: item.receiver || '-',
         php: item.phpEquivalent || 0,
-        actual: `${cashCurrencyLabel(item.currency || 'PHP')} ${Number(item.amount || 0).toLocaleString()}`,
+        actual: formatCurrencyBreakdown(withdrawalBreakdownForRecord(item)),
         operator: item.operator || '-',
         note: item.receiver || '-'
     }));
@@ -418,8 +447,10 @@ function renderCloseLog() {
     const depositPhp = depositRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const withdrawPhp = withdrawals.reduce((sum, item) => sum + Number(item.phpEquivalent || 0), 0);
     const withdrawCurrencies = withdrawals.reduce((acc, item) => {
-        const currency = CASH_CURRENCIES.includes(item.currency) ? item.currency : 'PHP';
-        acc[currency] = (acc[currency] || 0) + Number(item.amount || 0);
+        const breakdown = withdrawalBreakdownForRecord(item);
+        CASH_CURRENCIES.forEach(currency => {
+            acc[currency] = (acc[currency] || 0) + Number(breakdown[currency] || 0);
+        });
         return acc;
     }, { PHP: 0, USD: 0, KRW: 0 });
 
@@ -427,15 +458,15 @@ function renderCloseLog() {
     const setHtml = (id, value) => { const el = document.getElementById(id); if (el) el.innerHTML = value; };
     set('logSelectedDate', date);
     set('logOpeningPhp', moneyPhp(session?.openingPhpEquivalent || 0));
-    setHtml('logOpeningDetail', renderCurrencyChips(currencyValues(session?.opening)));
+    setHtml('logOpeningDetail', renderCurrencyChipGroup('결제화폐', currencyValues(session?.opening)));
     set('logPaymentPhp', moneyPhp(settlementPhp));
-    setHtml('logPaymentDetail', renderCurrencyChips(currencyTotals(settlementRecords), 'success'));
+    setHtml('logPaymentDetail', renderCurrencyChipGroup('결제화폐', currencyTotals(settlementRecords), 'success'));
     set('logDepositPhp', moneyPhp(depositPhp));
-    setHtml('logDepositDetail', renderCurrencyChips(currencyTotals(depositRecords)));
+    setHtml('logDepositDetail', renderCurrencyChipGroup('결제화폐', currencyTotals(depositRecords)));
     set('logWithdrawPhp', moneyPhp(withdrawPhp));
-    setHtml('logWithdrawDetail', renderCurrencyChips(withdrawCurrencies, 'warning'));
+    setHtml('logWithdrawDetail', renderCurrencyChipGroup('결제화폐', withdrawCurrencies, 'warning'));
     set('logClosingPhp', moneyPhp(session?.closingPhpEquivalent || 0));
-    setHtml('logClosingDetail', renderCurrencyChips(currencyValues(session?.closing), 'success'));
+    setHtml('logClosingDetail', renderCurrencyChipGroup('결제화폐', currencyValues(session?.closing), 'success'));
     set('logLedgerCount', `${rows.length}건`);
 
     const body = document.getElementById('logLedgerBody');
