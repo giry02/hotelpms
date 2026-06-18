@@ -116,6 +116,10 @@
 .payment-currency-field label{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;font-weight:900;color:var(--txt2)}
 .payment-currency-field input{height:38px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);width:100%;box-sizing:border-box}
 .payment-help{font-size:.7rem;color:var(--txt3);font-weight:700;line-height:1.45}
+.payment-method-grid{display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:10px;align-items:end}
+.payment-deposit-toggle{height:38px;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt2);font-size:.78rem;font-weight:900;cursor:pointer;user-select:none}
+.payment-deposit-toggle input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer}
+.payment-deposit-toggle:has(input:checked){background:var(--primary-lt);border-color:rgba(59,130,246,.32);color:var(--primary)}
 .payment-history{border:1px solid var(--border2);border-radius:10px;background:#f8fafc;padding:12px;display:flex;flex-direction:column;gap:10px}
 .payment-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.82rem;font-weight:900;color:var(--txt)}
 .payment-history-total{font-size:.74rem;font-weight:900;color:var(--primary);white-space:nowrap}
@@ -162,6 +166,7 @@
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
     .folio-breakdown{min-width:0}
     .payment-currency-grid{grid-template-columns:1fr}
+    .payment-method-grid{grid-template-columns:1fr}
     .payment-history-summary{grid-template-columns:1fr}
     .payment-history-row{grid-template-columns:1fr;gap:7px}
     .payment-history-row-main{flex-direction:column}
@@ -1859,6 +1864,7 @@ function folioActionsHtml(folio, index, mode = 'table') {
             buttons.push(`<button class="${receiveClass}"${receiveStyle} onclick="event.stopPropagation(); openPaymentModal('${folio.id}', ${due})">${receiveIcon}수납</button>`);
             buttons.push(`<button class="${completeClass}"${completeStyle} disabled title="미수금 수납 후 완료할 수 있습니다">${completeIcon}완료</button>`);
         } else {
+            buttons.push(`<button class="${receiveClass}"${receiveStyle} onclick="event.stopPropagation(); openPaymentModal('${folio.id}', 0)">${receiveIcon}수납</button>`);
             buttons.push(`<button class="${completeClass}"${completeStyle} onclick="event.stopPropagation(); completeSettlementFolio('${folio.id}')">${completeIcon}완료</button>`);
         }
     }
@@ -2196,8 +2202,15 @@ function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function syncPaymentKindLabels() {
+    const isDeposit = !!document.getElementById('paymentDepositToggle')?.checked;
     const label = document.getElementById('paymentBaseLabel');
-    if (label) label.textContent = '정산 반영 페소금액';
+    const help = document.getElementById('paymentBaseHelp');
+    const submit = document.getElementById('paymentSubmitLabel');
+    if (label) label.textContent = isDeposit ? '예치금 반영 페소금액' : '정산 반영 페소금액';
+    if (help) help.textContent = isDeposit
+        ? '예치금으로 보관할 페소 기준 금액을 직접 입력합니다. 미수금에서는 차감하지 않습니다.'
+        : '잔액 차감 기준은 페소로 직접 입력합니다.';
+    if (submit) submit.textContent = isDeposit ? '예치금 등록' : '수납 등록';
 }
 
 function parsePaymentAmount(value) {
@@ -2287,30 +2300,31 @@ function paymentCurrencyCardsHtml(record) {
 
 function paymentHistoryHtml(folio) {
     const records = (Array.isArray(folio?.settlementPaymentRecords) ? folio.settlementPaymentRecords : [])
-        .filter(item => item.kind !== 'deposit')
         .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    const paidByRecords = records.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const paidByRecords = records
+        .filter(item => item.kind !== 'deposit')
+        .reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const remaining = Number(folio?.bal || 0);
     const rows = records.length ? records.map(item => `
         <div class="payment-history-row">
             <div class="payment-history-row-time">${escapeHtml(formatDateTime(item.createdAt))}</div>
             <div class="payment-history-row-main">
                 <div class="payment-history-method">
-                    <strong>${escapeHtml(item.methodLabel || item.method || '수납')}</strong>
+                    <strong>${escapeHtml(item.kind === 'deposit' ? '예치금' : '정산 수납')} · ${escapeHtml(item.methodLabel || item.method || '수납')}</strong>
                     <span>${escapeHtml([item.operator, item.note].filter(Boolean).join(' / ') || '-')}</span>
                 </div>
                 <div class="payment-history-applied">
-                    <span>페소 반영</span>
+                    <span>${item.kind === 'deposit' ? '예치금 반영' : '페소 반영'}</span>
                     <strong>${fmtInvoiceMoney(item.appliedPhpAmount)}</strong>
                 </div>
             </div>
             <div class="payment-history-currencies" data-no-currency-normalize="true">${paymentCurrencyCardsHtml(item)}</div>
         </div>
-    `).join('') : '<div class="payment-history-empty">아직 등록된 정산 수납 내역이 없습니다.</div>';
+    `).join('') : '<div class="payment-history-empty">아직 등록된 수납/예치 내역이 없습니다.</div>';
     return `
         <div class="payment-history">
             <div class="payment-history-head">
-                <span><i class="fa-solid fa-clock-rotate-left"></i> 이전 수납 내역</span>
+                <span><i class="fa-solid fa-clock-rotate-left"></i> 이전 수납/예치 내역</span>
                 <span class="payment-history-total">${records.length}건</span>
             </div>
             <div class="payment-history-summary">
@@ -2331,12 +2345,8 @@ function openPaymentModal(folioId, bal) {
     }
     currentPaymentFolioId = folioId;
     const due = parsePaymentAmount(folio?.bal ?? bal ?? 0);
-    if (!due) {
-        showToast('미수금이 없습니다. 정산 완료 버튼으로 마감 처리해주세요.', 'error');
-        return;
-    }
     document.getElementById('paymentBalAmount').innerText = `미수금 기준: ${fmtInvoiceMoney(due)} / 예치금: ${fmtInvoiceMoney(folioDepositValue(folio || {}))}`;
-    document.getElementById('paymentInputAmount').value = due.toFixed(2);
+    document.getElementById('paymentInputAmount').value = due ? due.toFixed(2) : '';
     document.getElementById('paymentHistoryPanel').innerHTML = paymentHistoryHtml(folio);
     PAYMENT_CURRENCIES.forEach(currency => {
         const id = `paymentReceived${currency === 'PHP' ? 'Php' : currency === 'USD' ? 'Usd' : 'Krw'}`;
@@ -2344,6 +2354,8 @@ function openPaymentModal(folioId, bal) {
         if (input) input.value = '';
     });
     document.getElementById('paymentMethod').value = 'cash';
+    const depositToggle = document.getElementById('paymentDepositToggle');
+    if (depositToggle) depositToggle.checked = !due;
     document.getElementById('paymentNote').value = '';
     syncPaymentKindLabels();
     openModal('paymentModal');
@@ -2361,21 +2373,22 @@ function processPayment() {
         renderFolios();
         return;
     }
-    const kind = 'settlement';
+    const isDeposit = !!document.getElementById('paymentDepositToggle')?.checked;
+    const kind = isDeposit ? 'deposit' : 'settlement';
     const balance = parsePaymentAmount(folio.bal);
-    if (!balance) {
+    if (!isDeposit && !balance) {
         showToast('미수금이 없습니다. 정산 완료 버튼으로 마감 처리해주세요.', 'error');
         return;
     }
     const enteredPhp = readPaymentAmount('paymentInputAmount');
-    const appliedPhpAmount = balance > 0 ? Math.min(enteredPhp, balance) : enteredPhp;
+    const appliedPhpAmount = isDeposit ? enteredPhp : Math.min(enteredPhp, balance);
     const receivedBreakdown = paymentBreakdownFromInputs();
     const receivedTotal = paymentBreakdownTotal(receivedBreakdown);
     const primaryReceived = paymentBreakdownPrimary(receivedBreakdown);
     const method = document.getElementById('paymentMethod')?.value || 'cash';
     const methodLabel = document.getElementById('paymentMethod')?.selectedOptions?.[0]?.textContent || method;
     if (!enteredPhp) {
-        showToast('정산 반영 페소금액을 입력해주세요.', 'error');
+        showToast(isDeposit ? '예치금 반영 페소금액을 입력해주세요.' : '정산 반영 페소금액을 입력해주세요.', 'error');
         return;
     }
     if (!receivedTotal) {
@@ -2405,7 +2418,7 @@ function processPayment() {
         note: document.getElementById('paymentNote')?.value || ''
     });
     saveSettlementPaymentRecords(records);
-    showToast('정산 수납 내역이 저장되었습니다.', 'success');
+    showToast(isDeposit ? '예치금 수납 내역이 저장되었습니다.' : '정산 수납 내역이 저장되었습니다.', 'success');
     closeModal('paymentModal');
     renderFolios();
 }
@@ -2469,7 +2482,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 미수금 기준: ₱0
             </div>
             <div id="paymentHistoryPanel"></div>
-            <div style="display:grid;grid-template-columns:1fr;gap:12px">
+            <div class="payment-method-grid">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">결제 수단</label>
                     <select id="paymentMethod" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
@@ -2479,12 +2492,16 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                         <option value="other">기타</option>
                     </select>
                 </div>
+                <label class="payment-deposit-toggle" title="예치금으로 보관할 수납이면 체크">
+                    <input type="checkbox" id="paymentDepositToggle" onchange="syncPaymentKindLabels()">
+                    예치금
+                </label>
             </div>
             <div style="display:grid;grid-template-columns:1fr;gap:12px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label id="paymentBaseLabel" style="font-size:.8rem;font-weight:600;color:var(--txt2)">정산 반영 페소금액</label>
                     <input type="number" min="0" step="1" id="paymentInputAmount" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" value="0">
-                    <div style="font-size:.7rem;color:var(--txt3);font-weight:700">잔액 차감 기준은 페소로 직접 입력합니다.</div>
+                    <div id="paymentBaseHelp" style="font-size:.7rem;color:var(--txt3);font-weight:700">잔액 차감 기준은 페소로 직접 입력합니다.</div>
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
@@ -2513,7 +2530,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('paymentModal')">취소</button>
-            <button class="btn-primary-sm" onclick="processPayment()"><i class="fa-solid fa-circle-check"></i> 수납 등록</button>
+            <button class="btn-primary-sm" onclick="processPayment()"><i class="fa-solid fa-circle-check"></i> <span id="paymentSubmitLabel">수납 등록</span></button>
         </div>
     </div>
 </div>
