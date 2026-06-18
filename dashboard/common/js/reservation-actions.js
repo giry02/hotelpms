@@ -252,36 +252,143 @@
         }, { PHP: 0, USD: 0, KRW: 0 });
     }
 
-    function reservationPrepaidBreakdown(res = null) {
+    function normalizePrepaidRow(row = {}) {
+        const currency = PREPAYMENT_CURRENCIES.includes(row.currency) ? row.currency : 'PHP';
+        const amount = normalizeMoneyAmount(row.amount ?? row.receivedAmount ?? 0, currency);
+        const phpEquivalent = currency === 'PHP'
+            ? amount
+            : normalizeMoneyAmount(row.phpEquivalent ?? row.appliedPhpAmount ?? row.equivalentPhp ?? 0, 'PHP');
+        if (!amount && !phpEquivalent) return null;
+        return { currency, amount, phpEquivalent };
+    }
+
+    function prepaidRowsFromLegacyBreakdown(values = {}, prepaidAmount = 0) {
+        const breakdown = normalizeCurrencyBreakdown(values);
+        const active = PREPAYMENT_CURRENCIES.filter(currency => Number(breakdown[currency] || 0) > 0);
+        if (!active.length && prepaidAmount > 0) return [{ currency: 'PHP', amount: prepaidAmount, phpEquivalent: prepaidAmount }];
+        return active.map((currency, index) => normalizePrepaidRow({
+            currency,
+            amount: breakdown[currency],
+            phpEquivalent: currency === 'PHP' ? breakdown[currency] : (active.length === 1 || index === 0 ? prepaidAmount : 0)
+        })).filter(Boolean);
+    }
+
+    function reservationPrepaidRows(res = null) {
+        if (!res) return [];
+        const savedRows = res?.paymentPlan?.prepaidReceivedRows || res?.prepaidReceivedRows;
+        if (Array.isArray(savedRows)) return savedRows.map(normalizePrepaidRow).filter(Boolean);
         const fromPlan = res?.paymentPlan?.prepaidReceivedBreakdown || res?.prepaidReceivedBreakdown;
-        if (fromPlan && typeof fromPlan === 'object') return normalizeCurrencyBreakdown(fromPlan);
-        const prepaid = reservationPrepaidValue(res);
-        return normalizeCurrencyBreakdown(prepaid ? { PHP: prepaid } : {});
+        return prepaidRowsFromLegacyBreakdown(fromPlan, reservationPrepaidValue(res));
+    }
+
+    function prepaidRowsFromInputs() {
+        return [...document.querySelectorAll('#unifiedPrepaidRows .prepaid-row')].map(row => {
+            const currency = row.querySelector('.prepaid-row-currency')?.value || 'PHP';
+            return normalizePrepaidRow({
+                currency,
+                amount: parseMoneyInput(row.querySelector('.prepaid-row-amount')?.value, currency),
+                phpEquivalent: parseMoneyInput(row.querySelector('.prepaid-row-php')?.value, 'PHP')
+            });
+        }).filter(Boolean);
+    }
+
+    function prepaidPhpTotalFromRows(rows = []) {
+        return rows.reduce((sum, row) => sum + Number(row.phpEquivalent || 0), 0);
+    }
+
+    function prepaidBreakdownFromRows(rows = []) {
+        return rows.reduce((acc, row) => {
+            const currency = PREPAYMENT_CURRENCIES.includes(row.currency) ? row.currency : 'PHP';
+            acc[currency] = (acc[currency] || 0) + Number(row.amount || 0);
+            return acc;
+        }, { PHP: 0, USD: 0, KRW: 0 });
     }
 
     function prepaidBreakdownFromInputs() {
-        return normalizeCurrencyBreakdown({
-            PHP: parseMoneyInput(document.getElementById('unifiedPrepaidReceivedPhp')?.value, 'PHP'),
-            USD: parseMoneyInput(document.getElementById('unifiedPrepaidReceivedUsd')?.value, 'USD'),
-            KRW: parseMoneyInput(document.getElementById('unifiedPrepaidReceivedKrw')?.value, 'KRW')
-        });
+        return prepaidBreakdownFromRows(prepaidRowsFromInputs());
     }
 
-    function setPrepaidBreakdownInputs(values = {}) {
-        const breakdown = normalizeCurrencyBreakdown(values);
-        PREPAYMENT_CURRENCIES.forEach(currency => {
-            const id = `unifiedPrepaidReceived${currency === 'PHP' ? 'Php' : currency === 'USD' ? 'Usd' : 'Krw'}`;
-            const input = document.getElementById(id);
-            if (input) input.value = breakdown[currency] ? formatMoneyInputValue(breakdown[currency], currency) : '';
-        });
+    function prepaidRowsText(rows = []) {
+        const normalized = rows.map(normalizePrepaidRow).filter(Boolean);
+        if (!normalized.length) return '실제 결제화폐 미입력';
+        return normalized.map(row => {
+            const label = PREPAYMENT_CURRENCY_LABELS[row.currency] || row.currency;
+            const amountText = `${label} ${Number(row.amount || 0).toLocaleString()}`;
+            return row.currency === 'PHP'
+                ? amountText
+                : `${amountText} → 페소 ${Number(row.phpEquivalent || 0).toLocaleString()}`;
+        }).join(' · ');
     }
 
-    function prepaidBreakdownText(values = {}) {
-        const breakdown = normalizeCurrencyBreakdown(values);
-        const parts = PREPAYMENT_CURRENCIES
-            .filter(currency => Number(breakdown[currency] || 0) > 0)
-            .map(currency => `${PREPAYMENT_CURRENCY_LABELS[currency] || currency} ${Number(breakdown[currency]).toLocaleString()}`);
-        return parts.length ? parts.join(' · ') : '실제 결제화폐 미입력';
+    function syncUnifiedPrepaidRow(row) {
+        if (!row) return;
+        const currency = row.querySelector('.prepaid-row-currency')?.value || 'PHP';
+        const phpWrap = row.querySelector('.prepaid-row-php-wrap');
+        const phpInput = row.querySelector('.prepaid-row-php');
+        if (phpWrap) phpWrap.style.display = currency === 'PHP' ? 'none' : 'block';
+        if (phpInput && currency === 'PHP') phpInput.value = '';
+    }
+
+    function renderPrepaidRowsEmpty() {
+        const list = document.getElementById('unifiedPrepaidRows');
+        if (!list) return;
+        if (list.querySelector('.prepaid-row')) return;
+        list.innerHTML = '<div class="prepaid-empty" style="border:1px dashed var(--border);border-radius:8px;padding:10px;color:var(--txt3);font-size:.72rem;font-weight:800;text-align:center">선결제 통화를 행으로 추가해주세요.</div>';
+    }
+
+    function addUnifiedPrepaidRow(row = {}) {
+        const list = document.getElementById('unifiedPrepaidRows');
+        if (!list) return;
+        list.querySelector('.prepaid-empty')?.remove();
+        const normalized = normalizePrepaidRow(row) || { currency: row.currency || 'PHP', amount: 0, phpEquivalent: 0 };
+        const div = document.createElement('div');
+        div.className = 'prepaid-row';
+        div.style.cssText = 'display:grid;grid-template-columns:minmax(100px,.7fr) minmax(130px,1fr) minmax(130px,1fr) auto;gap:8px;align-items:end;margin-top:8px';
+        div.innerHTML = `
+            <div class="md-item">
+                <div class="md-label" style="color:var(--txt2);font-size:0.72rem;margin-bottom:6px">통화</div>
+                <select class="prepaid-row-currency" onchange="syncUnifiedPrepaidRows()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                    <option value="PHP">페소</option>
+                    <option value="USD">달러</option>
+                    <option value="KRW">원화</option>
+                </select>
+            </div>
+            <div class="md-item">
+                <div class="md-label" style="color:var(--txt2);font-size:0.72rem;margin-bottom:6px">실제 받은 금액</div>
+                <input class="prepaid-row-amount" type="number" min="0" step="0.01" oninput="syncUnifiedPrepaidRows()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
+            </div>
+            <div class="md-item prepaid-row-php-wrap">
+                <div class="md-label" style="color:var(--txt2);font-size:0.72rem;margin-bottom:6px">페소 반영액</div>
+                <input class="prepaid-row-php" type="number" min="0" step="1" oninput="syncUnifiedPrepaidRows()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
+            </div>
+            <button type="button" class="btn-outline" onclick="removeUnifiedPrepaidRow(this)" style="height:38px;padding:0 10px;color:var(--danger);border-color:rgba(239,68,68,.45)"><i class="fa-solid fa-trash"></i></button>
+        `;
+        list.appendChild(div);
+        div.querySelector('.prepaid-row-currency').value = PREPAYMENT_CURRENCIES.includes(normalized.currency) ? normalized.currency : 'PHP';
+        div.querySelector('.prepaid-row-amount').value = normalized.amount ? formatMoneyInputValue(normalized.amount, normalized.currency) : '';
+        div.querySelector('.prepaid-row-php').value = normalized.currency !== 'PHP' && normalized.phpEquivalent ? formatMoneyInputValue(normalized.phpEquivalent, 'PHP') : '';
+        syncUnifiedPrepaidRow(div);
+        syncUnifiedBalance();
+    }
+
+    function removeUnifiedPrepaidRow(button) {
+        button?.closest('.prepaid-row')?.remove();
+        renderPrepaidRowsEmpty();
+        syncUnifiedBalance();
+    }
+
+    function setPrepaidRows(rows = []) {
+        const list = document.getElementById('unifiedPrepaidRows');
+        if (!list) return;
+        list.innerHTML = '';
+        const normalized = Array.isArray(rows) ? rows.map(normalizePrepaidRow).filter(Boolean) : [];
+        normalized.forEach(row => addUnifiedPrepaidRow(row));
+        renderPrepaidRowsEmpty();
+    }
+
+    function syncUnifiedPrepaidRows() {
+        document.querySelectorAll('#unifiedPrepaidRows .prepaid-row').forEach(syncUnifiedPrepaidRow);
+        syncUnifiedBalance();
     }
 
     let unifiedRateRowsCache = null;
@@ -1041,7 +1148,10 @@
         configureUnifiedMoneyInput(prepaidInput, currency);
         amountInput.value = formatMoneyInputValue(amount, currency);
         prepaidInput.value = formatMoneyInputValue(prepaid, currency);
-        setPrepaidBreakdownInputs(options.prepaidBreakdown || reservationPrepaidBreakdown(res));
+        const optionRows = Array.isArray(options.prepaidRows) ? options.prepaidRows : [];
+        const savedRows = reservationPrepaidRows(res);
+        const fallbackRows = prepaidRowsFromLegacyBreakdown(options.prepaidBreakdown, prepaid);
+        setPrepaidRows(optionRows.length ? optionRows : (savedRows.length ? savedRows : fallbackRows));
         syncUnifiedBalance();
     }
 
@@ -1053,11 +1163,16 @@
         if (!amountInput || !prepaidInput || !balanceInput) return;
         const currency = amountInput.dataset.currency || 'PHP';
         const total = parseMoneyInput(amountInput.value, currency);
-        const prepaid = Math.min(parseMoneyInput(prepaidInput.value, currency), total);
+        const prepaidRows = prepaidRowsFromInputs();
+        const rowsTotal = prepaidPhpTotalFromRows(prepaidRows);
+        if (prepaidRows.length && rowsTotal >= 0) {
+            prepaidInput.value = formatMoneyInputValue(rowsTotal, currency);
+        }
+        const prepaid = prepaidRows.length ? rowsTotal : Math.min(parseMoneyInput(prepaidInput.value, currency), total);
         const balance = Math.max(total - prepaid, 0);
         balanceInput.value = formatSettlementMoney(balance, currency);
         if (help) {
-            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 선결제 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)} · 실제 결제화폐 ${prepaidBreakdownText(prepaidBreakdownFromInputs())}`;
+            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 선결제 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)} · 실제 결제화폐 ${prepaidRowsText(prepaidRows)}`;
         }
     }
 
@@ -1287,7 +1402,7 @@
                                 <input type="number" min="0" step="1" id="unifiedAmount" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                             </div>
                             <div class="md-item">
-                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">선결제 금액</div>
+                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">선결제 페소 기준 합계</div>
                                 <input type="number" min="0" step="1" id="unifiedPrepaid" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                             </div>
                             <div class="md-item">
@@ -1296,24 +1411,14 @@
                             </div>
                         </div>
                         <div style="margin-top:12px;">
-                            <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;font-size:0.78rem;color:var(--txt);font-weight:900;">
-                                <i class="fa-solid fa-wallet" style="color:var(--primary)"></i> 선결제 실제 결제화폐
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+                                <div style="display:flex;align-items:center;gap:7px;font-size:0.78rem;color:var(--txt);font-weight:900;">
+                                    <i class="fa-solid fa-wallet" style="color:var(--primary)"></i> 선결제 수납 행
+                                </div>
+                                <button type="button" class="btn-outline" onclick="addUnifiedPrepaidRow()" style="height:32px;padding:0 10px;font-size:.72rem"><i class="fa-solid fa-plus"></i> 행 추가</button>
                             </div>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
-                                <div class="md-item">
-                                    <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">페소</div>
-                                    <input type="number" min="0" step="1" id="unifiedPrepaidReceivedPhp" oninput="syncUnifiedBalance()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
-                                </div>
-                                <div class="md-item">
-                                    <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">달러</div>
-                                    <input type="number" min="0" step="0.01" id="unifiedPrepaidReceivedUsd" oninput="syncUnifiedBalance()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
-                                </div>
-                                <div class="md-item">
-                                    <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">원화</div>
-                                    <input type="number" min="0" step="1" id="unifiedPrepaidReceivedKrw" oninput="syncUnifiedBalance()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
-                                </div>
-                            </div>
-                            <div style="margin-top:6px;font-size:0.7rem;color:var(--txt3);font-weight:700;line-height:1.45">선결제 금액은 페소 기준 반영액이고, 아래는 실제 받은 통화입니다. 예: 달러 10 수령, 페소 기준 560으로 처리.</div>
+                            <div id="unifiedPrepaidRows"></div>
+                            <div style="margin-top:6px;font-size:0.7rem;color:var(--txt3);font-weight:700;line-height:1.45">달러/원화는 실제 받은 금액과 별도로 페소 반영액을 입력합니다. 페소 수납은 받은 금액이 그대로 페소 기준 합계에 반영됩니다.</div>
                         </div>
                         <div id="unifiedRateQuoteHint" style="margin-top:8px;font-size:0.72rem;color:var(--primary);font-weight:800;line-height:1.45"></div>
                         <div id="unifiedFinanceHelp" style="margin-top:4px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
@@ -1378,6 +1483,9 @@
 
     window.syncUnifiedBalance = syncUnifiedBalance;
     window.syncUnifiedLateCheckoutControls = syncUnifiedLateCheckoutControls;
+    window.addUnifiedPrepaidRow = addUnifiedPrepaidRow;
+    window.removeUnifiedPrepaidRow = removeUnifiedPrepaidRow;
+    window.syncUnifiedPrepaidRows = syncUnifiedPrepaidRows;
 
     async function unifiedGroups() {
         const merged = new Map();
@@ -2337,6 +2445,7 @@
             setUnifiedFinanceValues(null, {
                 amount: Number(prefill?.amount || prefill?.totalAmount?.amount || 0),
                 prepaid: Number(prefill?.prepaidAmount || prefill?.paymentPlan?.prepaidAmount || 0),
+                prepaidRows: prefill?.prepaidReceivedRows || prefill?.paymentPlan?.prepaidReceivedRows,
                 prepaidBreakdown: prefill?.prepaidReceivedBreakdown || prefill?.paymentPlan?.prepaidReceivedBreakdown
             });
             refreshUnifiedRateQuote({ force: !Number(prefill?.amount || prefill?.totalAmount?.amount || 0) });
@@ -2520,8 +2629,19 @@
         const nights = updateUnifiedNightsLabel() || 1;
         const currency = reservationCurrency(currentRes);
         const totalAmount = parseMoneyInput(document.getElementById('unifiedAmount')?.value, currency);
-        const prepaidAmount = Math.min(parseMoneyInput(document.getElementById('unifiedPrepaid')?.value, currency), totalAmount);
-        const prepaidReceivedBreakdown = prepaidBreakdownFromInputs();
+        const prepaidReceivedRows = prepaidRowsFromInputs();
+        const invalidPrepaidRows = prepaidReceivedRows.filter(row => row.currency !== 'PHP' && Number(row.amount || 0) > 0 && Number(row.phpEquivalent || 0) <= 0);
+        if (invalidPrepaidRows.length) {
+            alert('달러/원화 선결제 행에는 페소 반영액을 입력해주세요.');
+            return;
+        }
+        const prepaidRowsTotal = prepaidPhpTotalFromRows(prepaidReceivedRows);
+        if (prepaidReceivedRows.length && prepaidRowsTotal > totalAmount) {
+            alert('선결제 페소 반영액이 총 객실 금액을 초과할 수 없습니다.');
+            return;
+        }
+        const prepaidAmount = Math.min(prepaidReceivedRows.length ? prepaidRowsTotal : parseMoneyInput(document.getElementById('unifiedPrepaid')?.value, currency), totalAmount);
+        const prepaidReceivedBreakdown = prepaidBreakdownFromRows(prepaidReceivedRows);
         const balanceDue = normalizeMoneyAmount(totalAmount - prepaidAmount, currency);
         const nightlyRate = nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount;
         const rateQuote = unifiedLastRateQuote;
@@ -2590,11 +2710,13 @@
                 roomRateQuote: rateQuote ? { ...rateQuote } : null,
                 manualAmountOverride,
                 prepaidAmount,
+                prepaidReceivedRows,
                 prepaidReceivedBreakdown,
                 balanceDue,
                 paymentPlan: {
                     totalAmount,
                     prepaidAmount,
+                    prepaidReceivedRows,
                     prepaidReceivedBreakdown,
                     balanceDue,
                     currency,
@@ -2700,12 +2822,14 @@
                 res.roomRateQuote = rateQuote ? { ...rateQuote } : null;
                 res.manualAmountOverride = manualAmountOverride;
                 res.prepaidAmount = prepaidAmount;
+                res.prepaidReceivedRows = prepaidReceivedRows;
                 res.prepaidReceivedBreakdown = prepaidReceivedBreakdown;
                 res.balanceDue = balanceDue;
                 res.paymentPlan = {
                     ...(res.paymentPlan || {}),
                     totalAmount,
                     prepaidAmount,
+                    prepaidReceivedRows,
                     prepaidReceivedBreakdown,
                     balanceDue,
                     currency,
