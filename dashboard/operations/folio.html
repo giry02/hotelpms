@@ -389,6 +389,7 @@ let currentInvoiceIndex = -1;
 let currentInvoiceScope = 'all';
 let folioCurrentPage = 1;
 let folioPageSize = 20;
+let folioUrlPaymentOpened = false;
 
 const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
 const SETTLEMENT_COMPLETIONS_KEY = 'pms_settlement_completions';
@@ -1693,6 +1694,7 @@ async function loadApiFolios() {
         apiFolios = window.PmsMockApi.items(env).map(mapApiFolio);
         updateApiKpis();
         renderFolios();
+        tryOpenPaymentFromUrl();
     } catch(e) {
         console.warn('Mock folios fallback', e);
     }
@@ -1722,6 +1724,7 @@ async function loadReservationSettlementLinks() {
     folioReservations = [...merged.values()];
     updateApiKpis();
     renderFolios();
+    tryOpenPaymentFromUrl();
 }
 
 async function loadGroupSettlementLinks() {
@@ -1748,6 +1751,7 @@ async function loadGroupSettlementLinks() {
     folioGroups = [...merged.values()];
     updateApiKpis();
     renderFolios();
+    tryOpenPaymentFromUrl();
 }
 
 function setKpiPeriod(btn, period) {
@@ -1979,6 +1983,54 @@ function setDept(btn, dept) {
     renderFolios();
 }
 
+function applyFolioUrlFiltersFromParams() {
+    const params = new URLSearchParams(window.location.search);
+    const dept = params.get('dept');
+    if (dept) {
+        const btn = document.querySelector(`.filter-chips .dept-chip[onclick*="'${dept}'"]`);
+        if (btn) {
+            currentDept = dept;
+            document.querySelectorAll('.filter-chips .dept-chip').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+        }
+    }
+    const status = (params.get('status') || '').toLowerCase();
+    const receiveId = params.get('receive') || params.get('openPayment') || params.get('paymentFolio') || '';
+    if (receiveId) {
+        currentPeriod = params.get('period') || 'custom';
+        if (currentPeriod === 'custom') {
+            const startInput = document.getElementById('folioStartDate');
+            const endInput = document.getElementById('folioEndDate');
+            if (startInput) startInput.value = '2026-01-01';
+            if (endInput) endInput.value = formatDateObject(CURRENT_FOLIO_DATE);
+        }
+        document.querySelectorAll('.filter-bar-mt .filter-chips .chip[onclick*="setKpiPeriod"]').forEach(button => {
+            button.classList.toggle('active', button.getAttribute('onclick')?.includes(`'${currentPeriod}'`));
+        });
+        updateFolioPeriodControls();
+    }
+    if (status === 'unpaid' || receiveId) setUnpaidFilter(true);
+    const query = receiveId || params.get('query') || '';
+    const searchInput = document.getElementById('searchInput');
+    if (query && searchInput && searchInput.value !== query) {
+        searchInput.value = query;
+    }
+    folioCurrentPage = 1;
+}
+
+function tryOpenPaymentFromUrl() {
+    if (folioUrlPaymentOpened) return;
+    const params = new URLSearchParams(window.location.search);
+    const receiveId = params.get('receive') || params.get('openPayment') || params.get('paymentFolio') || '';
+    if (!receiveId) return;
+    applyFolioUrlFiltersFromParams();
+    renderFolios();
+    const target = visibleFolios.find(folio => folio.id === receiveId || (folio.sourceFolioIds || []).includes(receiveId));
+    if (!target) return;
+    folioUrlPaymentOpened = true;
+    setTimeout(() => openPaymentModal(target.id, Number(target.bal || 0)), 80);
+}
+
 
 initializeFolioPeriodControls();
 renderFolios();
@@ -1996,6 +2048,9 @@ if (pDept) {
         renderFolios();
     }
 }
+applyFolioUrlFiltersFromParams();
+renderFolios();
+tryOpenPaymentFromUrl();
 
 // i18n
 let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
