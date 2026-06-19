@@ -145,6 +145,33 @@
 .payment-history-currency-amount{display:block;font-size:.95rem;font-weight:950;color:var(--txt);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .payment-history-currency-method{display:block;margin-top:3px;font-size:.62rem;font-weight:900;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .payment-history-empty{border:1px dashed var(--border);border-radius:8px;background:#fff;padding:10px;font-size:.74rem;font-weight:800;color:var(--txt3);text-align:center}
+.settlement-detail-modal{max-width:860px;width:95vw}
+.settlement-detail-body{padding:20px;display:grid;gap:16px;background:#fff}
+.settlement-detail-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.settlement-detail-card{border:1px solid var(--border2);border-radius:10px;background:#f8fafc;padding:12px;min-width:0}
+.settlement-detail-card span{display:flex;align-items:center;gap:6px;color:var(--txt3);font-size:.72rem;font-weight:900;margin-bottom:6px;white-space:nowrap}
+.settlement-detail-card strong{display:block;color:var(--txt);font-size:1rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.settlement-detail-card.danger strong{color:var(--danger)}
+.settlement-detail-card.warning strong{color:#b45309}
+.settlement-detail-section{border:1px solid var(--border2);border-radius:12px;background:#fff;overflow:hidden}
+.settlement-detail-section-head{padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--border2);font-size:.86rem;font-weight:950;color:var(--txt);display:flex;align-items:center;gap:8px}
+.settlement-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+.settlement-detail-row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;padding:10px 14px;border-bottom:1px solid var(--border2);font-size:.78rem;line-height:1.45}
+.settlement-detail-row:nth-last-child(-n+2){border-bottom:0}
+.settlement-detail-row span{color:var(--txt3);font-weight:900}
+.settlement-detail-row strong{color:var(--txt);font-weight:850;overflow-wrap:anywhere}
+.settlement-line-list{display:grid;gap:8px;padding:12px}
+.settlement-line-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid var(--border2);border-radius:9px;background:#fff;padding:10px 12px}
+.settlement-line-main{display:flex;align-items:center;gap:8px;min-width:0;color:var(--txt2);font-size:.78rem;font-weight:900}
+.settlement-line-main i{color:var(--primary);width:16px;text-align:center}
+.settlement-line-amount{font-size:.82rem;font-weight:950;color:var(--txt);white-space:nowrap}
+.settlement-history-list{display:grid;gap:8px;padding:12px;max-height:220px;overflow:auto}
+.settlement-history-item{display:grid;grid-template-columns:112px minmax(0,1fr) auto;gap:10px;align-items:start;border:1px solid var(--border2);border-radius:9px;background:#fff;padding:10px 12px;font-size:.76rem}
+.settlement-history-time{color:var(--txt3);font-weight:900;line-height:1.35}
+.settlement-history-main{min-width:0;color:var(--txt);font-weight:850;line-height:1.45}
+.settlement-history-main span{display:block;color:var(--txt3);font-size:.7rem;font-weight:800;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.settlement-history-amount{text-align:right;color:var(--primary);font-weight:950;white-space:nowrap}
+.settlement-history-empty{padding:18px;text-align:center;color:var(--txt3);font-size:.78rem;font-weight:850;border:1px dashed var(--border);border-radius:9px;background:#fbfdff}
 .folio-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:#fff}
 .folio-page-info{font-size:.78rem;font-weight:800;color:var(--txt2)}
 .folio-page-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -174,6 +201,10 @@
     .payment-history-currencies{grid-template-columns:1fr}
     .folio-pagination{flex-direction:column;align-items:stretch}
     .folio-page-controls{justify-content:space-between}
+    .settlement-detail-summary,.settlement-detail-grid{grid-template-columns:1fr}
+    .settlement-detail-row:nth-last-child(-n+2){border-bottom:1px solid var(--border2)}
+    .settlement-history-item{grid-template-columns:1fr}
+    .settlement-history-amount{text-align:left}
 }
 </style>
 </head>
@@ -385,6 +416,7 @@ let visibleFolios = [];
 let folioReservations = [];
 let folioGroups = [];
 let currentPaymentFolioId = '';
+let currentSettlementIndex = -1;
 let currentInvoiceIndex = -1;
 let currentInvoiceScope = 'all';
 let folioCurrentPage = 1;
@@ -1924,7 +1956,7 @@ function renderFolios() {
         const balColor = f.bal > 0 ? 'var(--danger)' : 'var(--txt)';
         const depositAmount = folioDepositValue(f);
         const groupRowClass = isGroupFolio(f) ? ' folio-group-row' : '';
-        return `<tr class="folio-row${groupRowClass}" role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
+        return `<tr class="folio-row${groupRowClass}" role="button" tabindex="0" style="cursor:pointer" onclick="openSettlementDetailModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSettlementDetailModal(${index})}">
             <td class="folio-id-cell"><span class="folio-id-text">${f.id}</span>${folioSourceCountHtml(f)}</td>
             <td class="folio-room-cell"><div class="folio-room-title"><strong>${f.room}</strong></div>${folioGroupBadgeHtml(f)}${folioRoomChangeBadgeHtml(f)}</td>
             <td class="folio-customer-cell"><span class="folio-customer-name">${escapeHtml(f.guest)}</span>${folioGroupMetaHtml(f)}</td>
@@ -1946,7 +1978,7 @@ function renderFolios() {
         const index = pageStart + pageIndex;
         const s = stMap[f.status] || stMap.unpaid;
         const depositAmount = folioDepositValue(f);
-        return `<div class="m-res-card" role="button" tabindex="0" style="cursor:pointer" onclick="openInvoiceModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openInvoiceModal(${index})}">
+        return `<div class="m-res-card" role="button" tabindex="0" style="cursor:pointer" onclick="openSettlementDetailModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSettlementDetailModal(${index})}">
             <div class="m-res-top">
                 <div>
                     <div style="font-size:0.7rem;color:var(--txt3);font-family:monospace">${f.id}</div>
@@ -2341,6 +2373,192 @@ function paymentHistoryHtml(folio) {
     `;
 }
 
+function settlementDetailStatus(folio) {
+    const total = Number(folio?.total || 0);
+    const paid = Number(folio?.paid || 0);
+    const bal = Number(folio?.bal || 0);
+    const deposit = folioDepositValue(folio);
+    if (folio?.settlementCompleted) return { label: '정산 완료', badge: 'success', icon: 'fa-circle-check' };
+    if (bal > 0) return { label: '미수금 존재', badge: 'warning', icon: 'fa-triangle-exclamation' };
+    if (paid > total) return { label: '환불 확인 필요', badge: 'danger', icon: 'fa-rotate-left' };
+    if (deposit > 0) return { label: '예치금 확인 필요', badge: 'warning', icon: 'fa-vault' };
+    return { label: '완료 대기', badge: 'ready', icon: 'fa-hourglass-half' };
+}
+
+function settlementRefundValue(folio) {
+    return Math.max(Number(folio?.paid || 0) - Number(folio?.total || 0), 0);
+}
+
+function settlementDetailMetaRows(folio) {
+    const group = isGroupFolio(folio) ? (folio.group || groupById(folio.groupId) || {}) : {};
+    const rows = [
+        ['정산 번호', folio.id || '-'],
+        ['체크아웃일', formatDate(folio.out)],
+        ['정산 대상', isGroupFolio(folio) ? (group.name || folio.guest || '-') : (folio.guest || '-')],
+        ['객실/단체', isGroupFolio(folio) ? (folio.groupRoomsText || '단체') : (folio.room || '-')],
+        ['포함 항목', folioServiceSummary(folio)],
+        ['상태', settlementDetailStatus(folio).label]
+    ];
+    if (isGroupFolio(folio)) {
+        rows.push(['업체', group.agency || group.companyName || folio.companyName || '-']);
+        rows.push(['정산 방식', group.routing || folio.routing || 'Master Folio']);
+    }
+    if ((folio.sourceFolioIds || []).length) rows.push(['원천 Folio', (folio.sourceFolioIds || []).join(', ')]);
+    if (folio.settlementCompletedAt) rows.push(['완료 일시', formatDateTime(folio.settlementCompletedAt)]);
+    if (folio.settlementCompletedBy) rows.push(['완료 담당자', folio.settlementCompletedBy]);
+    return rows;
+}
+
+function settlementDetailMetaHtml(folio) {
+    return settlementDetailMetaRows(folio).map(([label, value]) => `
+        <div class="settlement-detail-row">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+        </div>
+    `).join('');
+}
+
+function settlementDetailLinesHtml(folio) {
+    const totals = folioDeptTotals(folio);
+    const types = (folio.serviceTypes?.length ? folio.serviceTypes : folioServiceTypes(folio))
+        .filter(type => Number(totals[type] || 0) !== 0)
+        .sort((a, b) => deptSort(a) - deptSort(b));
+    if (!types.length) {
+        return '<div class="settlement-history-empty">청구 항목이 없습니다.</div>';
+    }
+    return types.map(type => `
+        <div class="settlement-line-item">
+            <div class="settlement-line-main">
+                <i class="fa-solid ${deptIcon(type)}"></i>
+                <span>${escapeHtml(deptLabel(type))}</span>
+            </div>
+            <div class="settlement-line-amount">${fmtMoney(totals[type], folio.currency)}</div>
+        </div>
+    `).join('');
+}
+
+function settlementDetailHistoryHtml(folio) {
+    const records = Array.isArray(folio?.settlementPaymentRecords) ? [...folio.settlementPaymentRecords] : [];
+    const completion = settlementCompletionForFolio(folio);
+    const rows = [
+        ...records.map(item => ({
+            at: item.createdAt,
+            title: item.kind === 'deposit' ? '예치금 수납' : '정산 수납',
+            sub: [item.methodLabel || item.method, item.operator, item.note].filter(Boolean).join(' / '),
+            amount: fmtInvoiceMoney(item.appliedPhpAmount),
+            tone: item.kind === 'deposit' ? 'warning' : 'primary'
+        })),
+        ...(completion ? [{
+            at: completion.completedAt,
+            title: '정산 완료',
+            sub: completion.completedBy || '-',
+            amount: fmtInvoiceMoney(folio.paid),
+            tone: 'success'
+        }] : [])
+    ].sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+    if (!rows.length) return '<div class="settlement-history-empty">등록된 수납/예치/완료 이력이 없습니다.</div>';
+    return rows.map(item => `
+        <div class="settlement-history-item">
+            <div class="settlement-history-time">${escapeHtml(formatDateTime(item.at))}</div>
+            <div class="settlement-history-main">
+                ${escapeHtml(item.title)}
+                <span>${escapeHtml(item.sub || '-')}</span>
+            </div>
+            <div class="settlement-history-amount">${escapeHtml(item.amount)}</div>
+        </div>
+    `).join('');
+}
+
+function renderSettlementDetailModal() {
+    const folio = visibleFolios[currentSettlementIndex];
+    if (!folio) return;
+    const status = settlementDetailStatus(folio);
+    const deposit = folioDepositValue(folio);
+    const refund = settlementRefundValue(folio);
+    const body = document.getElementById('settlementDetailContent');
+    const footer = document.getElementById('settlementDetailFooter');
+    if (body) {
+        body.innerHTML = `
+            <div class="settlement-detail-summary">
+                <div class="settlement-detail-card">
+                    <span><i class="fa-solid fa-file-invoice-dollar"></i> 총 청구액</span>
+                    <strong>${fmtMoney(folio.total, folio.currency)}</strong>
+                </div>
+                <div class="settlement-detail-card">
+                    <span><i class="fa-solid fa-credit-card"></i> 수납액</span>
+                    <strong>${fmtMoney(folio.paid, folio.currency)}</strong>
+                </div>
+                <div class="settlement-detail-card warning">
+                    <span><i class="fa-solid fa-vault"></i> 예치금</span>
+                    <strong>${fmtMoney(deposit, folio.currency)}</strong>
+                </div>
+                <div class="settlement-detail-card danger">
+                    <span><i class="fa-solid fa-triangle-exclamation"></i> 미수금</span>
+                    <strong>${fmtMoney(folio.bal, folio.currency)}</strong>
+                </div>
+                <div class="settlement-detail-card ${refund > 0 ? 'danger' : ''}">
+                    <span><i class="fa-solid fa-rotate-left"></i> 환불금</span>
+                    <strong>${fmtMoney(refund, folio.currency)}</strong>
+                </div>
+            </div>
+
+            <div class="settlement-detail-section">
+                <div class="settlement-detail-section-head"><i class="fa-solid ${status.icon}" style="color:var(--primary)"></i> 정산 기본 정보</div>
+                <div class="settlement-detail-grid">${settlementDetailMetaHtml(folio)}</div>
+            </div>
+
+            <div class="settlement-detail-section">
+                <div class="settlement-detail-section-head"><i class="fa-solid fa-layer-group" style="color:var(--primary)"></i> 청구 항목 요약</div>
+                <div class="settlement-line-list">${settlementDetailLinesHtml(folio)}</div>
+            </div>
+
+            <div class="settlement-detail-section">
+                <div class="settlement-detail-section-head"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary)"></i> 처리 이력</div>
+                <div class="settlement-history-list">${settlementDetailHistoryHtml(folio)}</div>
+            </div>
+        `;
+    }
+    if (footer) {
+        const due = Number(folio.bal || 0);
+        const completeButton = folio.settlementCompleted
+            ? '<button class="btn-outline" disabled>정산 완료됨</button>'
+            : due > 0
+                ? '<button class="btn-primary-sm" onclick="openSettlementPaymentFromDetail()"><i class="fa-solid fa-credit-card"></i> 수납 등록</button>'
+                : '<button class="btn-primary-sm" onclick="completeSettlementFromDetail()"><i class="fa-solid fa-circle-check"></i> 정산 완료</button>';
+        footer.innerHTML = `
+            <button class="btn-outline" onclick="closeModal('settlementDetailModal')">닫기</button>
+            <button class="btn-outline" onclick="openInvoiceFromSettlementDetail()"><i class="fa-solid fa-file-invoice"></i> 고객용 명세서</button>
+            ${completeButton}
+        `;
+    }
+}
+
+function openSettlementDetailModal(index) {
+    currentSettlementIndex = index;
+    renderSettlementDetailModal();
+    openModal('settlementDetailModal');
+}
+
+function openInvoiceFromSettlementDetail() {
+    const index = currentSettlementIndex;
+    closeModal('settlementDetailModal');
+    openInvoiceModal(index, 'all');
+}
+
+function openSettlementPaymentFromDetail() {
+    const folio = visibleFolios[currentSettlementIndex];
+    if (!folio) return;
+    closeModal('settlementDetailModal');
+    openPaymentModal(folio.id, Number(folio.bal || 0));
+}
+
+function completeSettlementFromDetail() {
+    const folio = visibleFolios[currentSettlementIndex];
+    if (!folio) return;
+    closeModal('settlementDetailModal');
+    completeSettlementFolio(folio.id);
+}
+
 function openPaymentModal(folioId, bal) {
     const folio = visibleFolios.find(item => item.id === folioId);
     if (folio?.settlementCompleted) {
@@ -2536,6 +2754,18 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <button class="btn-outline" onclick="closeModal('paymentModal')">취소</button>
             <button class="btn-primary-sm" onclick="processPayment()"><i class="fa-solid fa-circle-check"></i> <span id="paymentSubmitLabel">수납 등록</span></button>
         </div>
+    </div>
+</div>
+
+<!-- 운영자용 정산 상세 모달 -->
+<div class="modal-overlay" id="settlementDetailModal" onclick="if(event.target===this) closeModal('settlementDetailModal')">
+    <div class="modal-card settlement-detail-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-list-check" style="color:var(--primary)"></i> 정산 상세</h3>
+            <button class="modal-close" onclick="closeModal('settlementDetailModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body settlement-detail-body" id="settlementDetailContent"></div>
+        <div class="modal-footer" id="settlementDetailFooter" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)"></div>
     </div>
 </div>
 

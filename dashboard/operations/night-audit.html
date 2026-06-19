@@ -118,7 +118,17 @@
         .cash-summary-block + .cash-summary-block { margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--border2); }
         .cash-summary-block-title { font-size: .68rem; color: var(--txt3); font-weight: 900; letter-spacing: 0; }
         .cash-workflow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        .cash-action-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+        .cash-action-card { border: 1px solid var(--border2); border-radius: 12px; background: #fff; padding: 14px; min-height: 96px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 10px; cursor: pointer; font-family: var(--font); text-align: left; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+        .cash-action-card:hover, .cash-action-card:focus-visible { border-color: rgba(59,130,246,.42); box-shadow: 0 10px 24px rgba(15,23,42,.08); transform: translateY(-1px); outline: none; }
+        .cash-action-title { display: flex; align-items: center; gap: 9px; color: var(--txt); font-size: .88rem; font-weight: 950; }
+        .cash-action-title i { width: 32px; height: 32px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; background: var(--primary-lt); color: var(--primary); }
+        .cash-action-status { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 9px; border-radius: 999px; background: #f8fafc; border: 1px solid var(--border2); color: var(--txt2); font-size: .72rem; font-weight: 900; }
+        .cash-action-help { color: var(--txt3); font-size: .72rem; font-weight: 700; line-height: 1.35; }
         .cash-work-card { border: 1px solid var(--border2); border-radius: 12px; background: #fff; overflow: hidden; }
+        .cash-entry-panel { display: none; }
+        .cash-entry-panel.active { display: block; }
+        .cash-entry-panel .cash-work-head { display: none; }
         .cash-work-head { padding: 12px 14px; border-bottom: 1px solid var(--border2); background: #f8fafc; font-size: .88rem; font-weight: 900; display: flex; align-items: center; gap: 8px; }
         .cash-work-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
         .cash-field { display: flex; flex-direction: column; gap: 5px; }
@@ -169,7 +179,7 @@
             .revenue-row { grid-template-columns: 1fr; gap: 12px; }
             .revenue-row-actions { justify-content: space-between; min-width: 0; }
             .audit-tabs { overflow-x: auto; }
-            .cash-summary-grid, .cash-workflow-grid, .settlement-status-grid { grid-template-columns: 1fr; }
+            .cash-summary-grid, .cash-workflow-grid, .cash-action-grid, .settlement-status-grid { grid-template-columns: 1fr; }
             .cash-payment-grid { grid-template-columns: 1fr; }
             .settlement-status-head { align-items: flex-start; flex-direction: column; }
             .currency-mini-grid { grid-template-columns: 1fr; }
@@ -400,51 +410,22 @@
                         </div>
                     </div>
 
-                    <div class="cash-workflow-grid">
-                        <div class="cash-work-card">
-                            <div class="cash-work-head"><i class="fa-solid fa-play" style="color:var(--success)"></i> 시작 시재 등록</div>
-                            <div class="cash-work-body">
-                                <div class="cash-split-title"><i class="fa-solid fa-coins"></i> 보유 통화</div>
-                                <div class="currency-mini-grid">
-                                    <div class="cash-field"><label>페소</label><input id="openPhp" type="number" min="0" step="1" placeholder="0"></div>
-                                    <div class="cash-field"><label>달러</label><input id="openUsd" type="number" min="0" step="1" placeholder="0"></div>
-                                    <div class="cash-field"><label>원화</label><input id="openKrw" type="number" min="0" step="1" placeholder="0"></div>
-                                </div>
-                                <div class="cash-field"><label>인수 메모</label><textarea id="openNote" placeholder="예: 전 근무자에게 받은 잔돈, 봉투 번호"></textarea></div>
-                                <button class="btn-primary-sm" onclick="saveOpeningCash()"><i class="fa-solid fa-check"></i> 시작 시재 저장</button>
-                                <div class="cash-status" id="openStatus">미등록</div>
-                            </div>
-                        </div>
-
-                        <div class="cash-work-card">
-                            <div class="cash-work-head"><i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--warning)"></i> 중간 출금 처리</div>
-                            <div class="cash-work-body">
-                                <div class="cash-split-title"><i class="fa-solid fa-money-bill-transfer"></i> 실제 출금 통화</div>
-                                <div class="currency-mini-grid">
-                                    <div class="cash-field"><label>페소</label><input id="withdrawPhp" type="number" min="0" step="1" placeholder="0"></div>
-                                    <div class="cash-field"><label>달러</label><input id="withdrawUsd" type="number" min="0" step="1" placeholder="0"></div>
-                                    <div class="cash-field"><label>원화</label><input id="withdrawKrw" type="number" min="0" step="1" placeholder="0"></div>
-                                </div>
-                                <div class="cash-field"><label>수령자 / 사유</label><input id="withdrawReceiver" type="text" placeholder="예: 매니저 / 환전 지급"></div>
-                                <button class="btn-primary-sm" onclick="addWithdrawal()"><i class="fa-solid fa-plus"></i> 출금 기록 추가</button>
-                                <div class="cash-status" id="withdrawStatus">출금 기록 없음</div>
-                            </div>
-                        </div>
-
-                        <div class="cash-work-card">
-                            <div class="cash-work-head"><i class="fa-solid fa-flag-checkered" style="color:var(--danger)"></i> 마감 시 보유 통화 등록</div>
-                            <div class="cash-work-body">
-                                <div class="cash-split-title" id="closeCountedTitle"><i class="fa-solid fa-coins"></i> 실제 보유 통화</div>
-                                <div class="currency-mini-grid">
-                                    <div class="cash-field"><label>페소</label><input id="closePhp" type="number" min="0" step="1" placeholder="0"></div>
-                                    <div class="cash-field"><label>달러</label><input id="closeUsd" type="number" min="0" step="1" placeholder="0"></div>
-                                    <div class="cash-field"><label>원화</label><input id="closeKrw" type="number" min="0" step="1" placeholder="0"></div>
-                                </div>
-                                <div class="cash-field"><label>확인 메모</label><textarea id="closeNote" placeholder="예: 마감 시 보유 통화와 정산 확인 메모"></textarea></div>
-                                <button class="btn-primary-sm" onclick="saveClosingCash()"><i class="fa-solid fa-lock"></i> 실제 정산 저장</button>
-                                <div class="cash-status" id="closeStatus">미등록</div>
-                            </div>
-                        </div>
+                    <div class="cash-action-grid">
+                        <button type="button" class="cash-action-card" onclick="openCashEntryModal('opening')">
+                            <div class="cash-action-title"><i class="fa-solid fa-play"></i> 시작 시재 등록</div>
+                            <div class="cash-action-help">영업일 시작 시 보유 통화와 인수 메모를 등록합니다.</div>
+                            <span class="cash-action-status" id="openStatus">미등록</span>
+                        </button>
+                        <button type="button" class="cash-action-card" onclick="openCashEntryModal('withdraw')">
+                            <div class="cash-action-title"><i class="fa-solid fa-arrow-up-from-bracket"></i> 중간 출금 등록</div>
+                            <div class="cash-action-help">환전, 지급, 회계 인계 등 중간 출금 내역만 필요 시 기록합니다.</div>
+                            <span class="cash-action-status" id="withdrawStatus">출금 기록 없음</span>
+                        </button>
+                        <button type="button" class="cash-action-card" onclick="openCashEntryModal('closing')">
+                            <div class="cash-action-title"><i class="fa-solid fa-flag-checkered"></i> 마감 시재 등록</div>
+                            <div class="cash-action-help">마감 직전 실제 보유 통화를 입력해 정산 기준과 대조합니다.</div>
+                            <span class="cash-action-status" id="closeStatus">미등록</span>
+                        </button>
                     </div>
 
                     <div class="cash-ledger">
@@ -524,6 +505,61 @@
         <div class="modal-footer">
             <button type="button" class="btn-outline" onclick="closeCashSettlementPaymentModal()">취소</button>
             <button type="button" class="btn-primary-sm" onclick="saveCashSettlementPayment()"><i class="fa-solid fa-circle-check"></i> 수납 완료 처리</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="cashEntryModal" onclick="if(event.target===this) closeCashEntryModal()">
+    <div class="modal-card" style="max-width:620px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title" id="cashEntryModalTitle"><i class="fa-solid fa-cash-register" style="color:var(--primary)"></i> 시재 등록</h3>
+            <button type="button" class="modal-close" onclick="closeCashEntryModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px">
+            <div class="cash-work-card cash-entry-panel" id="cashEntryOpeningPanel">
+                <div class="cash-work-head"><i class="fa-solid fa-play" style="color:var(--success)"></i> 시작 시재 등록</div>
+                <div class="cash-work-body">
+                    <div class="cash-split-title"><i class="fa-solid fa-coins"></i> 보유 통화</div>
+                    <div class="currency-mini-grid">
+                        <div class="cash-field"><label>페소</label><input id="openPhp" type="number" min="0" step="1" placeholder="0"></div>
+                        <div class="cash-field"><label>달러</label><input id="openUsd" type="number" min="0" step="1" placeholder="0"></div>
+                        <div class="cash-field"><label>원화</label><input id="openKrw" type="number" min="0" step="1" placeholder="0"></div>
+                    </div>
+                    <div class="cash-field"><label>인수 메모</label><textarea id="openNote" placeholder="예: 전 근무자에게 받은 잔돈, 봉투 번호"></textarea></div>
+                    <button class="btn-primary-sm" onclick="saveOpeningCash()"><i class="fa-solid fa-check"></i> 시작 시재 저장</button>
+                </div>
+            </div>
+
+            <div class="cash-work-card cash-entry-panel" id="cashEntryWithdrawPanel">
+                <div class="cash-work-head"><i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--warning)"></i> 중간 출금 처리</div>
+                <div class="cash-work-body">
+                    <div class="cash-split-title"><i class="fa-solid fa-money-bill-transfer"></i> 실제 출금 통화</div>
+                    <div class="currency-mini-grid">
+                        <div class="cash-field"><label>페소</label><input id="withdrawPhp" type="number" min="0" step="1" placeholder="0"></div>
+                        <div class="cash-field"><label>달러</label><input id="withdrawUsd" type="number" min="0" step="1" placeholder="0"></div>
+                        <div class="cash-field"><label>원화</label><input id="withdrawKrw" type="number" min="0" step="1" placeholder="0"></div>
+                    </div>
+                    <div class="cash-field"><label>수령자 / 사유</label><input id="withdrawReceiver" type="text" placeholder="예: 매니저 / 환전 지급"></div>
+                    <button class="btn-primary-sm" onclick="addWithdrawal()"><i class="fa-solid fa-plus"></i> 출금 기록 추가</button>
+                </div>
+            </div>
+
+            <div class="cash-work-card cash-entry-panel" id="cashEntryClosingPanel">
+                <div class="cash-work-head"><i class="fa-solid fa-flag-checkered" style="color:var(--danger)"></i> 마감 시 보유 통화 등록</div>
+                <div class="cash-work-body">
+                    <div class="cash-split-title" id="closeCountedTitle"><i class="fa-solid fa-coins"></i> 실제 보유 통화</div>
+                    <div class="currency-mini-grid">
+                        <div class="cash-field"><label>페소</label><input id="closePhp" type="number" min="0" step="1" placeholder="0"></div>
+                        <div class="cash-field"><label>달러</label><input id="closeUsd" type="number" min="0" step="1" placeholder="0"></div>
+                        <div class="cash-field"><label>원화</label><input id="closeKrw" type="number" min="0" step="1" placeholder="0"></div>
+                    </div>
+                    <div class="cash-field"><label>확인 메모</label><textarea id="closeNote" placeholder="예: 마감 시 보유 통화와 정산 확인 메모"></textarea></div>
+                    <button class="btn-primary-sm" onclick="saveClosingCash()"><i class="fa-solid fa-lock"></i> 실제 정산 저장</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-outline" onclick="closeCashEntryModal()">닫기</button>
         </div>
     </div>
 </div>
@@ -2062,6 +2098,33 @@ function setAuditTab(tab, options = {}) {
     if (nextTab === 'cash') renderCashHandover();
 }
 
+function openCashEntryModal(type) {
+    const modal = document.getElementById('cashEntryModal');
+    if (!modal) return;
+    renderCashHandover();
+    const normalized = ['opening', 'withdraw', 'closing'].includes(type) ? type : 'opening';
+    const titleMap = {
+        opening: '시작 시재 등록',
+        withdraw: '중간 출금 등록',
+        closing: '마감 시재 등록'
+    };
+    const iconMap = {
+        opening: 'fa-play',
+        withdraw: 'fa-arrow-up-from-bracket',
+        closing: 'fa-flag-checkered'
+    };
+    const title = document.getElementById('cashEntryModalTitle');
+    if (title) title.innerHTML = `<i class="fa-solid ${iconMap[normalized]}" style="color:var(--primary)"></i> ${titleMap[normalized]}`;
+    document.querySelectorAll('.cash-entry-panel').forEach(panel => panel.classList.remove('active'));
+    const panelId = normalized === 'opening' ? 'cashEntryOpeningPanel' : normalized === 'withdraw' ? 'cashEntryWithdrawPanel' : 'cashEntryClosingPanel';
+    document.getElementById(panelId)?.classList.add('active');
+    modal.classList.add('active');
+}
+
+function closeCashEntryModal() {
+    document.getElementById('cashEntryModal')?.classList.remove('active');
+}
+
 function saveOpeningCash() {
     const session = activeCashSession(true);
     session.opening = { PHP: amount('openPhp'), USD: amount('openUsd'), KRW: amount('openKrw') };
@@ -2071,6 +2134,7 @@ function saveOpeningCash() {
     session.openedBy = operatorName();
     saveCashSession(session);
     renderCashHandover();
+    closeCashEntryModal();
     showToast(nightAuditText('toast.openSaved'), 'success');
 }
 
@@ -2098,6 +2162,7 @@ function addWithdrawal() {
     saveCashSession(session);
     ['withdrawPhp', 'withdrawUsd', 'withdrawKrw', 'withdrawReceiver'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     renderCashHandover();
+    closeCashEntryModal();
     showToast(nightAuditText('toast.withdrawAdded'), 'success');
 }
 
@@ -2113,6 +2178,7 @@ function saveClosingCash() {
     session.closedBy = operatorName();
     saveCashSession(session);
     renderCashHandover();
+    closeCashEntryModal();
     showToast(nightAuditText('toast.closeSaved'), 'success');
 }
 
@@ -2340,7 +2406,7 @@ function applyNightAuditI18n() {
         if (summaryLabels[index]) summaryLabels[index].textContent = t(key);
     });
 
-    const cashCards = document.querySelectorAll('#auditTabCash .cash-work-card');
+    const cashCards = document.querySelectorAll('.cash-entry-panel');
     setNightHeader(cashCards[0], 'cash.openCard', '<i class="fa-solid fa-play" style="color:var(--success)"></i>');
     setNightHeader(cashCards[1], 'cash.withdrawCard', '<i class="fa-solid fa-arrow-up-from-bracket" style="color:var(--warning)"></i>');
     setNightHeader(cashCards[2], 'cash.closeCard', '<i class="fa-solid fa-flag-checkered" style="color:var(--danger)"></i>');
@@ -2353,7 +2419,7 @@ function applyNightAuditI18n() {
     setNightPlaceholder('withdrawReceiver', 'cash.withdrawReceiverPlaceholder');
     setNightPlaceholder('closeNote', 'cash.closeNotePlaceholder');
 
-    const cashButtons = document.querySelectorAll('#auditTabCash .cash-work-card .btn-primary-sm');
+    const cashButtons = document.querySelectorAll('.cash-entry-panel .btn-primary-sm');
     if (cashButtons[0]) cashButtons[0].innerHTML = `<i class="fa-solid fa-check"></i> ${t('cash.openSave')}`;
     if (cashButtons[1]) cashButtons[1].innerHTML = `<i class="fa-solid fa-plus"></i> ${t('cash.withdrawAdd')}`;
     if (cashButtons[2]) cashButtons[2].innerHTML = `<i class="fa-solid fa-lock"></i> ${t('cash.closeSave')}`;
