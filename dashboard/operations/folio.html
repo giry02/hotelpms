@@ -40,9 +40,9 @@
 .folio-period-note i{color:var(--primary)}
 #btnUnpaidToggle { margin-left: 0; border: 1px solid var(--danger); color: var(--danger); background: transparent; display: flex; align-items: center; gap: 6px; }
 #btnUnpaidToggle.active { background: var(--danger) !important; color: #fff !important; }
-.folio-table { table-layout: fixed; min-width: 1350px; }
+.folio-table { table-layout: fixed; min-width: 1380px; }
 .folio-table th, .folio-table td { overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
-.folio-table th:last-child,.folio-table td.folio-action-cell{width:190px}
+.folio-table th:last-child,.folio-table td.folio-action-cell{width:210px}
 .folio-table tbody tr.folio-group-row td { padding-top: 14px; padding-bottom: 14px; background: #fff; }
 .folio-id-cell .folio-id-text { display: block; color: var(--txt2); font-family: 'Courier New', monospace; font-size: .76rem; white-space: nowrap; }
 .folio-table .folio-room-cell{overflow:hidden;white-space:normal}
@@ -53,14 +53,18 @@
 .folio-date-cell,.folio-money-cell,.folio-status-cell{white-space:nowrap}
 .folio-money-cell{font-weight:800;color:var(--txt)}
 .folio-balance-cell{font-weight:800;white-space:nowrap}
-.folio-table .folio-actions { display: flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-start; align-items: center; min-width: 170px; max-width: 180px; }
+.folio-table .folio-actions { display: flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-start; align-items: center; min-width: 190px; max-width: 200px; }
 .folio-table .folio-actions .btn-outline-sm,
 .folio-table .folio-actions .btn-primary-sm,
-.folio-table .folio-actions .btn-complete-sm { width: 52px; height: 32px; padding: 0 6px; justify-content: center; font-size:.7rem; }
-.folio-group-row .folio-actions{min-width:170px;max-width:180px;gap:6px}
+.folio-table .folio-actions .btn-complete-sm { width: 58px; height: 32px; padding: 0 6px; justify-content: center; font-size:.7rem; }
+.folio-table .folio-actions .btn-detail-sm{width:58px;height:32px;padding:0 6px;justify-content:center;font-size:.7rem}
+.folio-group-row .folio-actions{min-width:190px;max-width:200px;gap:6px}
 .folio-group-row .folio-actions .btn-outline-sm,
 .folio-group-row .folio-actions .btn-primary-sm,
 .folio-group-row .folio-actions .btn-complete-sm{padding:0 6px;font-size:.7rem}
+.folio-status-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.folio-status-select{height:38px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:800;padding:0 32px 0 11px;min-width:136px}
+.folio-status-select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
 .btn-complete-sm{border:1px solid var(--success);background:var(--success);color:#fff;border-radius:6px;font-family:var(--font);font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
 .btn-complete-sm:hover{filter:brightness(.96)}
 .btn-complete-sm:disabled,.btn-primary-sm:disabled{cursor:not-allowed;opacity:.48;filter:grayscale(.1)}
@@ -188,6 +192,8 @@
     .filter-left > div[style*="display:flex"]:not(.filter-chips) .btn-primary-sm { flex: 0 0 82px; justify-content: center; padding-inline: 10px !important; }
     .filter-chips { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; margin-right: 0 !important; }
     .filter-chips .chip { justify-content: center; min-width: 0; padding-inline: 8px; }
+    .folio-status-tools{width:100%;display:grid;grid-template-columns:1fr 1fr}
+    .folio-status-select{width:100%;min-width:0}
     .folio-period-tools,.folio-date-range{width:100%}
     .folio-date-input{flex:1;min-width:0}
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
@@ -263,6 +269,21 @@
                     <button class="chip" id="btnUnpaidToggle" onclick="toggleUnpaidOnly()"><i class="fa-solid fa-exclamation-circle"></i> <span data-i18n-key="folio.filter.hasOutstanding">미수금 있음</span></button>
 <input type="checkbox" id="chkUnpaid" style="display:none;">
                 </div>
+                <div class="folio-status-tools">
+                    <select id="folioStatusFilter" class="folio-status-select" onchange="setFolioStatusFilter(this.value)" title="상태 필터">
+                        <option value="all">전체 상태</option>
+                        <option value="unpaid">미수금 존재</option>
+                        <option value="ready">완료 대기</option>
+                        <option value="paid">정산 완료</option>
+                        <option value="refund">환불 처리</option>
+                    </select>
+                    <select id="folioSortMode" class="folio-status-select" onchange="setFolioSortMode(this.value)" title="정렬">
+                        <option value="latest">최신 체크아웃순</option>
+                        <option value="status">상태순</option>
+                        <option value="statusDesc">상태 역순</option>
+                        <option value="balanceDesc">미수금 큰순</option>
+                    </select>
+                </div>
             </div>
             <div class="filter-right">
                 <button class="btn-outline" style="height:38px" onclick="window.location.href='../download/Export_Data.xlsx'"><i class="fa-solid fa-download"></i> 내역 다운로드</button>
@@ -284,7 +305,7 @@
                             <col style="width:80px">
                             <col style="width:100px">
                             <col style="width:95px">
-                            <col style="width:190px">
+                            <col style="width:210px">
                         </colgroup>
                         <thead><tr>
                         <th>정산 번호</th><th>객실</th><th>고객명</th><th>체크아웃</th><th>총 금액</th><th>결제액</th><th>예치금</th><th>미수금 잔액</th><th>상태</th><th>관리</th>
@@ -403,6 +424,8 @@ const stMap = {
 
 let currentDept = 'individual';
 let currentPeriod = 'day';
+let currentStatusFilter = 'all';
+let currentFolioSortMode = 'latest';
 
 const kpiData = {
     'day': { total:'$22,970', room:'$18,240', anc:'$3,450', diff:'+12.4%', label:'전일 대비' },
@@ -1789,7 +1812,7 @@ async function loadGroupSettlementLinks() {
 function setKpiPeriod(btn, period) {
     currentPeriod = period;
     folioCurrentPage = 1;
-    clearUnpaidFilter();
+    resetFolioStatusFilters();
     btn.parentElement.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     resetToCurrentFolioPeriod(period);
@@ -1801,7 +1824,7 @@ function setKpiPeriod(btn, period) {
 function handleFolioPeriodChange() {
     currentPeriod = 'custom';
     folioCurrentPage = 1;
-    clearUnpaidFilter();
+    resetFolioStatusFilters();
     document.querySelectorAll('.filter-chips .chip').forEach(button => {
         if (button.textContent.trim() === '기간 선택') button.classList.add('active');
         else if (['금일', '주간', '월간'].includes(button.textContent.trim())) button.classList.remove('active');
@@ -1822,9 +1845,42 @@ function clearUnpaidFilter() {
     setUnpaidFilter(false);
 }
 
+function syncFolioStatusFilterControl() {
+    const statusSelect = document.getElementById('folioStatusFilter');
+    if (statusSelect) statusSelect.value = currentStatusFilter;
+    const sortSelect = document.getElementById('folioSortMode');
+    if (sortSelect) sortSelect.value = currentFolioSortMode;
+}
+
+function resetFolioStatusFilters() {
+    currentStatusFilter = 'all';
+    currentFolioSortMode = 'latest';
+    setUnpaidFilter(false);
+    syncFolioStatusFilterControl();
+}
+
+function setFolioStatusFilter(status) {
+    currentStatusFilter = status || 'all';
+    setUnpaidFilter(currentStatusFilter === 'unpaid');
+    syncFolioStatusFilterControl();
+    folioCurrentPage = 1;
+    renderFolios();
+}
+
+function setFolioSortMode(mode) {
+    currentFolioSortMode = mode || 'latest';
+    if (currentStatusFilter !== 'unpaid') setUnpaidFilter(false);
+    syncFolioStatusFilterControl();
+    folioCurrentPage = 1;
+    renderFolios();
+}
+
 function toggleUnpaidOnly() {
     const checkbox = document.getElementById('chkUnpaid');
-    setUnpaidFilter(!(checkbox && checkbox.checked));
+    const next = !(checkbox && checkbox.checked);
+    currentStatusFilter = next ? 'unpaid' : 'all';
+    setUnpaidFilter(next);
+    syncFolioStatusFilterControl();
     folioCurrentPage = 1;
     renderFolios();
 }
@@ -1832,41 +1888,72 @@ function toggleUnpaidOnly() {
 function folioActionsHtml(folio, index, mode = 'table') {
     const isMobile = mode === 'mobile';
     const due = Number(folio.bal || 0);
-    const completed = !!folio.settlementCompleted;
     const invoiceClass = isMobile ? 'act-btn' : 'btn-outline-sm';
     const receiveClass = isMobile ? 'act-btn' : 'btn-primary-sm';
-    const completeClass = isMobile ? 'act-btn' : 'btn-complete-sm';
+    const detailClass = isMobile ? 'act-btn' : 'btn-outline-sm btn-detail-sm';
     const receiveStyle = isMobile ? ' style="background:var(--primary);color:#fff"' : '';
-    const completeStyle = isMobile ? ' style="background:var(--success);color:#fff;border-color:var(--success)"' : '';
-    const doneStyle = isMobile ? ' style="background:var(--success-lt);color:var(--success);border-color:rgba(16,185,129,.25)"' : '';
     const invoiceIcon = isMobile ? '<i class="fa-solid fa-file-invoice"></i> ' : '';
     const receiveIcon = isMobile ? '<i class="fa-solid fa-credit-card"></i> ' : '';
-    const completeIcon = isMobile ? '<i class="fa-solid fa-check"></i> ' : '';
+    const detailIcon = isMobile ? '<i class="fa-solid fa-eye"></i> ' : '<i class="fa-solid fa-eye"></i> ';
     const buttons = [
+        `<button class="${detailClass}" onclick="event.stopPropagation(); openSettlementDetailModal(${index})">${detailIcon}상세</button>`,
         `<button class="${invoiceClass}" onclick="event.stopPropagation(); openInvoiceModal(${index}, 'all')">${invoiceIcon}명세서</button>`
     ];
-    if (completed) {
-        buttons.push(`<button class="${completeClass}"${doneStyle} disabled>${completeIcon}완료됨</button>`);
-    } else {
-        if (due > 0) {
-            buttons.push(`<button class="${receiveClass}"${receiveStyle} onclick="event.stopPropagation(); openPaymentModal('${folio.id}', ${due})">${receiveIcon}수납</button>`);
-            buttons.push(`<button class="${completeClass}"${completeStyle} disabled title="미수금 수납 후 완료할 수 있습니다">${completeIcon}완료</button>`);
-        } else {
-            buttons.push(`<button class="${receiveClass}"${receiveStyle} onclick="event.stopPropagation(); openPaymentModal('${folio.id}', 0)">${receiveIcon}수납</button>`);
-            buttons.push(`<button class="${completeClass}"${completeStyle} onclick="event.stopPropagation(); completeSettlementFolio('${folio.id}')">${completeIcon}완료</button>`);
-        }
+    if (!folio.settlementCompleted && due > 0) {
+        buttons.push(`<button class="${receiveClass}"${receiveStyle} onclick="event.stopPropagation(); openPaymentModal('${folio.id}', ${due})">${receiveIcon}수납</button>`);
     }
     return buttons.join('');
+}
+
+function folioStatusRank(status) {
+    return {
+        unpaid: 1,
+        ready: 2,
+        refund: 3,
+        paid: 4,
+        group: 5
+    }[status] || 9;
+}
+
+function folioSortDateValue(folio) {
+    return String(folio?.out || folio?.settlementDate || folio?.closedAt || '');
+}
+
+function sortFoliosForView(rows) {
+    const sorted = [...rows];
+    if (currentFolioSortMode === 'status') {
+        return sorted.sort((a, b) =>
+            folioStatusRank(a.status) - folioStatusRank(b.status)
+            || String(a.id || '').localeCompare(String(b.id || ''))
+        );
+    }
+    if (currentFolioSortMode === 'statusDesc') {
+        return sorted.sort((a, b) =>
+            folioStatusRank(b.status) - folioStatusRank(a.status)
+            || String(a.id || '').localeCompare(String(b.id || ''))
+        );
+    }
+    if (currentFolioSortMode === 'balanceDesc') {
+        return sorted.sort((a, b) =>
+            Number(b.bal || 0) - Number(a.bal || 0)
+            || String(b.id || '').localeCompare(String(a.id || ''))
+        );
+    }
+    return sorted.sort((a, b) =>
+        folioSortDateValue(b).localeCompare(folioSortDateValue(a))
+        || String(b.id || '').localeCompare(String(a.id || ''))
+    );
 }
 
 function filteredFoliosForCurrentView() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     const folios = periodFolios();
-    return folios.filter(f => {
+    const filtered = folios.filter(f => {
         const showUnpaidOnly = document.getElementById('chkUnpaid') ? document.getElementById('chkUnpaid').checked : false;
         if (currentDept === 'individual' && isGroupFolio(f)) return false;
         if (currentDept === 'group' && !isGroupFolio(f)) return false;
         if (showUnpaidOnly && f.bal <= 0) return false;
+        if (currentStatusFilter !== 'all' && f.status !== currentStatusFilter) return false;
         const changeText = String(f.roomChangeText || roomChangeText(f.settlementRoomChanges || []) || '').toLowerCase();
         const haystack = [
             f.id,
@@ -1884,6 +1971,7 @@ function filteredFoliosForCurrentView() {
         if (search && !haystack.includes(search)) return false;
         return true;
     });
+    return sortFoliosForView(filtered);
 }
 
 function renderFolioPagination(totalCount) {
@@ -2009,7 +2097,7 @@ function renderFolios() {
 function setDept(btn, dept) {
     currentDept = dept;
     folioCurrentPage = 1;
-    clearUnpaidFilter();
+    resetFolioStatusFilters();
     btn.parentElement.querySelectorAll('.dept-chip').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     renderFolios();
@@ -2041,7 +2129,14 @@ function applyFolioUrlFiltersFromParams() {
         });
         updateFolioPeriodControls();
     }
-    if (status === 'unpaid' || receiveId) setUnpaidFilter(true);
+    if (['unpaid', 'ready', 'paid', 'refund'].includes(status)) {
+        currentStatusFilter = status;
+    }
+    if (receiveId) {
+        currentStatusFilter = 'unpaid';
+    }
+    setUnpaidFilter(currentStatusFilter === 'unpaid');
+    syncFolioStatusFilterControl();
     const query = receiveId || params.get('query') || '';
     const searchInput = document.getElementById('searchInput');
     if (query && searchInput && searchInput.value !== query) {
