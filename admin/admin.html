@@ -38,6 +38,18 @@
 <div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-user-minus"></i></div><div class="kpi-body"><div class="kpi-value">1.2%</div><div class="kpi-label">이탈률</div><span class="kpi-trend down"><i class="fa-solid fa-arrow-down"></i> 0.3%</span></div></div>
 <div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-chart-pie"></i></div><div class="kpi-body"><div class="kpi-value">85%</div><div class="kpi-label">평균 가동률</div><span class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> 2%</span></div></div>
 </div>
+<!-- PMS 운영 적용 현황 -->
+<div class="card">
+<div class="card-header">
+<div class="card-title"><i class="fa-solid fa-layer-group"></i> PMS 운영 적용 현황</div>
+<a class="btn-outline btn-sm" href="tenants/list.html"><i class="fa-solid fa-arrow-right"></i> 호텔별 확인</a>
+</div>
+<div class="card-body">
+<div class="admin-ops-coverage-grid" id="adminPmsCoverageGrid">
+<div class="empty-state" style="grid-column:1/-1;padding:20px">적용 현황을 불러오는 중입니다.</div>
+</div>
+</div>
+</div>
 <!-- 7일 차트 + 국가 현황 -->
 <div class="grid-2">
 <div class="card">
@@ -77,9 +89,9 @@
 <thead><tr><th>캠페인</th><th></th><th>CTR</th></tr></thead>
 <tbody>
 <tr class="empty-state" style="display:none;"><td colspan="3"><i class="fa-solid fa-inbox empty-state-icon"></i>캠페인이 없습니다.</td></tr>
-<tr><td data-label="캠페인" style="font-weight:600"> Vietnam Golf Tour</td><td data-label="">245,800</td><td data-label="CTR" style="color:var(--success);font-weight:700">3.8%</td></tr>
-<tr><td data-label="캠페인" style="font-weight:600"> Avis Rent-a-Car</td><td data-label="">189,200</td><td data-label="CTR" style="color:var(--success);font-weight:700">2.4%</td></tr>
-<tr><td data-label="캠페인" style="font-weight:600"> Da Nang Festival</td><td data-label="">156,000</td><td data-label="CTR" style="font-weight:700">1.9%</td></tr>
+<tr><td data-label="캠페인" style="font-weight:600">사이공 골프 추천 배너</td><td data-label="">245,800</td><td data-label="CTR" style="color:var(--success);font-weight:700">3.8%</td></tr>
+<tr><td data-label="캠페인" style="font-weight:600">공항 렌터카 제휴 추천</td><td data-label="">189,200</td><td data-label="CTR" style="color:var(--success);font-weight:700">2.4%</td></tr>
+<tr><td data-label="캠페인" style="font-weight:600">다낭 지역 행사 프로모션</td><td data-label="">156,000</td><td data-label="CTR" style="font-weight:700">1.9%</td></tr>
 </tbody>
 </table></div></div>
 </div>
@@ -140,6 +152,72 @@ document.body.appendChild(chartTooltip);
 const chartTooltipTitle = chartTooltip.querySelector('#chartDataTitle');
 const chartTooltipContent = chartTooltip.querySelector('#chartDataContent');
 
+const DEFAULT_ADMIN_PMS_OPERATION_COVERAGE = [
+	{
+		title: '정산/마감 운영',
+		icon: 'fa-file-invoice-dollar',
+		status: '적용',
+		tone: 'active',
+		description: '정산 상세, 고객용 명세서, 예치금/미수금, 시재 등록 흐름을 분리했습니다.',
+		items: ['정산 상세', '고객용 명세서', '시재 등록']
+	},
+	{
+		title: '개인정보/감사 로그',
+		icon: 'fa-shield-halved',
+		status: '적용',
+		tone: 'active',
+		description: '개인정보 상세 열람과 엑셀 다운로드 이력을 관리자 감사 로그로 남깁니다.',
+		items: ['상세 열람 로그', '다운로드 로그', '관리자 전용']
+	},
+	{
+		title: '제휴 광고/추천',
+		icon: 'fa-rectangle-ad',
+		status: '연동 준비',
+		tone: 'ready',
+		description: '골프장과 렌터카 입점 업체를 호텔 대시보드와 예약 화면에 추천 노출합니다.',
+		items: ['골프장 추천', '렌터카 추천', '배너 광고']
+	},
+	{
+		title: '테넌트 메뉴 정책',
+		icon: 'fa-sliders',
+		status: '적용',
+		tone: 'active',
+		description: '호텔별 메뉴와 하위 기능 노출을 Super Admin에서 제어합니다.',
+		items: ['메뉴 활성화', '하위 메뉴', '호텔별 정책']
+	}
+];
+
+function escapeAdminHtml(value) {
+	return String(value ?? '').replace(/[&<>"']/g, char => ({
+		'&': '&amp;',
+		'<': '&lt;',
+		'>': '&gt;',
+		'"': '&quot;',
+		"'": '&#39;'
+	}[char]));
+}
+
+function renderAdminPmsCoverage() {
+	const target = document.getElementById('adminPmsCoverageGrid');
+	if (!target) return;
+	const summary = window.AdminData?.dashboardSummary || {};
+	const coverage = Array.isArray(summary.pmsOperationCoverage) && summary.pmsOperationCoverage.length
+		? summary.pmsOperationCoverage
+		: DEFAULT_ADMIN_PMS_OPERATION_COVERAGE;
+	target.innerHTML = coverage.map(item => `
+		<div class="admin-ops-coverage-card">
+			<div class="admin-ops-coverage-head">
+				<div class="admin-ops-coverage-title"><i class="fa-solid ${escapeAdminHtml(item.icon || 'fa-circle-check')}"></i>${escapeAdminHtml(item.title)}</div>
+				<span class="coverage-badge ${escapeAdminHtml(item.tone || 'active')}">${escapeAdminHtml(item.status || '적용')}</span>
+			</div>
+			<div class="admin-ops-coverage-desc">${escapeAdminHtml(item.description || '')}</div>
+			<div class="admin-ops-coverage-list">
+				${(item.items || []).slice(0, 4).map(text => `<span>${escapeAdminHtml(text)}</span>`).join('')}
+			</div>
+		</div>
+	`).join('');
+}
+
 function toggleChartDataLayer(e, title, content) {
 	e.stopPropagation();
 	if (chartTooltip.style.display === 'block' && chartTooltipTitle.textContent === title) {
@@ -187,6 +265,7 @@ function renderFallbackTrafficChart(target, categories, traffic) {
 }
 
 	window.addEventListener("DataReady", function() {
+		renderAdminPmsCoverage();
 		const categories = ['월', '화', '수', '목', '금', '토', '일'];
 		const traffic = [80, 95, 120, 110, 150, 165, 140];
 		const target = document.querySelector("#trafficChart");

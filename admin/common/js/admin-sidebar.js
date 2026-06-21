@@ -24,6 +24,7 @@
         { key: 'devices', src: `${BASE}data/trusted-devices.json` },
         { key: 'auditLogs', src: `${BASE}data/api/v1/admin/audit-logs.json`, legacySrc: `${BASE}data/audit-logs.json` },
         { key: 'tenantApplications', src: `${BASE}data/api/v1/admin/tenant-applications.json`, legacySrc: `${BASE}data/tenant-applications.json` },
+        { key: 'dashboardSummary', src: `${BASE}data/api/v1/admin/dashboard/summary.json` },
         { key: 'tenants', src: `${BASE}data/api/v1/admin/tenants.json` }
     ];
 
@@ -53,6 +54,13 @@
             { id: 'APP-20260526-001', hotelName: 'Hanoi Lakeside', country: 'Vietnam', city: 'Hanoi', plan: 'Standard', rooms: 180, status: 'pending', email: 'owner@hanoilake.example' },
             { id: 'APP-20260526-002', hotelName: 'Jeju Bay Resort', country: 'South Korea', city: 'Jeju', plan: 'Standard', rooms: 210, status: 'pending', email: 'owner@jejubay.example' }
         ],
+        dashboardSummary: {
+            tenants: 3,
+            applications: 2,
+            monthlyRecurringRevenue: { amount: 1900, currency: 'PHP' },
+            openTickets: 2,
+            pmsOperationCoverage: []
+        },
         tenants: [
             { id: 'TENANT-GRAND-SAIGON', hotelName: 'The Grand Saigon', country: 'Vietnam', city: 'Ho Chi Minh', plan: 'Premium', status: 'active', currency: 'PHP' },
             { id: 'TENANT-HANOI-LAKE', hotelName: 'Hanoi Lakeside', country: 'Vietnam', city: 'Hanoi', plan: 'Standard', status: 'active', currency: 'VND' }
