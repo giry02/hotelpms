@@ -3,146 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>마감로그 - Hotel PMS</title>
+    <title>마감 로그 - Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/i18n-catalog.js"></script>
     <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
-    <script src="../common/js/sidebar.js"></script>
     <style>
-        .close-log-section { background:#fff; border:1px solid var(--border); border-radius:12px; margin-bottom:20px; overflow:hidden; }
-        .close-log-header { padding:16px 20px; border-bottom:1px solid var(--border2); background:#fdfdfd; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-        .close-log-title { display:flex; align-items:center; gap:9px; font-size:1.02rem; font-weight:900; color:var(--txt); }
-        .close-log-body { padding:20px; }
-        .log-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:12px; border:1px solid var(--border2); border-radius:12px; background:#f8fafc; margin-bottom:16px; }
-        .log-date-controls { display:flex; align-items:center; gap:8px; min-width:0; }
-        .log-date-controls input { height:36px; border:1px solid var(--border); border-radius:8px; padding:0 10px; font-family:var(--font); font-size:.82rem; background:#fff; }
-        .log-summary-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
-        .log-summary-card { border:1px solid var(--border2); border-radius:10px; background:#fff; padding:13px; min-width:0; text-align:center; display:flex; flex-direction:column; align-items:center; }
-        .log-summary-label { font-size:.72rem; color:var(--txt3); font-weight:900; margin-bottom:5px; }
-        .log-summary-value { font-size:1rem; color:var(--txt); font-weight:900; }
-        .cash-balance-formula { margin:-2px 0 16px; border:1px solid var(--border2); border-radius:12px; background:#fff; padding:12px 14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-        .cash-balance-title { display:inline-flex; align-items:center; gap:7px; color:var(--txt); font-size:.82rem; font-weight:900; margin-right:2px; }
-        .cash-formula-token { display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border:1px solid var(--border2); border-radius:999px; background:#f8fafc; color:var(--txt2); font-size:.72rem; font-weight:900; white-space:nowrap; }
-        .cash-formula-symbol { width:24px; height:24px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; border:1px solid #bfdbfe; background:#eff6ff; color:var(--primary); font-size:.78rem; font-weight:950; }
-        .cash-balance-chips { display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; padding-left:4px; }
-        .cash-balance-chips .currency-chip-group { width:auto; align-items:flex-start; }
-        .cash-balance-chips .currency-chip-list { justify-content:flex-start; }
-        .currency-chip-list { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-top:9px; width:100%; }
-        .currency-chip-group { display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; }
-        .currency-chip-group-label { font-size:.68rem; color:var(--txt3); font-weight:900; }
-        .currency-chip-group .currency-chip-list { margin-top:0; }
-        .currency-chip { display:inline-flex; align-items:center; gap:8px; border:1px solid #a7f3d0; border-radius:999px; background:#ecfdf5; color:#047857; padding:5px 11px; font-size:.78rem; font-weight:900; white-space:nowrap; line-height:1.1; }
-        .currency-chip strong { color:var(--txt); font-size:.92rem; font-weight:950; }
+        .filter-bar-mt { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; padding:12px 20px; background:#fff; border:1px solid var(--border); border-radius:14px; }
+        .filter-left, .filter-right { display:flex; align-items:center; gap:10px; min-width:0; }
+        .filter-left { flex:1; }
+        .filter-right { flex-shrink:0; justify-content:flex-end; }
+        .search-box-mt { display:flex; align-items:center; gap:8px; height:38px; padding:0 13px; border:1.5px solid var(--border); border-radius:8px; background:#fff; transition:border-color .15s, box-shadow .15s; width:260px; min-width:0; }
+        .search-box-mt:focus-within { border-color:var(--primary); box-shadow:0 0 0 3px rgba(59,130,246,.08); }
+        .search-box-mt i { color:var(--txt3); font-size:.84rem; }
+        .search-box-mt input { border:0; outline:0; width:100%; min-width:0; background:transparent; color:var(--txt); font-family:var(--font); font-size:.82rem; font-weight:700; }
+        .log-date-tools { display:flex; align-items:center; gap:8px; }
+        .log-date-input, .log-select { height:38px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--txt); font-family:var(--font); font-size:.78rem; font-weight:800; padding:0 10px; }
+        .log-select { min-width:132px; }
+        .close-summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:16px; }
+        .close-summary-card { position:relative; display:flex; align-items:center; gap:13px; min-height:86px; border:1px solid var(--border); border-radius:14px; background:#fff; padding:16px 18px; box-shadow:0 8px 20px rgba(15,23,42,.04); overflow:hidden; }
+        .close-summary-card::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--primary); }
+        .close-summary-card.success::before { background:var(--success); }
+        .close-summary-card.warning::before { background:var(--warning); }
+        .close-summary-card.danger::before { background:var(--danger); }
+        .summary-icon { width:42px; height:42px; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; color:var(--primary); background:var(--primary-lt); flex:0 0 42px; font-size:1rem; }
+        .close-summary-card.success .summary-icon { color:var(--success); background:var(--success-lt); }
+        .close-summary-card.warning .summary-icon { color:#b45309; background:var(--warning-lt); }
+        .close-summary-card.danger .summary-icon { color:var(--danger); background:var(--danger-lt); }
+        .summary-copy { min-width:0; }
+        .summary-value { color:var(--txt); font-size:1.18rem; font-weight:950; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .summary-label { margin-top:3px; color:var(--txt2); font-size:.76rem; font-weight:850; }
+        .summary-sub { margin-top:5px; color:var(--txt3); font-size:.68rem; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .log-main-card { background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:16px; }
+        .log-card-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 18px; border-bottom:1px solid var(--border2); background:#fff; }
+        .log-card-title { display:flex; align-items:center; gap:8px; color:var(--txt); font-size:.98rem; font-weight:950; }
+        .log-card-desc { margin-top:4px; color:var(--txt3); font-size:.74rem; font-weight:750; line-height:1.45; }
+        .log-table-wrap { overflow-x:auto; }
+        .log-table { width:100%; min-width:1120px; border-collapse:collapse; table-layout:fixed; }
+        .log-table th, .log-table td { padding:13px 14px; border-bottom:1px solid var(--border2); text-align:left; vertical-align:middle; font-size:.8rem; line-height:1.45; }
+        .log-table th { background:#f8fafc; color:var(--txt2); font-size:.74rem; font-weight:900; white-space:nowrap; }
+        .log-table tr:last-child td { border-bottom:0; }
+        .log-table tbody tr { cursor:pointer; transition:background .15s; }
+        .log-table tbody tr:hover { background:#f8fbff; }
+        .log-table th:nth-child(1), .log-table td:nth-child(1) { width:9%; white-space:nowrap; }
+        .log-table th:nth-child(2), .log-table td:nth-child(2) { width:12%; }
+        .log-table th:nth-child(3), .log-table td:nth-child(3) { width:21%; }
+        .log-table th:nth-child(4), .log-table td:nth-child(4) { width:11%; text-align:right; white-space:nowrap; }
+        .log-table th:nth-child(5), .log-table td:nth-child(5) { width:25%; }
+        .log-table th:nth-child(6), .log-table td:nth-child(6) { width:10%; }
+        .log-table th:nth-child(7), .log-table td:nth-child(7) { width:12%; }
+        .log-target { display:grid; gap:2px; min-width:0; }
+        .log-target strong { display:block; color:var(--txt); font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .log-target span { display:block; color:var(--txt3); font-size:.7rem; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .log-pill { display:inline-flex; align-items:center; gap:6px; min-height:24px; padding:0 9px; border-radius:999px; font-size:.7rem; font-weight:950; white-space:nowrap; background:var(--primary-lt); color:var(--primary); }
+        .log-pill.opening { background:#eef2ff; color:#4338ca; }
+        .log-pill.inflow { background:var(--success-lt); color:var(--success); }
+        .log-pill.withdraw { background:var(--warning-lt); color:#b45309; }
+        .log-pill.closing { background:#eff6ff; color:#1d4ed8; }
+        .log-actual { display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; }
+        .currency-chip { display:inline-flex; align-items:center; gap:7px; border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; color:#1d4ed8; padding:4px 9px; font-size:.72rem; font-weight:900; white-space:nowrap; }
         .currency-chip.success { border-color:#a7f3d0; background:#ecfdf5; color:#047857; }
         .currency-chip.warning { border-color:#fed7aa; background:#fff7ed; color:#b45309; }
-        .currency-chip.neutral { border-color:#bfdbfe; background:#eff6ff; color:#1d4ed8; }
-        .log-ledger { border:1px solid var(--border2); border-radius:12px; overflow:hidden; background:#fff; }
-        .log-ledger-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; background:#f8fafc; border-bottom:1px solid var(--border2); font-weight:900; }
-        .log-ledger-body { overflow-x:visible; }
-        .log-ledger table { width:100%; border-collapse:collapse; table-layout:fixed; }
-        .log-ledger th,
-        .log-ledger td { padding:11px 12px; border-bottom:1px solid var(--border2); text-align:left; font-size:.78rem; line-height:1.45; vertical-align:middle; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
-        .log-ledger th { color:var(--txt2); background:#fbfdff; font-weight:900; white-space:nowrap; }
-        .log-ledger th:nth-child(1), .log-ledger td:nth-child(1) { width:9%; white-space:nowrap; }
-        .log-ledger th:nth-child(2), .log-ledger td:nth-child(2) { width:11%; }
-        .log-ledger th:nth-child(3), .log-ledger td:nth-child(3) { width:24%; }
-        .log-ledger th:nth-child(4), .log-ledger td:nth-child(4) { width:10%; text-align:right; white-space:nowrap; }
-        .log-ledger th:nth-child(5), .log-ledger td:nth-child(5) { width:25%; }
-        .log-ledger th:nth-child(6), .log-ledger td:nth-child(6) { width:10%; }
-        .log-ledger th:nth-child(7), .log-ledger td:nth-child(7) { width:11%; }
-        .log-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:999px; font-size:.7rem; font-weight:900; background:#eef2ff; color:#4338ca; white-space:nowrap; }
-        .log-pill.deposit { background:#ecfdf5; color:#047857; }
-        .log-pill.withdraw { background:#fff7ed; color:#b45309; }
-        .log-empty { padding:24px 16px; text-align:center; color:var(--txt3); font-weight:800; }
-
-        @media (max-width: 980px) {
-            .log-summary-grid { grid-template-columns:1fr 1fr; }
-            .log-ledger table { min-width:760px; }
-            .log-ledger-body { overflow-x:auto; }
+        .currency-chip.danger { border-color:#fecaca; background:#fef2f2; color:#dc2626; }
+        .currency-chip strong { color:var(--txt); font-weight:950; }
+        .log-empty { padding:32px 16px; text-align:center; color:var(--txt3); font-weight:850; }
+        .log-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-top:1px solid var(--border2); background:#fff; color:var(--txt2); font-size:.78rem; font-weight:850; }
+        .close-reconcile { background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:16px; }
+        .close-reconcile summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; background:#fbfdff; }
+        .close-reconcile summary::-webkit-details-marker { display:none; }
+        .reconcile-title { display:flex; align-items:center; gap:8px; color:var(--txt); font-size:.92rem; font-weight:950; }
+        .reconcile-desc { margin-top:3px; color:var(--txt3); font-size:.72rem; font-weight:750; line-height:1.45; }
+        .reconcile-toggle { min-height:32px; padding:0 12px; border-radius:8px; border:1px solid #bfdbfe; background:#eff6ff; color:var(--primary); font-size:.74rem; font-weight:950; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
+        .close-reconcile[open] .reconcile-toggle i { transform:rotate(180deg); }
+        .reconcile-body { padding:16px 18px 18px; border-top:1px solid var(--border2); }
+        .reconcile-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
+        .reconcile-card { border:1px solid var(--border2); border-radius:10px; background:#fff; padding:12px; text-align:center; min-width:0; }
+        .reconcile-card span { display:block; color:var(--txt3); font-size:.7rem; font-weight:900; margin-bottom:6px; }
+        .reconcile-card strong { display:block; color:var(--txt); font-size:.96rem; font-weight:950; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .cash-flow-formula { display:flex; align-items:center; gap:9px; flex-wrap:wrap; border:1px dashed #bfdbfe; background:#fbfdff; border-radius:12px; padding:12px 14px; }
+        .formula-token { display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border:1px solid var(--border2); border-radius:999px; background:#fff; color:var(--txt2); font-size:.72rem; font-weight:900; white-space:nowrap; }
+        .formula-symbol { width:25px; height:25px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#eff6ff; border:1px solid #bfdbfe; color:var(--primary); font-weight:950; }
+        .detail-modal { max-width:720px; width:94vw; }
+        .detail-body { padding:20px; display:grid; gap:14px; }
+        .detail-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+        .detail-card { border:1px solid var(--border2); border-radius:10px; background:#f8fafc; padding:12px; min-width:0; }
+        .detail-card span { display:block; color:var(--txt3); font-size:.7rem; font-weight:900; margin-bottom:5px; }
+        .detail-card strong { display:block; color:var(--txt); font-size:.9rem; font-weight:950; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .detail-section { border:1px solid var(--border2); border-radius:12px; overflow:hidden; }
+        .detail-section-head { padding:11px 13px; background:#f8fafc; border-bottom:1px solid var(--border2); display:flex; align-items:center; gap:8px; font-size:.84rem; font-weight:950; color:var(--txt); }
+        .detail-row { display:grid; grid-template-columns:120px minmax(0,1fr); gap:10px; padding:10px 13px; border-bottom:1px solid var(--border2); font-size:.78rem; line-height:1.45; }
+        .detail-row:last-child { border-bottom:0; }
+        .detail-row span { color:var(--txt3); font-weight:900; }
+        .detail-row strong { color:var(--txt); font-weight:850; overflow-wrap:anywhere; }
+        @media(max-width:1100px) {
+            .filter-bar-mt { align-items:stretch; flex-direction:column; }
+            .filter-left, .filter-right { width:100%; flex-wrap:wrap; }
+            .search-box-mt { flex:1; width:auto; min-width:220px; }
+            .close-summary-grid, .reconcile-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
-        @media (max-width: 640px) {
-            .log-summary-grid { grid-template-columns:1fr; }
-            .log-toolbar, .close-log-header { align-items:stretch; flex-direction:column; }
-            .log-date-controls { width:100%; }
-            .log-date-controls input { flex:1; min-width:0; }
+        @media(max-width:640px) {
+            .filter-left, .filter-right, .log-date-tools { flex-direction:column; align-items:stretch; }
+            .search-box-mt, .log-date-input, .log-select, .btn-primary-sm, .btn-outline-sm { width:100%; }
+            .close-summary-grid, .reconcile-grid, .detail-summary { grid-template-columns:1fr; }
+            .log-card-head, .log-footer, .close-reconcile summary { align-items:stretch; flex-direction:column; }
         }
     </style>
 </head>
 <body>
 <div class="main">
-    <header class="topbar"><h1 data-i18n-key="Close Log">마감로그</h1></header>
+    <header class="topbar"><h1 data-i18n-key="Close Log">마감 로그</h1></header>
     <div class="content">
-        <div class="close-log-section">
-            <div class="close-log-header">
+        <div class="filter-bar-mt">
+            <div class="filter-left">
+                <div class="search-box-mt">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input id="logSearch" type="text" placeholder="Folio, 고객, 담당자, 메모 검색...">
+                </div>
+                <button type="button" class="btn-primary-sm" onclick="renderCloseLog()"><i class="fa-solid fa-search"></i> 검색</button>
+                <div class="log-date-tools">
+                    <button type="button" class="btn-outline-sm" onclick="shiftLogDate(-1)" aria-label="전일"><i class="fa-solid fa-chevron-left"></i></button>
+                    <input id="logDateInput" class="log-date-input" type="date" onchange="renderCloseLog()">
+                    <button type="button" class="btn-outline-sm" onclick="shiftLogDate(1)" aria-label="다음일"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="filter-right">
+                <select id="logTypeFilter" class="log-select" onchange="renderCloseLog()">
+                    <option value="all">전체 유형</option>
+                    <option value="opening">시작 시재</option>
+                    <option value="inflow">현금입금</option>
+                    <option value="withdraw">중간출금</option>
+                    <option value="closing">마감 실사</option>
+                </select>
+                <button type="button" class="btn-outline-sm" onclick="setLogDate(todayIso())"><i class="fa-solid fa-calendar-day"></i> 오늘</button>
+                <a class="btn-primary-sm" href="night-audit.html?tab=cash"><i class="fa-solid fa-cash-register"></i> 일일 마감으로 이동</a>
+            </div>
+        </div>
+
+        <div class="close-summary-grid">
+            <div class="close-summary-card success" id="statusCard">
+                <span class="summary-icon"><i class="fa-solid fa-flag-checkered"></i></span>
+                <div class="summary-copy">
+                    <div class="summary-value" id="summaryStatus">-</div>
+                    <div class="summary-label">마감 상태</div>
+                    <div class="summary-sub" id="summaryClosedBy">-</div>
+                </div>
+            </div>
+            <div class="close-summary-card">
+                <span class="summary-icon"><i class="fa-solid fa-arrow-down"></i></span>
+                <div class="summary-copy">
+                    <div class="summary-value" id="summaryInflow">₱0</div>
+                    <div class="summary-label">현금입금</div>
+                    <div class="summary-sub" id="summaryInflowSub">정산/예치 현금 합산</div>
+                </div>
+            </div>
+            <div class="close-summary-card warning">
+                <span class="summary-icon"><i class="fa-solid fa-arrow-up-from-bracket"></i></span>
+                <div class="summary-copy">
+                    <div class="summary-value" id="summaryWithdraw">0종 통화</div>
+                    <div class="summary-label">중간출금</div>
+                    <div class="summary-sub" id="summaryWithdrawSub">-</div>
+                </div>
+            </div>
+            <div class="close-summary-card" id="varianceCard">
+                <span class="summary-icon"><i class="fa-solid fa-scale-balanced"></i></span>
+                <div class="summary-copy">
+                    <div class="summary-value" id="summaryVariance">-</div>
+                    <div class="summary-label">차액 여부</div>
+                    <div class="summary-sub" id="summaryVarianceSub">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-main-card">
+            <div class="log-card-head">
                 <div>
-                    <div class="close-log-title"><i class="fa-solid fa-calendar-days" style="color:var(--primary)"></i> 금일 정산 현황</div>
-                    <div style="margin-top:4px;color:var(--txt2);font-size:.8rem;font-weight:700">일일 마감에서 등록한 시재와 정산 수납 기록을 날짜별로 확인합니다.</div>
+                    <div class="log-card-title"><i class="fa-solid fa-list-check" style="color:var(--primary)"></i> 마감 처리 내역</div>
+                    <div class="log-card-desc">선택한 영업일의 시작 시재, 현금입금, 중간출금, 마감 실사를 시간순으로 확인합니다.</div>
                 </div>
-                <a class="btn-primary-sm" href="night-audit.html?tab=cash"><i class="fa-solid fa-handshake"></i> 시재 인수인계로 이동</a>
+                <span id="logLedgerCount" style="font-size:.78rem;color:var(--txt3);font-weight:900">0건</span>
             </div>
-            <div class="close-log-body">
-                <div class="log-toolbar">
-                    <div class="log-date-controls">
-                        <button type="button" class="btn-outline-sm" onclick="shiftLogDate(-1)" aria-label="전일"><i class="fa-solid fa-chevron-left"></i></button>
-                        <input id="logDateInput" type="date" onchange="renderCloseLog()">
-                        <button type="button" class="btn-outline-sm" onclick="shiftLogDate(1)" aria-label="다음일"><i class="fa-solid fa-chevron-right"></i></button>
-                        <button type="button" class="btn-primary-sm" onclick="setLogDate(todayIso())">오늘</button>
-                    </div>
-                    <span id="logSelectedDate" class="log-pill">-</span>
-                </div>
-
-                <div class="log-summary-grid">
-                    <div class="log-summary-card">
-                        <div class="log-summary-label">시작 시재</div>
-                        <div class="log-summary-value" id="logOpeningPhp">₱0</div>
-                        <div class="currency-chip-list" id="logOpeningDetail" data-no-currency-normalize="true"></div>
-                    </div>
-                    <div class="log-summary-card">
-                        <div class="log-summary-label">정산금액</div>
-                        <div class="log-summary-value" id="logPaymentPhp">₱0</div>
-                        <div class="currency-chip-list" id="logPaymentDetail" data-no-currency-normalize="true"></div>
-                    </div>
-                    <div class="log-summary-card">
-                        <div class="log-summary-label">예치금</div>
-                        <div class="log-summary-value" id="logDepositPhp">₱0</div>
-                        <div class="currency-chip-list" id="logDepositDetail" data-no-currency-normalize="true"></div>
-                    </div>
-                    <div class="log-summary-card">
-                        <div class="log-summary-label">중간 출금</div>
-                        <div class="log-summary-value" id="logWithdrawPhp">₱0</div>
-                        <div class="currency-chip-list" id="logWithdrawDetail" data-no-currency-normalize="true"></div>
-                    </div>
-                    <div class="log-summary-card">
-                        <div class="log-summary-label">실제 보유 통화</div>
-                        <div class="log-summary-value" id="logClosingPhp">₱0</div>
-                        <div class="currency-chip-list" id="logClosingDetail" data-no-currency-normalize="true"></div>
-                    </div>
-                </div>
-                <div class="cash-balance-formula" id="logBalanceFormula" data-no-currency-normalize="true"></div>
-
-                <div class="log-ledger">
-                    <div class="log-ledger-head">
-                        <span><i class="fa-solid fa-book-open" style="color:var(--primary)"></i> 선택 일자 장부 내역</span>
-                        <span id="logLedgerCount" style="font-size:.75rem;color:var(--txt3)">0건</span>
-                    </div>
-                    <div class="log-ledger-body">
-                        <table>
-                            <thead>
-                                <tr><th>시간</th><th>구분</th><th>대상</th><th>정산 반영액</th><th>실제 통화/구성</th><th>담당자</th><th>메모</th></tr>
-                            </thead>
-                            <tbody id="logLedgerBody"></tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="log-table-wrap">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>시간</th>
+                            <th>유형</th>
+                            <th>대상 / Folio</th>
+                            <th>장부 반영액</th>
+                            <th>실제 통화</th>
+                            <th>담당자</th>
+                            <th>메모</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logLedgerBody"></tbody>
+                </table>
             </div>
+            <div class="log-footer">
+                <span id="logPageInfo">-</span>
+                <span id="logSelectedDate">-</span>
+            </div>
+        </div>
+
+        <details class="close-reconcile" id="closeReconcile">
+            <summary>
+                <div>
+                    <div class="reconcile-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 시재 대조 보기</div>
+                    <div class="reconcile-desc">필요할 때만 펼쳐서 시작시재 + 현금입금 - 중간출금 = 보유 현금 기준의 차액을 확인합니다.</div>
+                </div>
+                <span class="reconcile-toggle"><span>보기 / 접기</span><i class="fa-solid fa-chevron-down"></i></span>
+            </summary>
+            <div class="reconcile-body">
+                <div class="reconcile-grid">
+                    <div class="reconcile-card"><span>시작시재</span><strong id="detailOpening">-</strong></div>
+                    <div class="reconcile-card"><span>현금입금</span><strong id="detailInflow">-</strong></div>
+                    <div class="reconcile-card"><span>중간출금</span><strong id="detailWithdraw">-</strong></div>
+                    <div class="reconcile-card"><span>보유 현금</span><strong id="detailClosing">-</strong></div>
+                </div>
+                <div class="cash-flow-formula" id="detailFormula"></div>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div class="modal-overlay" id="logDetailModal" onclick="if(event.target===this) closeLogDetailModal()">
+    <div class="modal-card detail-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-clipboard-list" style="color:var(--primary)"></i> 마감 로그 상세</h3>
+            <button type="button" class="modal-close" onclick="closeLogDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body detail-body" id="logDetailBody"></div>
+        <div class="modal-footer">
+            <button type="button" class="btn-outline" onclick="closeLogDetailModal()">닫기</button>
         </div>
     </div>
 </div>
@@ -152,6 +251,7 @@ const CASH_SESSION_KEY = 'pms_night_audit_cash_sessions';
 const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
 const CASH_CURRENCIES = ['PHP', 'USD', 'KRW'];
 const CASH_CURRENCY_LABELS = { PHP: '페소', USD: '달러', KRW: '원화' };
+let renderedRows = [];
 
 function todayIso() {
     return window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
@@ -161,9 +261,13 @@ function storageJson(key, fallback) {
     try {
         const parsed = JSON.parse(localStorage.getItem(key) || '');
         return parsed ?? fallback;
-    } catch(e) {
+    } catch (error) {
         return fallback;
     }
+}
+
+function setStorageJson(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
 }
 
 function cashSessions() {
@@ -176,19 +280,13 @@ function settlementPayments() {
     return Array.isArray(payments) ? payments : [];
 }
 
-function setStorageJson(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-}
-
-function sampleAuditDateTime(date, time) {
+function sampleDateTime(date, time) {
     return `${date}T${time}:00+09:00`;
 }
 
-function subtractCurrencyValues(total = {}, part = {}) {
-    const totals = currencyValues(total);
-    const parts = currencyValues(part);
+function currencyValues(values = {}) {
     return CASH_CURRENCIES.reduce((acc, currency) => {
-        acc[currency] = Math.max(0, totals[currency] - parts[currency]);
+        acc[currency] = Math.max(0, Number(values?.[currency] || 0));
         return acc;
     }, {});
 }
@@ -200,9 +298,18 @@ function addCurrencyValues(...items) {
     }, {});
 }
 
-function expectedCurrencyValues(opening = {}, received = {}, withdrawal = {}) {
+function subtractCurrencyValues(total = {}, part = {}) {
+    const totals = currencyValues(total);
+    const parts = currencyValues(part);
     return CASH_CURRENCIES.reduce((acc, currency) => {
-        acc[currency] = Math.max(0, Number(opening?.[currency] || 0) + Number(received?.[currency] || 0) - Number(withdrawal?.[currency] || 0));
+        acc[currency] = Math.max(0, totals[currency] - parts[currency]);
+        return acc;
+    }, {});
+}
+
+function expectedCurrencyValues(opening = {}, inflow = {}, withdrawal = {}) {
+    return CASH_CURRENCIES.reduce((acc, currency) => {
+        acc[currency] = Math.max(0, Number(opening?.[currency] || 0) + Number(inflow?.[currency] || 0) - Number(withdrawal?.[currency] || 0));
         return acc;
     }, {});
 }
@@ -214,6 +321,83 @@ function diffCurrencyValues(actual = {}, expected = {}) {
     }, {});
 }
 
+function currencyLabel(currency) {
+    return CASH_CURRENCY_LABELS[currency] || currency;
+}
+
+function moneyPhp(value) {
+    return typeof window.pmsFormatCurrency === 'function'
+        ? window.pmsFormatCurrency(value)
+        : `₱${Number(value || 0).toLocaleString()}`;
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+function formatLogTime(value) {
+    const date = value ? new Date(value) : null;
+    if (!date || Number.isNaN(date.getTime())) return '-';
+    return new Intl.DateTimeFormat('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+}
+
+function currencyCountLabel(values = {}, empty = '0종 통화') {
+    const count = CASH_CURRENCIES.filter(currency => Number(values?.[currency] || 0) > 0).length;
+    return count ? `${count}종 통화` : empty;
+}
+
+function currencyTotalAmount(values = {}) {
+    return CASH_CURRENCIES.reduce((sum, currency) => sum + Number(values?.[currency] || 0), 0);
+}
+
+function currencyChips(values = {}, tone = '') {
+    const cls = tone ? ` ${tone}` : '';
+    return `<span class="log-actual">${
+        CASH_CURRENCIES.map(currency => `
+            <span class="currency-chip${cls}">
+                <span>${escapeHtml(currencyLabel(currency))}</span>
+                <strong>${Number(values?.[currency] || 0).toLocaleString()}</strong>
+            </span>
+        `).join('')
+    }</span>`;
+}
+
+function receivedBreakdownForPayment(item = {}) {
+    if (item.receivedBreakdown && typeof item.receivedBreakdown === 'object') {
+        return currencyValues(item.receivedBreakdown);
+    }
+    const currency = CASH_CURRENCIES.includes(item.receivedCurrency) ? item.receivedCurrency : 'PHP';
+    return CASH_CURRENCIES.reduce((acc, key) => {
+        acc[key] = key === currency ? Number(item.receivedAmount || 0) : 0;
+        return acc;
+    }, { PHP: 0, USD: 0, KRW: 0 });
+}
+
+function withdrawalBreakdownForRecord(item = {}) {
+    if (item.currencyBreakdown && typeof item.currencyBreakdown === 'object') {
+        return currencyValues(item.currencyBreakdown);
+    }
+    const currency = CASH_CURRENCIES.includes(item.currency) ? item.currency : 'PHP';
+    return CASH_CURRENCIES.reduce((acc, key) => {
+        acc[key] = key === currency ? Number(item.amount || 0) : 0;
+        return acc;
+    }, { PHP: 0, USD: 0, KRW: 0 });
+}
+
+function currencyTotals(records) {
+    return records.reduce((acc, item) => addCurrencyValues(acc, receivedBreakdownForPayment(item)), { PHP: 0, USD: 0, KRW: 0 });
+}
+
+function withdrawalTotals(session) {
+    return (session?.withdrawals || []).reduce((acc, item) => addCurrencyValues(acc, withdrawalBreakdownForRecord(item)), { PHP: 0, USD: 0, KRW: 0 });
+}
+
 function sampleCloseLogSession(date) {
     const closing = { PHP: 84200, USD: 260, KRW: 650000 };
     const carryover = { PHP: 35000, USD: 200, KRW: 300000 };
@@ -222,24 +406,23 @@ function sampleCloseLogSession(date) {
         businessDate: date,
         opening: { PHP: 30000, USD: 200, KRW: 500000 },
         openingPhpEquivalent: 41200,
-        openingNote: 'Start of current business day. Float prepared for front desk.',
-        openedAt: sampleAuditDateTime(date, '08:00'),
+        openingNote: '프런트 시작 시재 인수',
+        openedAt: sampleDateTime(date, '08:00'),
         openedBy: 'Nguyen Kim',
         withdrawals: [{
             id: `SAMPLE-WD-${date}-1`,
-            currency: 'PHP',
-            amount: 7000,
+            currencyBreakdown: { PHP: 7000, USD: 0, KRW: 0 },
             phpEquivalent: 7000,
-            receiver: 'GM / emergency guest refund',
-            createdAt: sampleAuditDateTime(date, '17:45'),
+            receiver: 'GM 긴급 환불',
+            createdAt: sampleDateTime(date, '17:45'),
             operator: 'Nguyen Kim'
         }],
         closing,
         carryover,
         takeaway: subtractCurrencyValues(closing, carryover),
         closingPhpEquivalent: 102700,
-        closingNote: 'Sample close: cash receipts reconciled against folio payments.',
-        closedAt: sampleAuditDateTime(date, '23:45'),
+        closingNote: '현금 수납 및 예치금 반영 후 마감 실사 완료',
+        closedAt: sampleDateTime(date, '23:45'),
         closedBy: 'Nguyen Kim',
         sampleData: true
     };
@@ -260,9 +443,9 @@ function sampleCloseLogPayments(date) {
         receivedCurrency: row[4],
         receivedAmount: row[5],
         method: row[6],
-        methodLabel: row[6] === 'cash' ? 'Cash' : row[6],
+        methodLabel: '현금',
         note: row[7],
-        createdAt: sampleAuditDateTime(date, row[8]),
+        createdAt: sampleDateTime(date, row[8]),
         operator: row[9],
         businessDate: date,
         sampleData: true
@@ -306,189 +489,75 @@ function shiftLogDate(days) {
     setLogDate(addDaysToIsoDate(logDateValue(), days));
 }
 
-function cashCurrencyLabel(currency) {
-    return (window.currentLang || localStorage.getItem('pms_lang')) === 'en' ? currency : (CASH_CURRENCY_LABELS[currency] || currency);
-}
-
-function moneyPhp(value) {
-    return typeof window.pmsFormatCurrency === 'function'
-        ? window.pmsFormatCurrency(value)
-        : '₱' + Number(value || 0).toLocaleString();
-}
-
-function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, char => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[char]));
-}
-
-function formatAuditTime(value) {
-    const date = value ? new Date(value) : null;
-    if (!date || Number.isNaN(date.getTime())) return '-';
-    return new Intl.DateTimeFormat('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
-}
-
-function currencyValues(values = {}) {
-    return CASH_CURRENCIES.reduce((acc, currency) => {
-        acc[currency] = Math.max(0, Number(values?.[currency] || 0));
-        return acc;
-    }, {});
-}
-
-function formatCurrencyBreakdown(values = {}) {
-    return CASH_CURRENCIES
-        .map(currency => `${cashCurrencyLabel(currency)} ${Number(values?.[currency] || 0).toLocaleString()}`)
-        .join(' · ');
-}
-
-function withdrawalBreakdownForRecord(item = {}) {
-    if (item.currencyBreakdown && typeof item.currencyBreakdown === 'object') {
-        return currencyValues(item.currencyBreakdown);
-    }
-    const currency = CASH_CURRENCIES.includes(item.currency) ? item.currency : 'PHP';
-    return CASH_CURRENCIES.reduce((acc, key) => {
-        acc[key] = key === currency ? Number(item.amount || 0) : 0;
-        return acc;
-    }, { PHP: 0, USD: 0, KRW: 0 });
-}
-
-function currencyTotals(records, fieldCurrency = 'receivedCurrency', fieldAmount = 'receivedAmount') {
-    return records.reduce((acc, item) => {
-        if (fieldCurrency === 'receivedCurrency' && item.receivedBreakdown && typeof item.receivedBreakdown === 'object') {
-            CASH_CURRENCIES.forEach(currency => {
-                acc[currency] = (acc[currency] || 0) + Number(item.receivedBreakdown[currency] || 0);
-            });
-            return acc;
-        }
-        const currency = CASH_CURRENCIES.includes(item[fieldCurrency]) ? item[fieldCurrency] : 'PHP';
-        acc[currency] = (acc[currency] || 0) + Number(item[fieldAmount] || 0);
-        return acc;
-    }, { PHP: 0, USD: 0, KRW: 0 });
-}
-
-function renderCurrencyChips(values = {}, tone = '') {
-    const cls = tone ? ` ${tone}` : '';
-    return CASH_CURRENCIES.map(currency => `
-        <span class="currency-chip${cls}">
-            <span>${escapeHtml(cashCurrencyLabel(currency))}</span>
-            <strong>${Number(values[currency] || 0).toLocaleString()}</strong>
-        </span>
-    `).join('');
-}
-
-function renderCurrencyChipGroup(label, values = {}, tone = '') {
-    return `
-        <span class="currency-chip-group">
-            <span class="currency-chip-group-label">${escapeHtml(label)}</span>
-            <span class="currency-chip-list">${renderCurrencyChips(values, tone)}</span>
-        </span>
-    `;
-}
-
-function cashUiText(ko, en) {
-    return (window.currentLang || localStorage.getItem('pms_lang')) === 'en' ? en : ko;
-}
-
-function currencyStatusLabel(values = {}, emptyLabel = cashUiText('미등록', 'Not registered')) {
-    const count = CASH_CURRENCIES.filter(currency => Number(values?.[currency] || 0) > 0).length;
-    return count ? cashUiText(`${count}종 통화`, `${count} currenc${count > 1 ? 'ies' : 'y'}`) : emptyLabel;
-}
-
-function renderCashBalanceFormula({ opening = {}, settlement = {}, deposit = {}, withdrawal = {}, closing = null } = {}) {
-    const expected = expectedCurrencyValues(opening, addCurrencyValues(settlement, deposit), withdrawal);
-    const hasClosing = !!closing && CASH_CURRENCIES.some(currency => Number(closing?.[currency] || 0) > 0);
-    const closingValues = currencyValues(closing || {});
-    const diff = diffCurrencyValues(closingValues, expected);
-    const hasDiff = CASH_CURRENCIES.some(currency => Number(diff[currency] || 0) !== 0);
-    return `
-        <span class="cash-balance-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i>${cashUiText('통화별 현금 대조', 'Cash by currency')}</span>
-        <span class="cash-formula-token">${cashUiText('시작 시재', 'Opening')}</span>
-        <span class="cash-formula-symbol">+</span>
-        <span class="cash-formula-token">${cashUiText('정산금액', 'Settlements')}</span>
-        <span class="cash-formula-symbol">+</span>
-        <span class="cash-formula-token">${cashUiText('예치금', 'Deposits')}</span>
-        <span class="cash-formula-symbol">-</span>
-        <span class="cash-formula-token">${cashUiText('중간 출금', 'Withdrawals')}</span>
-        <span class="cash-formula-symbol">=</span>
-        <span class="cash-balance-chips">
-            ${renderCurrencyChipGroup(cashUiText('예상 보유 통화', 'Expected on hand'), expected)}
-            ${hasClosing ? renderCurrencyChipGroup(cashUiText('실제 보유 통화', 'Counted on hand'), closingValues, 'success') : ''}
-            ${hasClosing ? renderCurrencyChipGroup(cashUiText(hasDiff ? '차이 확인' : '차이 없음', hasDiff ? 'Variance' : 'Matched'), diff, hasDiff ? 'warning' : 'success') : ''}
-        </span>
-    `;
-}
-
-function receivedBreakdownForPayment(item = {}) {
-    if (item.receivedBreakdown && typeof item.receivedBreakdown === 'object') {
-        return currencyValues(item.receivedBreakdown);
-    }
-    const currency = CASH_CURRENCIES.includes(item.receivedCurrency) ? item.receivedCurrency : 'PHP';
-    return CASH_CURRENCIES.reduce((acc, key) => {
-        acc[key] = key === currency ? Number(item.receivedAmount || 0) : 0;
-        return acc;
-    }, {});
-}
-
-function formatReceivedBreakdown(item = {}) {
-    const breakdown = receivedBreakdownForPayment(item);
-    const parts = CASH_CURRENCIES
-        .filter(currency => Number(breakdown[currency] || 0) > 0)
-        .map(currency => `${cashCurrencyLabel(currency)} ${Number(breakdown[currency]).toLocaleString()}`);
-    return parts.length ? parts.join(' · ') : '-';
-}
-
 function paymentsForDate(date) {
-    return settlementPayments().filter(item => item.businessDate === date);
+    return settlementPayments().filter(item => item.businessDate === date && (item.method || 'cash') === 'cash');
 }
 
 function cashSessionForDate(date) {
     return cashSessions().find(item => item.businessDate === date) || null;
 }
 
-function dailyLogRows(date) {
+function normalizeRows(date) {
     const session = cashSessionForDate(date);
     const payments = paymentsForDate(date);
     const rows = [];
     if (session?.openedAt || CASH_CURRENCIES.some(currency => Number(session?.opening?.[currency] || 0) > 0)) {
         rows.push({
+            typeKey: 'opening',
+            type: '시작 시재',
+            pill: 'opening',
+            icon: 'fa-play',
             at: session.openedAt || `${date}T00:00:00+09:00`,
-            type: '시재 인수',
-            pill: 'deposit',
-            target: '시작 시재',
+            title: '시작 시재',
+            sub: '프런트 보유 통화',
             php: null,
-            actual: CASH_CURRENCIES.map(currency => `${cashCurrencyLabel(currency)} ${Number(session.opening?.[currency] || 0).toLocaleString()}`).join(' · '),
+            actual: currencyValues(session.opening),
             operator: session.openedBy || '-',
             note: session.openingNote || '-'
         });
     }
-    payments.forEach(item => rows.push({
-        at: item.createdAt || `${date}T12:00:00+09:00`,
-        type: item.kind === 'deposit' ? '예치금' : '정산 결제',
-        pill: item.kind === 'deposit' ? 'deposit' : 'payment',
-        target: `${item.folioId || '-'} / ${item.guest || '-'}`,
-        php: item.appliedPhpAmount || 0,
-        actual: `${formatReceivedBreakdown(item)} · ${item.methodLabel || item.method || '-'}`,
-        operator: item.operator || '-',
-        note: item.note || '-'
-    }));
-    (session?.withdrawals || []).forEach(item => rows.push({
-        at: item.createdAt || `${date}T13:00:00+09:00`,
-        type: '중간 출금',
-        pill: 'withdraw',
-        target: item.receiver || '-',
-        php: null,
-        actual: formatCurrencyBreakdown(withdrawalBreakdownForRecord(item)),
-        operator: item.operator || '-',
-        note: item.receiver || '-'
-    }));
+    payments.forEach(item => {
+        const deposit = item.kind === 'deposit';
+        rows.push({
+            typeKey: 'inflow',
+            type: deposit ? '예치금 입금' : '현금입금',
+            pill: 'inflow',
+            icon: deposit ? 'fa-vault' : 'fa-arrow-down',
+            at: item.createdAt || `${date}T12:00:00+09:00`,
+            title: item.folioId || '-',
+            sub: item.guest || '-',
+            php: item.appliedPhpAmount || 0,
+            actual: receivedBreakdownForPayment(item),
+            operator: item.operator || '-',
+            note: item.note || '-'
+        });
+    });
+    (session?.withdrawals || []).forEach(item => {
+        rows.push({
+            typeKey: 'withdraw',
+            type: '중간출금',
+            pill: 'withdraw',
+            icon: 'fa-arrow-up-from-bracket',
+            at: item.createdAt || `${date}T13:00:00+09:00`,
+            title: item.receiver || '-',
+            sub: '출금 처리',
+            php: null,
+            actual: withdrawalBreakdownForRecord(item),
+            operator: item.operator || '-',
+            note: item.receiver || '-'
+        });
+    });
     if (session?.closedAt || session?.closing) {
         rows.push({
+            typeKey: 'closing',
+            type: '마감 실사',
+            pill: 'closing',
+            icon: 'fa-flag-checkered',
             at: session.closedAt || `${date}T23:59:00+09:00`,
-            type: '실제 정산 확인',
-            pill: 'payment',
-            target: '마감 시 보유 통화',
+            title: '마감 보유 현금',
+            sub: '실사 통화',
             php: null,
-            actual: CASH_CURRENCIES.map(currency => `${cashCurrencyLabel(currency)} ${Number(session.closing?.[currency] || 0).toLocaleString()}`).join(' · '),
+            actual: currencyValues(session.closing),
             operator: session.closedBy || '-',
             note: session.closingNote || '-'
         });
@@ -496,67 +565,129 @@ function dailyLogRows(date) {
     return rows.sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
 }
 
+function filteredRows(date) {
+    const query = (document.getElementById('logSearch')?.value || '').trim().toLowerCase();
+    const type = document.getElementById('logTypeFilter')?.value || 'all';
+    return normalizeRows(date).filter(row => {
+        if (type !== 'all' && row.typeKey !== type) return false;
+        if (!query) return true;
+        return [row.type, row.title, row.sub, row.operator, row.note]
+            .some(value => String(value || '').toLowerCase().includes(query));
+    });
+}
+
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+function setHtml(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = value;
+}
+
+function renderFormula({ opening, inflow, withdrawal, closing, variance, hasClosing, hasVariance }) {
+    return `
+        <span class="formula-token">시작시재</span>
+        <span class="formula-symbol">+</span>
+        <span class="formula-token">현금입금</span>
+        <span class="formula-symbol">-</span>
+        <span class="formula-token">중간출금</span>
+        <span class="formula-symbol">=</span>
+        <span class="formula-token">보유 현금</span>
+        ${currencyChips(expectedCurrencyValues(opening, inflow, withdrawal))}
+        ${hasClosing ? currencyChips(closing, 'success') : ''}
+        ${hasClosing ? currencyChips(variance, hasVariance ? 'warning' : 'success') : ''}
+    `;
+}
+
 function renderCloseLog() {
     const date = logDateValue();
     const session = cashSessionForDate(date);
-    const payments = paymentsForDate(date);
-    const cashPayments = payments.filter(item => (item.method || 'cash') === 'cash');
+    const cashPayments = paymentsForDate(date);
     const settlementRecords = cashPayments.filter(item => item.kind !== 'deposit');
     const depositRecords = cashPayments.filter(item => item.kind === 'deposit');
-    const withdrawals = session?.withdrawals || [];
-    const rows = dailyLogRows(date);
-
     const settlementPhp = settlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const depositPhp = depositRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
-    const withdrawCurrencies = withdrawals.reduce((acc, item) => {
-        const breakdown = withdrawalBreakdownForRecord(item);
-        CASH_CURRENCIES.forEach(currency => {
-            acc[currency] = (acc[currency] || 0) + Number(breakdown[currency] || 0);
-        });
-        return acc;
-    }, { PHP: 0, USD: 0, KRW: 0 });
+    const inflowPhp = settlementPhp + depositPhp;
+    const inflowCurrencies = addCurrencyValues(currencyTotals(settlementRecords), currencyTotals(depositRecords));
+    const withdrawalCurrencies = withdrawalTotals(session);
+    const openingCurrencies = currencyValues(session?.opening);
+    const closingCurrencies = currencyValues(session?.closing);
+    const expected = expectedCurrencyValues(openingCurrencies, inflowCurrencies, withdrawalCurrencies);
+    const variance = diffCurrencyValues(closingCurrencies, expected);
+    const hasClosing = !!session?.closing;
+    const hasVariance = hasClosing && CASH_CURRENCIES.some(currency => Number(variance[currency] || 0) !== 0);
+    const rows = filteredRows(date);
+    renderedRows = rows;
 
-    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
-    const setHtml = (id, value) => { const el = document.getElementById(id); if (el) el.innerHTML = value; };
-    set('logSelectedDate', date);
-    set('logOpeningPhp', currencyStatusLabel(session?.opening));
-    setHtml('logOpeningDetail', renderCurrencyChipGroup('보유 통화', currencyValues(session?.opening)));
-    set('logPaymentPhp', moneyPhp(settlementPhp));
-    setHtml('logPaymentDetail', renderCurrencyChipGroup('실제 수납 통화', currencyTotals(settlementRecords), 'success'));
-    set('logDepositPhp', moneyPhp(depositPhp));
-    setHtml('logDepositDetail', renderCurrencyChipGroup('예치금 통화', currencyTotals(depositRecords), 'success'));
-    set('logWithdrawPhp', currencyStatusLabel(withdrawCurrencies, '출금 기록 없음'));
-    setHtml('logWithdrawDetail', renderCurrencyChipGroup('출금 통화', withdrawCurrencies, 'warning'));
-    set('logClosingPhp', currencyStatusLabel(session?.closing));
-    setHtml('logClosingDetail', renderCurrencyChipGroup('실사 통화', currencyValues(session?.closing), 'success'));
-    setHtml('logBalanceFormula', renderCashBalanceFormula({
-        opening: currencyValues(session?.opening),
-        settlement: currencyTotals(settlementRecords),
-        deposit: currencyTotals(depositRecords),
-        withdrawal: withdrawCurrencies,
-        closing: session?.closing || null
-    }));
-    set('logLedgerCount', `${rows.length}건`);
+    const statusCard = document.getElementById('statusCard');
+    const varianceCard = document.getElementById('varianceCard');
+    if (statusCard) statusCard.className = `close-summary-card ${hasClosing ? 'success' : 'warning'}`;
+    if (varianceCard) varianceCard.className = `close-summary-card ${!hasClosing ? '' : hasVariance ? 'danger' : 'success'}`;
+    setText('summaryStatus', hasClosing ? '마감 완료' : '마감 전');
+    setText('summaryClosedBy', hasClosing ? `${session.closedBy || '-'} · ${formatLogTime(session.closedAt)}` : '마감 실사 입력 필요');
+    setText('summaryInflow', moneyPhp(inflowPhp));
+    setText('summaryInflowSub', `정산 ${moneyPhp(settlementPhp)} · 예치 ${moneyPhp(depositPhp)}`);
+    setText('summaryWithdraw', currencyCountLabel(withdrawalCurrencies, '출금 없음'));
+    setText('summaryWithdrawSub', currencyTotalAmount(withdrawalCurrencies) ? '중간출금 기록 있음' : '중간출금 기록 없음');
+    setText('summaryVariance', !hasClosing ? '실사 전' : hasVariance ? '차액 확인' : '차액 없음');
+    setText('summaryVarianceSub', hasClosing ? `예상 ${currencyCountLabel(expected)} · 실사 ${currencyCountLabel(closingCurrencies)}` : '마감 실사 후 확인');
+    setText('detailOpening', currencyCountLabel(openingCurrencies));
+    setText('detailInflow', moneyPhp(inflowPhp));
+    setText('detailWithdraw', currencyCountLabel(withdrawalCurrencies, '출금 없음'));
+    setText('detailClosing', hasClosing ? currencyCountLabel(closingCurrencies) : '실사 전');
+    setHtml('detailFormula', renderFormula({ opening: openingCurrencies, inflow: inflowCurrencies, withdrawal: withdrawalCurrencies, closing: closingCurrencies, variance, hasClosing, hasVariance }));
+    setText('logLedgerCount', `${rows.length}건`);
+    setText('logPageInfo', `총 ${rows.length}건 표시`);
+    setText('logSelectedDate', `영업일 ${date}`);
 
     const body = document.getElementById('logLedgerBody');
-    if (body) {
-        body.innerHTML = rows.length ? rows.map(item => `
-            <tr>
-                <td>${escapeHtml(formatAuditTime(item.at))}</td>
-                <td><span class="log-pill ${item.pill === 'deposit' ? 'deposit' : item.pill === 'withdraw' ? 'withdraw' : ''}">${escapeHtml(item.type)}</span></td>
-                <td>${escapeHtml(item.target)}</td>
-                <td>${item.php === null || item.php === undefined ? '-' : moneyPhp(item.php)}</td>
-                <td data-no-currency-normalize="true">${escapeHtml(item.actual)}</td>
-                <td>${escapeHtml(item.operator)}</td>
-                <td>${escapeHtml(item.note || '-')}</td>
-            </tr>
-        `).join('') : `<tr><td colspan="7" class="log-empty">선택한 날짜의 시재 또는 정산 기록이 없습니다.</td></tr>`;
-    }
+    if (!body) return;
+    body.innerHTML = rows.length ? rows.map((row, index) => `
+        <tr onclick="openLogDetailModal(${index})" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openLogDetailModal(${index})}">
+            <td>${escapeHtml(formatLogTime(row.at))}</td>
+            <td><span class="log-pill ${escapeHtml(row.pill)}"><i class="fa-solid ${escapeHtml(row.icon)}"></i>${escapeHtml(row.type)}</span></td>
+            <td><span class="log-target"><strong>${escapeHtml(row.title)}</strong><span>${escapeHtml(row.sub)}</span></span></td>
+            <td>${row.php === null || row.php === undefined ? '-' : moneyPhp(row.php)}</td>
+            <td>${currencyChips(row.actual, row.typeKey === 'withdraw' ? 'warning' : row.typeKey === 'closing' ? 'success' : '')}</td>
+            <td>${escapeHtml(row.operator)}</td>
+            <td>${escapeHtml(row.note || '-')}</td>
+        </tr>
+    `).join('') : `<tr><td colspan="7" class="log-empty">선택한 조건에 해당하는 마감 로그가 없습니다.</td></tr>`;
+}
+
+function openLogDetailModal(index) {
+    const row = renderedRows[index];
+    if (!row) return;
+    setHtml('logDetailBody', `
+        <div class="detail-summary">
+            <div class="detail-card"><span>유형</span><strong>${escapeHtml(row.type)}</strong></div>
+            <div class="detail-card"><span>처리 시간</span><strong>${escapeHtml(formatLogTime(row.at))}</strong></div>
+            <div class="detail-card"><span>담당자</span><strong>${escapeHtml(row.operator)}</strong></div>
+        </div>
+        <div class="detail-section">
+            <div class="detail-section-head"><i class="fa-solid fa-circle-info" style="color:var(--primary)"></i> 처리 정보</div>
+            <div class="detail-row"><span>대상</span><strong>${escapeHtml(row.title)}</strong></div>
+            <div class="detail-row"><span>보조 정보</span><strong>${escapeHtml(row.sub)}</strong></div>
+            <div class="detail-row"><span>장부 반영액</span><strong>${row.php === null || row.php === undefined ? '-' : moneyPhp(row.php)}</strong></div>
+            <div class="detail-row"><span>실제 통화</span><strong>${currencyChips(row.actual, row.typeKey === 'withdraw' ? 'warning' : row.typeKey === 'closing' ? 'success' : '')}</strong></div>
+            <div class="detail-row"><span>메모</span><strong>${escapeHtml(row.note || '-')}</strong></div>
+        </div>
+    `);
+    document.getElementById('logDetailModal')?.classList.add('active');
+}
+
+function closeLogDetailModal() {
+    document.getElementById('logDetailModal')?.classList.remove('active');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     ensureCloseLogSampleData();
     setLogDate(todayIso());
+    document.getElementById('logSearch')?.addEventListener('keydown', event => {
+        if (event.key === 'Enter') renderCloseLog();
+    });
 });
 </script>
 </body>

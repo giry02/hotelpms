@@ -96,7 +96,7 @@
                 {
                     icon: 'fa-clipboard-list', label: 'Operation Logs', id: 'operationLogs', key: 'operationLogs',
                     roles: ['sys_admin', 'sys_gm', 'sys_desk'],
-                    mainHref: BASE + 'operations/closing-log.html',
+                    mainHref: BASE + 'settings/audit-logs.html',
                     children: [
                         { label: 'Audit Log', href: BASE + 'settings/audit-logs.html', key: 'operationLogs.audit', roles: ['sys_admin'] },
                         { label: 'Close Log', href: BASE + 'operations/closing-log.html', key: 'operationLogs.close', roles: ['sys_admin', 'sys_gm', 'sys_desk'] },
