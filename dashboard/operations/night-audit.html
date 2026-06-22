@@ -79,6 +79,19 @@
         .cash-command-note { flex: 0 0 260px; border: 1px solid var(--border2); border-radius: 12px; background: #fff; padding: 12px 13px; color: var(--txt2); font-size: .76rem; font-weight: 800; line-height: 1.5; }
         .cash-command-note strong { display: block; color: var(--txt); font-size: .82rem; margin-bottom: 4px; }
         .cash-info-panel { border: 1px solid var(--border2); border-radius: 12px; background: #fff; padding: 15px; margin-bottom: 14px; }
+        .cash-reconcile-panel { padding: 0; overflow: hidden; background: #fff; margin-top: 14px; }
+        .cash-reconcile-summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #fbfdff; }
+        .cash-reconcile-summary::-webkit-details-marker { display: none; }
+        .cash-reconcile-summary-main { min-width: 0; }
+        .cash-reconcile-toggle { min-height: 34px; padding: 0 13px; border-radius: 8px; border: 1px solid #bfdbfe; background: #eff6ff; color: var(--primary); display: inline-flex; align-items: center; gap: 7px; font-size: .76rem; font-weight: 950; white-space: nowrap; }
+        .cash-reconcile-panel[open] .cash-reconcile-toggle i { transform: rotate(180deg); }
+        .cash-reconcile-toggle .when-open { display: none; }
+        .cash-reconcile-panel[open] .cash-reconcile-toggle .when-open { display: inline; }
+        .cash-reconcile-panel[open] .cash-reconcile-toggle .when-closed { display: none; }
+        .cash-reconcile-body { padding: 0 15px 15px; border-top: 1px solid var(--border2); }
+        .cash-reconcile-panel:not([open]) .cash-reconcile-body { display: none; }
+        .cash-reconcile-panel[open] .cash-reconcile-body { display: block; }
+        .cash-reconcile-body .cash-summary-grid { margin-top: 15px; }
         .cash-block-titlebar { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
         .cash-block-title { display: flex; align-items: center; gap: 8px; color: var(--txt); font-size: .92rem; font-weight: 950; }
         .cash-block-desc { margin-top: 3px; color: var(--txt3); font-size: .72rem; font-weight: 750; line-height: 1.45; }
@@ -438,49 +451,6 @@
                         </div>
                     </div>
 
-                    <div class="cash-info-panel">
-                        <div class="cash-block-titlebar">
-                            <div>
-                                <div class="cash-block-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 마감 기준 요약</div>
-                                <div class="cash-block-desc">시작 시재, 금일 정산금액, 예치금, 중간 출금, 마감 실사를 한 줄 흐름으로 확인합니다.</div>
-                            </div>
-                        </div>
-                        <div class="cash-summary-grid">
-                            <div class="cash-summary-card">
-                                <div class="cash-summary-label">시작 시재</div>
-                                <div class="cash-summary-value" id="cashOpeningPhp">₱0</div>
-                                <div class="cash-summary-sub" id="cashOpeningDetail" data-no-currency-normalize="true">페소 0 · 달러 0 · 원화 0</div>
-                            </div>
-                            <div class="cash-summary-card">
-                                <div class="cash-summary-label">금일 정산금액</div>
-                                <div class="cash-summary-value" id="cashReceivedPhp">₱0</div>
-                                <div class="cash-summary-sub" id="cashReceivedDetail" data-no-currency-normalize="true">페소 0 · 달러 0 · 원화 0</div>
-                            </div>
-                            <div class="cash-summary-card">
-                                <div class="cash-summary-label">예치금</div>
-                                <div class="cash-summary-value" id="cashDepositPhp">₱0</div>
-                                <div class="cash-summary-sub" id="cashDepositDetail" data-no-currency-normalize="true">페소 0 · 달러 0 · 원화 0</div>
-                            </div>
-                            <div class="cash-summary-card">
-                                <div class="cash-summary-label">중간 출금</div>
-                                <div class="cash-summary-value" id="cashWithdrawPhp">₱0</div>
-                                <div class="cash-summary-sub" id="cashWithdrawDetail" data-no-currency-normalize="true">출금 기록 없음</div>
-                            </div>
-                            <div class="cash-summary-card">
-                                <div class="cash-summary-label">실제 보유 통화</div>
-                                <div class="cash-summary-value" id="cashClosingLabel">미등록</div>
-                                <div class="cash-summary-sub" id="cashClosingDetail" data-no-currency-normalize="true">마감 실사 전</div>
-                            </div>
-                        </div>
-                        <details class="cash-formula-details">
-                            <summary>
-                                <span class="cash-formula-summary-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 통화별 현금 대조 보기</span>
-                                <span class="cash-formula-summary-desc">필요할 때만 펼쳐서 예상 보유 통화와 실사를 비교합니다.</span>
-                            </summary>
-                            <div class="cash-balance-formula" id="cashBalanceFormula" data-no-currency-normalize="true"></div>
-                        </details>
-                    </div>
-
                     <div class="settlement-status-panel">
                         <div class="settlement-status-head">
                             <div>
@@ -518,6 +488,53 @@
                         </div>
                     </div>
 
+                    <details class="cash-info-panel cash-reconcile-panel" id="cashReconcilePanel">
+                        <summary class="cash-reconcile-summary">
+                            <div class="cash-reconcile-summary-main">
+                                <div class="cash-block-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 마감 기준 요약</div>
+                                <div class="cash-block-desc">시작 시재, 금일 정산금액, 예치금, 중간 출금, 마감 실사를 한 줄 흐름으로 확인합니다.</div>
+                            </div>
+                            <span class="cash-reconcile-toggle">
+                                <span class="when-closed">&#48372;&#44592;</span>
+                                <span class="when-open">&#51217;&#44592;</span>
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </span>
+                        </summary>
+                        <div class="cash-reconcile-body">
+                        <div class="cash-summary-grid">
+                            <div class="cash-summary-card">
+                                <div class="cash-summary-label">시작 시재</div>
+                                <div class="cash-summary-value" id="cashOpeningPhp">₱0</div>
+                                <div class="cash-summary-sub" id="cashOpeningDetail" data-no-currency-normalize="true">페소 0 · 달러 0 · 원화 0</div>
+                            </div>
+                            <div class="cash-summary-card">
+                                <div class="cash-summary-label">금일 정산금액</div>
+                                <div class="cash-summary-value" id="cashReceivedPhp">₱0</div>
+                                <div class="cash-summary-sub" id="cashReceivedDetail" data-no-currency-normalize="true">페소 0 · 달러 0 · 원화 0</div>
+                            </div>
+                            <div class="cash-summary-card">
+                                <div class="cash-summary-label">예치금</div>
+                                <div class="cash-summary-value" id="cashDepositPhp">₱0</div>
+                                <div class="cash-summary-sub" id="cashDepositDetail" data-no-currency-normalize="true">페소 0 · 달러 0 · 원화 0</div>
+                            </div>
+                            <div class="cash-summary-card">
+                                <div class="cash-summary-label">중간 출금</div>
+                                <div class="cash-summary-value" id="cashWithdrawPhp">₱0</div>
+                                <div class="cash-summary-sub" id="cashWithdrawDetail" data-no-currency-normalize="true">출금 기록 없음</div>
+                            </div>
+                            <div class="cash-summary-card">
+                                <div class="cash-summary-label">실제 보유 통화</div>
+                                <div class="cash-summary-value" id="cashClosingLabel">미등록</div>
+                                <div class="cash-summary-sub" id="cashClosingDetail" data-no-currency-normalize="true">마감 실사 전</div>
+                            </div>
+                        </div>
+                        <details class="cash-formula-details">
+                            <summary>
+                                <span class="cash-formula-summary-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 통화별 현금 대조 보기</span>
+                                <span class="cash-formula-summary-desc">필요할 때만 펼쳐서 예상 보유 통화와 실사를 비교합니다.</span>
+                            </summary>
+                            <div class="cash-balance-formula" id="cashBalanceFormula" data-no-currency-normalize="true"></div>
+                        </details>
                     <div class="cash-ledger">
                         <div class="cash-ledger-head">
                             <span><i class="fa-solid fa-receipt" style="color:var(--primary)"></i> 금일 수납 / 예치 / 출금 내역</span>
@@ -532,6 +549,10 @@
                             </table>
                         </div>
                     </div>
+                        </div>
+                    </details>
+
+
                 </div>
             </div>
         </div>
@@ -2546,6 +2567,13 @@ function applyNightAuditI18n() {
     setNightText('.cash-block-desc', 'cash.summaryDesc');
     setNightHtml('.cash-formula-summary-title', `<i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> ${t('cash.formulaTitle')}`);
     setNightText('.cash-formula-summary-desc', 'cash.formulaDesc');
+    setNightHtml('.cash-block-title', `<i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> ${cashUiText('시재 대조 보기', 'Cash reconciliation')}`);
+    const reconcileDesc = document.querySelector('.cash-block-desc');
+    if (reconcileDesc) reconcileDesc.textContent = cashUiText('필요할 때만 펼쳐서 시작 시재, 중간 출금, 실제 보유 통화와 장부 기준 현금을 비교합니다.', 'Open only when needed to compare opening cash, withdrawals, counted cash, and ledger cash.');
+    const reconcileClosed = document.querySelector('.cash-reconcile-toggle .when-closed');
+    if (reconcileClosed) reconcileClosed.textContent = cashUiText('보기', 'View');
+    const reconcileOpen = document.querySelector('.cash-reconcile-toggle .when-open');
+    if (reconcileOpen) reconcileOpen.textContent = cashUiText('접기', 'Hide');
 
     const cashActionConfig = [
         ['.cash-action-card.opening', 'cash.step1', 'cash.openActionTitle', 'cash.openHelp', 'cash.openCta'],
@@ -2571,6 +2599,10 @@ function applyNightAuditI18n() {
     });
     setNightText('.settlement-status-title-text', 'cash.settlementStatusTitle');
     setNightText('.settlement-status-desc', 'cash.settlementStatusDesc');
+    const settlementTitle = document.querySelector('.settlement-status-title-text');
+    if (settlementTitle) settlementTitle.textContent = cashUiText('금일 정산 현황', 'Today settlement status');
+    const settlementDesc = document.querySelector('.settlement-status-desc');
+    if (settlementDesc) settlementDesc.textContent = cashUiText('체크아웃 기준으로 오늘 수납 완료, 미정산 잔액, 예치금 수납을 먼저 확인합니다.', 'Review paid settlements, unpaid balances, and deposits first using the checkout basis.');
 
     const cashCards = document.querySelectorAll('.cash-entry-panel');
     setNightHeader(cashCards[0], 'cash.openCard', '<i class="fa-solid fa-play" style="color:var(--success)"></i>');
