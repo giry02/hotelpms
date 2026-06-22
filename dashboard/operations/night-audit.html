@@ -201,11 +201,7 @@
         .cash-insight-money-value.positive { color: #047857; }
         .cash-insight-money-value.negative { color: #dc2626; }
         .cash-currency-lines { display: grid; gap: 5px; width: 100%; }
-        .cash-currency-line { display: grid; grid-template-columns: 22px 22px minmax(42px, auto) minmax(0, 1fr); align-items: center; gap: 6px; min-width: 0; }
-        .cash-currency-sign { width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #bfdbfe; background: #eff6ff; color: var(--primary); font-size: .72rem; font-weight: 950; line-height: 1; }
-        .cash-currency-sign.positive { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
-        .cash-currency-sign.negative { border-color: #fed7aa; background: #fff7ed; color: #b45309; }
-        .cash-currency-sign.zero { border-color: var(--border2); background: #f8fafc; color: var(--txt3); }
+        .cash-currency-line { display: grid; grid-template-columns: 22px minmax(42px, auto) minmax(0, 1fr); align-items: center; gap: 6px; min-width: 0; }
         .cash-currency-icon { width: 20px; height: 20px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; background: #f1f5f9; color: var(--txt2); font-size: .72rem; font-weight: 950; line-height: 1; }
         .cash-currency-icon.php { background: #fff7ed; color: #c2410c; }
         .cash-currency-icon.usd { background: #ecfdf5; color: #047857; }
@@ -2060,10 +2056,8 @@ function renderCashCurrencyLines(values = {}, options = {}) {
     if (!rows.length) return `<span class="cash-currency-empty">${escapeAudit(options.emptyLabel || cashUiText('미등록', 'Not registered'))}</span>`;
     return `<div class="cash-currency-lines">${rows.map(item => {
         const tone = item.amount > 0 ? 'positive' : item.amount < 0 ? 'negative' : 'zero';
-        const sign = item.amount > 0 ? '+' : item.amount < 0 ? '-' : '0';
         return `
             <div class="cash-currency-line">
-                <span class="cash-currency-sign ${tone}">${sign}</span>
                 <span class="cash-currency-icon ${item.currency.toLowerCase()}">${escapeAudit(cashCurrencySymbol(item.currency))}</span>
                 <span class="cash-currency-label">${escapeAudit(cashCurrencyLabel(item.currency))}</span>
                 <span class="cash-currency-amount ${signed ? tone : ''}">${escapeAudit(formatPlainCurrencyAmount(item.currency, item.amount, signed))}</span>
