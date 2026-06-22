@@ -167,6 +167,17 @@
         .cash-insight-money-value { color: var(--txt); font-size: .86rem; font-weight: 950; text-align: right; white-space: nowrap; }
         .cash-insight-money-value.positive { color: #047857; }
         .cash-insight-money-value.negative { color: #dc2626; }
+        .cash-currency-lines { display: grid; gap: 5px; width: 100%; }
+        .cash-currency-line { display: grid; grid-template-columns: 22px minmax(42px, auto) minmax(0, 1fr); align-items: center; gap: 7px; min-width: 0; }
+        .cash-currency-sign { width: 20px; height: 20px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #bfdbfe; background: #eff6ff; color: var(--primary); font-size: .72rem; font-weight: 950; line-height: 1; }
+        .cash-currency-sign.positive { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+        .cash-currency-sign.negative { border-color: #fed7aa; background: #fff7ed; color: #b45309; }
+        .cash-currency-sign.zero { border-color: var(--border2); background: #f8fafc; color: var(--txt3); }
+        .cash-currency-label { color: var(--txt3); font-size: .72rem; font-weight: 900; white-space: nowrap; }
+        .cash-currency-amount { color: var(--txt); font-size: .82rem; font-weight: 950; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cash-currency-amount.positive { color: #047857; }
+        .cash-currency-amount.negative { color: #dc2626; }
+        .cash-currency-empty { color: var(--txt3); font-size: .76rem; font-weight: 900; }
         .cash-insight-section { border: 1px solid var(--border2); border-radius: 12px; overflow: hidden; background: #fff; }
         .cash-insight-section h4 { margin: 0; padding: 11px 13px; background: #f8fafc; border-bottom: 1px solid var(--border2); color: var(--txt); font-size: .84rem; font-weight: 950; display: flex; align-items: center; gap: 7px; }
         .cash-insight-list { list-style: none; margin: 0; padding: 12px 14px; display: grid; gap: 9px; }
@@ -2001,6 +2012,26 @@ function compactCurrencySummary(values = {}, emptyLabel = cashUiText('미등록'
         .join(' · ');
 }
 
+function renderCashCurrencyLines(values = {}, options = {}) {
+    const signed = !!options.signed;
+    const includeZero = options.includeZero !== false;
+    const rows = CASH_CURRENCIES
+        .map(currency => ({ currency, amount: Number(values?.[currency] || 0) }))
+        .filter(item => includeZero || item.amount !== 0);
+    if (!rows.length) return `<span class="cash-currency-empty">${escapeAudit(options.emptyLabel || cashUiText('미등록', 'Not registered'))}</span>`;
+    return `<div class="cash-currency-lines">${rows.map(item => {
+        const tone = item.amount > 0 ? 'positive' : item.amount < 0 ? 'negative' : 'zero';
+        const sign = item.amount > 0 ? '+' : item.amount < 0 ? '-' : '0';
+        return `
+            <div class="cash-currency-line">
+                <span class="cash-currency-sign ${tone}">${sign}</span>
+                <span class="cash-currency-label">${escapeAudit(cashCurrencyLabel(item.currency))}</span>
+                <span class="cash-currency-amount ${signed ? tone : ''}">${escapeAudit(formatPlainCurrencyAmount(item.currency, item.amount, signed))}</span>
+            </div>
+        `;
+    }).join('')}</div>`;
+}
+
 function renderCashReconcileDetailCards(state = {}) {
     const cards = [
         {
@@ -2055,17 +2086,7 @@ function renderCashInsightCards(cards = []) {
 
 function renderCashInsightMoneyLines(values = {}, options = {}) {
     const signed = !!options.signed;
-    const normalized = CASH_CURRENCIES.map(currency => {
-        const amount = Number(values?.[currency] || 0);
-        const valueClass = signed && amount > 0 ? ' positive' : signed && amount < 0 ? ' negative' : '';
-        return `
-            <div class="cash-insight-money-line">
-                <span class="cash-insight-money-label">${escapeAudit(cashCurrencyLabel(currency))}</span>
-                <span class="cash-insight-money-value${valueClass}">${escapeAudit(formatPlainCurrencyAmount(currency, amount, signed))}</span>
-            </div>
-        `;
-    }).join('');
-    return `<div class="cash-insight-money-list">${normalized}</div>`;
+    return renderCashCurrencyLines(values, { signed, includeZero: true });
 }
 
 function renderCashInsightSection(title, icon, items = []) {
@@ -2696,24 +2717,24 @@ function renderCashHandover() {
 
     const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
     const setHtml = (id, value) => { const el = document.getElementById(id); if (el) el.innerHTML = value; };
-    set('cashOpeningPhp', compactCurrencySummary(session.opening, cashUiText('\uBBF8\uB4F1\uB85D', 'Not registered')));
+    setHtml('cashOpeningPhp', renderCashCurrencyLines(session.opening, { includeZero: false, emptyLabel: cashUiText('\uBBF8\uB4F1\uB85D', 'Not registered') }));
     set('cashOpeningDetail', cashUiText('입력 금액', 'Input amount'));
-    set('cashPreviewOpening', compactCurrencySummary(session.opening, cashUiText('\uBBF8\uB4F1\uB85D', 'Not registered')));
+    setHtml('cashPreviewOpening', renderCashCurrencyLines(session.opening, { includeZero: false, emptyLabel: cashUiText('\uBBF8\uB4F1\uB85D', 'Not registered') }));
     set('cashPreviewOpeningMeta', cashUiText('입력 금액', 'Input amount'));
-    set('cashReceivedPhp', compactCurrencySummary(cashInflowCurrencies, moneyPhp(0)));
+    setHtml('cashReceivedPhp', renderCashCurrencyLines(cashInflowCurrencies, { includeZero: false, emptyLabel: moneyPhp(0) }));
     set('cashReceivedDetail', `${cashUiText('정산', 'Payment')} ${moneyPhp(cashSettlementPhp)} · ${cashUiText('예치금', 'Deposit')} ${moneyPhp(cashDepositPhp)}`);
-    set('cashPreviewInflow', compactCurrencySummary(cashInflowCurrencies, moneyPhp(0)));
+    setHtml('cashPreviewInflow', renderCashCurrencyLines(cashInflowCurrencies, { includeZero: false, emptyLabel: moneyPhp(0) }));
     set('cashPreviewInflowMeta', `${cashUiText('정산', 'Payment')} ${moneyPhp(cashSettlementPhp)} · ${cashUiText('예치금', 'Deposit')} ${moneyPhp(cashDepositPhp)}`);
-    set('cashWithdrawPhp', compactCurrencySummary(withdrawalCurrencies, nightAuditText('cash.noWithdrawals')));
+    setHtml('cashWithdrawPhp', renderCashCurrencyLines(withdrawalCurrencies, { includeZero: false, emptyLabel: nightAuditText('cash.noWithdrawals') }));
     set('cashWithdrawDetail', withdrawalCount ? cashUiText(`${withdrawalCount}건 출금`, `${withdrawalCount} withdrawal(s)`) : nightAuditText('cash.noWithdrawals'));
-    set('cashPreviewWithdraw', compactCurrencySummary(withdrawalCurrencies, nightAuditText('cash.noWithdrawals')));
+    setHtml('cashPreviewWithdraw', renderCashCurrencyLines(withdrawalCurrencies, { includeZero: false, emptyLabel: nightAuditText('cash.noWithdrawals') }));
     set('cashPreviewWithdrawMeta', withdrawalCount ? cashUiText(`${withdrawalCount}건 출금`, `${withdrawalCount} withdrawal(s)`) : nightAuditText('cash.noWithdrawals'));
-    set('cashClosingLabel', hasClosingRecord ? compactCurrencySummary(session.closing, cashUiText('0원', '0')) : cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC804', 'Not counted yet'));
+    setHtml('cashClosingLabel', hasClosingRecord ? renderCashCurrencyLines(session.closing, { includeZero: false, emptyLabel: cashUiText('0원', '0') }) : escapeAudit(cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC804', 'Not counted yet')));
     set('cashClosingDetail', hasClosingRecord ? cashUiText('실사 입력 완료', 'Count entered') : cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare'));
     set('cashVarianceLabel', hasClosingRecord ? cashUiText(hasVariance ? '\uCC28\uC561 \uD655\uC778' : '\uCC28\uC561 \uC5C6\uC74C', hasVariance ? 'Variance' : 'Matched') : cashUiText('\uC2E4\uC0AC \uC804', 'Not counted'));
-    set('cashVarianceDetail', hasClosingRecord ? formatSignedCurrencyBreakdown(varianceCurrencies) : cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare'));
+    setHtml('cashVarianceDetail', hasClosingRecord ? renderCashCurrencyLines(varianceCurrencies, { signed: true, includeZero: true }) : escapeAudit(cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare')));
     set('cashPreviewVariance', hasClosingRecord ? cashUiText(hasVariance ? '\uCC28\uC561 \uD655\uC778' : '\uCC28\uC561 \uC5C6\uC74C', hasVariance ? 'Variance' : 'Matched') : cashUiText('\uC2E4\uC0AC \uC804', 'Not counted'));
-    set('cashPreviewVarianceMeta', hasClosingRecord ? formatSignedCurrencyBreakdown(varianceCurrencies) : cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare'));
+    setHtml('cashPreviewVarianceMeta', hasClosingRecord ? renderCashCurrencyLines(varianceCurrencies, { signed: true, includeZero: true }) : escapeAudit(cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare')));
     const reasonBtn = document.getElementById('cashVarianceReasonBtn');
     if (reasonBtn) reasonBtn.hidden = !hasVariance;
     setHtml('cashReconcileDetailList', renderCashReconcileDetailCards(cashHandoverSnapshot));
