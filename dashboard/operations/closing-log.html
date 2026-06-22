@@ -86,8 +86,8 @@
         .reconcile-body { padding:16px 18px 18px; border-top:1px solid var(--border2); }
         .reconcile-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
         .reconcile-card { border:1px solid var(--border2); border-radius:10px; background:#fff; padding:12px; text-align:center; min-width:0; }
-        .reconcile-card span { display:block; color:var(--txt3); font-size:.7rem; font-weight:900; margin-bottom:6px; }
-        .reconcile-card strong { display:block; color:var(--txt); font-size:.96rem; font-weight:950; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .reconcile-card span { display:block; color:var(--txt); font-size:.86rem; font-weight:950; margin-bottom:7px; }
+        .reconcile-card strong { display:inline-flex; align-items:center; justify-content:center; max-width:100%; min-height:27px; padding:0 10px; border:1px solid var(--border2); border-radius:999px; background:#f8fafc; color:var(--txt2); font-size:.76rem; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .cash-flow-formula { display:flex; align-items:center; gap:9px; flex-wrap:wrap; border:1px dashed #bfdbfe; background:#fbfdff; border-radius:12px; padding:12px 14px; }
         .formula-token { display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border:1px solid var(--border2); border-radius:999px; background:#fff; color:var(--txt2); font-size:.72rem; font-weight:900; white-space:nowrap; }
         .formula-symbol { width:25px; height:25px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#eff6ff; border:1px solid #bfdbfe; color:var(--primary); font-weight:950; }
@@ -350,6 +350,16 @@ function formatLogTime(value) {
 function currencyCountLabel(values = {}, empty = '0종 통화') {
     const count = CASH_CURRENCIES.filter(currency => Number(values?.[currency] || 0) > 0).length;
     return count ? `${count}종 통화` : empty;
+}
+
+function compactCurrencySummary(values = {}, empty = '0종 통화') {
+    const active = CASH_CURRENCIES
+        .map(currency => ({ currency, amount: Number(values?.[currency] || 0) }))
+        .filter(item => item.amount > 0);
+    if (!active.length) return empty;
+    const first = active[0];
+    const text = `${currencyLabel(first.currency)} ${first.amount.toLocaleString()}`;
+    return active.length > 1 ? `${text} 외 ${active.length - 1}종` : text;
 }
 
 function currencyTotalAmount(values = {}) {
@@ -629,14 +639,14 @@ function renderCloseLog() {
     setText('summaryClosedBy', hasClosing ? `${session.closedBy || '-'} · ${formatLogTime(session.closedAt)}` : '마감 실사 입력 필요');
     setText('summaryInflow', moneyPhp(inflowPhp));
     setText('summaryInflowSub', `정산 ${moneyPhp(settlementPhp)} · 예치 ${moneyPhp(depositPhp)}`);
-    setText('summaryWithdraw', currencyCountLabel(withdrawalCurrencies, '출금 없음'));
+    setText('summaryWithdraw', compactCurrencySummary(withdrawalCurrencies, '출금 없음'));
     setText('summaryWithdrawSub', currencyTotalAmount(withdrawalCurrencies) ? '중간출금 기록 있음' : '중간출금 기록 없음');
     setText('summaryVariance', !hasClosing ? '실사 전' : hasVariance ? '차액 확인' : '차액 없음');
-    setText('summaryVarianceSub', hasClosing ? `예상 ${currencyCountLabel(expected)} · 실사 ${currencyCountLabel(closingCurrencies)}` : '마감 실사 후 확인');
-    setText('detailOpening', currencyCountLabel(openingCurrencies));
-    setText('detailInflow', moneyPhp(inflowPhp));
-    setText('detailWithdraw', currencyCountLabel(withdrawalCurrencies, '출금 없음'));
-    setText('detailClosing', hasClosing ? currencyCountLabel(closingCurrencies) : '실사 전');
+    setText('summaryVarianceSub', hasClosing ? `예상 ${compactCurrencySummary(expected)} · 실사 ${compactCurrencySummary(closingCurrencies)}` : '마감 실사 후 확인');
+    setText('detailOpening', compactCurrencySummary(openingCurrencies, '미등록'));
+    setText('detailInflow', compactCurrencySummary(inflowCurrencies, moneyPhp(0)));
+    setText('detailWithdraw', compactCurrencySummary(withdrawalCurrencies, '출금 없음'));
+    setText('detailClosing', hasClosing ? compactCurrencySummary(closingCurrencies) : '실사 전');
     setHtml('detailFormula', renderFormula({ opening: openingCurrencies, inflow: inflowCurrencies, withdrawal: withdrawalCurrencies, closing: closingCurrencies, variance, hasClosing, hasVariance }));
     setText('logLedgerCount', `${rows.length}건`);
     setText('logPageInfo', `총 ${rows.length}건 표시`);
