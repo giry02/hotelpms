@@ -102,7 +102,7 @@
         .cash-flow-node.result { border-color: #bfdbfe; background: linear-gradient(180deg, #eff6ff 0%, #fff 100%); }
         .cash-flow-node.variance { grid-column: 3 / 4; align-self: stretch; margin-top: 34px; border-color: #c7d2fe; background: linear-gradient(180deg, #eef2ff 0%, #fff 100%); }
         .cash-flow-label { color: var(--txt); font-size: .9rem; font-weight: 950; margin-bottom: 7px; }
-        .cash-flow-value { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; max-width: 100%; padding: 0 11px; border-radius: 999px; background: #f8fafc; border: 1px solid var(--border2); color: var(--txt2); font-size: .78rem; font-weight: 900; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cash-flow-value { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; max-width: 100%; padding: 6px 11px; border-radius: 999px; background: #f8fafc; border: 1px solid var(--border2); color: var(--txt2); font-size: .78rem; font-weight: 900; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
         .cash-flow-detail { margin-top: 8px; color: var(--txt3); font-size: .7rem; font-weight: 780; line-height: 1.45; width: 100%; }
         .cash-flow-op { position: absolute; z-index: 5; width: 34px; height: 34px; border-radius: 999px; border: 2px solid #fff; box-shadow: 0 10px 18px rgba(15,23,42,.15); display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 950; }
         .cash-flow-op.plus { left: calc(33.333% + 7px); top: 50%; transform: translate(-50%, -50%); background: #dcfce7; color: #047857; }
@@ -1917,11 +1917,9 @@ function compactCurrencySummary(values = {}, emptyLabel = cashUiText('미등록'
         .map(currency => ({ currency, amount: Number(values?.[currency] || 0) }))
         .filter(item => item.amount > 0);
     if (!active.length) return emptyLabel;
-    const first = active[0];
-    const firstText = `${cashCurrencyLabel(first.currency)} ${first.amount.toLocaleString()}`;
-    return active.length > 1
-        ? cashUiText(`${firstText} 외 ${active.length - 1}종`, `${firstText} + ${active.length - 1} more`)
-        : firstText;
+    return active
+        .map(item => `${cashCurrencyLabel(item.currency)} ${item.amount.toLocaleString()}`)
+        .join(' · ');
 }
 
 function renderCashReconcileDetailCards(state = {}) {
