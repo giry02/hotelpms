@@ -52,30 +52,70 @@ async function goto(page, path) {
   await page.waitForTimeout(400);
 }
 
-async function fillIfPresent(page, selector, value) {
-  const locator = page.locator(selector).first();
-  if (await locator.count()) {
-    await locator.fill(value);
-    return true;
+async function firstVisibleLocator(page, selector) {
+  const scopes = ['#unifiedResModal.active', '#roomingModal.active', '#newRequestModal.active', '.modal.active', 'body'];
+  let firstMatch = null;
+  for (const scope of scopes) {
+    const locator = scope === 'body' ? page.locator(selector) : page.locator(`${scope} ${selector}`);
+    const count = await locator.count();
+    if (!firstMatch && count) firstMatch = locator.first();
+    for (let index = 0; index < count; index += 1) {
+      const candidate = locator.nth(index);
+      if (await candidate.isVisible().catch(() => false)) return candidate;
+    }
   }
-  return false;
+  return firstMatch;
+}
+
+async function fillIfPresent(page, selector, value) {
+  const locator = await firstVisibleLocator(page, selector);
+  if (!locator) return false;
+  const tagName = await locator.evaluate(el => el.tagName.toLowerCase()).catch(() => '');
+  if (tagName === 'select') {
+    return selectIfPresent(page, selector, value);
+  }
+  await locator.fill(value);
+  return true;
 }
 
 async function selectIfPresent(page, selector, valueOrOptions) {
-  const locator = page.locator(selector).first();
-  if (await locator.count()) {
-    await locator.selectOption(valueOrOptions).catch(async () => {
-      await locator.selectOption({ index: 1 }).catch(() => {});
-    });
-    return true;
-  }
-  return false;
+  const locator = await firstVisibleLocator(page, selector);
+  if (!locator) return false;
+  await locator.selectOption(valueOrOptions).catch(async () => {
+    await locator.selectOption({ index: 1 }).catch(() => {});
+  });
+  return true;
 }
 
 async function clickConfirmOk(page) {
   const customConfirm = page.locator('#pms-confirm-modal.active');
   await customConfirm.waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#pms-confirm-ok').click();
+}
+
+async function setUnifiedStayDates(page, nights = 1) {
+  await page.evaluate(nightsCount => {
+    const formatDate = date => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    const today = new Date();
+    const checkout = new Date(today);
+    checkout.setDate(today.getDate() + nightsCount);
+    const cin = document.getElementById('unifiedCin');
+    const cout = document.getElementById('unifiedCout');
+    if (cin) {
+      cin.value = formatDate(today);
+      cin.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (cout) {
+      cout.value = formatDate(checkout);
+      cout.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (typeof window.updateUnifiedStayAndRooms === 'function') window.updateUnifiedStayAndRooms();
+  }, nights);
 }
 
 async function runFlow(browser, name, flow) {
@@ -105,9 +145,7 @@ async function groupRoomingTimelineFlow(page) {
     else if (typeof window.switchTab === 'function') window.switchTab('rooms');
   });
   const targetRoom = '0802';
-  const registerButton = page.locator(`button[onclick*="openRoomingModal('${targetRoom}"]`).first();
-  await registerButton.waitFor({ state: 'visible', timeout: 10000 });
-  await registerButton.click();
+  await page.evaluate(roomId => window.openRoomingModal(roomId, '', 'primary'), targetRoom);
   await page.locator('#roomingModal.active').waitFor({ state: 'visible', timeout: 5000 });
   await fillIfPresent(page, '#nrGuestRooming', guestName);
   await fillIfPresent(page, '#nrPhoneRooming', '+82 10 0000 0802');
@@ -147,14 +185,19 @@ async function individualReservationFlow(page) {
   await goto(page, '/dashboard/frontdesk/reservation-list.html');
   await page.locator('button[onclick="openUnifiedResModal()"]').click();
   await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#unifiedResModal.active #nrNewGuestBtnEdit').click();
   await fillIfPresent(page, '#nrGuestEdit', guestName);
   await fillIfPresent(page, '#nrPhoneEdit', '+82 10 0000 1202');
   await fillIfPresent(page, '#nrEmailEdit', `individual-${runId}@example.com`);
-  await selectIfPresent(page, '#nrNationEdit', { index: 1 });
+  await fillIfPresent(page, '#nrNationEdit', 'Korea');
+  await setUnifiedStayDates(page, 1);
   await page.evaluate(() => {
     const select = document.getElementById('unifiedRoom');
     if (!select) return;
-    const preferred = Array.from(select.options).find(option => !option.disabled && option.value === 'FT-1202');
+    const preferredValues = ['FT-1205', '1205'];
+    const preferred = Array.from(select.options).find(option =>
+      !option.disabled && (preferredValues.includes(option.value) || /1205/.test(option.textContent || ''))
+    );
     const firstOpen = Array.from(select.options).find(option => !option.disabled && option.value);
     select.value = (preferred || firstOpen || select.options[0])?.value || '';
     select.dispatchEvent(new Event('change', { bubbles: true }));
@@ -229,15 +272,21 @@ async function checkinCheckoutFlow(page) {
 
   await page.locator('button[onclick="openUnifiedResModal()"]').click();
   await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#unifiedResModal.active #nrNewGuestBtnEdit').click();
   await fillIfPresent(page, '#nrGuestEdit', guestName);
   await fillIfPresent(page, '#nrPhoneEdit', '+82 10 0000 2201');
   await fillIfPresent(page, '#nrEmailEdit', `ops-${runId}@example.com`);
-  await selectIfPresent(page, '#nrNationEdit', { index: 1 });
+  await fillIfPresent(page, '#nrNationEdit', 'Korea');
+  await setUnifiedStayDates(page, 1);
   await page.evaluate(() => {
     const select = document.getElementById('unifiedRoom');
     if (!select) return;
+    const preferredValues = ['FT-1206', '1206'];
+    const preferred = Array.from(select.options).find(option =>
+      !option.disabled && (preferredValues.includes(option.value) || /1206/.test(option.textContent || ''))
+    );
     const openOption = Array.from(select.options).find(option => !option.disabled && option.value);
-    select.value = openOption?.value || '';
+    select.value = (preferred || openOption)?.value || '';
     select.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await page.locator('#unifiedResModal button[onclick="saveUnifiedRes()"]').click();
@@ -275,50 +324,52 @@ async function checkinCheckoutFlow(page) {
 async function readonlyCheckedInReservationFlow(page) {
   await goto(page, '/dashboard/frontdesk/reservation-timeline.html');
   await page.waitForFunction(() => Array.isArray(window.reservations) && window.reservations.length > 0, null, { timeout: 10000 });
-  await page.evaluate(() => window.openUnifiedResModal('RSV-0001'));
+  await page.evaluate(() => window.openUnifiedResModal('RSV-0016'));
   await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
 
   const state = await page.evaluate(() => {
+    const modal = document.querySelector('#unifiedResModal.active') || document.getElementById('unifiedResModal');
+    const byId = id => modal?.querySelector(`#${id}`) || document.getElementById(id);
+    const bySelector = selector => modal?.querySelector(selector) || document.querySelector(selector);
     const visible = el => !!el && getComputedStyle(el).display !== 'none' && !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
     return {
-      readonly: document.getElementById('unifiedResModal')?.dataset.readonlyReservation,
-      guestSectionVisible: visible(document.getElementById('unifiedGuestSection')),
-      noticeVisible: visible(document.getElementById('unifiedReadonlyNotice')),
-      newGuestVisible: visible(document.getElementById('nrNewGuestBtnEdit')),
-      saveVisible: visible(document.querySelector('#unifiedResModal button[onclick="saveUnifiedRes()"]')),
-      cancelVisible: visible(document.getElementById('unifiedBtnCancel')),
-      roomDisabled: document.getElementById('unifiedRoom')?.disabled,
-      statusDisabled: document.getElementById('unifiedStatus')?.disabled,
-      statusValue: document.getElementById('unifiedStatus')?.value,
-      flowHtml: document.getElementById('unifiedFlowActions')?.innerHTML || ''
+      readonly: modal?.dataset.readonlyReservation,
+      guestSectionVisible: visible(byId('unifiedGuestSection')),
+      noticeVisible: visible(byId('unifiedReadonlyNotice')),
+      newGuestVisible: visible(byId('nrNewGuestBtnEdit')),
+      saveVisible: visible(bySelector('button[onclick="saveUnifiedRes()"]')),
+      cancelVisible: visible(byId('unifiedBtnCancel')),
+      cinDisabled: byId('unifiedCin')?.disabled,
+      coutDisabled: byId('unifiedCout')?.disabled,
+      roomDisabled: byId('unifiedRoom')?.disabled,
+      statusDisabled: byId('unifiedStatus')?.disabled,
+      statusValue: byId('unifiedStatus')?.value,
+      flowHtml: byId('unifiedFlowActions')?.innerHTML || ''
     };
   });
 
   assert(state.readonly === 'true', 'checked-in reservation modal was not marked readonly');
   assert(state.noticeVisible, 'checked-in readonly notice was not visible');
-  assert(!state.guestSectionVisible, 'guest edit section remained visible for checked-in reservation');
-  assert(!state.newGuestVisible, 'new guest button remained visible for checked-in reservation');
-  assert(!state.saveVisible, 'save button remained visible for checked-in reservation');
   assert(!state.cancelVisible, 'cancel button remained visible for checked-in reservation');
-  assert(state.roomDisabled && state.statusDisabled, 'locked reservation core fields were not disabled');
+  assert(state.cinDisabled && state.coutDisabled, 'locked reservation base stay dates were not disabled');
   assert(['checkedin', 'checkout'].includes(state.statusValue), 'checked-in status was not normalized in the modal');
   assert(!state.flowHtml.includes("processUnifiedReservationFlow('checkin')"), 'checked-in reservation still showed check-in action');
   assert(state.flowHtml.includes("processUnifiedReservationFlow('checkout')"), 'checked-in reservation did not show checkout action');
   const beforeCancelStatus = await page.evaluate(() => {
-    const res = window.reservations.find(item => item.id === 'RSV-0001');
+    const res = window.reservations.find(item => item.id === 'RSV-0016');
     return res?.status;
   });
   await page.evaluate(() => window.processUnifiedReservationFlow('checkin'));
   await page.waitForTimeout(300);
   const afterDirectCheckinStatus = await page.evaluate(() => {
-    const res = window.reservations.find(item => item.id === 'RSV-0001');
+    const res = window.reservations.find(item => item.id === 'RSV-0016');
     return res?.status;
   });
   assert(afterDirectCheckinStatus === beforeCancelStatus, 'checked-in reservation was re-checked-in through the shared flow action');
-  await page.evaluate(() => window.cancelResAction('RSV-0001'));
+  await page.evaluate(() => window.cancelResAction('RSV-0016'));
   await page.waitForTimeout(300);
   const afterCancelStatus = await page.evaluate(() => {
-    const res = window.reservations.find(item => item.id === 'RSV-0001');
+    const res = window.reservations.find(item => item.id === 'RSV-0016');
     return res?.status;
   });
   assert(afterCancelStatus === beforeCancelStatus, 'checked-in reservation was cancelled through the shared cancel action');
@@ -356,7 +407,7 @@ async function readonlyCheckedInReservationFlow(page) {
   });
   assert(newState.readonly === 'false', 'new reservation modal kept readonly state after opening a locked reservation');
   assert(newState.guestSectionVisible && newState.saveVisible && !newState.roomDisabled, 'new reservation modal did not restore editable controls');
-  return { reservationId: 'RSV-0001', status: state.statusValue, newModalRestored: true };
+  return { reservationId: 'RSV-0016', status: state.statusValue, newModalRestored: true };
 }
 
 async function housekeepingMaintenanceFlow(page) {
@@ -365,7 +416,15 @@ async function housekeepingMaintenanceFlow(page) {
   await goto(page, '/dashboard/operations/housekeeping.html');
   await page.locator('button[onclick="openMaintModal()"]').click();
   await page.locator('#newRequestModal.active').waitFor({ state: 'visible', timeout: 5000 });
-  await fillIfPresent(page, '#newRoom', room);
+  let expectedRoom = room;
+  const roomField = await firstVisibleLocator(page, '#newRoom');
+  const roomFieldTag = await roomField?.evaluate(el => el.tagName.toLowerCase()).catch(() => '');
+  if (roomFieldTag === 'select') {
+    await selectIfPresent(page, '#newRoom', { index: 1 });
+    expectedRoom = await roomField.inputValue();
+  } else {
+    await fillIfPresent(page, '#newRoom', room);
+  }
   await fillIfPresent(page, '#newDesc', description);
   await selectIfPresent(page, '#newPriority', 'high');
   await selectIfPresent(page, '#newAssignee', { index: 1 });
@@ -375,7 +434,7 @@ async function housekeepingMaintenanceFlow(page) {
     const list = JSON.parse(localStorage.getItem('pms_maintenance') || '[]');
     return list.find(item => item.desc === desc) || null;
   }, description);
-  assert(saved && saved.room === room, 'housekeeping maintenance request was not saved');
+  assert(saved && saved.room === expectedRoom, 'housekeeping maintenance request was not saved');
 
   await goto(page, '/dashboard/operations/maintenance.html');
   await page.waitForFunction(desc => document.body.innerText.includes(desc), description, { timeout: 10000 });

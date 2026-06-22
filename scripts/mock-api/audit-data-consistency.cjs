@@ -4,7 +4,14 @@ const path = require('path');
 const root = process.cwd();
 const dashboardApiRoot = path.join(root, 'dashboard', 'data', 'api', 'v1');
 const adminApiRoot = path.join(root, 'admin', 'data', 'api', 'v1');
-const AUDIT_DATE = process.env.PMS_AUDIT_DATE || '2026-06-09';
+const MOCK_ANCHOR_DATE = '2026-06-10';
+const AUDIT_DATE = process.env.PMS_AUDIT_DATE || new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+}).format(new Date());
+const AUDIT_DATE_SHIFT_DAYS = dateDiffDays(MOCK_ANCHOR_DATE, AUDIT_DATE);
 
 const errors = [];
 const warnings = [];
@@ -25,7 +32,7 @@ function rel(file) {
 function readJson(relativePath) {
   const full = path.join(root, relativePath);
   try {
-    return JSON.parse(fs.readFileSync(full, 'utf8'));
+    return shiftMockDates(JSON.parse(fs.readFileSync(full, 'utf8')), AUDIT_DATE_SHIFT_DAYS);
   } catch (error) {
     errors.push(`${relativePath}: JSON parse failed (${error.message})`);
     return null;
@@ -56,6 +63,47 @@ function warn(condition, message) {
 function parseDate(value) {
   const date = new Date(`${value}T00:00:00+09:00`);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function dateDiffDays(fromIso, toIso) {
+  const from = parseDate(fromIso);
+  const to = parseDate(toIso);
+  if (!from || !to) return 0;
+  return Math.round((to - from) / 86400000);
+}
+
+function shiftIsoDateString(text, days) {
+  return String(text).replace(/\b(2026-\d{2}-\d{2})(T[0-9:.+-]+)?\b/g, (match, isoDate, suffix = '') => {
+    const [year, month, day] = isoDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + days);
+    const shifted = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return `${shifted}${suffix}`;
+  });
+}
+
+function shiftMonthDayString(text, days) {
+  const match = String(text || '').match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (!match) return text;
+  const date = new Date(2026, Number(match[1]) - 1, Number(match[2]));
+  date.setDate(date.getDate() + days);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function shiftMockDates(value, days, key = '') {
+  if (!days) return value;
+  if (Array.isArray(value)) return value.map(item => shiftMockDates(item, days, key));
+  if (value && typeof value === 'object') {
+    const next = {};
+    Object.entries(value).forEach(([childKey, childValue]) => {
+      next[childKey] = shiftMockDates(childValue, days, childKey);
+    });
+    return next;
+  }
+  if (typeof value !== 'string') return value;
+  let text = shiftIsoDateString(value, days);
+  if (['cin', 'cout', 'in', 'out'].includes(key)) text = shiftMonthDayString(text, days);
+  return text;
 }
 
 function isTodayInStay(reservation) {
@@ -189,6 +237,8 @@ function auditCoreRelations() {
     if (folio.groupId) assert(groupIds.has(folio.groupId), `folios/${folio.id}: unknown groupId ${folio.groupId}`);
     if (folio.companyId) assert(companyIds.has(folio.companyId), `folios/${folio.id}: unknown companyId ${folio.companyId}`);
     assert(folio.balance?.currency === defaultCurrency, `folios/${folio.id}: balance currency is not ${defaultCurrency}`);
+    warn(!(folio.status === 'open' && folio.closedAt), `folios/${folio.id}: open folio should not have closedAt`);
+    warn(!(folio.status === 'closed' && amountValue(folio.balance) !== 0), `folios/${folio.id}: closed folio should have zero balance`);
   });
 
   const inHouseRoomIds = rooms
@@ -248,6 +298,9 @@ const staticRiskFiles = auditStaticRisks();
 
 const result = {
   ok: errors.length === 0,
+  auditDate: AUDIT_DATE,
+  mockAnchorDate: MOCK_ANCHOR_DATE,
+  dateShiftDays: AUDIT_DATE_SHIFT_DAYS,
   jsonFileCount,
   relationSummary,
   errors,
