@@ -1957,15 +1957,15 @@ function saveCashSession(session) {
 }
 
 const CASH_CURRENCY_LABELS = { PHP: '페소', USD: '달러', KRW: '원화' };
-const CASH_CURRENCY_SYMBOLS = { PHP: '\u20b1', USD: '$', KRW: '\u20a9' };
+const CASH_CURRENCY_ICON_CLASSES = { PHP: 'fa-peso-sign', USD: 'fa-dollar-sign', KRW: 'fa-won-sign' };
 
 function cashCurrencyLabel(currency) {
     if (nightAuditLang() === 'en') return currency;
     return CASH_CURRENCY_LABELS[currency] || currency;
 }
 
-function cashCurrencySymbol(currency) {
-    return CASH_CURRENCY_SYMBOLS[currency] || currency;
+function cashCurrencyIconClass(currency) {
+    return CASH_CURRENCY_ICON_CLASSES[currency] || 'fa-coins';
 }
 
 function formatPlainCurrencyAmount(currency, amount, signed = false) {
@@ -2058,7 +2058,7 @@ function renderCashCurrencyLines(values = {}, options = {}) {
         const tone = item.amount > 0 ? 'positive' : item.amount < 0 ? 'negative' : 'zero';
         return `
             <div class="cash-currency-line">
-                <span class="cash-currency-icon ${item.currency.toLowerCase()}">${escapeAudit(cashCurrencySymbol(item.currency))}</span>
+                <span class="cash-currency-icon ${item.currency.toLowerCase()}" aria-label="${escapeAudit(cashCurrencyLabel(item.currency))}"><i class="fa-solid ${cashCurrencyIconClass(item.currency)}"></i></span>
                 <span class="cash-currency-label">${escapeAudit(cashCurrencyLabel(item.currency))}</span>
                 <span class="cash-currency-amount ${signed ? tone : ''}">${escapeAudit(formatPlainCurrencyAmount(item.currency, item.amount, signed))}</span>
             </div>
