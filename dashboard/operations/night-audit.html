@@ -66,6 +66,9 @@
         .revenue-total .rev-amount { font-size: 1.5rem; }
 
         .action-box { background: var(--bg); border: 1px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; }
+        .audit-action-tools { display: flex; justify-content: center; margin-bottom: 14px; }
+        .audit-basis-link { min-height: 34px; padding: 0 13px; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; color: var(--primary); font-family: var(--font); font-size: .78rem; font-weight: 950; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+        .audit-basis-link:hover { border-color: var(--primary); background: #dbeafe; }
         .audit-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
         .audit-tab { border: 0; background: transparent; height: 42px; padding: 0 16px; font-family: var(--font); font-size: .9rem; font-weight: 800; color: var(--txt2); cursor: pointer; border-bottom: 3px solid transparent; display: inline-flex; align-items: center; gap: 8px; }
         .audit-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
@@ -418,6 +421,9 @@
 
         <!-- 3. Action Area -->
         <div class="action-box">
+            <div class="audit-action-tools">
+                <button type="button" class="audit-basis-link" onclick="openCloseBasisModal()"><i class="fa-solid fa-clipboard-check"></i> 마감 근거 보기</button>
+            </div>
             <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; margin-bottom:16px; font-size:0.95rem;">
                 <input type="checkbox" id="confirmCheck" style="width:18px;height:18px" onchange="document.getElementById('btnRunAudit').disabled = !this.checked">
                 위 정산 내역을 확인하였으며, <span id="confirmDate">YYYY-MM-DD</span> 영업일을 마감합니다.
@@ -443,9 +449,8 @@
                                 <div class="cash-command-desc">요약 숫자는 확인용이고, 실제 입력은 시작 시재 · 중간 출금 · 마감 시재 순서로 진행합니다.</div>
                             </div>
                             <div class="cash-command-note">
-                                <strong>마감 기준</strong>
-                                모든 정산은 체크아웃 기준으로 집계하고, 예치금은 별도 보관 금액으로 구분합니다.
-                                <button type="button" class="cash-note-link" onclick="openCloseBasisModal()"><i class="fa-solid fa-clipboard-check"></i> 마감 근거 보기</button>
+                                <strong>시재 인수인계 기준</strong>
+                                시작 시재, 중간 출금, 마감 실사는 다음 근무자에게 넘길 실제 보유 현금을 맞추기 위한 기록입니다.
                             </div>
                         </div>
 
@@ -498,8 +503,8 @@
                     <details class="cash-info-panel cash-reconcile-panel" id="cashReconcilePanel">
                         <summary class="cash-reconcile-summary">
                             <div class="cash-reconcile-summary-main">
-                                <div class="cash-block-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 마감 기준 요약</div>
-                                <div class="cash-block-desc">시작 시재, 금일 정산금액, 예치금, 중간 출금, 마감 실사를 한 줄 흐름으로 확인합니다.</div>
+                                <div class="cash-block-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 시재 대조 보기</div>
+                                <div class="cash-block-desc">시작시재 + 현금입금 - 중간출금 = 보유 현금으로 차액을 확인합니다.</div>
                             </div>
                             <span class="cash-reconcile-toggle">
                                 <span class="when-closed">&#48372;&#44592;</span>
@@ -791,16 +796,17 @@ const NIGHT_AUDIT_I18N = {
         'revenue.carSub': '차량 렌탈 이용료 기준',
         'revenue.total': '일일 총 영업 이익',
         'common.details': '상세보기',
+        'close.basisCta': '마감 근거 보기',
         'close.confirmLabel': '위 정산 내역을 확인하였으며, {date} 영업일을 마감합니다.',
         'close.run': '일일 영업 마감 실행',
         'cash.section': '시재 시작 / 출금 / 정산 현황',
         'cash.commandKicker': '오늘 처리할 시재 업무',
         'cash.commandTitle': '시재는 아래 3개 버튼으로 등록합니다.',
         'cash.commandDesc': '요약 숫자는 확인용이고, 실제 입력은 시작 시재 · 중간 출금 · 마감 시재 순서로 진행합니다.',
-        'cash.commandNoteTitle': '마감 기준',
-        'cash.commandNoteDesc': '모든 정산은 체크아웃 기준으로 집계하고, 예치금은 별도 보관 금액으로 구분합니다.',
-        'cash.summaryTitle': '마감 기준 요약',
-        'cash.summaryDesc': '시작 시재, 금일 정산금액, 예치금, 중간 출금, 마감 실사를 한 줄 흐름으로 확인합니다.',
+        'cash.commandNoteTitle': '시재 인수인계 기준',
+        'cash.commandNoteDesc': '시작 시재, 중간 출금, 마감 실사는 다음 근무자에게 넘길 실제 보유 현금을 맞추기 위한 기록입니다.',
+        'cash.summaryTitle': '시재 대조 보기',
+        'cash.summaryDesc': '시작시재 + 현금입금 - 중간출금 = 보유 현금으로 차액을 확인합니다.',
         'cash.formulaTitle': '통화별 현금 대조 보기',
         'cash.formulaDesc': '필요할 때만 펼쳐서 예상 보유 통화와 실사를 비교합니다.',
         'cash.step1': '1단계',
@@ -952,16 +958,17 @@ const NIGHT_AUDIT_I18N = {
         'revenue.carSub': 'Vehicle rental usage',
         'revenue.total': 'Daily gross operating profit',
         'common.details': 'Details',
+        'close.basisCta': 'View closing basis',
         'close.confirmLabel': 'I have reviewed the settlement details and will close business date {date}.',
         'close.run': 'Run Daily Close',
         'cash.section': 'Cash Opening / Withdrawal / Settlement Status',
         'cash.commandKicker': 'Cash tasks for today',
         'cash.commandTitle': 'Use the three buttons below to register cash work.',
         'cash.commandDesc': 'The numbers are for review. Actual input follows opening cash, mid-shift withdrawal, then closing cash count.',
-        'cash.commandNoteTitle': 'Close basis',
-        'cash.commandNoteDesc': 'All settlement is grouped by check-out date. Deposits are tracked separately as held amounts.',
-        'cash.summaryTitle': 'Close Basis Summary',
-        'cash.summaryDesc': 'Review opening cash, today’s settlement amount, deposits, withdrawals, and closing count in one flow.',
+        'cash.commandNoteTitle': 'Cash handover basis',
+        'cash.commandNoteDesc': 'Opening cash, mid-shift withdrawals, and closing count are records for handing over actual cash to the next shift.',
+        'cash.summaryTitle': 'Cash reconciliation',
+        'cash.summaryDesc': 'Check variance with Opening cash + Cash inflow - Mid-shift withdrawal = Cash on hand.',
         'cash.formulaTitle': 'View currency reconciliation',
         'cash.formulaDesc': 'Expand only when you need to compare expected balances with counted cash.',
         'cash.step1': 'Step 1',
@@ -2806,6 +2813,8 @@ function applyNightAuditI18n() {
     }
     const runBtn = document.getElementById('btnRunAudit');
     if (runBtn && !runBtn.querySelector('.fa-circle-notch')) runBtn.innerHTML = `<i class="fa-solid fa-play"></i> ${t('close.run')}`;
+    const basisBtn = document.querySelector('.audit-basis-link');
+    if (basisBtn) basisBtn.innerHTML = `<i class="fa-solid fa-clipboard-check"></i> ${t('close.basisCta')}`;
 
     const cashSection = document.querySelector('#auditTabCash .audit-section');
     setNightHeader(cashSection, 'cash.section', '<i class="fa-solid fa-handshake" style="color:var(--primary)"></i>');
@@ -2814,11 +2823,11 @@ function applyNightAuditI18n() {
     setNightText('.cash-command-desc', 'cash.commandDesc');
     const cashCommandNote = document.querySelector('.cash-command-note');
     if (cashCommandNote) {
-        cashCommandNote.innerHTML = `<strong>${t('cash.commandNoteTitle')}</strong>${t('cash.commandNoteDesc')}<button type="button" class="cash-note-link" onclick="openCloseBasisModal()"><i class="fa-solid fa-clipboard-check"></i> ${cashUiText('마감 근거 보기', 'View closing basis')}</button>`;
+        cashCommandNote.innerHTML = `<strong>${t('cash.commandNoteTitle')}</strong>${t('cash.commandNoteDesc')}`;
     }
-    setNightHtml('.cash-block-title', `<i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> ${cashUiText('\uC2DC\uC7AC \uB300\uC870 \uBCF4\uAE30', 'Cash reconciliation')}`);
+    setNightHtml('.cash-block-title', `<i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> ${t('cash.summaryTitle')}`);
     const reconcileDesc = document.querySelector('.cash-block-desc');
-    if (reconcileDesc) reconcileDesc.textContent = cashUiText('\uC2DC\uC791\uC2DC\uC7AC + \uD604\uAE08\uC785\uAE08 - \uC911\uAC04\uCD9C\uAE08 = \uBCF4\uC720 \uD604\uAE08\uC73C\uB85C \uCC28\uC561\uC744 \uD655\uC778\uD569\uB2C8\uB2E4.', 'Check variance with Opening cash + Cash inflow - Mid-shift withdrawal = Cash on hand.');
+    if (reconcileDesc) reconcileDesc.textContent = t('cash.summaryDesc');
     setNightHtml('.cash-formula-summary-title', `<i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> ${cashUiText('\uC790\uC138\uD788 \uBCF4\uAE30', 'View details')}`);
     const formulaDesc = document.querySelector('.cash-formula-summary-desc');
     if (formulaDesc) formulaDesc.textContent = cashUiText('\uD544\uC694\uD560 \uB54C\uB9CC \uD3BC\uCCD0\uC11C \uC608\uC0C1 \uBCF4\uC720 \uD1B5\uD654\uC640 \uC2E4\uC0AC \uD1B5\uD654\uC758 \uCC28\uC561\uC744 \uD655\uC778\uD569\uB2C8\uB2E4.', 'Open only when needed to compare expected and counted cash by currency.');
