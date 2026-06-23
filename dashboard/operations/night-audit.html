@@ -51,7 +51,7 @@
         .audit-issue-empty { padding: 28px 16px; text-align: center; color: var(--txt3); border: 1px dashed var(--border); border-radius: 10px; background: #fbfdff; font-weight: 800; }
 
         .revenue-verification-body { padding: 18px 20px 20px; }
-        .revenue-list { display: flex; flex-direction: column; gap: 10px; }
+        .revenue-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         .revenue-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px; padding: 14px 16px; border: 1px solid var(--border2); border-radius: 10px; background: #fff; }
         .revenue-row-main { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
         .revenue-row-icon { width: 34px; height: 34px; border-radius: 8px; background: #f8fafc; color: var(--txt3); display: flex; align-items: center; justify-content: center; flex: 0 0 34px; }
@@ -61,14 +61,30 @@
         .revenue-link { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--primary); font-weight: 600; text-decoration: none; padding: 5px 9px; border: 1px solid var(--primary-lt); border-radius: 6px; background: rgba(37,99,235,0.05); white-space: nowrap; }
         .rev-amount { text-align: right; font-size: 1.1rem; font-weight: 700; white-space: nowrap; }
         .revenue-total { margin-top: 2px; background: #f8fafc; border-color: var(--border); }
+        .revenue-total { grid-column: 1 / -1; }
         .revenue-total .revenue-row-title,
         .revenue-total .rev-amount { color: var(--primary); font-weight: 800; }
         .revenue-total .rev-amount { font-size: 1.5rem; }
 
         .action-box { background: var(--bg); border: 1px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; }
-        .audit-action-tools { display: flex; justify-content: center; margin-bottom: 14px; }
-        .audit-basis-link { min-height: 34px; padding: 0 13px; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; color: var(--primary); font-family: var(--font); font-size: .78rem; font-weight: 950; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
-        .audit-basis-link:hover { border-color: var(--primary); background: #dbeafe; }
+        .close-basis-section { overflow: hidden; }
+        .close-basis-summary { list-style: none; cursor: pointer; justify-content: space-between; }
+        .close-basis-summary::-webkit-details-marker { display: none; }
+        .close-basis-summary-title { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+        .close-basis-toggle { min-height: 34px; padding: 0 13px; border-radius: 8px; border: 1px solid #bfdbfe; background: #eff6ff; color: var(--primary); display: inline-flex; align-items: center; gap: 7px; font-size: .76rem; font-weight: 950; white-space: nowrap; }
+        .close-basis-section[open] .close-basis-toggle i { transform: rotate(180deg); }
+        .close-basis-toggle .when-open { display: none; }
+        .close-basis-section[open] .close-basis-toggle .when-open { display: inline; }
+        .close-basis-section[open] .close-basis-toggle .when-closed { display: none; }
+        .close-basis-inline-body { display: grid; gap: 12px; }
+        .close-basis-callout { border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; border-radius: 10px; padding: 11px 13px; font-size: .8rem; font-weight: 850; line-height: 1.5; }
+        .close-basis-inline-row { display: grid; gap: 10px; }
+        .close-basis-inline-row.primary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .close-basis-inline-row.secondary { grid-template-columns: 1fr 1fr 1.1fr 1.1fr; }
+        .close-basis-inline-body .close-basis-flow,
+        .close-basis-inline-body .close-basis-risk-grid { display: contents; }
+        .close-basis-compact-section .cash-insight-list { gap: 7px; padding: 11px 13px; }
+        .close-basis-compact-section .cash-insight-list li { font-size: .75rem; line-height: 1.42; }
         .audit-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
         .audit-tab { border: 0; background: transparent; height: 42px; padding: 0 16px; font-family: var(--font); font-size: .9rem; font-weight: 800; color: var(--txt2); cursor: pointer; border-bottom: 3px solid transparent; display: inline-flex; align-items: center; gap: 8px; }
         .audit-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
@@ -135,7 +151,12 @@
         .cash-summary-label { font-size: .72rem; color: var(--txt3); font-weight: 800; margin-bottom: 5px; }
         .cash-summary-value { font-size: 1rem; color: var(--txt); font-weight: 900; }
         .cash-summary-sub { font-size: .74rem; color: var(--txt2); margin-top: 7px; line-height: 1.5; font-weight: 700; }
-        .cash-balance-formula { margin: -2px 0 18px; border: 1px solid var(--border2); border-radius: 12px; background: #fff; padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .cash-balance-formula { margin: -2px 0 18px; border: 1px solid var(--border2); border-radius: 12px; background: #fff; padding: 12px 14px; display: grid; gap: 10px; }
+        .cash-balance-result-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .cash-balance-result-card { border: 1px solid var(--border2); border-radius: 10px; background: #fbfdff; padding: 10px; min-width: 0; }
+        .cash-balance-result-card.warning { border-color: #fed7aa; background: #fffaf3; }
+        .cash-balance-result-card.success { border-color: #a7f3d0; background: #f8fffb; }
+        .cash-balance-result-label { display: block; color: var(--txt3); font-size: .7rem; font-weight: 900; margin-bottom: 7px; }
         .cash-formula-details { border: 1px dashed #bfdbfe; border-radius: 12px; background: #fbfdff; margin-top: 12px; overflow: hidden; }
         .cash-formula-details summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--txt); font-size: .8rem; font-weight: 950; }
         .cash-formula-details summary::-webkit-details-marker { display: none; }
@@ -147,6 +168,10 @@
         .cash-reconcile-detail-card { border: 1px solid var(--border2); border-radius: 10px; background: #fbfdff; padding: 11px; min-width: 0; }
         .cash-reconcile-detail-title { display: flex; align-items: center; gap: 7px; color: var(--txt); font-size: .78rem; font-weight: 950; margin-bottom: 7px; }
         .cash-reconcile-detail-sub { color: var(--txt3); font-size: .68rem; font-weight: 780; margin-bottom: 8px; }
+        .cash-reconcile-split-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .cash-reconcile-split-grid.triple { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .cash-reconcile-split-card { border: 1px solid var(--border2); border-radius: 10px; background: #fff; padding: 10px; min-width: 0; }
+        .cash-reconcile-split-label { display: block; color: var(--txt3); font-size: .7rem; font-weight: 900; margin-bottom: 7px; }
         .cash-flow-reason-btn,
         .cash-note-link { border: 1px solid #fed7aa; border-radius: 8px; background: #fff7ed; color: #b45309; font-family: var(--font); font-size: .72rem; font-weight: 950; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
         .cash-flow-reason-btn { min-height: 30px; padding: 0 11px; margin-top: 10px; }
@@ -330,12 +355,16 @@
         
         @media (max-width: 768px) {
             .check-grid { grid-template-columns: 1fr; }
+            .revenue-list { grid-template-columns: 1fr; }
             .revenue-row { grid-template-columns: 1fr; gap: 12px; }
             .revenue-row-actions { justify-content: space-between; min-width: 0; }
+            .revenue-total { grid-column: 1; }
             .audit-tabs { overflow-x: auto; }
             .cash-command-head { flex-direction: column; }
             .cash-command-note { flex-basis: auto; width: 100%; box-sizing: border-box; }
-            .cash-summary-grid, .cash-workflow-grid, .cash-action-grid, .settlement-status-grid, .cash-reconcile-preview, .cash-reconcile-detail-list, .cash-insight-grid, .close-basis-flow, .close-basis-risk-grid { grid-template-columns: 1fr; }
+            .cash-summary-grid, .cash-workflow-grid, .cash-action-grid, .settlement-status-grid, .cash-reconcile-preview, .cash-reconcile-detail-list, .cash-reconcile-split-grid, .cash-reconcile-split-grid.triple, .cash-balance-result-grid, .cash-insight-grid, .close-basis-flow, .close-basis-risk-grid, .close-basis-inline-row.primary, .close-basis-inline-row.secondary { grid-template-columns: 1fr; }
+            .close-basis-inline-body .close-basis-flow,
+            .close-basis-inline-body .close-basis-risk-grid { display: grid; grid-template-columns: 1fr; }
             .cash-flow-diagram { grid-template-columns: 1fr; }
             .cash-flow-main { grid-column: 1; grid-template-columns: 1fr; }
             .cash-flow-result,
@@ -486,11 +515,21 @@
             </div>
         </div>
 
-        <!-- 3. Action Area -->
+        <!-- 3. Closing Basis -->
+        <details class="audit-section close-basis-section" id="closeBasisSection">
+            <summary class="audit-header close-basis-summary">
+                <span class="close-basis-summary-title"><i class="fa-solid fa-clipboard-check" style="color:var(--primary)"></i> 3. 마감 근거</span>
+                <span class="close-basis-toggle">
+                    <span class="when-closed">열기</span>
+                    <span class="when-open">접기</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </span>
+            </summary>
+            <div class="audit-body close-basis-inline-body" id="closeBasisInlineBody"></div>
+        </details>
+
+        <!-- 4. Action Area -->
         <div class="action-box">
-            <div class="audit-action-tools">
-                <button type="button" class="audit-basis-link" onclick="openCloseBasisModal()"><i class="fa-solid fa-clipboard-check"></i> 마감 근거 보기</button>
-            </div>
             <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; margin-bottom:16px; font-size:0.95rem;">
                 <input type="checkbox" id="confirmCheck" style="width:18px;height:18px" onchange="document.getElementById('btnRunAudit').disabled = !this.checked">
                 위 정산 내역을 확인하였으며, <span id="confirmDate">YYYY-MM-DD</span> 영업일을 마감합니다.
@@ -827,16 +866,6 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="closeBasisModal" onclick="if(event.target===this) closeCloseBasisModal()">
-    <div class="modal-card cash-insight-modal close-basis-modal">
-        <div class="modal-header">
-            <h3 class="modal-title"><i class="fa-solid fa-clipboard-check" style="color:var(--primary)"></i> 마감 근거</h3>
-            <button type="button" class="modal-close" onclick="closeCloseBasisModal()"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="cash-insight-body" id="closeBasisBody"></div>
-    </div>
-</div>
-
 <script>
 let totalRev = 0;
 const CASH_SESSION_KEY = 'pms_night_audit_cash_sessions';
@@ -899,6 +928,7 @@ const NIGHT_AUDIT_I18N = {
         'count.remaining': '건 남음',
         'count.arrivalMissing': '건 미도착',
         'section.revenue': '2. 금일 정산액 검증',
+        'section.closeBasis': '3. 마감 근거',
         'revenue.room': '객실 수익',
         'revenue.roomSub': '총 객실 이용 요금',
         'revenue.fnb': '식음료 / 룸서비스',
@@ -909,6 +939,8 @@ const NIGHT_AUDIT_I18N = {
         'revenue.carSub': '차량 렌탈 이용료 기준',
         'revenue.total': '일일 총 영업 이익',
         'common.details': '상세보기',
+        'common.open': '열기',
+        'common.hide': '접기',
         'close.basisCta': '마감 근거 보기',
         'close.confirmLabel': '위 정산 내역을 확인하였으며, {date} 영업일을 마감합니다.',
         'close.run': '일일 영업 마감 실행',
@@ -1061,6 +1093,7 @@ const NIGHT_AUDIT_I18N = {
         'count.remaining': 'remaining',
         'count.arrivalMissing': 'pending arrival(s)',
         'section.revenue': '2. Daily Settlement Verification',
+        'section.closeBasis': '3. Closing Basis',
         'revenue.room': 'Room revenue',
         'revenue.roomSub': 'Total room charges',
         'revenue.fnb': 'F&B / Room service',
@@ -1071,6 +1104,8 @@ const NIGHT_AUDIT_I18N = {
         'revenue.carSub': 'Vehicle rental usage',
         'revenue.total': 'Daily gross operating profit',
         'common.details': 'Details',
+        'common.open': 'Open',
+        'common.hide': 'Hide',
         'close.basisCta': 'View closing basis',
         'close.confirmLabel': 'I have reviewed the settlement details and will close business date {date}.',
         'close.run': 'Run Daily Close',
@@ -2023,17 +2058,20 @@ function renderCashBalanceFormula({ opening = {}, settlement = {}, deposit = {},
     const hasDiff = CASH_CURRENCIES.some(currency => Number(diff[currency] || 0) !== 0);
     return `
         <span class="cash-balance-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i>${cashUiText('\uD1B5\uD654\uBCC4 \uC2DC\uC7AC \uB300\uC870', 'Cash by currency')}</span>
-        <span class="cash-formula-token">${cashUiText('\uC2DC\uC791\uC2DC\uC7AC', 'Opening cash')}</span>
-        <span class="cash-formula-symbol">+</span>
-        <span class="cash-formula-token">${cashUiText('\uD604\uAE08\uC785\uAE08', 'Cash inflow')}</span>
-        <span class="cash-formula-symbol">-</span>
-        <span class="cash-formula-token">${cashUiText('\uC911\uAC04\uCD9C\uAE08', 'Mid-shift withdrawal')}</span>
-        <span class="cash-formula-symbol">=</span>
-        <span class="cash-balance-chips">
-            ${renderCurrencyChipGroup(cashUiText('\uC608\uC0C1 \uBCF4\uC720\uD604\uAE08', 'Expected cash on hand'), expected)}
-            ${hasClosing ? renderCurrencyChipGroup(cashUiText('\uC2E4\uC0AC \uBCF4\uC720\uD604\uAE08', 'Counted cash on hand'), closingValues, { tone: 'success' }) : ''}
-            ${hasClosing ? renderCurrencyChipGroup(cashUiText(hasDiff ? '\uCC28\uC561 \uD655\uC778' : '\uCC28\uC561 \uC5C6\uC74C', hasDiff ? 'Variance' : 'Matched'), diff, { tone: hasDiff ? 'warning' : 'success' }) : ''}
-        </span>
+        <div class="cash-balance-result-grid">
+            <div class="cash-balance-result-card">
+                <span class="cash-balance-result-label">${cashUiText('\uC608\uC0C1 \uBCF4\uC720', 'Expected')}</span>
+                ${renderCashCurrencyLines(expected, { includeZero: true })}
+            </div>
+            <div class="cash-balance-result-card success">
+                <span class="cash-balance-result-label">${cashUiText('\uC2E4\uC0AC \uBCF4\uC720', 'Counted')}</span>
+                ${hasClosing ? renderCashCurrencyLines(closingValues, { includeZero: true }) : `<span class="cash-currency-empty">${cashUiText('\uC2E4\uC0AC \uC804', 'Not counted')}</span>`}
+            </div>
+            <div class="cash-balance-result-card ${hasDiff ? 'warning' : 'success'}">
+                <span class="cash-balance-result-label">${cashUiText(hasDiff ? '\uCC28\uC561 \uD655\uC778' : '\uCC28\uC561 \uC5C6\uC74C', hasDiff ? 'Variance' : 'Matched')}</span>
+                ${hasClosing ? renderCashCurrencyLines(diff, { includeZero: true, signed: true }) : `<span class="cash-currency-empty">${cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uD6C4 \uD655\uC778', 'Enter closing count')}</span>`}
+            </div>
+        </div>
     `;
 }
 
@@ -2066,37 +2104,54 @@ function renderCashCurrencyLines(values = {}, options = {}) {
     }).join('')}</div>`;
 }
 
+function renderCashReconcileSplitCard(label, values = {}, options = {}) {
+    return `
+        <div class="cash-reconcile-split-card">
+            <span class="cash-reconcile-split-label">${escapeAudit(label)}</span>
+            ${renderCashCurrencyLines(values, { includeZero: true, signed: !!options.signed })}
+        </div>
+    `;
+}
+
 function renderCashReconcileDetailCards(state = {}) {
     const cards = [
         {
             icon: 'fa-play',
             title: cashUiText('시작시재 입력 금액', 'Opening cash input'),
             sub: compactCurrencySummary(state.session?.opening, cashUiText('시작시재 미등록', 'Opening cash missing')),
-            html: renderCurrencyChips(state.session?.opening || {})
+            html: renderCashCurrencyLines(state.session?.opening || {}, { includeZero: true })
         },
         {
             icon: 'fa-arrow-down',
             title: cashUiText('현금입금', 'Cash inflow'),
             sub: `${cashUiText('정산', 'Payment')} ${moneyPhp(state.cashSettlementPhp)} · ${cashUiText('예치금', 'Deposit')} ${moneyPhp(state.cashDepositPhp)}`,
             html: `
-                ${renderCurrencyChipGroup(cashUiText('정산 결제', 'Settlement payment'), state.cashSettlementCurrencies || {}, { tone: 'success' })}
-                ${renderCurrencyChipGroup(cashUiText('예치금', 'Deposit'), state.cashDepositCurrencies || {}, { tone: 'neutral' })}
+                <div class="cash-reconcile-split-grid">
+                    ${renderCashReconcileSplitCard(cashUiText('정산 결제', 'Settlement payment'), state.cashSettlementCurrencies || {})}
+                    ${renderCashReconcileSplitCard(cashUiText('예치금', 'Deposit'), state.cashDepositCurrencies || {})}
+                </div>
             `
         },
         {
             icon: 'fa-arrow-up-from-bracket',
             title: cashUiText('중간출금', 'Mid-shift withdrawal'),
             sub: state.withdrawalCount ? cashUiText(`${state.withdrawalCount}건 출금`, `${state.withdrawalCount} withdrawal(s)`) : nightAuditText('cash.noWithdrawals'),
-            html: renderCurrencyChips(state.withdrawalCurrencies || {}, { tone: 'warning' })
+            html: renderCashCurrencyLines(state.withdrawalCurrencies || {}, { includeZero: true })
         },
         {
             icon: 'fa-scale-balanced',
             title: cashUiText('보유 현금 / 차액', 'Cash on hand / variance'),
             sub: state.hasClosingRecord ? cashUiText(state.hasVariance ? '차액 확인 필요' : '차액 없음', state.hasVariance ? 'Variance found' : 'Matched') : cashUiText('마감 실사 전', 'Not counted yet'),
             html: `
-                ${renderCurrencyChipGroup(cashUiText('예상 보유', 'Expected'), state.expectedClosingCurrencies || {})}
-                ${state.hasClosingRecord ? renderCurrencyChipGroup(cashUiText('실사 보유', 'Counted'), state.closingCurrencies || {}, { tone: 'success' }) : ''}
-                ${state.hasClosingRecord ? renderCurrencyChipGroup(cashUiText('차액', 'Variance'), state.varianceCurrencies || {}, { tone: state.hasVariance ? 'warning' : 'success' }) : ''}
+                <div class="cash-reconcile-split-grid triple">
+                    ${renderCashReconcileSplitCard(cashUiText('예상 보유', 'Expected'), state.expectedClosingCurrencies || {})}
+                    ${state.hasClosingRecord
+                        ? renderCashReconcileSplitCard(cashUiText('실사 보유', 'Counted'), state.closingCurrencies || {})
+                        : `<div class="cash-reconcile-split-card"><span class="cash-reconcile-split-label">${cashUiText('실사 보유', 'Counted')}</span><span class="cash-currency-empty">${cashUiText('실사 전', 'Not counted')}</span></div>`}
+                    ${state.hasClosingRecord
+                        ? renderCashReconcileSplitCard(cashUiText('차액', 'Variance'), state.varianceCurrencies || {}, { signed: true })
+                        : `<div class="cash-reconcile-split-card"><span class="cash-reconcile-split-label">${cashUiText('차액', 'Variance')}</span><span class="cash-currency-empty">${cashUiText('마감 실사 후 확인', 'Enter closing count')}</span></div>`}
+                </div>
             `
         }
     ];
@@ -2273,25 +2328,54 @@ function closeBasisRecordItems(state = {}) {
     return paymentItems.length ? paymentItems.slice(0, 8) : [cashUiText('금일 등록된 현금 수납/예치/출금 내역이 없습니다.', 'No cash inflow, deposit, or withdrawal records for the day.')];
 }
 
-function openCloseBasisModal() {
-    renderCashHandover();
-    const state = cashHandoverSnapshot;
-    const body = document.getElementById('closeBasisBody');
+function compactCloseBasisRecords(state = {}) {
+    const records = closeBasisRecordItems(state);
+    if (records.length <= 3) return records;
+    return [
+        ...records.slice(0, 3),
+        cashUiText(`외 ${records.length - 3}건은 시재 변동 내역에서 확인`, `${records.length - 3} more in the cash ledger`)
+    ];
+}
+
+function renderCloseBasisCompactSection(title, icon, items = []) {
+    const normalized = items.filter(Boolean);
+    return `
+        <div class="cash-insight-section close-basis-compact-section">
+            <h4><i class="fa-solid ${icon}" style="color:var(--primary)"></i> ${escapeAudit(title)}</h4>
+            <ul class="cash-insight-list">
+                ${normalized.length ? normalized.map(item => `<li>${escapeAudit(item)}</li>`).join('') : `<li>${cashUiText('확인할 항목이 없습니다.', 'No items to review.')}</li>`}
+            </ul>
+        </div>
+    `;
+}
+
+function renderCloseBasisPanel(state = cashHandoverSnapshot) {
+    const body = document.getElementById('closeBasisInlineBody');
     if (!body || !state) return;
     body.innerHTML = `
-        <div class="cash-insight-callout">
-            ${cashUiText('마감 처리는 체크아웃 기준 정산, 예치금 보관액, 중간 출금, 실제 보유 현금을 함께 확인한 뒤 실행합니다.', 'Closing should be run after reviewing checked-out settlement, held deposits, withdrawals, and counted cash.')}
+        <div class="close-basis-inline-row primary">
+            ${renderCloseBasisFlow(state)}
         </div>
-        ${renderCloseBasisFlow(state)}
-        ${renderCloseBasisRiskSummary(state)}
-        ${renderCashInsightSection(cashUiText('마감 판단 기준', 'Closing basis'), 'fa-list-check', closeBasisItems(state))}
-        ${renderCashInsightSection(cashUiText('금일 반영 내역', 'Today records'), 'fa-receipt', closeBasisRecordItems(state))}
+        <div class="close-basis-inline-row secondary">
+            ${renderCloseBasisRiskSummary(state)}
+            ${renderCloseBasisCompactSection(cashUiText('마감 판단 기준', 'Closing basis'), 'fa-list-check', closeBasisItems(state).slice(0, 3))}
+            ${renderCloseBasisCompactSection(cashUiText('금일 반영 내역', 'Today records'), 'fa-receipt', compactCloseBasisRecords(state))}
+        </div>
     `;
-    document.getElementById('closeBasisModal')?.classList.add('active');
+}
+
+function openCloseBasisModal() {
+    renderCashHandover();
+    const section = document.getElementById('closeBasisSection');
+    if (section) {
+        section.open = true;
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function closeCloseBasisModal() {
-    document.getElementById('closeBasisModal')?.classList.remove('active');
+    const section = document.getElementById('closeBasisSection');
+    if (section) section.open = false;
 }
 
 function currencySummaryLines(values = {}) {
@@ -2836,6 +2920,7 @@ function renderCashHandover() {
         withdrawal: withdrawalCurrencies,
         closing: session.closing
     }));
+    renderCloseBasisPanel(cashHandoverSnapshot);
     set('settlementPaidPhp', moneyPhp(snapshot.paidPhp));
     setHtml('settlementPaidDetail', renderCurrencyChips(snapshot.paidCurrencies, { tone: 'success' }));
     set('settlementUnpaidPhp', moneyPhp(snapshot.unpaidPhp));
@@ -3020,8 +3105,12 @@ function applyNightAuditI18n() {
     }
     const runBtn = document.getElementById('btnRunAudit');
     if (runBtn && !runBtn.querySelector('.fa-circle-notch')) runBtn.innerHTML = `<i class="fa-solid fa-play"></i> ${t('close.run')}`;
-    const basisBtn = document.querySelector('.audit-basis-link');
-    if (basisBtn) basisBtn.innerHTML = `<i class="fa-solid fa-clipboard-check"></i> ${t('close.basisCta')}`;
+    const closeBasisTitle = document.querySelector('.close-basis-summary-title');
+    if (closeBasisTitle) closeBasisTitle.innerHTML = `<i class="fa-solid fa-clipboard-check" style="color:var(--primary)"></i> ${t('section.closeBasis')}`;
+    const closeBasisClosed = document.querySelector('.close-basis-toggle .when-closed');
+    if (closeBasisClosed) closeBasisClosed.textContent = t('common.open');
+    const closeBasisOpen = document.querySelector('.close-basis-toggle .when-open');
+    if (closeBasisOpen) closeBasisOpen.textContent = t('common.hide');
 
     const cashSection = document.querySelector('#auditTabCash .audit-section');
     setNightHeader(cashSection, 'cash.section', '<i class="fa-solid fa-handshake" style="color:var(--primary)"></i>');
