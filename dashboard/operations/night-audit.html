@@ -236,13 +236,13 @@
         .cash-insight-money-value.negative { color: #dc2626; }
         .cash-currency-lines { display: grid; gap: 5px; width: 100%; }
         .cash-currency-line { min-height: 28px; display: grid; grid-template-columns: 24px minmax(48px, auto) minmax(0, 1fr); align-items: center; gap: 7px; min-width: 0; }
-        .cash-currency-icon { width: 22px; height: 22px; border-radius: 8px; display: grid; place-items: center; justify-self: center; align-self: center; box-sizing: border-box; background: #f1f5f9; color: var(--txt2); font-size: .76rem; font-weight: 950; line-height: 1; }
-        .cash-currency-icon i { width: 1em; height: 1em; display: grid; place-items: center; line-height: 1; text-align: center; }
+        .cash-currency-icon { width: 22px; height: 22px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; justify-self: center; align-self: center; box-sizing: border-box; padding: 0; background: #f1f5f9; color: var(--txt2); font-size: .76rem; font-weight: 950; line-height: 1; text-align: center; }
+        .cash-currency-icon i { width: 14px; height: 14px; min-width: 14px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; text-align: center; margin: 0; }
         .cash-currency-icon.php { background: #fff7ed; color: #c2410c; }
         .cash-currency-icon.usd { background: #ecfdf5; color: #047857; }
         .cash-currency-icon.krw { background: #eff6ff; color: #2563eb; }
-        .cash-currency-label { align-self: center; color: var(--txt2); font-size: .82rem; font-weight: 950; line-height: 1.2; white-space: nowrap; }
-        .cash-currency-amount { align-self: center; color: var(--txt); font-size: .94rem; font-weight: 950; line-height: 1.2; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cash-currency-label { align-self: stretch; display: flex; align-items: center; color: var(--txt2); font-size: .82rem; font-weight: 950; line-height: 1.2; white-space: nowrap; }
+        .cash-currency-amount { align-self: stretch; display: flex; align-items: center; justify-content: flex-end; color: var(--txt); font-size: .94rem; font-weight: 950; line-height: 1.2; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cash-currency-amount.positive { color: #047857; }
         .cash-currency-amount.negative { color: #dc2626; }
         .cash-currency-empty { color: var(--txt3); font-size: .76rem; font-weight: 900; }
@@ -1921,6 +1921,17 @@ function sampleAuditSession(date, offset, relativeOffset = null) {
             { currency: 'PHP', amount: 3000, phpEquivalent: 3000, receiver: 'FO Manager / guest transport cash', note: '투숙객 교통비 현금 지원. 인수인계 메모와 영수증 봉투 확인.', time: '20:10', operator: 'Tran Linh' }
         ];
     }
+    if (relativeOffset === 0) {
+        item.withdrawals = [
+            { currency: 'PHP', amount: 7000, currencyBreakdown: { PHP: 7000, USD: 120, KRW: 80000 }, phpEquivalent: 16920, receiver: 'GM / emergency guest refund', note: 'GM 승인 후 긴급 환불금 전달. 페소, 달러, 원화 출금 증빙을 마감 메모에서 재확인.', time: '17:45', operator: 'Nguyen Kim' },
+            { currency: 'PHP', amount: 3000, currencyBreakdown: { PHP: 3000, USD: 30, KRW: 20000 }, phpEquivalent: 5480, receiver: 'FO Manager / guest transport cash', note: '투숙객 교통비 지원 현금 전달. 통화별 봉투 번호와 영수증을 인수인계 메모에 기록.', time: '20:10', operator: 'Tran Linh' }
+        ];
+    } else if (relativeOffset === 1) {
+        item.withdrawals = [
+            { currency: 'PHP', amount: 5000, currencyBreakdown: { PHP: 5000, USD: 40, KRW: 80000 }, phpEquivalent: 10440, receiver: 'FO Manager / tomorrow tour support', note: '시연 영업일용 투어 교통비 현금 전달. 통화별 출금 확인 가능.', time: '16:20', operator: 'Nguyen Kim' },
+            { currency: 'PHP', amount: 3000, currencyBreakdown: { PHP: 3000, USD: 20, KRW: 70000 }, phpEquivalent: 6920, receiver: 'Accounting / vendor advance', note: '협력업체 선지급금 일부를 통화별로 출금 처리.', time: '19:05', operator: 'Tran Linh' }
+        ];
+    }
     const takeaway = subtractCurrencyValues(item.closing, item.carryover);
     return {
         id: `SAMPLE-CASH-${date}`,
@@ -1934,6 +1945,7 @@ function sampleAuditSession(date, offset, relativeOffset = null) {
             id: `SAMPLE-WD-${date}-${index + 1}`,
             currency: withdrawal.currency,
             amount: withdrawal.amount,
+            currencyBreakdown: withdrawal.currencyBreakdown ? currencyValues(withdrawal.currencyBreakdown) : undefined,
             phpEquivalent: withdrawal.phpEquivalent,
             receiver: withdrawal.receiver,
             note: withdrawal.note,
