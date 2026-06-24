@@ -1,250 +1,276 @@
 (function () {
     const data = window.MANUAL_DATA;
-    let lang = localStorage.getItem('hotelManualLang') || 'ko';
+    let currentLang = localStorage.getItem('hotelManualLang') || 'ko';
     const $ = (selector, root = document) => root.querySelector(selector);
-    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+    const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    const pinPatterns = [
+        { side: 'left', style: '--y: 18%;', color: '' },
+        { side: 'top', style: '--x: 82%;', color: 'purple' },
+        { side: 'top', style: '--x: 36%;', color: '' },
+        { side: 'right', style: '--y: 38%;', color: 'green' },
+        { side: 'left', style: '--y: 58%;', color: 'orange' },
+        { side: 'bottom', style: '--x: 72%;', color: 'purple' }
+    ];
 
-    function t(value) {
+    const ui = {
+        ko: {
+            subtitle: '전체 화면 사용 매뉴얼',
+            title: 'Hotel PMS 전체 화면 매뉴얼',
+            intro: '실제 화면 스크린샷에 번호를 표시하고, 각 번호별 기능 설명과 관련 팝업을 함께 정리했습니다.',
+            lead: '좌측 목차에서 화면을 선택하거나 검색어로 화면/팝업을 찾을 수 있습니다. 각 화면은 실제 스크린샷, 번호별 사용 설명, 관련 팝업 설명 순서로 구성됩니다.',
+            docType: 'SCREEN MANUAL',
+            screenUnit: '화면',
+            popupUnit: '팝업',
+            openScreen: '화면 열기',
+            screenshotTitle: '화면 번호 보기',
+            numberedItems: '화면 번호별 설명',
+            popupTitle: '관련 팝업/모달',
+            popupIndex: '팝업/모달 전체 색인',
+            trigger: '진입',
+            noPopup: '별도 팝업 없음',
+            missingShot: '스크린샷 준비 중',
+            empty: '검색 결과가 없습니다. 다른 키워드로 다시 검색해 주세요.',
+            search: '화면, 기능, 팝업 검색',
+            summary: [
+                ['fa-camera-retro', '실제 스크린샷', '각 화면을 브라우저에서 캡처해 매뉴얼에 배치했습니다.'],
+                ['fa-location-dot', '번호 콜아웃', '화면 가장자리 번호와 아래 설명 번호가 연결됩니다.'],
+                ['fa-window-restore', '팝업 포함', '주요 모달, 팝업, 바텀시트의 목적과 진입 위치를 함께 정리했습니다.'],
+                ['fa-language', '한/영 전환', 'KR/EN 버튼으로 동일 매뉴얼을 한국어와 영어로 볼 수 있습니다.']
+            ]
+        },
+        en: {
+            subtitle: 'Full Screen User Manual',
+            title: 'Hotel PMS Full Screen Manual',
+            intro: 'Each manual section uses a real screenshot with numbered callouts, feature descriptions, and related popup explanations.',
+            lead: 'Use the left table of contents or search to find screens and popups. Each section contains a live screenshot, numbered guidance, and related popup notes.',
+            docType: 'SCREEN MANUAL',
+            screenUnit: 'screens',
+            popupUnit: 'popups',
+            openScreen: 'Open Screen',
+            screenshotTitle: 'Numbered Screenshot',
+            numberedItems: 'Numbered Feature Guide',
+            popupTitle: 'Related Popups / Modals',
+            popupIndex: 'Popup / Modal Index',
+            trigger: 'Entry',
+            noPopup: 'No separate popup',
+            missingShot: 'Screenshot pending',
+            empty: 'No result found. Try another keyword.',
+            search: 'Search screen, feature, or popup',
+            summary: [
+                ['fa-camera-retro', 'Real Screenshots', 'Each screen is captured from the browser and placed in the manual.'],
+                ['fa-location-dot', 'Numbered Callouts', 'Numbers around the screenshot match the guide below.'],
+                ['fa-window-restore', 'Popup Coverage', 'Major modals, popups, and bottom sheets include purpose and entry point.'],
+                ['fa-language', 'Language Toggle', 'Use KR/EN to view the same manual in Korean or English.']
+            ]
+        }
+    };
+
+    function txt(value) {
         if (value == null) return '';
         if (typeof value === 'string') return value;
-        return value[lang] || value.ko || value.en || '';
+        return value[currentLang] || value.ko || value.en || '';
     }
 
-    function list(items) {
-        return (items || []).map((item, index) => `<li data-no="${index + 1}">${t(item)}</li>`).join('');
-    }
-
-    function chips(items) {
-        return (items || []).map(item => `<span class="chip"><i class="fa-solid fa-check"></i>${t(item)}</span>`).join('');
-    }
-
-    function iconFor(type) {
-        return {
-            common: 'fa-layer-group',
-            frontdesk: 'fa-calendar-check',
-            crm: 'fa-address-book',
-            operations: 'fa-bed',
-            billing: 'fa-file-invoice-dollar',
-            ancillary: 'fa-concierge-bell',
-            settings: 'fa-gear',
-            admin: 'fa-shield-halved',
-            ads: 'fa-rectangle-ad'
-        }[type] || 'fa-circle-dot';
-    }
-
-    function allScreens() {
+    function screens() {
         return data.groups.flatMap(group => group.screens.map(screen => ({ ...screen, group })));
     }
 
-    function allPopups() {
-        return allScreens().flatMap(screen =>
-            (screen.popups || []).map(popup => ({ ...popup, screen }))
-        );
+    function popups() {
+        return screens().flatMap(screen => (screen.popups || []).map(popup => ({ ...popup, screen })));
     }
 
-    function setUiTexts() {
-        const ui = data.ui[lang];
-        document.documentElement.lang = lang;
-        $$('[data-ui]').forEach(el => {
-            const key = el.dataset.ui;
-            if (ui[key]) el.textContent = ui[key];
-        });
-        $$('[data-ui-placeholder]').forEach(el => {
-            const key = el.dataset.uiPlaceholder;
-            if (ui[key]) el.setAttribute('placeholder', ui[key]);
-        });
-        $('#languageName').textContent = ui.languageName;
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[char]));
     }
 
-    function renderQuickGuide() {
-        $('#quickGuide').innerHTML = data.quickGuide.map(item => `
-            <article class="guide-item">
-                <i class="fa-solid ${item.icon}"></i>
-                <div>
-                    <strong>${t(item.title)}</strong>
-                    <p>${t(item.body)}</p>
-                </div>
-            </article>
+    function setStaticText() {
+        const langUi = ui[currentLang];
+        document.documentElement.lang = currentLang;
+        $$('[data-i18n-ui]').forEach(el => {
+            const key = el.getAttribute('data-i18n-ui');
+            if (langUi[key]) el.textContent = langUi[key];
+        });
+        $('[data-manual-search]').placeholder = langUi.search;
+        $('[data-empty-search]').textContent = langUi.empty;
+        $('[data-screen-count]').textContent = screens().length;
+        $('[data-popup-count]').textContent = popups().length;
+        $$('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === currentLang));
+    }
+
+    function renderSummary() {
+        $('[data-summary-grid]').innerHTML = ui[currentLang].summary.map(([icon, title, body]) => `
+            <div class="summary-card">
+                <div class="summary-icon"><i class="fa-solid ${icon}"></i></div>
+                <strong>${escapeHtml(title)}</strong>
+                <p>${escapeHtml(body)}</p>
+            </div>
         `).join('');
     }
 
-    function renderTree() {
-        $('#manualTree').innerHTML = data.groups.map(group => `
-            <section class="tree-group">
-                <h2 class="tree-group-title">${t(group.title)}</h2>
-                <div class="tree-group-list">
-                    ${group.screens.map(screen => `
-                        <a class="tree-link" href="#${screen.id}">
-                            <i class="fa-solid ${iconFor(group.type)}"></i>
-                            <span>${t(screen.title)}</span>
-                        </a>
+    function renderNav() {
+        $('[data-manual-nav]').innerHTML = data.groups.map(group => `
+            <div class="nav-group">
+                <p class="nav-group-title">${escapeHtml(txt(group.title))}</p>
+                ${group.screens.map(screen => `
+                    <a class="nav-link" href="#${escapeHtml(screen.id)}">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>${escapeHtml(txt(screen.title))}</span>
+                    </a>
+                `).join('')}
+            </div>
+        `).join('') + `
+            <div class="nav-group">
+                <p class="nav-group-title">Popup</p>
+                <a class="nav-link" href="#popup-index"><i class="fa-solid fa-window-restore"></i><span>${escapeHtml(ui[currentLang].popupIndex)}</span></a>
+            </div>
+        `;
+    }
+
+    function calloutItems(screen) {
+        const steps = (screen.steps || []).slice(0, 6);
+        const checkpoints = screen.checkpoints || [];
+        return steps.map((step, index) => ({
+            title: step,
+            details: [
+                checkpoints[index % Math.max(checkpoints.length, 1)],
+                (screen.notes || [])[index % Math.max((screen.notes || []).length, 1)]
+            ].filter(Boolean)
+        }));
+    }
+
+    function renderPins(count) {
+        return pinPatterns.slice(0, Math.max(1, Math.min(count, pinPatterns.length))).map((pin, index) => `
+            <span class="pin ${pin.side} ${pin.color}" style="${pin.style}">${index + 1}</span>
+        `).join('');
+    }
+
+    function renderPopupCards(screen) {
+        if (!screen.popups || !screen.popups.length) {
+            return `<div class="popup-card"><strong>${escapeHtml(ui[currentLang].noPopup)}</strong><p>${escapeHtml(txt(screen.summary))}</p></div>`;
+        }
+        return screen.popups.map((popup, index) => `
+            <div class="popup-card" data-search-target data-keywords="${escapeHtml(`${txt(screen.title)} ${txt(popup.name)} ${txt(popup.purpose)} ${txt(popup.trigger)}`)}">
+                <div class="item-head">
+                    <span class="num popup-num">P${index + 1}</span>
+                    <strong>${escapeHtml(txt(popup.name))}</strong>
+                </div>
+                <p>${escapeHtml(txt(popup.purpose))}</p>
+                <div class="popup-trigger"><b>${escapeHtml(ui[currentLang].trigger)}:</b> ${escapeHtml(txt(popup.trigger))}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderScreen(screen) {
+        const items = calloutItems(screen);
+        const screenshot = `screenshots/${screen.id}.jpg`;
+        const keywordText = [
+            txt(screen.group.title),
+            txt(screen.title),
+            txt(screen.summary),
+            screen.path,
+            ...items.flatMap(item => [txt(item.title), ...item.details.map(txt)]),
+            ...(screen.popups || []).flatMap(popup => [txt(popup.name), txt(popup.purpose), txt(popup.trigger)])
+        ].join(' ');
+        return `
+            <section class="section screen-manual" id="${escapeHtml(screen.id)}" data-search-target data-keywords="${escapeHtml(keywordText)}">
+                <p class="screen-kicker">${escapeHtml(txt(screen.group.title))}</p>
+                <div class="screen-title-row">
+                    <div>
+                        <h2>${escapeHtml(txt(screen.title))}</h2>
+                        <p class="screen-desc">${escapeHtml(txt(screen.summary))}</p>
+                    </div>
+                    <a class="screen-open" href="../${escapeHtml(screen.path)}" target="_blank" rel="noreferrer">
+                        <i class="fa-solid fa-up-right-from-square"></i>${escapeHtml(ui[currentLang].openScreen)}
+                    </a>
+                </div>
+                <div class="screenshot-wrap">
+                    <div class="annotated-shot">
+                        <div class="image-frame">
+                            <img src="${escapeHtml(screenshot)}" alt="${escapeHtml(txt(screen.title))}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'shot-missing',textContent:'${escapeHtml(ui[currentLang].missingShot)}'}))">
+                        </div>
+                        ${renderPins(items.length)}
+                    </div>
+                </div>
+                <h3 class="popup-section-title"><i class="fa-solid fa-list-ol"></i>${escapeHtml(ui[currentLang].numberedItems)}</h3>
+                <div class="grid">
+                    ${items.map((item, index) => `
+                        <div class="item" data-search-target data-keywords="${escapeHtml(`${txt(screen.title)} ${txt(item.title)} ${item.details.map(txt).join(' ')}`)}">
+                            <div class="item-head"><span class="num">${index + 1}</span><h3>${escapeHtml(txt(item.title))}</h3></div>
+                            <p>${escapeHtml(txt(item.details[0] || screen.summary))}</p>
+                            <ul>${item.details.slice(1).map(detail => `<li>${escapeHtml(txt(detail))}</li>`).join('')}</ul>
+                        </div>
                     `).join('')}
                 </div>
-            </section>
-        `).join('');
-    }
-
-    function renderScreen(screen, group) {
-        const popups = screen.popups || [];
-        return `
-            <article class="screen-card" id="${screen.id}" data-search="${[
-                t(screen.title), t(screen.summary), t(group.title), screen.path,
-                ...(screen.steps || []).map(t),
-                ...popups.map(p => `${t(p.name)} ${t(p.purpose)}`)
-            ].join(' ').toLowerCase()}">
-                <header class="screen-header">
-                    <div class="screen-title-wrap">
-                        <span class="screen-icon"><i class="fa-solid ${iconFor(group.type)}"></i></span>
-                        <div>
-                            <h3>${t(screen.title)}</h3>
-                            <p class="screen-summary">${t(screen.summary)}</p>
-                        </div>
-                    </div>
-                    <a class="screen-link" href="../${screen.path}" target="_blank" rel="noreferrer">
-                        <i class="fa-solid fa-up-right-from-square"></i>
-                        <span>${data.ui[lang].openScreen}</span>
-                    </a>
-                </header>
-                <div class="screen-body">
-                    <div class="screen-map" aria-hidden="true">
-                        <span class="pin p1">1</span>
-                        <span class="pin p2">2</span>
-                        <span class="pin p3">3</span>
-                        <span class="pin p4">4</span>
-                        <div class="map-caption">${data.ui[lang].numberGuide}</div>
-                    </div>
-                    <div class="manual-columns">
-                        <section class="manual-block">
-                            <h4><i class="fa-solid fa-user-check"></i>${data.ui[lang].audience}</h4>
-                            <div class="chip-row">${chips(screen.audience)}</div>
-                        </section>
-                        <section class="manual-block">
-                            <h4><i class="fa-solid fa-list-check"></i>${data.ui[lang].checkpoints}</h4>
-                            <ul class="manual-list">${list(screen.checkpoints)}</ul>
-                        </section>
-                        <section class="manual-block wide">
-                            <h4><i class="fa-solid fa-route"></i>${data.ui[lang].workflow}</h4>
-                            <ul class="manual-list">${list(screen.steps)}</ul>
-                        </section>
-                        <section class="manual-block wide">
-                            <h4><i class="fa-solid fa-window-restore"></i>${data.ui[lang].popupSection}</h4>
-                            ${popups.length ? `
-                                <div class="popup-grid">
-                                    ${popups.map(popup => `
-                                        <div class="popup-card">
-                                            <strong>${t(popup.name)}</strong>
-                                            <p>${t(popup.purpose)}</p>
-                                            <p><b>${data.ui[lang].trigger}</b> ${t(popup.trigger)}</p>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            ` : `<div class="chip">${data.ui[lang].noPopup}</div>`}
-                        </section>
-                        <section class="manual-block wide">
-                            <h4><i class="fa-solid fa-shield-halved"></i>${data.ui[lang].notes}</h4>
-                            <ul class="manual-list">${list(screen.notes)}</ul>
-                        </section>
-                    </div>
+                <h3 class="popup-section-title"><i class="fa-solid fa-window-restore"></i>${escapeHtml(ui[currentLang].popupTitle)}</h3>
+                <div class="popup-grid">
+                    ${renderPopupCards(screen)}
                 </div>
-            </article>
+            </section>
         `;
     }
 
     function renderContent() {
-        $('#manualContent').innerHTML = data.groups.map(group => `
-            <section class="group-section" id="group-${group.id}">
-                <div class="group-head">
-                    <div>
-                        <h2>${t(group.title)}</h2>
-                        <p>${t(group.desc)}</p>
-                    </div>
-                    <span class="screen-count-pill">${group.screens.length} ${data.ui[lang].screensUnit}</span>
-                </div>
-                <div class="screen-list">
-                    ${group.screens.map(screen => renderScreen(screen, group)).join('')}
-                </div>
-            </section>
-        `).join('');
+        $('[data-manual-content]').innerHTML = screens().map(renderScreen).join('');
     }
 
     function renderPopupIndex() {
-        const popups = allPopups();
-        $('#popupIndex').innerHTML = `
-            <section class="popup-section" id="popup-all">
-                <h2>${data.ui[lang].popupIndexTitle}</h2>
-                <p>${data.ui[lang].popupIndexIntro}</p>
-                <div class="popup-index-grid">
-                    ${popups.map(popup => `
-                        <article class="popup-index-card">
-                            <a href="#${popup.screen.id}">${t(popup.screen.title)}</a>
-                            <strong>${t(popup.name)}</strong>
-                            <p>${t(popup.purpose)}</p>
-                        </article>
-                    `).join('')}
-                </div>
-            </section>
-        `;
+        $('[data-popup-index]').innerHTML = popups().map(popup => `
+            <div class="popup-index-card" data-search-target data-keywords="${escapeHtml(`${txt(popup.screen.title)} ${txt(popup.name)} ${txt(popup.purpose)} ${txt(popup.trigger)}`)}">
+                <a href="#${escapeHtml(popup.screen.id)}">${escapeHtml(txt(popup.screen.title))}</a>
+                <strong>${escapeHtml(txt(popup.name))}</strong>
+                <p>${escapeHtml(txt(popup.purpose))}</p>
+            </div>
+        `).join('');
     }
 
-    function render() {
-        setUiTexts();
-        renderQuickGuide();
-        renderTree();
-        renderContent();
-        renderPopupIndex();
-        $('#screenCount').textContent = allScreens().length;
-        $('#popupCount').textContent = allPopups().length;
-        $$('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === lang));
-        applySearch();
+    function normalize(value) {
+        return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
     }
 
     function applySearch() {
-        const q = ($('#manualSearch')?.value || '').trim().toLowerCase();
-        let visible = 0;
-        $$('.screen-card').forEach(card => {
-            const show = !q || card.dataset.search.includes(q);
-            card.classList.toggle('hidden-by-search', !show);
-            if (show) visible += 1;
+        const keyword = normalize($('[data-manual-search]')?.value || '');
+        const targets = $$('[data-search-target]');
+        let visibleCount = 0;
+        targets.forEach(target => {
+            const text = normalize(`${target.textContent || ''} ${target.dataset.keywords || ''}`);
+            const matched = !keyword || text.includes(keyword);
+            target.classList.toggle('is-hidden', !matched);
+            if (matched) visibleCount += 1;
         });
-        $$('.group-section').forEach(group => {
-            const hasVisible = !!$('.screen-card:not(.hidden-by-search)', group);
-            group.classList.toggle('hidden-by-search', !hasVisible);
-        });
-        let empty = $('#emptySearch');
-        if (!visible && q) {
-            if (!empty) {
-                empty = document.createElement('div');
-                empty.id = 'emptySearch';
-                empty.className = 'empty-search';
-                $('#manualContent').after(empty);
-            }
-            empty.textContent = data.ui[lang].emptySearch;
-        } else if (empty) {
-            empty.remove();
-        }
+        $('[data-empty-search]').style.display = visibleCount ? 'none' : 'block';
     }
 
-    function bindEvents() {
-        $$('.lang-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                lang = btn.dataset.lang;
-                localStorage.setItem('hotelManualLang', lang);
-                render();
-            });
-        });
-        $('#manualSearch').addEventListener('input', applySearch);
-        $('#printManual').addEventListener('click', () => window.print());
-        $('#toTop').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-        document.addEventListener('scroll', () => {
-            const cards = $$('.screen-card:not(.hidden-by-search)');
-            let activeId = '';
-            cards.forEach(card => {
-                if (card.getBoundingClientRect().top < 180) activeId = card.id;
-            });
-            $$('.tree-link').forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${activeId}`));
-        }, { passive: true });
+    function render() {
+        setStaticText();
+        renderSummary();
+        renderNav();
+        renderContent();
+        renderPopupIndex();
+        applySearch();
     }
 
-    bindEvents();
+    $('[data-manual-search]').addEventListener('input', applySearch);
+    $('[data-print]').addEventListener('click', () => window.print());
+    $$('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentLang = btn.dataset.lang;
+            localStorage.setItem('hotelManualLang', currentLang);
+            render();
+        });
+    });
+    document.addEventListener('scroll', () => {
+        let active = '';
+        $$('.screen-manual:not(.is-hidden)').forEach(section => {
+            if (section.getBoundingClientRect().top < 180) active = section.id;
+        });
+        $$('.nav-link').forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${active}`));
+    }, { passive: true });
+
     render();
 })();
