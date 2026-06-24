@@ -80,11 +80,13 @@
         .close-basis-callout { border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; border-radius: 10px; padding: 11px 13px; font-size: .8rem; font-weight: 850; line-height: 1.5; }
         .close-basis-inline-row { display: grid; gap: 10px; }
         .close-basis-inline-row.primary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        .close-basis-inline-row.secondary { grid-template-columns: 1fr 1fr 1.1fr 1.1fr; }
+        .close-basis-inline-row.secondary { grid-template-columns: 1fr 1fr 1.25fr; }
+        .close-basis-inline-row.records { grid-template-columns: 1fr; }
         .close-basis-inline-body .close-basis-flow,
         .close-basis-inline-body .close-basis-risk-grid { display: contents; }
         .close-basis-compact-section .cash-insight-list { gap: 7px; padding: 11px 13px; }
         .close-basis-compact-section .cash-insight-list li { font-size: .75rem; line-height: 1.42; }
+        .close-basis-record-section .cash-insight-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
         .audit-tabs { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
         .audit-tab { border: 0; background: transparent; height: 42px; padding: 0 16px; font-family: var(--font); font-size: .9rem; font-weight: 800; color: var(--txt2); cursor: pointer; border-bottom: 3px solid transparent; display: inline-flex; align-items: center; gap: 8px; }
         .audit-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
@@ -362,7 +364,7 @@
             .audit-tabs { overflow-x: auto; }
             .cash-command-head { flex-direction: column; }
             .cash-command-note { flex-basis: auto; width: 100%; box-sizing: border-box; }
-            .cash-summary-grid, .cash-workflow-grid, .cash-action-grid, .settlement-status-grid, .cash-reconcile-preview, .cash-reconcile-detail-list, .cash-reconcile-split-grid, .cash-reconcile-split-grid.triple, .cash-balance-result-grid, .cash-insight-grid, .close-basis-flow, .close-basis-risk-grid, .close-basis-inline-row.primary, .close-basis-inline-row.secondary { grid-template-columns: 1fr; }
+            .cash-summary-grid, .cash-workflow-grid, .cash-action-grid, .settlement-status-grid, .cash-reconcile-preview, .cash-reconcile-detail-list, .cash-reconcile-split-grid, .cash-reconcile-split-grid.triple, .cash-balance-result-grid, .cash-insight-grid, .close-basis-flow, .close-basis-risk-grid, .close-basis-inline-row.primary, .close-basis-inline-row.secondary, .close-basis-inline-row.records, .close-basis-record-section .cash-insight-list { grid-template-columns: 1fr; }
             .close-basis-inline-body .close-basis-flow,
             .close-basis-inline-body .close-basis-risk-grid { display: grid; grid-template-columns: 1fr; }
             .cash-flow-diagram { grid-template-columns: 1fr; }
@@ -2325,22 +2327,18 @@ function closeBasisRecordItems(state = {}) {
         ...(state.cashDepositRecords || []).map(item => `${cashUiText('예치금', 'Deposit')} · ${item.folioId || '-'} / ${item.guest || '-'} · ${moneyPhp(item.appliedPhpAmount)} · ${formatReceivedBreakdown(item)}`),
         ...((state.session?.withdrawals || []).map(item => `${cashUiText('중간 출금', 'Withdrawal')} · ${item.receiver || '-'} · ${formatCurrencyBreakdown(withdrawalBreakdownForRecord(item))}`))
     ];
-    return paymentItems.length ? paymentItems.slice(0, 8) : [cashUiText('금일 등록된 현금 수납/예치/출금 내역이 없습니다.', 'No cash inflow, deposit, or withdrawal records for the day.')];
-}
-
-function compactCloseBasisRecords(state = {}) {
-    const records = closeBasisRecordItems(state);
-    if (records.length <= 3) return records;
+    if (!paymentItems.length) return [cashUiText('금일 등록된 현금 수납/예치/출금 내역이 없습니다.', 'No cash inflow, deposit, or withdrawal records for the day.')];
+    if (paymentItems.length <= 8) return paymentItems;
     return [
-        ...records.slice(0, 3),
-        cashUiText(`외 ${records.length - 3}건은 시재 변동 내역에서 확인`, `${records.length - 3} more in the cash ledger`)
+        ...paymentItems.slice(0, 8),
+        cashUiText(`외 ${paymentItems.length - 8}건은 시재 변동 내역에서 확인`, `${paymentItems.length - 8} more in the cash ledger`)
     ];
 }
 
-function renderCloseBasisCompactSection(title, icon, items = []) {
+function renderCloseBasisCompactSection(title, icon, items = [], extraClass = '') {
     const normalized = items.filter(Boolean);
     return `
-        <div class="cash-insight-section close-basis-compact-section">
+        <div class="cash-insight-section close-basis-compact-section ${extraClass}">
             <h4><i class="fa-solid ${icon}" style="color:var(--primary)"></i> ${escapeAudit(title)}</h4>
             <ul class="cash-insight-list">
                 ${normalized.length ? normalized.map(item => `<li>${escapeAudit(item)}</li>`).join('') : `<li>${cashUiText('확인할 항목이 없습니다.', 'No items to review.')}</li>`}
@@ -2359,7 +2357,9 @@ function renderCloseBasisPanel(state = cashHandoverSnapshot) {
         <div class="close-basis-inline-row secondary">
             ${renderCloseBasisRiskSummary(state)}
             ${renderCloseBasisCompactSection(cashUiText('마감 판단 기준', 'Closing basis'), 'fa-list-check', closeBasisItems(state).slice(0, 3))}
-            ${renderCloseBasisCompactSection(cashUiText('금일 반영 내역', 'Today records'), 'fa-receipt', compactCloseBasisRecords(state))}
+        </div>
+        <div class="close-basis-inline-row records">
+            ${renderCloseBasisCompactSection(cashUiText('금일 반영 내역', 'Today records'), 'fa-receipt', closeBasisRecordItems(state), 'close-basis-record-section')}
         </div>
     `;
 }
