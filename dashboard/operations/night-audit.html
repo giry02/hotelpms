@@ -291,6 +291,8 @@
         .cash-action-cta { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 11px; border-radius: 8px; background: var(--primary); color: #fff; font-size: .74rem; font-weight: 950; white-space: nowrap; }
         .cash-action-card.withdraw .cash-action-cta { background: #f59e0b; }
         .cash-action-card.closing .cash-action-cta { background: #6366f1; }
+        .cash-action-note { display: none; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--border2); border-radius: 9px; background: #fbfdff; color: var(--txt2); font-size: .72rem; font-weight: 780; line-height: 1.45; text-align: left; word-break: keep-all; overflow-wrap: anywhere; }
+        .cash-action-note:not(:empty) { display: block; }
         .cash-work-card { border: 1px solid var(--border2); border-radius: 12px; background: #fff; overflow: hidden; }
         .cash-entry-panel { display: none; }
         .cash-entry-panel.active { display: block; }
@@ -304,6 +306,8 @@
         .currency-mini-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
         .cash-split-title { display: flex; align-items: center; gap: 7px; margin-top: 2px; color: var(--txt); font-size: .78rem; font-weight: 900; }
         .cash-split-help { color: var(--txt3); font-size: .7rem; line-height: 1.35; margin-top: -4px; }
+        .cash-entry-footer { align-items: center; }
+        .cash-entry-footer .btn-primary-sm { min-width: 132px; justify-content: center; }
         .cash-readonly-grid input { background: #f8fafc; color: var(--txt); font-weight: 900; }
         .cash-ledger { margin-top: 16px; border: 1px solid var(--border2); border-radius: 12px; overflow: hidden; background: #fff; }
         .cash-ledger-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid var(--border2); font-weight: 900; }
@@ -561,6 +565,7 @@
                                     <span class="cash-action-status" id="openStatus">미등록</span>
                                     <span class="cash-action-cta">등록하기 <i class="fa-solid fa-chevron-right"></i></span>
                                 </div>
+                                <div class="cash-action-note" id="openNotePreview"></div>
                             </button>
                             <button type="button" class="cash-action-card withdraw" onclick="openCashEntryModal('withdraw')">
                                 <div class="cash-action-main">
@@ -575,6 +580,7 @@
                                     <span class="cash-action-status" id="withdrawStatus">출금 기록 없음</span>
                                     <span class="cash-action-cta">출금 등록 <i class="fa-solid fa-chevron-right"></i></span>
                                 </div>
+                                <div class="cash-action-note" id="withdrawNotePreview"></div>
                             </button>
                             <button type="button" class="cash-action-card closing" onclick="openCashEntryModal('closing')">
                                 <div class="cash-action-main">
@@ -589,6 +595,7 @@
                                     <span class="cash-action-status" id="closeStatus">미등록</span>
                                     <span class="cash-action-cta">마감 입력 <i class="fa-solid fa-chevron-right"></i></span>
                                 </div>
+                                <div class="cash-action-note" id="closeNotePreview"></div>
                             </button>
                         </div>
                     </div>
@@ -801,7 +808,6 @@
                         <div class="cash-field"><label>원화</label><input id="openKrw" type="number" min="0" step="1" placeholder="0"></div>
                     </div>
                     <div class="cash-field"><label>인수 메모</label><textarea id="openNote" placeholder="예: 전 근무자에게 받은 잔돈, 봉투 번호"></textarea></div>
-                    <button class="btn-primary-sm" onclick="saveOpeningCash()"><i class="fa-solid fa-check"></i> 시작 시재 저장</button>
                 </div>
             </div>
 
@@ -815,7 +821,7 @@
                         <div class="cash-field"><label>원화</label><input id="withdrawKrw" type="number" min="0" step="1" placeholder="0"></div>
                     </div>
                     <div class="cash-field"><label>수령자 / 사유</label><input id="withdrawReceiver" type="text" placeholder="예: 매니저 / 환전 지급"></div>
-                    <button class="btn-primary-sm" onclick="addWithdrawal()"><i class="fa-solid fa-plus"></i> 출금 기록 추가</button>
+                    <div class="cash-field"><label>출금 메모</label><textarea id="withdrawNote" placeholder="예: 승인자, 전달 봉투 번호, 증빙 위치"></textarea></div>
                 </div>
             </div>
 
@@ -829,12 +835,12 @@
                         <div class="cash-field"><label>원화</label><input id="closeKrw" type="number" min="0" step="1" placeholder="0"></div>
                     </div>
                     <div class="cash-field"><label>확인 메모</label><textarea id="closeNote" placeholder="예: 마감 시 보유 통화와 정산 확인 메모"></textarea></div>
-                    <button class="btn-primary-sm" onclick="saveClosingCash()"><i class="fa-solid fa-lock"></i> 실제 정산 저장</button>
                 </div>
             </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer cash-entry-footer">
             <button type="button" class="btn-outline" onclick="closeCashEntryModal()">닫기</button>
+            <button type="button" class="btn-primary-sm" id="cashEntrySaveButton" onclick="saveCashEntryModal()"><i class="fa-solid fa-check"></i> 저장</button>
         </div>
     </div>
 </div>
@@ -861,6 +867,7 @@ const CASH_CURRENCIES = ['PHP', 'USD', 'KRW'];
 const auditIssueState = { departures: [], arrivals: [], orders: [] };
 const auditSettlementState = { folios: [], unsettled: [] };
 let cashHandoverSnapshot = null;
+let currentCashEntryType = 'opening';
 let currentCashSettlementFolioId = '';
 window.auditIssueState = auditIssueState;
 
@@ -971,6 +978,8 @@ const NIGHT_AUDIT_I18N = {
         'cash.withdrawEquivalent': '출금 페소 기준 금액',
         'cash.withdrawReceiver': '수령자 / 사유',
         'cash.withdrawReceiverPlaceholder': '예: 매니저 / 환전 지급',
+        'cash.withdrawNote': '출금 메모',
+        'cash.withdrawNotePlaceholder': '예: 승인자, 전달 봉투 번호, 증빙 위치',
         'cash.withdrawAdd': '출금 기록 추가',
         'cash.closeCard': '마감 시 보유 통화 등록',
         'cash.closeCountedTitle': '실제 보유 통화',
@@ -1136,6 +1145,8 @@ const NIGHT_AUDIT_I18N = {
         'cash.withdrawEquivalent': 'Withdrawal PHP basis amount',
         'cash.withdrawReceiver': 'Recipient / reason',
         'cash.withdrawReceiverPlaceholder': 'Example: manager / exchange payout',
+        'cash.withdrawNote': 'Withdrawal memo',
+        'cash.withdrawNotePlaceholder': 'Example: approver, envelope number, evidence location',
         'cash.withdrawAdd': 'Add withdrawal record',
         'cash.closeCard': 'Register closing currencies on hand',
         'cash.closeCountedTitle': 'Actual currencies on hand',
@@ -1817,7 +1828,7 @@ function sampleAuditSession(date, offset) {
         {
             opening: { PHP: 18200, USD: 180, KRW: 220000 },
             openingPhpEquivalent: 32150,
-            withdrawals: [{ currency: 'PHP', amount: 5000, phpEquivalent: 5000, receiver: 'Manager / petty cash replenishment', time: '15:20', operator: 'Nguyen Kim' }],
+            withdrawals: [{ currency: 'PHP', amount: 5000, phpEquivalent: 5000, receiver: 'Manager / petty cash replenishment', note: '당직 매니저 승인 후 출금. 영수증은 A-13 봉투에 첨부.', time: '15:20', operator: 'Nguyen Kim' }],
             closing: { PHP: 54900, USD: 300, KRW: 520000 },
             carryover: { PHP: 25000, USD: 200, KRW: 250000 },
             closingPhpEquivalent: 84650,
@@ -1827,7 +1838,7 @@ function sampleAuditSession(date, offset) {
         {
             opening: { PHP: 24000, USD: 120, KRW: 180000 },
             openingPhpEquivalent: 35000,
-            withdrawals: [{ currency: 'USD', amount: 80, phpEquivalent: 4480, receiver: 'FO Manager / airport pickup cash', time: '14:10', operator: 'Tran Linh' }],
+            withdrawals: [{ currency: 'USD', amount: 80, phpEquivalent: 4480, receiver: 'FO Manager / airport pickup cash', note: '공항 픽업 전 프런트 매니저에게 교통비 전달.', time: '14:10', operator: 'Tran Linh' }],
             closing: { PHP: 61200, USD: 170, KRW: 260000 },
             carryover: { PHP: 30000, USD: 100, KRW: 200000 },
             closingPhpEquivalent: 78720,
@@ -1837,7 +1848,7 @@ function sampleAuditSession(date, offset) {
         {
             opening: { PHP: 15600, USD: 90, KRW: 350000 },
             openingPhpEquivalent: 28000,
-            withdrawals: [{ currency: 'PHP', amount: 8000, phpEquivalent: 8000, receiver: 'Accounting / vendor cash-out', time: '16:35', operator: 'Park Minjae' }],
+            withdrawals: [{ currency: 'PHP', amount: 8000, phpEquivalent: 8000, receiver: 'Accounting / vendor cash-out', note: '업체 지급분을 회계 파우치로 이관하고 증빙 사본 첨부.', time: '16:35', operator: 'Park Minjae' }],
             closing: { PHP: 47800, USD: 120, KRW: 410000 },
             carryover: { PHP: 24000, USD: 100, KRW: 250000 },
             closingPhpEquivalent: 59900,
@@ -1847,7 +1858,7 @@ function sampleAuditSession(date, offset) {
         {
             opening: { PHP: 30000, USD: 200, KRW: 500000 },
             openingPhpEquivalent: 41200,
-            withdrawals: [{ currency: 'PHP', amount: 7000, phpEquivalent: 7000, receiver: 'GM / emergency guest refund', time: '17:45', operator: 'Nguyen Kim' }],
+            withdrawals: [{ currency: 'PHP', amount: 7000, phpEquivalent: 7000, receiver: 'GM / emergency guest refund', note: 'GM 승인 후 긴급 환불금 전달. 마감 메모에서 재확인.', time: '17:45', operator: 'Nguyen Kim' }],
             closing: { PHP: 84200, USD: 260, KRW: 650000 },
             carryover: { PHP: 35000, USD: 200, KRW: 300000 },
             closingPhpEquivalent: 102700,
@@ -1871,6 +1882,7 @@ function sampleAuditSession(date, offset) {
             amount: withdrawal.amount,
             phpEquivalent: withdrawal.phpEquivalent,
             receiver: withdrawal.receiver,
+            note: withdrawal.note,
             createdAt: sampleAuditDateTime(date, withdrawal.time),
             operator: withdrawal.operator
         })),
@@ -2595,7 +2607,7 @@ function dailyHistoryRows(date) {
         php: item.phpEquivalent || 0,
         actual: formatCurrencyBreakdown(withdrawalBreakdownForRecord(item)),
         operator: item.operator || '-',
-        note: item.receiver || '-'
+        note: item.note || item.receiver || '-'
     }));
     if (session?.closedAt || session?.closing) {
         const cashPayments = payments.filter(item => item.method === 'cash');
@@ -2719,6 +2731,7 @@ function openCashEntryModal(type) {
     if (!modal) return;
     renderCashHandover();
     const normalized = ['opening', 'withdraw', 'closing'].includes(type) ? type : 'opening';
+    currentCashEntryType = normalized;
     const titleMap = {
         opening: '시작 시재 등록',
         withdraw: '중간 출금 등록',
@@ -2734,11 +2747,24 @@ function openCashEntryModal(type) {
     document.querySelectorAll('.cash-entry-panel').forEach(panel => panel.classList.remove('active'));
     const panelId = normalized === 'opening' ? 'cashEntryOpeningPanel' : normalized === 'withdraw' ? 'cashEntryWithdrawPanel' : 'cashEntryClosingPanel';
     document.getElementById(panelId)?.classList.add('active');
+    updateCashEntrySaveButton(normalized);
     modal.classList.add('active');
 }
 
 function closeCashEntryModal() {
     document.getElementById('cashEntryModal')?.classList.remove('active');
+}
+
+function saveCashEntryModal() {
+    if (currentCashEntryType === 'withdraw') {
+        addWithdrawal();
+        return;
+    }
+    if (currentCashEntryType === 'closing') {
+        saveClosingCash();
+        return;
+    }
+    saveOpeningCash();
 }
 
 function saveOpeningCash() {
@@ -2772,11 +2798,12 @@ function addWithdrawal() {
         currencyBreakdown,
         phpEquivalent,
         receiver: textValue('withdrawReceiver'),
+        note: textValue('withdrawNote'),
         createdAt: nowIso(),
         operator: operatorName()
     });
     saveCashSession(session);
-    ['withdrawPhp', 'withdrawUsd', 'withdrawKrw', 'withdrawReceiver'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['withdrawPhp', 'withdrawUsd', 'withdrawKrw', 'withdrawReceiver', 'withdrawNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     renderCashHandover();
     closeCashEntryModal();
     showToast(nightAuditText('toast.withdrawAdded'), 'success');
@@ -2875,17 +2902,25 @@ function renderCashHandover() {
     set('openStatus', session.openedAt ? `${session.openedBy || '-'} · ${formatAuditTime(session.openedAt)}` : nightAuditText('cash.unregistered'));
     set('withdrawStatus', (session.withdrawals || []).length ? nightAuditText('cash.withdrawCount', { count: session.withdrawals.length }) : nightAuditText('cash.noWithdrawals'));
     set('closeStatus', session.closedAt ? `${session.closedBy || '-'} · ${formatAuditTime(session.closedAt)}` : nightAuditText('cash.unregistered'));
+    const latestWithdrawal = (session.withdrawals || [])[Math.max(0, (session.withdrawals || []).length - 1)] || null;
+    set('openNotePreview', cashMemoPreview(session.openingNote));
+    set('withdrawNotePreview', cashMemoPreview(latestWithdrawal?.note || latestWithdrawal?.receiver));
+    set('closeNotePreview', cashMemoPreview(session.closingNote));
 
     if (session.opening) {
         const openPhp = document.getElementById('openPhp');
         const openUsd = document.getElementById('openUsd');
         const openKrw = document.getElementById('openKrw');
+        const openNote = document.getElementById('openNote');
         if (openPhp && !openPhp.value) openPhp.value = session.opening.PHP || '';
         if (openUsd && !openUsd.value) openUsd.value = session.opening.USD || '';
         if (openKrw && !openKrw.value) openKrw.value = session.opening.KRW || '';
+        if (openNote && !openNote.value) openNote.value = session.openingNote || '';
     }
     if (session.closing) {
         setCurrencyInputValues('close', session.closing);
+        const closeNote = document.getElementById('closeNote');
+        if (closeNote && !closeNote.value) closeNote.value = session.closingNote || '';
     }
 
     const withdrawalRows = (session.withdrawals || []).map(item => ({
@@ -2896,7 +2931,7 @@ function renderCashHandover() {
         php: null,
         actual: formatCurrencyBreakdown(withdrawalBreakdownForRecord(item)),
         operator: item.operator || '-',
-        note: item.receiver || ''
+        note: item.note || item.receiver || ''
     }));
     const paymentRows = cashPayments.map(item => ({
         at: item.createdAt,
@@ -2970,6 +3005,22 @@ function setNightPlaceholder(inputId, key) {
 function setNightHeader(section, key, iconHtml) {
     const header = section?.querySelector('.audit-header, .cash-work-head');
     if (header) header.innerHTML = `${iconHtml} ${nightAuditText(key)}`;
+}
+
+function cashMemoPreview(value) {
+    const note = String(value || '').trim();
+    return note ? `${cashUiText('메모', 'Memo')} · ${note}` : '';
+}
+
+function updateCashEntrySaveButton(type = currentCashEntryType) {
+    const button = document.getElementById('cashEntrySaveButton');
+    if (!button) return;
+    const config = {
+        opening: ['fa-check', 'cash.openSave'],
+        withdraw: ['fa-plus', 'cash.withdrawAdd'],
+        closing: ['fa-lock', 'cash.closeSave']
+    }[type] || ['fa-check', 'cash.openSave'];
+    button.innerHTML = `<i class="fa-solid ${config[0]}"></i> ${nightAuditText(config[1])}`;
 }
 
 function refreshNightAuditDynamicText() {
@@ -3113,16 +3164,15 @@ function applyNightAuditI18n() {
     setNightHtml('#closeCountedTitle', `<i class="fa-solid fa-coins"></i> ${t('cash.closeCountedTitle')}`);
 
     setNightFieldLabel('withdrawReceiver', 'cash.withdrawReceiver');
+    setNightFieldLabel('withdrawNote', 'cash.withdrawNote');
     setNightFieldLabel('openNote', 'cash.openNote');
     setNightFieldLabel('closeNote', 'cash.closeNote');
     setNightPlaceholder('openNote', 'cash.openNotePlaceholder');
     setNightPlaceholder('withdrawReceiver', 'cash.withdrawReceiverPlaceholder');
+    setNightPlaceholder('withdrawNote', 'cash.withdrawNotePlaceholder');
     setNightPlaceholder('closeNote', 'cash.closeNotePlaceholder');
 
-    const cashButtons = document.querySelectorAll('.cash-entry-panel .btn-primary-sm');
-    if (cashButtons[0]) cashButtons[0].innerHTML = `<i class="fa-solid fa-check"></i> ${t('cash.openSave')}`;
-    if (cashButtons[1]) cashButtons[1].innerHTML = `<i class="fa-solid fa-plus"></i> ${t('cash.withdrawAdd')}`;
-    if (cashButtons[2]) cashButtons[2].innerHTML = `<i class="fa-solid fa-lock"></i> ${t('cash.closeSave')}`;
+    updateCashEntrySaveButton();
 
     const ledgerTitle = document.querySelector('#auditTabCash .cash-ledger-head span:first-child');
     if (ledgerTitle) ledgerTitle.innerHTML = `<i class="fa-solid fa-receipt" style="color:var(--primary)"></i> ${cashUiText('\uC2DC\uC7AC \uBCC0\uB3D9 \uB0B4\uC5ED', 'Cash movement history')}`;
