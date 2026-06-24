@@ -21,7 +21,7 @@
         .audit-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
         .audit-title{font-size:1.1rem;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:8px}
         .audit-desc{font-size:.82rem;color:var(--txt3);margin-top:4px;line-height:1.5}
-        .audit-filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px}
+        .audit-filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px;flex-wrap:wrap}
         .audit-search-group{display:flex;align-items:center;gap:8px;flex:1 1 460px;max-width:560px;min-width:320px}
         .audit-search{display:flex;align-items:center;gap:8px;flex:1;min-width:0;height:38px;padding:0 12px;background:#fff;border:1.5px solid var(--border);border-radius:8px;transition:border-color .15s,box-shadow .15s}
         .audit-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
@@ -30,6 +30,12 @@
         .audit-search-btn{height:38px;min-width:78px;padding:0 14px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-family:var(--font);font-size:.78rem;font-weight:850;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;white-space:nowrap;transition:background .15s,transform .15s}
         .audit-search-btn:hover{background:#1D4ED8;transform:translateY(-1px)}
         .audit-filter{height:38px;flex:0 0 150px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 12px;font-family:var(--font);font-size:.8rem;font-weight:750;color:var(--txt);min-width:0;outline:none}
+        .audit-period-filter{flex-basis:150px}
+        .audit-date-range{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+        .audit-date-range[hidden]{display:none!important}
+        .audit-date-range input{height:38px;width:138px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 10px;font-family:var(--font);font-size:.78rem;font-weight:750;color:var(--txt);outline:none}
+        .audit-date-range input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
+        .audit-date-separator{color:var(--txt3);font-size:.78rem;font-weight:850}
         .audit-search-group + .audit-filter{margin-left:auto}
         .audit-filter:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
         .audit-table{table-layout:fixed;min-width:1040px}
@@ -42,6 +48,13 @@
         .audit-chip.other{background:#f1f5f9;color:#475569}
         .field-list{display:flex;gap:5px;flex-wrap:wrap}
         .field-pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:#f8fafc;border:1px solid var(--border);font-size:.68rem;color:var(--txt2);font-weight:700}
+        .audit-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0 0;margin-top:14px;border-top:1px solid var(--border2);flex-wrap:wrap}
+        .audit-page-summary{color:var(--txt2);font-size:.78rem;font-weight:850}
+        .audit-page-controls{display:flex;align-items:center;gap:6px;margin-left:auto}
+        .audit-page-btn{height:34px;min-width:34px;padding:0 11px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.78rem;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+        .audit-page-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary);background:var(--primary-lt)}
+        .audit-page-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+        .audit-page-btn:disabled{opacity:.42;cursor:not-allowed}
         .access-denied{display:none;align-items:center;justify-content:center;min-height:calc(100vh - 130px)}
         .access-card{width:min(520px,100%);background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:34px 28px;text-align:center}
         .access-card i{font-size:2rem;color:var(--danger);margin-bottom:12px}
@@ -52,7 +65,10 @@
             .audit-search-group{width:100%;max-width:none;min-width:0;flex:0 0 auto}
             .audit-search,.audit-filter{width:100%}
             .audit-filter{flex:0 0 auto}
+            .audit-date-range{width:100%;flex:0 0 auto;flex-wrap:wrap}
+            .audit-date-range input{flex:1 1 140px;width:auto}
             .audit-search-group + .audit-filter{margin-left:0}
+            .audit-page-controls{margin-left:0;width:100%;justify-content:flex-end}
         }
         @media(max-width:480px){
             .audit-search-group{align-items:stretch;flex-direction:column}
@@ -112,7 +128,7 @@
                                 <i class="fa-solid fa-magnifying-glass"></i>
                                 <input id="auditSearch" type="text" placeholder="예약번호, 고객명, 직원, 객실, 변경내용 검색...">
                             </div>
-                            <button type="button" class="audit-search-btn" onclick="renderAuditLogs()"><i class="fa-solid fa-search"></i> 검색</button>
+                            <button type="button" class="audit-search-btn" onclick="resetAuditPageAndRender()"><i class="fa-solid fa-search"></i> 검색</button>
                         </div>
                         <select id="auditActionFilter" class="audit-filter">
                             <option value="all">전체 유형</option>
@@ -122,12 +138,18 @@
                             <option value="search">검색/선택</option>
                             <option value="other">기타</option>
                         </select>
-                        <select id="auditSort" class="audit-filter">
-                            <option value="latest">최신순</option>
-                            <option value="oldest">오래된순</option>
-                            <option value="reservation-first">예약 변경 우선</option>
-                            <option value="actor">직원명순</option>
+                        <select id="auditPeriodFilter" class="audit-filter audit-period-filter">
+                            <option value="today">금일</option>
+                            <option value="week">주간</option>
+                            <option value="month">월간</option>
+                            <option value="custom">기간 선택</option>
+                            <option value="all">전체 기간</option>
                         </select>
+                        <div id="auditDateRange" class="audit-date-range" hidden>
+                            <input id="auditStartDate" type="date" aria-label="시작일">
+                            <span class="audit-date-separator">~</span>
+                            <input id="auditEndDate" type="date" aria-label="종료일">
+                        </div>
                     </div>
                     <div class="table-wrap">
                         <table class="audit-table">
@@ -153,6 +175,10 @@
                             </thead>
                             <tbody id="auditBody"></tbody>
                         </table>
+                    </div>
+                    <div id="auditPagination" class="audit-pagination" hidden>
+                        <div id="auditPageSummary" class="audit-page-summary"></div>
+                        <div id="auditPageControls" class="audit-page-controls"></div>
                     </div>
                 </div>
             </div>
@@ -209,6 +235,8 @@ const FIELD_LABELS = {
 };
 
 const AUDIT_DEMO_STORAGE_KEY = 'pms_audit_demo_seed_v2';
+const AUDIT_PAGE_SIZE = 12;
+let auditCurrentPage = 1;
 const AUDIT_DEMO_ACTORS = {
     admin: { id: 's1', name: 'Nguyen Kim', role: 'sys_admin', roleLabel: '관리자' },
     desk: { id: 's3', name: 'Sarah Connor', role: 'sys_desk', roleLabel: '프론트 데스크' },
@@ -456,12 +484,74 @@ function detailText(entry) {
     return parts.join(' · ') || '-';
 }
 
+function auditTodayIso() {
+    return window.PmsDate?.todayIso ? window.PmsDate.todayIso() : auditLocalIsoDate(new Date());
+}
+
+function auditLocalIsoDate(value) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function auditAddDays(dateText, days) {
+    const [year, month, day] = String(dateText || auditTodayIso()).split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + days);
+    return auditLocalIsoDate(date);
+}
+
+function auditPeriodRange() {
+    const period = document.getElementById('auditPeriodFilter')?.value || 'today';
+    const today = auditTodayIso();
+    if (period === 'all') return null;
+    if (period === 'week') return { start: auditAddDays(today, -6), end: today };
+    if (period === 'month') return { start: `${today.slice(0, 7)}-01`, end: today };
+    if (period === 'custom') {
+        const startInput = document.getElementById('auditStartDate');
+        const endInput = document.getElementById('auditEndDate');
+        if (!startInput.value) startInput.value = auditAddDays(today, -6);
+        if (!endInput.value) endInput.value = today;
+        const start = startInput.value <= endInput.value ? startInput.value : endInput.value;
+        const end = startInput.value <= endInput.value ? endInput.value : startInput.value;
+        return { start, end };
+    }
+    return { start: today, end: today };
+}
+
+function entryAuditDate(entry) {
+    return auditLocalIsoDate(entry.createdAt);
+}
+
+function updateAuditPeriodUi() {
+    const period = document.getElementById('auditPeriodFilter')?.value || 'today';
+    const rangeWrap = document.getElementById('auditDateRange');
+    if (!rangeWrap) return;
+    rangeWrap.hidden = period !== 'custom';
+    if (period === 'custom') auditPeriodRange();
+}
+
+function resetAuditPageAndRender() {
+    auditCurrentPage = 1;
+    renderAuditLogs();
+}
+
+function setAuditPage(page) {
+    auditCurrentPage = Math.max(1, Number(page) || 1);
+    renderAuditLogs();
+}
+
 function filteredLogs(logs) {
     const query = (document.getElementById('auditSearch')?.value || '').trim().toLowerCase();
     const type = document.getElementById('auditActionFilter')?.value || 'all';
+    const range = auditPeriodRange();
     return logs.filter(entry => {
         const meta = actionMeta(entry.action);
         if (type !== 'all' && meta.type !== type) return false;
+        if (range) {
+            const entryDate = entryAuditDate(entry);
+            if (!entryDate || entryDate < range.start || entryDate > range.end) return false;
+        }
         if (!query) return true;
         const haystack = [
             entry.actor?.name,
@@ -477,20 +567,52 @@ function filteredLogs(logs) {
 }
 
 function sortAuditLogs(logs) {
-    const sort = document.getElementById('auditSort')?.value || 'latest';
     const dateValue = entry => new Date(entry.createdAt || 0).getTime() || 0;
-    const reservationRank = entry => actionMeta(entry.action).type === 'reservation' ? 0 : 1;
-    const actorName = entry => String(entry.actor?.name || '');
-    return [...logs].sort((a, b) => {
-        if (sort === 'oldest') return dateValue(a) - dateValue(b);
-        if (sort === 'reservation-first') return reservationRank(a) - reservationRank(b) || dateValue(b) - dateValue(a);
-        if (sort === 'actor') return actorName(a).localeCompare(actorName(b), 'ko') || dateValue(b) - dateValue(a);
-        return dateValue(b) - dateValue(a);
-    });
+    return [...logs].sort((a, b) => dateValue(b) - dateValue(a));
+}
+
+function auditPageNumbers(current, totalPages) {
+    const numbers = new Set([1, totalPages]);
+    for (let page = current - 2; page <= current + 2; page += 1) {
+        if (page >= 1 && page <= totalPages) numbers.add(page);
+    }
+    return [...numbers].sort((a, b) => a - b);
+}
+
+function renderAuditPagination(total, pageSize) {
+    const wrap = document.getElementById('auditPagination');
+    const summary = document.getElementById('auditPageSummary');
+    const controls = document.getElementById('auditPageControls');
+    if (!wrap || !summary || !controls) return;
+    if (!total) {
+        wrap.hidden = true;
+        summary.textContent = '';
+        controls.innerHTML = '';
+        return;
+    }
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    auditCurrentPage = Math.min(Math.max(1, auditCurrentPage), totalPages);
+    const start = (auditCurrentPage - 1) * pageSize + 1;
+    const end = Math.min(total, auditCurrentPage * pageSize);
+    wrap.hidden = false;
+    summary.textContent = `총 ${total.toLocaleString()}건 중 ${start.toLocaleString()}-${end.toLocaleString()} 표시`;
+    const pages = auditPageNumbers(auditCurrentPage, totalPages);
+    let previous = 0;
+    const pageButtons = pages.map(page => {
+        const gap = previous && page - previous > 1 ? '<span class="audit-page-btn" aria-hidden="true">...</span>' : '';
+        previous = page;
+        return `${gap}<button type="button" class="audit-page-btn ${page === auditCurrentPage ? 'active' : ''}" onclick="setAuditPage(${page})" ${page === auditCurrentPage ? 'aria-current="page"' : ''}>${page}</button>`;
+    }).join('');
+    controls.innerHTML = `
+        <button type="button" class="audit-page-btn" onclick="setAuditPage(${auditCurrentPage - 1})" ${auditCurrentPage <= 1 ? 'disabled' : ''} aria-label="이전 페이지"><i class="fa-solid fa-chevron-left"></i></button>
+        ${pageButtons}
+        <button type="button" class="audit-page-btn" onclick="setAuditPage(${auditCurrentPage + 1})" ${auditCurrentPage >= totalPages ? 'disabled' : ''} aria-label="다음 페이지"><i class="fa-solid fa-chevron-right"></i></button>
+    `;
 }
 
 function renderAuditLogs() {
     if (!ensureAdminAccess()) return;
+    updateAuditPeriodUi();
     ensureAuditDemoLogs();
     const logs = readAuditLogs();
     const rows = sortAuditLogs(filteredLogs(logs));
@@ -504,6 +626,7 @@ function renderAuditLogs() {
     document.getElementById('kpiExports').textContent = exportCount.toLocaleString();
 
     if (!rows.length) {
+        renderAuditPagination(0, AUDIT_PAGE_SIZE);
         body.innerHTML = `<tr><td colspan="7">
             <div class="pms-empty-state">
                 <div class="pms-empty-icon"><i class="fa-solid fa-shield-halved"></i></div>
@@ -514,7 +637,10 @@ function renderAuditLogs() {
         return;
     }
 
-    body.innerHTML = rows.map(entry => {
+    renderAuditPagination(rows.length, AUDIT_PAGE_SIZE);
+    const pageRows = rows.slice((auditCurrentPage - 1) * AUDIT_PAGE_SIZE, auditCurrentPage * AUDIT_PAGE_SIZE);
+
+    body.innerHTML = pageRows.map(entry => {
         const meta = actionMeta(entry.action);
         const screen = screenLabel(entry.details?.screen || entry.page);
         return `<tr>
@@ -532,12 +658,18 @@ function renderAuditLogs() {
 window.addEventListener('pms:privacy-audit', renderAuditLogs);
 document.addEventListener('DOMContentLoaded', renderAuditLogs);
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('auditSearch')?.addEventListener('input', renderAuditLogs);
+    updateAuditPeriodUi();
+    document.getElementById('auditSearch')?.addEventListener('input', resetAuditPageAndRender);
     document.getElementById('auditSearch')?.addEventListener('keydown', event => {
-        if (event.key === 'Enter') renderAuditLogs();
+        if (event.key === 'Enter') resetAuditPageAndRender();
     });
-    document.getElementById('auditActionFilter')?.addEventListener('change', renderAuditLogs);
-    document.getElementById('auditSort')?.addEventListener('change', renderAuditLogs);
+    document.getElementById('auditActionFilter')?.addEventListener('change', resetAuditPageAndRender);
+    document.getElementById('auditPeriodFilter')?.addEventListener('change', () => {
+        updateAuditPeriodUi();
+        resetAuditPageAndRender();
+    });
+    document.getElementById('auditStartDate')?.addEventListener('change', resetAuditPageAndRender);
+    document.getElementById('auditEndDate')?.addEventListener('change', resetAuditPageAndRender);
 });
 </script>
 </body>
