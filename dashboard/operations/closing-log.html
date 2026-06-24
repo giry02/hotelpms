@@ -89,13 +89,28 @@
         .log-empty { padding:32px 16px; text-align:center; color:var(--txt3); font-weight:850; }
         .log-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-top:1px solid var(--border2); background:#fff; color:var(--txt2); font-size:.78rem; font-weight:850; }
         .close-reconcile { background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:16px; }
-        .close-reconcile summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; background:#fbfdff; }
+        .close-reconcile summary,
+        .reconcile-header { list-style:none; cursor:default; display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:12px; padding:14px 18px; background:#fbfdff; }
         .close-reconcile summary::-webkit-details-marker { display:none; }
         .reconcile-title { display:flex; align-items:center; gap:8px; color:var(--txt); font-size:.92rem; font-weight:950; }
         .reconcile-desc { margin-top:3px; color:var(--txt3); font-size:.72rem; font-weight:750; line-height:1.45; }
-        .reconcile-toggle { min-height:32px; padding:0 12px; border-radius:8px; border:1px solid #bfdbfe; background:#eff6ff; color:var(--primary); font-size:.74rem; font-weight:950; display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
+        .reconcile-toggle { display:none; min-height:32px; padding:0 12px; border-radius:8px; border:1px solid #bfdbfe; background:#eff6ff; color:var(--primary); font-size:.74rem; font-weight:950; align-items:center; gap:7px; white-space:nowrap; }
         .close-reconcile[open] .reconcile-toggle i { transform:rotate(180deg); }
-        .reconcile-body { padding:16px 18px 18px; border-top:1px solid var(--border2); }
+        .reconcile-body { display:none !important; padding:16px 18px 18px; border-top:1px solid var(--border2); }
+        .reconcile-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+        .reconcile-summary-card { border:1px solid var(--border2); border-radius:12px; background:#fff; padding:12px; display:flex; align-items:flex-start; gap:10px; min-width:0; }
+        .reconcile-summary-card.inflow { border-color:#a7f3d0; }
+        .reconcile-summary-card.result { border-color:#bfdbfe; }
+        .reconcile-summary-card.variance { border-color:#c7d2fe; }
+        .reconcile-summary-card .reconcile-card-icon { width:34px; height:34px; border-radius:10px; flex:0 0 34px; }
+        .reconcile-summary-card .reconcile-copy { min-width:0; flex:1; }
+        .reconcile-summary-card .reconcile-card-title { display:block; color:var(--txt); font-size:.9rem; font-weight:950; margin-bottom:7px; }
+        .reconcile-summary-card strong { display:block; color:var(--txt); font-size:.82rem; font-weight:900; line-height:1.45; overflow-wrap:anywhere; }
+        .reconcile-summary-card small { display:block; margin-top:8px; color:var(--txt3); font-size:.7rem; font-weight:780; line-height:1.45; }
+        .reconcile-detail-btn { margin-top:9px; min-height:28px; padding:0 10px; border-radius:8px; border:1px solid #bfdbfe; background:#eff6ff; color:var(--primary); font-family:var(--font); font-size:.7rem; font-weight:950; display:inline-flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; }
+        .reconcile-detail-btn:hover { border-color:#93c5fd; background:#dbeafe; }
+        .reconcile-detail-btn.warning { border-color:#fed7aa; background:#fff7ed; color:#b45309; }
+        .reconcile-detail-btn.warning:hover { border-color:#f59e0b; background:#fffbeb; }
         .reconcile-flow { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:stretch; }
         .reconcile-flow-main { position:relative; grid-column:1 / -1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
         .reconcile-flow-result { grid-column:2 / 3; margin-top:30px; }
@@ -133,6 +148,8 @@
         .detail-card { border:1px solid var(--border2); border-radius:10px; background:#f8fafc; padding:12px; min-width:0; }
         .detail-card span { display:block; color:var(--txt3); font-size:.7rem; font-weight:900; margin-bottom:5px; }
         .detail-card strong { display:block; color:var(--txt); font-size:.9rem; font-weight:950; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .detail-card-value { color:var(--txt); font-size:.9rem; font-weight:950; }
+        .detail-card-value .cash-currency-lines { gap:4px; }
         .detail-section { border:1px solid var(--border2); border-radius:12px; overflow:hidden; }
         .detail-section-head { padding:11px 13px; background:#f8fafc; border-bottom:1px solid var(--border2); display:flex; align-items:center; gap:8px; font-size:.84rem; font-weight:950; color:var(--txt); }
         .detail-row { display:grid; grid-template-columns:120px minmax(0,1fr); gap:10px; padding:10px 13px; border-bottom:1px solid var(--border2); font-size:.78rem; line-height:1.45; }
@@ -148,7 +165,7 @@
         @media(max-width:640px) {
             .filter-left, .filter-right, .log-date-tools { flex-direction:column; align-items:stretch; }
             .search-box-mt, .log-date-input, .log-select, .btn-primary-sm, .btn-outline-sm { width:100%; }
-            .close-summary-grid, .detail-summary, .reconcile-flow, .reconcile-flow-main, .cash-flow-formula, .formula-split-grid, .formula-split-grid.triple { grid-template-columns:1fr; }
+            .close-summary-grid, .detail-summary, .reconcile-summary-grid, .reconcile-flow, .reconcile-flow-main, .cash-flow-formula, .formula-split-grid, .formula-split-grid.triple { grid-template-columns:1fr; }
             .reconcile-flow-main, .reconcile-flow-result, .reconcile-card.variance { grid-column:1; margin-top:0; }
             .reconcile-op { display:none; }
             .log-card-head, .log-footer, .close-reconcile summary { align-items:stretch; flex-direction:column; }
@@ -250,14 +267,42 @@
             </div>
         </div>
 
-        <details class="close-reconcile" id="closeReconcile">
-            <summary>
+        <div class="close-reconcile" id="closeReconcile">
+            <div class="reconcile-header">
                 <div>
                     <div class="reconcile-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 시재 대조 보기</div>
-                    <div class="reconcile-desc">필요할 때만 펼쳐서 시작시재 + 현금입금 - 중간출금 = 보유 현금 기준의 차액을 확인합니다.</div>
+                    <div class="reconcile-desc">현금입금, 보유 현금, 차액 여부를 필요한 항목만 상세 확인합니다.</div>
                 </div>
                 <span class="reconcile-toggle"><span>보기 / 접기</span><i class="fa-solid fa-chevron-down"></i></span>
-            </summary>
+                <div class="reconcile-summary-grid">
+                    <div class="reconcile-summary-card inflow">
+                        <span class="reconcile-card-icon"><i class="fa-solid fa-arrow-down"></i></span>
+                        <div class="reconcile-copy">
+                            <span class="reconcile-card-title">현금입금</span>
+                            <strong id="detailInflow">-</strong>
+                            <small id="detailInflowMeta">정산 결제 / 예치금</small>
+                        </div>
+                    </div>
+                    <div class="reconcile-summary-card result">
+                        <span class="reconcile-card-icon"><i class="fa-solid fa-wallet"></i></span>
+                        <div class="reconcile-copy">
+                            <span class="reconcile-card-title">보유 현금</span>
+                            <strong id="detailClosing">-</strong>
+                            <small id="detailClosingMeta">마감 실사 기준</small>
+                            <button type="button" class="reconcile-detail-btn" onclick="openCloseReconcileDetailModal('cash')"><i class="fa-solid fa-up-right-from-square"></i> 자세히 보기</button>
+                        </div>
+                    </div>
+                    <div class="reconcile-summary-card variance">
+                        <span class="reconcile-card-icon"><i class="fa-solid fa-scale-balanced"></i></span>
+                        <div class="reconcile-copy">
+                            <span class="reconcile-card-title">차액 여부</span>
+                            <strong id="detailVarianceStatus">-</strong>
+                            <small id="detailVariance">-</small>
+                            <button type="button" class="reconcile-detail-btn warning" onclick="openCloseReconcileDetailModal('variance')"><i class="fa-solid fa-magnifying-glass-chart"></i> 자세히 보기</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="reconcile-body">
                 <div class="reconcile-flow">
                     <div class="reconcile-flow-main">
@@ -268,7 +313,7 @@
                             <span class="reconcile-card-icon"><i class="fa-solid fa-play"></i></span>
                             <div class="reconcile-copy">
                                 <span class="reconcile-card-title">시작시재</span>
-                                <strong id="detailOpening">-</strong>
+                                <strong id="detailOpeningLegacy">-</strong>
                                 <small>입력 금액</small>
                             </div>
                         </div>
@@ -276,16 +321,16 @@
                             <span class="reconcile-card-icon"><i class="fa-solid fa-arrow-down"></i></span>
                             <div class="reconcile-copy">
                                 <span class="reconcile-card-title">현금입금</span>
-                                <strong id="detailInflow">-</strong>
-                                <small id="detailInflowMeta">정산 결제 / 예치금</small>
+                                <strong id="detailInflowLegacy">-</strong>
+                                <small id="detailInflowMetaLegacy">정산 결제 / 예치금</small>
                             </div>
                         </div>
                         <div class="reconcile-card withdraw">
                             <span class="reconcile-card-icon"><i class="fa-solid fa-arrow-up-from-bracket"></i></span>
                             <div class="reconcile-copy">
                                 <span class="reconcile-card-title">중간출금</span>
-                                <strong id="detailWithdraw">-</strong>
-                                <small id="detailWithdrawMeta">출금 없음</small>
+                                <strong id="detailWithdrawLegacy">-</strong>
+                                <small id="detailWithdrawMetaLegacy">출금 없음</small>
                             </div>
                         </div>
                     </div>
@@ -294,8 +339,8 @@
                             <span class="reconcile-card-icon"><i class="fa-solid fa-wallet"></i></span>
                             <div class="reconcile-copy">
                                 <span class="reconcile-card-title">보유 현금</span>
-                                <strong id="detailClosing">-</strong>
-                                <small id="detailClosingMeta">마감 실사 기준</small>
+                                <strong id="detailClosingLegacy">-</strong>
+                                <small id="detailClosingMetaLegacy">마감 실사 기준</small>
                             </div>
                         </div>
                     </div>
@@ -303,14 +348,14 @@
                         <span class="reconcile-card-icon"><i class="fa-solid fa-scale-balanced"></i></span>
                         <div class="reconcile-copy">
                             <span class="reconcile-card-title">차액 여부</span>
-                            <strong id="detailVarianceStatus">-</strong>
-                            <small id="detailVariance">-</small>
+                            <strong id="detailVarianceStatusLegacy">-</strong>
+                            <small id="detailVarianceLegacy">-</small>
                         </div>
                     </div>
                 </div>
                 <div class="cash-flow-formula" id="detailFormula"></div>
             </div>
-        </details>
+        </div>
     </div>
 </div>
 
@@ -327,6 +372,16 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="reconcileDetailModal" onclick="if(event.target===this) closeCloseReconcileDetailModal()">
+    <div class="modal-card detail-modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="reconcileDetailTitle"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 시재 상세</h3>
+            <button type="button" class="modal-close" onclick="closeCloseReconcileDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body detail-body" id="reconcileDetailBody"></div>
+    </div>
+</div>
+
 <script>
 const CASH_SESSION_KEY = 'pms_night_audit_cash_sessions';
 const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
@@ -334,6 +389,7 @@ const CASH_CURRENCIES = ['PHP', 'USD', 'KRW'];
 const CASH_CURRENCY_LABELS = { PHP: '페소', USD: '달러', KRW: '원화' };
 const CASH_CURRENCY_ICON_CLASSES = { PHP: 'fa-peso-sign', USD: 'fa-dollar-sign', KRW: 'fa-won-sign' };
 let renderedRows = [];
+let closeReconcileSnapshot = null;
 
 function todayIso() {
     return window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
@@ -742,6 +798,83 @@ function renderFormula({ opening, inflow, settlement, deposit, withdrawal, closi
     `;
 }
 
+function renderReconcileDetailCards(cards = []) {
+    return `<div class="detail-summary">${cards.map(card => `
+        <div class="detail-card">
+            <span>${escapeHtml(card.label)}</span>
+            <div class="detail-card-value">${card.html ? card.value : escapeHtml(card.value)}</div>
+        </div>
+    `).join('')}</div>`;
+}
+
+function renderVarianceReviewItems(state = {}) {
+    const items = [];
+    const positive = CASH_CURRENCIES
+        .filter(currency => Number(state.variance?.[currency] || 0) > 0)
+        .map(currencyLabel);
+    const negative = CASH_CURRENCIES
+        .filter(currency => Number(state.variance?.[currency] || 0) < 0)
+        .map(currencyLabel);
+    if (!state.hasClosing) {
+        items.push('마감 실사 금액이 입력되어야 최종 차액을 확인할 수 있습니다.');
+    }
+    if (positive.length) {
+        items.push(`${positive.join(', ')} 실사 금액이 예상 보유보다 많습니다. 예치금 중복 입력, 시작시재 과다 입력, 출금 누락을 확인하세요.`);
+    }
+    if (negative.length) {
+        items.push(`${negative.join(', ')} 실사 금액이 예상 보유보다 부족합니다. 현금입금 누락, 중간 출금 미기록, 실사 입력 오류를 확인하세요.`);
+    }
+    if (!items.length) items.push('통화별 예상 보유와 실사 보유가 일치합니다.');
+    return items;
+}
+
+function openCloseReconcileDetailModal(type) {
+    if (!closeReconcileSnapshot) renderCloseLog();
+    const state = closeReconcileSnapshot;
+    const title = document.getElementById('reconcileDetailTitle');
+    const body = document.getElementById('reconcileDetailBody');
+    if (!state || !body) return;
+    if (type === 'cash') {
+        if (title) title.innerHTML = `<i class="fa-solid fa-wallet" style="color:var(--primary)"></i> 보유 현금 상세`;
+        body.innerHTML = `
+            <div class="cash-flow-formula" style="margin-top:0">
+                <div class="formula-detail-card wide">
+                    <div class="formula-detail-title"><i class="fa-solid fa-arrow-down" style="color:#047857"></i> 현금입금 구성</div>
+                    <div class="formula-split-grid">
+                        ${renderFormulaSplitCard('정산 결제', state.settlementCurrencies || {})}
+                        ${renderFormulaSplitCard('예치금', state.depositCurrencies || {})}
+                    </div>
+                </div>
+                <div class="formula-detail-card wide">
+                    <div class="formula-detail-title"><i class="fa-solid fa-wallet" style="color:var(--primary)"></i> 보유 현금</div>
+                    <div class="formula-split-grid">
+                        ${renderFormulaSplitCard('예상 보유', state.expected || {})}
+                        ${state.hasClosing ? renderFormulaSplitCard('실사 보유', state.closingCurrencies || {}) : `<div class="formula-split-card"><span class="formula-split-label">실사 보유</span><span class="cash-currency-empty">실사 전</span></div>`}
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        if (title) title.innerHTML = `<i class="fa-solid fa-scale-balanced" style="color:var(--warning)"></i> 차액 상세`;
+        body.innerHTML = `
+            ${renderReconcileDetailCards([
+                { label: '예상 보유', value: renderCurrencyLines(state.expected || {}, { includeZero: true }), html: true },
+                { label: '실사 보유', value: state.hasClosing ? renderCurrencyLines(state.closingCurrencies || {}, { includeZero: true }) : '<span class="cash-currency-empty">실사 전</span>', html: true },
+                { label: state.hasVariance ? '차액 확인' : '차액 없음', value: state.hasClosing ? renderCurrencyLines(state.variance || {}, { includeZero: true, signed: true }) : '<span class="cash-currency-empty">마감 실사 후 확인</span>', html: true }
+            ])}
+            <div class="detail-section">
+                <div class="detail-section-head"><i class="fa-solid fa-magnifying-glass-chart" style="color:var(--primary)"></i> 확인 포인트</div>
+                ${renderVarianceReviewItems(state).map(item => `<div class="detail-row"><span>확인</span><strong>${escapeHtml(item)}</strong></div>`).join('')}
+            </div>
+        `;
+    }
+    document.getElementById('reconcileDetailModal')?.classList.add('active');
+}
+
+function closeCloseReconcileDetailModal() {
+    document.getElementById('reconcileDetailModal')?.classList.remove('active');
+}
+
 function renderCloseLog() {
     const date = logDateValue();
     const session = cashSessionForDate(date);
@@ -763,6 +896,23 @@ function renderCloseLog() {
     const hasVariance = hasClosing && CASH_CURRENCIES.some(currency => Number(variance[currency] || 0) !== 0);
     const rows = filteredRows(date);
     renderedRows = rows;
+    closeReconcileSnapshot = {
+        date,
+        session,
+        settlementPhp,
+        depositPhp,
+        inflowPhp,
+        settlementCurrencies,
+        depositCurrencies,
+        inflowCurrencies,
+        withdrawalCurrencies,
+        openingCurrencies,
+        closingCurrencies,
+        expected,
+        variance,
+        hasClosing,
+        hasVariance
+    };
 
     const statusCard = document.getElementById('statusCard');
     const varianceCard = document.getElementById('varianceCard');

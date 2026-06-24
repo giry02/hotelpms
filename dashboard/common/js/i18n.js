@@ -1729,7 +1729,7 @@ function ensureSearchButtons() {
         if (!isSearchInput(input)) return;
         bindSearchInputForButton(input);
         refreshSearchInputPlaceholder(input);
-        const anchor = input.closest('.search-box-mt, .search-box, .search-bar') || input;
+        const anchor = input.closest('.search-box-mt, .search-box, .search-bar, .audit-search') || input;
         if (hasNearbySearchButton(anchor)) {
             ensureFilterSearchDivider(anchor);
             if (!input.dataset.pmsSearchEnterBound) {
