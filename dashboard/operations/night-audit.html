@@ -119,10 +119,6 @@
         .cash-reconcile-detail-btn:hover { border-color: #93c5fd; background: #dbeafe; }
         .cash-reconcile-detail-btn.warning { border-color: #fed7aa; background: #fff7ed; color: #b45309; }
         .cash-reconcile-detail-btn.warning:hover { border-color: #f59e0b; background: #fffbeb; }
-        .cash-reconcile-toggle,
-        .cash-reconcile-preview-card.opening,
-        .cash-reconcile-preview-card.withdraw,
-        .cash-reconcile-body { display: none !important; }
         .cash-reconcile-toggle { min-height: 34px; padding: 0 13px; border-radius: 8px; border: 1px solid #bfdbfe; background: #eff6ff; color: var(--primary); display: inline-flex; align-items: center; gap: 7px; font-size: .76rem; font-weight: 950; white-space: nowrap; }
         .cash-reconcile-panel[open] .cash-reconcile-toggle i { transform: rotate(180deg); }
         .cash-reconcile-toggle .when-open { display: none; }
@@ -132,10 +128,6 @@
         .cash-reconcile-body { padding: 0 15px 15px; border-top: 1px solid var(--border2); }
         .cash-reconcile-panel:not([open]) .cash-reconcile-body { display: none; }
         .cash-reconcile-panel[open] .cash-reconcile-body { display: block; }
-        .cash-reconcile-toggle,
-        .cash-reconcile-preview-card.opening,
-        .cash-reconcile-preview-card.withdraw,
-        .cash-reconcile-body { display: none !important; }
         .cash-reconcile-body .cash-summary-grid { margin-top: 15px; }
         .cash-flow-diagram { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin-top: 15px; }
         .cash-flow-main { position: relative; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -183,6 +175,9 @@
         .cash-flow-reason-btn,
         .cash-note-link { border: 1px solid #fed7aa; border-radius: 8px; background: #fff7ed; color: #b45309; font-family: var(--font); font-size: .72rem; font-weight: 950; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
         .cash-flow-reason-btn { min-height: 30px; padding: 0 11px; margin-top: 10px; }
+        .cash-flow-reason-btn[hidden] { display: none !important; }
+        .cash-flow-reason-btn.primary { border-color: #bfdbfe; background: #eff6ff; color: var(--primary); }
+        .cash-flow-reason-btn.primary:hover { border-color: #93c5fd; background: #dbeafe; }
         .cash-note-link { min-height: 32px; padding: 0 12px; margin-top: 10px; width: 100%; }
         .cash-flow-reason-btn:hover,
         .cash-note-link:hover { border-color: #f59e0b; background: #fffbeb; }
@@ -626,8 +621,8 @@
                         </div>
                     </div>
 
-                    <div class="cash-info-panel cash-reconcile-panel" id="cashReconcilePanel">
-                        <div class="cash-reconcile-summary">
+                    <details class="cash-info-panel cash-reconcile-panel" id="cashReconcilePanel" open>
+                        <summary class="cash-reconcile-summary">
                             <div class="cash-reconcile-summary-main">
                                 <div class="cash-block-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 시재 대조 보기</div>
                                 <div class="cash-block-desc">시작시재 + 현금입금 - 중간출금 = 보유 현금으로 차액을 확인합니다.</div>
@@ -681,7 +676,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </summary>
                         <div class="cash-reconcile-body">
                         <div class="cash-flow-diagram">
                             <div class="cash-flow-main">
@@ -710,6 +705,7 @@
                                         <div class="cash-flow-label flow-withdraw-label">Mid-shift withdrawal</div>
                                         <div class="cash-flow-value" id="cashWithdrawPhp">-</div>
                                         <div class="cash-flow-detail" id="cashWithdrawDetail" data-no-currency-normalize="true">-</div>
+                                        <button type="button" class="cash-flow-reason-btn" id="cashWithdrawDetailBtn" onclick="openCashWithdrawalDetailModal()" hidden><i class="fa-solid fa-list-ul"></i> 출금 상세 보기</button>
                                     </div>
                                 </div>
                             </div>
@@ -720,6 +716,7 @@
                                         <div class="cash-flow-label flow-result-label">Cash on hand</div>
                                         <div class="cash-flow-value" id="cashClosingLabel">-</div>
                                         <div class="cash-flow-detail" id="cashClosingDetail" data-no-currency-normalize="true">-</div>
+                                        <button type="button" class="cash-flow-reason-btn primary" id="cashOnHandFlowBtn" onclick="openCashOnHandDetailModal()"><i class="fa-solid fa-up-right-from-square"></i> 보유 현금 상세</button>
                                     </div>
                                 </div>
                             </div>
@@ -742,7 +739,7 @@
                         </details>
 
                         </div>
-                    </div>
+                    </details>
 
                     <div class="cash-ledger">
                         <div class="cash-ledger-head">
@@ -901,6 +898,16 @@
             <button type="button" class="modal-close" onclick="closeCashOnHandDetailModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="cash-insight-body" id="cashOnHandDetailBody"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="cashWithdrawalDetailModal" onclick="if(event.target===this) closeCashWithdrawalDetailModal()">
+    <div class="modal-card cash-insight-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-arrow-up-from-bracket" style="color:#b45309"></i> 중간출금 상세</h3>
+            <button type="button" class="modal-close" onclick="closeCashWithdrawalDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="cash-insight-body" id="cashWithdrawalDetailBody"></div>
     </div>
 </div>
 
@@ -2343,6 +2350,36 @@ function closeCashOnHandDetailModal() {
     document.getElementById('cashOnHandDetailModal')?.classList.remove('active');
 }
 
+function openCashWithdrawalDetailModal() {
+    renderCashHandover();
+    const state = cashHandoverSnapshot;
+    const body = document.getElementById('cashWithdrawalDetailBody');
+    if (!body || !state) return;
+    const withdrawals = state.session?.withdrawals || [];
+    body.innerHTML = `
+        <div class="cash-insight-callout">
+            ${cashUiText('중간출금 카드는 통화별 합계를 보여주고, 상세에서는 출금 건별 금액과 담당자, 메모를 확인합니다.', 'The mid-shift withdrawal card shows currency totals; this detail view lists each withdrawal record.')}
+        </div>
+        ${withdrawals.length ? `
+            <div class="cash-reconcile-detail-list">
+                ${withdrawals.map((item, index) => `
+                    <div class="cash-reconcile-detail-card">
+                        <div class="cash-reconcile-detail-title"><i class="fa-solid fa-arrow-up-from-bracket" style="color:#b45309"></i> ${cashUiText(`${index + 1}차 출금`, `Withdrawal ${index + 1}`)}</div>
+                        <div class="cash-reconcile-detail-sub">${escapeAudit([formatAuditTime(item.at || item.createdAt), item.operator || item.createdBy || operatorName()].filter(Boolean).join(' · '))}</div>
+                        ${renderCashCurrencyLines(withdrawalBreakdownForRecord(item), { includeZero: false, emptyLabel: cashUiText('금액 없음', 'No amount') })}
+                        <div class="cash-flow-detail">${escapeAudit([item.receiver ? `${cashUiText('수령', 'Receiver')} ${item.receiver}` : '', item.note ? `${cashUiText('메모', 'Memo')} ${item.note}` : ''].filter(Boolean).join(' · ') || cashUiText('메모 없음', 'No memo'))}</div>
+                    </div>
+                `).join('')}
+            </div>
+        ` : renderCashInsightSection(cashUiText('중간출금', 'Mid-shift withdrawal'), 'fa-arrow-up-from-bracket', [nightAuditText('cash.noWithdrawals')])}
+    `;
+    document.getElementById('cashWithdrawalDetailModal')?.classList.add('active');
+}
+
+function closeCashWithdrawalDetailModal() {
+    document.getElementById('cashWithdrawalDetailModal')?.classList.remove('active');
+}
+
 function closeBasisItems(state = {}) {
     const snapshot = state.snapshot || {};
     const items = [
@@ -2965,8 +3002,10 @@ function renderCashHandover() {
     setHtml('cashVarianceDetail', hasClosingRecord ? renderCashCurrencyLines(varianceCurrencies, { signed: true, includeZero: true }) : escapeAudit(cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare')));
     set('cashPreviewVariance', hasClosingRecord ? cashUiText(hasVariance ? '\uCC28\uC561 \uD655\uC778' : '\uCC28\uC561 \uC5C6\uC74C', hasVariance ? 'Variance' : 'Matched') : cashUiText('\uC2E4\uC0AC \uC804', 'Not counted'));
     setHtml('cashPreviewVarianceMeta', hasClosingRecord ? renderCashCurrencyLines(varianceCurrencies, { signed: true, includeZero: true }) : escapeAudit(cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare')));
+    const withdrawDetailBtn = document.getElementById('cashWithdrawDetailBtn');
+    if (withdrawDetailBtn) withdrawDetailBtn.hidden = withdrawalCount <= 1;
     const reasonBtn = document.getElementById('cashVarianceReasonBtn');
-    if (reasonBtn) reasonBtn.hidden = !hasVariance;
+    if (reasonBtn) reasonBtn.hidden = false;
     setHtml('cashReconcileDetailList', renderCashReconcileDetailCards(cashHandoverSnapshot));
     renderCloseBasisPanel(cashHandoverSnapshot);
     set('settlementPaidPhp', moneyPhp(snapshot.paidPhp));
@@ -3223,6 +3262,12 @@ function applyNightAuditI18n() {
         const icon = button.querySelector('i')?.outerHTML || '';
         button.innerHTML = `${icon} ${cashUiText('\uC790\uC138\uD788 \uBCF4\uAE30', 'View details')}`;
     });
+    const cashWithdrawDetailBtn = document.getElementById('cashWithdrawDetailBtn');
+    if (cashWithdrawDetailBtn) cashWithdrawDetailBtn.innerHTML = `<i class="fa-solid fa-list-ul"></i> ${cashUiText('\uCD9C\uAE08 \uC0C1\uC138 \uBCF4\uAE30', 'Withdrawal details')}`;
+    const cashOnHandFlowBtn = document.getElementById('cashOnHandFlowBtn');
+    if (cashOnHandFlowBtn) cashOnHandFlowBtn.innerHTML = `<i class="fa-solid fa-up-right-from-square"></i> ${cashUiText('\uBCF4\uC720 \uD604\uAE08 \uC0C1\uC138', 'Cash on hand detail')}`;
+    const cashVarianceReasonBtn = document.getElementById('cashVarianceReasonBtn');
+    if (cashVarianceReasonBtn) cashVarianceReasonBtn.innerHTML = `<i class="fa-solid fa-magnifying-glass-chart"></i> ${cashUiText('\uCC28\uC561 \uC0AC\uC720 \uBCF4\uAE30', 'Variance details')}`;
     const cashActionConfig = [
         ['.cash-action-card.opening', 'cash.step1', 'cash.openActionTitle', 'cash.openHelp', 'cash.openCta'],
         ['.cash-action-card.withdraw', 'cash.step2', 'cash.withdrawActionTitle', 'cash.withdrawHelp', 'cash.withdrawCta'],
