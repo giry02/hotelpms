@@ -29,7 +29,7 @@
         .log-date-tools { display:flex; align-items:center; gap:8px; }
         .log-date-input, .log-select { height:38px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--txt); font-family:var(--font); font-size:.78rem; font-weight:800; padding:0 10px; }
         .log-select { min-width:132px; }
-        .close-summary-grid { order:1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:16px; }
+        .close-summary-grid { order:1; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; margin-bottom:16px; }
         .close-summary-card { position:relative; display:flex; align-items:center; gap:13px; min-height:86px; border:1px solid var(--border); border-radius:14px; background:#fff; padding:16px 18px; box-shadow:0 8px 20px rgba(15,23,42,.04); overflow:hidden; }
         .close-summary-card::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--primary); }
         .close-summary-card.success::before { background:var(--success); }
@@ -42,7 +42,7 @@
         .summary-copy { min-width:0; }
         .summary-value { color:var(--txt); font-size:1.18rem; font-weight:950; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .summary-label { margin-top:3px; color:var(--txt2); font-size:.76rem; font-weight:850; }
-        .summary-sub { margin-top:5px; color:var(--txt3); font-size:.68rem; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .summary-sub { margin-top:5px; color:var(--txt3); font-size:.68rem; font-weight:800; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
         .log-main-card { order:3; background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:16px; }
         .log-card-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 18px; border-bottom:1px solid var(--border2); background:#fff; }
         .log-card-title { display:flex; align-items:center; gap:8px; color:var(--txt); font-size:.98rem; font-weight:950; }
@@ -90,11 +90,15 @@
         .log-empty { padding:32px 16px; text-align:center; color:var(--txt3); font-weight:850; }
         .log-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border-top:1px solid var(--border2); background:#fff; color:var(--txt2); font-size:.78rem; font-weight:850; }
         .close-reconcile { order:2; background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:16px; }
-        .reconcile-header { list-style:none; cursor:default; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px 18px; background:#fbfdff; border-bottom:1px solid var(--border2); }
+        .reconcile-header { list-style:none; cursor:pointer; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px 18px; background:#fbfdff; border-bottom:1px solid var(--border2); }
         .reconcile-title { display:flex; align-items:center; gap:8px; color:var(--txt); font-size:.92rem; font-weight:950; }
         .reconcile-desc { margin-top:3px; color:var(--txt3); font-size:.72rem; font-weight:750; line-height:1.45; }
-        .reconcile-toggle { display:none !important; }
+        .reconcile-toggle { flex:0 0 auto; min-height:30px; padding:0 10px; border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; color:var(--primary); display:inline-flex; align-items:center; justify-content:center; gap:7px; font-size:.72rem; font-weight:950; white-space:nowrap; }
+        .reconcile-toggle i { transition:transform .16s ease; }
         .reconcile-body { display:block; padding:16px 18px 18px; border-top:0; }
+        .close-reconcile.collapsed .reconcile-header { border-bottom:0; }
+        .close-reconcile.collapsed .reconcile-body { display:none; }
+        .close-reconcile:not(.collapsed) .reconcile-toggle i { transform:rotate(180deg); }
         .reconcile-summary-grid { display:none !important; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
         .reconcile-summary-card { border:1px solid var(--border2); border-radius:12px; background:#fff; padding:12px; display:flex; align-items:flex-start; gap:10px; min-width:0; }
         .reconcile-summary-card.inflow { border-color:#a7f3d0; }
@@ -215,11 +219,19 @@
                 </div>
             </div>
             <div class="close-summary-card">
-                <span class="summary-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+                <span class="summary-icon"><i class="fa-solid fa-calculator"></i></span>
                 <div class="summary-copy">
-                    <div class="summary-value" id="summaryLogCount">0건</div>
-                    <div class="summary-label">처리 내역</div>
-                    <div class="summary-sub" id="summaryLogBreakdown">시재·입금·출금·마감</div>
+                    <div class="summary-value" id="summarySettlementAmount">₱0</div>
+                    <div class="summary-label">마감 정산액</div>
+                    <div class="summary-sub" id="summarySettlementSub">체크아웃 Folio 기준</div>
+                </div>
+            </div>
+            <div class="close-summary-card">
+                <span class="summary-icon"><i class="fa-solid fa-credit-card"></i></span>
+                <div class="summary-copy">
+                    <div class="summary-value" id="summaryPaymentMix">-</div>
+                    <div class="summary-label">정산 인입 구분</div>
+                    <div class="summary-sub" id="summaryPaymentMixSub">현금 / 카드</div>
                 </div>
             </div>
             <div class="close-summary-card">
@@ -270,13 +282,13 @@
             </div>
         </div>
 
-        <div class="close-reconcile" id="closeReconcile">
-            <div class="reconcile-header">
+        <div class="close-reconcile collapsed" id="closeReconcile">
+            <div class="reconcile-header" role="button" tabindex="0" onclick="toggleCloseReconcile()" onkeydown="handleCloseReconcileKey(event)">
                 <div>
                     <div class="reconcile-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 시재 대조 보기</div>
                     <div class="reconcile-desc">현금입금, 보유 현금, 차액 여부를 필요한 항목만 상세 확인합니다.</div>
                 </div>
-                <span class="reconcile-toggle"><span>보기 / 접기</span><i class="fa-solid fa-chevron-down"></i></span>
+                <span class="reconcile-toggle"><span id="reconcileToggleLabel">펼치기</span><i class="fa-solid fa-chevron-down"></i></span>
                 <div class="reconcile-summary-grid">
                     <div class="reconcile-summary-card inflow">
                         <span class="reconcile-card-icon"><i class="fa-solid fa-arrow-down"></i></span>
@@ -672,8 +684,10 @@ function sampleCloseLogPayments(date, relativeOffset = 0) {
         rows = [
             ...rows,
             [`FOL-${ymd}-PH01`, 'Al Rashid Omar', 'payment', 6200, 'PHP', 6200, 'cash', '통합 POS 미니바 정산', '11:35', 'Tran Linh'],
+            [`FOL-${ymd}-1205-CARD`, 'Maria Santos', 'payment', 9800, 'PHP', 0, 'card', '객실 잔액 카드 정산', '12:10', 'Park Minjae'],
             [`FOL-${ymd}-1405`, 'Sarah Connor', 'payment', 3350, 'PHP', 3350, 'cash', '골프장 그린피 정산', '13:50', 'Nguyen Kim'],
             [`FOL-${ymd}-1206`, 'Robert Ford', 'payment', 2360, 'PHP', 2360, 'cash', '렌터카 이용료 정산', '16:15', 'Park Minjae'],
+            [`FOL-${ymd}-1402-CARD`, 'Rodriguez Van', 'payment', 4600, 'PHP', 0, 'card', '레스토랑 후불 카드 정산', '18:25', 'Tran Linh'],
             [`DEP-${ymd}-GRP`, 'Samsung Tech Conference 2026', 'deposit', 15000, 'USD', 260, 'cash', '행사 추가 보관금 수납', '20:05', 'Nguyen Kim']
         ];
     } else if (relativeOffset === 1) {
@@ -681,7 +695,9 @@ function sampleCloseLogPayments(date, relativeOffset = 0) {
             ...rows,
             [`FOL-${ymd}-0802`, 'Lee Hana', 'payment', 28900, 'PHP', 28900, 'cash', '내일 체크아웃 예정 객실 선결제', '10:10', 'Tran Linh'],
             [`FOL-${ymd}-POS`, 'Tanaka Yuki', 'payment', 7600, 'PHP', 7600, 'cash', '통합 POS 레스토랑 정산', '12:45', 'Nguyen Kim'],
+            [`FOL-${ymd}-CARD-1201`, 'Wong Li', 'payment', 12800, 'PHP', 0, 'card', '프런트 카드 정산', '14:05', 'Nguyen Kim'],
             [`FOL-${ymd}-GOLF`, 'David Chen', 'payment', 4100, 'USD', 73, 'cash', '골프장 카트 이용료 정산', '15:25', 'Park Minjae'],
+            [`FOL-${ymd}-CARD-POS`, 'Garcia Miguel', 'payment', 5200, 'PHP', 0, 'card', '통합 POS 카드 정산', '16:50', 'Tran Linh'],
             [`DEP-${ymd}-1401`, 'Maria Santos', 'deposit', 9800, 'KRW', 245000, 'cash', '연박 보관금 수납', '18:35', 'Nguyen Kim']
         ];
     }
@@ -694,7 +710,7 @@ function sampleCloseLogPayments(date, relativeOffset = 0) {
         receivedCurrency: row[4],
         receivedAmount: row[5],
         method: row[6],
-        methodLabel: '현금',
+        methodLabel: row[6] === 'card' ? '신용카드' : '현금',
         note: row[7],
         createdAt: sampleDateTime(date, row[8]),
         operator: row[9],
@@ -762,8 +778,37 @@ function shiftLogDate(days) {
     setLogDate(addDaysToIsoDate(logDateValue(), days));
 }
 
+function allPaymentsForDate(date) {
+    return settlementPayments().filter(item => item.businessDate === date);
+}
+
 function paymentsForDate(date) {
-    return settlementPayments().filter(item => item.businessDate === date && (item.method || 'cash') === 'cash');
+    return allPaymentsForDate(date).filter(item => (item.method || 'cash') === 'cash');
+}
+
+function settlementPaymentMethodTotals(records = []) {
+    return records.reduce((acc, item) => {
+        if (item.kind === 'deposit') return acc;
+        const amount = Number(item.appliedPhpAmount || 0);
+        const method = String(item.method || 'cash').toLowerCase();
+        if (method === 'cash') acc.cash += amount;
+        else acc.card += amount;
+        return acc;
+    }, { cash: 0, card: 0 });
+}
+
+function toggleCloseReconcile(forceOpen) {
+    const panel = document.getElementById('closeReconcile');
+    if (!panel) return;
+    const nextOpen = typeof forceOpen === 'boolean' ? forceOpen : panel.classList.contains('collapsed');
+    panel.classList.toggle('collapsed', !nextOpen);
+    setText('reconcileToggleLabel', nextOpen ? '접기' : '펼치기');
+}
+
+function handleCloseReconcileKey(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    toggleCloseReconcile();
 }
 
 function cashSessionForDate(date) {
@@ -990,9 +1035,13 @@ function closeCloseReconcileDetailModal() {
 function renderCloseLog() {
     const date = logDateValue();
     const session = cashSessionForDate(date);
+    const allPayments = allPaymentsForDate(date);
     const cashPayments = paymentsForDate(date);
+    const allSettlementRecords = allPayments.filter(item => item.kind !== 'deposit');
     const settlementRecords = cashPayments.filter(item => item.kind !== 'deposit');
     const depositRecords = cashPayments.filter(item => item.kind === 'deposit');
+    const settlementTotalPhp = allSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const paymentMethodTotals = settlementPaymentMethodTotals(allSettlementRecords);
     const settlementPhp = settlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const depositPhp = depositRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const inflowPhp = settlementPhp + depositPhp;
@@ -1012,6 +1061,8 @@ function renderCloseLog() {
     closeReconcileSnapshot = {
         date,
         session,
+        settlementTotalPhp,
+        paymentMethodTotals,
         settlementPhp,
         depositPhp,
         inflowPhp,
@@ -1034,8 +1085,10 @@ function renderCloseLog() {
     if (varianceCard) varianceCard.className = `close-summary-card ${!hasClosing ? '' : hasVariance ? 'danger' : 'success'}`;
     setText('summaryStatus', hasClosing ? '마감 완료' : '마감 전');
     setText('summaryClosedBy', hasClosing ? `${session.closedBy || '-'} · ${formatLogTime(session.closedAt)}` : '마감 실사 입력 필요');
-    setText('summaryLogCount', `${rows.length}건`);
-    setText('summaryLogBreakdown', `입금 ${cashPayments.length}건 · 출금 ${withdrawalCount}건`);
+    setText('summarySettlementAmount', moneyPhp(settlementTotalPhp));
+    setText('summarySettlementSub', `정산 ${allSettlementRecords.length}건 · 현금 ${moneyPhp(paymentMethodTotals.cash)} · 카드 ${moneyPhp(paymentMethodTotals.card)}`);
+    setText('summaryPaymentMix', `현금 ${moneyPhp(paymentMethodTotals.cash)}`);
+    setText('summaryPaymentMixSub', `카드 ${moneyPhp(paymentMethodTotals.card)} · 시재 반영은 현금만`);
     setText('summaryInflowCount', `${cashPayments.length}건`);
     setText('summaryInflowSub', `정산 ${settlementRecords.length}건 · 예치 ${depositRecords.length}건 · ${moneyPhp(inflowPhp)}`);
     const varianceCurrencyCount = CASH_CURRENCIES.filter(currency => Number(variance[currency] || 0) !== 0).length;
