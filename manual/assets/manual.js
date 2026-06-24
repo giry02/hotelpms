@@ -1,5 +1,6 @@
 (function () {
     const data = window.MANUAL_DATA;
+    const currentScope = window.MANUAL_SCOPE || 'all';
     let currentLang = localStorage.getItem('hotelManualLang') || 'ko';
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -65,14 +66,67 @@
         }
     };
 
+    const scopeUi = {
+        hotel: {
+            ko: {
+                subtitle: '호텔관리 사용 매뉴얼',
+                title: 'Hotel PMS 호텔관리 매뉴얼',
+                intro: '호텔 운영자가 사용하는 대시보드, 예약, 객실, 정산, CRM, 설정 화면과 주요 팝업을 업무 흐름별로 정리했습니다.',
+                lead: '좌측 목차에서 호텔 운영 화면을 선택하거나 검색어로 화면/팝업을 찾을 수 있습니다. 어드민 화면은 별도 매뉴얼에서 확인합니다.',
+                docType: 'HOTEL MANUAL',
+                popupIndex: '호텔관리 팝업/모달 색인',
+                documentTitle: 'Hotel PMS Hotel Operation Manual'
+            },
+            en: {
+                subtitle: 'Hotel Operation Manual',
+                title: 'Hotel PMS Hotel Operation Manual',
+                intro: 'Screens and major popups used by hotel operators are organized by operational workflow.',
+                lead: 'Use the left table of contents or search to find hotel operation screens and popups. Admin screens are documented in a separate manual.',
+                docType: 'HOTEL MANUAL',
+                popupIndex: 'Hotel Popup / Modal Index',
+                documentTitle: 'Hotel PMS Hotel Operation Manual'
+            }
+        },
+        admin: {
+            ko: {
+                subtitle: '어드민 사용 매뉴얼',
+                title: 'Hotel PMS 어드민 매뉴얼',
+                intro: '플랫폼 운영자가 사용하는 입점 호텔, 광고, 결제, 연동, 고객지원, 공지, 관리자 감사 로그 화면을 별도로 정리했습니다.',
+                lead: '좌측 목차에서 어드민 화면을 선택하거나 검색어로 화면/팝업을 찾을 수 있습니다. 호텔 운영 화면과 분리해 플랫폼 관리 기준으로 확인합니다.',
+                docType: 'ADMIN MANUAL',
+                popupIndex: '어드민 팝업/모달 색인',
+                documentTitle: 'Hotel PMS Admin Manual'
+            },
+            en: {
+                subtitle: 'Admin Manual',
+                title: 'Hotel PMS Admin Manual',
+                intro: 'Platform administration screens for tenants, ads, billing, integrations, support, notices, and audit logs are documented separately.',
+                lead: 'Use the left table of contents or search to find admin screens and popups. Hotel operation screens are separated into the hotel manual.',
+                docType: 'ADMIN MANUAL',
+                popupIndex: 'Admin Popup / Modal Index',
+                documentTitle: 'Hotel PMS Admin Manual'
+            }
+        }
+    };
+
     function txt(value) {
         if (value == null) return '';
         if (typeof value === 'string') return value;
         return value[currentLang] || value.ko || value.en || '';
     }
 
+    function activeUi() {
+        return { ...ui[currentLang], ...(scopeUi[currentScope]?.[currentLang] || {}) };
+    }
+
+    function scopedGroups() {
+        if (currentScope === 'admin') return data.groups.filter(group => group.type === 'admin');
+        if (currentScope === 'hotel') return data.groups.filter(group => group.type !== 'admin');
+        return data.groups;
+    }
+
     function screens() {
-        return data.groups.flatMap(group => group.screens.map(screen => ({ ...screen, group })));
+        return scopedGroups().flatMap(group => group.screens.map(screen => ({ ...screen, group })));
     }
 
     function popups() {
@@ -90,8 +144,10 @@
     }
 
     function setStaticText() {
-        const langUi = ui[currentLang];
+        const langUi = activeUi();
         document.documentElement.lang = currentLang;
+        document.body.dataset.manualScope = currentScope;
+        if (langUi.documentTitle) document.title = langUi.documentTitle;
         $$('[data-i18n-ui]').forEach(el => {
             const key = el.getAttribute('data-i18n-ui');
             if (langUi[key]) el.textContent = langUi[key];
@@ -114,7 +170,8 @@
     }
 
     function renderNav() {
-        $('[data-manual-nav]').innerHTML = data.groups.map(group => `
+        const langUi = activeUi();
+        $('[data-manual-nav]').innerHTML = scopedGroups().map(group => `
             <div class="nav-group">
                 <p class="nav-group-title">${escapeHtml(txt(group.title))}</p>
                 ${group.screens.map(screen => `
@@ -127,7 +184,7 @@
         `).join('') + `
             <div class="nav-group">
                 <p class="nav-group-title">Popup</p>
-                <a class="nav-link" href="#popup-index"><i class="fa-solid fa-window-restore"></i><span>${escapeHtml(ui[currentLang].popupIndex)}</span></a>
+                <a class="nav-link" href="#popup-index"><i class="fa-solid fa-window-restore"></i><span>${escapeHtml(langUi.popupIndex)}</span></a>
             </div>
         `;
     }
