@@ -297,7 +297,7 @@ function roomId(room) {
 }
 
 function isPendingAssignmentName(value) {
-    return /pending assignment/i.test(String(value || ''));
+    return /(pending assignment|투숙객\s*미배정|미배정|미지정|등록\s*대기)/i.test(String(value || ''));
 }
 
 function amountNumber(value) {
@@ -2293,6 +2293,12 @@ window.addEventListener('DataReady', () => {
         return typeof isPendingAssignmentName === 'function' && isPendingAssignmentName(text) ? '' : text;
     }
 
+    function isPlaceholderGuest(guest) {
+        if (!guest) return true;
+        const name = String(guest.name || guest.guestName || guest.roomingGuestName || guest.guest || '').trim();
+        return !cleanGuestName(name) || guest.isGroupPlaceholder === true;
+    }
+
     function reservationGuests(roomIdValue) {
         const res = groupReservationForRoom(roomIdValue);
         if (!res) return [];
@@ -2675,8 +2681,9 @@ window.addEventListener('DataReady', () => {
 
     window.openRoomingModal = function(roomIdValue = '', guestId = '', preferredRole = 'primary') {
         const shouldLoadExisting = !!guestId || preferredRole !== 'companion';
-        const guest = shouldLoadExisting ? (guestById(roomIdValue, guestId) || (!guestId ? primaryForRoom(roomIdValue) : null)) : null;
-        if (typeof previousOpenRoomingModal === 'function') previousOpenRoomingModal(shouldLoadExisting ? roomIdValue : '', guest && !guest.sourceReservation ? guest.id : '');
+        const rawGuest = shouldLoadExisting ? (guestById(roomIdValue, guestId) || (!guestId ? primaryForRoom(roomIdValue) : null)) : null;
+        const guest = isPlaceholderGuest(rawGuest) ? null : rawGuest;
+        if (typeof previousOpenRoomingModal === 'function') previousOpenRoomingModal(guest ? roomIdValue : '', guest && !guest.sourceReservation ? guest.id : '');
         setTimeout(() => {
             const title = document.querySelector('#roomingModal .modal-title, #roomingModalTitle');
             if (title) title.textContent = guest ? '투숙객 정보 수정' : '투숙객 등록';
@@ -2705,7 +2712,8 @@ window.addEventListener('DataReady', () => {
 
     window.saveRoomingGuest = function() {
         const widget = window._roomingGuestWidget;
-        const selected = widget?.getSelectedGuest?.();
+        const selectedRaw = widget?.getSelectedGuest?.();
+        const selected = isPlaceholderGuest(selectedRaw) ? null : selectedRaw;
         const nameInput = document.getElementById('nrGuestRooming') || document.getElementById('guestNameInput');
         const phoneInput = document.getElementById('nrPhoneRooming');
         const emailInput = document.getElementById('nrEmailRooming');

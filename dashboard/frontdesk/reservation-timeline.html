@@ -429,6 +429,14 @@ function parseTimelineDate(value) {
     return null;
 }
 
+function timelineVisualEndDate(endDate) {
+    if (!endDate) return null;
+    const visualEnd = new Date(endDate);
+    visualEnd.setDate(visualEnd.getDate() + 1);
+    visualEnd.setHours(0, 0, 0, 0);
+    return visualEnd;
+}
+
 function isTimelineCurrentStay(res) {
     const start = parseTimelineDate(res?.checkInDate || res?.checkin || res?.cin);
     const end = parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
@@ -765,16 +773,16 @@ function buildTimeline() {
                 const rCoutDate = parseTimelineDate(res.cout);
                 if (!rCinDate || !rCoutDate) throw new Error('invalid timeline dates');
                 renderStart = Math.round((rCinDate - baseDate) / 86400000);
-                renderEnd = Math.round((rCoutDate - baseDate) / 86400000);
+                renderEnd = Math.round((timelineVisualEndDate(rCoutDate) - baseDate) / 86400000);
             } catch(e) {
                 const offset = Math.round((baseDate - EPOCH) / 86400000);
                 renderStart = res.start - offset;
-                renderEnd = renderStart + res.len;
+                renderEnd = renderStart + Number(res.len || res.nights || 1) + 1;
             }
         } else {
             const offset = Math.round((baseDate - EPOCH) / 86400000);
             renderStart = res.start - offset;
-            renderEnd = renderStart + res.len;
+            renderEnd = renderStart + Number(res.len || res.nights || 1) + 1;
         }
 
         const visibilityStatus = effectiveTimelineStatus(res);
@@ -897,16 +905,18 @@ function goToday() {
 function reservationWindow(res) {
     if (res.cin && res.cout) {
         try {
+            const start = parseTimelineDate(res.cin);
+            const end = parseTimelineDate(res.cout);
             return {
-                start: parseTimelineDate(res.cin),
-                end: parseTimelineDate(res.cout)
+                start,
+                end: timelineVisualEndDate(end)
             };
         } catch(e) {}
     }
     const start = new Date(EPOCH);
     start.setDate(start.getDate() + Number(res.start || 0));
     const end = new Date(start);
-    end.setDate(end.getDate() + Number(res.len || res.nights || 1));
+    end.setDate(end.getDate() + Number(res.len || res.nights || 1) + 1);
     return { start, end };
 }
 

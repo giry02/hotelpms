@@ -12,6 +12,7 @@
 <link href="common/css/dashboard.css" rel="stylesheet"/>
 <link href="common/css/frontdesk.css" rel="stylesheet"/>
 <script src="common/js/sidebar.js"></script>
+<script src="common/js/api/api-core.js"></script>
 <script src="common/js/topbar.js"></script>
 <script src="common/js/i18n-catalog.js"></script>
 <script src="common/js/i18n.js"></script>
@@ -33,6 +34,7 @@
         .timeline-icon.frontdesk { background: #3B82F6; }
         .timeline-icon.housekeeping { background: #10B981; }
         .timeline-icon.system { background: #F59E0B; }
+        .timeline-icon.billing { background: #8B5CF6; }
         
         .timeline-content { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-left: 12px; }
         .timeline-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
@@ -54,6 +56,7 @@
 <div class="notif-tab active" data-filter="all" data-i18n-key="All">All</div>
 <div class="notif-tab" data-filter="frontdesk" data-i18n-key="Front Desk">Front Desk</div>
 <div class="notif-tab" data-filter="housekeeping" data-i18n-key="Housekeeping">Housekeeping</div>
+<div class="notif-tab" data-filter="billing" data-i18n-key="Billing">Billing</div>
 <div class="notif-tab" data-filter="system" data-i18n-key="System / Booking">System / Booking</div>
 </div>
 <div class="activity-timeline" id="timelineContainer">
@@ -63,7 +66,7 @@
 </div>
 </div>
 <script>
-const activities = window.PMS_Notifications || [];
+let activities = [];
 
 function getNotificationLang() {
     return window.currentLang || localStorage.getItem('pms_lang') || 'ko';
@@ -72,6 +75,48 @@ function getNotificationLang() {
 function localized(value) {
     if (value && typeof value === 'object') return value[getNotificationLang()] || value.en || value.ko || '';
     return value || '';
+}
+
+function normalizeNotificationType(item) {
+    const raw = String(item.category || item.type || '').toLowerCase();
+    if (raw.includes('housekeeping')) return 'housekeeping';
+    if (raw.includes('reservation') || raw.includes('frontdesk') || raw.includes('group')) return 'frontdesk';
+    if (raw.includes('billing') || raw.includes('folio') || raw.includes('audit')) return 'billing';
+    return 'system';
+}
+
+function normalizeNotification(item) {
+    const type = normalizeNotificationType(item);
+    const fallbackIcon = {
+        frontdesk: 'fa-book-bookmark',
+        housekeeping: 'fa-broom',
+        billing: 'fa-credit-card',
+        system: 'fa-bell'
+    }[type];
+    return {
+        ...item,
+        type,
+        icon: item.icon || fallbackIcon,
+        title: item.title || item.label || item.type,
+        desc: item.desc || item.label || ''
+    };
+}
+
+async function loadNotificationActivities() {
+    if (Array.isArray(window.PMS_Notifications) && window.PMS_Notifications.length) {
+        activities = window.PMS_Notifications.map(normalizeNotification);
+        return;
+    }
+    try {
+        if (window.PmsMockApi) {
+            const env = await window.PmsMockApi.request('GET', '/dashboard/today-activities');
+            activities = window.PmsMockApi.items(env).map(normalizeNotification);
+            return;
+        }
+    } catch (error) {
+        console.warn('Notification activity load failed', error);
+    }
+    activities = [];
 }
 
 function renderActivities(filter) {
@@ -106,7 +151,8 @@ function renderActivities(filter) {
 }
 
 // Init — wait for sidebar/DataReady
-window.addEventListener('DataReady', () => {
+window.addEventListener('DataReady', async () => {
+    await loadNotificationActivities();
     document.querySelectorAll('#filterTabs .notif-tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
             document.querySelectorAll('#filterTabs .notif-tab').forEach(t => t.classList.remove('active'));

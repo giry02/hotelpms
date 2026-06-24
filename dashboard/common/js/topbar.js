@@ -62,6 +62,14 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
         return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     }
 
+    function pickLocalized(value) {
+        if (value && typeof value === 'object') {
+            const lang = currentLang() === 'en' ? 'en' : 'ko';
+            return value[lang] || value.ko || value.en || '';
+        }
+        return value || '';
+    }
+
     function activityIcon(type) {
         const value = String(type || '').toLowerCase();
         if (value.includes('housekeeping')) return 'fa-broom';
@@ -101,8 +109,8 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
             <div class="notif-item ${notificationClass(item)}">
                 <div class="notif-icon"><i class="fa-solid ${item.icon || activityIcon(item.type)}"></i></div>
                 <div class="notif-content">
-                    <div class="n-title">${escapeHtml(item.title || activityTitle(item.type))}</div>
-                    <div class="n-desc" style="font-size:0.8rem;color:var(--txt2);margin-bottom:4px">${escapeHtml(item.desc || item.label || '')}</div>
+                    <div class="n-title">${escapeHtml(pickLocalized(item.title) || activityTitle(item.type))}</div>
+                    <div class="n-desc" style="font-size:0.8rem;color:var(--txt2);margin-bottom:4px">${escapeHtml(pickLocalized(item.desc) || pickLocalized(item.label) || '')}</div>
                     <span class="n-time" style="font-size:0.7rem;color:var(--txt3)">${escapeHtml(item.time || '')}</span>
                 </div>
             </div>
@@ -142,6 +150,7 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
                     type: item.type,
                     title: item.title || activityTitle(item.type),
                     desc: item.desc || item.label,
+                    label: item.label,
                     time: item.time,
                     icon: item.icon || activityIcon(item.type),
                     urgent: Boolean(item.urgent)
