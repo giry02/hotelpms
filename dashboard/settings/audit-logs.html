@@ -234,7 +234,7 @@ const FIELD_LABELS = {
     cashCount: '시재'
 };
 
-const AUDIT_DEMO_STORAGE_KEY = 'pms_audit_demo_seed_v2';
+const AUDIT_DEMO_STORAGE_KEY = 'pms_audit_demo_seed_v3';
 const AUDIT_PAGE_SIZE = 12;
 let auditCurrentPage = 1;
 const AUDIT_DEMO_ACTORS = {
@@ -398,15 +398,20 @@ function ensureAuditDemoLogs() {
     if (!window.PmsPrivacyAudit) return;
     const storageKey = window.PmsPrivacyAudit.storageKey || 'pms_privacy_audit_logs';
     const logs = readAuditLogs();
-    const existingActions = new Set(logs.map(entry => entry.action));
-    const existingIds = new Set(logs.map(entry => entry.id));
-    const missing = auditDemoEntries().filter(entry => !existingActions.has(entry.action) && !existingIds.has(entry.id));
-    if (!missing.length) {
-        localStorage.setItem(AUDIT_DEMO_STORAGE_KEY, 'seeded');
+    const today = auditTodayIso();
+    const demoEntries = auditDemoEntries();
+    const demoIds = new Set(demoEntries.map(entry => entry.id));
+    const seededDate = localStorage.getItem(AUDIT_DEMO_STORAGE_KEY);
+    const hasFreshDemoEntries = demoEntries.every(demo => {
+        const existing = logs.find(entry => entry.id === demo.id);
+        return existing && entryAuditDate(existing) === today;
+    });
+    if (seededDate === today && hasFreshDemoEntries) {
         return;
     }
-    localStorage.setItem(storageKey, JSON.stringify([...logs, ...missing].slice(-500)));
-    localStorage.setItem(AUDIT_DEMO_STORAGE_KEY, 'seeded');
+    const retainedLogs = logs.filter(entry => !demoIds.has(entry.id) && !String(entry.id || '').startsWith('AUD-DEMO-'));
+    localStorage.setItem(storageKey, JSON.stringify([...retainedLogs, ...demoEntries].slice(-500)));
+    localStorage.setItem(AUDIT_DEMO_STORAGE_KEY, today);
 }
 
 function actionMeta(action) {
@@ -617,10 +622,10 @@ function renderAuditLogs() {
     const logs = readAuditLogs();
     const rows = sortAuditLogs(filteredLogs(logs));
     const body = document.getElementById('auditBody');
-    const reservationCount = logs.filter(entry => actionMeta(entry.action).type === 'reservation').length;
-    const privacyCount = logs.filter(entry => actionMeta(entry.action).type === 'privacy').length;
-    const exportCount = logs.filter(entry => actionMeta(entry.action).type === 'export').length;
-    document.getElementById('kpiTotal').textContent = logs.length.toLocaleString();
+    const reservationCount = rows.filter(entry => actionMeta(entry.action).type === 'reservation').length;
+    const privacyCount = rows.filter(entry => actionMeta(entry.action).type === 'privacy').length;
+    const exportCount = rows.filter(entry => actionMeta(entry.action).type === 'export').length;
+    document.getElementById('kpiTotal').textContent = rows.length.toLocaleString();
     document.getElementById('kpiReservations').textContent = reservationCount.toLocaleString();
     document.getElementById('kpiPrivacy').textContent = privacyCount.toLocaleString();
     document.getElementById('kpiExports').textContent = exportCount.toLocaleString();
