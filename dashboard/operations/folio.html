@@ -1457,6 +1457,7 @@ function groupToSettlementFolio(group) {
 function groupSettlementFolios(existingFolios) {
     const linkedGroupIds = new Set(existingFolios.map(folio => folio.groupId).filter(Boolean));
     return folioGroups
+        .filter(group => groupCheckoutCompleted(group))
         .filter(group => periodMatchesGroup(group))
         .filter(group => !linkedGroupIds.has(group.id))
         .map(groupToSettlementFolio);
@@ -1465,6 +1466,7 @@ function groupSettlementFolios(existingFolios) {
 function reservationSettlementFolios() {
     const linkedIds = new Set(apiFolios.map(folio => folio.reservationId).filter(Boolean));
     return folioReservations
+        .filter(res => reservationCheckoutCompleted(res))
         .filter(res => reservationRoomChangeHistory(res).length && !linkedIds.has(res.id))
         .map(reservationToSettlementFolio)
         .filter(periodMatchesFolio);
@@ -1629,6 +1631,27 @@ function periodMatchesFolio(folio) {
     return !!date && date >= range.start && date <= range.end;
 }
 
+function isClosedApiFolioItem(item = {}) {
+    const status = String(item.status || '').toLowerCase().replace(/[_\s]/g, '-');
+    return !!(
+        item.closedAt ||
+        item.settlementCompleted ||
+        status === 'closed' ||
+        status === 'checked-out' ||
+        status === 'settled'
+    );
+}
+
+function reservationCheckoutCompleted(res = {}) {
+    const status = String(res.status || '').toLowerCase().replace(/[_\s]/g, '-');
+    return ['checked-out', 'departed', 'checkout-completed', 'settled'].includes(status);
+}
+
+function groupCheckoutCompleted(group = {}) {
+    const status = String(group.status || '').toLowerCase().replace(/[_\s]/g, '-');
+    return ['checked-out', 'departed', 'closed', 'settled'].includes(status);
+}
+
 function periodFolios() {
     const fallbackRows = Object.values(foliosData).flat();
     const source = apiFolios.length ? apiFolios : fallbackRows;
@@ -1785,7 +1808,9 @@ async function loadApiFolios() {
         if (!window.PmsMockApi) return;
         localStorage.removeItem('mockapi:v1:TENANT-GRAND-SAIGON:folios');
         const env = await window.PmsMockApi.request('GET', '/folios');
-        apiFolios = window.PmsMockApi.items(env).map(mapApiFolio);
+        apiFolios = window.PmsMockApi.items(env)
+            .filter(isClosedApiFolioItem)
+            .map(mapApiFolio);
         updateApiKpis();
         renderFolios();
         tryOpenPaymentFromUrl();
