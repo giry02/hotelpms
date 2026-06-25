@@ -15,6 +15,7 @@
             'flow.continueCheckin': '체크인 진행',
             'flow.maintenanceRoom': '점검/수리 중 객실은 체크인할 수 없습니다.',
             'flow.occupiedRoom': '이미 투숙 중인 객실입니다.',
+            'flow.futureCheckinNotAllowed': '체크인 예정일 전에는 체크인할 수 없습니다. 예약 취소 또는 예약 수정만 가능합니다.',
             'flow.confirm': '{name} 예약을 {action} 처리하시겠습니까?',
             'flow.completed': '{action} 처리가 완료되었습니다.',
             'flow.completedRoomNotReady': '{action} 처리가 완료되었습니다. 객실 청소 상태를 하우스키핑에서 확인하세요.',
@@ -47,6 +48,7 @@
             'flow.continueCheckin': 'Continue Check-in',
             'flow.maintenanceRoom': 'Rooms under maintenance cannot be checked in.',
             'flow.occupiedRoom': 'This room is already occupied.',
+            'flow.futureCheckinNotAllowed': 'Check-in is not available before the scheduled arrival date. You can cancel or edit the reservation.',
             'flow.confirm': 'Process {action} for {name}?',
             'flow.completed': '{action} has been completed.',
             'flow.completedRoomNotReady': '{action} has been completed. Check the room cleaning status with housekeeping.',
@@ -1571,6 +1573,33 @@
         return start <= today && today < end;
     }
 
+    function reservationCheckInDate(res) {
+        return parseReservationDate(res?.checkInDate || res?.checkin || res?.cin);
+    }
+
+    function reservationCheckInIsDue(res) {
+        const start = reservationCheckInDate(res);
+        return !!start && start <= todayStart();
+    }
+
+    function canProcessReservationCheckin(res) {
+        if (!res || res.isGroupPlaceholder || normalizedReservationStatus(res.status) === 'blocked') return false;
+        const status = effectiveReservationStatus(res);
+        return ['confirmed', 'pending'].includes(status) && reservationCheckInIsDue(res);
+    }
+
+    function canCancelReservation(res) {
+        if (!res || res.isGroupPlaceholder || normalizedReservationStatus(res.status) === 'blocked') return false;
+        return !['checkedin', 'checkout', 'completed', 'cancelled'].includes(effectiveReservationStatus(res));
+    }
+
+    function checkinNotAllowedMessage(res) {
+        const status = effectiveReservationStatus(res);
+        if (['checkedin', 'checkout', 'completed', 'cancelled'].includes(status)) return actionText('flow.alreadyCheckedIn');
+        if (!reservationCheckInIsDue(res)) return actionText('flow.futureCheckinNotAllowed');
+        return actionText('flow.alreadyCheckedIn');
+    }
+
     function normalizeRoomValue(value) {
         const text = String(value || '').trim().toLowerCase();
         const digits = (text.match(/\d+/g) || []).join('');
@@ -2197,7 +2226,8 @@
         const saveBtn = modal.querySelector('button[onclick="saveUnifiedRes()"]');
         if (saveBtn) saveBtn.style.display = 'inline-flex';
         const cancelBtn = document.getElementById('unifiedBtnCancel');
-        if (locked && cancelBtn) cancelBtn.style.display = 'none';
+        if (cancelBtn && res) cancelBtn.style.display = canCancelReservation(res) ? 'inline-flex' : 'none';
+        else if (locked && cancelBtn) cancelBtn.style.display = 'none';
     }
 
     function renderUnifiedFlowActions(res = null) {
@@ -2209,7 +2239,7 @@
         const locked = isReservationReadOnly(res);
         if (status === 'checkedin' || status === 'checkout') {
             box.innerHTML = `<button type="button" class="btn-primary-sm" style="background:#EF4444" onclick="processUnifiedReservationFlow('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 처리</button>`;
-        } else if (!locked && (status === 'confirmed' || status === 'pending')) {
+        } else if (!locked && canProcessReservationCheckin(res)) {
             box.innerHTML = `<button type="button" class="btn-primary-sm" onclick="processUnifiedReservationFlow('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 체크인 처리</button>`;
         }
     }
@@ -2279,8 +2309,8 @@
             }
         }
         const currentStatus = effectiveReservationStatus(res);
-        if (action === 'checkin' && ['checkedin', 'checkout', 'completed', 'cancelled'].includes(currentStatus)) {
-            const message = actionText('flow.alreadyCheckedIn');
+        if (action === 'checkin' && !canProcessReservationCheckin(res)) {
+            const message = checkinNotAllowedMessage(res);
             if (window.showToast) window.showToast(message, 'error');
             else alert(message);
             setUnifiedReservationReadonly(isReservationReadOnly(res), res);
