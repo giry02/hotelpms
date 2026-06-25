@@ -67,7 +67,7 @@
 .tl-block.checkedin { background: #10B981 !important; }
 .tl-block.checkout, .tl-block.checkedout { background: #F97316 !important; }
 .tl-block.cancelled { background: #EF4444 !important; }
-.tl-block.completed { background: #94A3B8 !important; } /* Past reservations (gray) */
+.tl-block.completed { background: #94A3B8 !important; } /* Completed checkout / out-of-service (gray) */
 .tl-block{
     min-height:30px;
     height:auto!important;
@@ -794,11 +794,12 @@ function buildTimeline() {
 
     // Header row
     let headerHTML = '<div class="tl-room-header">Room</div>';
+    const todayDate = timelineTodayDate();
     for (let d = 0; d < DAYS; d++) {
         const date = new Date(baseDate);
         date.setDate(date.getDate() + d);
         const dayName = timelineText('dayNames')[date.getDay()];
-        const isToday = d === 0;
+        const isToday = date.getTime() === todayDate.getTime();
         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
         headerHTML += `<div class="tl-date-header ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}">${date.getDate()}<span class="tl-day-name">${dayName}</span></div>`;
     }
