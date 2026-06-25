@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>등급 회원 기준 — Hotel PMS</title>
+    <title>등급 회원 기준 - Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,337 +14,390 @@
     <script src="../common/js/api/api-core.js"></script>
     <script src="../common/js/api/api-crm.js"></script>
     <script src="../common/js/i18n-catalog.js"></script>
-<script src="../common/js/i18n.js"></script>
-<script src="../common/js/vip-criteria.js"></script>
+    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/vip-criteria.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
     <style>
-        .tc-item:hover { background: var(--bg); }
-        .tc-item.manual .tc-icon{background:var(--warning-lt);color:var(--warning)}
-        .section-header.membership-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
-        .section-header.membership-toolbar h3{flex:1;min-width:0}
-        .membership-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;flex-wrap:nowrap;white-space:nowrap}
-        .membership-actions .btn-primary-sm,.membership-actions .btn-outline{width:auto!important;min-width:0;height:38px;padding:0 16px;border-radius:7px;font-size:.78rem;font-weight:700;display:inline-flex!important;align-items:center;justify-content:center;gap:7px;line-height:1;flex:0 0 auto}
-        .membership-actions .membership-benefits-btn{background:#fff!important;color:var(--primary)!important;border:1px solid #dbe3ee!important;box-shadow:0 1px 2px rgba(15,23,42,.05)}
-        .membership-actions .membership-benefits-btn:hover{background:#f8fafc!important;border-color:var(--primary)!important;color:var(--primary)!important;transform:translateY(-1px)}
-        .tier-criteria-modal{max-width:560px!important;width:92vw!important}
-        .tier-criteria-modal .modal-title{display:flex;align-items:center;gap:8px}
-        .tier-criteria-modal .modal-title i{color:var(--primary);font-size:.9rem}
-        .tier-criteria-modal .modal-body{padding:18px 20px 20px}
-        .tier-criteria-list{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-        .tier-criteria-item{border:1px solid var(--border);border-radius:7px;background:#fff;padding:14px;display:flex;align-items:flex-start;gap:12px;min-height:94px}
-        .tier-criteria-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:.9rem}
-        .tier-criteria-content{flex:1;min-width:0}
-        .tier-criteria-name{font-size:.9rem;font-weight:800;color:var(--txt);line-height:1.2}
-        .tier-criteria-label{font-size:.7rem;font-weight:700;color:var(--txt3);margin-top:10px}
-        .tier-criteria-value{font-size:1rem;font-weight:850;color:var(--txt);margin-top:2px}
-        .tier-criteria-empty{grid-column:1/-1;text-align:center;padding:28px 12px;color:var(--txt3);font-size:.82rem}
-        .tier-changes .tc-item{border:0;width:100%;text-align:left;font-family:var(--font);cursor:pointer}
-        .tier-changes .tc-item:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-        .tier-guest-modal{max-width:620px!important;width:94vw!important}
-        .tier-guest-modal .modal-title{display:flex;align-items:center;gap:8px}
-        .tier-guest-modal .modal-title i{color:var(--primary);font-size:.9rem}
-        .tier-guest-modal .modal-body{padding:20px;display:flex;flex-direction:column;gap:14px}
-        .tier-guest-head{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--border);border-radius:7px;background:#f8fafc}
-        .tier-guest-avatar{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:850;flex:0 0 auto}
-        .tier-guest-name{font-size:1.05rem;font-weight:850;color:var(--txt);line-height:1.2}
-        .tier-guest-sub{font-size:.76rem;color:var(--txt2);font-weight:650;margin-top:4px}
-        .tier-guest-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .tier-guest-field{border:1px solid var(--border);border-radius:7px;padding:12px;background:#fff;min-width:0}
-        .tier-guest-field-label{font-size:.68rem;font-weight:800;color:var(--txt3);margin-bottom:5px}
-        .tier-guest-field-value{font-size:.86rem;font-weight:750;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .tier-change-box{border:1px solid #dbeafe;border-radius:7px;background:#eff6ff;padding:14px}
-        .tier-change-title{font-size:.76rem;font-weight:850;color:#1d4ed8;margin-bottom:10px;display:flex;align-items:center;gap:7px}
-        .tier-change-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-        .tier-change-meta{font-size:.74rem;color:var(--txt2);line-height:1.5}
-        .vip-criteria-note{font-size:.8rem;color:var(--txt2);line-height:1.5;margin:0}
-        .vip-criteria-box{border:1px solid var(--border);border-radius:7px;padding:16px;background:#fff}
-        .vip-criteria-box.highlight{background:#f8fafc;border-color:#dbeafe}
-        .vip-criteria-title{font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-        .vip-criteria-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .vip-criteria-grid label,.vip-criteria-box label{font-size:.75rem;color:var(--txt2);font-weight:700}
-        .vip-criteria-grid input,.vip-criteria-box select{width:100%;height:36px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);font-size:.82rem;background:#fff}
+        .membership-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:22px 0 14px}
+        .membership-head-title{display:flex;flex-direction:column;gap:4px;min-width:0}
+        .membership-head-title h2{margin:0;font-size:1.05rem;font-weight:850;color:var(--txt)}
+        .membership-head-title p{margin:0;font-size:.78rem;font-weight:650;color:var(--txt3)}
+        .membership-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+        .membership-actions .btn-primary-sm,.membership-actions .btn-outline{height:38px;border-radius:7px;padding:0 14px;font-size:.78rem;font-weight:750;display:inline-flex;align-items:center;gap:7px}
+        .membership-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:16px;align-items:start}
+        .membership-panel{background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+        .membership-panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border2)}
+        .membership-panel-title{display:flex;align-items:center;gap:8px;font-size:.92rem;font-weight:850;color:var(--txt)}
+        .membership-panel-title i{color:var(--primary)}
+        .membership-panel-sub{font-size:.72rem;font-weight:650;color:var(--txt3)}
+        .criteria-list{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px}
+        .criteria-card{border:1px solid var(--border);border-radius:8px;padding:14px;background:#fff;display:flex;gap:12px;min-height:112px}
+        .criteria-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+        .criteria-name{font-size:.95rem;font-weight:850;color:var(--txt);line-height:1.2}
+        .criteria-desc{font-size:.72rem;font-weight:650;color:var(--txt3);line-height:1.45;margin-top:5px}
+        .criteria-metrics{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+        .criteria-chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:#f8fafc;border:1px solid var(--border2);padding:5px 9px;font-size:.7rem;font-weight:800;color:var(--txt2)}
+        .recent-list{display:flex;flex-direction:column;padding:8px 0}
+        .recent-item{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;border:0;border-bottom:1px solid var(--border2);background:#fff;text-align:left;padding:13px 18px;font-family:var(--font);cursor:pointer}
+        .recent-item:last-child{border-bottom:0}
+        .recent-item:hover{background:#f8fafc}
+        .recent-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+        .recent-name{font-size:.86rem;font-weight:850;color:var(--txt);line-height:1.25}
+        .recent-detail{font-size:.73rem;font-weight:650;color:var(--txt2);line-height:1.45;margin-top:3px}
+        .recent-date{font-size:.7rem;font-weight:800;color:var(--txt3);white-space:nowrap}
+        .empty-state-line{padding:28px 16px;text-align:center;color:var(--txt3);font-size:.82rem;font-weight:650}
+        .tier-criteria-modal{max-width:620px!important;width:94vw!important}
+        .tier-guest-modal{max-width:660px!important;width:94vw!important}
+        .modal-body.membership-modal-body{padding:20px;display:flex;flex-direction:column;gap:14px}
+        .guest-head{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--border);border-radius:8px;background:#f8fafc}
+        .guest-avatar{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:850;flex:0 0 auto}
+        .guest-name{font-size:1.05rem;font-weight:850;color:var(--txt);line-height:1.2}
+        .guest-sub{font-size:.76rem;color:var(--txt2);font-weight:650;margin-top:4px}
+        .guest-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .guest-field{border:1px solid var(--border);border-radius:7px;padding:12px;background:#fff;min-width:0}
+        .guest-field-label{font-size:.68rem;font-weight:800;color:var(--txt3);margin-bottom:5px}
+        .guest-field-value{font-size:.86rem;font-weight:750;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .change-box{border:1px solid #dbeafe;border-radius:8px;background:#eff6ff;padding:14px}
+        .change-title{font-size:.76rem;font-weight:850;color:#1d4ed8;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+        .change-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+        .change-meta{font-size:.74rem;color:var(--txt2);line-height:1.5}
+        .vip-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .vip-form-box{border:1px solid var(--border);border-radius:8px;padding:14px;background:#fff}
+        .vip-form-title{font-size:.86rem;font-weight:850;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+        .vip-form-field label{display:block;font-size:.72rem;font-weight:750;color:var(--txt2);margin-bottom:6px}
+        .vip-form-field input,.vip-form-field select{width:100%;height:36px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:var(--font);font-size:.82rem;background:#fff}
+        @media(max-width:1100px){.membership-grid{grid-template-columns:1fr}.criteria-list{grid-template-columns:1fr 1fr}}
         @media(max-width:768px){
-            .section-header.membership-toolbar{align-items:stretch;gap:10px}
-            .section-header.membership-toolbar h3{width:100%}
-            .membership-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;white-space:normal}
-            .membership-actions .btn-primary-sm,.membership-actions .btn-outline{width:100%!important;padding:0 10px}
-            .tier-criteria-modal{width:94vw!important}
-            .tier-criteria-list{grid-template-columns:1fr}
-            .tier-guest-grid{grid-template-columns:1fr}
+            .membership-head{align-items:stretch;flex-direction:column}
+            .membership-actions{display:grid;grid-template-columns:1fr 1fr}
+            .criteria-list{grid-template-columns:1fr}
+            .recent-item{grid-template-columns:40px minmax(0,1fr)}
+            .recent-date{grid-column:2}
+            .guest-grid,.vip-form-grid{grid-template-columns:1fr}
         }
     </style>
 </head>
 <body>
-
 <div class="main">
     <header class="topbar"><h1 data-i18n-key="Tier Member Criteria">등급 회원 기준</h1></header>
 
     <div class="content">
-        <!-- TIER OVERVIEW -->
-        <div class="tier-overview">
-            <div class="tier-card diamond">
-                <div class="tier-card-icon"><i class="fa-solid fa-gem"></i></div>
-                <div class="tier-card-info">
-                    <div class="tier-card-count" id="countDiamond">40</div>
-                    <div class="tier-card-name">다이아몬드</div>
-                </div>
-                <div class="tier-card-criteria" id="criteriaTextDiamond">20회 이상 투숙 · 연 $10,000+</div>
-            </div>
-            <div class="tier-card platinum">
-                <div class="tier-card-icon"><i class="fa-solid fa-star"></i></div>
-                <div class="tier-card-info">
-                    <div class="tier-card-count" id="countPlatinum">52</div>
-                    <div class="tier-card-name">플래티넘</div>
-                </div>
-                <div class="tier-card-criteria" id="criteriaTextPlatinum">10회 이상 투숙 · 연 $5,000+</div>
-            </div>
-            <div class="tier-card gold">
-                <div class="tier-card-icon"><i class="fa-solid fa-crown"></i></div>
-                <div class="tier-card-info">
-                    <div class="tier-card-count" id="countGold">94</div>
-                    <div class="tier-card-name">골드</div>
-                </div>
-                <div class="tier-card-criteria" id="criteriaTextGold">5회 이상 투숙 · 연 $2,000+</div>
-            </div>
-            <div class="tier-card standard">
-                <div class="tier-card-icon"><i class="fa-solid fa-user"></i></div>
-                <div class="tier-card-info">
-                    <div class="tier-card-count" id="countStandard">2,661</div>
-                    <div class="tier-card-name">일반</div>
-                </div>
-                <div class="tier-card-criteria">일반 회원 · 가입 즉시</div>
-            </div>
+        <div class="tier-overview" id="tierOverview">
+            <div class="tier-card diamond"><div class="tier-card-icon"><i class="fa-solid fa-gem"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countDiamond">0</div><div class="tier-card-name">다이아몬드</div></div><div class="tier-card-criteria" id="criteriaTextDiamond">20회 이상 투숙 · 연 ₱10,000+</div></div>
+            <div class="tier-card platinum"><div class="tier-card-icon"><i class="fa-solid fa-star"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countPlatinum">0</div><div class="tier-card-name">플래티넘</div></div><div class="tier-card-criteria" id="criteriaTextPlatinum">10회 이상 투숙 · 연 ₱5,000+</div></div>
+            <div class="tier-card gold"><div class="tier-card-icon"><i class="fa-solid fa-crown"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countGold">0</div><div class="tier-card-name">골드</div></div><div class="tier-card-criteria" id="criteriaTextGold">5회 이상 투숙 · 연 ₱2,000+</div></div>
+            <div class="tier-card standard"><div class="tier-card-icon"><i class="fa-solid fa-user"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countStandard">0</div><div class="tier-card-name">일반</div></div><div class="tier-card-criteria">일반 회원 · 가입 즉시</div></div>
         </div>
-        <div class="section-header membership-toolbar" style="margin-top: 20px;">
-            <h3 style="margin:0;color:var(--txt)" data-i18n-key="Tier Member Status">등급별 회원 현황 및 기준</h3>
+
+        <div class="membership-head">
+            <div class="membership-head-title">
+                <h2>등급별 회원 현황 및 기준</h2>
+                <p>현재 고객 등급 분포, 승급 기준, 최근 등급 변동 이력을 함께 확인합니다.</p>
+            </div>
             <div class="membership-actions">
-                <button class="btn-outline membership-benefits-btn" onclick="openModal('tierCriteriaModal')"><i class="fa-solid fa-layer-group"></i> <span data-i18n-key="Tier Criteria">등급 기준</span></button>
-                <button class="btn-primary-sm" onclick="openVipCriteriaModal()"><i class="fa-solid fa-sliders"></i> <span data-i18n-key="VIP Upgrade Criteria">승급 기준 관리</span></button>
+                <button class="btn-outline" onclick="openModal('tierCriteriaModal')"><i class="fa-solid fa-layer-group"></i> 등급 기준</button>
+                <button class="btn-primary-sm" onclick="openVipCriteriaModal()"><i class="fa-solid fa-sliders"></i> 승급 기준 관리</button>
             </div>
         </div>
 
+        <div class="membership-grid">
+            <section class="membership-panel">
+                <div class="membership-panel-header">
+                    <div>
+                        <div class="membership-panel-title"><i class="fa-solid fa-layer-group"></i> 등급 기준 요약</div>
+                        <div class="membership-panel-sub">고객 등급 산정에 사용하는 투숙/결제 기준입니다.</div>
+                    </div>
+                </div>
+                <div class="criteria-list" id="criteriaList"></div>
+            </section>
+
+            <section class="membership-panel">
+                <div class="membership-panel-header">
+                    <div>
+                        <div class="membership-panel-title"><i class="fa-solid fa-clock-rotate-left"></i> 최근 등급 변동</div>
+                        <div class="membership-panel-sub">승급 및 수동 조정 내역을 최근순으로 표시합니다.</div>
+                    </div>
+                    <a class="btn-outline" style="height:32px;padding:0 10px;font-size:.72rem" href="tier-history.html"><i class="fa-solid fa-arrow-up-right-from-square"></i> 전체 보기</a>
+                </div>
+                <div class="recent-list" id="tierChangesList"></div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="tierCriteriaModal" onclick="if(event.target===this) closeModal('tierCriteriaModal')">
+    <div class="modal-card tier-criteria-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-layer-group"></i> 등급 기준</h3>
+            <button class="modal-close" onclick="closeModal('tierCriteriaModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body membership-modal-body">
+            <div class="criteria-list" id="criteriaModalList"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary-sm" onclick="closeModal('tierCriteriaModal')"><i class="fa-solid fa-check"></i> 확인</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="tierGuestModal" onclick="if(event.target===this) closeModal('tierGuestModal')">
+    <div class="modal-card tier-guest-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-address-card"></i> 고객 정보</h3>
+            <button class="modal-close" onclick="closeModal('tierGuestModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body membership-modal-body" id="tierGuestModalBody"></div>
+        <div class="modal-footer">
+            <button class="btn-primary-sm" onclick="closeModal('tierGuestModal')"><i class="fa-solid fa-check"></i> 확인</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="vipCriteriaModal" onclick="if(event.target===this) closeModal('vipCriteriaModal')">
+    <div class="modal-card" style="max-width:540px;width:94vw">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-sliders"></i> 승급 기준 관리</h3>
+            <button class="modal-close" onclick="closeModal('vipCriteriaModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body membership-modal-body">
+            <div class="vip-form-box">
+                <div class="vip-form-field">
+                    <label for="vipMinimumTier">우수 고객 집계 기준</label>
+                    <select id="vipMinimumTier">
+                        <option value="gold">골드 이상</option>
+                        <option value="platinum">플래티넘 이상</option>
+                        <option value="diamond">다이아몬드만</option>
+                    </select>
+                </div>
+            </div>
+            <div class="vip-form-grid">
+                <div class="vip-form-box"><div class="vip-form-title" style="color:#D97706"><i class="fa-solid fa-crown"></i> 골드</div><div class="vip-form-field"><label>최소 투숙 횟수</label><input id="criteriaGoldStays" type="number" min="0"></div><div class="vip-form-field" style="margin-top:10px"><label>최소 결제 금액</label><input id="criteriaGoldSpend" type="number" min="0"></div></div>
+                <div class="vip-form-box"><div class="vip-form-title" style="color:#8B5CF6"><i class="fa-solid fa-star"></i> 플래티넘</div><div class="vip-form-field"><label>최소 투숙 횟수</label><input id="criteriaPlatinumStays" type="number" min="0"></div><div class="vip-form-field" style="margin-top:10px"><label>최소 결제 금액</label><input id="criteriaPlatinumSpend" type="number" min="0"></div></div>
+                <div class="vip-form-box" style="grid-column:1/-1"><div class="vip-form-title" style="color:#2563EB"><i class="fa-solid fa-gem"></i> 다이아몬드</div><div class="vip-form-grid"><div class="vip-form-field"><label>최소 투숙 횟수</label><input id="criteriaDiamondStays" type="number" min="0"></div><div class="vip-form-field"><label>최소 결제 금액</label><input id="criteriaDiamondSpend" type="number" min="0"></div></div></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="closeModal('vipCriteriaModal')">닫기</button>
+            <button class="btn-primary-sm" onclick="saveVipCriteria()"><i class="fa-solid fa-check"></i> 저장</button>
+        </div>
     </div>
 </div>
 
 <script>
-let membershipTiers = [];
+const tierMeta = {
+    standard: { label: '일반', icon: 'fa-user', color: '#6B7280', bg: 'rgba(107,114,128,.12)', desc: '가입 즉시 적용되는 기본 등급입니다.' },
+    silver: { label: '실버', icon: 'fa-medal', color: '#64748B', bg: 'rgba(100,116,139,.12)', desc: '기본 등급보다 높은 재방문 고객 구간입니다.' },
+    gold: { label: '골드', icon: 'fa-crown', color: '#D97706', bg: 'rgba(245,158,11,.14)', desc: '반복 투숙 또는 일정 결제액을 충족한 우수 고객입니다.' },
+    platinum: { label: '플래티넘', icon: 'fa-star', color: '#8B5CF6', bg: 'rgba(139,92,246,.12)', desc: '장기 투숙 및 높은 결제 실적을 가진 핵심 고객입니다.' },
+    diamond: { label: '다이아몬드', icon: 'fa-gem', color: '#2563EB', bg: 'rgba(37,99,235,.12)', desc: '최상위 등급으로 특별 관리 대상 고객입니다.' },
+    group: { label: '단체', icon: 'fa-users', color: '#059669', bg: 'rgba(5,150,105,.12)', desc: '단체/행사 투숙객을 별도로 분류하는 등급입니다.' }
+};
+
+const knownReasons = {
+    'TH-1001': '누적 투숙 10회 달성',
+    'TH-1002': '연 누적 결제 금액 ₱10,000 돌파',
+    'TH-1003': '누적 투숙 5회 달성',
+    'TH-1004': '중복 VIP 프로필 병합 후 등급 정정',
+    'TH-1005': '법인 장기투숙 실적 수동 반영',
+    'TH-1006': '누적 투숙 5회 달성'
+};
+
 let membershipGuests = [];
+let membershipTiers = [];
 let tierHistory = [];
 
-function openModal(id) {
-    if (id === 'tierCriteriaModal') renderTierCriteria();
-    document.getElementById(id).classList.add('active');
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
 }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function money(value) {
     return typeof window.pmsFormatCurrency === 'function'
         ? window.pmsFormatCurrency(value)
-        : '₱' + Number(value || 0).toLocaleString();
+        : `₱${Number(value || 0).toLocaleString()}`;
 }
 
-function membershipEscape(value) {
-    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+function openModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+    if (id === 'tierCriteriaModal') renderCriteria();
 }
 
-function localizedValue(value) {
-    const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
-    if (value && typeof value === 'object' && !Array.isArray(value)) return value[lang] || value.ko || value.en || '';
-    return value ?? '';
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
 }
 
-function tierCriteriaMessage(message) {
-    return `<div class="tier-criteria-empty">${membershipEscape(localizedValue(message))}</div>`;
+function tierId(value) {
+    return String(value || 'standard').toLowerCase();
 }
 
-function tierSortValue(tier) {
-    const order = { standard: 10, silver: 20, gold: 30, platinum: 40, diamond: 50, group: 90 };
-    return Number(tier.sortOrder || order[String(tier.id || '').toLowerCase()] || 999);
+function tierInfo(value) {
+    return tierMeta[tierId(value)] || tierMeta.standard;
 }
 
-function tierDisplayMeta(tier) {
-    const id = String(tier.id || '').toLowerCase();
-    const map = {
-        standard: { icon: 'fa-user', color: '#6B7280', bg: 'rgba(107,114,128,.12)' },
-        silver: { icon: 'fa-medal', color: '#64748B', bg: 'rgba(100,116,139,.12)' },
-        gold: { icon: 'fa-crown', color: '#D97706', bg: 'rgba(245,158,11,.14)' },
-        platinum: { icon: 'fa-star', color: '#8B5CF6', bg: 'rgba(139,92,246,.12)' },
-        diamond: { icon: 'fa-gem', color: '#2563EB', bg: 'rgba(37,99,235,.12)' },
-        group: { icon: 'fa-users', color: '#059669', bg: 'rgba(5,150,105,.12)' }
+function tierLabel(value) {
+    return tierInfo(value).label;
+}
+
+function tierBadge(value) {
+    const meta = tierInfo(value);
+    return `<span class="tier-badge" style="background:${meta.bg};color:${meta.color}"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>`;
+}
+
+function currentConfig() {
+    return window.PMS_VIP_CRITERIA ? window.PMS_VIP_CRITERIA.getConfig() : {
+        vipMinimumTier: 'platinum',
+        thresholds: {
+            gold: { stays: 5, spend: 2000 },
+            platinum: { stays: 10, spend: 5000 },
+            diamond: { stays: 20, spend: 10000 }
+        }
     };
-    return map[id] || { icon: 'fa-layer-group', color: '#2563EB', bg: 'rgba(37,99,235,.12)' };
 }
 
-function tierLabel(tier) {
-    const id = String(tier || '').toLowerCase();
-    const labels = {
-        standard: { ko: '일반', en: 'Standard' },
-        silver: { ko: '실버', en: 'Silver' },
-        gold: { ko: '골드', en: 'Gold' },
-        platinum: { ko: '플래티넘', en: 'Platinum' },
-        diamond: { ko: '다이아몬드', en: 'Diamond' },
-        group: { ko: '단체', en: 'Group' }
+function thresholdFor(id) {
+    const cfg = currentConfig();
+    const defaults = {
+        standard: { stays: 0, spend: 0 },
+        silver: { stays: 0, spend: 300 },
+        group: { stays: 0, spend: 0 }
     };
-    return localizedValue(labels[id]) || tier || '-';
+    return cfg.thresholds?.[id] || defaults[id] || { stays: 0, spend: 0 };
 }
 
-function tierBadge(tier) {
-    const meta = tierDisplayMeta({ id: tier });
-    return `<span class="tier-badge" style="background:${meta.bg};color:${meta.color}"><i class="fa-solid ${meta.icon}"></i> ${membershipEscape(tierLabel(tier))}</span>`;
+function updateKpiCriteria() {
+    const cfg = currentConfig();
+    ['gold', 'platinum', 'diamond'].forEach(id => {
+        const threshold = cfg.thresholds?.[id] || thresholdFor(id);
+        const el = document.getElementById(`criteriaText${id.charAt(0).toUpperCase() + id.slice(1)}`);
+        if (el) el.textContent = `${threshold.stays}회 이상 투숙 · 연 ${money(threshold.spend)}+`;
+    });
 }
 
-function formatShortDate(date) {
-    const value = String(date || '');
-    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!match) return membershipEscape(value || '-');
-    return `${Number(match[2])}/${Number(match[3])}`;
+function renderCounts() {
+    const counts = { diamond: 0, platinum: 0, gold: 0, standard: 0 };
+    membershipGuests.forEach(guest => {
+        const id = tierId(guest.tier);
+        if (counts[id] === undefined) counts.standard += 1;
+        else counts[id] += 1;
+    });
+    document.getElementById('countDiamond').textContent = counts.diamond.toLocaleString();
+    document.getElementById('countPlatinum').textContent = counts.platinum.toLocaleString();
+    document.getElementById('countGold').textContent = counts.gold.toLocaleString();
+    document.getElementById('countStandard').textContent = counts.standard.toLocaleString();
 }
 
-function renderTierCriteria(tiers = membershipTiers) {
-    const list = document.querySelector('#tierCriteriaModal .tier-criteria-list');
-    if (!list) return;
-    const activeTiers = (tiers || [])
-        .filter(tier => tier && tier.id)
-        .sort((a, b) => tierSortValue(a) - tierSortValue(b));
-    if (!activeTiers.length) {
-        list.innerHTML = tierCriteriaMessage({ ko: '등급 기준 데이터가 없습니다.', en: 'No tier criteria data available.' });
-        return;
-    }
-    list.innerHTML = activeTiers.map(tier => {
-        const meta = tierDisplayMeta(tier);
-        return `<div class="tier-criteria-item">
-            <div class="tier-criteria-icon" style="background:${meta.bg};color:${meta.color}"><i class="fa-solid ${meta.icon}"></i></div>
-            <div class="tier-criteria-content">
-                <div class="tier-criteria-name">${membershipEscape(tier.name || tier.id)}</div>
-                <div class="tier-criteria-label">${membershipEscape(localizedValue({ ko: '최소 누적 결제', en: 'Minimum Spend' }))}</div>
-                <div class="tier-criteria-value">${tier.minSpend === undefined || tier.minSpend === null ? '-' : money(tier.minSpend)}</div>
+function buildCriteriaItems() {
+    const ids = ['diamond', 'platinum', 'gold', 'standard'];
+    return ids.map(id => ({ id, ...tierInfo(id), threshold: thresholdFor(id) }));
+}
+
+function renderCriteria() {
+    const html = buildCriteriaItems().map(item => `
+        <div class="criteria-card">
+            <div class="criteria-icon" style="background:${item.bg};color:${item.color}"><i class="fa-solid ${item.icon}"></i></div>
+            <div>
+                <div class="criteria-name">${escapeHtml(item.label)}</div>
+                <div class="criteria-desc">${escapeHtml(item.desc)}</div>
+                <div class="criteria-metrics">
+                    <span class="criteria-chip"><i class="fa-solid fa-bed"></i> ${Number(item.threshold.stays || 0).toLocaleString()}회 이상</span>
+                    <span class="criteria-chip"><i class="fa-solid fa-coins"></i> ${money(item.threshold.spend || 0)}+</span>
+                </div>
             </div>
-        </div>`;
-    }).join('');
+        </div>`).join('');
+    const list = document.getElementById('criteriaList');
+    const modalList = document.getElementById('criteriaModalList');
+    if (list) list.innerHTML = html;
+    if (modalList) modalList.innerHTML = html;
 }
 
-function renderRecentTierChanges(items = tierHistory) {
+function cleanReason(change) {
+    if (knownReasons[change.id]) return knownReasons[change.id];
+    return change.reason || '등급 기준 충족';
+}
+
+function renderRecentChanges() {
     const root = document.getElementById('tierChangesList');
     if (!root) return;
-    const changes = (items || []).slice(0, 6);
-    if (!changes.length) {
-        root.innerHTML = `<div class="tier-criteria-empty">최근 등급 변동 데이터가 없습니다.</div>`;
+    const items = tierHistory.slice(0, 6);
+    if (!items.length) {
+        root.innerHTML = '<div class="empty-state-line">최근 등급 변동 이력이 없습니다.</div>';
         return;
     }
-    root.innerHTML = changes.map(change => {
+    root.innerHTML = items.map(change => {
         const isManual = change.changeType === 'manual';
-        const itemClass = isManual ? 'manual' : 'upgrade';
-        const icon = isManual ? 'fa-user-pen' : 'fa-arrow-up';
-        const reason = membershipEscape(change.reason || '-');
-        const from = membershipEscape(tierLabel(change.from));
-        const toMeta = tierDisplayMeta({ id: change.to });
-        const to = membershipEscape(tierLabel(change.to));
-        return `<button type="button" class="tc-item ${itemClass}" data-change-id="${membershipEscape(change.id)}" aria-label="${membershipEscape(change.name)} 고객 정보 보기">
-            <div class="tc-icon"><i class="fa-solid ${icon}"></i></div>
-            <div class="tc-info">
-                <div class="tc-name">${membershipEscape(change.name)}</div>
-                <div class="tc-detail">${from} → <strong style="color:${toMeta.color}">${to}</strong> · ${reason}</div>
-            </div>
-            <div class="tc-date">${formatShortDate(change.date)}</div>
+        const toMeta = tierInfo(change.to);
+        return `<button type="button" class="recent-item" data-change-id="${escapeHtml(change.id)}">
+            <span class="recent-icon" style="background:${isManual ? 'rgba(245,158,11,.14)' : 'rgba(16,185,129,.14)'};color:${isManual ? '#D97706' : '#059669'}"><i class="fa-solid ${isManual ? 'fa-user-pen' : 'fa-arrow-up'}"></i></span>
+            <span>
+                <span class="recent-name">${escapeHtml(change.name)}</span>
+                <span class="recent-detail">${escapeHtml(tierLabel(change.from))} → <strong style="color:${toMeta.color}">${escapeHtml(tierLabel(change.to))}</strong> · ${escapeHtml(cleanReason(change))}</span>
+            </span>
+            <span class="recent-date">${escapeHtml(change.date || '-')}</span>
         </button>`;
     }).join('');
-    root.querySelectorAll('.tc-item').forEach(item => {
+    root.querySelectorAll('.recent-item').forEach(item => {
         item.addEventListener('click', () => openTierGuestModal(item.dataset.changeId));
     });
 }
 
-function findGuestForChange(change) {
-    if (!change) return null;
-    return membershipGuests.find(guest => guest.id === change.guestId)
-        || membershipGuests.find(guest => guest.name === change.name)
+function findGuest(change) {
+    return membershipGuests.find(guest => guest.id === change?.guestId)
+        || membershipGuests.find(guest => guest.name === change?.name)
         || null;
 }
 
+function initial(name) {
+    return String(name || 'G').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
+}
+
 function openTierGuestModal(changeId) {
-    const change = tierHistory.find(item => item.id === changeId);
-    const guest = findGuestForChange(change);
+    const change = tierHistory.find(item => String(item.id) === String(changeId));
     const body = document.getElementById('tierGuestModalBody');
     if (!body) return;
     if (!change) {
-        body.innerHTML = `<div class="tier-criteria-empty">등급 변동 데이터를 찾을 수 없습니다.</div>`;
+        body.innerHTML = '<div class="empty-state-line">등급 변동 데이터를 찾을 수 없습니다.</div>';
         openModal('tierGuestModal');
         return;
     }
-    const displayGuest = guest || {
-        name: change.name,
-        init: change.init,
-        color: change.color,
-        tier: change.to
-    };
-    const guestMeta = tierDisplayMeta({ id: displayGuest.tier || change.to });
-    const note = displayGuest.specialNotes ? `<div class="tier-guest-field" style="grid-column:1/-1"><div class="tier-guest-field-label">특이사항</div><div class="tier-guest-field-value" style="white-space:normal;line-height:1.45">${membershipEscape(displayGuest.specialNotes)}</div></div>` : '';
+    const guest = findGuest(change) || {};
+    const displayName = guest.name || change.name;
+    const meta = tierInfo(guest.tier || change.to);
     body.innerHTML = `
-        <div class="tier-guest-head">
-            <div class="tier-guest-avatar" style="background:${membershipEscape(displayGuest.color || guestMeta.color)}">${membershipEscape(displayGuest.init || crmInitialFallback(displayGuest.name))}</div>
+        <div class="guest-head">
+            <div class="guest-avatar" style="background:${escapeHtml(guest.color || meta.color)}">${escapeHtml(guest.init || initial(displayName))}</div>
             <div style="min-width:0">
-                <div class="tier-guest-name">${membershipEscape(displayGuest.name || change.name)}</div>
-                <div class="tier-guest-sub">${tierBadge(displayGuest.tier || change.to)}</div>
+                <div class="guest-name">${escapeHtml(displayName)}</div>
+                <div class="guest-sub">${tierBadge(guest.tier || change.to)}</div>
             </div>
         </div>
-        <div class="tier-guest-grid">
-            <div class="tier-guest-field"><div class="tier-guest-field-label">국적</div><div class="tier-guest-field-value">${membershipEscape(displayGuest.nation || displayGuest.nationality || '-')}</div></div>
-            <div class="tier-guest-field"><div class="tier-guest-field-label">연락처</div><div class="tier-guest-field-value">${membershipEscape(displayGuest.phone || '-')}</div></div>
-            <div class="tier-guest-field"><div class="tier-guest-field-label">이메일</div><div class="tier-guest-field-value">${membershipEscape(displayGuest.email || '-')}</div></div>
-            <div class="tier-guest-field"><div class="tier-guest-field-label">최근 투숙</div><div class="tier-guest-field-value">${membershipEscape(displayGuest.last || displayGuest.lastStayDate || '-')}</div></div>
-            <div class="tier-guest-field"><div class="tier-guest-field-label">방문 횟수</div><div class="tier-guest-field-value">${membershipEscape(displayGuest.visits || 0)}회</div></div>
-            <div class="tier-guest-field"><div class="tier-guest-field-label">누적 금액</div><div class="tier-guest-field-value">${money(displayGuest.spend || 0)}</div></div>
-            ${note}
+        <div class="guest-grid">
+            <div class="guest-field"><div class="guest-field-label">국적</div><div class="guest-field-value">${escapeHtml(guest.nation || guest.nationality || '-')}</div></div>
+            <div class="guest-field"><div class="guest-field-label">연락처</div><div class="guest-field-value">${escapeHtml(guest.phone || '-')}</div></div>
+            <div class="guest-field"><div class="guest-field-label">이메일</div><div class="guest-field-value">${escapeHtml(guest.email || '-')}</div></div>
+            <div class="guest-field"><div class="guest-field-label">최근 투숙</div><div class="guest-field-value">${escapeHtml(guest.last || guest.lastStayDate || '-')}</div></div>
+            <div class="guest-field"><div class="guest-field-label">방문 횟수</div><div class="guest-field-value">${Number(guest.visits || 0).toLocaleString()}회</div></div>
+            <div class="guest-field"><div class="guest-field-label">누적 금액</div><div class="guest-field-value">${money(guest.spend || 0)}</div></div>
         </div>
-        <div class="tier-change-box">
-            <div class="tier-change-title"><i class="fa-solid fa-arrow-up-right-dots"></i> 최근 등급 변동</div>
-            <div class="tier-change-flow">${tierBadge(change.from)} <i class="fa-solid fa-arrow-right" style="color:var(--txt3);font-size:.7rem"></i> ${tierBadge(change.to)}</div>
-            <div class="tier-change-meta">${membershipEscape(change.reason || '-')}<br>${membershipEscape(change.by || '-')} · ${membershipEscape(change.date || '-')}</div>
+        <div class="change-box">
+            <div class="change-title"><i class="fa-solid fa-arrow-up-right-dots"></i> 등급 변동 정보</div>
+            <div class="change-flow">${tierBadge(change.from)} <i class="fa-solid fa-arrow-right" style="color:var(--txt3);font-size:.72rem"></i> ${tierBadge(change.to)}</div>
+            <div class="change-meta">${escapeHtml(cleanReason(change))}<br>${escapeHtml(change.by || '-')} · ${escapeHtml(change.date || '-')}</div>
         </div>`;
     openModal('tierGuestModal');
 }
 
-function crmInitialFallback(name) {
-    return String(name || 'G').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
-}
-
-function currentVipCriteria() {
-    return window.PMS_VIP_CRITERIA ? window.PMS_VIP_CRITERIA.getConfig() : null;
-}
-
-function updateCriteriaSummary() {
-    const config = currentVipCriteria();
-    if (!config) return;
-    const map = {
-        gold: document.getElementById('criteriaTextGold'),
-        platinum: document.getElementById('criteriaTextPlatinum'),
-        diamond: document.getElementById('criteriaTextDiamond')
-    };
-    Object.keys(map).forEach(tier => {
-        if (!map[tier]) return;
-        const threshold = config.thresholds[tier];
-        map[tier].textContent = `${threshold.stays}회 이상 투숙 · 연 ${money(threshold.spend)}+`;
-    });
-}
-
 function fillVipCriteriaModal() {
-    const config = currentVipCriteria();
-    if (!config) return;
-    const minSelect = document.getElementById('vipMinimumTier');
-    if (minSelect) minSelect.value = config.vipMinimumTier;
-    const fieldMap = [
-        ['criteriaGoldStays', config.thresholds.gold.stays],
-        ['criteriaGoldSpend', config.thresholds.gold.spend],
-        ['criteriaPlatinumStays', config.thresholds.platinum.stays],
-        ['criteriaPlatinumSpend', config.thresholds.platinum.spend],
-        ['criteriaDiamondStays', config.thresholds.diamond.stays],
-        ['criteriaDiamondSpend', config.thresholds.diamond.spend]
-    ];
-    fieldMap.forEach(([id, value]) => {
-        const input = document.getElementById(id);
-        if (input) input.value = value;
-    });
+    const cfg = currentConfig();
+    document.getElementById('vipMinimumTier').value = cfg.vipMinimumTier || 'platinum';
+    document.getElementById('criteriaGoldStays').value = cfg.thresholds.gold.stays;
+    document.getElementById('criteriaGoldSpend').value = cfg.thresholds.gold.spend;
+    document.getElementById('criteriaPlatinumStays').value = cfg.thresholds.platinum.stays;
+    document.getElementById('criteriaPlatinumSpend').value = cfg.thresholds.platinum.spend;
+    document.getElementById('criteriaDiamondStays').value = cfg.thresholds.diamond.stays;
+    document.getElementById('criteriaDiamondSpend').value = cfg.thresholds.diamond.spend;
 }
 
 function openVipCriteriaModal() {
@@ -355,238 +408,43 @@ function openVipCriteriaModal() {
 function saveVipCriteria() {
     if (!window.PMS_VIP_CRITERIA) return;
     const next = {
-        vipMinimumTier: document.getElementById('vipMinimumTier')?.value || 'platinum',
+        vipMinimumTier: document.getElementById('vipMinimumTier').value,
         thresholds: {
-            gold: {
-                stays: Number(document.getElementById('criteriaGoldStays')?.value || 0),
-                spend: Number(document.getElementById('criteriaGoldSpend')?.value || 0)
-            },
-            platinum: {
-                stays: Number(document.getElementById('criteriaPlatinumStays')?.value || 0),
-                spend: Number(document.getElementById('criteriaPlatinumSpend')?.value || 0)
-            },
-            diamond: {
-                stays: Number(document.getElementById('criteriaDiamondStays')?.value || 0),
-                spend: Number(document.getElementById('criteriaDiamondSpend')?.value || 0)
-            }
+            gold: { stays: Number(document.getElementById('criteriaGoldStays').value || 0), spend: Number(document.getElementById('criteriaGoldSpend').value || 0) },
+            platinum: { stays: Number(document.getElementById('criteriaPlatinumStays').value || 0), spend: Number(document.getElementById('criteriaPlatinumSpend').value || 0) },
+            diamond: { stays: Number(document.getElementById('criteriaDiamondStays').value || 0), spend: Number(document.getElementById('criteriaDiamondSpend').value || 0) }
         }
     };
     window.PMS_VIP_CRITERIA.saveConfig(next);
-    updateCriteriaSummary();
-    showToast('승급 기준과 우수 고객 집계 기준이 업데이트되었습니다.', 'success');
+    updateKpiCriteria();
+    renderCriteria();
+    if (window.showToast) showToast('승급 기준이 저장되었습니다.', 'success');
     closeModal('vipCriteriaModal');
 }
 
-// i18n
-let currentLang=window.currentLang || localStorage.getItem('pms_lang') || 'ko';
-const translations={ko: {
-        "Main": "메인",
-        "Front Desk": "프론트 데스크",
-        "Guest & CRM": "투숙객 및 고객 관리",
-        "Operations": "운영 관리",
-        "Settings": "설정",
-        "Dashboard": "대시보드",
-        "Reservations": "예약 타임라인",
-        "Booking List": "예약 목록",
-        "Check-in/out": "체크인/아웃",
-        "Guest CRM": "투숙객 관리",
-        "VIP Members": "우수 고객 멤버십",
-        "Room Mgmt": "객실 관리",
-        "Room Types": "객실 유형",
-        "Rates Calendar": "요금 캘린더",
-        "Housekeeping": "하우스키핑",
-        "Folio & Billing": "통합 정산",
-        "Folio List": "정산 목록",
-        "Revenue Analytics": "매출 분석",
-        "Ancillary Svcs": "부가서비스",
-        "Room Service": "룸서비스",
-        "Golf": "골프",
-        "Rent-a-car": "렌터카",
-        "Hotel Settings": "호텔 설정",
-        "Staff Mgmt": "직원 관리",
-        "Billing & Payment": "요금 및 결제",
-        "Notices": "공지사항",
-        "Support": "고객지원",
-"VIP Members":"우수 고객 멤버십","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Tier Criteria":"등급 기준","Recent Tier Changes":"최근 등급 변동","This Month":"이번 달","Last Month":"지난 달"},en: {
-        "Main": "Main",
-        "Front Desk": "Front Desk",
-        "Guest & CRM": "Guest & CRM",
-        "Operations": "Operations",
-        "Settings": "Settings",
-        "Dashboard": "Dashboard",
-        "Reservations": "Reservations",
-        "Booking List": "Booking List",
-        "Check-in/out": "Check-in/out",
-        "Guest CRM": "Guest CRM",
-        "VIP Members": "VIP Members",
-        "Room Mgmt": "Room Mgmt",
-        "Room Types": "Room Types",
-        "Rates Calendar": "Rates Calendar",
-        "Housekeeping": "Housekeeping",
-        "Folio & Billing": "Folio & Billing",
-        "Folio List": "Folio List",
-        "Revenue Analytics": "Revenue Analytics",
-        "Ancillary Svcs": "Ancillary Svcs",
-        "Room Service": "Room Service",
-        "Golf": "Golf",
-        "Rent-a-car": "Rent-a-car",
-        "Hotel Settings": "Hotel Settings",
-        "Staff Mgmt": "Staff Mgmt",
-        "Billing & Payment": "Billing & Payment",
-        "Notices": "Notices",
-        "Support": "Support",
-"VIP Members":"VIP Members","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Tier Criteria":"Tier Criteria","Recent Tier Changes":"Recent Tier Changes","This Month":"This Month","Last Month":"Last Month"}};
-translations.ko["Tier Member Criteria"] = "등급 회원 기준";
-translations.en["Tier Member Criteria"] = "Tier Member Criteria";
-function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
-function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});renderTierCriteria()}
 document.addEventListener('DOMContentLoaded', async () => {
-    setupI18n();
-    changeLang(currentLang);
-    updateCriteriaSummary();
-
-    if (window.PmsAPI) {
-        try {
-            const [guests, tiers, history] = await Promise.all([
-                PmsAPI.getGuests(),
-                PmsAPI.getMembershipTiers ? PmsAPI.getMembershipTiers() : Promise.resolve([]),
-                PmsAPI.getHistory ? PmsAPI.getHistory() : Promise.resolve([])
-            ]);
-            membershipGuests = guests;
-            membershipTiers = tiers;
-            tierHistory = history;
-            renderTierCriteria();
-            renderRecentTierChanges();
-            let d=0, p=0, g=0, s=0;
-            guests.forEach(guest => {
-                if(guest.tier === 'diamond') d++;
-                else if(guest.tier === 'platinum') p++;
-                else if(guest.tier === 'gold') g++;
-                else s++;
-            });
-            const cDiamond = document.getElementById('countDiamond');
-            const cPlatinum = document.getElementById('countPlatinum');
-            const cGold = document.getElementById('countGold');
-            const cStandard = document.getElementById('countStandard');
-            if(cDiamond) cDiamond.textContent = d.toLocaleString();
-            if(cPlatinum) cPlatinum.textContent = p.toLocaleString();
-            if(cGold) cGold.textContent = g.toLocaleString();
-            if(cStandard) cStandard.textContent = s.toLocaleString();
-        } catch(e) {
-            console.error(e);
+    try {
+        const [guests, tiers, history] = await Promise.all([
+            window.PmsAPI?.getGuests ? PmsAPI.getGuests() : Promise.resolve([]),
+            window.PmsAPI?.getMembershipTiers ? PmsAPI.getMembershipTiers() : Promise.resolve([]),
+            window.PmsAPI?.getHistory ? PmsAPI.getHistory() : Promise.resolve([])
+        ]);
+        membershipGuests = guests || [];
+        membershipTiers = tiers || [];
+        tierHistory = (history || []).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+        updateKpiCriteria();
+        renderCounts();
+        renderCriteria();
+        renderRecentChanges();
+        if (typeof window.changeLang === 'function') {
+            window.changeLang(localStorage.getItem('pms_lang') || 'ko');
         }
+    } catch (error) {
+        console.error(error);
+        const root = document.getElementById('tierChangesList');
+        if (root) root.innerHTML = '<div class="empty-state-line">등급 데이터를 불러오지 못했습니다.</div>';
     }
 });
-</script>
-
-
-<!-- Tier Criteria Modal -->
-<div class="modal-overlay" id="tierCriteriaModal" onclick="if(event.target===this) closeModal('tierCriteriaModal')">
-    <div class="modal-card tier-criteria-modal">
-        <div class="modal-header">
-            <h3 class="modal-title"><i class="fa-solid fa-layer-group"></i> <span data-i18n-key="Tier Criteria">등급 기준</span></h3>
-            <button class="modal-close" onclick="closeModal('tierCriteriaModal')"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-            <div class="tier-criteria-list">
-                <div class="tier-criteria-empty">등급 기준 데이터를 불러오는 중입니다.</div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-primary-sm" onclick="closeModal('tierCriteriaModal')"><i class="fa-solid fa-check"></i> 확인</button>
-        </div>
-    </div>
-</div>
-
-<!-- Tier Change Guest Modal -->
-<div class="modal-overlay" id="tierGuestModal" onclick="if(event.target===this) closeModal('tierGuestModal')">
-    <div class="modal-card tier-guest-modal">
-        <div class="modal-header">
-            <h3 class="modal-title"><i class="fa-solid fa-address-card"></i> 고객 정보</h3>
-            <button class="modal-close" onclick="closeModal('tierGuestModal')"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body" id="tierGuestModalBody">
-            <div class="tier-criteria-empty">고객 정보를 불러오는 중입니다.</div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-primary-sm" onclick="closeModal('tierGuestModal')"><i class="fa-solid fa-check"></i> 확인</button>
-        </div>
-    </div>
-</div>
-
-<!-- VIP Criteria Management Modal -->
-<div class="modal-overlay" id="vipCriteriaModal" onclick="if(event.target===this) closeModal('vipCriteriaModal')">
-    <div class="modal-card" style="max-width:500px;width:95vw">
-        <div class="modal-header">
-            <h3 class="modal-title" data-i18n-key="VIP Upgrade Criteria">승급 기준 관리</h3>
-            <button class="modal-close" onclick="closeModal('vipCriteriaModal')"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
-            <p class="vip-criteria-note">자동 승급에 필요한 최소 투숙 횟수와 누적 결제 금액을 설정합니다. 우수 고객 KPI는 아래의 우수 고객 집계 기준 등급 이상만 포함합니다.</p>
-            <div class="vip-criteria-box highlight">
-                <label for="vipMinimumTier">우수 고객 집계 기준</label>
-                <select id="vipMinimumTier" style="margin-top:6px">
-                    <option value="gold">골드 이상</option>
-                    <option value="platinum">플래티넘 이상</option>
-                    <option value="diamond">다이아몬드만</option>
-                </select>
-                <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-top:8px">투숙객 관리의 우수 고객 KPI와 리텐션 기준에 적용됩니다.</div>
-            </div>
-            <div class="vip-criteria-box">
-                <div class="vip-criteria-title" style="color:#F59E0B"><i class="fa-solid fa-crown"></i> 골드 승급 기준</div>
-                <div class="vip-criteria-grid">
-                    <div>
-                        <label style="font-size:0.75rem;color:var(--txt2)">최소 투숙 횟수</label>
-                        <input type="number" id="criteriaGoldStays" min="0" value="5">
-                    </div>
-                    <div>
-                        <label style="font-size:0.75rem;color:var(--txt2)">최소 결제 금액 ($)</label>
-                        <input type="number" id="criteriaGoldSpend" min="0" value="2000">
-                    </div>
-                </div>
-            </div>
-
-            <div class="vip-criteria-box">
-                <div class="vip-criteria-title" style="color:#A78BFA"><i class="fa-solid fa-star"></i> 플래티넘 승급 기준</div>
-                <div class="vip-criteria-grid">
-                    <div>
-                        <label style="font-size:0.75rem;color:var(--txt2)">최소 투숙 횟수</label>
-                        <input type="number" id="criteriaPlatinumStays" min="0" value="10">
-                    </div>
-                    <div>
-                        <label style="font-size:0.75rem;color:var(--txt2)">최소 결제 금액 ($)</label>
-                        <input type="number" id="criteriaPlatinumSpend" min="0" value="5000">
-                    </div>
-                </div>
-            </div>
-
-            <div class="vip-criteria-box">
-                <div class="vip-criteria-title" style="color:#60A5FA"><i class="fa-solid fa-gem"></i> 다이아몬드 승급 기준</div>
-                <div class="vip-criteria-grid">
-                    <div>
-                        <label style="font-size:0.75rem;color:var(--txt2)">최소 투숙 횟수</label>
-                        <input type="number" id="criteriaDiamondStays" min="0" value="20">
-                    </div>
-                    <div>
-                        <label style="font-size:0.75rem;color:var(--txt2)">최소 결제 금액 ($)</label>
-                        <input type="number" id="criteriaDiamondSpend" min="0" value="10000">
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-            <button class="btn-outline" onclick="closeModal('vipCriteriaModal')">닫기</button>
-            <button class="btn-primary-sm" onclick="saveVipCriteria()"><i class="fa-solid fa-check"></i> 저장</button>
-        </div>
-    </div>
-</div>
-
-<script>
-// Sync language selector to stored preference
-(function(){
-    var sel = document.getElementById('langSelect');
-    if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
-})();
 </script>
 </body>
 </html>
