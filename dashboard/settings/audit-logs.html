@@ -93,7 +93,7 @@
             <div class="audit-title-row">
                 <div>
                     <div class="audit-title"><i class="fa-solid fa-shield-halved" style="color:var(--primary)"></i> 운영 감사 로그</div>
-                    <div class="audit-desc">예약 등록·수정·취소, 객실 이동, 요금/선결제 정정, 개인정보 열람과 엑셀 반출 이력을 함께 확인합니다. 민감한 연락처 값은 저장하지 않고 대상과 변경 항목만 기록합니다.</div>
+                    <div class="audit-desc">예약 등록·수정·취소, 객실 이동, 요금/예치금 정정, 개인정보 열람과 엑셀 반출 이력을 함께 확인합니다. 민감한 연락처 값은 저장하지 않고 대상과 변경 항목만 기록합니다.</div>
                 </div>
                 <button class="btn-outline" onclick="renderAuditLogs()"><i class="fa-solid fa-rotate-right"></i> 새로고침</button>
             </div>
@@ -198,7 +198,7 @@ const ACTION_META = {
     'reservation.cancel': { label: '예약 취소', type: 'reservation', icon: 'fa-ban' },
     'reservation.guests.adjust': { label: '투숙객 명단 변경', type: 'reservation', icon: 'fa-user-group' },
     'reservation.amount.adjust': { label: '체크인 후 객실요금 정정', type: 'reservation', icon: 'fa-file-invoice-dollar' },
-    'reservation.prepayment.adjust': { label: '체크인 후 선결제 정정', type: 'reservation', icon: 'fa-money-check-dollar' },
+    'reservation.prepayment.adjust': { label: '체크인 후 예치금 정정', type: 'reservation', icon: 'fa-money-check-dollar' },
     'reservation.room.move': { label: '체크인 후 객실 이동', type: 'reservation', icon: 'fa-right-left' },
     'guest.search_results.view': { label: '고객 검색 결과 열람', type: 'search', icon: 'fa-magnifying-glass' },
     'guest.search_selection.view': { label: '고객 검색 선택', type: 'search', icon: 'fa-user-check' },
@@ -220,7 +220,7 @@ const FIELD_LABELS = {
     stayDates: '투숙일',
     operationalNotes: '운영 메모',
     amount: '금액',
-    prepayment: '선결제',
+    prepayment: '예치금',
     companionGuestNames: '동반 투숙객',
     status: '상태',
     channel: '유입/업체',
@@ -474,8 +474,8 @@ function detailText(entry) {
     if (d.checkin || d.checkout) parts.push(`투숙 ${d.checkin || '-'} ~ ${d.checkout || '-'}`);
     if (d.beforeAmount !== undefined || d.afterAmount !== undefined) parts.push(`금액 ${formatAuditMoney(d.beforeAmount, d.currency)} → ${formatAuditMoney(d.afterAmount, d.currency)}`);
     if (d.amount !== undefined) parts.push(`금액 ${formatAuditMoney(d.amount, d.currency)}`);
-    if (d.beforePrepaid !== undefined || d.afterPrepaid !== undefined) parts.push(`선결제 ${formatAuditMoney(d.beforePrepaid, d.currency)} → ${formatAuditMoney(d.afterPrepaid, d.currency)}`);
-    if (d.prepaidAmount !== undefined) parts.push(`선결제 ${formatAuditMoney(d.prepaidAmount, d.currency)}`);
+    if (d.beforePrepaid !== undefined || d.afterPrepaid !== undefined) parts.push(`예치금 ${formatAuditMoney(d.beforePrepaid, d.currency)} → ${formatAuditMoney(d.afterPrepaid, d.currency)}`);
+    if (d.prepaidAmount !== undefined) parts.push(`예치금 ${formatAuditMoney(d.prepaidAmount, d.currency)}`);
     if (d.fromRoom || d.toRoom) parts.push(`객실 ${d.fromRoom || '-'} → ${d.toRoom || '-'}`);
     if (d.room && !d.fromRoom && !d.toRoom) parts.push(`객실 ${d.room}`);
     if (d.beforeGuest || d.afterGuest) parts.push(`대표 ${d.beforeGuest || '-'} → ${d.afterGuest || '-'}`);

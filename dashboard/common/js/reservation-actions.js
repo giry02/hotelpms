@@ -310,7 +310,7 @@
 
     function prepaidRowsText(rows = []) {
         const normalized = rows.map(normalizePrepaidRow).filter(Boolean);
-        if (!normalized.length) return '실제 결제화폐 미입력';
+        if (!normalized.length) return '미입력';
         return normalized.map(row => {
             const label = PREPAYMENT_CURRENCY_LABELS[row.currency] || row.currency;
             const amountText = `${label} ${Number(row.amount || 0).toLocaleString()}`;
@@ -333,7 +333,7 @@
         const list = document.getElementById('unifiedPrepaidRows');
         if (!list) return;
         if (list.querySelector('.prepaid-row')) return;
-        list.innerHTML = '<div class="prepaid-empty" style="border:1px dashed var(--border);border-radius:8px;padding:10px;color:var(--txt3);font-size:.72rem;font-weight:800;text-align:center">선결제 통화를 행으로 추가해주세요.</div>';
+        list.innerHTML = '<div class="prepaid-empty" style="border:1px dashed var(--border);border-radius:8px;padding:10px;color:var(--txt3);font-size:.72rem;font-weight:800;text-align:center">예치금 통화를 행으로 추가해주세요.</div>';
     }
 
     function addUnifiedPrepaidRow(row = {}) {
@@ -1172,7 +1172,7 @@
         const balance = Math.max(total - prepaid, 0);
         balanceInput.value = formatSettlementMoney(balance, currency);
         if (help) {
-            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 선결제 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)} · 실제 결제화폐 ${prepaidRowsText(prepaidRows)}`;
+            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 예치금 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)} · 예치금 수납 통화 ${prepaidRowsText(prepaidRows)}`;
         }
     }
 
@@ -1395,14 +1395,14 @@
                         <div style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;">대표투숙객은 위 고객 정보, 동반 투숙객은 목록과 타임라인 아래줄에 표시됩니다.</div>
                     </div>
                     <div style="grid-column:1 / -1;background:#fff;border:1px solid var(--border2);border-radius:10px;padding:14px;">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem;font-weight:900;color:var(--txt);"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--primary)"></i> 객실 요금 / 선결제</div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem;font-weight:900;color:var(--txt);"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--primary)"></i> 객실 요금 / 예치금</div>
                         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">총 객실 금액</div>
                                 <input type="number" min="0" step="1" id="unifiedAmount" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                             </div>
                             <div class="md-item">
-                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">선결제 페소 기준 합계</div>
+                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">예치금 페소 기준 합계</div>
                                 <input type="number" min="0" step="1" id="unifiedPrepaid" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                             </div>
                             <div class="md-item">
@@ -1413,7 +1413,7 @@
                         <div style="margin-top:12px;">
                             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
                                 <div style="display:flex;align-items:center;gap:7px;font-size:0.78rem;color:var(--txt);font-weight:900;">
-                                    <i class="fa-solid fa-wallet" style="color:var(--primary)"></i> 선결제 수납 행
+                                    <i class="fa-solid fa-wallet" style="color:var(--primary)"></i> 예치금 수납 행
                                 </div>
                                 <button type="button" class="btn-outline" onclick="addUnifiedPrepaidRow()" style="height:32px;padding:0 10px;font-size:.72rem"><i class="fa-solid fa-plus"></i> 행 추가</button>
                             </div>
@@ -2154,7 +2154,7 @@
                         <i class="fa-solid fa-lock" style="color:var(--primary);margin-top:3px"></i>
                         <div>
                             <div style="color:var(--txt);font-size:.9rem;margin-bottom:4px">체크인 이후 예약은 운영 정정만 가능합니다.</div>
-                            <div>대표투숙객과 투숙 날짜는 잠기며, 객실 이동·동반 투숙객·요금·선결제 정정은 저장 시 감사 로그에 기록됩니다.</div>
+                            <div>대표투숙객과 투숙 날짜는 잠기며, 객실 이동·동반 투숙객·요금·예치금 정정은 저장 시 감사 로그에 기록됩니다.</div>
                             <div style="margin-top:8px;color:var(--txt)">투숙객: ${guestNameForReservation(res)} · 객실: ${roomLabel}</div>
                         </div>
                     </div>`;
@@ -2632,12 +2632,12 @@
         const prepaidReceivedRows = prepaidRowsFromInputs();
         const invalidPrepaidRows = prepaidReceivedRows.filter(row => row.currency !== 'PHP' && Number(row.amount || 0) > 0 && Number(row.phpEquivalent || 0) <= 0);
         if (invalidPrepaidRows.length) {
-            alert('달러/원화 선결제 행에는 페소 반영액을 입력해주세요.');
+            alert('달러/원화 예치금 행에는 페소 반영액을 입력해주세요.');
             return;
         }
         const prepaidRowsTotal = prepaidPhpTotalFromRows(prepaidReceivedRows);
         if (prepaidReceivedRows.length && prepaidRowsTotal > totalAmount) {
-            alert('선결제 페소 반영액이 총 객실 금액을 초과할 수 없습니다.');
+            alert('예치금 페소 반영액이 총 객실 금액을 초과할 수 없습니다.');
             return;
         }
         const prepaidAmount = Math.min(prepaidReceivedRows.length ? prepaidRowsTotal : parseMoneyInput(document.getElementById('unifiedPrepaid')?.value, currency), totalAmount);
@@ -2875,7 +2875,7 @@
                 addAuditChange('guestName', '대표 투숙객', beforeGuest, guestNameForReservation(res));
                 addAuditChange('companionGuestNames', '동반 투숙객', beforeCompanionNames, companionGuestNames);
                 addAuditChange('amount', '총 금액', beforeAmount, totalAmount);
-                addAuditChange('prepayment', '선결제', beforePrepaid, prepaidAmount);
+                addAuditChange('prepayment', '예치금', beforePrepaid, prepaidAmount);
                 addAuditChange('channel', '유입/업체', beforeChannel, channel);
                 addAuditChange('group', '단체', beforeGroupId, groupId);
                 if (auditChanges.length) {
