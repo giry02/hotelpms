@@ -404,7 +404,7 @@ function createDraftGroup() {
         block: 0,
         pickup: 0,
         pax: 0,
-        routing: 'Master Folio (단체 일괄)',
+        routing: '단체 일괄 정산',
         sales: '',
         contact: '',
         note: '',
@@ -763,7 +763,7 @@ function renderOverview() {
             <div><label class="form-label">체크아웃</label><input type="date" id="detailCheckout" class="form-input" style="width:100%" value="${group.checkout || ''}"></div>
             <div><label class="form-label">행사 적용 할인(%)</label><input type="number" id="detailEventDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" value="${group.eventDiscountPercent ?? 0}"></div>
             <div><label class="form-label">상태</label><select id="detailStatus" class="form-input" style="width:100%">${Object.entries(statusMap).map(([k,v]) => `<option value="${k}" ${group.status === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
-            <div><label class="form-label">정산 방식</label><select id="detailRouting" class="form-input" style="width:100%">${['Master Folio (단체 일괄)','Individual (개별 정산)','혼합 (일부 단체/일부 개별)'].map(v => `<option ${group.routing === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+            <div><label class="form-label">정산 방식</label><select id="detailRouting" class="form-input" style="width:100%">${['단체 일괄 정산','개별 정산','혼합 정산'].map(v => `<option ${group.routing === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
             <div><label class="form-label">행사 담당 영업 직원</label><input id="detailSales" class="form-input" style="width:100%" value="${group.sales || ''}" placeholder="직원명"></div>
             <div><label class="form-label">행사 연락 담당자/연락처</label><input id="detailContact" class="form-input" style="width:100%" value="${group.contact || ''}" placeholder="예: 홍길동 / 010-1234-5678"></div>
             <div class="wide"><label class="form-label">특이사항 / 메모</label><textarea id="detailNote" class="form-input" style="width:100%;min-height:76px;resize:vertical">${group.note || ''}</textarea></div>
@@ -1006,7 +1006,7 @@ window.addEventListener('DataReady', () => {
             ? company.billing.paymentTerm
             : company.billing;
         const billing = {
-            'master-folio': 'Master Folio',
+            'master-folio': '단체 일괄 정산',
             'agency-credit': '업체 후불',
             'company-card': '법인카드',
             individual: '개별 결제'
@@ -1096,7 +1096,7 @@ window.addEventListener('DataReady', () => {
         group.companyId = group.companyId || company.id;
         group.agency = group.agency || group.companyName || company.name || company.displayName || '';
         group.companyName = group.companyName || group.agency;
-        if ((!group.routing || group.routing === 'Master Folio') && company.billing) group.routing = company.billing;
+        if ((!group.routing || group.routing === 'Master Folio' || group.routing === 'Master Folio (단체 일괄)') && company.billing) group.routing = company.billing;
         if (!group.contact) group.contact = [company.contactName, company.phone].filter(Boolean).join(' / ');
         if (group.eventDiscountPercent === undefined || group.eventDiscountPercent === null || group.eventDiscountPercent === '') {
             group.eventDiscountPercent = eventDiscountPercent();
@@ -1170,7 +1170,7 @@ window.addEventListener('DataReady', () => {
             pickup: 0,
             pax: 0,
             eventDiscountPercent: c ? discountFromCompany(c) : 0,
-            routing: c?.billing || 'Master Folio (단체 일괄)',
+            routing: c?.billing || '단체 일괄 정산',
             sales: '',
             contact: c ? [c.contactName, c.phone].filter(Boolean).join(' / ') : '',
             note: '',
@@ -1205,7 +1205,7 @@ window.addEventListener('DataReady', () => {
                     <option value="inhouse" ${group.status === 'inhouse' ? 'selected' : ''}>투숙 중</option>
                     <option value="departed" ${group.status === 'departed' ? 'selected' : ''}>체크아웃</option>
                 </select></div>
-                <div><label class="form-label">정산 방식</label><select id="detailRouting" class="form-input" style="width:100%">${['Master Folio (단체 일괄)','Individual (개별 정산)','혼합 (일부 단체/일부 개별)'].map(v => `<option ${group.routing === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+                <div><label class="form-label">정산 방식</label><select id="detailRouting" class="form-input" style="width:100%">${['단체 일괄 정산','개별 정산','혼합 정산'].map(v => `<option ${group.routing === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
                 <div><label class="form-label">행사 담당 영업 직원</label><input id="detailSales" class="form-input" style="width:100%" value="${safeAttr(group.sales)}" placeholder="직원명"></div>
                 <div><label class="form-label">행사 연락 담당자/연락처</label><input id="detailContact" class="form-input" style="width:100%" value="${safeAttr(group.contact)}" placeholder="예: 홍길동 / 010-1234-5678"></div>
                 <div class="wide"><label class="form-label">특이사항 / 메모</label><textarea id="detailNote" class="form-input" style="width:100%;min-height:76px;resize:vertical">${safeAttr(group.note)}</textarea></div>
@@ -2590,20 +2590,6 @@ window.addEventListener('DataReady', () => {
                 </div>
             </div>
             <div id="detailAllocationEditor" class="allocation-editor"></div>
-            <table class="data-table room-assignment-table room-only-assignment-table" style="margin-top:14px">
-                <thead><tr><th>객실</th><th>유형</th><th>기본 요금</th><th>배정 요금</th></tr></thead>
-                <tbody>
-                    ${assigned.map(room => {
-                        const baseRate = room.baseRate || room.rate || 0;
-                        return `<tr>
-                            <td><span class="room-chip">${html(roomLabel(room.roomId))}</span></td>
-                            <td>${html(room.type || '-')}</td>
-                            <td>${money(baseRate)}</td>
-                            <td>${money(room.rate)} <small style="display:block;color:var(--txt3);font-weight:800">할인 ${html(room.discountPercent || 0)}%</small></td>
-                        </tr>`;
-                    }).join('') || '<tr><td colspan="4">배정된 객실이 없습니다. 위에서 호실을 추가하세요.</td></tr>'}
-                </tbody>
-            </table>
             <div class="detail-sticky-actions">
                 <div class="hint"><i class="fa-solid fa-clock-rotate-left"></i> 객실 배정 수정은 변경 이력에 남습니다.</div>
                 <button class="mini-btn" onclick="switchTabById('rooming')"><i class="fa-solid fa-users"></i> 투숙객 명단에서 관리</button>

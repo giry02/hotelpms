@@ -351,6 +351,24 @@
             'sys_maintenance': { name: 'James Bond' }
         };
         const activeProfile = userProfiles[window.currentUserRole] || userProfiles['sys_admin'];
+        const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+        const roleLabels = {
+            ko: {
+                sys_admin: '관리자',
+                sys_gm: '총괄 매니저',
+                sys_desk: '프론트 데스크',
+                sys_housekeeping: '하우스키핑',
+                sys_maintenance: '시설 보수'
+            },
+            en: {
+                sys_admin: 'Admin',
+                sys_gm: 'General Manager',
+                sys_desk: 'Front Desk',
+                sys_housekeeping: 'Housekeeping',
+                sys_maintenance: 'Maintenance'
+            }
+        };
+        const roleText = (role) => (roleLabels[lang] || roleLabels.ko)[role] || role;
 
         return `
 <div class="sidebar-overlay" onclick="PMS_Sidebar.toggleMenu()"></div>
@@ -368,11 +386,11 @@
             <div class="user-info">
                 <div class="user-name">${activeProfile.name}</div>
                 <select class="user-role-select" onchange="window.switchRole(this.value)">
-                    <option value="sys_admin" ${window.currentUserRole==='sys_admin'?'selected':''}>Admin</option>
-                    <option value="sys_gm" ${window.currentUserRole==='sys_gm'?'selected':''}>General Manager</option>
-                    <option value="sys_desk" ${window.currentUserRole==='sys_desk'?'selected':''}>Front Desk</option>
-                    <option value="sys_housekeeping" ${window.currentUserRole==='sys_housekeeping'?'selected':''}>Housekeeping</option>
-                    <option value="sys_maintenance" ${window.currentUserRole==='sys_maintenance'?'selected':''}>Maintenance</option>
+                    <option value="sys_admin" ${window.currentUserRole==='sys_admin'?'selected':''}>${roleText('sys_admin')}</option>
+                    <option value="sys_gm" ${window.currentUserRole==='sys_gm'?'selected':''}>${roleText('sys_gm')}</option>
+                    <option value="sys_desk" ${window.currentUserRole==='sys_desk'?'selected':''}>${roleText('sys_desk')}</option>
+                    <option value="sys_housekeeping" ${window.currentUserRole==='sys_housekeeping'?'selected':''}>${roleText('sys_housekeeping')}</option>
+                    <option value="sys_maintenance" ${window.currentUserRole==='sys_maintenance'?'selected':''}>${roleText('sys_maintenance')}</option>
                 </select>
             </div>
         </div>

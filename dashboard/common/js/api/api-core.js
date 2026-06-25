@@ -527,7 +527,7 @@ window.PmsMockApi = window.PmsMockApi || (function() {
             pickup: item.pickedUpRooms || roomingList.length || item.pickup || 0,
             pax: item.pax || 0,
             ...(eventDiscount !== undefined ? { eventDiscountPercent: Number(eventDiscount || 0) } : {}),
-            routing: item.routing || 'Master Folio',
+            routing: item.routing || '단체 일괄 정산',
             sales: item.salesManagerName || item.sales || '',
             contact: item.contact?.phone ? `${item.contact.phone} (${item.contact.name || ''})` : (item.contact || ''),
             note: item.note || '',
@@ -543,7 +543,7 @@ window.PmsMockApi = window.PmsMockApi || (function() {
             ? (item.billing.paymentTerm || '')
             : (item.billing || '');
         const billingLabel = {
-            'master-folio': 'Master Folio',
+            'master-folio': '단체 일괄 정산',
             'agency-credit': '업체 후불',
             'company-card': '법인카드',
             individual: '개별 결제'

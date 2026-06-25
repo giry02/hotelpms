@@ -326,7 +326,7 @@ function saveStaffData(data, options = {}) {
             .catch(e => console.warn('Mock staff save failed', e));
     }
     if (normalized.changed && !options.silent && typeof showToast === 'function') {
-        showToast('Admin 권한은 한 명만 유지됩니다. 중복 Admin은 General Manager로 조정했습니다.', 'info');
+        showToast('관리자 권한은 한 명만 유지됩니다. 중복 관리자는 총괄 매니저로 조정했습니다.', 'info');
     }
     return normalized.items;
 }
@@ -470,7 +470,7 @@ function saveStaff() {
     if (!name)           { showToast('이름을 입력해 주세요.', 'error'); return; }
     if (!email)          { showToast('이메일을 입력해 주세요.', 'error'); return; }
     if (!selectedRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
-    if (selectedRoleId === 'sys_admin') { showToast('Admin 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error'); return; }
+    if (selectedRoleId === 'sys_admin') { showToast('관리자 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error'); return; }
     if (!pw)             { showToast('임시 비밀번호를 입력해 주세요.', 'error'); return; }
 
     staffData.push({
@@ -503,7 +503,7 @@ function openEdit(id) {
     const s = staffData.find(x => x.id === id);
     if (!s) return;
     if (isSettingsManagedAdmin(s)) {
-        showToast('Admin 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'info');
+        showToast('관리자 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'info');
         return;
     }
     editingId = id;
@@ -521,14 +521,14 @@ function saveEdit() {
     const s = staffData.find(x => x.id === editingId);
     if (!s) return;
     if (isSettingsManagedAdmin(s)) {
-        showToast('Admin 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error');
+        showToast('관리자 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error');
         return;
     }
     s.name   = document.getElementById('editName').value.trim();
     s.empId  = document.getElementById('editEmpId').value.trim();
     const nextRoleId = document.getElementById('editRole').value;
     if (!nextRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
-    if (nextRoleId === 'sys_admin') { showToast('Admin 역할은 직원 관리에서 부여할 수 없습니다.', 'error'); return; }
+    if (nextRoleId === 'sys_admin') { showToast('관리자 역할은 직원 관리에서 부여할 수 없습니다.', 'error'); return; }
     s.roleId = nextRoleId;
     s.status = document.getElementById('editStatus').value;
     
@@ -555,7 +555,7 @@ function sendTempPw() {
     const s = staffData.find(x => x.id === editingId);
     if (!s) return;
     if (isSettingsManagedAdmin(s)) {
-        showToast('Admin 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error');
+        showToast('관리자 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error');
         return;
     }
     s.passwordUpdatedAt = new Date().toISOString();
@@ -570,7 +570,7 @@ function sendTempPw() {
 async function deleteStaff() {
     const s = staffData.find(x => x.id === editingId);
     if (isSettingsManagedAdmin(s)) {
-        showToast('Admin 계정은 직원 관리에서 삭제할 수 없습니다.', 'error');
+        showToast('관리자 계정은 직원 관리에서 삭제할 수 없습니다.', 'error');
         return;
     }
     const confirmMessage = typeof window.t === 'function'
@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         staffData = normalizedStaff.items;
         if (normalizedStaff.changed) {
             staffData = saveStaffData(staffData, { silent: true });
-            showToast('Admin 권한은 한 명만 유지됩니다. 중복 Admin은 General Manager로 조정했습니다.', 'info');
+            showToast('관리자 권한은 한 명만 유지됩니다. 중복 관리자는 총괄 매니저로 조정했습니다.', 'info');
         }
 
         buildRoleFilter();

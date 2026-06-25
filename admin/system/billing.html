@@ -155,6 +155,16 @@
 		};
 	}
 
+	function escapeAdminBillingHtml(value) {
+		return String(value ?? '').replace(/[&<>"']/g, ch => ({
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;',
+			"'": '&#39;'
+		}[ch]));
+	}
+
 	function renderTable() {
 		const invoices = (window.AdminData?.billing || []).map(normalizeInvoice);
 		const tbody = document.getElementById('billingTableBody');
@@ -190,12 +200,12 @@
 
 			return `
 			<tr>
-				<td><strong style="font-weight:600;">${i.hotel}</strong><br><span style="font-size:0.7rem;color:var(--txt3)">${i.id}</span></td>
-				<td><span class="badge ${i.plan === 'Premium' ? 'purple' : 'gray'}">${i.plan}</span></td>
+				<td><strong style="font-weight:600;">${escapeAdminBillingHtml(i.hotel)}</strong><br><span style="font-size:0.7rem;color:var(--txt3)">${escapeAdminBillingHtml(i.id)}</span></td>
+				<td><span class="badge ${i.plan === 'Premium' ? 'purple' : 'gray'}">${escapeAdminBillingHtml(i.plan)}</span></td>
 				<td>${i.cycle === 'Yearly' ? '<span class="badge indigo">연간</span>' : '<span class="badge gray">월간</span>'}</td>
 				<td style="font-weight:600;">${formatMoney(i.amount, i.currency)}</td>
-				<td>${i.date}</td>
-				<td><span class="badge ${badgeColor}">${statusLabel}</span></td>
+				<td>${escapeAdminBillingHtml(i.date)}</td>
+				<td><span class="badge ${badgeColor}">${escapeAdminBillingHtml(statusLabel)}</span></td>
 				<td>${actionBtn}</td>
 			</tr>
 			`;

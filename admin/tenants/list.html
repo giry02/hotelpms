@@ -54,6 +54,16 @@
 </div>
 </div>
 <script>
+function escapeTenantHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
 function updateFilterCounts() {
     const rows = document.querySelectorAll('tbody tr');
     document.querySelectorAll('.chip').forEach(chip => {
@@ -82,12 +92,12 @@ function renderApplicationRows() {
     if (tenants.length && tbody.dataset.tenantsRendered !== 'true') {
         tbody.innerHTML = tenants.map(tenant => `
             <tr>
-                <td style="font-weight:600">${tenant.hotelName}<br><span style="font-size:.7rem;color:var(--txt3)">${tenant.id}</span></td>
-                <td>${tenant.city}, ${tenant.country}</td>
-                <td><span class="status-badge" style="background:var(--primary-lt);color:var(--primary)">${tenant.plan || 'Free'}</span></td>
-                <td>${tenant.rooms || '-'}</td>
-                <td>${tenant.contractStart || '-'} ~ ${tenant.contractEnd || '-'}</td>
-                <td><span class="status-badge ${tenant.status === 'active' ? 'active' : 'pending'}">${tenant.status === 'active' ? '운영 중' : tenant.status}</span></td>
+                <td style="font-weight:600">${escapeTenantHtml(tenant.hotelName)}<br><span style="font-size:.7rem;color:var(--txt3)">${escapeTenantHtml(tenant.id)}</span></td>
+                <td>${escapeTenantHtml(tenant.city)}, ${escapeTenantHtml(tenant.country)}</td>
+                <td><span class="status-badge" style="background:var(--primary-lt);color:var(--primary)">${escapeTenantHtml(tenant.plan || 'Free')}</span></td>
+                <td>${escapeTenantHtml(tenant.rooms || '-')}</td>
+                <td>${escapeTenantHtml(tenant.contractStart || '-')} ~ ${escapeTenantHtml(tenant.contractEnd || '-')}</td>
+                <td><span class="status-badge ${tenant.status === 'active' ? 'active' : 'pending'}">${tenant.status === 'active' ? '운영 중' : escapeTenantHtml(tenant.status)}</span></td>
                 <td><a class="btn-outline btn-sm" href="detail.html?id=${encodeURIComponent(tenant.id)}"><i class="fa-solid fa-eye"></i></a></td>
             </tr>`).join('');
         tbody.dataset.tenantsRendered = 'true';
@@ -102,12 +112,12 @@ function renderApplicationRows() {
         const row = document.createElement('tr');
         row.dataset.applicationId = app.id;
         row.innerHTML = `
-            <td style="font-weight:600">${app.hotelName}<br><span style="font-size:.7rem;color:var(--txt3)">${app.id}</span></td>
-            <td>${app.city}, ${app.country}</td>
-            <td><span class="status-badge" style="background:var(--border2);color:var(--txt2)">${app.plan || 'Free'}</span></td>
-            <td>${app.rooms || '-'}</td>
-            <td>${app.submittedAt || '접수일 미확인'} ~</td>
-            <td><span class="status-badge pending">${app.status || '심사 중'}</span></td>
+            <td style="font-weight:600">${escapeTenantHtml(app.hotelName)}<br><span style="font-size:.7rem;color:var(--txt3)">${escapeTenantHtml(app.id)}</span></td>
+            <td>${escapeTenantHtml(app.city)}, ${escapeTenantHtml(app.country)}</td>
+            <td><span class="status-badge" style="background:var(--border2);color:var(--txt2)">${escapeTenantHtml(app.plan || 'Free')}</span></td>
+            <td>${escapeTenantHtml(app.rooms || '-')}</td>
+            <td>${escapeTenantHtml(app.submittedAt || '접수일 미확인')} ~</td>
+            <td><span class="status-badge pending">${escapeTenantHtml(app.status || '심사 중')}</span></td>
             <td style="display:flex;gap:4px">
                 <a class="btn-outline btn-sm" href="detail.html"><i class="fa-solid fa-eye"></i></a>
                 <button class="btn-outline btn-sm" onclick="approveTenant(this)" style="color:var(--success);border-color:var(--success)" title="승인"><i class="fa-solid fa-check"></i></button>

@@ -84,6 +84,14 @@
 			ip: log.ip || '-',
 			risk: log.risk || (/fail|blocked|error/i.test(log.action || '') ? 'High' : 'Low')
 		});
+
+		const escapeAdminAuditHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;',
+			"'": '&#39;'
+		}[ch]));
 		
 		const renderLogs = (filter = 'all') => {
 			const filteredLogs = logs.map(normalizeLog).filter(l => {
@@ -104,13 +112,13 @@
 			
 			return `
 			<tr>
-				<td style="font-size:0.75rem;color:var(--txt3);">${l.id}</td>
-				<td style="font-size:0.8rem;">${l.time}</td>
-				<td style="font-weight:600;">${l.adminId}</td>
-				<td><span class="badge ${riskBadge === 'red' ? 'red' : 'gray'}">${actionLabel[l.action] || l.action}</span></td>
-				<td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${l.details}">${l.details}</td>
-				<td style="font-family:monospace;">${l.ip}</td>
-				<td><span class="badge ${riskBadge}">${riskLabel[l.risk] || l.risk}</span></td>
+				<td style="font-size:0.75rem;color:var(--txt3);">${escapeAdminAuditHtml(l.id)}</td>
+				<td style="font-size:0.8rem;">${escapeAdminAuditHtml(l.time)}</td>
+				<td style="font-weight:600;">${escapeAdminAuditHtml(l.adminId)}</td>
+				<td><span class="badge ${riskBadge === 'red' ? 'red' : 'gray'}">${escapeAdminAuditHtml(actionLabel[l.action] || l.action)}</span></td>
+				<td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeAdminAuditHtml(l.details)}">${escapeAdminAuditHtml(l.details)}</td>
+				<td style="font-family:monospace;">${escapeAdminAuditHtml(l.ip)}</td>
+				<td><span class="badge ${riskBadge}">${escapeAdminAuditHtml(riskLabel[l.risk] || l.risk)}</span></td>
 			</tr>
 			`;
 			}).join('');

@@ -52,6 +52,20 @@
 </div>
 </div>
 <script>
+	function escapeAdminUserHtml(value) {
+		return String(value ?? '').replace(/[&<>"']/g, ch => ({
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;',
+			"'": '&#39;'
+		}[ch]));
+	}
+
+	function escapeAdminUserJs(value) {
+		return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/[\r\n]/g, ' ');
+	}
+
 	function renderUsers() {
 		const users = window.AdminData?.users || [];
 		const tbody = document.getElementById('userTableBody');
@@ -69,20 +83,25 @@
 			return;
 		}
 		
-		tbody.innerHTML = users.map(u => `
+		tbody.innerHTML = users.map(u => {
+			const role = u.role || '-';
+			const status = u.status || '-';
+			const email = u.email || '-';
+			return `
 			<tr>
-				<td><strong>${u.id || '-'}</strong></td>
-				<td>${u.name || '-'}</td>
-				<td><span class="badge ${u.role === 'System Admin' ? 'indigo' : 'gray'}">${roleLabel[u.role] || u.role}</span></td>
-				<td>${u.email || '-'}</td>
-				<td><span class="badge ${u.status === 'active' ? 'green' : 'red'}">${statusLabel[u.status] || u.status}</span></td>
-				<td>${u.lastLogin || '-'}</td>
+				<td><strong>${escapeAdminUserHtml(u.id || '-')}</strong></td>
+				<td>${escapeAdminUserHtml(u.name || '-')}</td>
+				<td><span class="badge ${role === 'System Admin' ? 'indigo' : 'gray'}">${escapeAdminUserHtml(roleLabel[role] || role)}</span></td>
+				<td>${escapeAdminUserHtml(email)}</td>
+				<td><span class="badge ${status === 'active' ? 'green' : 'red'}">${escapeAdminUserHtml(statusLabel[status] || status)}</span></td>
+				<td>${escapeAdminUserHtml(u.lastLogin || '-')}</td>
 				<td>
-					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;" onclick="alert('${u.email} 계정 편집 화면을 엽니다.')">수정</button>
-					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;color:var(--primary);border-color:var(--primary)" onclick="sendAdminPasswordReset('${u.email}')"><i class="fa-solid fa-envelope"></i> 비밀번호 초기화</button>
+					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;" onclick="alert('${escapeAdminUserJs(email)} 계정 편집 화면을 엽니다.')">수정</button>
+					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;color:var(--primary);border-color:var(--primary)" onclick="sendAdminPasswordReset('${escapeAdminUserJs(email)}')"><i class="fa-solid fa-envelope"></i> 비밀번호 초기화</button>
 				</td>
 			</tr>
-		`).join('');
+		`;
+		}).join('');
 	}
 
 	if (window.onAdminDataReady) window.onAdminDataReady(renderUsers);

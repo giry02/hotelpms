@@ -4,6 +4,26 @@ window.PmsAPI = window.PmsAPI || {};
 const _fallbackRooms = [];
 const _fallbackRoomTypes = [];
 
+function normalizeOperationRoomType(item) {
+    if (window.PmsMockApi && typeof window.PmsMockApi.toLegacyRoomType === 'function') {
+        return window.PmsMockApi.toLegacyRoomType(item);
+    }
+    const base = item?.baseRate ?? item?.basePrice ?? item?.rate ?? item?.price;
+    const amount = base && typeof base === 'object' ? Number(base.amount || 0) : Number(base || 0);
+    return {
+        ...item,
+        id: item?.id || item?.typeId || item?.code || item?.name,
+        typeId: item?.typeId || item?.id || item?.code || item?.name,
+        name: item?.name || item?.typeName || item?.label || '',
+        code: item?.code || item?.typeCode || '',
+        view: item?.view || item?.viewType || '',
+        desc: item?.desc || item?.description || '',
+        basePrice: Number.isFinite(amount) ? amount : 0,
+        baseRate: Number.isFinite(amount) ? amount : 0,
+        currency: item?.currency || base?.currency || 'PHP'
+    };
+}
+
 Object.assign(window.PmsAPI, {
 
     getTasks: async () => {
@@ -397,7 +417,7 @@ Object.assign(window.PmsAPI, {
         try {
             if (window.PmsMockApi) {
                 const env = await window.PmsMockApi.request('GET', '/room-types');
-                const roomTypes = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyRoomType);
+                const roomTypes = window.PmsMockApi.items(env).map(normalizeOperationRoomType);
                 if (roomTypes.length) return roomTypes;
             }
         } catch(e) {
@@ -409,7 +429,7 @@ Object.assign(window.PmsAPI, {
         try {
             if (window.PmsMockApi) {
                 const env = await window.PmsMockApi.request('GET', '/room-types');
-                const roomTypes = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyRoomType);
+                const roomTypes = window.PmsMockApi.items(env).map(normalizeOperationRoomType);
                 if (roomTypes.length) return roomTypes;
             }
         } catch(e) {
