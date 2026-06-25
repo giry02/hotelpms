@@ -437,9 +437,49 @@ function timelineVisualEndDate(endDate) {
     return visualEnd;
 }
 
+function timelineReservationStartDate(res) {
+    return parseTimelineDate(res?.checkInDate || res?.checkin || res?.cin);
+}
+
+function timelineReservationCheckoutDate(res) {
+    return parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
+}
+
+function timelineHasSameDayRoomHandoff(res, room) {
+    const checkoutDate = timelineReservationCheckoutDate(res);
+    if (!checkoutDate || !room) return false;
+    const resId = res?.id || res?.reservationId || '';
+    return reservations.some(other => {
+        if (!other || other === res) return false;
+        const otherId = other.id || other.reservationId || '';
+        if (resId && otherId && resId === otherId) return false;
+        if (!timelineRoomMatchesReservation(room, other)) return false;
+        const startDate = timelineReservationStartDate(other);
+        return !!startDate && startDate.getTime() === checkoutDate.getTime();
+    });
+}
+
+function timelineReservationRenderSortValue(res) {
+    const startDate = timelineReservationStartDate(res);
+    if (startDate && !Number.isNaN(startDate.getTime())) return startDate.getTime();
+    return EPOCH.getTime() + (Number(res?.start || 0) * 86400000);
+}
+
+function timelineReservationsForRender() {
+    return [...reservations].sort((a, b) => {
+        const roomA = timelineRoomForReservation(a);
+        const roomB = timelineRoomForReservation(b);
+        const roomIdxA = roomA ? rooms.indexOf(roomA) : Number.MAX_SAFE_INTEGER;
+        const roomIdxB = roomB ? rooms.indexOf(roomB) : Number.MAX_SAFE_INTEGER;
+        return roomIdxA - roomIdxB
+            || timelineReservationRenderSortValue(a) - timelineReservationRenderSortValue(b)
+            || String(a.id || a.reservationId || '').localeCompare(String(b.id || b.reservationId || ''));
+    });
+}
+
 function isTimelineCurrentStay(res) {
-    const start = parseTimelineDate(res?.checkInDate || res?.checkin || res?.cin);
-    const end = parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
+    const start = timelineReservationStartDate(res);
+    const end = timelineReservationCheckoutDate(res);
     if (!start || !end) return false;
     const today = timelineTodayDate();
     return start <= today && today < end;
@@ -715,7 +755,7 @@ function buildTimeline() {
     let cntConfirmed=0, cntCheckedin=0, cntCheckout=0, cntVip=0, cntB2B=0;
 
     // Count assigned group guests only; unassigned group block rooms are inventory, not guests.
-    reservations.forEach(res => {
+    timelineReservationsForRender().forEach(res => {
         const isB2BGuest = !!(res.groupId && timelineGuestName(res));
         const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
         const effectiveStatus = effectiveTimelineStatus(res);
@@ -758,7 +798,7 @@ function buildTimeline() {
     // Track levels for each room to handle overlapping blocks
     const roomLevels = {};
 
-    reservations.forEach(res => {
+    timelineReservationsForRender().forEach(res => {
         const matchedRoom = timelineRoomForReservation(res);
         const roomIdx = matchedRoom ? rooms.indexOf(matchedRoom) : -1;
         if (roomIdx === -1) return;
@@ -773,16 +813,24 @@ function buildTimeline() {
                 const rCoutDate = parseTimelineDate(res.cout);
                 if (!rCinDate || !rCoutDate) throw new Error('invalid timeline dates');
                 renderStart = Math.round((rCinDate - baseDate) / 86400000);
-                renderEnd = Math.round((timelineVisualEndDate(rCoutDate) - baseDate) / 86400000);
+                const shouldCompactHandoff = timelineHasSameDayRoomHandoff(res, matchedRoom);
+                const visualEndDate = shouldCompactHandoff ? rCoutDate : timelineVisualEndDate(rCoutDate);
+                renderEnd = Math.round((visualEndDate - baseDate) / 86400000);
             } catch(e) {
                 const offset = Math.round((baseDate - EPOCH) / 86400000);
                 renderStart = res.start - offset;
                 renderEnd = renderStart + Number(res.len || res.nights || 1) + 1;
+                if (timelineHasSameDayRoomHandoff(res, matchedRoom)) {
+                    renderEnd = renderStart + Number(res.len || res.nights || 1);
+                }
             }
         } else {
             const offset = Math.round((baseDate - EPOCH) / 86400000);
             renderStart = res.start - offset;
             renderEnd = renderStart + Number(res.len || res.nights || 1) + 1;
+            if (timelineHasSameDayRoomHandoff(res, matchedRoom)) {
+                renderEnd = renderStart + Number(res.len || res.nights || 1);
+            }
         }
 
         const visibilityStatus = effectiveTimelineStatus(res);
