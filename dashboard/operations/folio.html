@@ -545,6 +545,13 @@ function legacySettlementCompletion(folio) {
 
 function settlementCompletionForFolio(folio) {
     if (!folio || Number(folio.bal || 0) > 0) return null;
+    if (folio.apiSettlementCompleted) {
+        return {
+            folioId: folio.id,
+            completedAt: folio.settlementCompletedAt || folio.closedAt || folio.issuedAt || '',
+            completedBy: folio.settlementCompletedBy || folio.completedBy || '시스템'
+        };
+    }
     const signature = folioSettlementSignature(folio);
     const completion = settlementCompletionRecords()
         .filter(item => item.folioId === folio.id)
@@ -612,8 +619,16 @@ function isGroupFolio(folio) {
     return !!(folio?.groupId || folio?.folioType === 'group' || folio?.isGroupSettlement);
 }
 
+function sanitizeSettlementRouting(value) {
+    const text = String(value || '').trim();
+    return !text || /\?{2,}/.test(text) ? '단체 일괄 정산' : text;
+}
+
 function normalizeGroup(item = {}) {
-    if (window.PmsMockApi?.toLegacyGroup) return window.PmsMockApi.toLegacyGroup(item);
+    if (window.PmsMockApi?.toLegacyGroup) {
+        const legacy = window.PmsMockApi.toLegacyGroup(item);
+        return { ...legacy, routing: sanitizeSettlementRouting(legacy.routing) };
+    }
     const roomAllocations = Array.isArray(item.roomAllocations) ? item.roomAllocations : (Array.isArray(item.allocations) ? item.allocations : []);
     const roomingList = Array.isArray(item.roomingList) ? item.roomingList : [];
     return {
@@ -624,7 +639,7 @@ function normalizeGroup(item = {}) {
         checkout: item.checkOutDate || item.checkout || '',
         block: item.blockedRooms || roomAllocations.length || item.block || 0,
         pickup: item.pickedUpRooms || roomingList.length || item.pickup || 0,
-        routing: item.routing || 'Master Folio',
+        routing: sanitizeSettlementRouting(item.routing),
         sales: item.salesManagerName || item.sales || '',
         roomAllocations,
         allocations: roomAllocations,
@@ -675,7 +690,7 @@ function folioGroupMetaHtml(folio) {
     const pickup = groupGuestCount(group);
     const pax = Number(group.pax || 0);
     const company = group.agency || group.companyName || folio.companyName || '-';
-    const routing = group.routing || folio.routing || 'Master Folio';
+    const routing = sanitizeSettlementRouting(group.routing || folio.routing);
     return `<div class="folio-group-meta">
         <span><i class="fa-solid fa-building"></i>${escapeHtml(company)}</span>
         <span><i class="fa-solid fa-door-open"></i>블록 ${block} · 픽업 ${pickup}${pax ? ` · PAX ${pax}` : ''}</span>
@@ -1141,7 +1156,7 @@ function invoiceMetaRows(folio) {
             ['업체', group.agency || group.companyName || folio.companyName || '-'],
             ['행사 기간', folio.groupPeriodText || `${formatDate(group.checkin || group.checkInDate)} ~ ${formatDate(group.checkout || group.checkOutDate)}`],
             ['객실 블록', `블록 ${block} · 픽업 ${pickup}${pax ? ` · PAX ${pax}` : ''}`],
-            ['정산 방식', group.routing || folio.routing || 'Master Folio'],
+            ['정산 방식', sanitizeSettlementRouting(group.routing || folio.routing)],
             ['포함 항목', folioServiceSummary(folio)],
             ['정산일', out]
         ];
@@ -1372,6 +1387,8 @@ function enrichFolioWithGroup(folio) {
     const rooms = groupRooms(group);
     const checkin = group.checkin || group.checkInDate || '';
     const checkout = group.checkout || group.checkOutDate || '';
+    const folioOut = folio.out && folio.out !== '-' ? folio.out : (checkout ? formatDate(checkout) : folio.out);
+    const folioSettlementDate = folio.settlementDate && folio.settlementDate !== '-' ? folio.settlementDate : folioOut;
     return {
         ...folio,
         group,
@@ -1380,11 +1397,11 @@ function enrichFolioWithGroup(folio) {
         groupName: group.name || folio.guest || '',
         guest: group.name || folio.guest,
         room: '단체',
-        out: checkout ? formatDate(checkout) : folio.out,
-        settlementDate: checkout ? formatDate(checkout) : folio.settlementDate,
+        out: folioOut,
+        settlementDate: folioSettlementDate,
         groupPeriodText: `${formatDate(checkin)} ~ ${formatDate(checkout)}`,
         groupRoomsText: rooms.slice(0, 4).join(', ') + (rooms.length > 4 ? ` 외 ${rooms.length - 4}` : ''),
-        routing: group.routing || folio.routing || 'Master Folio',
+        routing: sanitizeSettlementRouting(group.routing || folio.routing),
         status: Number(folio.bal || 0) > 0 ? 'unpaid' : (folio.status || 'group')
     };
 }
@@ -1432,7 +1449,7 @@ function groupToSettlementFolio(group) {
         sourceFolioCount: 0,
         groupPeriodText: `${formatDate(group.checkin || group.checkInDate)} ~ ${formatDate(checkout)}`,
         groupRoomsText: groupRooms(group).join(', '),
-        routing: group.routing || 'Master Folio',
+        routing: sanitizeSettlementRouting(group.routing),
         status: total > 0 ? 'unpaid' : 'group'
     };
 }
@@ -1712,6 +1729,28 @@ function mapApiFolio(item) {
             amount: apiAmount(payment.amount),
             paidAt: payment.paidAt || null
         })),
+        settlementPaymentRecords: payments.map((payment, index) => {
+            const deposit = paymentIsDeposit(payment);
+            const method = payment.method || payment.type || '-';
+            const amount = apiAmount(payment.amount);
+            return {
+                id: payment.id || `${item.id}-PAY-${index + 1}`,
+                folioId: item.id,
+                kind: deposit ? 'deposit' : 'settlement',
+                method,
+                methodLabel: payment.methodLabel || method,
+                appliedPhpAmount: amount,
+                receivedCurrency: payment.receivedCurrency || payment.currency || item.balance?.currency || 'PHP',
+                receivedAmount: Number(payment.receivedAmount ?? amount),
+                receivedBreakdown: payment.receivedBreakdown,
+                note: payment.note || '',
+                operator: payment.operator || payment.createdBy || '',
+                createdAt: payment.paidAt || payment.createdAt || item.closedAt || item.issuedAt || ''
+            };
+        }),
+        apiSettlementCompleted: !!item.settlementCompleted,
+        settlementCompletedAt: item.settlementCompletedAt || '',
+        settlementCompletedBy: item.settlementCompletedBy || '',
         paymentPlan: {
             ...(item.paymentPlan || {}),
             depositAmount
@@ -1720,7 +1759,7 @@ function mapApiFolio(item) {
         roomChangeText: '',
         roomRevenue,
         ancillaryRevenue,
-        status: bal > 0 ? 'unpaid' : 'paid'
+        status: paid > total && bal <= 0 ? 'refund' : (bal > 0 ? 'unpaid' : 'paid')
     };
 }
 
@@ -2496,7 +2535,7 @@ function settlementDetailMetaRows(folio) {
     ];
     if (isGroupFolio(folio)) {
         rows.push(['업체', group.agency || group.companyName || folio.companyName || '-']);
-        rows.push(['정산 방식', group.routing || folio.routing || 'Master Folio']);
+        rows.push(['정산 방식', sanitizeSettlementRouting(group.routing || folio.routing)]);
     }
     if ((folio.sourceFolioIds || []).length) rows.push(['원천 Folio', (folio.sourceFolioIds || []).join(', ')]);
     if (folio.settlementCompletedAt) rows.push(['완료 일시', formatDateTime(folio.settlementCompletedAt)]);
