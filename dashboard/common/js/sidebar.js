@@ -50,7 +50,14 @@
             roles: ['sys_admin', 'sys_gm', 'sys_desk'],
             items: [
                 { icon: 'fa-address-book', label: 'Guest CRM',   href: BASE + 'crm/guests.html' },
-                { icon: 'fa-crown',        label: 'VIP Members', href: BASE + 'crm/membership.html' },
+                {
+                    icon: 'fa-crown', label: 'VIP Members', id: 'crmMembership', key: 'crm.membership',
+                    mainHref: BASE + 'crm/tier-history.html',
+                    children: [
+                        { label: 'Tier Change History', href: BASE + 'crm/tier-history.html', key: 'crm.membership.history' },
+                        { label: 'Tier Member Criteria', href: BASE + 'crm/membership.html', key: 'crm.membership.criteria' },
+                    ]
+                },
             ]
         },
         {
@@ -142,6 +149,8 @@
         'crm',
         'crm.guests',
         'crm.membership',
+        'crm.membership.history',
+        'crm.membership.criteria',
         'groups',
         'groups.list',
         'groups.companies',
@@ -179,7 +188,8 @@
         'reservation-list.html': 'reservation.list',
         'checkin.html': 'checkin',
         'guests.html': 'crm.guests',
-        'membership.html': 'crm.membership',
+        'membership.html': 'crm.membership.criteria',
+        'tier-history.html': 'crm.membership.history',
         'groups_blocks.html': 'groups.list',
         'groups_block_detail.html': 'groups.list',
         'groups_companies.html': 'groups.companies',

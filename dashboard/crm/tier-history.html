@@ -12,9 +12,6 @@
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/crm.css">
 <style>
-.topbar-back-btn{height:32px;min-width:32px;padding:4px 8px;margin-right:8px;border:none;box-shadow:none;border-radius:6px;background:transparent;color:var(--txt);font-family:var(--font);font-size:.95rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .18s}
-.topbar-back-btn:hover{color:var(--primary);background:var(--border2)}
-
 /* Mobile filter trigger */
 .m-filter-trigger{display:none;height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;font-size:.75rem;font-weight:600;color:var(--txt);cursor:pointer;font-family:var(--font);align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;width:100px}
 .m-filter-trigger i{font-size:.65rem;color:var(--txt3)}
@@ -36,12 +33,33 @@
 .bs-option.selected .bs-option-check{opacity:1}
 .bs-option-label{flex:1}
 .bs-option-desc{font-size:.68rem;color:var(--txt3);font-weight:400;margin-top:2px}
+.tier-history-row{cursor:pointer}
+.tier-history-row:hover{background:#f8fafc}
+.tier-history-row:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.tier-guest-modal{max-width:620px!important;width:94vw!important}
+.tier-guest-modal .modal-title{display:flex;align-items:center;gap:8px}
+.tier-guest-modal .modal-title i{color:var(--primary);font-size:.9rem}
+.tier-guest-modal .modal-body{padding:20px;display:flex;flex-direction:column;gap:14px}
+.tier-criteria-empty{text-align:center;padding:28px 12px;color:var(--txt3);font-size:.82rem}
+.tier-guest-head{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--border);border-radius:7px;background:#f8fafc}
+.tier-guest-avatar{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:850;flex:0 0 auto}
+.tier-guest-name{font-size:1.05rem;font-weight:850;color:var(--txt);line-height:1.2}
+.tier-guest-sub{font-size:.76rem;color:var(--txt2);font-weight:650;margin-top:4px}
+.tier-guest-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tier-guest-field{border:1px solid var(--border);border-radius:7px;padding:12px;background:#fff;min-width:0}
+.tier-guest-field-label{font-size:.68rem;font-weight:800;color:var(--txt3);margin-bottom:5px}
+.tier-guest-field-value{font-size:.86rem;font-weight:750;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tier-change-box{border:1px solid #dbeafe;border-radius:7px;background:#eff6ff;padding:14px}
+.tier-change-title{font-size:.76rem;font-weight:850;color:#1d4ed8;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.tier-change-flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.tier-change-meta{font-size:.74rem;color:var(--txt2);line-height:1.5}
 
 @media(max-width:768px){
     .m-filter-trigger{display:flex}
     .filter-chips{display:none!important}
     .filter-left{flex-direction:row!important;gap:8px!important;flex-wrap:nowrap!important;align-items:center!important}
     .filter-left .search-box{flex:1;min-width:0;width:auto!important}
+    .tier-guest-grid{grid-template-columns:1fr}
 }
 </style>
     <script src="../common/js/api/api-core.js"></script>
@@ -188,6 +206,22 @@
     </div>
 </div>
 
+<!-- Tier Change Guest Modal -->
+<div class="modal-overlay" id="tierGuestModal" onclick="if(event.target===this) closeModal('tierGuestModal')">
+    <div class="modal-card tier-guest-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-address-card"></i> 고객 정보</h3>
+            <button class="modal-close" onclick="closeModal('tierGuestModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" id="tierGuestModalBody">
+            <div class="tier-criteria-empty">고객 정보를 불러오는 중입니다.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary-sm" onclick="closeModal('tierGuestModal')"><i class="fa-solid fa-check"></i> 확인</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const tierCfg = {
     diamond:{label:'다이아몬드',icon:'fa-gem',color:'#60A5FA',bg:'rgba(96,165,250,.1)'},
@@ -225,6 +259,55 @@ function textFor(key) {
     const localDict = typeof translations !== 'undefined' ? translations[lang] || {} : {};
     const globalDict = window.translations ? window.translations[lang] || {} : {};
     return localDict[key] || globalDict[key] || key;
+}
+
+function historyEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+function money(value) {
+    return typeof window.pmsFormatCurrency === 'function'
+        ? window.pmsFormatCurrency(value)
+        : '₱' + Number(value || 0).toLocaleString();
+}
+
+function localizedValue(value) {
+    const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value[lang] || value.ko || value.en || '';
+    return value ?? '';
+}
+
+function tierDisplayMeta(tier) {
+    const id = String(tier || '').toLowerCase();
+    return tierCfg[id] || { label: tier || '-', icon: 'fa-layer-group', color: '#2563EB', bg: 'rgba(37,99,235,.12)' };
+}
+
+function tierLabel(tier) {
+    const id = String(tier || '').toLowerCase();
+    const labels = {
+        standard: { ko: '일반', en: 'Standard' },
+        silver: { ko: '실버', en: 'Silver' },
+        gold: { ko: '골드', en: 'Gold' },
+        platinum: { ko: '플래티넘', en: 'Platinum' },
+        diamond: { ko: '다이아몬드', en: 'Diamond' }
+    };
+    return localizedValue(labels[id]) || tierDisplayMeta(id).label || tier || '-';
+}
+
+function tierBadge(tier) {
+    const meta = tierDisplayMeta(tier);
+    return `<span class="tier-badge" style="background:${meta.bg};color:${meta.color}"><i class="fa-solid ${meta.icon}"></i> ${historyEscape(tierLabel(tier))}</span>`;
+}
+
+function crmInitialFallback(name) {
+    return String(name || 'G').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function findGuestForChange(change) {
+    if (!change) return null;
+    return guests.find(guest => guest.id === change.guestId)
+        || guests.find(guest => guest.name === change.name)
+        || null;
 }
 
 function updateKpis() {
@@ -273,14 +356,14 @@ function renderHistory() {
         const changeIcon = isManual ? 'fa-user-pen' : 'fa-arrow-up';
         const changeLabel = textFor(isManual ? 'Manual Change' : 'Upgrade');
         const reason = h.reason || textFor('Reason Required');
-        return `<tr>
-            <td style="white-space:nowrap;font-size:.78rem;color:var(--txt2)">${h.date}</td>
-            <td><div class="guest-cell"><div class="guest-avatar" style="background:${h.color}">${h.init}</div><strong>${h.name}</strong></div></td>
+        return `<tr class="tier-history-row" data-change-id="${historyEscape(h.id)}" tabindex="0">
+            <td style="white-space:nowrap;font-size:.78rem;color:var(--txt2)">${historyEscape(h.date)}</td>
+            <td><div class="guest-cell"><div class="guest-avatar" style="background:${historyEscape(h.color)}">${historyEscape(h.init)}</div><strong>${historyEscape(h.name)}</strong></div></td>
             <td><span style="color:${changeColor};font-weight:700"><i class="fa-solid ${changeIcon}"></i> ${changeLabel}</span></td>
-            <td><span class="tier-badge" style="background:${from.bg};color:${from.color}"><i class="fa-solid ${from.icon}"></i> ${from.label}</span></td>
-            <td><span class="tier-badge" style="background:${to.bg};color:${to.color}"><i class="fa-solid ${to.icon}"></i> ${to.label}</span></td>
-            <td style="font-size:.78rem;color:var(--txt2);max-width:240px;white-space:normal">${reason}</td>
-            <td style="font-size:.72rem;color:var(--txt3)">${h.by}</td>
+            <td>${tierBadge(h.from)}</td>
+            <td>${tierBadge(h.to)}</td>
+            <td style="font-size:.78rem;color:var(--txt2);max-width:240px;white-space:normal">${historyEscape(reason)}</td>
+            <td style="font-size:.72rem;color:var(--txt3)">${historyEscape(h.by)}</td>
         </tr>`;
     }).join('');
 
@@ -292,13 +375,13 @@ function renderHistory() {
         const dirColor = isManual ? 'var(--warning)' : 'var(--success)';
         const dirIcon = isManual ? 'fa-user-pen' : 'fa-arrow-up';
         const reason = h.reason || textFor('Reason Required');
-        return `<div class="m-res-card" style="border-left-color:${dirColor}">
+        return `<div class="m-res-card tier-history-row" data-change-id="${historyEscape(h.id)}" tabindex="0" style="border-left-color:${dirColor}">
             <div class="m-res-top">
                 <div class="m-res-guest">
-                    <div class="guest-avatar" style="background:${h.color}">${h.init}</div>
+                    <div class="guest-avatar" style="background:${historyEscape(h.color)}">${historyEscape(h.init)}</div>
                     <div>
-                        <div class="m-res-name">${h.name}</div>
-                        <div class="m-res-sub">${h.date}</div>
+                        <div class="m-res-name">${historyEscape(h.name)}</div>
+                        <div class="m-res-sub">${historyEscape(h.date)}</div>
                     </div>
                 </div>
                 <div style="text-align:right">
@@ -307,15 +390,16 @@ function renderHistory() {
             </div>
             <div class="m-res-details">
                 <div class="m-res-detail">
-                    <span class="tier-badge" style="background:${from.bg};color:${from.color};font-size:.65rem"><i class="fa-solid ${from.icon}"></i> ${from.label}</span>
+                    ${tierBadge(h.from)}
                     <i class="fa-solid fa-arrow-right" style="color:var(--txt3);font-size:.6rem"></i>
-                    <span class="tier-badge" style="background:${to.bg};color:${to.color};font-size:.65rem"><i class="fa-solid ${to.icon}"></i> ${to.label}</span>
+                    ${tierBadge(h.to)}
                 </div>
-                <div class="m-res-detail"><i class="fa-solid fa-clipboard-list"></i> ${reason}</div>
-                <div class="m-res-detail"><i class="fa-solid fa-user-check"></i> ${h.by}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-clipboard-list"></i> ${historyEscape(reason)}</div>
+                <div class="m-res-detail"><i class="fa-solid fa-user-check"></i> ${historyEscape(h.by)}</div>
             </div>
         </div>`;
     }).join('');
+    attachHistoryRowHandlers();
 
     // Pagination buttons
     let btns = `<button class="page-btn" ${currentPage <= 1 ? 'disabled' : ''} onclick="goPage(${currentPage-1})"><i class="fa-solid fa-chevron-left"></i></button>`;
@@ -324,6 +408,71 @@ function renderHistory() {
     }
     btns += `<button class="page-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="goPage(${currentPage+1})"><i class="fa-solid fa-chevron-right"></i></button>`;
     document.getElementById('pageButtons').innerHTML = btns;
+}
+
+function attachHistoryRowHandlers() {
+    document.querySelectorAll('.tier-history-row').forEach(row => {
+        row.addEventListener('click', () => openTierGuestModal(row.dataset.changeId));
+        row.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openTierGuestModal(row.dataset.changeId);
+            }
+        });
+    });
+}
+
+function openModal(id) {
+    document.getElementById(id)?.classList.add('active');
+}
+
+function closeModal(id) {
+    document.getElementById(id)?.classList.remove('active');
+}
+
+function openTierGuestModal(changeId) {
+    const change = history.find(item => String(item.id) === String(changeId));
+    const guest = findGuestForChange(change);
+    const body = document.getElementById('tierGuestModalBody');
+    if (!body) return;
+    if (!change) {
+        body.innerHTML = `<div class="tier-criteria-empty">등급 변동 데이터를 찾을 수 없습니다.</div>`;
+        openModal('tierGuestModal');
+        return;
+    }
+    const displayGuest = guest || {
+        name: change.name,
+        init: change.init,
+        color: change.color,
+        tier: change.to
+    };
+    const guestMeta = tierDisplayMeta(displayGuest.tier || change.to);
+    const notes = displayGuest.specialNotes
+        ? `<div class="tier-guest-field" style="grid-column:1/-1"><div class="tier-guest-field-label">특이사항</div><div class="tier-guest-field-value" style="white-space:normal;line-height:1.45">${historyEscape(displayGuest.specialNotes)}</div></div>`
+        : '';
+    body.innerHTML = `
+        <div class="tier-guest-head">
+            <div class="tier-guest-avatar" style="background:${historyEscape(displayGuest.color || guestMeta.color)}">${historyEscape(displayGuest.init || crmInitialFallback(displayGuest.name))}</div>
+            <div style="min-width:0">
+                <div class="tier-guest-name">${historyEscape(displayGuest.name || change.name)}</div>
+                <div class="tier-guest-sub">${tierBadge(displayGuest.tier || change.to)}</div>
+            </div>
+        </div>
+        <div class="tier-guest-grid">
+            <div class="tier-guest-field"><div class="tier-guest-field-label">국적</div><div class="tier-guest-field-value">${historyEscape(displayGuest.nation || displayGuest.nationality || '-')}</div></div>
+            <div class="tier-guest-field"><div class="tier-guest-field-label">연락처</div><div class="tier-guest-field-value">${historyEscape(displayGuest.phone || '-')}</div></div>
+            <div class="tier-guest-field"><div class="tier-guest-field-label">이메일</div><div class="tier-guest-field-value">${historyEscape(displayGuest.email || '-')}</div></div>
+            <div class="tier-guest-field"><div class="tier-guest-field-label">최근 투숙</div><div class="tier-guest-field-value">${historyEscape(displayGuest.last || displayGuest.lastStayDate || '-')}</div></div>
+            <div class="tier-guest-field"><div class="tier-guest-field-label">방문 횟수</div><div class="tier-guest-field-value">${historyEscape(displayGuest.visits || 0)}회</div></div>
+            <div class="tier-guest-field"><div class="tier-guest-field-label">누적 금액</div><div class="tier-guest-field-value">${money(displayGuest.spend || 0)}</div></div>
+            ${notes}
+        </div>
+        <div class="tier-change-box">
+            <div class="tier-change-title"><i class="fa-solid fa-arrow-up-right-dots"></i> 등급 변동 정보</div>
+            <div class="tier-change-flow">${tierBadge(change.from)} <i class="fa-solid fa-arrow-right" style="color:var(--txt3);font-size:.7rem"></i> ${tierBadge(change.to)}</div>
+            <div class="tier-change-meta">${historyEscape(change.reason || '-')}<br>${historyEscape(change.by || '-')} · ${historyEscape(change.date || '-')}</div>
+        </div>`;
+    openModal('tierGuestModal');
 }
 
 function goPage(p) { currentPage = p; renderHistory(); }
@@ -429,6 +578,8 @@ const translations={ko: {
         "Notices": "Notices",
         "Support": "Support",
 "Tier Change History":"Tier Change History","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Upgrades (Month)":"Upgrades (Month)","VIP Customers":"VIP Customers","New VIP":"New VIP","Manual Changes":"Manual Changes","Manual Change":"Manual Change","Reason Required":"Reason required","New entries this month":"New entries this month","Admin reason required":"Admin reason required","All":"All","Upgrade":"Upgrade"}};
+translations.ko["Tier Member Criteria"] = "등급 회원 기준";
+translations.en["Tier Member Criteria"] = "Tier Member Criteria";
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});document.getElementById('searchInput').placeholder=l==='en'?'Search guest name...':'고객명 검색...';renderHistory();}
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
@@ -436,22 +587,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 
 
 <script>
-function ensureTopbarBackButton() {
-    const topbarLeft = document.querySelector('.topbar-left');
-    const title = topbarLeft?.querySelector('h1');
-    if (!topbarLeft || !title || topbarLeft.querySelector('.topbar-back-btn')) return;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'topbar-back-btn';
-    button.title = '뒤로';
-    button.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
-    button.onclick = () => { location.href = 'membership.html'; };
-    topbarLeft.insertBefore(button, title);
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
-    setTimeout(ensureTopbarBackButton, 0);
-    setTimeout(ensureTopbarBackButton, 200);
     try {
         const [tierHistory, guestList] = await Promise.all([
             PmsAPI.getHistory(),
