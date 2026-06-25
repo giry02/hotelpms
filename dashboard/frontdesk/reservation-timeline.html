@@ -230,7 +230,7 @@ const TL_TEXT = {
         groupGuests: '단체 고객',
         confirmed: '예약 확정',
         checkoutLegend: '체크아웃 대상',
-        previous: '이전 예약 / 점검',
+        previous: '체크아웃 완료 / 점검',
         groupBlock: '단체 블록',
         groupBooking: '단체 예약',
         checkinDone: '체크인 완료',
@@ -255,7 +255,7 @@ const TL_TEXT = {
         groupGuests: 'Group Guests',
         confirmed: 'Confirmed',
         checkoutLegend: 'Check-out Due',
-        previous: 'Past / OOS',
+        previous: 'Completed / OOS',
         groupBlock: 'Group Block',
         groupBooking: 'Group Booking',
         checkinDone: 'Checked in',
@@ -286,6 +286,32 @@ function timelineText(key) {
 function timelineRoomType(type) {
     const text = String(type || '').trim();
     return text || '-';
+}
+
+function timelineRoomNumberValue(room) {
+    const raw = String(room?.roomNo || room?.number || room?.display || room?.id || '').trim();
+    const digits = (raw.match(/\d+/g) || []).join('');
+    return digits ? Number(digits) : Number.MAX_SAFE_INTEGER;
+}
+
+function timelineRoomSuffixValue(room) {
+    const raw = String(room?.roomNo || room?.number || room?.display || room?.id || '').trim();
+    return raw.replace(/\d+/g, '').toLowerCase();
+}
+
+function timelineSortRooms(list) {
+    const buildingOrder = { OT: 1, FT: 2, LV: 3 };
+    return [...(list || [])].sort((a, b) => {
+        const buildingA = buildingOrder[a?.bldgCode || a?.buildingId] || 99;
+        const buildingB = buildingOrder[b?.bldgCode || b?.buildingId] || 99;
+        const floorA = Number(a?.floor ?? -1);
+        const floorB = Number(b?.floor ?? -1);
+        return buildingA - buildingB
+            || floorB - floorA
+            || timelineRoomNumberValue(a) - timelineRoomNumberValue(b)
+            || timelineRoomSuffixValue(a).localeCompare(timelineRoomSuffixValue(b), undefined, { numeric: true })
+            || String(a?.id || '').localeCompare(String(b?.id || ''), undefined, { numeric: true });
+    });
 }
 
 function formatTimelineRangeDate(date) {
@@ -798,6 +824,43 @@ function buildTimeline() {
     // Track levels for each room to handle overlapping blocks
     const roomLevels = {};
 
+    const appendTimelineBlock = ({ row, res, level, clipStart, clipEnd, renderStatus }) => {
+        if (clipEnd <= clipStart) return;
+        const block = document.createElement('div');
+        block.className = `tl-block ${renderStatus}`;
+
+        const renderLen = clipEnd - clipStart;
+        block.style.position = 'absolute';
+        const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
+        const hasCompanions = timelineCompanionGuestNames(res).length > 0;
+        const guestLineCount = 1 + (hasCompanions ? 1 : 0) + (isVip ? 1 : 0) + (res.groupId ? 1 : 0);
+        const blockHeight = Math.min(82, Math.max(36, Math.ceil(9 + (guestLineCount * 11.5))));
+        const levelStep = 88;
+        block.style.top = `${8 + (level * levelStep)}px`;
+        block.style.left = `calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px)`;
+        block.style.width = `calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px)`;
+        block.style.minHeight = `${blockHeight}px`;
+
+        const requiredHeight = 14 + (level * levelStep) + blockHeight;
+        const currentHeight = parseInt(row.style.height || 52);
+        if (currentHeight < requiredHeight) {
+            row.style.height = `${requiredHeight}px`;
+        }
+
+        const displayName = timelineDisplayName(res);
+        const groupBadge = timelineGroupBadge(res);
+        const companionTitle = timelineCompanionGuestNames(res).join(', ');
+        const timeTitle = timelineLateCheckoutEnabled(res)
+            ? `입실 ${timelineCheckInTime(res)} / 레이트 ${timelineLateCheckoutTime(res)}`
+            : `입실 ${timelineCheckInTime(res)} / 퇴실 ${timelineCheckOutTime(res)}`;
+        block.title = [displayName, companionTitle, timeTitle].filter(Boolean).join(' / ');
+        block.innerHTML = timelineBlockContent(res, groupBadge, isVip);
+
+        block.onclick = () => openTimelineReservation(res);
+        row.style.position = 'relative';
+        row.appendChild(block);
+    };
+
     timelineReservationsForRender().forEach(res => {
         const matchedRoom = timelineRoomForReservation(res);
         const roomIdx = matchedRoom ? rooms.indexOf(matchedRoom) : -1;
@@ -850,46 +913,43 @@ function buildTimeline() {
         }
         roomLevels[roomIdx][level] = renderEnd;
 
-        const block = document.createElement('div');
         let safeStatus = effectiveTimelineStatus(res);
-
-        const renderStatus = renderTimelineStatus(res, safeStatus);
-        block.className = `tl-block ${renderStatus}`;
-        
         const clipStart = Math.max(0, renderStart);
         const clipEnd = Math.min(DAYS, renderEnd);
-        const renderLen = clipEnd - clipStart;
+        const todayOffset = Math.round((timelineTodayDate() - baseDate) / 86400000);
+        const splitCurrentStay = safeStatus === 'checkedin'
+            && todayOffset >= 0
+            && todayOffset < DAYS
+            && renderStart <= todayOffset
+            && renderEnd > todayOffset + 1;
 
-        block.style.position = 'absolute';
-        const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
-        const hasCompanions = timelineCompanionGuestNames(res).length > 0;
-        const guestLineCount = 1 + (hasCompanions ? 1 : 0) + (isVip ? 1 : 0) + (res.groupId ? 1 : 0);
-        const blockHeight = Math.min(82, Math.max(36, Math.ceil(9 + (guestLineCount * 11.5))));
-        const levelStep = 88;
-        block.style.top = `${8 + (level * levelStep)}px`;
-        block.style.left = `calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px)`;
-        block.style.width = `calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px)`;
-        block.style.minHeight = `${blockHeight}px`;
-        
-        // Adjust row height if multiple levels are used
-        const requiredHeight = 14 + (level * levelStep) + blockHeight;
-        const currentHeight = parseInt(row.style.height || 52);
-        if (currentHeight < requiredHeight) {
-            row.style.height = `${requiredHeight}px`;
+        if (splitCurrentStay) {
+            appendTimelineBlock({
+                row,
+                res,
+                level,
+                clipStart,
+                clipEnd: Math.min(clipEnd, todayOffset + 1),
+                renderStatus: renderTimelineStatus(res, 'checkedin')
+            });
+            appendTimelineBlock({
+                row,
+                res,
+                level,
+                clipStart: Math.max(clipStart, todayOffset + 1),
+                clipEnd,
+                renderStatus: renderTimelineStatus(res, 'confirmed')
+            });
+        } else {
+            appendTimelineBlock({
+                row,
+                res,
+                level,
+                clipStart,
+                clipEnd,
+                renderStatus: renderTimelineStatus(res, safeStatus)
+            });
         }
-        
-        const displayName = timelineDisplayName(res);
-        const groupBadge = timelineGroupBadge(res);
-        const companionTitle = timelineCompanionGuestNames(res).join(', ');
-        const timeTitle = timelineLateCheckoutEnabled(res)
-            ? `입실 ${timelineCheckInTime(res)} / 레이트 ${timelineLateCheckoutTime(res)}`
-            : `입실 ${timelineCheckInTime(res)} / 퇴실 ${timelineCheckOutTime(res)}`;
-        block.title = [displayName, companionTitle, timeTitle].filter(Boolean).join(' / ');
-        block.innerHTML = timelineBlockContent(res, groupBadge, isVip);
-
-        block.onclick = () => openTimelineReservation(res);
-        row.style.position = 'relative';
-        row.appendChild(block);
     });
 
     document.getElementById('kpiConfirmed').textContent = cntConfirmed;
@@ -1103,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             PmsAPI.getTimelineReservations(),
             PmsAPI.getGroups ? PmsAPI.getGroups().catch(() => []) : []
         ]);
-        rooms = rmData;
+        rooms = timelineSortRooms(rmData);
         timelineGroups = Array.isArray(groupData) ? groupData : [];
         timelineGroups = timelineStoredGroups();
         if (timelineGroups.length) localStorage.setItem('pms_groups', JSON.stringify(timelineGroups));
