@@ -140,7 +140,7 @@
                 </div>
             </div>
             <div class="filter-right">
-                <button class="btn-outline" onclick="openModal('partnerModal')"><i class="fa-solid fa-building"></i> 업체 관리</button>
+                <button class="btn-outline" onclick="location.href='ancillary-vendors.html'"><i class="fa-solid fa-building"></i> 업체 관리</button>
                 <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> 신규 예약</button>
             </div>
         </div>
@@ -511,11 +511,101 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
 }
 
 // 모달 및 오더 등록 로직
-function openModal(id) { document.getElementById(id).classList.add('active'); }
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+    if (id === 'addOrderModal') ensureAncillaryGroupBulk('golf');
+}
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function saveOrder() {
-    showToast('새 Ancillary Svcs 오더가 시스템에 등록되었습니다.');
+    const created = buildGolfOrdersFromModal();
+    if (!created.length) {
+        showToast('예약할 투숙객 또는 객실 정보를 선택해 주세요.');
+        return;
+    }
+    orders = [...created, ...orders];
+    saveManualAncillaryOrders('golf', created);
+    refreshProviderFilterOptions();
+    renderOrders();
+    showToast(`골프 예약 ${created.length}건이 등록되었습니다.`);
     closeModal('addOrderModal');
+}
+
+function manualAncillaryStorageKey(type) {
+    return `hotelPms.manual.${type}.orders`;
+}
+
+function loadManualAncillaryOrders(type) {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(manualAncillaryStorageKey(type)) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch(e) {
+        return [];
+    }
+}
+
+function saveManualAncillaryOrders(type, created) {
+    const previous = loadManualAncillaryOrders(type);
+    localStorage.setItem(manualAncillaryStorageKey(type), JSON.stringify([...created, ...previous].slice(0, 200)));
+}
+
+function selectedAncillaryGuests(prefix) {
+    const groupId = document.getElementById(prefix + 'GroupSelect')?.value || '';
+    const group = (window[prefix + 'AncillaryGroups'] || []).find(g => g.id === groupId);
+    if (!document.getElementById(prefix + 'GroupMode')?.checked || !group) return [];
+    const guests = [
+        ...(Array.isArray(group.roomingList) ? group.roomingList : []),
+        ...(Array.isArray(group.guests) ? group.guests : [])
+    ];
+    return Array.from(document.querySelectorAll(`#${prefix}GroupGuests input[data-bulk-guest]:checked`))
+        .map(input => guests[Number(input.dataset.bulkGuest)])
+        .filter(Boolean);
+}
+
+function selectedProviderFromModal() {
+    const select = document.querySelector('#addOrderModal .provider-order-select');
+    const key = select?.value || 'other';
+    const label = select?.selectedOptions?.[0]?.textContent?.replace(/\s*\(\d+\)\s*$/, '').trim() || key;
+    return { key, label };
+}
+
+function golfEstimateTotal(holes, pax) {
+    const holeText = String(holes || '');
+    const holeCount = Number((holeText.match(/\d+/) || ['18'])[0]);
+    const base = holeCount >= 27 ? 520 : holeCount <= 9 ? 180 : 360;
+    return base * Math.max(1, Number(pax || 1));
+}
+
+function buildGolfOrdersFromModal() {
+    const bulkGuests = selectedAncillaryGuests('golf');
+    const room = document.getElementById('golfRoom')?.value || '';
+    const guestName = document.getElementById('golfGuest')?.value || '';
+    const guests = bulkGuests.length ? bulkGuests : [{ name: guestName, guestName, roomId: room, room }];
+    const provider = selectedProviderFromModal();
+    const date = document.getElementById('golfDate')?.value || (window.PmsDate?.todayIso?.() || new Date().toISOString().slice(0, 10));
+    const time = document.getElementById('golfTime')?.value || '09:00';
+    const pax = Math.max(1, Number(document.getElementById('golfPax')?.value || 1));
+    const holes = document.getElementById('golfHoles')?.value || '18홀';
+    return guests
+        .map((guest, index) => {
+            const guestDisplay = guest.name || guest.guestName || guest.customerName || guest.fullName || '';
+            const roomDisplay = guest.roomId || guest.room || room || '-';
+            if (!guestDisplay && !roomDisplay) return null;
+            return {
+                id: `GLF-MAN-${Date.now()}-${index + 1}`,
+                room: roomDisplay,
+                guest: guestDisplay || roomDisplay,
+                type: provider.key,
+                providerName: provider.label,
+                providerLabel: provider.label,
+                items: `${holes} / ${pax}인`,
+                date,
+                time,
+                status: 'new',
+                total: golfEstimateTotal(holes, pax),
+                currency: defaultCurrency()
+            };
+        })
+        .filter(Boolean);
 }
 
 function handleItemSelect() {
@@ -544,6 +634,47 @@ function calculateTotal() {
     if (sel.value && sel.value !== 'custom') {
         priceInput.value = (parseFloat(sel.value) * parseInt(qty)).toFixed(2);
     }
+}
+
+async function ensureAncillaryGroupBulk(prefix) {
+    const modal = document.getElementById('addOrderModal');
+    const body = modal?.querySelector('.modal-body');
+    if (!body || document.getElementById(prefix + 'GroupBulk')) return;
+    const wrap = document.createElement('div');
+    wrap.id = prefix + 'GroupBulk';
+    wrap.style.cssText = 'border:1px solid var(--border2);border-radius:10px;background:#f8fafc;padding:12px;display:flex;flex-direction:column;gap:10px';
+    wrap.innerHTML = `<label style="display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:900;color:var(--txt)"><input type="checkbox" id="${prefix}GroupMode" onchange="toggleAncillaryGroupBulk('${prefix}')" style="width:16px;height:16px;accent-color:var(--primary)"> 단체 고객 일괄 등록</label><div id="${prefix}GroupBulkBody" style="display:none;flex-direction:column;gap:8px"><select id="${prefix}GroupSelect" class="form-input" onchange="renderAncillaryGroupGuests('${prefix}')"><option value="">단체/행사 선택</option></select><div id="${prefix}GroupGuests" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px"></div></div>`;
+    body.insertBefore(wrap, body.children[1] || null);
+    await loadAncillaryGroups(prefix);
+}
+
+async function loadAncillaryGroups(prefix) {
+    let groups = [];
+    try { groups = await PmsAPI.getGroups(); } catch(e) {
+        try { groups = JSON.parse(localStorage.getItem('pms_groups') || '[]'); } catch(_) {}
+    }
+    window[prefix + 'AncillaryGroups'] = Array.isArray(groups) ? groups : [];
+    const select = document.getElementById(prefix + 'GroupSelect');
+    if (select) select.innerHTML = '<option value="">단체/행사 선택</option>' + window[prefix + 'AncillaryGroups'].map(g => `<option value="${g.id}">${g.name || g.groupName || g.id}</option>`).join('');
+}
+
+function toggleAncillaryGroupBulk(prefix) {
+    const checked = document.getElementById(prefix + 'GroupMode')?.checked;
+    const body = document.getElementById(prefix + 'GroupBulkBody');
+    if (body) body.style.display = checked ? 'flex' : 'none';
+    if (checked) renderAncillaryGroupGuests(prefix);
+}
+
+function renderAncillaryGroupGuests(prefix) {
+    const groupId = document.getElementById(prefix + 'GroupSelect')?.value || '';
+    const box = document.getElementById(prefix + 'GroupGuests');
+    const group = (window[prefix + 'AncillaryGroups'] || []).find(g => g.id === groupId);
+    const guests = group ? [
+        ...(Array.isArray(group.roomingList) ? group.roomingList : []),
+        ...(Array.isArray(group.guests) ? group.guests : [])
+    ] : [];
+    if (!box) return;
+    box.innerHTML = guests.length ? guests.map((guest, index) => `<label style="display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 8px;font-size:.75rem;font-weight:800"><input type="checkbox" checked data-bulk-guest="${index}" style="accent-color:var(--primary)"> ${guest.name || guest.guestName || guest.roomId || '투숙객'}</label>`).join('') : '<div style="font-size:.75rem;color:var(--txt3);font-weight:800">단체 명단이 없으면 객실 배정/투숙객 명단에서 먼저 등록하세요.</div>';
 }
 
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
@@ -722,7 +853,7 @@ function updateFilterCounts() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        orders = await PmsAPI.getGolfOrders();
+        orders = [...loadManualAncillaryOrders('golf'), ...(await PmsAPI.getGolfOrders())];
         updateFilterCounts();
         renderOrders();
     } catch(e) { console.error(e); }

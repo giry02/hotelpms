@@ -249,6 +249,7 @@
                         <button class="chip active" data-filter="all" data-label="전체" onclick="filterCompanies('all', this)">전체</button>
                         <button class="chip" data-filter="Corporate" onclick="filterCompanies('Corporate', this)">일반 기업</button>
                         <button class="chip" data-filter="Travel Agency" onclick="filterCompanies('Travel Agency', this)">여행사</button>
+                        <button class="chip" data-filter="Individual" onclick="filterCompanies('Individual', this)">일반인 대표</button>
                         <button class="chip" data-filter="Other" onclick="filterCompanies('Other', this)">기타</button>
                     </div>
                 </div>
@@ -288,6 +289,7 @@
                     <select id="compType" class="form-input" style="width:100%">
                         <option value="Corporate">일반 기업</option>
                         <option value="Travel Agency">여행사</option>
+                        <option value="Individual">일반인 대표</option>
                         <option value="Government">정부/공공기관</option>
                         <option value="Other">기타 단체</option>
                     </select>
@@ -350,6 +352,7 @@ const COMPANY_TYPE_LABELS = {
         all: '전체',
         Corporate: '일반 기업',
         'Travel Agency': '여행사',
+        Individual: '일반인 대표',
         Government: '정부/공공기관',
         Other: '기타'
     },
@@ -357,6 +360,7 @@ const COMPANY_TYPE_LABELS = {
         all: 'All',
         Corporate: 'Corporate',
         'Travel Agency': 'Travel Agency',
+        Individual: 'Individual Representative',
         Government: 'Government',
         Other: 'Other'
     }
@@ -366,6 +370,7 @@ const COMPANY_TYPE_OPTION_LABELS = {
     ko: {
         Corporate: '일반 기업',
         'Travel Agency': '여행사',
+        Individual: '일반인 대표',
         Government: '정부/공공기관',
         Other: '기타 단체'
     },
@@ -380,6 +385,7 @@ function companyTypeKey(value) {
     const type = String(value || '').trim().toLowerCase();
     if (['corporate', 'corporation', 'company', 'enterprise', '기업', '일반 기업'].includes(type)) return 'Corporate';
     if (['agency', 'travel agency', 'travel_agency', 'ota', '여행사'].includes(type)) return 'Travel Agency';
+    if (['individual', 'private', 'person', 'representative', 'guest-representative', '일반인', '일반인 대표', '개인 대표'].includes(type)) return 'Individual';
     if (['government', 'gov', 'public', 'government/public', '정부', '공공기관', '정부/공공기관'].includes(type)) return 'Government';
     if (['other', '기타', '기타 단체'].includes(type)) return 'Other';
     return '';
@@ -439,7 +445,7 @@ function updateCompanyFilterCounts() {
         acc.all += 1;
         acc[key] = (acc[key] || 0) + 1;
         return acc;
-    }, { all: 0, Corporate: 0, 'Travel Agency': 0, Other: 0 });
+    }, { all: 0, Corporate: 0, 'Travel Agency': 0, Individual: 0, Other: 0 });
     document.querySelectorAll('.filter-chips .chip[data-filter]').forEach(chip => {
         const filter = chip.dataset.filter;
         const label = companyTypeLabel(filter);

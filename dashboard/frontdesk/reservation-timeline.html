@@ -95,6 +95,37 @@
     height:100%;
     border-bottom:2px solid #E2E8F0;
 }
+.tl-room-cell{
+    display:flex!important;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:center;
+    gap:3px;
+    padding:5px 8px!important;
+}
+.tl-room-meta{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    min-width:0;
+}
+.tl-room-clean-status{
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    max-width:100%;
+    border-radius:999px;
+    padding:2px 6px;
+    font-size:.54rem;
+    font-weight:900;
+    line-height:1;
+    white-space:nowrap;
+}
+.tl-room-clean-status.clean{background:#DCFCE7;color:#059669}
+.tl-room-clean-status.dirty{background:#FEF3C7;color:#D97706}
+.tl-room-clean-status.occupied{background:#DBEAFE;color:#2563EB}
+.tl-room-clean-status.oos{background:#FEE2E2;color:#DC2626}
+.tl-room-clean-status i{font-size:.5rem}
 .tl-block{
     min-height:30px;
     height:auto!important;
@@ -801,6 +832,22 @@ function dedupeTimelineReservations(list) {
     return (list || []).filter(res => keepIds.has(res.id));
 }
 
+function timelineRoomCleanStatus(room) {
+    const housekeeping = String(room?.housekeepingStatus || room?.cleaningStatus || '').toLowerCase();
+    const front = String(room?.frontStatus || room?.status || '').toLowerCase();
+    if (['out-of-service', 'oos', 'maintenance'].includes(front)) return { key: 'oos', label: '점검', icon: 'fa-screwdriver-wrench' };
+    if (['occupied', 'checkedin', 'in-house'].includes(front)) return { key: 'occupied', label: '재실', icon: 'fa-bed' };
+    if (['dirty', 'vacant-dirty', 'pending-clean', 'needs-cleaning', 'inspect'].includes(housekeeping) || front === 'vacant-dirty') {
+        return { key: 'dirty', label: '청소 필요', icon: 'fa-broom' };
+    }
+    return { key: 'clean', label: '청소 완료', icon: 'fa-circle-check' };
+}
+
+function timelineRoomCleanBadge(room) {
+    const status = timelineRoomCleanStatus(room);
+    return `<span class="tl-room-clean-status ${status.key}"><i class="fa-solid ${status.icon}"></i>${timelineEscapeHtml(status.label)}</span>`;
+}
+
 function buildTimeline() {
     const grid = document.getElementById('tlGrid');
     grid.innerHTML = '';
@@ -834,7 +881,7 @@ function buildTimeline() {
 
     // Room rows
     rooms.forEach(room => {
-        let rowHTML = `<div class="tl-room-cell"><span class="tl-room-num">${room.id}</span><span class="tl-room-type">${timelineRoomType(room.type)}</span></div>`;
+        let rowHTML = `<div class="tl-room-cell"><span class="tl-room-num">${room.id}</span><span class="tl-room-type">${timelineRoomType(room.type)}</span><span class="tl-room-meta">${timelineRoomCleanBadge(room)}</span></div>`;
         
         // Create date cells
         for (let d = 0; d < DAYS; d++) {

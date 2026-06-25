@@ -807,12 +807,30 @@ function alertBadges(res) {
 
 function formatMoney(res) {
     const currency = 'PHP';
-    const amount = Number(res.amount || res.totalAmount?.amount || 0);
+    const amount = reservationTotalValue(res);
     return new Intl.NumberFormat('en-PH', {
         style: 'currency',
         currency,
         maximumFractionDigits: 2
     }).format(amount);
+}
+
+function reservationNightsValue(res) {
+    const explicit = Number(res?.nights || res?.len || 0);
+    if (explicit > 0) return explicit;
+    const start = new Date(res?.checkInDate || res?.checkin || res?.cin || '');
+    const end = new Date(res?.checkOutDate || res?.checkout || res?.cout || '');
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end > start) {
+        return Math.max(1, Math.round((end - start) / 86400000));
+    }
+    return 1;
+}
+
+function reservationTotalValue(res) {
+    const nights = reservationNightsValue(res);
+    const rate = typeof res?.rate === 'object' ? Number(res.rate.amount || 0) : Number(res?.rate || res?.nightlyRate?.amount || res?.roomRate || 0);
+    if (rate > 0) return Math.round(rate * nights * 100) / 100;
+    return Number(res?.amount || res?.totalAmount?.amount || 0);
 }
 
 function prepaidAmount(res) {
@@ -821,7 +839,7 @@ function prepaidAmount(res) {
 }
 
 function balanceDueAmount(res) {
-    const total = Number(res?.amount || res?.totalAmount?.amount || 0);
+    const total = reservationTotalValue(res);
     const explicit = Number(res?.balanceDue ?? res?.paymentPlan?.balanceDue);
     if (Number.isFinite(explicit) && explicit >= 0) return explicit;
     return Math.max(total - prepaidAmount(res), 0);

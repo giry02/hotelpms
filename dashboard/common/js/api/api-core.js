@@ -437,7 +437,12 @@ window.PmsMockApi = window.PmsMockApi || (function() {
 
     function toLegacyReservation(item) {
         const roomNo = item.roomNo || roomNoFromId(item.roomId || item.fullRoom || item.room);
-        const nights = item.len || Math.max(1, Math.round((new Date(item.checkOutDate || item.checkout) - new Date(item.checkInDate || item.checkin)) / 86400000)) || 1;
+        const nights = item.nights || item.len || Math.max(1, Math.round((new Date(item.checkOutDate || item.checkout) - new Date(item.checkInDate || item.checkin)) / 86400000)) || 1;
+        const currency = currencyOf(item.totalAmount || item.amount || item.rate);
+        const explicitTotal = amountValue(item.totalAmount || item.amount);
+        const explicitRate = amountValue(item.rate || item.nightlyRate || item.roomRate);
+        const nightlyRate = explicitRate || (nights ? Math.round((explicitTotal / nights) * 100) / 100 : explicitTotal);
+        const computedTotal = explicitRate ? Math.round(explicitRate * nights * 100) / 100 : explicitTotal;
         const roomingName = item.roomingGuestName || '';
         const guestName = roomingName || item.guestName || item.guest || '';
         return {
@@ -465,9 +470,11 @@ window.PmsMockApi = window.PmsMockApi || (function() {
             start: Number.isFinite(item.start) ? item.start : 0,
             len: nights,
             nights,
-            amount: amountValue(item.totalAmount || item.rate),
-            rate: amountValue(item.rate),
-            currency: currencyOf(item.totalAmount || item.rate),
+            amount: computedTotal,
+            rate: nightlyRate,
+            totalAmount: { amount: computedTotal, currency },
+            nightlyRate: { amount: nightlyRate, currency },
+            currency,
             isB2B: !!(item.isB2B || item.groupId || item.companyId),
             isGroupPlaceholder: !!item.isGroupPlaceholder,
             isVip: !!item.isVip,

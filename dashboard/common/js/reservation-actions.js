@@ -607,6 +607,7 @@
         const seq = ++unifiedRateQuoteSeq;
         const hint = document.getElementById('unifiedRateQuoteHint');
         const amountInput = document.getElementById('unifiedAmount');
+        const nightlyInput = document.getElementById('unifiedNightlyRate');
         if (!amountInput) return null;
         const quote = await buildUnifiedRoomRateQuote();
         if (seq !== unifiedRateQuoteSeq) return quote;
@@ -615,6 +616,11 @@
         if (quote && shouldApplyUnifiedRateQuote(amountInput, quote, !!options.force)) {
             amountInput.dataset.currency = quote.currency;
             amountInput.dataset.autoQuoteTotal = String(quote.total);
+            if (nightlyInput) {
+                nightlyInput.dataset.currency = quote.currency;
+                nightlyInput.value = formatMoneyInputValue(quote.averageRate, quote.currency);
+                configureUnifiedMoneyInput(nightlyInput, quote.currency);
+            }
             amountInput.value = formatMoneyInputValue(quote.total, quote.currency);
             configureUnifiedMoneyInput(amountInput, quote.currency);
             const prepaidInput = document.getElementById('unifiedPrepaid');
@@ -1135,19 +1141,25 @@
 
     function setUnifiedFinanceValues(res = null, options = {}) {
         const amountInput = document.getElementById('unifiedAmount');
+        const nightlyInput = document.getElementById('unifiedNightlyRate');
         const prepaidInput = document.getElementById('unifiedPrepaid');
         if (!amountInput || !prepaidInput) return;
         const currency = reservationCurrency(res);
         let amount = options.amount;
         if (amount === undefined) amount = reservationAmountValue(res);
         if (!amount && options.suggest) amount = options.suggest;
+        const nights = updateUnifiedNightsLabel() || Number(res?.nights || res?.len || 1) || 1;
+        const nightly = reservationRateValue(res) || (nights ? Math.round((Number(amount || 0) / nights) * 100) / 100 : Number(amount || 0));
         const prepaid = options.prepaid !== undefined ? options.prepaid : reservationPrepaidValue(res);
         amountInput.dataset.currency = currency;
+        if (nightlyInput) nightlyInput.dataset.currency = currency;
         prepaidInput.dataset.currency = currency;
         amountInput.dataset.manualAmount = 'false';
         amountInput.dataset.autoQuoteTotal = '';
         configureUnifiedMoneyInput(amountInput, currency);
+        if (nightlyInput) configureUnifiedMoneyInput(nightlyInput, currency);
         configureUnifiedMoneyInput(prepaidInput, currency);
+        if (nightlyInput) nightlyInput.value = formatMoneyInputValue(nightly, currency);
         amountInput.value = formatMoneyInputValue(amount, currency);
         prepaidInput.value = formatMoneyInputValue(prepaid, currency);
         const optionRows = Array.isArray(options.prepaidRows) ? options.prepaidRows : [];
@@ -1159,11 +1171,18 @@
 
     function syncUnifiedBalance() {
         const amountInput = document.getElementById('unifiedAmount');
+        const nightlyInput = document.getElementById('unifiedNightlyRate');
         const prepaidInput = document.getElementById('unifiedPrepaid');
         const balanceInput = document.getElementById('unifiedBalance');
         const help = document.getElementById('unifiedFinanceHelp');
         if (!amountInput || !prepaidInput || !balanceInput) return;
         const currency = amountInput.dataset.currency || 'PHP';
+        if (nightlyInput) {
+            const nights = updateUnifiedNightsLabel() || 1;
+            const nightly = parseMoneyInput(nightlyInput.value, currency);
+            const totalFromNightly = normalizeMoneyAmount(nightly * nights, currency);
+            amountInput.value = formatMoneyInputValue(totalFromNightly, currency);
+        }
         const total = parseMoneyInput(amountInput.value, currency);
         const prepaidRows = prepaidRowsFromInputs();
         const rowsTotal = prepaidPhpTotalFromRows(prepaidRows);
@@ -1400,8 +1419,12 @@
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem;font-weight:900;color:var(--txt);"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--primary)"></i> 객실 요금 / 예치금</div>
                         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
                             <div class="md-item">
+                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">1박 객실 단가</div>
+                                <input type="number" min="0" step="1" id="unifiedNightlyRate" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                            </div>
+                            <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">총 객실 금액</div>
-                                <input type="number" min="0" step="1" id="unifiedAmount" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                                <input type="number" min="0" step="1" id="unifiedAmount" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:800;box-sizing:border-box;background:#f8fafc;color:var(--txt);">
                             </div>
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">예치금 페소 기준 합계</div>
@@ -1467,11 +1490,14 @@
             });
             const lateToggle = document.getElementById('unifiedLateCheckout');
             if (lateToggle) lateToggle.addEventListener('change', syncUnifiedLateCheckoutControls);
-            ['unifiedAmount', 'unifiedPrepaid'].forEach(id => {
+            ['unifiedNightlyRate', 'unifiedPrepaid'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) {
                     input.addEventListener('input', () => {
-                        if (id === 'unifiedAmount') input.dataset.manualAmount = 'true';
+                        if (id === 'unifiedNightlyRate') {
+                            const amountInput = document.getElementById('unifiedAmount');
+                            if (amountInput) amountInput.dataset.manualAmount = 'true';
+                        }
                         syncUnifiedBalance();
                     });
                     input.addEventListener('change', () => normalizeUnifiedMoneyInput(input));
@@ -2216,7 +2242,7 @@
             lateToggle.closest('label')?.style.setProperty('cursor', lateToggle.disabled ? 'not-allowed' : 'pointer');
         }
         syncUnifiedLateCheckoutControls();
-        ['unifiedRoom', 'unifiedCompanions', 'unifiedAmount', 'unifiedPrepaid'].forEach(id => {
+        ['unifiedRoom', 'unifiedCompanions', 'unifiedNightlyRate', 'unifiedAmount', 'unifiedPrepaid'].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.disabled = false;
@@ -2658,6 +2684,7 @@
         const stayTimeData = lockedBaseStayTimePayload(currentRes, unifiedStayTimePayload());
         const nights = updateUnifiedNightsLabel() || 1;
         const currency = reservationCurrency(currentRes);
+        syncUnifiedBalance();
         const totalAmount = parseMoneyInput(document.getElementById('unifiedAmount')?.value, currency);
         const prepaidReceivedRows = prepaidRowsFromInputs();
         const invalidPrepaidRows = prepaidReceivedRows.filter(row => row.currency !== 'PHP' && Number(row.amount || 0) > 0 && Number(row.phpEquivalent || 0) <= 0);
@@ -2673,7 +2700,8 @@
         const prepaidAmount = Math.min(prepaidReceivedRows.length ? prepaidRowsTotal : parseMoneyInput(document.getElementById('unifiedPrepaid')?.value, currency), totalAmount);
         const prepaidReceivedBreakdown = prepaidBreakdownFromRows(prepaidReceivedRows);
         const balanceDue = normalizeMoneyAmount(totalAmount - prepaidAmount, currency);
-        const nightlyRate = nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount;
+        const enteredNightlyRate = parseMoneyInput(document.getElementById('unifiedNightlyRate')?.value, currency);
+        const nightlyRate = enteredNightlyRate || (nights ? Math.round((totalAmount / nights) * 100) / 100 : totalAmount);
         const rateQuote = unifiedLastRateQuote;
         const manualAmountOverride = !!(rateQuote && totalAmount !== normalizeMoneyAmount(rateQuote.total, currency));
         const shouldWriteGuest = !isBlockSave && (!isEditableGroupBlockSave || !!guest.trim() || getUnifiedCompanionGuestEntries().length > 0);

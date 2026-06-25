@@ -452,6 +452,8 @@ PmsAPI.getGuests()
             spend: g.spend || 0,
             email: g.email || '-',
             phone: g.phone || '-',
+            registeredAt: g.registeredAt || g.createdAt || g.joinedAt || '',
+            _registeredIndex: index,
             specialNotes: g.specialNotes || '',
             blacklisted: isGuestBlacklisted(g),
             isBlacklisted: isGuestBlacklisted(g),
@@ -498,6 +500,11 @@ function renderGuests() {
         ].map(value => String(value || '').toLowerCase()).join(' ');
         if (search && !searchable.includes(search)) return false;
         return true;
+    }).sort((a, b) => {
+        const aTime = Date.parse(a.registeredAt || '') || 0;
+        const bTime = Date.parse(b.registeredAt || '') || 0;
+        if (aTime || bTime) return bTime - aTime;
+        return Number(b._registeredIndex || 0) - Number(a._registeredIndex || 0);
     });
 
     const tbody = document.getElementById('guestBody');

@@ -295,6 +295,8 @@ Object.assign(window.PmsAPI, {
                 cin: cin ? fmt(cin) : base.cin,
                 cout: cout ? fmt(cout) : base.cout,
                 amount: Number(allocation.rate || 0) * len,
+                rate: { amount: Number(allocation.rate || 0), currency: allocation.currency || g.currency || 'PHP' },
+                totalAmount: { amount: Number(allocation.rate || 0) * len, currency: allocation.currency || g.currency || 'PHP' },
                 phone: base.phone || rooming?.phone || '',
                 email: base.email || rooming?.email || '',
                 nation: base.nation || rooming?.nation || '',

@@ -92,6 +92,7 @@
                         { label: 'Unified POS', href: BASE + 'operations/unified-pos.html' },
                         { label: 'Golf',         href: BASE + 'operations/golf.html' },
                         { label: 'Rent-a-car',   href: BASE + 'operations/rentacar.html' },
+                        { label: '업체/항목 관리', href: BASE + 'operations/ancillary-vendors.html' },
                     ]
                 },
             ]
@@ -168,6 +169,7 @@
         'ancillary.pos',
         'ancillary.golf',
         'ancillary.rentacar',
+        'ancillary.vendors',
         'operationLogs',
         'operationLogs.audit',
         'operationLogs.close',
@@ -205,6 +207,7 @@
         'unified-pos.html': 'ancillary.pos',
         'golf.html': 'ancillary.golf',
         'rentacar.html': 'ancillary.rentacar',
+        'ancillary-vendors.html': 'ancillary.vendors',
         'settings.html': 'settings.hotel',
         'staff.html': 'staff.list',
         'roles.html': 'staff.roles',

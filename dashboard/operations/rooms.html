@@ -133,6 +133,13 @@
 .room-stay-time{margin-top:4px;font-size:.68rem;font-weight:850;color:var(--txt3);display:flex;align-items:center;gap:4px;justify-content:center;line-height:1.25}
 .room-stay-time i{font-size:.6rem;color:var(--primary)}
 .room-late-pill{display:inline-flex;align-items:center;gap:4px;margin-top:4px;border-radius:999px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;padding:2px 7px;font-size:.63rem;font-weight:900;line-height:1.2}
+.room-clean-mini{display:inline-flex;align-items:center;gap:4px;margin-top:5px;border-radius:999px;padding:3px 8px;font-size:.64rem;font-weight:900;line-height:1.2}
+.room-clean-mini.clean{background:#dcfce7;color:#059669}
+.room-clean-mini.dirty{background:#fef3c7;color:#d97706}
+.room-clean-mini.occupied{background:#dbeafe;color:#2563eb}
+.room-clean-mini.oos{background:#fee2e2;color:#dc2626}
+.room-related-guest{margin-top:5px;font-size:.68rem;font-weight:850;color:var(--txt2);display:flex;align-items:center;gap:4px;justify-content:center;line-height:1.25}
+.room-related-guest i{font-size:.6rem;color:var(--primary)}
 @media(max-width:768px){.stay-info-grid{grid-template-columns:1fr}.stay-info-head{flex-direction:column}.stay-info-badge{align-self:flex-start}}
 </style>
     <script src="../common/js/api/api-core.js"></script>
@@ -672,6 +679,26 @@ function toggleBuilding(el) {
     el.nextElementSibling.classList.toggle('collapsed');
 }
 
+function roomCleanBadgeHtml(status) {
+    if (status === 'occupied') return '<div class="room-clean-mini occupied"><i class="fa-solid fa-bed"></i>재실 중</div>';
+    if (status === 'vacant-dirty') return '<div class="room-clean-mini dirty"><i class="fa-solid fa-broom"></i>청소 필요</div>';
+    if (status === 'oos') return '<div class="room-clean-mini oos"><i class="fa-solid fa-screwdriver-wrench"></i>점검</div>';
+    return '<div class="room-clean-mini clean"><i class="fa-solid fa-circle-check"></i>청소 완료</div>';
+}
+
+function renderRoomCard(r) {
+    const status = normalizeRoomListStatus(r);
+    const stLabel = (statusConfig[status] || {label: status}).label;
+    const relatedRes = stayReservationForRoom(r);
+    const stayRes = status === 'occupied' ? relatedRes : null;
+    const displayGuest = stayRes ? stayGuestName(stayRes) : r.guest;
+    const guestHtml = displayGuest ? `<div class="room-guest-name">${escapeHtml(displayGuest)}</div>` : '';
+    const relatedGuest = !stayRes && relatedRes ? stayGuestName(relatedRes) : '';
+    const relatedHtml = relatedGuest ? `<div class="room-related-guest"><i class="fa-solid fa-calendar-check"></i>예약 ${escapeHtml(relatedGuest)}</div>` : '';
+    const stayTimeHtml = stayRes ? roomStayTimeHtml(stayRes) : '';
+    return `<div class="room-box ${status}" style="cursor:pointer" data-room-id="${escapeHtml(r.id || '')}" data-room-status="${escapeHtml(status || '')}" onclick="handleRoomClick(this.dataset.roomId, this.dataset.roomStatus)"><div class="room-box-num">${escapeHtml(r.id || 'N/A')}</div><div class="room-box-type">${escapeHtml(displayRoomType(r.type))}</div><div class="room-box-status">${escapeHtml(stLabel)}</div>${roomCleanBadgeHtml(status)}${guestHtml}${relatedHtml}${stayTimeHtml}</div>`;
+}
+
 function renderRooms() {
     updateKPIs();
     updateFilterCounts();
@@ -717,13 +744,7 @@ function renderRooms() {
                 html += `<div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${f}층 <span style="font-size:0.8rem;color:var(--txt3);font-weight:500;margin-left:8px">(${floorRooms.length}개 객실)</span></div>`;
                 html += `<div class="room-grid">`;
                 floorRooms.forEach(r => {
-                    const status = normalizeRoomListStatus(r);
-                    const stLabel = (statusConfig[status] || {label: status}).label;
-                    const stayRes = status === 'occupied' ? stayReservationForRoom(r) : null;
-                    const displayGuest = stayRes ? stayGuestName(stayRes) : r.guest;
-                    const guestHtml = displayGuest ? `<div class="room-guest-name">${escapeHtml(displayGuest)}</div>` : '';
-                    const stayTimeHtml = stayRes ? roomStayTimeHtml(stayRes) : '';
-                    html += `<div class="room-box ${status}" style="cursor:pointer" data-room-id="${escapeHtml(r.id || '')}" data-room-status="${escapeHtml(status || '')}" onclick="handleRoomClick(this.dataset.roomId, this.dataset.roomStatus)"><div class="room-box-num">${escapeHtml(r.id || 'N/A')}</div><div class="room-box-type">${escapeHtml(displayRoomType(r.type))}</div><div class="room-box-status">${escapeHtml(stLabel)}</div>${guestHtml}${stayTimeHtml}</div>`;
+                    html += renderRoomCard(r);
                 });
                 html += `</div></div>`;
             });
@@ -739,13 +760,7 @@ function renderRooms() {
             html += `<div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${f}층 <span style="font-size:0.8rem;color:var(--txt3);font-weight:500;margin-left:8px">(${floorRooms.length}개 객실)</span></div>`;
             html += `<div class="room-grid">`;
             floorRooms.forEach(r => {
-                const status = normalizeRoomListStatus(r);
-                const stLabel = (statusConfig[status] || {label: status}).label;
-                const stayRes = status === 'occupied' ? stayReservationForRoom(r) : null;
-                const displayGuest = stayRes ? stayGuestName(stayRes) : r.guest;
-                const guestHtml = displayGuest ? `<div class="room-guest-name">${escapeHtml(displayGuest)}</div>` : '';
-                const stayTimeHtml = stayRes ? roomStayTimeHtml(stayRes) : '';
-                html += `<div class="room-box ${status}" style="cursor:pointer" data-room-id="${escapeHtml(r.id || '')}" data-room-status="${escapeHtml(status || '')}" onclick="handleRoomClick(this.dataset.roomId, this.dataset.roomStatus)"><div class="room-box-num">${escapeHtml(r.id || 'N/A')}</div><div class="room-box-type">${escapeHtml(displayRoomType(r.type))}</div><div class="room-box-status">${escapeHtml(stLabel)}</div>${guestHtml}${stayTimeHtml}</div>`;
+                html += renderRoomCard(r);
             });
             html += `</div></div>`;
             container.innerHTML += html;
