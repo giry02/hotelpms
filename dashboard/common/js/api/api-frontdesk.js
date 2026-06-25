@@ -436,9 +436,9 @@ Object.assign(window.PmsAPI, {
                 if (groups.length) return groups;
             }
         } catch(e) {
-            console.warn('Mock groups fallback', e);
+            console.info('Mock groups fallback', e);
         }
-        return [];
+        return initStorage('pms_groups', []);
     },
 
     getCompanies: async () => {

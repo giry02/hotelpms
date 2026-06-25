@@ -127,7 +127,11 @@ function httpOk(url) {
           await page.waitForTimeout(300);
           const roomPanelText = await page.locator('#rooms').innerText().catch(() => '');
           smokeChecks.push(['detail has allocation room', roomPanelText.includes('1401')]);
-          smokeChecks.push(['detail has rooming guest', await page.locator('text=Alexander Kim').first().isVisible().catch(() => false)]);
+          const roomingTab = page.locator('.local-tab').filter({ hasText: '투숙객 명단' }).first();
+          await roomingTab.click().catch(() => {});
+          await page.waitForTimeout(300);
+          const roomingPanelText = await page.locator('#rooming').innerText().catch(() => '');
+          smokeChecks.push(['detail has rooming guest', roomingPanelText.includes('Alexander Kim')]);
         }
         if (pagePath.includes('reservation-list')) {
           const bodyText = await page.locator('body').innerText().catch(() => '');

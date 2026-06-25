@@ -68,6 +68,32 @@
 .tl-block.checkout, .tl-block.checkedout { background: #F97316 !important; }
 .tl-block.cancelled { background: #EF4444 !important; }
 .tl-block.completed { background: #94A3B8 !important; } /* Completed checkout / out-of-service (gray) */
+.tl-header-row,
+.tl-row{
+    display:grid!important;
+    grid-template-columns:140px repeat(14,minmax(0,1fr));
+}
+.tl-row{
+    min-height:var(--tl-row-height,40px);
+    border-bottom:0!important;
+}
+.tl-room-header,
+.tl-room-cell{
+    width:auto!important;
+    min-width:0!important;
+    box-sizing:border-box;
+}
+.tl-date-header,
+.tl-cell{
+    min-width:0;
+    box-sizing:border-box;
+}
+.tl-room-cell,
+.tl-cell{
+    min-height:var(--tl-row-height,40px);
+    height:100%;
+    border-bottom:2px solid #E2E8F0;
+}
 .tl-block{
     min-height:30px;
     height:auto!important;
@@ -843,9 +869,10 @@ function buildTimeline() {
         block.style.minHeight = `${blockHeight}px`;
 
         const requiredHeight = 14 + (level * levelStep) + blockHeight;
-        const currentHeight = parseInt(row.style.height || 52);
+        const currentHeight = parseInt(row.style.getPropertyValue('--tl-row-height') || row.style.height || 52);
         if (currentHeight < requiredHeight) {
-            row.style.height = `${requiredHeight}px`;
+            row.style.setProperty('--tl-row-height', `${requiredHeight}px`);
+            row.style.minHeight = `${requiredHeight}px`;
         }
 
         const displayName = timelineDisplayName(res);
