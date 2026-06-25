@@ -50,6 +50,22 @@ GitHub Pages 배포 후 cache busting URL로 다시 확인했다.
 
 판정: GitHub Pages 기준으로도 행 라인 어긋남 수정 반영 완료.
 
+## 2026-06-25 추가 보정
+
+사용자 재확인 화면에서 행/셀 라인은 맞지만 일부 예약 블록이 행 하단 밖으로 4~8px 튀어나와 라인이 어긋난 것처럼 보이는 문제가 확인되었다.
+
+추가 조치:
+
+- `.tl-row`의 실제 `height`를 `--tl-row-height`와 동기화했다.
+- 예약 블록을 DOM에 붙인 뒤 실제 렌더링 높이를 다시 측정해 행 높이를 재보정하도록 했다.
+
+추가 검증:
+
+- lineMismatchCount: 0
+- blockOverflowCount: 0
+
+판정: 행/셀 라인뿐 아니라 예약 블록 overflow까지 로컬 기준 수정 완료.
+
 ## 남은 주의 항목
 
 1. `audit:visual`은 실패는 없지만 dashboard carousel, reservation-board mobile chip, timeline mobile legend, folio-chart label, maintenance mobile filter에서 overflow warning이 남아 있다.
