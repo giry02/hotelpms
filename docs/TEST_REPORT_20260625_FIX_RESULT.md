@@ -42,6 +42,14 @@ Playwright로 예약 타임라인의 `.tl-row`, `.tl-room-cell`, `.tl-cell` top/
 
 판정: 사용자가 지적한 행 라인 어긋남은 로컬 검증 기준 수정 완료.
 
+GitHub Pages 배포 후 cache busting URL로 다시 확인했다.
+
+- URL: `https://giry02.github.io/hotelpms/dashboard/frontdesk/reservation-timeline.html?cb=d43d810a245cb4256d14496350cf26e9388d4504`
+- rowDisplay: `grid`
+- mismatchCount: 0
+
+판정: GitHub Pages 기준으로도 행 라인 어긋남 수정 반영 완료.
+
 ## 남은 주의 항목
 
 1. `audit:visual`은 실패는 없지만 dashboard carousel, reservation-board mobile chip, timeline mobile legend, folio-chart label, maintenance mobile filter에서 overflow warning이 남아 있다.
