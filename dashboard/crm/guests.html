@@ -633,18 +633,16 @@ function renderGuests() {
     }).join('');
 
     if (pageBtns) {
-        if (totalPages <= 1) {
-            pageBtns.innerHTML = '';
-        } else {
-            pageBtns.innerHTML = `
-                <button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="setGuestPage(${currentPage - 1})"><i class="fa-solid fa-chevron-left"></i></button>
-                ${Array.from({ length: totalPages }, (_, index) => {
-                    const page = index + 1;
-                    return `<button class="page-btn ${page === currentPage ? 'active' : ''}" onclick="setGuestPage(${page})">${page}</button>`;
-                }).join('')}
-                <button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="setGuestPage(${currentPage + 1})"><i class="fa-solid fa-chevron-right"></i></button>
-            `;
-        }
+        const safeTotalPages = Math.max(1, totalPages);
+        const safeCurrentPage = Math.min(Math.max(1, currentPage), safeTotalPages);
+        pageBtns.innerHTML = `
+            <button class="page-btn" ${safeCurrentPage === 1 ? 'disabled' : ''} onclick="setGuestPage(${safeCurrentPage - 1})"><i class="fa-solid fa-chevron-left"></i></button>
+            ${Array.from({ length: safeTotalPages }, (_, index) => {
+                const page = index + 1;
+                return `<button class="page-btn ${page === safeCurrentPage ? 'active' : ''}" onclick="setGuestPage(${page})">${page}</button>`;
+            }).join('')}
+            <button class="page-btn" ${safeCurrentPage === safeTotalPages ? 'disabled' : ''} onclick="setGuestPage(${safeCurrentPage + 1})"><i class="fa-solid fa-chevron-right"></i></button>
+        `;
     }
 }
 
