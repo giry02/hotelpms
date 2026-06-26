@@ -202,6 +202,12 @@ function addDays(date, days) {
     return next;
 }
 
+function boardDateKey(date = todayDate()) {
+    const value = new Date(date);
+    if (Number.isNaN(value.getTime())) return '';
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+}
+
 function sameDate(left, right) {
     return !!(left && right && left.getTime() === right.getTime());
 }
@@ -581,6 +587,7 @@ function boardStayState(room, res) {
     const cleaningState = normalizedRoomOpsValue(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus);
     const isCleanRequested = flag === 'mur' || ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState);
     const isCleanComplete = ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState);
+    if (boardStayEditable(res) && !boardOccupiedCleaningIsFresh(room, res)) return 'mur';
     if (flag === 'dnd' || flag === 'away') return flag;
     if (isCleanRequested) return 'mur';
     if (isCleanComplete) return 'clean';
@@ -607,6 +614,58 @@ function boardCleaningSummary(room, res) {
 function boardStayEditable(res) {
     const status = effectiveReservationStatus(res);
     return ['checkedin', 'checkout'].includes(status);
+}
+
+function boardOccupiedCleaningDate(room, res) {
+    return room?.occupiedCleaningDate || room?.cleaningStateDate || room?.cleaningDate ||
+        res?.occupiedCleaningDate || res?.cleaningStateDate || res?.cleaningDate || '';
+}
+
+function boardOccupiedCleaningIsFresh(room, res) {
+    return boardOccupiedCleaningDate(room, res) === boardDateKey();
+}
+
+function markBoardOccupiedCleaningDate(room, res) {
+    const key = boardDateKey();
+    if (room) {
+        room.occupiedCleaningDate = key;
+        room.cleaningStateDate = key;
+    }
+    if (res) {
+        res.occupiedCleaningDate = key;
+        res.cleaningStateDate = key;
+    }
+}
+
+function resetBoardDailyStayCleaning(room, res) {
+    if (!room || !res || !boardStayEditable(res) || boardOccupiedCleaningIsFresh(room, res)) return false;
+    room.housekeepingStatus = 'dirty';
+    room.cleaningStatus = 'dirty';
+    room.guestFlag = 'none';
+    res.guestFlag = 'none';
+    markBoardOccupiedCleaningDate(room, res);
+    return true;
+}
+
+async function refreshBoardDailyStayCleaning() {
+    const changedReservations = [];
+    reservations.forEach(res => {
+        const room = roomForReservation(res);
+        if (resetBoardDailyStayCleaning(room, res)) changedReservations.push(res);
+    });
+    if (!changedReservations.length) return;
+    localStorage.setItem('pms_rooms', JSON.stringify(rooms));
+    localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+    try {
+        if (window.PmsAPI?.saveRooms) await window.PmsAPI.saveRooms(rooms);
+        if (window.PmsMockApi) {
+            await Promise.all(changedReservations.map(res =>
+                window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res })
+            ));
+        }
+    } catch(e) {
+        console.warn('Daily stay cleaning refresh failed', e);
+    }
 }
 
 function boardStayActions(room, res) {
@@ -947,6 +1006,7 @@ window.setBoardStayState = async function(event, button) {
     const buttons = button.closest('.board-stay-actions')?.querySelectorAll('button') || [];
     buttons.forEach(item => { item.disabled = true; });
     try {
+        markBoardOccupiedCleaningDate(room, res);
         if (state === 'mur') {
             room.housekeepingStatus = 'dirty';
             room.cleaningStatus = 'dirty';
@@ -1050,6 +1110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.rooms = rooms;
     window.reservations = reservations;
     window.groups = groups;
+    await refreshBoardDailyStayCleaning();
     renderReservationBoard();
 });
 </script>
