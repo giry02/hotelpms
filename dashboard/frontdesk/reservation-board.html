@@ -156,7 +156,7 @@
                 <div class="search-container">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input id="boardSearch" type="text" placeholder="객실번호, 이름 검색..." oninput="renderReservationBoard()">
+                        <input id="boardSearch" type="text" placeholder="객실번호, 이름, 단체명 검색..." oninput="renderReservationBoard()">
                     </div>
                     <button class="btn-search" onclick="renderReservationBoard()"><i class="fa-solid fa-search"></i> 검색</button>
                 </div>
@@ -164,6 +164,7 @@
             </div>
             <div class="filter-chips reservation-board-filters" id="boardChips">
                 <button class="chip active" data-filter="all" onclick="setBoardFilter('all')"><i class="fa-solid fa-list"></i> 전체 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="group" onclick="setBoardFilter('group')"><i class="fa-solid fa-users"></i> 단체 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="checkin" onclick="setBoardFilter('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="inhouse" onclick="setBoardFilter('inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="checkout" onclick="setBoardFilter('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 <span class="chip-count">0</span></button>
@@ -357,11 +358,12 @@ function reservationBucket(res) {
 }
 
 function boardReservationCounts() {
-    const counts = { all: 0, checkin: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, completed: 0, cancelled: 0 };
+    const counts = { all: 0, group: 0, checkin: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, completed: 0, cancelled: 0 };
     reservations.forEach(res => {
         const bucket = reservationBucket(res);
         if (!bucket) return;
         counts.all++;
+        if (boardIsGroupReservation(res)) counts.group++;
         if (counts[bucket] !== undefined) counts[bucket]++;
         if (reservationLateCheckoutEnabled(res)) counts.late++;
         if (reservationHasRoomChange(res)) counts.roommove++;
@@ -425,6 +427,33 @@ function boardGroupLabel(res) {
     ).trim();
 }
 
+function boardGroupSearchText(res) {
+    if (!res) return '';
+    const group = boardGroupForReservation(res);
+    return [
+        res.groupId,
+        res.groupName,
+        group?.name,
+        group?.displayName,
+        group?.agency,
+        group?.companyName,
+        group?.company?.name,
+        res.companyName,
+        res.company,
+        res.agency
+    ].map(value => String(value || '').trim()).filter(Boolean).join(' ');
+}
+
+function boardIsGroupReservation(res) {
+    if (!res) return false;
+    return !!(
+        res.groupId
+        || res.isGroupPlaceholder
+        || normalizeReservationStatus(res.status) === 'blocked'
+        || boardGroupLabel(res)
+    );
+}
+
 function boardDisplayName(res) {
     if (!res) return '';
     const guest = primaryGuest(res);
@@ -436,7 +465,7 @@ function boardDisplayName(res) {
 }
 
 function boardPrimaryIcon(res) {
-    return res?.groupId || res?.isGroupPlaceholder || normalizeReservationStatus(res) === 'blocked'
+    return boardIsGroupReservation(res)
         ? 'fa-users'
         : 'fa-user';
 }
@@ -711,6 +740,7 @@ function reservationStateForFilter(res) {
 function reservationMatchesBoardFilter(res, filter) {
     if (filter === 'all') return reservationOverlapsRange(res);
     if (!reservationOverlapsRange(res)) return false;
+    if (filter === 'group') return boardIsGroupReservation(res);
     if (filter === 'late') return reservationLateCheckoutEnabled(res);
     if (filter === 'roommove') return reservationHasRoomChange(res);
     return reservationBucket(res) === filter;
@@ -802,6 +832,7 @@ function boardCard(room) {
         primary,
         displayName,
         groupName,
+        boardGroupSearchText(res),
         companions.join(' '),
         hasRoomChange ? `객실 이동 ${roomChangeText}` : '',
         res ? reservationCheckInTime(res) : '',
