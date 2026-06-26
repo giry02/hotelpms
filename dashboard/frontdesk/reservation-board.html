@@ -80,6 +80,17 @@
         .board-status.cancelled{background:var(--danger-lt);color:var(--danger)}
         .board-status.blocked{background:#f1f5f9;color:#111827}
         .board-status.oos{background:var(--danger-lt);color:var(--danger)}
+        .board-clean-summary{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border-top:1px solid var(--border2);padding-top:7px;margin-top:2px}
+        .board-clean-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 8px;font-size:.64rem;font-weight:900;white-space:nowrap}
+        .board-clean-badge.clean{background:#dcfce7;color:#059669}
+        .board-clean-badge.dirty{background:#fef3c7;color:#d97706}
+        .board-clean-badge.occupied{background:#dbeafe;color:#2563eb}
+        .board-clean-badge.oos{background:#fee2e2;color:#dc2626}
+        .board-clean-actions{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+        .board-clean-action{height:26px;min-width:26px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#64748b;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:0 7px;font-size:.65rem;font-weight:900;cursor:pointer;transition:.15s}
+        .board-clean-action:hover{border-color:var(--primary);color:var(--primary);box-shadow:0 4px 10px rgba(59,130,246,.12)}
+        .board-clean-action.active.clean{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
+        .board-clean-action.active.dirty{background:#fffbeb;color:#d97706;border-color:#fde68a}
         .board-guest{width:100%;min-width:0;margin-top:4px}
         .board-primary{display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:900;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .board-primary i{color:var(--primary);font-size:.68rem}
@@ -518,14 +529,39 @@ function boardStayState(room, res) {
     return 'none';
 }
 
+function boardCleaningSummary(room, res) {
+    const roomStatus = normalizeStatus(room?.status || room?.frontStatus || '');
+    const cleaningState = normalizedRoomOpsValue(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus);
+    const stayState = boardStayState(room, res);
+    if (['oos', 'outofservice', 'out-of-service', 'maintenance'].includes(roomStatus)) {
+        return { key: 'oos', label: '점검 중', icon: 'fa-screwdriver-wrench' };
+    }
+    if (['mur', 'dirty'].includes(stayState) || ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState)) {
+        return { key: 'dirty', label: res ? '청소 요청' : '청소 필요', icon: 'fa-broom' };
+    }
+    if (stayState === 'clean' || ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState)) {
+        return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
+    }
+    if (res) return { key: 'occupied', label: '재실 중', icon: 'fa-bed' };
+    return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
+}
+
 function boardStayEditable(res) {
     const status = effectiveReservationStatus(res);
     return ['checkedin', 'checkout'].includes(status);
 }
 
 function boardStayActions(room, res) {
-    if (!room || !res || !boardStayEditable(res)) return '';
-    const roomKey = room.roomId || room.fullRoom || room.id || res.room || '';
+    if (!room) return '';
+    const roomKey = room.roomId || room.fullRoom || room.id || res?.room || '';
+    const cleanState = boardCleaningSummary(room, res).key;
+    if (!res) {
+        return `<div class="board-clean-actions" aria-label="빈방 청소 상태 변경">
+            <button type="button" class="board-clean-action dirty${cleanState === 'dirty' ? ' active' : ''}" data-room-key="${escapeHtml(roomKey)}" data-state="dirty" title="청소 필요" onclick="setBoardCleanState(event,this)"><i class="fa-solid fa-broom"></i></button>
+            <button type="button" class="board-clean-action clean${cleanState === 'clean' ? ' active' : ''}" data-room-key="${escapeHtml(roomKey)}" data-state="clean" title="청소 완료" onclick="setBoardCleanState(event,this)"><i class="fa-solid fa-check"></i></button>
+        </div>`;
+    }
+    if (!boardStayEditable(res)) return '';
     const active = boardStayState(room, res);
     const options = [
         { key: 'none', label: '재실', icon: 'fa-bed' },
@@ -662,6 +698,11 @@ function boardCard(room) {
     if (query && !searchText.includes(query)) return '';
     const roomId = room.id || room.fullRoom || room.roomNo || room.number || room.display || '';
     const canCreateBooking = !res && state.status === 'vacant' && !!roomId;
+    const cleanInfo = boardCleaningSummary(room, res);
+    const cleanSummary = `<div class="board-clean-summary">
+        <span class="board-clean-badge ${cleanInfo.key}"><i class="fa-solid ${cleanInfo.icon}"></i>${cleanInfo.label}</span>
+        ${boardStayActions(room, res)}
+    </div>`;
     const click = res
         ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"`
         : (canCreateBooking ? `onclick="openBoardRoomBooking('${encodeURIComponent(roomId)}')"` : '');
@@ -678,8 +719,8 @@ function boardCard(room) {
         <div class="board-date">${escapeHtml(reservationDates(res))}</div>
         ${flags ? `<div class="board-flags">${flags}</div>` : ''}
         ${reservationStayTimeHtml(res)}
-        ${boardStayActions(room, res)}
-        <div class="board-money">${formatMoney(amountValue(res))}${res.balanceDue ? ` · 잔액 ${formatMoney(res.balanceDue)}` : ''}</div>` : '<div class="board-empty">배정된 예약 없음</div>'}
+        ${cleanSummary}
+        <div class="board-money">${formatMoney(amountValue(res))}${res.balanceDue ? ` · 잔액 ${formatMoney(res.balanceDue)}` : ''}</div>` : `<div class="board-empty">배정된 예약 없음</div>${cleanSummary}`}
     </div>`;
 }
 
@@ -869,6 +910,52 @@ window.setBoardStayState = async function(event, button) {
             const labels = { none: '재실', dnd: '방해금지', away: '외출', mur: '청소요청', clean: '청소완료' };
             window.showToast(`${room.id || room.roomNo || roomKey} 상태: ${labels[state] || state}`, 'success');
         }
+    } finally {
+        buttons.forEach(item => { item.disabled = false; });
+    }
+};
+
+window.setBoardCleanState = async function(event, button) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    const state = button?.dataset?.state || 'clean';
+    const roomKey = button?.dataset?.roomKey || '';
+    const room = rooms.find(item => sameRoomValue(item.id, roomKey) || sameRoomValue(item.roomId, roomKey) || sameRoomValue(item.fullRoom, roomKey) || sameRoomValue(item.roomNo, roomKey));
+    if (!room) {
+        if (window.showToast) window.showToast('객실 정보를 찾을 수 없습니다.', 'error');
+        return;
+    }
+    const buttons = button.closest('.board-clean-actions')?.querySelectorAll('button') || [];
+    buttons.forEach(item => { item.disabled = true; });
+    const roomId = room.roomId || room.fullRoom || room.id || room.roomNo;
+    try {
+        if (state === 'dirty') {
+            room.status = 'vacant-dirty';
+            room.frontStatus = 'vacant-dirty';
+            room.housekeepingStatus = 'dirty';
+            room.cleaningStatus = 'dirty';
+            if (window.PmsAPI?.syncRoomStatusToTask) {
+                await window.PmsAPI.syncRoomStatusToTask(roomId, 'vacant-dirty', {
+                    type: 'checkout',
+                    source: 'reservation-board',
+                    note: '예약현황에서 빈방 청소 필요 처리'
+                });
+            }
+        } else {
+            room.status = 'vacant-clean';
+            room.frontStatus = 'vacant-clean';
+            room.housekeepingStatus = 'clean';
+            room.cleaningStatus = 'clean';
+            if (window.PmsAPI?.syncRoomStatusToTask) {
+                await window.PmsAPI.syncRoomStatusToTask(roomId, 'clean', {
+                    source: 'reservation-board',
+                    note: '예약현황에서 빈방 청소 완료 처리'
+                });
+            }
+        }
+        await persistBoardStayState(room, null);
+        renderReservationBoard();
+        if (window.showToast) window.showToast(`${room.id || room.roomNo || roomKey} 청소 상태가 변경되었습니다.`, 'success');
     } finally {
         buttons.forEach(item => { item.disabled = false; });
     }

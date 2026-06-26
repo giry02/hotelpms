@@ -9,45 +9,469 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
+    <link rel="stylesheet" href="../common/css/operations.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
     <script src="../common/js/i18n-catalog.js"></script>
-<script src="../common/js/i18n.js"></script>
+    <script src="../common/js/i18n.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
     <script src="../common/js/sidebar.js"></script>
+    <style>
+        .ancillary-page{font-family:var(--font)}
+        .ancillary-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:22px}
+        .ancillary-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px}
+        .ancillary-search{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1.5px solid var(--border);border-radius:9px;background:#fff;min-width:260px}
+        .ancillary-search:focus-within{border-color:var(--primary)}
+        .ancillary-search i{color:var(--txt3)}
+        .ancillary-search input{border:0;outline:0;width:100%;font:inherit;font-size:.84rem}
+        .ancillary-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .service-filter{height:38px;border:1px solid var(--border);border-radius:9px;background:#fff;padding:0 12px;font:inherit;font-size:.82rem;font-weight:800;color:var(--txt)}
+        .building-section{margin-bottom:8px}
+        .building-section + .building-section{margin-top:24px}
+        .building-header{display:flex;align-items:center;gap:10px;padding:0 0 8px;cursor:pointer;user-select:none}
+        .building-header i.bldg-icon{font-size:1rem;color:var(--primary);width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--primary-lt);border-radius:6px}
+        .building-header .bldg-name{font-size:1.05rem;font-weight:800;color:var(--txt)}
+        .building-header .bldg-count{font-size:.78rem;color:var(--txt3);font-weight:600;margin-left:4px}
+        .building-header .bldg-chevron{margin-left:auto;color:var(--txt3);font-size:.8rem;transition:transform .2s}
+        .building-header.collapsed .bldg-chevron{transform:rotate(-90deg)}
+        .building-body.collapsed{display:none}
+        .floor-section{margin-bottom:24px}
+        .floor-title{display:flex;align-items:center;gap:7px;margin:0 0 10px;color:var(--txt);font-size:1rem;font-weight:800}
+        .floor-title i{color:var(--txt3);font-size:.86rem}
+        .ancillary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+        .ancillary-room-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;min-height:178px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:.16s;box-shadow:0 2px 10px rgba(15,23,42,.03)}
+        .ancillary-room-card:hover{border-color:var(--primary);box-shadow:0 10px 24px rgba(59,130,246,.13);transform:translateY(-2px)}
+        .ancillary-room-card.vacant{opacity:.82}
+        .ancillary-room-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+        .ancillary-room-no{font-size:1.2rem;font-weight:950;color:var(--txt)}
+        .ancillary-status{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 8px;font-size:.65rem;font-weight:900;white-space:nowrap}
+        .ancillary-status.inhouse{background:#dcfce7;color:#059669}
+        .ancillary-status.reserved{background:#dbeafe;color:#2563eb}
+        .ancillary-status.vacant{background:#f1f5f9;color:#64748b}
+        .ancillary-room-type{font-size:.72rem;color:var(--txt3);font-weight:800}
+        .ancillary-guest{display:flex;flex-direction:column;gap:3px;min-height:42px}
+        .ancillary-guest strong{font-size:.88rem;color:var(--txt)}
+        .ancillary-guest span{font-size:.72rem;color:var(--txt2);font-weight:750}
+        .ancillary-service-list{display:flex;flex-direction:column;gap:5px;margin-top:auto;border-top:1px solid var(--border2);padding-top:8px}
+        .ancillary-order-pill{display:flex;align-items:center;justify-content:space-between;gap:8px;border-radius:8px;background:#f8fafc;border:1px solid var(--border2);padding:5px 7px;font-size:.68rem;font-weight:850;color:var(--txt2)}
+        .ancillary-order-pill i{color:var(--primary)}
+        .ancillary-order-pill.empty{justify-content:flex-start;color:var(--txt3)}
+        .service-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+        .service-tab{border:1px solid var(--border);border-radius:10px;background:#fff;padding:10px 8px;font:inherit;font-size:.8rem;font-weight:900;cursor:pointer;color:var(--txt2);display:flex;align-items:center;justify-content:center;gap:6px}
+        .service-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+        .modal-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .modal-field{display:flex;flex-direction:column;gap:6px}
+        .modal-field label{font-size:.75rem;font-weight:850;color:var(--txt2)}
+        .modal-field input,.modal-field select,.modal-field textarea{border:1px solid var(--border);border-radius:8px;padding:0 10px;height:38px;font:inherit;font-size:.84rem;background:#fff}
+        .modal-field textarea{height:72px;padding:10px;resize:vertical}
+        .modal-room-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f8fafc;border:1px solid var(--border2);border-radius:12px;padding:12px}
+        .modal-room-summary div{font-size:.72rem;color:var(--txt3);font-weight:800}
+        .modal-room-summary strong{display:block;margin-top:3px;font-size:.9rem;color:var(--txt)}
+        @media(max-width:768px){
+            .ancillary-kpis{grid-template-columns:1fr 1fr}
+            .ancillary-toolbar{flex-direction:column;align-items:stretch;padding:12px}
+            .ancillary-search{min-width:0;width:auto}
+            .ancillary-actions{justify-content:space-between}
+            .ancillary-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+            .modal-field-grid,.modal-room-summary{grid-template-columns:1fr}
+        }
+    </style>
 </head>
 <body>
-
-<div class="main">
-    <header class="topbar">
-        <h1 data-i18n-key="Ancillary Svcs">부가서비스</h1>
-    </header>
-
+<div class="main ancillary-page">
+    <header class="topbar"><h1>부가서비스</h1></header>
     <div class="content">
-        <div class="kpi-grid kpi-grid-4">
-            <a href="room-service.html" class="kpi-card blue">
-                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div></div>
-                <div class="kpi-body"><div class="kpi-value">12</div><div class="kpi-label">룸서비스 오더</div></div></a>
-            <a href="unified-pos.html" class="kpi-card purple">
-                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-cash-register"></i></div></div>
-                <div class="kpi-body"><div class="kpi-value">8</div><div class="kpi-label">통합 포스 주문</div></div></a>
-            <a href="golf.html" class="kpi-card green">
-                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-golf-ball-tee"></i></div></div>
-                <div class="kpi-body"><div class="kpi-value">5</div><div class="kpi-label">골프 예약</div></div></a>
-            <a href="rentacar.html" class="kpi-card orange">
-                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-car"></i></div></div>
-                <div class="kpi-body"><div class="kpi-value">2</div><div class="kpi-label">렌터카 예약</div></div></a>
+        <div class="kpi-grid kpi-grid-4 ancillary-kpis">
+            <div class="kpi-card blue"><div class="kpi-icon"><i class="fa-solid fa-bell-concierge"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-label">전체 신청</div></div></div>
+            <div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-cash-register"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiPos">0</div><div class="kpi-label">식음료/POS</div></div></div>
+            <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-golf-ball-tee"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiGolf">0</div><div class="kpi-label">골프장</div></div></div>
+            <div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-car"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRent">0</div><div class="kpi-label">렌터카</div></div></div>
         </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title"><i class="fa-solid fa-bell-concierge"></i> 부가서비스 통합 대시보드</div>
+
+        <div class="ancillary-toolbar">
+            <div class="ancillary-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input id="ancillarySearch" type="text" placeholder="객실번호, 고객명 검색..." oninput="renderAncillaryBoard()">
             </div>
-            <div class="card-body">
-                <p style="color:var(--txt2); font-size:0.9rem;">각 부가서비스 위젯을 클릭하여 상세 페이지로 이동하세요.</p>
+            <div class="ancillary-actions">
+                <select id="serviceFilter" class="service-filter" onchange="renderAncillaryBoard()">
+                    <option value="all">전체 서비스</option>
+                    <option value="pos">식음료/POS</option>
+                    <option value="golf">골프장</option>
+                    <option value="rentacar">렌터카</option>
+                </select>
+                <button class="btn-outline" onclick="location.href='ancillary-vendors.html'"><i class="fa-solid fa-building"></i> 업체/항목 관리</button>
             </div>
+        </div>
+
+        <div id="ancillaryBoardContainer"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="serviceModal" onclick="if(event.target===this) closeServiceModal()">
+    <div class="modal-card" style="max-width:720px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-bell-concierge" style="color:var(--primary)"></i> 부가서비스 신청</h3>
+            <button class="modal-close" onclick="closeServiceModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
+            <div class="modal-room-summary">
+                <div>객실<strong id="modalRoomNo">-</strong></div>
+                <div>투숙객 / 퇴실일<strong id="modalGuestInfo">-</strong></div>
+            </div>
+            <div class="service-tabs">
+                <button class="service-tab active" data-service="pos" onclick="selectServiceType('pos')"><i class="fa-solid fa-cash-register"></i> 식음료/POS</button>
+                <button class="service-tab" data-service="golf" onclick="selectServiceType('golf')"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</button>
+                <button class="service-tab" data-service="rentacar" onclick="selectServiceType('rentacar')"><i class="fa-solid fa-car"></i> 렌터카</button>
+            </div>
+            <div class="modal-field-grid">
+                <div class="modal-field">
+                    <label id="vendorLabel">업체</label>
+                    <select id="serviceVendor" onchange="renderServiceItems()"></select>
+                </div>
+                <div class="modal-field">
+                    <label>항목</label>
+                    <select id="serviceItem"></select>
+                </div>
+                <div class="modal-field">
+                    <label>이용 일시</label>
+                    <input id="serviceDateTime" type="datetime-local">
+                </div>
+                <div class="modal-field">
+                    <label>수량 / 인원</label>
+                    <input id="serviceQty" type="number" min="1" value="1">
+                </div>
+            </div>
+            <div class="modal-field">
+                <label>요청 메모</label>
+                <textarea id="serviceMemo" placeholder="예: 알러지, 픽업 위치, 라운딩 인원 등"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc">
+            <button class="btn-outline" onclick="closeServiceModal()">닫기</button>
+            <button class="btn-primary-sm" onclick="saveServiceOrder()"><i class="fa-solid fa-check"></i> 신청 저장</button>
         </div>
     </div>
 </div>
 
+<script>
+let rooms = [];
+let reservations = [];
+let serviceOrders = [];
+let vendors = [];
+let selectedRoomId = '';
+let selectedService = 'pos';
+
+const VENDOR_STORAGE = 'pms_ancillary_vendors';
+const ORDER_STORAGE = 'pms_ancillary_room_orders';
+const seedVendors = [
+    { id:'POS-HOTEL', type:'pos', name:'호텔 식음료/POS', contact:'F&B', commission:0, items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }] },
+    { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', commission:15, items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트', price:70, desc:'팀 단위 카트' }] },
+    { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', commission:12, items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
+    { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', commission:13, items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }] },
+    { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', commission:14, items:[{ name:'전기 SUV 24시간', price:230, desc:'완충 인도' }, { name:'기사 포함 밴', price:320, desc:'8시간 기준' }] }
+];
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+}
+
+function money(value) {
+    return `₱${Number(value || 0).toLocaleString('en')}`;
+}
+
+function todayDate() {
+    const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function parseDate(value) {
+    if (!value) return null;
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function normalizeStatus(value) {
+    return String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+}
+
+function sameRoomValue(left, right) {
+    const keys = value => {
+        const text = String(value || '').trim().toUpperCase();
+        const tail = text.includes('-') ? text.split('-').pop() : text;
+        const digits = (text.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
+        return new Set([text, tail, digits].filter(Boolean));
+    };
+    const leftKeys = keys(left);
+    const rightKeys = keys(right);
+    return [...leftKeys].some(key => rightKeys.has(key));
+}
+
+function roomNo(room) {
+    return room.roomNo || room.number || String(room.id || '').split('-').pop() || room.id || '-';
+}
+
+function roomType(room) {
+    return room.roomTypeName || room.typeName || room.type || room.roomTypeId || '';
+}
+
+function floorValue(room) {
+    const explicit = Number(room.floor);
+    if (Number.isFinite(explicit)) return explicit;
+    const match = String(roomNo(room)).match(/\d+/);
+    return match ? Number(String(match[0]).slice(0, -2) || 1) : 1;
+}
+
+function activeReservationForRoom(room) {
+    const today = todayDate();
+    return reservations
+        .filter(res => {
+            const status = normalizeStatus(res.status);
+            if (['cancelled', 'canceled', 'completed', 'checkedout'].includes(status)) return false;
+            const roomMatches = [res.room, res.roomNo, res.roomId, res.fullRoom, res.roomLabel].some(value => sameRoomValue(value, room.id || roomNo(room)));
+            const start = parseDate(res.checkInDate || res.checkin || res.cin);
+            const end = parseDate(res.checkOutDate || res.checkout || res.cout);
+            return roomMatches && start && end && start <= today && today < end;
+        })
+        .sort((a, b) => (parseDate(a.checkOutDate || a.checkout || a.cout)?.getTime() || 0) - (parseDate(b.checkOutDate || b.checkout || b.cout)?.getTime() || 0))[0] || null;
+}
+
+function nextReservationForRoom(room) {
+    const today = todayDate();
+    return reservations
+        .filter(res => {
+            const status = normalizeStatus(res.status);
+            if (['cancelled', 'canceled', 'completed', 'checkedout'].includes(status)) return false;
+            const roomMatches = [res.room, res.roomNo, res.roomId, res.fullRoom, res.roomLabel].some(value => sameRoomValue(value, room.id || roomNo(room)));
+            const start = parseDate(res.checkInDate || res.checkin || res.cin);
+            return roomMatches && start && start >= today;
+        })
+        .sort((a, b) => (parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0) - (parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0))[0] || null;
+}
+
+function displayDate(value) {
+    const date = parseDate(value);
+    if (!date) return '-';
+    return `${date.getMonth() + 1}.${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function roomOrders(room) {
+    const roomKey = roomNo(room);
+    return serviceOrders.filter(order => sameRoomValue(order.room, roomKey) || sameRoomValue(order.roomId, room.id));
+}
+
+function serviceMeta(service) {
+    return {
+        pos: { label:'식음료/POS', icon:'fa-cash-register', cls:'purple' },
+        golf: { label:'골프장', icon:'fa-golf-ball-tee', cls:'green' },
+        rentacar: { label:'렌터카', icon:'fa-car', cls:'orange' }
+    }[service] || { label:'부가서비스', icon:'fa-bell-concierge', cls:'blue' };
+}
+
+function loadVendors() {
+    try { vendors = JSON.parse(localStorage.getItem(VENDOR_STORAGE) || '[]'); } catch(e) { vendors = []; }
+    if (!vendors.length) vendors = seedVendors;
+    if (!vendors.some(v => v.type === 'pos')) vendors = [seedVendors[0], ...vendors];
+}
+
+function loadStoredOrders() {
+    try { serviceOrders = JSON.parse(localStorage.getItem(ORDER_STORAGE) || '[]'); } catch(e) { serviceOrders = []; }
+}
+
+function persistOrders() {
+    localStorage.setItem(ORDER_STORAGE, JSON.stringify(serviceOrders.slice(0, 300)));
+}
+
+function normalizeExternalOrder(order, service) {
+    const meta = serviceMeta(service);
+    return {
+        id: order.id || `${service}-${Date.now()}`,
+        service,
+        serviceLabel: meta.label,
+        room: order.room || order.roomNo || String(order.roomId || '').split('-').pop(),
+        roomId: order.roomId || '',
+        guest: order.guest || order.guestName || '',
+        item: order.items || order.item || order.itemName || order.productName || meta.label,
+        vendor: order.providerName || order.partnerName || order.vendorName || meta.label,
+        total: Number(order.total || order.amount || 0),
+        status: order.status || 'new'
+    };
+}
+
+function updateKpis() {
+    document.getElementById('kpiTotal').textContent = serviceOrders.length;
+    document.getElementById('kpiPos').textContent = serviceOrders.filter(o => o.service === 'pos').length;
+    document.getElementById('kpiGolf').textContent = serviceOrders.filter(o => o.service === 'golf').length;
+    document.getElementById('kpiRent').textContent = serviceOrders.filter(o => o.service === 'rentacar').length;
+}
+
+function renderAncillaryBoard() {
+    updateKpis();
+    const container = document.getElementById('ancillaryBoardContainer');
+    const query = document.getElementById('ancillarySearch')?.value.trim().toLowerCase() || '';
+    const filter = document.getElementById('serviceFilter')?.value || 'all';
+    container.innerHTML = '';
+    const hasBuildings = rooms.some(room => room.building || room.buildingName);
+    const buildingNames = hasBuildings ? [...new Set(rooms.map(room => room.building || room.buildingName || '미지정'))].sort() : ['전체 객실'];
+    let rendered = 0;
+    buildingNames.forEach(building => {
+        const buildingRooms = hasBuildings ? rooms.filter(room => (room.building || room.buildingName || '미지정') === building) : rooms;
+        const floors = [...new Set(buildingRooms.map(floorValue))].sort((a, b) => b - a);
+        let html = `<div class="building-section"><div class="building-header" onclick="toggleBuilding(this)"><i class="fa-solid fa-building bldg-icon"></i><span class="bldg-name">${escapeHtml(building)}</span><span class="bldg-count">(${buildingRooms.length}개 객실)</span><i class="fa-solid fa-chevron-down bldg-chevron"></i></div><div class="building-body">`;
+        floors.forEach(floor => {
+            const cards = buildingRooms
+                .filter(room => floorValue(room) === floor)
+                .sort((a, b) => String(roomNo(a)).localeCompare(String(roomNo(b)), undefined, { numeric: true }))
+                .map(room => roomCard(room, query, filter))
+                .filter(Boolean);
+            if (!cards.length) return;
+            rendered += cards.length;
+            html += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i>${floor}층</div><div class="ancillary-grid">${cards.join('')}</div></div>`;
+        });
+        html += '</div></div>';
+        container.innerHTML += html;
+    });
+    if (!rendered) container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3);font-weight:800">조건에 맞는 객실이 없습니다.</div>';
+}
+
+function roomCard(room, query, filter) {
+    const active = activeReservationForRoom(room);
+    const next = active ? null : nextReservationForRoom(room);
+    const orders = roomOrders(room).filter(order => filter === 'all' || order.service === filter);
+    const guestName = active?.guestName || active?.guest || active?.roomingGuestName || '';
+    const nextName = next?.guestName || next?.guest || next?.roomingGuestName || '';
+    const haystack = [roomNo(room), roomType(room), guestName, nextName, orders.map(o => `${o.serviceLabel} ${o.item} ${o.vendor}`).join(' ')].join(' ').toLowerCase();
+    if (query && !haystack.includes(query)) return '';
+    if (filter !== 'all' && !orders.length && !active) return '';
+    const status = active ? 'inhouse' : next ? 'reserved' : 'vacant';
+    const statusLabel = active ? '투숙 중' : next ? '예약 예정' : '공실';
+    const until = active ? `퇴실 ${displayDate(active.checkOutDate || active.checkout || active.cout)}까지` : (next ? `입실 ${displayDate(next.checkInDate || next.checkin || next.cin)}` : '현재 투숙객 없음');
+    const guestBlock = active
+        ? `<strong>${escapeHtml(guestName || '투숙객')}</strong><span>${escapeHtml(until)}</span>`
+        : `<strong>${escapeHtml(nextName || '공실')}</strong><span>${escapeHtml(until)}</span>`;
+    return `<div class="ancillary-room-card ${status}" onclick="openServiceModal('${escapeHtml(room.id || room.roomId || roomNo(room))}')">
+        <div class="ancillary-room-head"><div class="ancillary-room-no">${escapeHtml(roomNo(room))}</div><span class="ancillary-status ${status}"><i class="fa-solid ${active ? 'fa-bed' : next ? 'fa-calendar-check' : 'fa-door-open'}"></i>${statusLabel}</span></div>
+        <div class="ancillary-room-type">${escapeHtml(roomType(room))}</div>
+        <div class="ancillary-guest">${guestBlock}</div>
+        <div class="ancillary-service-list">
+            ${orders.length ? orders.slice(0, 3).map(order => {
+                const meta = serviceMeta(order.service);
+                return `<div class="ancillary-order-pill"><span><i class="fa-solid ${meta.icon}"></i> ${escapeHtml(order.item || meta.label)}</span><strong>${money(order.total)}</strong></div>`;
+            }).join('') : '<div class="ancillary-order-pill empty"><i class="fa-solid fa-plus"></i> 부가서비스 신청 가능</div>'}
+        </div>
+    </div>`;
+}
+
+function toggleBuilding(el) {
+    el.classList.toggle('collapsed');
+    el.nextElementSibling.classList.toggle('collapsed');
+}
+
+function findRoomById(roomId) {
+    return rooms.find(room => [room.id, room.roomId, room.fullRoom, room.roomNo, roomNo(room)].some(value => sameRoomValue(value, roomId)));
+}
+
+function openServiceModal(roomId) {
+    selectedRoomId = roomId;
+    const room = findRoomById(roomId);
+    const active = activeReservationForRoom(room || {});
+    document.getElementById('modalRoomNo').textContent = room ? `${roomNo(room)} · ${roomType(room)}` : roomId;
+    document.getElementById('modalGuestInfo').textContent = active
+        ? `${active.guestName || active.guest || '투숙객'} / 퇴실 ${displayDate(active.checkOutDate || active.checkout || active.cout)}`
+        : '현재 투숙객 없음';
+    document.getElementById('serviceQty').value = '1';
+    document.getElementById('serviceMemo').value = '';
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('serviceDateTime').value = now.toISOString().slice(0, 16);
+    selectServiceType('pos');
+    document.getElementById('serviceModal').classList.add('active');
+}
+
+function closeServiceModal() {
+    document.getElementById('serviceModal').classList.remove('active');
+}
+
+function selectServiceType(type) {
+    selectedService = type;
+    document.querySelectorAll('.service-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.service === type));
+    document.getElementById('vendorLabel').textContent = type === 'pos' ? '처리 부서/업체' : '업체';
+    renderServiceVendors();
+}
+
+function renderServiceVendors() {
+    const select = document.getElementById('serviceVendor');
+    const list = vendors.filter(vendor => vendor.type === selectedService);
+    select.innerHTML = list.map(vendor => `<option value="${escapeHtml(vendor.id)}">${escapeHtml(vendor.name)}</option>`).join('');
+    renderServiceItems();
+}
+
+function renderServiceItems() {
+    const vendorId = document.getElementById('serviceVendor')?.value || '';
+    const vendor = vendors.find(item => item.id === vendorId);
+    const items = vendor?.items || [];
+    document.getElementById('serviceItem').innerHTML = items.map((item, index) => `<option value="${index}" data-price="${Number(item.price || 0)}">${escapeHtml(item.name)} · ${money(item.price)}</option>`).join('') || '<option value="0" data-price="0">기본 항목</option>';
+}
+
+function saveServiceOrder() {
+    const room = findRoomById(selectedRoomId);
+    if (!room) return;
+    const active = activeReservationForRoom(room);
+    const vendor = vendors.find(item => item.id === document.getElementById('serviceVendor')?.value);
+    const selectedOption = document.getElementById('serviceItem')?.selectedOptions?.[0];
+    const qty = Math.max(1, Number(document.getElementById('serviceQty')?.value || 1));
+    const unitPrice = Number(selectedOption?.dataset?.price || 0);
+    const meta = serviceMeta(selectedService);
+    const order = {
+        id: `SVC-${Date.now()}`,
+        service: selectedService,
+        serviceLabel: meta.label,
+        room: roomNo(room),
+        roomId: room.id || room.roomId || '',
+        guest: active?.guestName || active?.guest || '',
+        reservationId: active?.id || '',
+        vendor: vendor?.name || meta.label,
+        item: selectedOption?.textContent?.split('·')[0]?.trim() || meta.label,
+        qty,
+        total: unitPrice * qty,
+        dateTime: document.getElementById('serviceDateTime')?.value || '',
+        memo: document.getElementById('serviceMemo')?.value || '',
+        status: 'new'
+    };
+    serviceOrders = [order, ...serviceOrders];
+    persistOrders();
+    closeServiceModal();
+    renderAncillaryBoard();
+    if (window.showToast) window.showToast(`${roomNo(room)} ${meta.label} 신청이 등록되었습니다.`, 'success');
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    loadVendors();
+    loadStoredOrders();
+    const [roomData, reservationData, posOrders, golfOrders, rentOrders] = await Promise.all([
+        window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
+        window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : [],
+        window.PmsAPI?.getOrders ? window.PmsAPI.getOrders().catch(() => []) : [],
+        window.PmsAPI?.getGolfOrders ? window.PmsAPI.getGolfOrders().catch(() => []) : [],
+        window.PmsAPI?.getRentacarOrders ? window.PmsAPI.getRentacarOrders().catch(() => []) : []
+    ]);
+    rooms = roomData || [];
+    reservations = reservationData || [];
+    const externalOrders = [
+        ...(posOrders || []).map(order => normalizeExternalOrder(order, 'pos')),
+        ...(golfOrders || []).map(order => normalizeExternalOrder(order, 'golf')),
+        ...(rentOrders || []).map(order => normalizeExternalOrder(order, 'rentacar'))
+    ];
+    const storedIds = new Set(serviceOrders.map(order => order.id));
+    serviceOrders = [...serviceOrders, ...externalOrders.filter(order => !storedIds.has(order.id))];
+    renderAncillaryBoard();
+});
+</script>
 </body>
 </html>
