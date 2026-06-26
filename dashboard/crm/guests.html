@@ -59,6 +59,12 @@
 .btn-search:hover { background: #1D4ED8; }
 .filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.guest-sort-select {
+    height: 36px; min-width: 150px; padding: 0 34px 0 12px; border: 1px solid var(--border);
+    border-radius: 8px; background: #fff; color: var(--txt); font-family: var(--font);
+    font-size: .78rem; font-weight: 700; cursor: pointer; flex-shrink: 0;
+}
+.guest-sort-select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-lt); }
 
 @media(max-width:768px){
     .m-filter-trigger{display:flex}
@@ -67,6 +73,7 @@
     .filter-left { flex-wrap: wrap !important; gap: 10px !important; }
     .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
     .search-box-mt { flex: 1; min-width: 0; width: auto !important; }
+    .guest-sort-select { width: 100%; min-width: 0; }
 }
 
 /* Empty state */
@@ -245,6 +252,12 @@
             </button>
 
             <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+                <select id="guestSortSelect" class="guest-sort-select" onchange="setGuestSort(this.value)">
+                    <option value="joined_desc" data-i18n-key="Sort Join Newest">가입시기 최신순</option>
+                    <option value="joined_asc" data-i18n-key="Sort Join Oldest">가입시기 오래된순</option>
+                    <option value="name_asc" data-i18n-key="Sort Name Asc">이름 오름차순</option>
+                    <option value="name_desc" data-i18n-key="Sort Name Desc">이름 내림차순</option>
+                </select>
                 <button class="btn-outline" onclick="downloadGuestExport()"><i class="fa-solid fa-download"></i> <span data-i18n-key="Export">엑셀 다운로드</span></button>
                 <button class="btn-primary-sm" onclick="openModal('addGuestModal')"><i class="fa-solid fa-plus"></i> <span data-i18n-key="고객 등록">신규 투숙객 등록</span></button>
             </div>
@@ -482,10 +495,45 @@ const tierCfg = {
 };
 
 let currentTier = 'all';
+let currentGuestSort = 'joined_desc';
+
+function guestRegisteredTime(guest) {
+    const time = Date.parse(guest.registeredAt || '');
+    return Number.isFinite(time) ? time : 0;
+}
+
+function compareGuestRegistered(a, b, direction = 'desc') {
+    const aTime = guestRegisteredTime(a);
+    const bTime = guestRegisteredTime(b);
+    if (aTime || bTime) {
+        const timeDiff = aTime - bTime;
+        if (timeDiff !== 0) return direction === 'asc' ? timeDiff : -timeDiff;
+    }
+    const indexDiff = Number(a._registeredIndex || 0) - Number(b._registeredIndex || 0);
+    return direction === 'asc' ? indexDiff : -indexDiff;
+}
+
+function compareGuestName(a, b, direction = 'asc') {
+    const result = String(a.name || '').localeCompare(String(b.name || ''), 'ko', {
+        numeric: true,
+        sensitivity: 'base'
+    });
+    if (result !== 0) return direction === 'asc' ? result : -result;
+    return compareGuestRegistered(a, b, 'desc');
+}
+
+function sortGuests(list) {
+    return list.sort((a, b) => {
+        if (currentGuestSort === 'name_asc') return compareGuestName(a, b, 'asc');
+        if (currentGuestSort === 'name_desc') return compareGuestName(a, b, 'desc');
+        if (currentGuestSort === 'joined_asc') return compareGuestRegistered(a, b, 'asc');
+        return compareGuestRegistered(a, b, 'desc');
+    });
+}
 
 function renderGuests() {
     const search = document.getElementById('searchInput').value.toLowerCase();
-    const filtered = guests.filter(g => {
+    const filtered = sortGuests(guests.filter(g => {
         if (currentTier === 'blacklist') {
             if (!isGuestBlacklisted(g)) return false;
         } else if (currentTier !== 'all' && g.tier !== currentTier) {
@@ -500,12 +548,7 @@ function renderGuests() {
         ].map(value => String(value || '').toLowerCase()).join(' ');
         if (search && !searchable.includes(search)) return false;
         return true;
-    }).sort((a, b) => {
-        const aTime = Date.parse(a.registeredAt || '') || 0;
-        const bTime = Date.parse(b.registeredAt || '') || 0;
-        if (aTime || bTime) return bTime - aTime;
-        return Number(b._registeredIndex || 0) - Number(a._registeredIndex || 0);
-    });
+    }));
 
     const tbody = document.getElementById('guestBody');
     const mobile = document.getElementById('guestMobile');
@@ -607,6 +650,12 @@ function renderGuests() {
 
 function setGuestPage(page) {
     currentPage = page;
+    renderGuests();
+}
+
+function setGuestSort(sortValue) {
+    currentGuestSort = sortValue || 'joined_desc';
+    currentPage = 1;
     renderGuests();
 }
 
@@ -739,7 +788,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"Guest CRM":"투숙객 관리","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Total Guests":"총 고객 수","Return Rate":"재방문율","VIP Guests":"우수 고객","Avg. Spend/Guest":"고객당 평균 지출","All":"전체","Export":"엑셀 다운로드","고객 등록":"고객 등록","Guest":"고객","Country":"국적","Tier":"등급","Visits":"방문 횟수","Last Stay":"최근 투숙","Total Spend":"총 지출","Contact":"연락처","Actions":"관리"},en: {
+"Guest CRM":"투숙객 관리","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Total Guests":"총 고객 수","Return Rate":"재방문율","VIP Guests":"우수 고객","Avg. Spend/Guest":"고객당 평균 지출","All":"전체","Export":"엑셀 다운로드","고객 등록":"고객 등록","Guest":"고객","Country":"국적","Tier":"등급","Visits":"방문 횟수","Last Stay":"최근 투숙","Total Spend":"총 지출","Contact":"연락처","Actions":"관리","Sort Join Newest":"가입시기 최신순","Sort Join Oldest":"가입시기 오래된순","Sort Name Asc":"이름 오름차순","Sort Name Desc":"이름 내림차순"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -767,7 +816,7 @@ const translations={ko: {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
-"Guest CRM":"Guest CRM","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Guests":"Total Guests","Return Rate":"Return Rate","VIP Guests":"VIP Guests","Avg. Spend/Guest":"Avg. Spend/Guest","All":"All","Export":"Export","고객 등록":"Add Guest","Guest":"Guest","Country":"Country","Tier":"Tier","Visits":"Visits","Last Stay":"Last Stay","Total Spend":"Total Spend","Contact":"Contact","Actions":"Actions"}};
+"Guest CRM":"Guest CRM","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Guests":"Total Guests","Return Rate":"Return Rate","VIP Guests":"VIP Guests","Avg. Spend/Guest":"Avg. Spend/Guest","All":"All","Export":"Export","고객 등록":"Add Guest","Guest":"Guest","Country":"Country","Tier":"Tier","Visits":"Visits","Last Stay":"Last Stay","Total Spend":"Total Spend","Contact":"Contact","Actions":"Actions","Sort Join Newest":"Join date: newest","Sort Join Oldest":"Join date: oldest","Sort Name Asc":"Name A-Z","Sort Name Desc":"Name Z-A"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});    document.getElementById('searchInput').placeholder=l==='en'?'Search name or email...':'이름, 이메일 검색...';
     const tierReason = document.getElementById('gdTierChangeReason');
