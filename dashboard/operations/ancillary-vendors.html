@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>부가서비스 업체/항목 관리</title>
+  <title>업체/항목 관리 — Hotel PMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../common/css/dashboard.css">
   <link rel="stylesheet" href="../common/css/operations.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="../common/js/api/api-core.js"></script>
@@ -13,38 +17,55 @@
   <script src="../common/js/ui-components.js"></script>
   <script src="../common/js/topbar.js"></script>
   <style>
-    .vendor-page { padding: 24px; }
-    .vendor-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
-    .vendor-tabs { display:flex; gap:8px; flex-wrap:wrap; }
-    .vendor-tab { border:1px solid var(--border); background:#fff; border-radius:999px; height:36px; padding:0 14px; font-weight:850; color:var(--txt2); cursor:pointer; }
-    .vendor-tab.active { background:var(--primary); border-color:var(--primary); color:#fff; }
-    .vendor-grid { display:grid; grid-template-columns:minmax(280px, 380px) 1fr; gap:16px; align-items:start; }
-    .vendor-panel { background:#fff; border:1px solid var(--border2); border-radius:12px; overflow:hidden; box-shadow:var(--shadow-sm); }
-    .vendor-panel-head { padding:16px 18px; border-bottom:1px solid var(--border2); display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .vendor-panel-title { font-size:1rem; font-weight:950; display:flex; align-items:center; gap:8px; color:var(--txt); }
-    .vendor-list { display:flex; flex-direction:column; }
-    .vendor-card { border:0; border-bottom:1px solid var(--border2); background:#fff; padding:14px 16px; text-align:left; cursor:pointer; }
-    .vendor-card.active { background:#eff6ff; box-shadow:inset 3px 0 0 var(--primary); }
-    .vendor-name { font-size:.95rem; font-weight:950; color:var(--txt); }
-    .vendor-meta { margin-top:4px; font-size:.72rem; font-weight:800; color:var(--txt3); display:flex; flex-wrap:wrap; gap:6px 10px; }
-    .vendor-items { padding:16px; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
-    .item-card { border:1px solid var(--border2); border-radius:10px; padding:14px; background:#fff; }
-    .item-title { font-size:.9rem; font-weight:950; color:var(--txt); display:flex; align-items:center; gap:8px; }
-    .item-meta { margin-top:8px; display:flex; flex-direction:column; gap:5px; font-size:.76rem; font-weight:800; color:var(--txt2); }
-    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    @media(max-width:900px){ .vendor-grid{grid-template-columns:1fr}.vendor-page{padding:16px}.form-row{grid-template-columns:1fr} }
+    .vendor-page{padding-bottom:56px}
+    .vendor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;padding:12px 18px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm)}
+    .vendor-tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .vendor-tab{border:1px solid var(--border);background:#fff;border-radius:999px;height:36px;padding:0 14px;font-weight:900;color:var(--txt2);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+    .vendor-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .vendor-grid{display:grid;grid-template-columns:minmax(300px,390px) 1fr;gap:16px;align-items:start}
+    .vendor-panel{background:#fff;border:1px solid var(--border2);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm)}
+    .vendor-panel-head{padding:16px 18px;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff}
+    .vendor-panel-title{font-size:1rem;font-weight:950;display:flex;align-items:center;gap:8px;color:var(--txt)}
+    .vendor-list{display:flex;flex-direction:column}
+    .vendor-card{border:0;border-bottom:1px solid var(--border2);background:#fff;padding:14px 16px;text-align:left;cursor:pointer;transition:.15s}
+    .vendor-card:hover{background:#f8fafc}
+    .vendor-card.active{background:#eff6ff;box-shadow:inset 4px 0 0 var(--primary)}
+    .vendor-name{font-size:.96rem;font-weight:950;color:var(--txt)}
+    .vendor-meta{margin-top:5px;font-size:.72rem;font-weight:850;color:var(--txt3);display:flex;flex-wrap:wrap;gap:6px 10px}
+    .detail-body{padding:16px;display:flex;flex-direction:column;gap:16px}
+    .detail-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .summary-box{border:1px solid var(--border2);border-radius:10px;padding:12px;background:#f8fafc}
+    .summary-box span{display:block;font-size:.68rem;font-weight:900;color:var(--txt3)}
+    .summary-box strong{display:block;margin-top:4px;font-size:.92rem;font-weight:950;color:var(--txt)}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .section-title{display:flex;align-items:center;gap:7px;font-size:.92rem;font-weight:950;color:var(--txt)}
+    .item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+    .item-card{border:1px solid var(--border2);border-radius:10px;padding:13px;background:#fff;display:flex;flex-direction:column;gap:7px}
+    .item-card-title{font-size:.88rem;font-weight:950;color:var(--txt);display:flex;align-items:center;gap:7px}
+    .item-card-desc{font-size:.73rem;font-weight:800;color:var(--txt2)}
+    .item-card-price{font-size:.9rem;font-weight:950;color:var(--primary)}
+    .voucher-field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+    .voucher-field{border:1px solid var(--border);border-radius:9px;background:#fff;padding:9px 10px;display:flex;align-items:center;gap:7px;font-size:.76rem;font-weight:900;color:var(--txt2)}
+    .voucher-field input{accent-color:var(--primary)}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .empty-note{padding:22px;color:var(--txt3);font-weight:850;text-align:center}
+    @media(max-width:1000px){.vendor-grid{grid-template-columns:1fr}.detail-summary{grid-template-columns:1fr 1fr}}
+    @media(max-width:700px){.vendor-toolbar{flex-direction:column;align-items:stretch}.form-row,.detail-summary{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="main">
-    <header class="topbar"><h1>부가서비스 업체/항목 관리</h1></header>
+    <header class="topbar"><h1>업체/항목 관리</h1></header>
     <div class="content vendor-page">
       <div class="vendor-toolbar">
         <div class="vendor-tabs">
           <button class="vendor-tab active" data-type="golf" onclick="selectVendorType('golf')"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</button>
           <button class="vendor-tab" data-type="rentacar" onclick="selectVendorType('rentacar')"><i class="fa-solid fa-car"></i> 렌터카</button>
         </div>
-        <button class="btn-primary-sm" onclick="openVendorModal()"><i class="fa-solid fa-plus"></i> 업체 추가</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-outline" onclick="location.href='ancillary.html'"><i class="fa-solid fa-table-cells-large"></i> 부가서비스 화면</button>
+          <button class="btn-primary-sm" onclick="openVendorModal()"><i class="fa-solid fa-plus"></i> 업체 등록</button>
+        </div>
       </div>
       <div class="vendor-grid">
         <section class="vendor-panel">
@@ -57,27 +78,27 @@
         <section class="vendor-panel">
           <div class="vendor-panel-head">
             <div>
-              <div class="vendor-panel-title"><i class="fa-solid fa-list-check"></i> 업체별 항목</div>
-              <div id="selectedVendorMeta" style="margin-top:4px;font-size:.74rem;font-weight:800;color:var(--txt3)">업체를 선택하세요.</div>
+              <div class="vendor-panel-title"><i class="fa-solid fa-list-check"></i> 업체별 항목 / 바우처 양식</div>
+              <div id="selectedVendorMeta" style="margin-top:4px;font-size:.74rem;font-weight:850;color:var(--txt3)">업체를 선택하세요.</div>
             </div>
             <button class="btn-outline" onclick="openItemModal()"><i class="fa-solid fa-plus"></i> 항목 추가</button>
           </div>
-          <div id="vendorItems" class="vendor-items"></div>
+          <div id="vendorDetail" class="detail-body"></div>
         </section>
       </div>
     </div>
   </div>
 
   <div class="modal-overlay" id="vendorModal" onclick="if(event.target===this)closeModal('vendorModal')">
-    <div class="modal-card" style="max-width:560px;width:95vw">
-      <div class="modal-header"><h3 class="modal-title">업체 등록</h3><button class="modal-close" onclick="closeModal('vendorModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-card" style="max-width:600px;width:95vw">
+      <div class="modal-header"><h3 class="modal-title"><i class="fa-solid fa-building" style="color:var(--primary)"></i> 업체 등록</h3><button class="modal-close" onclick="closeModal('vendorModal')"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px">
         <div class="form-row">
           <div><label class="form-label">서비스 구분</label><select id="vendorType" class="form-input"><option value="golf">골프장</option><option value="rentacar">렌터카</option></select></div>
           <div><label class="form-label">업체명</label><input id="vendorName" class="form-input" placeholder="예: 썬밸리 CC"></div>
         </div>
         <div class="form-row">
-          <div><label class="form-label">담당자</label><input id="vendorContact" class="form-input" placeholder="예: 박지훈"></div>
+          <div><label class="form-label">담당자/연락처</label><input id="vendorContact" class="form-input" placeholder="예: 박지훈 / +82 10..."></div>
           <div><label class="form-label">수수료율(%)</label><input id="vendorCommission" type="number" class="form-input" min="0" max="100" placeholder="예: 15"></div>
         </div>
       </div>
@@ -86,8 +107,8 @@
   </div>
 
   <div class="modal-overlay" id="itemModal" onclick="if(event.target===this)closeModal('itemModal')">
-    <div class="modal-card" style="max-width:560px;width:95vw">
-      <div class="modal-header"><h3 class="modal-title">항목 등록</h3><button class="modal-close" onclick="closeModal('itemModal')"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-card" style="max-width:600px;width:95vw">
+      <div class="modal-header"><h3 class="modal-title"><i class="fa-solid fa-tag" style="color:var(--primary)"></i> 이용 항목 등록</h3><button class="modal-close" onclick="closeModal('itemModal')"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px">
         <div class="form-row">
           <div><label class="form-label">항목명</label><input id="itemName" class="form-input" placeholder="예: 18홀 그린피"></div>
@@ -104,51 +125,106 @@
     let currentType = 'golf';
     let vendors = [];
     let selectedVendorId = '';
+    const voucherFieldLabels = {
+      guest:'투숙객명', room:'객실번호', date:'이용일시', people:'인원', teeTime:'티오프', course:'코스/업체명',
+      pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', memo:'메모'
+    };
     const seedVendors = [
-      { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', commission:15, items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트', price:70, desc:'팀 단위 카트' }] },
-      { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', commission:12, items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
-      { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', commission:13, items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }] },
-      { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', commission:14, items:[{ name:'전기 SUV 24시간', price:230, desc:'완충 인도' }, { name:'기사 포함 밴', price:320, desc:'8시간 기준' }] }
+      { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
+      { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount'], items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'18홀 패키지', price:520, desc:'그린피+카트' }] },
+      { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount'], items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }, { name:'전기차 24시간', price:230, desc:'완충 인도' }] },
+      { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount'], items:[{ name:'SUV 24시간', price:260, desc:'보험 포함' }, { name:'기사 포함 밴', price:320, desc:'8시간 기준' }] }
     ];
-
+    function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function money(v) { return `₱${Number(v || 0).toLocaleString('en')}`; }
     function loadVendors() {
       try { vendors = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { vendors = []; }
-      if (!vendors.length) vendors = seedVendors;
+      if (!Array.isArray(vendors) || !vendors.length) vendors = seedVendors.map(v => ({ ...v, items:[...(v.items || [])], voucherFields:[...(v.voucherFields || [])] }));
       selectedVendorId = vendors.find(v => v.type === currentType)?.id || '';
     }
     function persistVendors() { localStorage.setItem(STORAGE_KEY, JSON.stringify(vendors)); }
-    function money(v) { return `₱${Number(v || 0).toLocaleString('en')}`; }
-    function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-    function selectVendorType(type) { currentType = type; document.querySelectorAll('.vendor-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type)); selectedVendorId = vendors.find(v => v.type === type)?.id || ''; render(); }
+    function selectedVendor() { return vendors.find(v => v.id === selectedVendorId); }
+    function selectVendorType(type) {
+      currentType = type;
+      document.querySelectorAll('.vendor-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.type === type));
+      selectedVendorId = vendors.find(v => v.type === type)?.id || '';
+      render();
+    }
     function selectVendor(id) { selectedVendorId = id; render(); }
     function render() {
       const list = vendors.filter(v => v.type === currentType);
       document.getElementById('vendorCount').textContent = `${list.length}개`;
-      document.getElementById('vendorList').innerHTML = list.map(v => `<button class="vendor-card ${v.id === selectedVendorId ? 'active' : ''}" onclick="selectVendor('${escapeHtml(v.id)}')"><div class="vendor-name">${escapeHtml(v.name)}</div><div class="vendor-meta"><span>담당 ${escapeHtml(v.contact || '-')}</span><span>수수료 ${Number(v.commission || 0)}%</span><span>항목 ${(v.items || []).length}개</span></div></button>`).join('') || '<div style="padding:24px;color:var(--txt3);font-weight:800">등록된 업체가 없습니다.</div>';
-      const selected = vendors.find(v => v.id === selectedVendorId);
-      document.getElementById('selectedVendorMeta').textContent = selected ? `${selected.name} · 항목 ${(selected.items || []).length}개` : '업체를 선택하세요.';
-      document.getElementById('vendorItems').innerHTML = selected ? (selected.items || []).map(item => `<div class="item-card"><div class="item-title"><i class="fa-solid ${currentType === 'golf' ? 'fa-golf-ball-tee' : 'fa-car'}" style="color:var(--primary)"></i>${escapeHtml(item.name)}</div><div class="item-meta"><span>${escapeHtml(item.desc || '-')}</span><strong>${money(item.price)}</strong></div></div>`).join('') : '<div style="color:var(--txt3);font-weight:800">업체를 선택하면 항목이 표시됩니다.</div>';
+      document.getElementById('vendorList').innerHTML = list.map(v => `<button class="vendor-card ${v.id === selectedVendorId ? 'active' : ''}" onclick="selectVendor('${escapeHtml(v.id)}')"><div class="vendor-name">${escapeHtml(v.name)}</div><div class="vendor-meta"><span>담당 ${escapeHtml(v.contact || '-')}</span><span>수수료 ${Number(v.commission || 0)}%</span><span>항목 ${(v.items || []).length}개</span></div></button>`).join('') || '<div class="empty-note">등록된 업체가 없습니다.</div>';
+      const selected = selectedVendor();
+      document.getElementById('selectedVendorMeta').textContent = selected ? `${selected.name} · 항목 ${(selected.items || []).length}개 · 바우처 ${(selected.voucherFields || []).length}개 필드` : '업체를 선택하세요.';
+      renderDetail(selected);
+    }
+    function renderDetail(vendor) {
+      if (!vendor) {
+        document.getElementById('vendorDetail').innerHTML = '<div class="empty-note">업체를 선택하면 항목과 바우처 양식을 관리할 수 있습니다.</div>';
+        return;
+      }
+      document.getElementById('vendorDetail').innerHTML = `
+        <div class="detail-summary">
+          <div class="summary-box"><span>업체명</span><strong>${escapeHtml(vendor.name)}</strong></div>
+          <div class="summary-box"><span>담당/연락처</span><strong>${escapeHtml(vendor.contact || '-')}</strong></div>
+          <div class="summary-box"><span>수수료율</span><strong>${Number(vendor.commission || 0)}%</strong></div>
+          <div class="summary-box"><span>항목 수</span><strong>${(vendor.items || []).length}개</strong></div>
+        </div>
+        <div>
+          <div class="section-head"><div class="section-title"><i class="fa-solid fa-tags"></i> 이용 항목</div></div>
+          <div class="item-grid" style="margin-top:10px">${(vendor.items || []).map(item => `<div class="item-card"><div class="item-card-title"><i class="fa-solid ${vendor.type === 'golf' ? 'fa-golf-ball-tee' : 'fa-car'}" style="color:var(--primary)"></i>${escapeHtml(item.name)}</div><div class="item-card-desc">${escapeHtml(item.desc || '-')}</div><div class="item-card-price">${money(item.price)}</div></div>`).join('') || '<div class="empty-note">등록된 항목이 없습니다.</div>'}</div>
+        </div>
+        <div>
+          <div class="section-head"><div class="section-title"><i class="fa-solid fa-ticket"></i> 바우처 출력 필드</div><button class="btn-primary-sm" onclick="saveVoucherFields()"><i class="fa-solid fa-check"></i> 필드 저장</button></div>
+          <div class="voucher-field-grid" style="margin-top:10px">
+            ${Object.entries(voucherFieldLabels).map(([key, label]) => `<label class="voucher-field"><input type="checkbox" value="${key}" ${vendor.voucherFields?.includes(key) ? 'checked' : ''}> ${label}</label>`).join('')}
+          </div>
+        </div>`;
     }
     function openModal(id){ document.getElementById(id)?.classList.add('active'); }
     function closeModal(id){ document.getElementById(id)?.classList.remove('active'); }
-    function openVendorModal(){ document.getElementById('vendorType').value = currentType; ['vendorName','vendorContact','vendorCommission'].forEach(id => document.getElementById(id).value=''); openModal('vendorModal'); }
+    function openVendorModal(){
+      document.getElementById('vendorType').value = currentType;
+      ['vendorName','vendorContact','vendorCommission'].forEach(id => document.getElementById(id).value = '');
+      openModal('vendorModal');
+    }
     function saveVendor() {
       const type = document.getElementById('vendorType').value;
       const name = document.getElementById('vendorName').value.trim();
-      if (!name) return alert('업체명을 입력하세요.');
+      if (!name) return alert('업체명을 입력해 주세요.');
       const id = `${type.toUpperCase()}-${Date.now()}`;
-      vendors.unshift({ id, type, name, contact: document.getElementById('vendorContact').value.trim(), commission: Number(document.getElementById('vendorCommission').value || 0), items: [] });
-      currentType = type; selectedVendorId = id; persistVendors(); closeModal('vendorModal'); selectVendorType(type);
+      const defaults = type === 'golf' ? ['guest','room','date','people','teeTime','course','item','amount'] : ['guest','room','date','pickup','vehicle','item','amount'];
+      vendors.unshift({ id, type, name, contact: document.getElementById('vendorContact').value.trim(), commission: Number(document.getElementById('vendorCommission').value || 0), voucherFields: defaults, items: [] });
+      currentType = type;
+      selectedVendorId = id;
+      persistVendors();
+      closeModal('vendorModal');
+      selectVendorType(type);
     }
-    function openItemModal(){ if(!selectedVendorId) return alert('업체를 먼저 선택하세요.'); ['itemName','itemPrice','itemDesc'].forEach(id => document.getElementById(id).value=''); openModal('itemModal'); }
+    function openItemModal(){
+      if (!selectedVendorId) return alert('업체를 먼저 선택해 주세요.');
+      ['itemName','itemPrice','itemDesc'].forEach(id => document.getElementById(id).value = '');
+      openModal('itemModal');
+    }
     function saveItem() {
-      const vendor = vendors.find(v => v.id === selectedVendorId);
+      const vendor = selectedVendor();
       if (!vendor) return;
       const name = document.getElementById('itemName').value.trim();
-      if (!name) return alert('항목명을 입력하세요.');
+      if (!name) return alert('항목명을 입력해 주세요.');
       vendor.items = vendor.items || [];
       vendor.items.push({ name, price: Number(document.getElementById('itemPrice').value || 0), desc: document.getElementById('itemDesc').value.trim() });
-      persistVendors(); closeModal('itemModal'); render();
+      persistVendors();
+      closeModal('itemModal');
+      render();
+    }
+    function saveVoucherFields() {
+      const vendor = selectedVendor();
+      if (!vendor) return;
+      vendor.voucherFields = Array.from(document.querySelectorAll('.voucher-field input:checked')).map(input => input.value);
+      persistVendors();
+      render();
+      if (window.showToast) window.showToast('바우처 출력 필드가 저장되었습니다.', 'success');
     }
     document.addEventListener('DOMContentLoaded', () => { loadVendors(); render(); });
   </script>
