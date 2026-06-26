@@ -94,6 +94,20 @@
         .group-bulk-title{display:flex;align-items:center;gap:8px;font-weight:950}
         .group-room-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px;max-height:120px;overflow:auto}
         .group-room-checks label{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:8px;background:#fff;border:1px solid #dbeafe;font-size:.76rem;font-weight:850}
+        .register-side-body{display:flex;flex-direction:column;gap:12px}
+        .register-preview-card{border:1px solid var(--border);border-radius:12px;background:#f8fafc;padding:12px}
+        .register-preview-card.primary{background:#eff6ff;border-color:#bfdbfe}
+        .register-preview-title{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:950;color:var(--txt);margin-bottom:8px}
+        .register-preview-title i{color:var(--primary)}
+        .register-preview-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px dashed #dbe4ef;font-size:.82rem;font-weight:850;color:var(--txt2)}
+        .register-preview-row:first-of-type{border-top:0}
+        .register-preview-row strong{color:var(--txt);white-space:nowrap}
+        .register-existing-list{display:flex;flex-direction:column;gap:8px;max-height:330px;overflow:auto;padding-right:2px}
+        .register-existing-row{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+        .register-existing-icon{width:30px;height:30px;border-radius:9px;background:#eef5ff;color:var(--primary);display:flex;align-items:center;justify-content:center}
+        .register-existing-title{font-size:.82rem;font-weight:950;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .register-existing-meta{font-size:.68rem;font-weight:850;color:var(--txt3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .register-existing-money{font-size:.86rem;font-weight:950;color:var(--txt)}
         .voucher-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
         .voucher-fields label{display:flex;align-items:center;gap:7px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;font-size:.75rem;font-weight:850}
         .voucher-preview{margin-top:10px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:.75rem;line-height:1.7;color:var(--txt2)}
@@ -180,9 +194,9 @@
                         </div>
                         <div class="modal-field-grid">
                             <div><label class="form-label" id="vendorLabel">처리 부서/업체</label><select id="serviceVendor" class="form-input" onchange="renderServiceItems()"></select></div>
-                            <div><label class="form-label">이용 항목</label><select id="serviceItem" class="form-input"></select></div>
+                            <div><label class="form-label">이용 항목</label><select id="serviceItem" class="form-input" onchange="renderRegistrationPreview()"></select></div>
                             <div><label class="form-label">이용 일시</label><input id="serviceDateTime" class="form-input" type="datetime-local"></div>
-                            <div><label class="form-label">수량/인원</label><input id="serviceQty" class="form-input" type="number" min="1" value="1"></div>
+                            <div><label class="form-label">수량/인원</label><input id="serviceQty" class="form-input" type="number" min="1" value="1" oninput="renderRegistrationPreview()"></div>
                         </div>
                         <div style="margin-top:10px"><label class="form-label">메모</label><textarea id="serviceMemo" class="form-input" placeholder="요청사항, 픽업 위치, 티타임 특이사항 등"></textarea></div>
 
@@ -192,6 +206,16 @@
                             <div style="margin-top:10px"><label class="form-label">단체/행사</label><select id="groupSelect" class="form-input" onchange="onGroupSelectChange()"></select></div>
                             <div id="groupRoomCount" style="font-size:.72rem;color:var(--txt3);font-weight:900;margin-top:8px">0실</div>
                             <div id="groupRoomChecks" class="group-room-checks"></div>
+                        </div>
+                    </div>
+                </section>
+                <section class="modal-section">
+                    <div class="modal-section-head"><span>등록 요약</span><span id="registrationPreviewBadge"></span></div>
+                    <div class="modal-section-body register-side-body">
+                        <div id="registrationPreview"></div>
+                        <div>
+                            <div class="register-preview-title"><span><i class="fa-solid fa-clock-rotate-left"></i> 현재 이용내역</span><span id="registrationExistingCount"></span></div>
+                            <div id="registrationExistingList" class="register-existing-list"></div>
                         </div>
                     </div>
                 </section>
@@ -695,6 +719,7 @@ function renderServiceItems() {
     const vendor = selectedVendor();
     const items = vendor?.items || [];
     document.getElementById('serviceItem').innerHTML = items.map((item, index) => `<option value="${index}" data-price="${Number(item.price || 0)}">${escapeHtml(item.name)} · ${money(item.price)}</option>`).join('') || '<option value="0" data-price="0">기본 항목 · ₱0</option>';
+    renderRegistrationPreview();
 }
 function selectedVendor() {
     return vendors.find(item => item.id === document.getElementById('serviceVendor')?.value);
@@ -703,6 +728,50 @@ function selectedItem() {
     const vendor = selectedVendor();
     const index = Number(document.getElementById('serviceItem')?.value || 0);
     return (vendor?.items || [])[index] || { name:'기본 항목', price:0 };
+}
+function renderRegistrationPreview() {
+    const preview = document.getElementById('registrationPreview');
+    const existingList = document.getElementById('registrationExistingList');
+    if (!preview || !existingList) return;
+    const room = findRoomById(selectedRoomId);
+    const orders = roomOrders(room || {});
+    const vendor = selectedVendor();
+    const item = selectedItem();
+    const meta = serviceMeta(selectedService);
+    const qty = Math.max(1, Number(document.getElementById('serviceQty')?.value || 1));
+    const unitPrice = Number(item.price || 0);
+    const total = unitPrice * qty;
+    const bulk = document.getElementById('groupBulkToggle')?.checked && selectedService !== 'pos';
+    const targetCount = bulk ? document.querySelectorAll('.group-room-check:checked').length : 1;
+    const voucherCount = Array.isArray(vendor?.voucherFields) ? vendor.voucherFields.length : 0;
+    document.getElementById('registrationPreviewBadge').textContent = `${meta.label} · ${money(total)}`;
+    preview.innerHTML = `
+        <div class="register-preview-card primary">
+            <div class="register-preview-title">
+                <span><i class="fa-solid ${meta.icon}"></i> 선택 내역</span>
+                <strong>${money(total * Math.max(1, targetCount))}</strong>
+            </div>
+            <div class="register-preview-row"><span>업체/부서</span><strong>${escapeHtml(vendor?.name || meta.label)}</strong></div>
+            <div class="register-preview-row"><span>이용 항목</span><strong>${escapeHtml(item.name || meta.label)}</strong></div>
+            <div class="register-preview-row"><span>수량/대상</span><strong>${qty.toLocaleString('ko-KR')} × ${targetCount.toLocaleString('ko-KR')}실</strong></div>
+            <div class="register-preview-row"><span>바우처 설정</span><strong>${voucherCount ? `${voucherCount}개 항목` : '해당 없음'}</strong></div>
+        </div>
+    `;
+    document.getElementById('registrationExistingCount').textContent = `${orders.length}건`;
+    existingList.innerHTML = orders.length ? orders.slice(0, 7).map(order => {
+        const orderMeta = serviceMeta(order.service);
+        const status = serviceOrderStatusMeta(order.status);
+        return `
+            <div class="register-existing-row">
+                <span class="register-existing-icon"><i class="fa-solid ${orderMeta.icon}"></i></span>
+                <div style="min-width:0">
+                    <div class="register-existing-title">${escapeHtml(order.item || orderMeta.label)}</div>
+                    <div class="register-existing-meta">${escapeHtml(order.vendor || orderMeta.label)} · ${escapeHtml(status.label)} · ${escapeHtml(order.dateTime ? order.dateTime.replace('T', ' ') : '-')}</div>
+                </div>
+                <strong class="register-existing-money">${money(order.total)}</strong>
+            </div>
+        `;
+    }).join('') : '<div class="register-preview-card">아직 등록된 이용내역이 없습니다.</div>';
 }
 function renderGroupSelect(selectedId = '') {
     const select = document.getElementById('groupSelect');
@@ -715,9 +784,11 @@ function onGroupSelectChange() {
     const toggle = document.getElementById('groupBulkToggle');
     if (selectedService !== 'pos' && document.getElementById('groupSelect').value) toggle.checked = true;
     renderGroupRoomChecks();
+    renderRegistrationPreview();
 }
 function toggleGroupBulk() {
     renderGroupRoomChecks();
+    renderRegistrationPreview();
 }
 function renderGroupRoomChecks() {
     const enabled = document.getElementById('groupBulkToggle').checked;
@@ -727,8 +798,9 @@ function renderGroupRoomChecks() {
     document.getElementById('groupRoomCount').textContent = `${groupRoomsList.length}실`;
     document.getElementById('groupRoomChecks').innerHTML = groupRoomsList.map(room => {
         const res = activeReservationForRoom(room) || nextReservationForRoom(room);
-        return `<label><input type="checkbox" class="group-room-check" value="${escapeHtml(room.id || roomNo(room))}" checked> ${escapeHtml(roomNo(room))} <span style="color:var(--txt3)"> ${escapeHtml(reservationGuest(res) || '')}</span></label>`;
+        return `<label><input type="checkbox" class="group-room-check" value="${escapeHtml(room.id || roomNo(room))}" checked onchange="renderRegistrationPreview()"> ${escapeHtml(roomNo(room))} <span style="color:var(--txt3)"> ${escapeHtml(reservationGuest(res) || '')}</span></label>`;
     }).join('') || '<div style="font-size:.72rem;color:var(--txt3);font-weight:850">단체 일괄 등록 대상 객실이 표시됩니다.</div>';
+    renderRegistrationPreview();
 }
 function targetRoomsForSave() {
     const bulk = document.getElementById('groupBulkToggle').checked && selectedService !== 'pos';
