@@ -377,6 +377,32 @@
         .cash-payment-history strong { color: var(--txt); }
         .cash-payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .cash-payment-help { color: var(--txt3); font-size: .7rem; font-weight: 700; line-height: 1.45; margin-top: -2px; }
+        .cash-settlement-complete-toggle { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: start; border: 1px solid #bfdbfe; background: #eff6ff; border-radius: 10px; padding: 11px 12px; font-size: .78rem; font-weight: 900; color: var(--txt); cursor: pointer; }
+        .cash-settlement-complete-toggle input { margin-top: 2px; }
+        .cash-settlement-complete-toggle small { grid-column: 2; color: var(--txt2); font-size: .7rem; line-height: 1.45; font-weight: 700; }
+        .close-basis-summary-title { display: inline-flex; align-items: center; gap: 8px; }
+        .close-basis-help-btn { width: 28px; height: 28px; border-radius: 999px; border: 1px solid #bfdbfe; background: #eff6ff; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+        .close-basis-help-btn:hover { border-color: var(--primary); background: #dbeafe; }
+        .close-basis-record-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .close-basis-record-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; border: 1px solid var(--border2); background: #fff; border-radius: 10px; padding: 10px 12px; min-width: 0; }
+        .close-basis-record-icon { width: 30px; height: 30px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; background: #eff6ff; color: var(--primary); }
+        .close-basis-record-icon.deposit { background: #ecfdf5; color: #059669; }
+        .close-basis-record-icon.withdrawal { background: #fff7ed; color: #d97706; }
+        .close-basis-record-main { min-width: 0; }
+        .close-basis-record-title { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: .82rem; font-weight: 900; color: var(--txt); }
+        .close-basis-record-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .close-basis-record-title em { flex: 0 0 auto; font-style: normal; font-size: .66rem; font-weight: 900; padding: 2px 7px; border-radius: 999px; background: #f1f5f9; color: var(--txt2); }
+        .close-basis-record-meta { margin-top: 4px; color: var(--txt3); font-size: .7rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .close-basis-record-money { text-align: right; white-space: nowrap; }
+        .close-basis-record-money strong { display: block; color: var(--txt); font-size: .85rem; font-weight: 950; }
+        .close-basis-record-money span { display: block; margin-top: 3px; color: var(--txt3); font-size: .68rem; font-weight: 800; }
+        .close-basis-record-empty { border: 1px dashed #bfdbfe; border-radius: 10px; padding: 14px; background: #f8fbff; color: var(--txt2); font-size: .8rem; font-weight: 800; text-align: center; }
+        .close-basis-guide-modal { max-width: 760px; width: 94vw; }
+        .close-basis-guide-list { display: grid; gap: 10px; }
+        .close-basis-guide-item { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; border: 1px solid var(--border2); border-radius: 10px; padding: 12px; background: #fff; }
+        .close-basis-guide-item i { width: 30px; height: 30px; border-radius: 9px; background: #eff6ff; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; }
+        .close-basis-guide-item strong { display: block; font-size: .84rem; color: var(--txt); margin-bottom: 4px; }
+        .close-basis-guide-item span { display: block; color: var(--txt2); font-size: .76rem; font-weight: 700; line-height: 1.55; }
         
         @media (max-width: 768px) {
             .check-grid { grid-template-columns: 1fr; }
@@ -395,6 +421,7 @@
             .cash-flow-result,
             .cash-flow-node.variance { grid-column: 1; grid-row: auto; margin-top: 0; }
             .cash-flow-op { display: none; }
+            .close-basis-record-list { grid-template-columns: 1fr; }
             .cash-payment-grid { grid-template-columns: 1fr; }
             .settlement-status-head { align-items: flex-start; flex-direction: column; }
             .currency-mini-grid { grid-template-columns: 1fr; }
@@ -543,7 +570,7 @@
         <!-- 3. Closing Basis -->
         <details class="audit-section close-basis-section" id="closeBasisSection">
             <summary class="audit-header close-basis-summary">
-                <span class="close-basis-summary-title"><i class="fa-solid fa-clipboard-check" style="color:var(--primary)"></i> 3. 마감 근거</span>
+                <span class="close-basis-summary-title"><i class="fa-solid fa-clipboard-check" style="color:var(--primary)"></i> 3. 마감 근거 <button type="button" class="close-basis-help-btn" onclick="event.preventDefault();event.stopPropagation();openCloseBasisGuideModal()" aria-label="마감 판단 기준"><i class="fa-solid fa-circle-question"></i></button></span>
                 <span class="close-basis-toggle">
                     <span class="when-closed">열기</span>
                     <span class="when-open">접기</span>
@@ -829,10 +856,48 @@
                 <label>메모</label>
                 <input id="cashSettleNote" type="text" placeholder="예: 달러 10 수령, 페소 기준 560으로 정산">
             </div>
+            <label class="cash-settlement-complete-toggle">
+                <input id="cashSettleCompleteSettlement" type="checkbox">
+                <span>정산 완료로 확정</span>
+                <small>실제 받은 통화와 메모를 남기고, 이 Folio를 완료 상태로 잠가 마감 미정산에서 제외합니다.</small>
+            </label>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-outline" onclick="closeCashSettlementPaymentModal()">취소</button>
             <button type="button" class="btn-primary-sm" onclick="saveCashSettlementPayment()"><i class="fa-solid fa-circle-check"></i> 수납 완료 처리</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="closeBasisGuideModal" onclick="if(event.target===this) closeCloseBasisGuideModal()">
+    <div class="modal-card close-basis-guide-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-circle-question" style="color:var(--primary)"></i> 마감 판단 기준</h3>
+            <button type="button" class="modal-close" onclick="closeCloseBasisGuideModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding:20px">
+            <div class="close-basis-guide-list">
+                <div class="close-basis-guide-item">
+                    <i class="fa-solid fa-receipt"></i>
+                    <div><strong>정산 기준</strong><span>마감 정산은 체크아웃 처리된 Folio를 기준으로 봅니다. 체크아웃 전 금액은 예약 또는 예치 상태로 관리하고 정산 완료로 보지 않습니다.</span></div>
+                </div>
+                <div class="close-basis-guide-item">
+                    <i class="fa-solid fa-vault"></i>
+                    <div><strong>예치금 기준</strong><span>예치금은 매출이 아니라 보관금액입니다. 실제 보유 현금에는 포함하되, 정산 매출과 중복 반영하지 않습니다.</span></div>
+                </div>
+                <div class="close-basis-guide-item">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                    <div><strong>차액 기준</strong><span>차액은 사용자가 미수금으로 남긴 금액이 아니라, 예상 보유 현금과 마감 실사 현금의 차이입니다.</span></div>
+                </div>
+                <div class="close-basis-guide-item">
+                    <i class="fa-solid fa-lock"></i>
+                    <div><strong>정산 완료 확정</strong><span>복수 통화나 서비스 조정으로 실제 수납이 끝난 경우, 메모와 함께 정산 완료를 확정해 Folio를 잠급니다.</span></div>
+                </div>
+                <div class="close-basis-guide-item">
+                    <i class="fa-solid fa-user-slash"></i>
+                    <div><strong>노쇼 수수료</strong><span>미도착 체크인은 노쇼 정책 기준에 따라 수수료를 생성해야 합니다. 정책 금액은 요금/결제 설정 데이터에서 관리됩니다.</span></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1651,6 +1716,8 @@ function openCashSettlementPaymentModal(folioId) {
     });
     const method = document.getElementById('cashSettleMethod');
     if (method) method.value = 'cash';
+    const completeToggle = document.getElementById('cashSettleCompleteSettlement');
+    if (completeToggle) completeToggle.checked = false;
     document.getElementById('cashSettlementPaymentModal')?.classList.add('active');
 }
 
@@ -1680,6 +1747,7 @@ function saveCashSettlementPayment() {
     const primary = cashSettlementPrimaryBreakdown(receivedBreakdown);
     const method = document.getElementById('cashSettleMethod')?.value || 'cash';
     const methodLabel = document.getElementById('cashSettleMethod')?.selectedOptions?.[0]?.textContent || method;
+    const completeSettlement = !!document.getElementById('cashSettleCompleteSettlement')?.checked;
     const records = settlementPayments();
     records.push({
         id: `PAY-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1696,13 +1764,31 @@ function saveCashSettlementPayment() {
         receivedAmount: primary.amount,
         receivedBreakdown,
         receivedSummary: formatCurrencyBreakdown(receivedBreakdown),
-        completeSettlement: false,
+        completeSettlement,
         businessDate: auditBusinessDate(),
         createdAt: nowIso(),
         operator: operatorName(),
         note: textValue('cashSettleNote')
     });
     setStorageJson(SETTLEMENT_PAYMENTS_KEY, records);
+    if (completeSettlement) {
+        const completions = settlementCompletionRecords();
+        const alreadyDone = completions.some(item => String(item.folioId || '') === String(folio.id || ''));
+        if (!alreadyDone) {
+            completions.push({
+                id: `COMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                folioId: folio.id || '',
+                reservationId: folio.reservationId || '',
+                room: folio.room || '',
+                guest: folio.guest || '',
+                completedAt: nowIso(),
+                completedBy: operatorName(),
+                businessDate: auditBusinessDate(),
+                note: textValue('cashSettleNote') || '정산 완료 확정'
+            });
+            setStorageJson(SETTLEMENT_COMPLETIONS_KEY, completions);
+        }
+    }
     closeCashSettlementPaymentModal();
     renderCashHandover();
     showToast('미정산 수납 내역이 저장되었습니다.', 'success');
@@ -2279,9 +2365,10 @@ function renderCloseBasisFlow(state = {}) {
             <div class="close-basis-card inflow">
                 <div class="close-basis-card-title"><i class="fa-solid fa-arrow-down"></i>${cashUiText('오늘 현금 반영', 'Today cash activity')}</div>
                 <div class="close-basis-mini-list">
-                    <div class="close-basis-mini-row"><span>${cashUiText('정산 결제', 'Settlement')}</span><strong>${moneyPhp(state.cashSettlementPhp || 0)}</strong></div>
+                    <div class="close-basis-mini-row"><span>${cashUiText('현금 정산', 'Cash settlement')}</span><strong>${moneyPhp(state.cashSettlementPhp || 0)}</strong></div>
+                    <div class="close-basis-mini-row"><span>${cashUiText('카드/이체 정산', 'Card/bank settlement')}</span><strong>${moneyPhp(state.nonCashSettlementPhp || 0)}</strong></div>
                     <div class="close-basis-mini-row"><span>${cashUiText('예치금', 'Deposit')}</span><strong>${moneyPhp(state.cashDepositPhp || 0)}</strong></div>
-                    <div class="close-basis-mini-row"><span>${cashUiText('중간 출금', 'Withdrawal')}</span><strong>${cashUiText(`${state.withdrawalCount || 0}건`, `${state.withdrawalCount || 0} item(s)`)}</strong></div>
+                    <div class="close-basis-mini-row"><span>${cashUiText('중간 출금', 'Withdrawal')}</span><strong>${state.withdrawalCount ? compactCurrencySummary(state.withdrawalCurrencies || {}, '') : cashUiText('없음', 'None')}</strong></div>
                 </div>
                 <div class="close-basis-subtext">${cashUiText('매출 수납과 보관금액, 출금 내역을 분리해 반영합니다.', 'Separates settled receipts, held deposits, and withdrawals.')}</div>
             </div>
@@ -2307,7 +2394,7 @@ function renderCloseBasisRiskSummary(state = {}) {
         <div class="close-basis-risk-grid">
             <div class="close-basis-risk-card ${unsettledTone}">
                 <div class="close-basis-risk-head">
-                    <span><i class="fa-solid ${unsettledAmount > 0 ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i>${cashUiText('미정산 잔액', 'Unsettled balance')}</span>
+                    <span><i class="fa-solid ${unsettledAmount > 0 ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i>${cashUiText('미처리 체크아웃/미정산', 'Pending checkout/settlement')}</span>
                     <em class="close-basis-risk-count">${cashUiText(`${unsettledCount}건`, `${unsettledCount} item(s)`)}</em>
                 </div>
                 <div class="close-basis-risk-value ${unsettledAmount > 0 ? '' : 'success'}">${moneyPhp(unsettledAmount)}</div>
@@ -2471,6 +2558,62 @@ function closeBasisRecordItems(state = {}) {
     ];
 }
 
+function closeBasisPaymentMethodLabel(item = {}) {
+    const method = item.method || 'cash';
+    if (item.methodLabel && !/[?�]/.test(item.methodLabel)) return item.methodLabel;
+    return ({
+        cash: cashUiText('현금', 'Cash'),
+        card: cashUiText('카드', 'Card'),
+        bank: cashUiText('계좌이체', 'Bank transfer'),
+        other: cashUiText('기타', 'Other')
+    })[method] || method;
+}
+
+function renderCloseBasisRecordRow(item = {}, type = 'settlement') {
+    const isDeposit = type === 'deposit';
+    const isWithdrawal = type === 'withdrawal';
+    const iconClass = isWithdrawal ? 'fa-arrow-up-from-bracket' : (isDeposit ? 'fa-vault' : 'fa-credit-card');
+    const iconTone = isWithdrawal ? 'withdrawal' : (isDeposit ? 'deposit' : 'settlement');
+    const title = isWithdrawal ? cashUiText('중간 출금', 'Withdrawal') : (isDeposit ? cashUiText('예치금 수납', 'Deposit receipt') : cashUiText('정산 결제', 'Settlement payment'));
+    const method = isWithdrawal ? cashUiText('출금', 'Out') : closeBasisPaymentMethodLabel(item);
+    const meta = isWithdrawal
+        ? [formatAuditTime(item.at || item.createdAt), item.receiver || item.operator || item.createdBy || '-', item.note || ''].filter(Boolean).join(' · ')
+        : [item.folioId || '-', item.guest || '-', formatAuditTime(item.createdAt), item.operator || '-'].filter(Boolean).join(' · ');
+    const amount = isWithdrawal ? formatCurrencyBreakdown(withdrawalBreakdownForRecord(item)) : moneyPhp(item.appliedPhpAmount || 0);
+    const sub = isWithdrawal
+        ? cashUiText('실제 출금 통화', 'Actual withdrawal')
+        : ((item.method || 'cash') === 'cash' ? formatReceivedBreakdown(item) : `${method} ${moneyPhp(item.appliedPhpAmount || 0)}`);
+    return `
+        <div class="close-basis-record-row">
+            <span class="close-basis-record-icon ${iconTone}"><i class="fa-solid ${iconClass}"></i></span>
+            <div class="close-basis-record-main">
+                <div class="close-basis-record-title"><span>${escapeAudit(title)}</span><em>${escapeAudit(method)}</em></div>
+                <div class="close-basis-record-meta">${escapeAudit(meta || '-')}</div>
+            </div>
+            <div class="close-basis-record-money">
+                <strong>${escapeAudit(amount || '-')}</strong>
+                <span>${escapeAudit(sub || '-')}</span>
+            </div>
+        </div>
+    `;
+}
+
+function renderCloseBasisRecordSection(state = {}) {
+    const records = [
+        ...(state.settlementRecords || []).map(item => renderCloseBasisRecordRow(item, 'settlement')),
+        ...(state.depositRecords || []).map(item => renderCloseBasisRecordRow(item, 'deposit')),
+        ...((state.session?.withdrawals || []).map(item => renderCloseBasisRecordRow(item, 'withdrawal')))
+    ];
+    return `
+        <div class="cash-insight-section close-basis-compact-section close-basis-record-section">
+            <h4><i class="fa-solid fa-receipt" style="color:var(--primary)"></i> ${cashUiText('금일 반영 내역', 'Today records')}</h4>
+            ${records.length
+                ? `<div class="close-basis-record-list">${records.join('')}</div>`
+                : `<div class="close-basis-record-empty">${cashUiText('금일 등록된 수납/예치/출금 내역이 없습니다.', 'No receipt, deposit, or withdrawal records for the day.')}</div>`}
+        </div>
+    `;
+}
+
 function renderCloseBasisCompactSection(title, icon, items = [], extraClass = '') {
     const normalized = items.filter(Boolean);
     return `
@@ -2492,10 +2635,9 @@ function renderCloseBasisPanel(state = cashHandoverSnapshot) {
         </div>
         <div class="close-basis-inline-row secondary">
             ${renderCloseBasisRiskSummary(state)}
-            ${renderCloseBasisCompactSection(cashUiText('마감 판단 기준', 'Closing basis'), 'fa-list-check', closeBasisItems(state).slice(0, 3))}
         </div>
         <div class="close-basis-inline-row records">
-            ${renderCloseBasisCompactSection(cashUiText('금일 반영 내역', 'Today records'), 'fa-receipt', closeBasisRecordItems(state), 'close-basis-record-section')}
+            ${renderCloseBasisRecordSection(state)}
         </div>
     `;
 }
@@ -2512,6 +2654,14 @@ function openCloseBasisModal() {
 function closeCloseBasisModal() {
     const section = document.getElementById('closeBasisSection');
     if (section) section.open = false;
+}
+
+function openCloseBasisGuideModal() {
+    document.getElementById('closeBasisGuideModal')?.classList.add('active');
+}
+
+function closeCloseBasisGuideModal() {
+    document.getElementById('closeBasisGuideModal')?.classList.remove('active');
 }
 
 function currencySummaryLines(values = {}) {
@@ -3004,13 +3154,18 @@ function renderCashHandover() {
     const session = activeCashSession(false) || { opening: { PHP: 0, USD: 0, KRW: 0 }, openingPhpEquivalent: 0, withdrawals: [], carryover: { PHP: 0, USD: 0, KRW: 0 }, takeaway: { PHP: 0, USD: 0, KRW: 0 } };
     const payments = paymentsForBusinessDate();
     const snapshot = settlementStatusSnapshot();
+    const settlementRecords = payments.filter(item => item.kind !== 'deposit');
+    const depositRecords = payments.filter(item => item.kind === 'deposit');
     const cashPayments = payments.filter(item => (item.method || 'cash') === 'cash');
     const cashSettlementRecords = cashPayments.filter(item => item.kind !== 'deposit');
     const cashDepositRecords = cashPayments.filter(item => item.kind === 'deposit');
+    const nonCashSettlementRecords = settlementRecords.filter(item => (item.method || 'cash') !== 'cash');
     const cashSettlementPhp = cashSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const cashDepositPhp = cashDepositRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const nonCashSettlementPhp = nonCashSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const cashSettlementCurrencies = currencyTotals(cashSettlementRecords);
     const cashDepositCurrencies = currencyTotals(cashDepositRecords);
+    const nonCashSettlementCurrencies = currencyTotals(nonCashSettlementRecords);
     const cashInflowPhp = cashSettlementPhp + cashDepositPhp;
     const cashInflowCurrencies = addCurrencyValues(cashSettlementCurrencies, cashDepositCurrencies);
     const withdrawalCurrencies = withdrawalCurrencyTotals(session);
@@ -3024,12 +3179,17 @@ function renderCashHandover() {
         session,
         payments,
         snapshot,
+        settlementRecords,
+        depositRecords,
+        nonCashSettlementRecords,
         cashSettlementRecords,
         cashDepositRecords,
         cashSettlementPhp,
         cashDepositPhp,
+        nonCashSettlementPhp,
         cashSettlementCurrencies,
         cashDepositCurrencies,
+        nonCashSettlementCurrencies,
         cashInflowPhp,
         cashInflowCurrencies,
         withdrawalCurrencies,
@@ -3048,13 +3208,13 @@ function renderCashHandover() {
     setHtml('cashPreviewOpening', renderCashCurrencyLines(session.opening, { includeZero: false, emptyLabel: cashUiText('\uBBF8\uB4F1\uB85D', 'Not registered') }));
     set('cashPreviewOpeningMeta', cashUiText('입력 금액', 'Input amount'));
     setHtml('cashReceivedPhp', renderCashCurrencyLines(cashInflowCurrencies, { includeZero: false, emptyLabel: moneyPhp(0) }));
-    set('cashReceivedDetail', `${cashUiText('정산', 'Payment')} ${moneyPhp(cashSettlementPhp)} · ${cashUiText('예치금', 'Deposit')} ${moneyPhp(cashDepositPhp)}`);
+    set('cashReceivedDetail', `${cashUiText('현금 정산', 'Cash settlement')} ${moneyPhp(cashSettlementPhp)} · ${cashUiText('예치금', 'Deposit')} ${moneyPhp(cashDepositPhp)}`);
     setHtml('cashPreviewInflow', renderCashCurrencyLines(cashInflowCurrencies, { includeZero: false, emptyLabel: moneyPhp(0) }));
-    set('cashPreviewInflowMeta', `${cashUiText('정산', 'Payment')} ${moneyPhp(cashSettlementPhp)} · ${cashUiText('예치금', 'Deposit')} ${moneyPhp(cashDepositPhp)}`);
+    set('cashPreviewInflowMeta', `${cashUiText('현금 정산', 'Cash settlement')} ${moneyPhp(cashSettlementPhp)} · ${cashUiText('예치금', 'Deposit')} ${moneyPhp(cashDepositPhp)}`);
     setHtml('cashWithdrawPhp', renderCashCurrencyLines(withdrawalCurrencies, { includeZero: false, emptyLabel: nightAuditText('cash.noWithdrawals') }));
-    set('cashWithdrawDetail', withdrawalCount ? cashUiText(`${withdrawalCount}건 출금`, `${withdrawalCount} withdrawal(s)`) : nightAuditText('cash.noWithdrawals'));
+    set('cashWithdrawDetail', withdrawalCount ? `${cashUiText(`${withdrawalCount}건 출금`, `${withdrawalCount} withdrawal(s)`)} · ${compactCurrencySummary(withdrawalCurrencies, '')}` : nightAuditText('cash.noWithdrawals'));
     setHtml('cashPreviewWithdraw', renderCashCurrencyLines(withdrawalCurrencies, { includeZero: false, emptyLabel: nightAuditText('cash.noWithdrawals') }));
-    set('cashPreviewWithdrawMeta', withdrawalCount ? cashUiText(`${withdrawalCount}건 출금`, `${withdrawalCount} withdrawal(s)`) : nightAuditText('cash.noWithdrawals'));
+    set('cashPreviewWithdrawMeta', withdrawalCount ? `${cashUiText(`${withdrawalCount}건 출금`, `${withdrawalCount} withdrawal(s)`)} · ${compactCurrencySummary(withdrawalCurrencies, '')}` : nightAuditText('cash.noWithdrawals'));
     setHtml('cashClosingLabel', hasClosingRecord ? renderCashCurrencyLines(session.closing, { includeZero: false, emptyLabel: cashUiText('0원', '0') }) : escapeAudit(cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC804', 'Not counted yet')));
     set('cashClosingDetail', hasClosingRecord ? cashUiText('실사 입력 완료', 'Count entered') : cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare'));
     setHtml('cashPreviewClosing', hasClosingRecord ? renderCashCurrencyLines(closingCurrencies, { includeZero: false, emptyLabel: cashUiText('0원', '0') }) : renderCashCurrencyLines(expectedClosingCurrencies, { includeZero: false, emptyLabel: moneyPhp(0) }));
@@ -3278,7 +3438,7 @@ function applyNightAuditI18n() {
     const runBtn = document.getElementById('btnRunAudit');
     if (runBtn && !runBtn.querySelector('.fa-circle-notch')) runBtn.innerHTML = `<i class="fa-solid fa-play"></i> ${t('close.run')}`;
     const closeBasisTitle = document.querySelector('.close-basis-summary-title');
-    if (closeBasisTitle) closeBasisTitle.innerHTML = `<i class="fa-solid fa-clipboard-check" style="color:var(--primary)"></i> ${t('section.closeBasis')}`;
+    if (closeBasisTitle) closeBasisTitle.innerHTML = `<i class="fa-solid fa-clipboard-check" style="color:var(--primary)"></i> ${t('section.closeBasis')} <button type="button" class="close-basis-help-btn" onclick="event.preventDefault();event.stopPropagation();openCloseBasisGuideModal()" aria-label="마감 판단 기준"><i class="fa-solid fa-circle-question"></i></button>`;
     const closeBasisClosed = document.querySelector('.close-basis-toggle .when-closed');
     if (closeBasisClosed) closeBasisClosed.textContent = t('common.open');
     const closeBasisOpen = document.querySelector('.close-basis-toggle .when-open');
