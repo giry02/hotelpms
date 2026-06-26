@@ -118,10 +118,8 @@
         .board-stay-btn i{font-size:.8rem}
         .board-stay-btn:hover{transform:translateY(-1px);border-color:var(--primary);color:var(--primary);box-shadow:0 4px 10px rgba(59,130,246,.12)}
         .board-stay-btn.active{font-weight:900}
-        .board-stay-btn.none.active{background:#eff6ff;color:#2563eb;border-color:#bfdbfe}
         .board-stay-btn.dnd.active{background:#fff1f2;color:#be123c;border-color:#fecdd3}
-        .board-stay-btn.away.active{background:#fff7ed;color:#b45309;border-color:#fed7aa}
-        .board-stay-btn.mur.active{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+        .board-stay-btn.mur.active{background:#fffbeb;color:#d97706;border-color:#fde68a}
         .board-stay-btn.clean.active{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
         .board-stay-btn:disabled{opacity:.55;cursor:wait;transform:none}
         .board-empty{font-size:.74rem;color:var(--txt3);font-weight:750;margin-top:8px}
@@ -597,7 +595,7 @@ function boardCleaningSummary(room, res) {
         return { key: 'oos', label: '점검 중', icon: 'fa-screwdriver-wrench' };
     }
     if (['mur', 'dirty'].includes(stayState) || ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState)) {
-        return { key: 'dirty', label: res ? '청소 요청' : '청소 필요', icon: 'fa-broom' };
+        return { key: 'dirty', label: '청소 필요', icon: 'fa-broom' };
     }
     if (stayState === 'clean' || ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState)) {
         return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
@@ -624,13 +622,11 @@ function boardStayActions(room, res) {
     if (!boardStayEditable(res)) return '';
     const active = boardStayState(room, res);
     const options = [
-        { key: 'none', label: '재실', icon: 'fa-bed' },
         { key: 'dnd', label: '방해금지', icon: 'fa-ban' },
-        { key: 'away', label: '외출', icon: 'fa-person-walking' },
-        { key: 'mur', label: '청소요청', icon: 'fa-broom' },
-        { key: 'clean', label: '청소완료', icon: 'fa-check' }
+        { key: 'clean', label: '청소완료', icon: 'fa-check' },
+        { key: 'mur', label: '청소필요', icon: 'fa-broom' }
     ];
-    return `<div class="board-stay-actions" aria-label="투숙 상태 변경">
+    return `<div class="board-stay-actions" aria-label="청소 상태 변경">
         ${options.map(opt => `<button type="button" class="board-stay-btn ${opt.key}${active === opt.key ? ' active' : ''}" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" data-state="${opt.key}" title="${escapeHtml(opt.label)}" aria-label="${escapeHtml(opt.label)}" onclick="setBoardStayState(event,this)"><i class="fa-solid ${opt.icon}" aria-hidden="true"></i></button>`).join('')}
     </div>`;
 }
@@ -742,7 +738,7 @@ function boardCard(room) {
     const hasRoomChange = !!(res && reservationHasRoomChange(res));
     const roomChangeText = hasRoomChange ? reservationRoomChangeText(res) : '';
     const stayState = res ? boardStayState(room, res) : '';
-    const stayStateLabels = { none: '재실', dnd: '방해금지', away: '외출', mur: '청소요청', clean: '청소완료' };
+    const stayStateLabels = { none: '재실', dnd: '방해금지', away: '외출', mur: '청소필요', clean: '청소완료' };
     const searchText = [
         room.id,
         room.fullRoom,
@@ -971,7 +967,7 @@ window.setBoardStayState = async function(event, button) {
         await syncBoardStayStateToHousekeeping(room, res, state);
         renderReservationBoard();
         if (window.showToast) {
-            const labels = { none: '재실', dnd: '방해금지', away: '외출', mur: '청소요청', clean: '청소완료' };
+            const labels = { none: '재실', dnd: '방해금지', away: '외출', mur: '청소필요', clean: '청소완료' };
             window.showToast(`${room.id || room.roomNo || roomKey} 상태: ${labels[state] || state}`, 'success');
         }
     } finally {
