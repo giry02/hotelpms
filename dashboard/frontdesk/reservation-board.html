@@ -92,6 +92,7 @@
         .board-clean-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 8px;font-size:.64rem;font-weight:900;white-space:nowrap}
         .board-clean-badge.clean{background:#dcfce7;color:#059669}
         .board-clean-badge.dirty{background:#fef3c7;color:#d97706}
+        .board-clean-badge.dnd{background:#fff1f2;color:#be123c}
         .board-clean-badge.occupied{background:#dbeafe;color:#2563eb}
         .board-clean-badge.oos{background:#fee2e2;color:#dc2626}
         .board-clean-actions{display:flex;align-items:center;gap:4px;flex:0 0 auto}
@@ -115,6 +116,8 @@
         .board-flag.late{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
         .board-stay-actions{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;margin-top:2px}
         .board-stay-btn{width:30px;height:30px;border:1px solid var(--border);border-radius:9px;background:#fff;color:#94a3b8;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;box-shadow:0 1px 3px rgba(15,23,42,.03);flex:0 0 auto}
+        .board-stay-btn.has-label{width:auto;min-width:30px;padding:0 8px;gap:4px}
+        .board-stay-btn .btn-label{font-size:.62rem;font-weight:900;line-height:1;white-space:nowrap}
         .board-stay-btn i{font-size:.8rem}
         .board-stay-btn:hover{transform:translateY(-1px);border-color:var(--primary);color:var(--primary);box-shadow:0 4px 10px rgba(59,130,246,.12)}
         .board-stay-btn.active{font-weight:900}
@@ -626,6 +629,9 @@ function boardStayState(room, res) {
 function boardCleaningSummary(room, res) {
     const cleaningState = normalizedRoomOpsValue(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus);
     const stayState = boardStayState(room, res);
+    if (stayState === 'dnd') {
+        return { key: 'dnd', label: '방해금지', icon: 'fa-ban' };
+    }
     if (stayState === 'clean' || ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState)) {
         return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
     }
@@ -705,12 +711,12 @@ function boardStayActions(room, res) {
     if (!boardStayEditable(res)) return '';
     const active = boardStayState(room, res);
     const options = [
-        { key: 'dnd', label: '방해금지', icon: 'fa-ban' },
+        { key: 'dnd', label: '방해금지', icon: 'fa-ban', showLabel: true },
         { key: 'clean', label: '청소완료', icon: 'fa-check' },
         { key: 'mur', label: '청소필요', icon: 'fa-broom' }
     ];
     return `<div class="board-stay-actions" aria-label="청소 상태 변경">
-        ${options.map(opt => `<button type="button" class="board-stay-btn ${opt.key}${active === opt.key ? ' active' : ''}" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" data-state="${opt.key}" title="${escapeHtml(opt.label)}" aria-label="${escapeHtml(opt.label)}" onclick="setBoardStayState(event,this)"><i class="fa-solid ${opt.icon}" aria-hidden="true"></i></button>`).join('')}
+        ${options.map(opt => `<button type="button" class="board-stay-btn ${opt.key}${opt.showLabel ? ' has-label' : ''}${active === opt.key ? ' active' : ''}" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" data-state="${opt.key}" title="${escapeHtml(opt.label)}" aria-label="${escapeHtml(opt.label)}" onclick="setBoardStayState(event,this)"><i class="fa-solid ${opt.icon}" aria-hidden="true"></i>${opt.showLabel ? `<span class="btn-label">${escapeHtml(opt.label)}</span>` : ''}</button>`).join('')}
     </div>`;
 }
 
