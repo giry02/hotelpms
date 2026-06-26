@@ -67,7 +67,15 @@
         .reservation-board-box.cancelled{border-top:3px solid var(--danger)}
         .reservation-board-box.blocked{border-top:3px solid #111827}
         .reservation-board-box.oos{border-top:3px solid var(--danger);opacity:.82}
+        .reservation-board-box.clean-clean{border-color:#bbf7d0;background:linear-gradient(0deg,rgba(240,253,244,.78),rgba(255,255,255,.96));box-shadow:inset 4px 0 0 #10b981,0 2px 10px rgba(15,23,42,.04)}
+        .reservation-board-box.clean-dirty{border-color:#fde68a;background:linear-gradient(0deg,rgba(255,251,235,.86),rgba(255,255,255,.96));box-shadow:inset 4px 0 0 #f59e0b,0 2px 10px rgba(15,23,42,.04)}
+        .reservation-board-box.clean-occupied{border-color:#bfdbfe;background:linear-gradient(0deg,rgba(239,246,255,.78),rgba(255,255,255,.96));box-shadow:inset 4px 0 0 #3b82f6,0 2px 10px rgba(15,23,42,.04)}
+        .reservation-board-box.clean-oos{border-color:#fecaca;background:linear-gradient(0deg,rgba(254,242,242,.86),rgba(255,255,255,.96));box-shadow:inset 4px 0 0 #ef4444,0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.room-moved{box-shadow:inset 0 0 0 1px rgba(249,115,22,.45),0 2px 10px rgba(15,23,42,.04)}
+        .reservation-board-box.clean-clean.room-moved{box-shadow:inset 4px 0 0 #10b981,inset 0 0 0 1px rgba(249,115,22,.45),0 2px 10px rgba(15,23,42,.04)}
+        .reservation-board-box.clean-dirty.room-moved{box-shadow:inset 4px 0 0 #f59e0b,inset 0 0 0 1px rgba(249,115,22,.45),0 2px 10px rgba(15,23,42,.04)}
+        .reservation-board-box.clean-occupied.room-moved{box-shadow:inset 4px 0 0 #3b82f6,inset 0 0 0 1px rgba(249,115,22,.45),0 2px 10px rgba(15,23,42,.04)}
+        .reservation-board-box.clean-oos.room-moved{box-shadow:inset 4px 0 0 #ef4444,inset 0 0 0 1px rgba(249,115,22,.45),0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box .room-box-num{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px}
         .board-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;font-size:.63rem;font-weight:900;white-space:nowrap}
         .board-status.vacant{background:#f1f5f9;color:#475569}
@@ -709,7 +717,7 @@ function boardCard(room) {
     const flags = res ? [
         hasRoomChange ? `<span class="board-flag move"><i class="fa-solid fa-right-left"></i>이동 ${escapeHtml(roomChangeText)}</span>` : ''
     ].filter(Boolean).join('') : '';
-    return `<div class="room-box reservation-board-box ${state.status}${hasRoomChange ? ' room-moved' : ''}${canCreateBooking ? ' is-bookable' : ''}" ${click} style="${res ? 'cursor:pointer' : ''}">
+    return `<div class="room-box reservation-board-box ${state.status} clean-${cleanInfo.key}${hasRoomChange ? ' room-moved' : ''}${canCreateBooking ? ' is-bookable' : ''}" ${click} style="${res ? 'cursor:pointer' : ''}">
         <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${boardStatusIcon(state.status)}"></i>${state.label}</span></div>
         <div class="room-box-type">${escapeHtml(roomType(room))}</div>
         ${res ? `<div class="board-guest">

@@ -65,9 +65,8 @@
             items: [
                 {
                     icon: 'fa-bed', label: 'Room Mgmt', id: 'rooms',
-                    mainHref: BASE + 'operations/rooms.html',
+                    mainHref: BASE + 'operations/room-setup.html',
                     children: [
-                        { label: 'Room List',   href: BASE + 'operations/rooms.html' },
                         { label: 'Room Types',  href: BASE + 'operations/room-setup.html' },
                         { label: 'Rates Calendar', href: BASE + 'operations/rates.html' },
                     ]
