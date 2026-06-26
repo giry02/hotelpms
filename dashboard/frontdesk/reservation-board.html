@@ -101,8 +101,17 @@
         .board-clean-action.active.clean{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
         .board-clean-action.active.dirty{background:#fffbeb;color:#d97706;border-color:#fde68a}
         .board-guest{width:100%;min-width:0;margin-top:4px}
+        .board-group-title{display:flex;align-items:center;gap:5px;width:100%;min-width:0;margin-bottom:3px}
+        .board-group-badge{display:inline-flex;align-items:center;gap:3px;background:#111827;color:#fff;border-radius:4px;padding:2px 5px;font-size:.56rem;font-weight:950;line-height:1;flex:0 0 auto}
+        .board-group-badge i{font-size:.54rem;color:#fff}
+        .board-group-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.7rem;font-weight:950;color:var(--txt)}
+        .board-vip-row{display:flex;align-items:center;gap:4px;width:100%;margin-bottom:2px;color:#d97706;font-size:.64rem;font-weight:950;line-height:1.1;white-space:nowrap}
+        .board-vip-row i{font-size:.62rem;color:#f59e0b}
+        .board-vip-inline{display:inline-flex;align-items:center;gap:3px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:2px 6px;font-size:.56rem;font-weight:950;line-height:1;flex:0 0 auto}
+        .board-vip-inline i{font-size:.54rem;color:#f59e0b}
         .board-primary{display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:900;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .board-primary i{color:var(--primary);font-size:.68rem}
+        .board-primary .board-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
         .board-companions{display:flex;flex-direction:column;gap:2px;margin-top:3px;padding-left:17px;font-size:.68rem;color:var(--txt3);font-weight:750;min-width:0}
         .board-companion{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .board-date{font-size:.68rem;color:var(--txt2);font-weight:750;line-height:1.35}
@@ -473,6 +482,13 @@ function boardPrimaryIcon(res) {
         : 'fa-user';
 }
 
+function boardIsVipReservation(res) {
+    if (!res) return false;
+    if (res.isVip === true) return true;
+    const value = String(res.vip || res.tier || res.membershipTier || '').trim().toLowerCase();
+    return value.includes('vip');
+}
+
 function companionGuests(res) {
     const primary = primaryGuest(res);
     const values = [
@@ -824,6 +840,8 @@ function boardCard(room) {
     const primary = res ? primaryGuest(res) : '';
     const displayName = res ? boardDisplayName(res) : '';
     const groupName = res ? boardGroupLabel(res) : '';
+    const isGroup = res ? boardIsGroupReservation(res) : false;
+    const isVip = res ? boardIsVipReservation(res) : false;
     const companions = res ? companionGuests(res) : [];
     const hasRoomChange = !!(res && reservationHasRoomChange(res));
     const roomChangeText = hasRoomChange ? reservationRoomChangeText(res) : '';
@@ -839,6 +857,9 @@ function boardCard(room) {
         displayName,
         groupName,
         boardGroupSearchText(res),
+        isVip ? 'VIP 우수고객' : '',
+        res?.vip,
+        res?.tier,
         companions.join(' '),
         hasRoomChange ? `객실 이동 ${roomChangeText}` : '',
         res ? reservationCheckInTime(res) : '',
@@ -860,11 +881,23 @@ function boardCard(room) {
     const flags = res ? [
         hasRoomChange ? `<span class="board-flag move"><i class="fa-solid fa-right-left"></i>이동 ${escapeHtml(roomChangeText)}</span>` : ''
     ].filter(Boolean).join('') : '';
+    const groupHeader = isGroup
+        ? `<div class="board-group-title"><span class="board-group-badge"><i class="fa-solid fa-users"></i>단체</span><span class="board-group-name">${escapeHtml(groupName || '단체 블록')}</span></div>`
+        : '';
+    const vipRow = isVip && isGroup
+        ? `<div class="board-vip-row"><i class="fa-solid fa-crown"></i><span>VIP</span></div>`
+        : '';
+    const vipInline = isVip && !isGroup
+        ? `<span class="board-vip-inline"><i class="fa-solid fa-crown"></i>VIP</span>`
+        : '';
+    const guestName = isGroup ? (primary || '투숙객 미배정') : (displayName || primary || '-');
     return `<div class="room-box reservation-board-box ${state.status} clean-${cleanInfo.key}${hasRoomChange ? ' room-moved' : ''}${canCreateBooking ? ' is-bookable' : ''}" ${click} style="${res ? 'cursor:pointer' : ''}">
         <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${boardStatusIcon(state.status)}"></i>${state.label}</span></div>
         <div class="room-box-type">${escapeHtml(roomType(room))}</div>
         ${res ? `<div class="board-guest">
-            <div class="board-primary"><i class="fa-solid ${boardPrimaryIcon(res)}"></i><span>${escapeHtml(displayName || '단체 블록')}</span></div>
+            ${groupHeader}
+            ${vipRow}
+            <div class="board-primary">${vipInline}<i class="fa-solid ${isGroup ? 'fa-user' : boardPrimaryIcon(res)}"></i><span class="board-name">${escapeHtml(guestName)}</span></div>
             ${companions.length ? `<div class="board-companions" title="${escapeHtml(companions.join(', '))}">${companions.map(name => `<div class="board-companion">${escapeHtml(name)}</div>`).join('')}</div>` : ''}
         </div>
         <div class="board-date">${escapeHtml(reservationDates(res))}</div>
