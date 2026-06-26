@@ -60,7 +60,7 @@
         .service-modal{width:min(980px,calc(100vw - 24px));max-height:88vh;overflow:auto}
         .service-modal-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
         .service-detail-modal{width:min(920px,calc(100vw - 24px));max-height:88vh;overflow:auto}
-        .detail-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+        .detail-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 14px;align-items:stretch}
         .service-detail-list{display:flex;flex-direction:column;gap:10px}
         .service-detail-row{display:grid;grid-template-columns:1.25fr .9fr .7fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff}
         .service-detail-main{display:flex;align-items:flex-start;gap:10px;min-width:0}
@@ -78,10 +78,11 @@
         .modal-section{border:1px solid var(--border);border-radius:12px;background:#fff;overflow:hidden}
         .modal-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border);background:#f8fafc;font-weight:950}
         .modal-section-body{padding:14px}
-        .modal-room-box{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-        .info-tile{padding:10px;border:1px solid var(--border);border-radius:10px;background:#f8fafc}
+        .modal-room-box{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:2px}
+        .info-tile{min-width:0;min-height:62px;padding:10px;border:1px solid var(--border);border-radius:10px;background:#f8fafc;display:flex;flex-direction:column;justify-content:center}
+        .detail-summary-grid .info-tile{background:#fff;min-height:58px}
         .info-tile span{display:block;font-size:.68rem;font-weight:900;color:var(--txt3);margin-bottom:4px}
-        .info-tile strong{font-size:.9rem}
+        .info-tile strong{font-size:.9rem;line-height:1.25;word-break:keep-all}
         .service-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
         .service-tab{height:40px;border:1px solid var(--border);border-radius:10px;background:#fff;font-weight:950;color:var(--txt2);cursor:pointer}
         .service-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -241,6 +242,8 @@ let serviceFilter = 'all';
 
 const VENDOR_STORAGE = 'pms_ancillary_vendors';
 const ORDER_STORAGE = 'pms_ancillary_room_orders';
+const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
+const ORDER_DATA_VERSION = '2026-06-26-service-detail-v2';
 const seedVendors = [
     { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B', commission:0, voucherFields:[], items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }] },
     { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
@@ -354,7 +357,7 @@ function serviceSummary(orders = []) {
 }
 function serviceOrderStatusMeta(status) {
     const key = normalizeStatus(status || 'new');
-    if (['accepted', 'confirmed', 'processing', 'prep'].includes(key)) return { key:'accepted', label:'수락', icon:'fa-circle-check' };
+    if (['accepted', 'confirmed', 'processing', 'preparing', 'prep'].includes(key)) return { key:'accepted', label:'수락', icon:'fa-circle-check' };
     if (['completed', 'done', 'served', 'settled'].includes(key)) return { key:'completed', label:'완료', icon:'fa-check-double' };
     if (['cancelled', 'canceled'].includes(key)) return { key:'cancelled', label:'취소', icon:'fa-ban' };
     return { key:'new', label:'등록', icon:'fa-clock' };
@@ -409,13 +412,28 @@ function groupRooms(group) {
     return [...map.values()].sort((a, b) => String(roomNo(a)).localeCompare(String(roomNo(b)), undefined, { numeric: true }));
 }
 function roomOrders(room) {
-    if (!activeReservationForRoom(room || {})) return [];
+    const active = activeReservationForRoom(room || {});
+    if (!active) return [];
     const key = roomNo(room);
-    return serviceOrders.filter(order => sameRoomValue(order.room, key) || sameRoomValue(order.roomId, room?.id));
+    const activeGuest = reservationGuest(active);
+    return serviceOrders.filter(order => {
+        const sameRoom = sameRoomValue(order.room, key) || sameRoomValue(order.roomId, room?.id);
+        const sameGuest = !activeGuest || !order.guest || String(order.guest).trim() === String(activeGuest).trim();
+        return sameRoom && sameGuest;
+    });
+}
+function vendorForExternalOrder(order, service) {
+    const type = String(order.type || '').toLowerCase();
+    if (service === 'pos') return seedVendors.find(vendor => vendor.id === 'POS-HOTEL');
+    if (service === 'golf') return seedVendors.find(vendor => vendor.id === (type.includes('club_b') || type.includes('sky') ? 'GOLF-SKY72' : 'GOLF-SUNVALLEY'));
+    if (service === 'rentacar') return seedVendors.find(vendor => vendor.id === (type.includes('sk') ? 'RENT-SK' : 'RENT-LOTTE'));
+    return null;
 }
 function normalizeExternalOrder(order, service) {
     const meta = serviceMeta(service);
     const item = Array.isArray(order.items) ? order.items.map(entry => entry.name || entry.item || entry).join(', ') : (order.items || order.item || order.itemName || order.productName || meta.label);
+    const vendor = vendorForExternalOrder(order, service);
+    const dateTime = order.dateTime || order.serviceAt || order.createdAt || (order.date && order.time ? `${order.date}T${order.time}` : order.date || '');
     return {
         id: order.id || `${service}-${Date.now()}-${Math.random()}`,
         service,
@@ -424,13 +442,14 @@ function normalizeExternalOrder(order, service) {
         roomId: order.roomId || '',
         guest: order.guest || order.guestName || '',
         item,
-        vendor: order.providerName || order.partnerName || order.vendorName || order.courseName || meta.label,
-        vendorId: order.vendorId || order.providerId || order.partnerId || '',
+        vendor: order.providerName || order.partnerName || order.vendorName || order.courseName || vendor?.name || meta.label,
+        vendorId: order.vendorId || order.providerId || order.partnerId || vendor?.id || '',
         qty: Number(order.qty || order.quantity || order.people || 1),
         unitPrice: amountValue(order.unitPrice || order.price || order.total || order.amount),
         total: amountValue(order.total || order.amount),
-        dateTime: order.dateTime || order.serviceAt || order.createdAt || '',
+        dateTime,
         memo: order.memo || order.note || '',
+        voucherFields: Array.isArray(vendor?.voucherFields) ? [...vendor.voucherFields] : [],
         status: order.status || 'new'
     };
 }
@@ -442,10 +461,15 @@ function loadVendors() {
     });
 }
 function loadStoredOrders() {
+    if (localStorage.getItem(ORDER_STORAGE_VERSION) !== ORDER_DATA_VERSION) {
+        localStorage.removeItem(ORDER_STORAGE);
+        localStorage.setItem(ORDER_STORAGE_VERSION, ORDER_DATA_VERSION);
+    }
     try { serviceOrders = JSON.parse(localStorage.getItem(ORDER_STORAGE) || '[]'); } catch(e) { serviceOrders = []; }
     if (!Array.isArray(serviceOrders)) serviceOrders = [];
 }
 function persistOrders() {
+    localStorage.setItem(ORDER_STORAGE_VERSION, ORDER_DATA_VERSION);
     localStorage.setItem(ORDER_STORAGE, JSON.stringify(serviceOrders.slice(0, 500)));
 }
 function setServiceFilter(service) {
@@ -787,8 +811,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         ...(golfOrders || []).map(order => normalizeExternalOrder(order, 'golf')),
         ...(rentOrders || []).map(order => normalizeExternalOrder(order, 'rentacar'))
     ];
-    const storedIds = new Set(serviceOrders.map(order => order.id));
-    serviceOrders = [...serviceOrders, ...externalOrders.filter(order => !storedIds.has(order.id))];
+    const merged = [...serviceOrders, ...externalOrders];
+    serviceOrders = [...new Map(merged.map(order => [`${order.service}:${order.id}`, order])).values()];
     renderAncillaryBoard();
 });
 </script>
