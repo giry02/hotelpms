@@ -183,6 +183,7 @@
 <script>
 let rooms = [];
 let reservations = [];
+let groups = [];
 let boardFilter = 'all';
 let boardPeriod = 'today';
 
@@ -383,6 +384,57 @@ function updateBoardPeriodLabels() {
 
 function primaryGuest(res) {
     return res?.roomingGuestName || res?.guestName || res?.guest || '';
+}
+
+function storedBoardGroups() {
+    const merged = new Map();
+    (Array.isArray(groups) ? groups : []).forEach(group => {
+        if (group?.id) merged.set(group.id, group);
+    });
+    try {
+        const stored = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+        if (Array.isArray(stored)) {
+            stored.forEach(group => {
+                if (group?.id) merged.set(group.id, { ...(merged.get(group.id) || {}), ...group });
+            });
+        }
+    } catch(e) {}
+    return [...merged.values()];
+}
+
+function boardGroupForReservation(res) {
+    if (!res?.groupId) return null;
+    return storedBoardGroups().find(group => group && group.id === res.groupId) || null;
+}
+
+function boardGroupLabel(res) {
+    if (!res) return '';
+    const group = boardGroupForReservation(res);
+    return String(
+        res.groupName
+        || group?.name
+        || group?.displayName
+        || res.companyName
+        || res.company
+        || res.agency
+        || ''
+    ).trim();
+}
+
+function boardDisplayName(res) {
+    if (!res) return '';
+    const guest = primaryGuest(res);
+    const groupName = boardGroupLabel(res);
+    if (res.groupId && groupName && guest) return `${groupName} · ${guest}`;
+    if (res.groupId && groupName) return groupName;
+    if (res.groupId && guest) return guest;
+    return guest || groupName || (res.isGroupPlaceholder || normalizeReservationStatus(res) === 'blocked' ? '단체 블록' : '');
+}
+
+function boardPrimaryIcon(res) {
+    return res?.groupId || res?.isGroupPlaceholder || normalizeReservationStatus(res) === 'blocked'
+        ? 'fa-users'
+        : 'fa-user';
 }
 
 function companionGuests(res) {
@@ -684,6 +736,8 @@ function boardCard(room) {
     }
     const res = state.res;
     const primary = res ? primaryGuest(res) : '';
+    const displayName = res ? boardDisplayName(res) : '';
+    const groupName = res ? boardGroupLabel(res) : '';
     const companions = res ? companionGuests(res) : [];
     const hasRoomChange = !!(res && reservationHasRoomChange(res));
     const roomChangeText = hasRoomChange ? reservationRoomChangeText(res) : '';
@@ -696,6 +750,8 @@ function boardCard(room) {
         state.label,
         stayStateLabels[stayState] || '',
         primary,
+        displayName,
+        groupName,
         companions.join(' '),
         hasRoomChange ? `객실 이동 ${roomChangeText}` : '',
         res ? reservationCheckInTime(res) : '',
@@ -721,7 +777,7 @@ function boardCard(room) {
         <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${boardStatusIcon(state.status)}"></i>${state.label}</span></div>
         <div class="room-box-type">${escapeHtml(roomType(room))}</div>
         ${res ? `<div class="board-guest">
-            <div class="board-primary"><i class="fa-solid fa-user"></i><span>${escapeHtml(primary || res.groupName || '단체 블록')}</span></div>
+            <div class="board-primary"><i class="fa-solid ${boardPrimaryIcon(res)}"></i><span>${escapeHtml(displayName || '단체 블록')}</span></div>
             ${companions.length ? `<div class="board-companions" title="${escapeHtml(companions.join(', '))}">${companions.map(name => `<div class="board-companion">${escapeHtml(name)}</div>`).join('')}</div>` : ''}
         </div>
         <div class="board-date">${escapeHtml(reservationDates(res))}</div>
@@ -987,14 +1043,17 @@ window.renderTable = renderReservationBoard;
 window.setBoardPeriod = setBoardPeriod;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const [roomData, resData] = await Promise.all([
+    const [roomData, resData, groupData] = await Promise.all([
         window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
-        window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : []
+        window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : [],
+        window.PmsAPI?.getGroups ? window.PmsAPI.getGroups().catch(() => []) : []
     ]);
     rooms = roomData || [];
     reservations = (resData || []).map(res => ({ ...res, status: normalizeStatus(res.status) === 'inhouse' ? 'checkedin' : res.status }));
+    groups = groupData || [];
     window.rooms = rooms;
     window.reservations = reservations;
+    window.groups = groups;
     renderReservationBoard();
 });
 </script>
