@@ -65,6 +65,9 @@
         .service-detail-row{display:grid;grid-template-columns:1.25fr .9fr .7fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff}
         .service-detail-main{display:flex;align-items:flex-start;gap:10px;min-width:0}
         .service-detail-icon{width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:#eff6ff;color:var(--primary);flex:0 0 auto}
+        .service-detail-icon.pos,.register-existing-icon.pos{background:#f5f3ff;color:#8b5cf6}
+        .service-detail-icon.golf,.register-existing-icon.golf{background:#dcfce7;color:#10b981}
+        .service-detail-icon.rentacar,.register-existing-icon.rentacar{background:#fff7ed;color:#f59e0b}
         .service-detail-title{font-size:.88rem;font-weight:950;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .service-detail-meta{margin-top:3px;font-size:.72rem;font-weight:800;color:var(--txt3);line-height:1.45}
         .service-detail-money{font-size:.9rem;font-weight:950;color:var(--txt);text-align:right}
@@ -84,6 +87,9 @@
         .detail-summary-grid .info-tile.total-summary{background:#eff6ff;border-color:#93c5fd;box-shadow:inset 3px 0 0 var(--primary)}
         .detail-summary-grid .info-tile.total-summary span{color:var(--primary)}
         .detail-summary-grid .info-tile.total-summary strong{font-size:1.04rem;color:var(--primary)}
+        .detail-summary-grid i.pos,.register-preview-title i.pos{color:#8b5cf6}
+        .detail-summary-grid i.golf,.register-preview-title i.golf{color:#10b981}
+        .detail-summary-grid i.rentacar,.register-preview-title i.rentacar{color:#f59e0b}
         .info-tile span{display:block;font-size:.68rem;font-weight:900;color:var(--txt3);margin-bottom:4px}
         .info-tile strong{font-size:.9rem;line-height:1.25;word-break:keep-all}
         .service-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
@@ -270,7 +276,7 @@ let serviceFilter = 'all';
 const VENDOR_STORAGE = 'pms_ancillary_vendors';
 const ORDER_STORAGE = 'pms_ancillary_room_orders';
 const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
-const ORDER_DATA_VERSION = '2026-06-26-service-detail-v2';
+const ORDER_DATA_VERSION = '2026-06-26-service-detail-v3';
 const seedVendors = [
     { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B', commission:0, voucherFields:[], items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }] },
     { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
@@ -311,13 +317,21 @@ function normalizeStatus(value) {
 function sameRoomValue(left, right) {
     const normalize = value => {
         const text = String(value || '').trim().toUpperCase();
+        const compact = text.replace(/[^A-Z0-9]/g, '');
         const tail = text.includes('-') ? text.split('-').pop() : text;
+        const compactTail = tail.replace(/[^A-Z0-9]/g, '');
         const digits = (text.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
-        return new Set([text, tail, digits].filter(Boolean));
+        const hasLetters = /[A-Z]/.test(compact);
+        return {
+            keys: new Set([text, compact, tail, compactTail].filter(Boolean)),
+            digits,
+            hasLetters
+        };
     };
     const a = normalize(left);
     const b = normalize(right);
-    return [...a].some(key => b.has(key));
+    if ([...a.keys].some(key => b.keys.has(key))) return true;
+    return !!a.digits && a.digits === b.digits && (!a.hasLetters || !b.hasLetters);
 }
 function roomNo(room) {
     return room?.roomNo || room?.number || String(room?.id || '').split('-').pop() || room?.id || '-';
@@ -624,7 +638,7 @@ function openServiceDetailModal(roomId) {
         const status = serviceOrderStatusMeta(order.status);
         return `<div class="service-detail-row">
             <div class="service-detail-main">
-                <span class="service-detail-icon"><i class="fa-solid ${meta.icon}"></i></span>
+                <span class="service-detail-icon ${meta.cls}"><i class="fa-solid ${meta.icon}"></i></span>
                 <div style="min-width:0">
                     <div class="service-detail-title">${escapeHtml(order.item || meta.label)}</div>
                     <div class="service-detail-meta">${escapeHtml(order.vendor || meta.label)} · ${escapeHtml(order.dateTime ? order.dateTime.replace('T', ' ') : '-')} · ${escapeHtml(order.memo || '메모 없음')}</div>
@@ -744,7 +758,7 @@ function renderRegistrationPreview() {
     preview.innerHTML = `
         <div class="register-preview-card primary">
             <div class="register-preview-title">
-                <span><i class="fa-solid ${meta.icon}"></i> 선택 내역</span>
+                <span><i class="fa-solid ${meta.icon} ${meta.cls}"></i> 선택 내역</span>
                 <strong>${money(total * Math.max(1, targetCount))}</strong>
             </div>
             <div class="register-preview-row"><span>업체/부서</span><strong>${escapeHtml(vendor?.name || meta.label)}</strong></div>
@@ -759,7 +773,7 @@ function renderRegistrationPreview() {
         const status = serviceOrderStatusMeta(order.status);
         return `
             <div class="register-existing-row">
-                <span class="register-existing-icon"><i class="fa-solid ${orderMeta.icon}"></i></span>
+                <span class="register-existing-icon ${orderMeta.cls}"><i class="fa-solid ${orderMeta.icon}"></i></span>
                 <div style="min-width:0">
                     <div class="register-existing-title">${escapeHtml(order.item || orderMeta.label)}</div>
                     <div class="register-existing-meta">${escapeHtml(order.vendor || orderMeta.label)} · ${escapeHtml(status.label)} · ${escapeHtml(order.dateTime ? order.dateTime.replace('T', ' ') : '-')}</div>
