@@ -595,19 +595,14 @@ function boardStayState(room, res) {
 }
 
 function boardCleaningSummary(room, res) {
-    const roomStatus = normalizeStatus(room?.status || room?.frontStatus || '');
     const cleaningState = normalizedRoomOpsValue(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus);
     const stayState = boardStayState(room, res);
-    if (['oos', 'outofservice', 'out-of-service', 'maintenance'].includes(roomStatus)) {
-        return { key: 'oos', label: '점검 중', icon: 'fa-screwdriver-wrench' };
-    }
-    if (['mur', 'dirty'].includes(stayState) || ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState)) {
-        return { key: 'dirty', label: '청소 필요', icon: 'fa-broom' };
-    }
     if (stayState === 'clean' || ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState)) {
         return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
     }
-    if (res) return { key: 'occupied', label: '재실 중', icon: 'fa-bed' };
+    if (res || ['mur', 'dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState)) {
+        return { key: 'dirty', label: '청소 필요', icon: 'fa-broom' };
+    }
     return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
 }
 
