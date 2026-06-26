@@ -18,7 +18,6 @@
     <script src="../common/js/topbar.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/api/api-operations.js"></script>
-    <script src="../common/js/mock-api.js"></script>
     <style>
         .ancillary-page .content{padding-bottom:56px}
         .ancillary-kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:18px}
@@ -78,6 +77,25 @@
         .voucher-fields label{display:flex;align-items:center;gap:7px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;font-size:.75rem;font-weight:850}
         .voucher-preview{margin-top:10px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:.75rem;line-height:1.7;color:var(--txt2)}
         .modal-footer{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;padding:14px;background:#f8fafc;border-top:1px solid var(--border)}
+        #serviceModal .modal-card{font-family:var(--font);color:var(--txt)}
+        #serviceModal .modal-title{display:flex;align-items:center;gap:8px;margin:0;font-size:1.18rem;font-weight:950;line-height:1.35}
+        #serviceModal .modal-close{width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:var(--txt3);font:inherit;font-size:1.15rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+        #serviceModal .modal-close:hover{background:#f1f5f9;color:var(--txt)}
+        #serviceModal .btn-outline,
+        #serviceModal .btn-primary-sm,
+        .ancillary-page .btn-outline,
+        .ancillary-page .btn-primary-sm{height:38px;padding:0 14px;border-radius:9px;font-family:var(--font);font-size:.8rem;font-weight:850;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
+        #serviceModal .btn-outline,
+        .ancillary-page .btn-outline{background:#fff;color:var(--txt2);border:1px solid var(--border)}
+        #serviceModal .btn-outline:hover,
+        .ancillary-page .btn-outline:hover{border-color:var(--primary);color:var(--primary);box-shadow:0 2px 8px rgba(59,130,246,.12)}
+        #serviceModal .btn-primary-sm,
+        .ancillary-page .btn-primary-sm{background:var(--primary);color:#fff;border:1px solid var(--primary)}
+        #serviceModal .btn-primary-sm:hover,
+        .ancillary-page .btn-primary-sm:hover{background:var(--primary-dk);border-color:var(--primary-dk);box-shadow:0 3px 10px rgba(59,130,246,.22)}
+        .service-room-card:not(.inhouse){cursor:not-allowed}
+        .service-room-card:not(.inhouse):hover{transform:none;box-shadow:var(--shadow-sm)}
+        .service-unavailable{margin-top:12px;padding:9px;border:1px dashed #cbd5e1;border-radius:8px;color:var(--txt3);font-size:.72rem;font-weight:850;text-align:center;background:#fff}
         @media(max-width:1100px){.ancillary-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.service-modal-grid{grid-template-columns:1fr}}
         @media(max-width:768px){.ancillary-toolbar{flex-direction:column;align-items:stretch}.ancillary-search{width:auto}.modal-room-box,.modal-field-grid{grid-template-columns:1fr}.voucher-fields,.group-room-checks{grid-template-columns:1fr}}
     </style>
@@ -249,16 +267,21 @@ function activeReservationForRoom(room) {
     return reservations.filter(res => {
         const status = normalizeStatus(res.status);
         if (['cancelled', 'canceled', 'completed', 'checkedout'].includes(status)) return false;
+        if (!['checkedin', 'inhouse', 'occupied'].includes(status)) return false;
         const start = parseDate(res.checkInDate || res.checkin || res.cin);
         const end = parseDate(res.checkOutDate || res.checkout || res.cout);
         return roomMatchesReservation(room, res) && start && end && start <= today && today < end;
     }).sort((a, b) => (parseDate(a.checkOutDate || a.checkout || a.cout)?.getTime() || 0) - (parseDate(b.checkOutDate || b.checkout || b.cout)?.getTime() || 0))[0] || null;
+}
+function canRegisterServiceForRoom(room) {
+    return !!activeReservationForRoom(room || {});
 }
 function nextReservationForRoom(room) {
     const today = todayDate();
     return reservations.filter(res => {
         const status = normalizeStatus(res.status);
         if (['cancelled', 'canceled', 'completed', 'checkedout'].includes(status)) return false;
+        if (['checkedin', 'inhouse', 'occupied'].includes(status)) return false;
         const start = parseDate(res.checkInDate || res.checkin || res.cin);
         return roomMatchesReservation(room, res) && start && start >= today;
     }).sort((a, b) => (parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0) - (parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0))[0] || null;
@@ -389,6 +412,9 @@ function renderRoomCard(room) {
     const orders = roomOrders(room);
     const status = active ? 'inhouse' : next ? 'arrival' : 'empty';
     const statusLabel = active ? '투숙 중' : next ? '체크인 예정' : '공실';
+    const availabilityNote = active
+        ? '<div class="service-empty"><i class="fa-solid fa-plus"></i> 부가서비스 등록 가능</div>'
+        : `<div class="service-unavailable"><i class="fa-solid fa-lock"></i> ${next ? '체크인 후 등록 가능' : '투숙 중 객실만 등록 가능'}</div>`;
     const total = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
     const guest = reservationGuest(res) || '투숙객 없음';
     return `
@@ -406,7 +432,7 @@ function renderRoomCard(room) {
                 ${orders.length ? orders.slice(0, 3).map(order => {
                     const meta = serviceMeta(order.service);
                     return `<div class="service-order-pill"><span><i class="fa-solid ${meta.icon} ${meta.cls}"></i> ${escapeHtml(order.item || meta.label)}</span><strong>${money(order.total)}</strong></div>`;
-                }).join('') : '<div class="service-empty"><i class="fa-solid fa-plus"></i> 부가서비스 등록 가능</div>'}
+                }).join('') : availabilityNote}
             </div>
             <div class="service-card-total">${orders.length ? `누적 ${money(total)}` : '&nbsp;'}</div>
         </article>
@@ -417,6 +443,12 @@ function openServiceModal(roomId) {
     const room = findRoomById(roomId);
     const active = activeReservationForRoom(room || {});
     const next = nextReservationForRoom(room || {});
+    if (!active) {
+        const message = next ? '체크인 예정 객실은 체크인 처리 후 부가서비스를 등록할 수 있습니다.' : '부가서비스는 투숙 중 객실에만 등록할 수 있습니다.';
+        if (window.showToast) window.showToast(message, 'warning');
+        else alert(message);
+        return;
+    }
     const res = active || next;
     const group = groupForReservation(res);
     document.getElementById('modalSelectedRoom').textContent = `${roomNo(room)}호`;
@@ -494,7 +526,7 @@ function renderGroupRoomChecks() {
     const enabled = document.getElementById('groupBulkToggle').checked;
     const groupId = document.getElementById('groupSelect').value;
     const group = groups.find(item => item.id === groupId || item.groupId === groupId);
-    const groupRoomsList = enabled && group ? groupRooms(group) : [];
+    const groupRoomsList = enabled && group ? groupRooms(group).filter(canRegisterServiceForRoom) : [];
     document.getElementById('groupRoomCount').textContent = `${groupRoomsList.length}실`;
     document.getElementById('groupRoomChecks').innerHTML = groupRoomsList.map(room => {
         const res = activeReservationForRoom(room) || nextReservationForRoom(room);
@@ -539,12 +571,12 @@ function renderVoucherPreview() {
 }
 function targetRoomsForSave() {
     const bulk = document.getElementById('groupBulkToggle').checked && selectedService !== 'pos';
-    if (!bulk) return [findRoomById(selectedRoomId)].filter(Boolean);
-    return Array.from(document.querySelectorAll('.group-room-check:checked')).map(input => findRoomById(input.value)).filter(Boolean);
+    if (!bulk) return [findRoomById(selectedRoomId)].filter(canRegisterServiceForRoom);
+    return Array.from(document.querySelectorAll('.group-room-check:checked')).map(input => findRoomById(input.value)).filter(canRegisterServiceForRoom);
 }
 function saveServiceOrder() {
     const roomsToSave = targetRoomsForSave();
-    if (!roomsToSave.length) return alert('등록할 객실을 선택해 주세요.');
+    if (!roomsToSave.length) return alert('투숙 중인 객실만 부가서비스 등록이 가능합니다.');
     const vendor = selectedVendor();
     const item = selectedItem();
     const qty = Math.max(1, Number(document.getElementById('serviceQty')?.value || 1));
