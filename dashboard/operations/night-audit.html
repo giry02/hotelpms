@@ -66,7 +66,18 @@
         .revenue-total .rev-amount { color: var(--primary); font-weight: 800; }
         .revenue-total .rev-amount { font-size: 1.5rem; }
 
-        .action-box { background: var(--bg); border: 1px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; }
+        .action-box { background: var(--bg); border: 1px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+        .close-handover-block { width: min(760px, 100%); text-align: left; display: grid; gap: 8px; margin: 0 auto; }
+        .close-handover-label { display: flex; align-items: center; gap: 8px; color: var(--txt); font-size: .9rem; font-weight: 950; }
+        .close-handover-label i { color: var(--primary); }
+        .close-handover-textarea { width: 100%; min-height: 84px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: 11px 12px; color: var(--txt); font-family: var(--font); font-size: .86rem; font-weight: 760; line-height: 1.5; resize: vertical; outline: none; }
+        .close-handover-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, .10); }
+        .close-handover-help { color: var(--txt3); font-size: .74rem; font-weight: 780; line-height: 1.45; }
+        .close-previous-handover { border: 1px solid #bfdbfe; border-radius: 10px; background: #eff6ff; color: #1d4ed8; padding: 10px 12px; font-size: .78rem; font-weight: 850; line-height: 1.5; }
+        .close-previous-handover[hidden] { display: none !important; }
+        .close-previous-handover strong { display: block; color: var(--txt); font-size: .8rem; margin-bottom: 3px; }
+        .close-confirm-label { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; cursor: pointer; font-size: 0.95rem; margin: 0; }
+        .close-run-button { padding: 12px 30px; font-size: 1rem; }
         .close-basis-section { overflow: hidden; }
         .close-basis-summary { list-style: none; cursor: pointer; justify-content: space-between; }
         .close-basis-summary::-webkit-details-marker { display: none; }
@@ -582,12 +593,17 @@
 
         <!-- 4. Action Area -->
         <div class="action-box">
-            <label style="display:inline-flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; margin-bottom:16px; font-size:0.95rem;">
+            <div class="close-handover-block">
+                <label class="close-handover-label" for="auditHandoverMemo"><i class="fa-solid fa-clipboard-list"></i> 다음 근무자 인수인계 사항</label>
+                <textarea class="close-handover-textarea" id="auditHandoverMemo" placeholder="예: 미정산 Folio 확인 필요, 환불 증빙 봉투 A-13, 특이사항 없음"></textarea>
+                <div class="close-handover-help">마감 실행 시 저장되며 다음 근무자가 마감 로그에서 확인할 수 있습니다. 특이사항이 없으면 “특이사항 없음”으로 남겨주세요.</div>
+                <div class="close-previous-handover" id="previousAuditHandover" hidden></div>
+            </div>
+            <label class="close-confirm-label">
                 <input type="checkbox" id="confirmCheck" style="width:18px;height:18px" onchange="document.getElementById('btnRunAudit').disabled = !this.checked">
                 위 정산 내역을 확인하였으며, <span id="confirmDate">YYYY-MM-DD</span> 영업일을 마감합니다.
             </label>
-            <br>
-            <button class="btn-primary" id="btnRunAudit" disabled style="padding:12px 30px; font-size:1rem" onclick="runNightAudit()">
+            <button class="btn-primary close-run-button" id="btnRunAudit" disabled onclick="runNightAudit()">
                 <i class="fa-solid fa-play"></i> 일일 영업 마감 실행
             </button>
         </div>
@@ -1066,6 +1082,11 @@ const NIGHT_AUDIT_I18N = {
         'common.open': '열기',
         'common.hide': '접기',
         'close.basisCta': '마감 근거 보기',
+        'close.handoverTitle': '다음 근무자 인수인계 사항',
+        'close.handoverPlaceholder': '예: 미정산 Folio 확인 필요, 환불 증빙 봉투 A-13, 특이사항 없음',
+        'close.handoverHelp': '마감 실행 시 저장되며 다음 근무자가 마감 로그에서 확인할 수 있습니다. 특이사항이 없으면 “특이사항 없음”으로 남겨주세요.',
+        'close.previousHandoverTitle': '이전 마감 인수인계',
+        'close.handoverRequired': '마감 인수인계 사항을 입력해주세요.',
         'close.confirmLabel': '위 정산 내역을 확인하였으며, {date} 영업일을 마감합니다.',
         'close.run': '일일 영업 마감 실행',
         'cash.section': '시재 시작 / 출금 / 정산 현황',
@@ -1233,6 +1254,11 @@ const NIGHT_AUDIT_I18N = {
         'common.open': 'Open',
         'common.hide': 'Hide',
         'close.basisCta': 'View closing basis',
+        'close.handoverTitle': 'Next-shift handover memo',
+        'close.handoverPlaceholder': 'Example: review unsettled folios, refund evidence envelope A-13, no special notes',
+        'close.handoverHelp': 'Saved when daily close runs and visible in the close log for the next shift. Enter “No special notes” if there is nothing to hand over.',
+        'close.previousHandoverTitle': 'Previous close handover',
+        'close.handoverRequired': 'Enter the daily close handover memo.',
         'close.confirmLabel': 'I have reviewed the settlement details and will close business date {date}.',
         'close.run': 'Run Daily Close',
         'cash.section': 'Cash Opening / Withdrawal / Settlement Status',
@@ -2188,6 +2214,30 @@ function saveCashSession(session) {
     setStorageJson(CASH_SESSION_KEY, sessions);
 }
 
+function previousHandoverSession(date = auditBusinessDate()) {
+    return cashSessions()
+        .filter(item => item.businessDate < date && String(item.handoverMemo || '').trim())
+        .sort((a, b) => String(b.businessDate || '').localeCompare(String(a.businessDate || '')))[0] || null;
+}
+
+function renderAuditHandoverMemo() {
+    const memoInput = document.getElementById('auditHandoverMemo');
+    const currentSession = activeCashSession(false);
+    if (memoInput && !memoInput.value && currentSession?.handoverMemo) {
+        memoInput.value = currentSession.handoverMemo;
+    }
+    const previousBox = document.getElementById('previousAuditHandover');
+    if (!previousBox) return;
+    const previous = previousHandoverSession();
+    if (!previous) {
+        previousBox.hidden = true;
+        previousBox.innerHTML = '';
+        return;
+    }
+    previousBox.hidden = false;
+    previousBox.innerHTML = `<strong>${nightAuditText('close.previousHandoverTitle')} · ${escapeAudit(previous.businessDate)}</strong>${escapeAudit(previous.handoverMemo)}`;
+}
+
 const CASH_CURRENCY_LABELS = { PHP: '페소', USD: '달러', KRW: '원화' };
 const CASH_CURRENCY_ICON_CLASSES = { PHP: 'fa-peso-sign', USD: 'fa-dollar-sign', KRW: 'fa-won-sign' };
 
@@ -2968,7 +3018,7 @@ function dailyHistoryRows(date) {
                 { label: '차이', value: formatSignedCurrencyBreakdown(diffCurrencies) }
             ],
             operator: session.closedBy || '-',
-            note: session.closingNote || '-'
+            note: [session.closingNote, session.handoverMemo ? `인수인계: ${session.handoverMemo}` : ''].filter(Boolean).join(' / ') || '-'
         });
     }
     return rows.sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
@@ -3381,6 +3431,7 @@ function refreshNightAuditDynamicText() {
     renderAuditIssueCount('chkArr', 'arrivals', { suffixKey: 'count.arrivalMissing', tone: 'warning' });
     renderAuditIssueCount('chkPos', 'orders', { suffixKey: 'count.remaining' });
     renderCashHandover();
+    renderAuditHandoverMemo();
     if (auditIssueState.activeIssue && document.getElementById('auditIssueModal')?.classList.contains('active')) {
         openAuditIssueModal(auditIssueState.activeIssue);
     }
@@ -3441,7 +3492,13 @@ function applyNightAuditI18n() {
         if (link) link.innerHTML = `<i class="fa-solid fa-square-arrow-up-right"></i> ${t('common.details')}`;
     });
 
-    const confirmLabel = document.querySelector('.action-box label');
+    const handoverLabel = document.querySelector('.close-handover-label');
+    if (handoverLabel) handoverLabel.innerHTML = `<i class="fa-solid fa-clipboard-list"></i> ${t('close.handoverTitle')}`;
+    setNightPlaceholder('auditHandoverMemo', 'close.handoverPlaceholder');
+    const handoverHelp = document.querySelector('.close-handover-help');
+    if (handoverHelp) handoverHelp.textContent = t('close.handoverHelp');
+
+    const confirmLabel = document.querySelector('.close-confirm-label');
     if (confirmLabel) {
         const checked = document.getElementById('confirmCheck')?.checked ? ' checked' : '';
         const date = document.getElementById('confirmDate')?.textContent || 'YYYY-MM-DD';
@@ -3615,12 +3672,24 @@ function runNightAudit() {
         setAuditTab('cash');
         return;
     }
+    const handoverMemo = textValue('auditHandoverMemo');
+    if (!handoverMemo) {
+        showToast(nightAuditText('close.handoverRequired'), 'error');
+        document.getElementById('auditHandoverMemo')?.focus();
+        return;
+    }
 
     const confirmMessage = nightAuditText('close.confirm');
     if(confirm(confirmMessage)) {
         const btn = document.getElementById('btnRunAudit');
         btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${nightAuditText('close.processing')}`;
         btn.disabled = true;
+        const closedAt = nowIso();
+        session.handoverMemo = handoverMemo;
+        session.nightAuditClosed = true;
+        session.nightAuditClosedAt = closedAt;
+        session.nightAuditClosedBy = operatorName();
+        saveCashSession(session);
 
         setTimeout(() => {
             showToast(nightAuditText('close.complete'), 'success');
