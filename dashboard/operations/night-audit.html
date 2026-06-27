@@ -789,7 +789,7 @@
                         <details class="cash-formula-details">
                             <summary>
                                 <span class="cash-formula-summary-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 자세히 보기</span>
-                                <span class="cash-formula-summary-desc">필요할 때만 펼쳐서 예상 보유 통화와 실사를 비교합니다.</span>
+                                <span class="cash-formula-summary-desc">필요할 때만 펼쳐서 기준 현금과 실사 통화를 비교합니다.</span>
                             </summary>
                             <div class="cash-reconcile-detail-list" id="cashReconcileDetailList" data-no-currency-normalize="true"></div>
                         </details>
@@ -903,7 +903,7 @@
                 </div>
                 <div class="close-basis-guide-item">
                     <i class="fa-solid fa-scale-balanced"></i>
-                    <div><strong>차액 기준</strong><span>차액은 사용자가 미수금으로 남긴 금액이 아니라, 예상 보유 현금과 마감 실사 현금의 차이입니다.</span></div>
+                    <div><strong>차액 기준</strong><span>차액은 사용자가 미수금으로 남긴 금액이 아니라, 기준 현금과 마감 실사 현금의 차이입니다.</span></div>
                 </div>
                 <div class="close-basis-guide-item">
                     <i class="fa-solid fa-lock"></i>
@@ -1098,7 +1098,7 @@ const NIGHT_AUDIT_I18N = {
         'cash.summaryTitle': '시재 대조 요약',
         'cash.summaryDesc': '현금입금, 보유 현금, 차액 여부를 필요한 항목만 상세 확인합니다.',
         'cash.formulaTitle': '통화별 현금 대조 보기',
-        'cash.formulaDesc': '필요할 때만 펼쳐서 예상 보유 통화와 실사를 비교합니다.',
+        'cash.formulaDesc': '필요할 때만 펼쳐서 기준 현금과 실사 통화를 비교합니다.',
         'cash.step1': '1단계',
         'cash.step2': '2단계',
         'cash.step3': '3단계',
@@ -2356,7 +2356,7 @@ function renderCashReconcileDetailCards(state = {}) {
             sub: state.hasClosingRecord ? cashUiText(state.hasVariance ? '차액 확인 필요' : '차액 없음', state.hasVariance ? 'Variance found' : 'Matched') : cashUiText('마감 실사 전', 'Not counted yet'),
             html: `
                 <div class="cash-reconcile-split-grid triple">
-                    ${renderCashReconcileSplitCard(cashUiText('예상 보유', 'Expected'), state.expectedClosingCurrencies || {})}
+                    ${renderCashReconcileSplitCard(cashUiText('현금내역', 'Cash basis'), state.expectedClosingCurrencies || {})}
                     ${state.hasClosingRecord
                         ? renderCashReconcileSplitCard(cashUiText('실사 보유', 'Counted'), state.closingCurrencies || {})
                         : `<div class="cash-reconcile-split-card"><span class="cash-reconcile-split-label">${cashUiText('실사 보유', 'Counted')}</span><span class="cash-currency-empty">${cashUiText('실사 전', 'Not counted')}</span></div>`}
@@ -2413,19 +2413,20 @@ function renderCloseBasisFlow(state = {}) {
                 <div class="close-basis-subtext">${cashUiText('영업 시작 시 인수한 기준 현금입니다.', 'Baseline cash taken over at the start of business.')}</div>
             </div>
             <div class="close-basis-card inflow">
-                <div class="close-basis-card-title"><i class="fa-solid fa-arrow-down"></i>${cashUiText('오늘 현금 반영', 'Today cash activity')}</div>
+                <div class="close-basis-card-title"><i class="fa-solid fa-receipt"></i>${cashUiText('금일 정산내역', 'Today settlement details')}</div>
                 <div class="close-basis-mini-list">
                     <div class="close-basis-mini-row"><span>${cashUiText('현금 정산', 'Cash settlement')}</span><strong>${moneyPhp(state.cashSettlementPhp || 0)}</strong></div>
-                    <div class="close-basis-mini-row"><span>${cashUiText('카드/이체 정산', 'Card/bank settlement')}</span><strong>${moneyPhp(state.nonCashSettlementPhp || 0)}</strong></div>
+                    <div class="close-basis-mini-row"><span>${cashUiText('카드 정산', 'Card settlement')}</span><strong>${moneyPhp(state.cardSettlementPhp || 0)}</strong></div>
+                    <div class="close-basis-mini-row"><span>${cashUiText('이체 정산', 'Bank transfer settlement')}</span><strong>${moneyPhp(state.bankSettlementPhp || 0)}</strong></div>
                     <div class="close-basis-mini-row"><span>${cashUiText('예치금', 'Deposit')}</span><strong>${moneyPhp(state.cashDepositPhp || 0)}</strong></div>
                     <div class="close-basis-mini-row"><span>${cashUiText('중간 출금', 'Withdrawal')}</span><strong>${state.withdrawalCount ? compactCurrencySummary(state.withdrawalCurrencies || {}, '') : cashUiText('없음', 'None')}</strong></div>
                 </div>
-                <div class="close-basis-subtext">${cashUiText('매출 수납과 보관금액, 출금 내역을 분리해 반영합니다.', 'Separates settled receipts, held deposits, and withdrawals.')}</div>
+                <div class="close-basis-subtext">${cashUiText('정산 금액을 현금/카드/이체로 나누고 예치금과 출금을 별도 관리합니다.', 'Splits settlement by cash/card/bank and separates deposits and withdrawals.')}</div>
             </div>
             <div class="close-basis-card result">
-                <div class="close-basis-card-title"><i class="fa-solid fa-wallet"></i>${cashUiText('예상 보유 현금', 'Expected cash on hand')}</div>
+                <div class="close-basis-card-title"><i class="fa-solid fa-wallet"></i>${cashUiText('현금내역', 'Cash basis')}</div>
                 ${renderCashCurrencyLines(state.expectedClosingCurrencies || {}, { includeZero: true })}
-                <div class="close-basis-subtext">${cashUiText('시작 시재 + 현금입금 - 중간출금 기준입니다.', 'Opening cash + cash inflow - withdrawal.')}</div>
+                <div class="close-basis-subtext">${cashUiText('시작 시재 + 현금 정산 + 예치금 - 중간출금 기준입니다.', 'Opening cash + cash settlement + deposit - withdrawal.')}</div>
             </div>
         </div>
     `;
@@ -2475,7 +2476,7 @@ function renderCloseBasisRiskSummary(state = {}) {
                 <div class="close-basis-risk-desc">${state.hasClosingRecord
                     ? (state.hasVariance
                         ? cashUiText('마감 전 차액 사유를 확인해야 합니다.', 'Review the variance reason before closing.')
-                        : cashUiText('마감 실사와 예상 보유 현금이 일치합니다.', 'Counted cash matches expected cash.'))
+                        : cashUiText('마감 실사와 기준 현금이 일치합니다.', 'Counted cash matches the cash basis.'))
                     : cashUiText('마감 시재를 입력해야 차액을 확정할 수 있습니다.', 'Enter closing cash to confirm variance.')}</div>
             </div>
         </div>
@@ -2491,7 +2492,7 @@ function varianceReasonItems(state = {}) {
         return [cashUiText('마감 실사 금액이 아직 입력되지 않아 차액 사유를 판단할 수 없습니다.', 'Closing count is missing, so variance cannot be diagnosed yet.')];
     }
     if (!state.hasVariance) {
-        return [cashUiText('예상 보유 현금과 마감 실사 금액이 일치합니다.', 'Expected and counted cash match.')];
+        return [cashUiText('기준 현금과 마감 실사 금액이 일치합니다.', 'Cash basis and counted cash match.')];
     }
     if (negative.length) {
         items.push(cashUiText(`${negative.join(', ')} 실사 금액이 기준보다 부족합니다. 현금입금 누락, 중간 출금 미기록, 실사 오입력을 확인하세요.`, `${negative.join(', ')} counted amount is lower than expected. Check missing inflow, unrecorded withdrawal, or count entry.`));
@@ -2515,10 +2516,10 @@ function openCashVarianceReasonModal() {
     if (!body || !state) return;
     body.innerHTML = `
         <div class="cash-insight-callout">
-            ${cashUiText('차액은 “시작시재 + 현금입금 - 중간출금”으로 계산한 예상 보유 현금과 마감 실사 금액의 차이입니다.', 'Variance is the difference between expected cash and the counted closing cash.')}
+            ${cashUiText('차액은 “시작시재 + 현금 정산 + 예치금 - 중간출금”으로 계산한 기준 현금과 마감 실사 금액의 차이입니다.', 'Variance is the difference between cash basis and the counted closing cash.')}
         </div>
         ${renderCashInsightCards([
-            { label: cashUiText('예상 보유 현금', 'Expected cash'), value: renderCashInsightMoneyLines(state.expectedClosingCurrencies), html: true },
+            { label: cashUiText('현금내역', 'Cash basis'), value: renderCashInsightMoneyLines(state.expectedClosingCurrencies), html: true },
             { label: cashUiText('마감 실사', 'Counted cash'), value: state.hasClosingRecord ? renderCashInsightMoneyLines(state.closingCurrencies) : escapeAudit(cashUiText('실사 전', 'Not counted')), html: true },
             { label: cashUiText('차액', 'Variance'), value: state.hasClosingRecord ? renderCashInsightMoneyLines(state.varianceCurrencies, { signed: true }) : '-', html: true }
         ])}
@@ -2544,7 +2545,7 @@ function openCashOnHandDetailModal() {
         </div>
         ${renderCashInsightCards([
             { label: cashUiText('\uD604\uAE08\uC785\uAE08', 'Cash inflow'), value: renderCashInsightMoneyLines(state.cashInflowCurrencies), html: true },
-            { label: cashUiText('\uC608\uC0C1 \uBCF4\uC720', 'Expected cash'), value: renderCashInsightMoneyLines(state.expectedClosingCurrencies), html: true },
+            { label: cashUiText('\uD604\uAE08\uB0B4\uC5ED', 'Cash basis'), value: renderCashInsightMoneyLines(state.expectedClosingCurrencies), html: true },
             { label: cashUiText('\uC2E4\uC0AC \uBCF4\uC720', 'Counted cash'), value: state.hasClosingRecord ? renderCashInsightMoneyLines(state.closingCurrencies) : escapeAudit(cashUiText('\uC2E4\uC0AC \uC804', 'Not counted')), html: true }
         ], { className: 'main-cash-overview' })}
         <div class="cash-insight-section cash-detail-breakdown">
@@ -3224,9 +3225,13 @@ function renderCashHandover() {
     const cashSettlementRecords = cashPayments.filter(item => item.kind !== 'deposit');
     const cashDepositRecords = cashPayments.filter(item => item.kind === 'deposit');
     const nonCashSettlementRecords = settlementRecords.filter(item => (item.method || 'cash') !== 'cash');
+    const cardSettlementRecords = settlementRecords.filter(item => (item.method || 'cash') === 'card');
+    const bankSettlementRecords = settlementRecords.filter(item => ['bank', 'transfer', 'bankTransfer'].includes(item.method || ''));
     const cashSettlementPhp = cashSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const cashDepositPhp = cashDepositRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const nonCashSettlementPhp = nonCashSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const cardSettlementPhp = cardSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const bankSettlementPhp = bankSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const cashSettlementCurrencies = currencyTotals(cashSettlementRecords);
     const cashDepositCurrencies = currencyTotals(cashDepositRecords);
     const nonCashSettlementCurrencies = currencyTotals(nonCashSettlementRecords);
@@ -3246,11 +3251,15 @@ function renderCashHandover() {
         settlementRecords,
         depositRecords,
         nonCashSettlementRecords,
+        cardSettlementRecords,
+        bankSettlementRecords,
         cashSettlementRecords,
         cashDepositRecords,
         cashSettlementPhp,
         cashDepositPhp,
         nonCashSettlementPhp,
+        cardSettlementPhp,
+        bankSettlementPhp,
         cashSettlementCurrencies,
         cashDepositCurrencies,
         nonCashSettlementCurrencies,
@@ -3282,7 +3291,7 @@ function renderCashHandover() {
     setHtml('cashClosingLabel', hasClosingRecord ? renderCashCurrencyLines(session.closing, { includeZero: false, emptyLabel: cashUiText('0원', '0') }) : escapeAudit(cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC804', 'Not counted yet')));
     set('cashClosingDetail', hasClosingRecord ? cashUiText('실사 입력 완료', 'Count entered') : cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare'));
     setHtml('cashPreviewClosing', hasClosingRecord ? renderCashCurrencyLines(closingCurrencies, { includeZero: false, emptyLabel: cashUiText('0원', '0') }) : renderCashCurrencyLines(expectedClosingCurrencies, { includeZero: false, emptyLabel: moneyPhp(0) }));
-    set('cashPreviewClosingMeta', hasClosingRecord ? cashUiText('\uC2E4\uC0AC \uBCF4\uC720', 'Counted cash') : cashUiText('\uC608\uC0C1 \uBCF4\uC720', 'Expected cash'));
+    set('cashPreviewClosingMeta', hasClosingRecord ? cashUiText('\uC2E4\uC0AC \uBCF4\uC720', 'Counted cash') : cashUiText('\uD604\uAE08\uB0B4\uC5ED', 'Cash basis'));
     set('cashVarianceLabel', hasClosingRecord ? cashUiText(hasVariance ? '\uCC28\uC561 \uD655\uC778' : '\uCC28\uC561 \uC5C6\uC74C', hasVariance ? 'Variance' : 'Matched') : cashUiText('\uC2E4\uC0AC \uC804', 'Not counted'));
     setHtml('cashVarianceDetail', hasClosingRecord ? renderCashCurrencyLines(varianceCurrencies, { signed: true, includeZero: true }) : escapeAudit(cashUiText('\uB9C8\uAC10 \uC2E4\uC0AC \uC785\uB825 \uD6C4 \uD655\uC778', 'Enter closing count to compare')));
     set('cashPreviewVariance', hasClosingRecord ? cashUiText(hasVariance ? '\uCC28\uC561 \uD655\uC778' : '\uCC28\uC561 \uC5C6\uC74C', hasVariance ? 'Variance' : 'Matched') : cashUiText('\uC2E4\uC0AC \uC804', 'Not counted'));
