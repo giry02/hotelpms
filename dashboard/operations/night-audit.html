@@ -2386,6 +2386,8 @@ function renderCloseBasisRiskSummary(state = {}) {
     const unsettledAmount = Number(snapshot.unpaidPhp || 0);
     const unsettledCount = Array.isArray(snapshot.unsettled) ? snapshot.unsettled.length : 0;
     const unsettledTone = unsettledAmount > 0 ? 'danger' : 'success';
+    const withdrawalCount = Number(state.withdrawalCount || 0);
+    const withdrawalTone = withdrawalCount > 0 ? 'warning' : 'success';
     const varianceTone = !state.hasClosingRecord ? 'warning' : (state.hasVariance ? 'danger' : 'success');
     const varianceValue = state.hasClosingRecord
         ? renderCashCurrencyLines(state.varianceCurrencies || {}, { signed: true, includeZero: true })
@@ -2401,6 +2403,18 @@ function renderCloseBasisRiskSummary(state = {}) {
                 <div class="close-basis-risk-desc">${unsettledAmount > 0
                     ? cashUiText('정산 목록에서 수납 또는 완료 처리가 필요한 금액입니다.', 'Needs receipt or completion handling in the settlement list.')
                     : cashUiText('남아 있는 미정산 Folio가 없습니다.', 'No unsettled folios remain.')}</div>
+            </div>
+            <div class="close-basis-risk-card ${withdrawalTone}">
+                <div class="close-basis-risk-head">
+                    <span><i class="fa-solid fa-arrow-up-from-bracket"></i>${cashUiText('중간출금', 'Mid-shift withdrawal')}</span>
+                    <em class="close-basis-risk-count">${withdrawalCount ? cashUiText(`${withdrawalCount}건`, `${withdrawalCount} item(s)`) : cashUiText('없음', 'None')}</em>
+                </div>
+                ${withdrawalCount
+                    ? renderCashCurrencyLines(state.withdrawalCurrencies || {}, { includeZero: true })
+                    : `<div class="close-basis-main-value success">${escapeAudit(cashUiText('출금 없음', 'No withdrawals'))}</div>`}
+                <div class="close-basis-risk-desc">${withdrawalCount
+                    ? cashUiText('보유 현금에서 차감되는 출금 금액입니다.', 'Deducted from cash on hand.')
+                    : cashUiText('마감 기준에 반영할 중간출금이 없습니다.', 'No mid-shift withdrawal to apply.')}</div>
             </div>
             <div class="close-basis-risk-card ${varianceTone}">
                 <div class="close-basis-risk-head">
