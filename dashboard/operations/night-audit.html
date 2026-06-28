@@ -135,16 +135,18 @@
         .cash-reconcile-body { padding: 0 15px 15px; border-top: 0; }
         .cash-reconcile-panel .cash-reconcile-body { display: block; }
         .cash-reconcile-body .cash-summary-grid { margin-top: 15px; }
-        .cash-flow-diagram { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin-top: 15px; }
-        .cash-flow-main { position: relative; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-        .cash-flow-result { position: relative; grid-column: 2 / 3; margin-top: 34px; }
+        .cash-flow-diagram { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin-top: 15px; }
+        .cash-flow-main { position: relative; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+        .cash-flow-result { position: relative; grid-column: 3 / 5; grid-row: 2; margin-top: 34px; }
         .cash-flow-node { position: relative; z-index: 1; min-height: 112px; padding: 16px 14px; border: 1px solid var(--border2); border-radius: 12px; background: #fff; box-shadow: 0 8px 20px rgba(15,23,42,.04); display: flex; align-items: flex-start; justify-content: flex-start; gap: 12px; text-align: left; }
+        .cash-flow-node.previous { border-color: #cbd5e1; background: #fbfdff; }
         .cash-flow-node.opening { border-color: #bfdbfe; }
         .cash-flow-node.inflow { border-color: #a7f3d0; }
         .cash-flow-node.withdraw { border-color: #fed7aa; }
         .cash-flow-node.result { border-color: #bfdbfe; }
-        .cash-flow-node.variance { grid-column: 3 / 4; align-self: stretch; margin-top: 34px; border-color: #c7d2fe; }
+        .cash-flow-node.variance { grid-column: 1 / 3; grid-row: 2; align-self: stretch; margin-top: 34px; border-color: #c7d2fe; }
         .cash-flow-icon { width: 42px; height: 42px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 42px; background: #eff6ff; color: var(--primary); font-size: 1rem; }
+        .cash-flow-node.previous .cash-flow-icon { background: #f1f5f9; color: #475569; }
         .cash-flow-node.inflow .cash-flow-icon { background: #ecfdf5; color: #047857; }
         .cash-flow-node.withdraw .cash-flow-icon { background: #fff7ed; color: #b45309; }
         .cash-flow-node.variance .cash-flow-icon { background: #eef2ff; color: #4f46e5; }
@@ -153,8 +155,9 @@
         .cash-flow-value { color: var(--txt); font-size: .9rem; font-weight: 950; line-height: 1.45; white-space: normal; overflow-wrap: anywhere; }
         .cash-flow-detail { margin-top: 8px; color: var(--txt2); font-size: .78rem; font-weight: 850; line-height: 1.45; width: 100%; }
         .cash-flow-op { position: absolute; z-index: 5; width: 34px; height: 34px; border-radius: 999px; border: 2px solid #fff; box-shadow: 0 10px 18px rgba(15,23,42,.15); display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 950; }
-        .cash-flow-op.plus { left: calc(33.333333% - 2.333px); top: 50%; transform: translate(-50%, -50%); background: #dcfce7; color: #047857; }
-        .cash-flow-op.minus { left: calc(66.666667% + 2.333px); top: 50%; transform: translate(-50%, -50%); background: #ffedd5; color: #b45309; }
+        .cash-flow-op.handover { left: 25%; top: 50%; transform: translate(-50%, -50%); background: #f8fafc; color: #475569; }
+        .cash-flow-op.plus { left: 50%; top: 50%; transform: translate(-50%, -50%); background: #dcfce7; color: #047857; }
+        .cash-flow-op.minus { left: 75%; top: 50%; transform: translate(-50%, -50%); background: #ffedd5; color: #b45309; }
         .cash-flow-op.equals { left: 50%; top: calc(100% + 25px); transform: translate(-50%, -50%); background: #dbeafe; color: #1d4ed8; }
         .cash-block-titlebar { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
         .cash-block-title { display: flex; align-items: center; gap: 8px; color: var(--txt); font-size: .92rem; font-weight: 950; }
@@ -431,6 +434,8 @@
             .cash-flow-main { grid-column: 1; grid-template-columns: 1fr; }
             .cash-flow-result,
             .cash-flow-node.variance { grid-column: 1; grid-row: auto; margin-top: 0; }
+            .cash-flow-node.variance { order: 2; }
+            .cash-flow-result { order: 3; }
             .cash-flow-op { display: none; }
             .close-basis-record-list { grid-template-columns: 1fr; }
             .cash-payment-grid { grid-template-columns: 1fr; }
@@ -736,9 +741,18 @@
                         <div class="cash-reconcile-body">
                         <div class="cash-flow-diagram">
                             <div class="cash-flow-main">
+                                <span class="cash-flow-op handover">→</span>
                                 <span class="cash-flow-op plus">+</span>
                                 <span class="cash-flow-op minus">-</span>
                                 <span class="cash-flow-op equals">=</span>
+                                <div class="cash-flow-node previous">
+                                    <span class="cash-flow-icon"><i class="fa-solid fa-vault"></i></span>
+                                    <div class="cash-flow-copy">
+                                        <div class="cash-flow-label flow-previous-label">Previous close cash</div>
+                                        <div class="cash-flow-value" id="cashPreviousClosePhp">-</div>
+                                        <div class="cash-flow-detail" id="cashPreviousCloseDetail" data-no-currency-normalize="true">-</div>
+                                    </div>
+                                </div>
                                 <div class="cash-flow-node opening">
                                     <span class="cash-flow-icon"><i class="fa-solid fa-play"></i></span>
                                     <div class="cash-flow-copy">
@@ -2223,6 +2237,12 @@ function previousHandoverSession(date = auditBusinessDate()) {
         .sort((a, b) => String(b.businessDate || '').localeCompare(String(a.businessDate || '')))[0] || null;
 }
 
+function previousCloseCashSession(date = auditBusinessDate()) {
+    return cashSessions()
+        .filter(item => item.businessDate < date && item.closing)
+        .sort((a, b) => String(b.businessDate || '').localeCompare(String(a.businessDate || '')))[0] || null;
+}
+
 function renderAuditHandoverMemo() {
     const memoInput = document.getElementById('auditHandoverMemo');
     const currentSession = activeCashSession(false);
@@ -2330,6 +2350,16 @@ function renderCashReconcileSplitCard(label, values = {}, options = {}) {
 
 function renderCashReconcileDetailCards(state = {}) {
     const cards = [
+        {
+            icon: 'fa-vault',
+            title: cashUiText('전일 마감현금', 'Previous close cash'),
+            sub: state.previousCloseSession
+                ? cashUiText(`${state.previousCloseSession.businessDate} 마감 보유`, `${state.previousCloseSession.businessDate} counted close`)
+                : cashUiText('이전 마감 없음', 'No previous close'),
+            html: state.previousCloseSession
+                ? renderCashCurrencyLines(state.previousCloseCurrencies || {}, { includeZero: true })
+                : `<span class="cash-currency-empty">${cashUiText('이전 마감 기록이 없습니다.', 'No previous close record.')}</span>`
+        },
         {
             icon: 'fa-play',
             title: cashUiText('시작시재 입력 금액', 'Opening cash input'),
@@ -3241,6 +3271,8 @@ function renderCashHandover() {
     const cashInflowPhp = cashSettlementPhp + cashDepositPhp;
     const cashInflowCurrencies = addCurrencyValues(cashSettlementCurrencies, cashDepositCurrencies);
     const withdrawalCurrencies = withdrawalCurrencyTotals(session);
+    const previousCloseSession = previousCloseCashSession();
+    const previousCloseCurrencies = previousCloseSession ? currencyValues(previousCloseSession.closing || {}) : {};
     const expectedClosingCurrencies = expectedCurrencyValues(session.opening, cashInflowCurrencies, withdrawalCurrencies);
     const closingCurrencies = currencyValues(session.closing || {});
     const varianceCurrencies = diffCurrencyValues(closingCurrencies, expectedClosingCurrencies);
@@ -3269,6 +3301,8 @@ function renderCashHandover() {
         cashInflowPhp,
         cashInflowCurrencies,
         withdrawalCurrencies,
+        previousCloseSession,
+        previousCloseCurrencies,
         withdrawalCount,
         expectedClosingCurrencies,
         closingCurrencies,
@@ -3279,6 +3313,12 @@ function renderCashHandover() {
 
     const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
     const setHtml = (id, value) => { const el = document.getElementById(id); if (el) el.innerHTML = value; };
+    setHtml('cashPreviousClosePhp', previousCloseSession
+        ? renderCashCurrencyLines(previousCloseCurrencies, { includeZero: false, emptyLabel: cashUiText('0원', '0') })
+        : escapeAudit(cashUiText('이전 마감 없음', 'No previous close')));
+    set('cashPreviousCloseDetail', previousCloseSession
+        ? cashUiText(`${previousCloseSession.businessDate} 마감 보유`, `${previousCloseSession.businessDate} counted close`)
+        : cashUiText('마감 기록이 생기면 자동 표시', 'Shown after a close is recorded'));
     setHtml('cashOpeningPhp', renderCashCurrencyLines(session.opening, { includeZero: false, emptyLabel: cashUiText('\uBBF8\uB4F1\uB85D', 'Not registered') }));
     set('cashOpeningDetail', cashUiText('입력 금액', 'Input amount'));
     setHtml('cashPreviewOpening', renderCashCurrencyLines(session.opening, { includeZero: false, emptyLabel: cashUiText('\uBBF8\uB4F1\uB85D', 'Not registered') }));
@@ -3547,6 +3587,7 @@ function applyNightAuditI18n() {
     const reconcileOpen = document.querySelector('.cash-reconcile-toggle .when-open');
     if (reconcileOpen) reconcileOpen.textContent = cashUiText('\uC811\uAE30', 'Hide');
     const flowLabels = [
+        ['.flow-previous-label', '\uC804\uC77C \uB9C8\uAC10\uD604\uAE08', 'Previous close cash'],
         ['.flow-opening-label', '\uC2DC\uC791\uC2DC\uC7AC', 'Opening cash'],
         ['.flow-inflow-label', '\uD604\uAE08\uC785\uAE08', 'Cash inflow'],
         ['.flow-withdraw-label', '\uC911\uAC04\uCD9C\uAE08', 'Mid-shift withdrawal'],
