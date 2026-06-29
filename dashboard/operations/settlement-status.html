@@ -433,19 +433,26 @@ function mapSettlementFolio(item) {
     };
 }
 
-function settlementIsActionable(folio) {
-    if (['unpaid', 'ready', 'refund'].includes(folio.status)) return true;
+function settlementIsTodayCheckout(folio) {
     return folio.checkoutDate === settlementTodayIso();
+}
+
+function settlementNeedsAction(folio) {
+    return ['unpaid', 'ready', 'refund'].includes(folio.status);
+}
+
+function settlementIsActionable(folio) {
+    return settlementIsTodayCheckout(folio) && settlementNeedsAction(folio);
 }
 
 function filterSettlementFolios() {
     const query = settlementState.query.trim().toLowerCase();
     let rows = settlementState.folios.filter(settlementIsActionable);
     if (settlementState.filter === 'all') rows = settlementState.folios.slice();
-    if (settlementState.filter === 'unpaid') rows = rows.filter(folio => folio.status === 'unpaid');
-    if (settlementState.filter === 'ready') rows = rows.filter(folio => folio.status === 'ready');
-    if (settlementState.filter === 'deposit') rows = rows.filter(folio => folio.deposit > 0);
-    if (settlementState.filter === 'group') rows = rows.filter(folio => folio.folioType === 'group' || folio.groupId);
+    if (settlementState.filter === 'unpaid') rows = settlementState.folios.filter(folio => folio.status === 'unpaid');
+    if (settlementState.filter === 'ready') rows = settlementState.folios.filter(folio => settlementIsTodayCheckout(folio) && ['ready', 'refund'].includes(folio.status));
+    if (settlementState.filter === 'deposit') rows = settlementState.folios.filter(folio => settlementIsTodayCheckout(folio) && folio.deposit > 0);
+    if (settlementState.filter === 'group') rows = settlementState.folios.filter(folio => settlementIsTodayCheckout(folio) && (folio.folioType === 'group' || folio.groupId));
     if (query) {
         rows = rows.filter(folio => [
             folio.id, folio.folioId, folio.room, folio.roomText, folio.guest, folio.groupName,
@@ -463,11 +470,13 @@ function filterSettlementFolios() {
 }
 
 function renderSettlementKpis() {
-    const actionable = settlementState.folios.filter(settlementIsActionable);
-    const need = actionable.filter(folio => ['unpaid', 'ready', 'refund'].includes(folio.status)).length;
-    const balance = actionable.reduce((sum, folio) => sum + Math.max(0, folio.balance), 0);
-    const deposit = actionable.reduce((sum, folio) => sum + Math.max(0, folio.deposit), 0);
-    const group = actionable.filter(folio => folio.folioType === 'group' || folio.groupId).length;
+    const todayCheckout = settlementState.folios.filter(settlementIsTodayCheckout);
+    const actionable = todayCheckout.filter(settlementNeedsAction);
+    const unpaid = settlementState.folios.filter(folio => folio.status === 'unpaid');
+    const need = actionable.length;
+    const balance = unpaid.reduce((sum, folio) => sum + Math.max(0, folio.balance), 0);
+    const deposit = todayCheckout.reduce((sum, folio) => sum + Math.max(0, folio.deposit), 0);
+    const group = todayCheckout.filter(folio => folio.folioType === 'group' || folio.groupId).length;
     document.getElementById('kpiNeed').textContent = need;
     document.getElementById('kpiBalance').textContent = settlementMoney(balance);
     document.getElementById('kpiDeposit').textContent = settlementMoney(deposit);
