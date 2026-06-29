@@ -78,10 +78,10 @@
                     roles: ['sys_admin', 'sys_gm', 'sys_desk'],
                     mainHref: BASE + 'operations/settlement-status.html',
                     children: [
-                        { label: 'Revenue Analytics', href: BASE + 'operations/reports.html' },
                         { label: '정산 현황',         href: BASE + 'operations/settlement-status.html', key: 'folio.status' },
                         { label: '정산 목록',         href: BASE + 'operations/folio.html' },
                         { label: 'Night Audit',       href: BASE + 'operations/night-audit.html' },
+                        { label: 'Revenue Analytics', href: BASE + 'operations/reports.html' },
                     ]
                 },
                 {
@@ -160,10 +160,10 @@
         'housekeeping',
         'maintenance',
         'folio',
-        'folio.reports',
         'folio.status',
         'folio.list',
         'folio.night-audit',
+        'folio.reports',
         'ancillary',
         'ancillary.board',
         'ancillary.vendors',
