@@ -176,6 +176,11 @@
 .settlement-history-main span{display:block;color:var(--txt3);font-size:.7rem;font-weight:800;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .settlement-history-amount{text-align:right;color:var(--primary);font-weight:950;white-space:nowrap}
 .settlement-history-empty{padding:18px;text-align:center;color:var(--txt3);font-size:.78rem;font-weight:850;border:1px dashed var(--border);border-radius:9px;background:#fbfdff}
+.settlement-detail-footer{padding:16px 20px;border-top:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)}
+.settlement-detail-footer-left,.settlement-detail-footer-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn-settlement-complete{border:1px solid #059669;background:#059669;color:#fff;border-radius:6px;font-family:var(--font);font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;transition:all .15s}
+.btn-settlement-complete:hover{filter:brightness(.96)}
+.btn-settlement-complete:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.1)}
 .folio-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:#fff}
 .folio-page-info{font-size:.78rem;font-weight:800;color:var(--txt2)}
 .folio-page-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -211,6 +216,9 @@
     .settlement-detail-row:nth-last-child(-n+2){border-bottom:1px solid var(--border2)}
     .settlement-history-item{grid-template-columns:1fr}
     .settlement-history-amount{text-align:left}
+    .settlement-detail-footer{align-items:stretch;flex-direction:column}
+    .settlement-detail-footer-left,.settlement-detail-footer-right{width:100%}
+    .settlement-detail-footer-left button,.settlement-detail-footer-right button{flex:1;justify-content:center}
 }
 </style>
 </head>
@@ -2679,15 +2687,21 @@ function renderSettlementDetailModal() {
     }
     if (footer) {
         const due = Number(folio.bal || 0);
+        const paymentButton = !folio.settlementCompleted && due > 0
+            ? '<button class="btn-primary-sm" onclick="openSettlementPaymentFromDetail()"><i class="fa-solid fa-credit-card"></i> 수납 등록</button>'
+            : '';
         const completeButton = folio.settlementCompleted
-            ? '<button class="btn-outline" disabled>정산 완료됨</button>'
-            : due > 0
-                ? '<button class="btn-primary-sm" onclick="openSettlementPaymentFromDetail()"><i class="fa-solid fa-credit-card"></i> 수납 등록</button>'
-                : '<button class="btn-primary-sm" onclick="completeSettlementFromDetail()"><i class="fa-solid fa-circle-check"></i> 정산 완료</button>';
+            ? '<button class="btn-settlement-complete" disabled><i class="fa-solid fa-circle-check"></i> 정산/체크아웃 완료</button>'
+            : '<button class="btn-settlement-complete" onclick="completeSettlementFromDetail()"><i class="fa-solid fa-door-open"></i> 정산 완료</button>';
         footer.innerHTML = `
-            <button class="btn-outline" onclick="closeModal('settlementDetailModal')">닫기</button>
-            <button class="btn-outline" onclick="openInvoiceFromSettlementDetail()"><i class="fa-solid fa-file-invoice"></i> 고객용 명세서</button>
-            ${completeButton}
+            <div class="settlement-detail-footer-left">
+                <button class="btn-outline" onclick="closeModal('settlementDetailModal')">닫기</button>
+                <button class="btn-outline" onclick="openInvoiceFromSettlementDetail()"><i class="fa-solid fa-file-invoice"></i> 고객용 명세서</button>
+            </div>
+            <div class="settlement-detail-footer-right">
+                ${paymentButton}
+                ${completeButton}
+            </div>
         `;
     }
 }
@@ -2714,8 +2728,15 @@ function openSettlementPaymentFromDetail() {
 function completeSettlementFromDetail() {
     const folio = visibleFolios[currentSettlementIndex];
     if (!folio) return;
-    closeModal('settlementDetailModal');
     completeSettlementFolio(folio.id);
+}
+
+function reopenSettlementDetailForFolio(folioId) {
+    const nextIndex = visibleFolios.findIndex(item => item.id === folioId);
+    if (nextIndex < 0) return;
+    currentSettlementIndex = nextIndex;
+    renderSettlementDetailModal();
+    openModal('settlementDetailModal');
 }
 
 function openPaymentModal(folioId, bal) {
@@ -2802,6 +2823,7 @@ function processPayment() {
     showToast(isDeposit ? '예치금 수납 내역이 저장되었습니다.' : '정산 수납 내역이 저장되었습니다.', 'success');
     closeModal('paymentModal');
     renderFolios();
+    reopenSettlementDetailForFolio(folio.id);
 }
 
 function completeSettlementFolio(folioId) {
@@ -2828,6 +2850,8 @@ function completeSettlementFolio(folioId) {
         total: Number(folio.total || 0),
         paid: Number(folio.paid || 0),
         bal: Number(folio.bal || 0),
+        checkoutCompleted: true,
+        roomNextStatus: 'dirty',
         signature: folioSettlementSignature(folio),
         businessDate: currentBusinessDate(),
         completedAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
@@ -2844,8 +2868,9 @@ function completeSettlementFolio(folioId) {
             businessDate: completion.businessDate
         });
     }
-    showToast('정산 완료 처리되었습니다. 이후 추가 수납은 제한됩니다.', 'success');
+    showToast('정산/체크아웃 완료 처리되었습니다. 객실은 청소 필요 상태로 전환됩니다.', 'success');
     renderFolios();
+    reopenSettlementDetailForFolio(folio.id);
 }
 
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
@@ -2924,7 +2949,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <button class="modal-close" onclick="closeModal('settlementDetailModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body settlement-detail-body" id="settlementDetailContent"></div>
-        <div class="modal-footer" id="settlementDetailFooter" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)"></div>
+        <div class="modal-footer settlement-detail-footer" id="settlementDetailFooter"></div>
     </div>
 </div>
 
