@@ -72,27 +72,41 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
 
     function activityIcon(type) {
         const value = String(type || '').toLowerCase();
-        if (value.includes('housekeeping')) return 'fa-broom';
+        if (value.includes('ancillary') || value.includes('pos') || value.includes('golf') || value.includes('rentacar')) return 'fa-concierge-bell';
+        if (value.includes('room-change') || value.includes('room_move')) return 'fa-right-left';
+        if (value.includes('approval') || value.includes('refund')) return 'fa-circle-exclamation';
+        if (value.includes('housekeeping') || value.includes('cleaning')) return 'fa-broom';
         if (value.includes('billing') || value.includes('folio')) return 'fa-credit-card';
         if (value.includes('group')) return 'fa-users-line';
-        if (value.includes('reservation')) return 'fa-book-bookmark';
+        if (value.includes('reservation') || value.includes('frontdesk')) return 'fa-book-bookmark';
         return 'fa-bell';
     }
 
     function activityTitle(type) {
         const value = String(type || '').toLowerCase();
-        if (value.includes('housekeeping')) return text('topbar.notification.housekeeping', '하우스키핑');
+        if (value.includes('ancillary') || value.includes('pos') || value.includes('golf') || value.includes('rentacar')) return text('topbar.notification.ancillary', '부가서비스');
+        if (value.includes('approval') || value.includes('refund')) return text('topbar.notification.approval', '승인/주의');
+        if (value.includes('housekeeping') || value.includes('cleaning')) return text('topbar.notification.housekeeping', '객실 상태');
         if (value.includes('billing') || value.includes('folio')) return text('topbar.notification.billing', '정산');
         if (value.includes('group')) return text('topbar.notification.group', '단체');
-        if (value.includes('reservation')) return text('topbar.notification.reservation', '예약');
+        if (value.includes('reservation') || value.includes('frontdesk')) return text('topbar.notification.reservation', '예약/객실');
         return text('topbar.notification.system', '알림');
     }
 
     function notificationClass(item) {
         const type = String(item.type || '').toLowerCase();
         if (item.urgent) return 'urgent';
-        if (type.includes('housekeeping')) return 'warning';
+        if (type.includes('approval') || type.includes('refund')) return 'urgent';
+        if (type.includes('billing') || type.includes('folio') || type.includes('ancillary')) return 'warning';
         return '';
+    }
+
+    function notificationTarget(item) {
+        const target = String(item.target || item.link || '').trim();
+        if (!target) return '';
+        if (/^https?:/i.test(target) || target.startsWith('/')) return target;
+        if (target.startsWith('../') || target.startsWith('./')) return target;
+        return `${BASE}${target}`;
     }
 
     function buildNotificationList() {
@@ -100,26 +114,33 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
             return `<div class="notif-item">
                 <div class="notif-icon"><i class="fa-regular fa-bell"></i></div>
                 <div class="notif-content">
-                    <div class="n-title">${escapeHtml(text('topbar.notification.empty', '새 알림 없음'))}</div>
-                    <div class="n-desc" style="font-size:0.8rem;color:var(--txt2);margin-bottom:4px">${escapeHtml(text('topbar.notification.empty.desc', '표시할 활동이 없습니다.'))}</div>
+                    <div class="n-title">${escapeHtml(text('topbar.notification.empty', '공유 알림 없음'))}</div>
+                    <div class="n-desc" style="font-size:0.8rem;color:var(--txt2);margin-bottom:4px">${escapeHtml(text('topbar.notification.empty.desc', '최근 공유된 운영 이벤트가 없습니다.'))}</div>
                 </div>
             </div>`;
         }
-        return state.notifications.slice(0, 3).map(item => `
-            <div class="notif-item ${notificationClass(item)}">
+        return state.notifications.slice(0, 4).map(item => {
+            const href = notificationTarget(item);
+            const tag = href ? 'a' : 'div';
+            const meta = [item.actor, item.eventDate].filter(Boolean).join(' · ');
+            return `
+            <${tag} class="notif-item ${notificationClass(item)}" ${href ? `href="${escapeHtml(href)}"` : ''} style="${href ? 'text-decoration:none;color:inherit' : ''}">
                 <div class="notif-icon"><i class="fa-solid ${item.icon || activityIcon(item.type)}"></i></div>
                 <div class="notif-content">
                     <div class="n-title">${escapeHtml(pickLocalized(item.title) || activityTitle(item.type))}</div>
                     <div class="n-desc" style="font-size:0.8rem;color:var(--txt2);margin-bottom:4px">${escapeHtml(pickLocalized(item.desc) || pickLocalized(item.label) || '')}</div>
-                    <span class="n-time" style="font-size:0.7rem;color:var(--txt3)">${escapeHtml(item.time || '')}</span>
+                    <span class="n-time" style="font-size:0.7rem;color:var(--txt3)">${escapeHtml([item.time, meta].filter(Boolean).join(' · '))}</span>
                 </div>
-            </div>
-        `).join('');
+            </${tag}>
+        `;
+        }).join('');
     }
 
     function renderNotificationList() {
         const list = document.querySelector('.notif-list');
         if (list) list.innerHTML = buildNotificationList();
+        const dot = document.querySelector('.notif-dot');
+        if (dot) dot.style.display = state.notifications.length ? '' : 'none';
     }
 
     function renderHotelName() {
@@ -147,13 +168,17 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
             } else {
                 const env = await window.PmsMockApi.request('GET', '/dashboard/today-activities');
                 state.notifications = window.PmsMockApi.items(env).map(item => ({
+                    ...item,
                     type: item.type,
                     title: item.title || activityTitle(item.type),
                     desc: item.desc || item.label,
                     label: item.label,
                     time: item.time,
                     icon: item.icon || activityIcon(item.type),
-                    urgent: Boolean(item.urgent)
+                    urgent: Boolean(item.urgent || String(item.severity || '').toLowerCase() === 'urgent'),
+                    target: item.target || item.link,
+                    actor: item.actor || item.actorName || '',
+                    eventDate: item.eventDate || ''
                 }));
             }
         } catch (error) {

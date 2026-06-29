@@ -137,6 +137,16 @@
         .board-stay-btn:disabled{opacity:.55;cursor:wait;transform:none}
         .board-empty{font-size:.74rem;color:var(--txt3);font-weight:750;margin-top:8px}
         .board-money{font-size:.68rem;color:var(--txt2);font-weight:800;margin-top:auto}
+        .board-readiness{display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;padding:3px 8px;border-radius:999px;font-size:.63rem;font-weight:950;white-space:nowrap}
+        .board-readiness.ready{background:#dcfce7;color:#047857}
+        .board-readiness.warn{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
+        .board-readiness.block{background:#fee2e2;color:#dc2626}
+        .board-settlement-summary{display:flex;flex-wrap:wrap;gap:5px;width:100%;margin-top:1px;text-decoration:none}
+        .board-settle-badge{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:3px 7px;border-radius:999px;border:1px solid var(--border2);background:#fff;font-size:.62rem;font-weight:950;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .board-settle-badge.ready{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+        .board-settle-badge.unpaid{background:#fff1f2;color:#be123c;border-color:#fecdd3}
+        .board-settle-badge.deposit{background:#ecfdf5;color:#047857;border-color:#bbf7d0}
+        .board-settle-badge.paid{background:#f1f5f9;color:#475569;border-color:#cbd5e1}
         @media(max-width:768px){
             .reservation-board-kpis{grid-template-columns:1fr 1fr}
             .filter-bar-mt{padding:12px;gap:10px}
@@ -556,6 +566,66 @@ function formatMoney(amount) {
     return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 }).format(Number(amount || 0));
 }
 
+function boardMoneyNumber(value) {
+    if (value && typeof value === 'object') return Number(value.amount || 0);
+    const number = Number(value || 0);
+    return Number.isFinite(number) ? number : 0;
+}
+
+function boardReservationBalance(res) {
+    return boardMoneyNumber(
+        res?.balanceDue ??
+        res?.outstandingBalance ??
+        res?.paymentPlan?.balanceDue ??
+        res?.settlement?.balanceDue ??
+        0
+    );
+}
+
+function boardReservationDeposit(res) {
+    return boardMoneyNumber(
+        res?.depositAmount ??
+        res?.prepaidAmount ??
+        res?.deposit ??
+        res?.paymentPlan?.depositAmount ??
+        res?.settlement?.depositAmount ??
+        0
+    );
+}
+
+function boardSettlementSummary(res, state) {
+    if (!res) return { html: '', terms: '' };
+    const balance = boardReservationBalance(res);
+    const deposit = boardReservationDeposit(res);
+    const status = normalizeStatus(res.status || '');
+    const isCompleted = ['completed', 'checkedout', 'checked-out', 'settled', 'closed'].includes(status);
+    const checkoutToday = state?.status === 'checkout' || sameDate(reservationEnd(res), todayDate());
+    const badges = [];
+    if (balance > 0) {
+        badges.push({ key: 'unpaid', label: '미수금 있음', icon: 'fa-circle-exclamation' });
+    } else if (checkoutToday && !isCompleted) {
+        badges.push({ key: 'ready', label: '정산 필요', icon: 'fa-file-invoice-dollar' });
+    } else if (isCompleted) {
+        badges.push({ key: 'paid', label: '정산 완료', icon: 'fa-circle-check' });
+    }
+    if (deposit > 0) badges.push({ key: 'deposit', label: '예치금 있음', icon: 'fa-wallet' });
+    if (!badges.length) return { html: '', terms: '' };
+    const target = `../operations/settlement-status.html?query=${encodeURIComponent(res.room || res.roomNo || res.id || '')}`;
+    return {
+        terms: badges.map(item => item.label).join(' '),
+        html: `<a class="board-settlement-summary" href="${target}" onclick="event.stopPropagation()" title="정산 현황에서 확인">
+            ${badges.map(item => `<span class="board-settle-badge ${item.key}"><i class="fa-solid ${item.icon}"></i>${item.label}</span>`).join('')}
+        </a>`
+    };
+}
+
+function boardCheckinReadiness(state, cleanInfo) {
+    if (!state?.res || state.status !== 'arrival') return '';
+    if (state.status === 'oos') return '<span class="board-readiness block"><i class="fa-solid fa-ban"></i>체크인 불가</span>';
+    if (cleanInfo?.key === 'clean') return '<span class="board-readiness ready"><i class="fa-solid fa-circle-check"></i>체크인 가능</span>';
+    return '<span class="board-readiness warn"><i class="fa-solid fa-triangle-exclamation"></i>청소 확인 필요</span>';
+}
+
 function boardStatusFor(room) {
     const range = boardRange();
     const focusDate = range.mode === 'day' ? range.start : todayDate();
@@ -863,12 +933,14 @@ function boardCard(room) {
     const roomChangeText = hasRoomChange ? reservationRoomChangeText(res) : '';
     const stayState = res ? boardStayState(room, res) : '';
     const stayStateLabels = { none: '재실', dnd: '방해금지', away: '외출', mur: '청소필요', clean: '청소완료' };
+    const settlementInfo = boardSettlementSummary(res, state);
     const searchText = [
         room.id,
         room.fullRoom,
         roomType(room),
         state.label,
         stayStateLabels[stayState] || '',
+        settlementInfo.terms,
         primary,
         displayName,
         groupName,
@@ -891,6 +963,7 @@ function boardCard(room) {
         <span class="board-clean-badge ${cleanInfo.key}"><i class="fa-solid ${cleanInfo.icon}"></i>${cleanInfo.label}</span>
         ${boardStayActions(room, res)}
     </div>`;
+    const readinessHtml = boardCheckinReadiness(state, cleanInfo);
     const click = res
         ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"`
         : (canCreateBooking ? `onclick="openBoardRoomBooking('${encodeURIComponent(roomId)}')"` : '');
@@ -920,7 +993,9 @@ function boardCard(room) {
         ${flags ? `<div class="board-flags">${flags}</div>` : ''}
         ${reservationStayTimeHtml(res)}
         ${cleanSummary}
-        <div class="board-money">${formatMoney(amountValue(res))}${res.balanceDue ? ` · 잔액 ${formatMoney(res.balanceDue)}` : ''}</div>` : `<div class="board-empty">예약 없음</div>${cleanSummary}`}
+        ${readinessHtml}
+        ${settlementInfo.html}
+        <div class="board-money">${formatMoney(amountValue(res))}${boardReservationBalance(res) ? ` · 잔액 ${formatMoney(boardReservationBalance(res))}` : ''}</div>` : `<div class="board-empty">예약 없음</div>${cleanSummary}`}
     </div>`;
 }
 
@@ -1175,6 +1250,19 @@ function setBoardFilter(filter) {
     renderReservationBoard();
 }
 
+function applyBoardUrlParams() {
+    const params = new URLSearchParams(location.search);
+    const filter = params.get('filter');
+    const chips = Array.from(document.querySelectorAll('#boardChips .chip'));
+    if (filter && chips.some(chip => chip.dataset.filter === filter)) {
+        boardFilter = filter;
+        chips.forEach(btn => btn.classList.toggle('active', btn.dataset.filter === filter));
+    }
+    const query = params.get('query') || params.get('q') || '';
+    const search = document.getElementById('boardSearch');
+    if (query && search) search.value = query;
+}
+
 window.renderReservationBoard = renderReservationBoard;
 window.renderTable = renderReservationBoard;
 window.setBoardPeriod = setBoardPeriod;
@@ -1192,6 +1280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.reservations = reservations;
     window.groups = groups;
     await refreshBoardDailyStayCleaning();
+    applyBoardUrlParams();
     renderReservationBoard();
 });
 </script>

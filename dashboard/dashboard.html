@@ -18,6 +18,38 @@
 <script src="common/js/sidebar.js"></script>
     <script src="common/js/ui-components.js"></script>
     <script src="common/js/topbar.js"></script>
+    <style>
+        .today-ops-board{margin-bottom:20px;padding:18px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 2px 12px rgba(15,23,42,.04)}
+        .today-ops-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+        .today-ops-title{display:grid;gap:4px}
+        .today-ops-title h2{display:flex;align-items:center;gap:9px;margin:0;color:var(--txt);font-size:1.08rem;font-weight:950;line-height:1.2}
+        .today-ops-title p{margin:0;color:var(--txt2);font-size:.8rem;font-weight:750;line-height:1.45}
+        .today-ops-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+        .today-ops-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+        .today-ops-card{display:flex;align-items:center;gap:12px;min-height:86px;padding:14px;border:1px solid var(--border2);border-radius:12px;background:#f8fafc;text-decoration:none;transition:.15s;min-width:0}
+        .today-ops-card:hover{transform:translateY(-1px);border-color:#bfdbfe;box-shadow:0 8px 20px rgba(37,99,235,.09)}
+        .today-ops-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+        .today-ops-icon.blue{background:#eff6ff;color:#2563eb}
+        .today-ops-icon.green{background:#ecfdf5;color:#059669}
+        .today-ops-icon.orange{background:#fff7ed;color:#ea580c}
+        .today-ops-icon.red{background:#fff1f2;color:#dc2626}
+        .today-ops-icon.purple{background:#f5f3ff;color:#7c3aed}
+        .today-ops-icon.dark{background:#f1f5f9;color:#111827}
+        .today-ops-value{font-size:1.25rem;font-weight:950;color:var(--txt);line-height:1}
+        .today-ops-label{margin-top:4px;font-size:.78rem;font-weight:900;color:var(--txt)}
+        .today-ops-hint{margin-top:3px;font-size:.68rem;font-weight:800;color:var(--txt3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .today-ops-value,.today-ops-label,.today-ops-hint{display:block}
+        .today-ops-feed{margin-top:14px;padding-top:14px;border-top:1px solid var(--border2)}
+        .today-ops-feed-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px;color:var(--txt);font-size:.86rem;font-weight:950}
+        .today-ops-events{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+        .today-ops-event{display:flex;align-items:center;gap:10px;min-width:0;padding:10px 12px;border:1px solid var(--border2);border-radius:10px;background:#fff;color:inherit;text-decoration:none}
+        .today-ops-event-icon{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:#eff6ff;color:var(--primary);flex:0 0 auto;font-size:.78rem}
+        .today-ops-event-title{font-size:.78rem;font-weight:950;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .today-ops-event-desc{margin-top:2px;font-size:.68rem;font-weight:750;color:var(--txt3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .today-ops-event-title,.today-ops-event-desc{display:block}
+        @media(max-width:1100px){.today-ops-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.today-ops-events{grid-template-columns:1fr}}
+        @media(max-width:720px){.today-ops-head{flex-direction:column}.today-ops-actions{justify-content:flex-start}.today-ops-grid{grid-template-columns:1fr}}
+    </style>
 </head>
 <body>
 
@@ -28,6 +60,29 @@
         <header class="topbar"><h1 data-i18n-key="Dashboard">대시보드</h1></header>
 
     <div class="content">
+        <section class="today-ops-board" aria-label="오늘 운영 큐">
+            <div class="today-ops-head">
+                <div class="today-ops-title">
+                    <h2><i class="fa-solid fa-list-check"></i> 오늘 운영 큐</h2>
+                    <p>예약, 객실 상태, 정산, 단체 도착/퇴실처럼 프런트가 지금 확인해야 하는 업무를 먼저 보여줍니다.</p>
+                </div>
+                <div class="today-ops-actions">
+                    <a class="view-all-btn" href="frontdesk/reservation-board.html">예약 현황</a>
+                    <a class="view-all-btn" href="operations/settlement-status.html">정산 현황</a>
+                    <a class="view-all-btn" href="notifications.html">알림 로그</a>
+                </div>
+            </div>
+            <div class="today-ops-grid" id="todayOpsGrid">
+                <a class="today-ops-card" href="frontdesk/reservation-board.html"><span class="today-ops-icon blue"><i class="fa-solid fa-spinner fa-spin"></i></span><span><span class="today-ops-value">--</span><span class="today-ops-label">불러오는 중</span><span class="today-ops-hint">운영 데이터를 확인합니다.</span></span></a>
+            </div>
+            <div class="today-ops-feed">
+                <div class="today-ops-feed-head">
+                    <span><i class="fa-regular fa-bell"></i> 공유 알림</span>
+                    <a class="view-all-btn" href="notifications.html">전체 보기</a>
+                </div>
+                <div class="today-ops-events" id="todayOpsEvents"></div>
+            </div>
+        </section>
         <!-- PREMIUM HERO AD: one visible banner with controlled rotation -->
         <section class="ad-hero-carousel" aria-label="Premium rotating advertising banner" data-ad-hero>
             <div class="ad-hero-carousel__viewport">
@@ -306,6 +361,111 @@
 <script src="common/js/pages/dashboard.js"></script>
 
 <script>
+(function(){
+    const grid = document.getElementById('todayOpsGrid');
+    const eventWrap = document.getElementById('todayOpsEvents');
+    if (!grid) return;
+
+    function esc(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+    function localized(value) {
+        if (value && typeof value === 'object') return value.ko || value.en || '';
+        return value || '';
+    }
+    function todayIso() {
+        return window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
+    }
+    function iso(value) {
+        const text = String(value || '');
+        return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : '';
+    }
+    function amount(value) {
+        if (window.PmsMockApi?.amountValue) return Number(window.PmsMockApi.amountValue(value) || 0);
+        if (value && typeof value === 'object') return Number(value.amount || 0);
+        return Number(value || 0);
+    }
+    function statusOf(res) {
+        return String(res?.status || '').replace(/[-_\s]/g, '').toLowerCase();
+    }
+    function roomOpsStatus(room) {
+        return String(room?.status || room?.frontStatus || room?.housekeepingStatus || room?.cleaningStatus || '').replace(/[-_\s]/g, '').toLowerCase();
+    }
+    function folioSettlementStatus(item) {
+        const charges = Array.isArray(item.charges) ? item.charges : [];
+        const payments = Array.isArray(item.payments) ? item.payments : [];
+        const total = charges.reduce((sum, charge) => sum + amount(charge.amount), 0);
+        const paid = payments.reduce((sum, payment) => sum + amount(payment.amount), 0);
+        let balance = amount(item.balance);
+        if (!balance && String(item.status || '').toLowerCase() === 'open' && total > paid) balance = Math.max(total - paid, 0);
+        const state = balance > 0 ? 'unpaid' : (['closed', 'settled', 'paid'].includes(String(item.status || '').toLowerCase()) ? 'paid' : 'ready');
+        const deposit = Number(item.depositAmount || 0) + payments
+            .filter(payment => String(payment.method || payment.type || '').toLowerCase().includes('deposit'))
+            .reduce((sum, payment) => sum + amount(payment.amount), 0);
+        return { state, balance, deposit };
+    }
+    function card(item) {
+        return `<a class="today-ops-card" href="${esc(item.href)}">
+            <span class="today-ops-icon ${esc(item.tone)}"><i class="fa-solid ${esc(item.icon)}"></i></span>
+            <span style="min-width:0">
+                <span class="today-ops-value">${esc(item.value)}</span>
+                <span class="today-ops-label">${esc(item.label)}</span>
+                <span class="today-ops-hint">${esc(item.hint)}</span>
+            </span>
+        </a>`;
+    }
+    function eventTarget(item) {
+        const target = String(item.target || item.link || 'notifications.html');
+        if (/^https?:/i.test(target) || target.startsWith('/')) return target;
+        return target;
+    }
+    async function loadTodayOps() {
+        const today = todayIso();
+        const [reservations, rooms, groups, foliosEnv, eventsEnv] = await Promise.all([
+            window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : [],
+            window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
+            window.PmsAPI?.getGroups ? window.PmsAPI.getGroups().catch(() => []) : [],
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/folios').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/dashboard/today-activities').catch(() => ({ data: { items: [] } })) : { data: { items: [] } }
+        ]);
+        const arrival = reservations.filter(res => iso(res.checkInDate || res.checkin) === today && !['cancelled', 'completed', 'checkedout'].includes(statusOf(res))).length;
+        const checkout = reservations.filter(res => iso(res.checkOutDate || res.checkout) === today && ['checkedin', 'inhouse', 'checkout'].includes(statusOf(res))).length;
+        const folios = window.PmsMockApi?.items(foliosEnv) || [];
+        const settlementRows = folios.map(folioSettlementStatus);
+        const settlementNeed = settlementRows.filter(row => row.state !== 'paid').length;
+        const unpaid = settlementRows.reduce((sum, row) => sum + Math.max(0, row.balance), 0);
+        const deposit = settlementRows.reduce((sum, row) => sum + Math.max(0, row.deposit), 0);
+        const cleaningNeed = rooms.filter(room => ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(roomOpsStatus(room))).length;
+        const maintenance = rooms.filter(room => ['oos', 'outofservice', 'maintenance'].includes(roomOpsStatus(room))).length;
+        const groupMove = groups.filter(group => iso(group.checkin || group.checkInDate) === today || iso(group.checkout || group.checkOutDate) === today).length;
+        const events = window.PmsMockApi?.items(eventsEnv) || [];
+        const urgentEvents = events.filter(item => item.urgent).length;
+        grid.innerHTML = [
+            { value: arrival, label: '오늘 체크인', hint: '도착 예정 고객', href: 'frontdesk/reservation-board.html?filter=checkin', icon: 'fa-right-to-bracket', tone: 'blue' },
+            { value: checkout, label: '체크아웃 예정', hint: '퇴실/정산 연결', href: 'frontdesk/reservation-board.html?filter=checkout', icon: 'fa-right-from-bracket', tone: 'orange' },
+            { value: settlementNeed, label: '정산 필요', hint: `미수금 ₱${Math.round(unpaid).toLocaleString('en-US')}`, href: 'operations/settlement-status.html', icon: 'fa-file-invoice-dollar', tone: unpaid ? 'red' : 'blue' },
+            { value: deposit ? `₱${Math.round(deposit).toLocaleString('en-US')}` : 0, label: '예치금 확인', hint: '체크아웃 전 잔액 확인', href: 'operations/settlement-status.html?filter=deposit', icon: 'fa-wallet', tone: 'green' },
+            { value: cleaningNeed, label: '청소 필요', hint: '프런트 확인용 객실 상태', href: 'frontdesk/reservation-board.html?query=청소 필요', icon: 'fa-broom', tone: 'green' },
+            { value: maintenance, label: '점검 중', hint: '판매/체크인 제한 객실', href: 'frontdesk/reservation-board.html?query=점검', icon: 'fa-screwdriver-wrench', tone: 'dark' },
+            { value: groupMove, label: '단체 도착/퇴실', hint: '단체 업무 확인', href: 'frontdesk/groups_blocks.html', icon: 'fa-users-line', tone: 'purple' },
+            { value: urgentEvents || events.length, label: '공유 알림', hint: urgentEvents ? '긴급 확인 포함' : '최근 운영 이벤트', href: 'notifications.html', icon: 'fa-bell', tone: urgentEvents ? 'red' : 'blue' }
+        ].map(card).join('');
+        if (eventWrap) {
+            eventWrap.innerHTML = events.slice(0, 4).map(item => `<a class="today-ops-event" href="${esc(eventTarget(item))}">
+                <span class="today-ops-event-icon"><i class="fa-solid ${esc(item.icon || 'fa-bell')}"></i></span>
+                <span style="min-width:0">
+                    <span class="today-ops-event-title">${esc(localized(item.title || item.label))}</span>
+                    <span class="today-ops-event-desc">${esc(localized(item.desc || item.label))}</span>
+                </span>
+            </a>`).join('') || '<div class="today-ops-event"><span class="today-ops-event-icon"><i class="fa-regular fa-bell"></i></span><span><span class="today-ops-event-title">공유 알림 없음</span><span class="today-ops-event-desc">최근 운영 이벤트가 없습니다.</span></span></div>';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', () => loadTodayOps().catch(error => {
+        console.warn('Today operation queue failed', error);
+        grid.innerHTML = '<div class="today-ops-card"><span class="today-ops-icon red"><i class="fa-solid fa-triangle-exclamation"></i></span><span><span class="today-ops-label">운영 큐를 불러오지 못했습니다.</span></span></div>';
+    }));
+})();
+
 (function(){
     const hero = document.querySelector('[data-ad-hero]');
     if (hero) {

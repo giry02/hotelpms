@@ -32,11 +32,16 @@
         .timeline-item { position: relative; }
         .timeline-icon { position: absolute; left: -24px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #fff; z-index: 2; box-shadow: 0 0 0 4px var(--card); }
         .timeline-icon.frontdesk { background: #3B82F6; }
+        .timeline-icon.ancillary { background: #0D9488; }
+        .timeline-icon.group { background: #8B5CF6; }
+        .timeline-icon.approval { background: #EF4444; }
         .timeline-icon.housekeeping { background: #10B981; }
         .timeline-icon.system { background: #F59E0B; }
         .timeline-icon.billing { background: #8B5CF6; }
         
         .timeline-content { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-left: 12px; }
+        .timeline-link { display: block; color: inherit; text-decoration: none; }
+        .timeline-link:hover .timeline-content { border-color: var(--primary); box-shadow: 0 8px 18px rgba(59, 130, 246, .08); }
         .timeline-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
         .timeline-title { font-weight: 700; font-size: 0.9rem; color: var(--txt); }
         .timeline-time { font-size: 0.75rem; color: var(--txt3); }
@@ -53,11 +58,13 @@
 <div class="content">
 <div class="notif-page-card">
 <div class="notif-tabs" id="filterTabs">
-<div class="notif-tab active" data-filter="all" data-i18n-key="All">All</div>
-<div class="notif-tab" data-filter="frontdesk" data-i18n-key="Front Desk">Front Desk</div>
-<div class="notif-tab" data-filter="housekeeping" data-i18n-key="Housekeeping">Housekeeping</div>
-<div class="notif-tab" data-filter="billing" data-i18n-key="Billing">Billing</div>
-<div class="notif-tab" data-filter="system" data-i18n-key="System / Booking">System / Booking</div>
+<div class="notif-tab active" data-filter="all">전체</div>
+<div class="notif-tab" data-filter="frontdesk">예약/객실</div>
+<div class="notif-tab" data-filter="ancillary">부가서비스</div>
+<div class="notif-tab" data-filter="billing">정산</div>
+<div class="notif-tab" data-filter="group">단체</div>
+<div class="notif-tab" data-filter="approval">승인/주의</div>
+<div class="notif-tab" data-filter="system">시스템</div>
 </div>
 <div class="activity-timeline" id="timelineContainer">
 <!-- Data will be injected here via JS -->
@@ -79,8 +86,11 @@ function localized(value) {
 
 function normalizeNotificationType(item) {
     const raw = String(item.category || item.type || '').toLowerCase();
-    if (raw.includes('housekeeping')) return 'housekeeping';
-    if (raw.includes('reservation') || raw.includes('frontdesk') || raw.includes('group')) return 'frontdesk';
+    if (raw.includes('approval') || raw.includes('refund')) return 'approval';
+    if (raw.includes('ancillary') || raw.includes('pos') || raw.includes('golf') || raw.includes('rentacar')) return 'ancillary';
+    if (raw.includes('group')) return 'group';
+    if (raw.includes('housekeeping') || raw.includes('cleaning') || raw.includes('maintenance')) return 'frontdesk';
+    if (raw.includes('reservation') || raw.includes('frontdesk') || raw.includes('room-change')) return 'frontdesk';
     if (raw.includes('billing') || raw.includes('folio') || raw.includes('audit')) return 'billing';
     return 'system';
 }
@@ -89,8 +99,10 @@ function normalizeNotification(item) {
     const type = normalizeNotificationType(item);
     const fallbackIcon = {
         frontdesk: 'fa-book-bookmark',
-        housekeeping: 'fa-broom',
+        ancillary: 'fa-concierge-bell',
         billing: 'fa-credit-card',
+        group: 'fa-users-line',
+        approval: 'fa-circle-exclamation',
         system: 'fa-bell'
     }[type];
     return {
@@ -100,6 +112,13 @@ function normalizeNotification(item) {
         title: item.title || item.label || item.type,
         desc: item.desc || item.label || ''
     };
+}
+
+function notificationTarget(item) {
+    const target = String(item.target || item.link || '').trim();
+    if (!target) return '';
+    if (/^https?:/i.test(target) || target.startsWith('/')) return target;
+    return target;
 }
 
 async function loadNotificationActivities() {
@@ -133,18 +152,23 @@ function renderActivities(filter) {
     
     filtered.forEach(act => {
         const title = localized(act.title);
-        const time = localized(act.time);
+        const time = [localized(act.time), act.actor, act.eventDate].filter(Boolean).join(' · ');
         const desc = localized(act.desc);
+        const room = act.roomNo || act.room || act.targetId || '';
+        const target = notificationTarget(act);
+        const tag = target ? 'a' : 'div';
         container.innerHTML += `
             <div class="timeline-item">
                 <div class="timeline-icon ${act.type}"><i class="fa-solid ${act.icon}"></i></div>
+                <${tag} class="timeline-link" ${target ? `href="${target}"` : ''}>
                 <div class="timeline-content">
                     <div class="timeline-header">
                         <div class="timeline-title">${title}</div>
                         <div class="timeline-time">${time}</div>
                     </div>
-                    <div class="timeline-desc">${desc}</div>
+                    <div class="timeline-desc">${room ? `<span class="timeline-room">${room}</span>` : ''}${desc}</div>
                 </div>
+                </${tag}>
             </div>
         `;
     });

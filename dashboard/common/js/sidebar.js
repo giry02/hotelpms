@@ -76,10 +76,11 @@
                 {
                     icon: 'fa-file-invoice-dollar', label: 'Folio & Billing', id: 'folio',
                     roles: ['sys_admin', 'sys_gm', 'sys_desk'],
-                    mainHref: BASE + 'operations/reports.html',
+                    mainHref: BASE + 'operations/settlement-status.html',
                     children: [
                         { label: 'Revenue Analytics', href: BASE + 'operations/reports.html' },
-                        { label: 'Folio List',        href: BASE + 'operations/folio.html' },
+                        { label: '정산 현황',         href: BASE + 'operations/settlement-status.html', key: 'folio.status' },
+                        { label: '정산 목록',         href: BASE + 'operations/folio.html' },
                         { label: 'Night Audit',       href: BASE + 'operations/night-audit.html' },
                     ]
                 },
@@ -160,6 +161,7 @@
         'maintenance',
         'folio',
         'folio.reports',
+        'folio.status',
         'folio.list',
         'folio.night-audit',
         'ancillary',
@@ -196,6 +198,7 @@
         'housekeeping.html': 'housekeeping',
         'maintenance.html': 'maintenance',
         'reports.html': 'folio.reports',
+        'settlement-status.html': 'folio.status',
         'folio.html': 'folio.list',
         'night-audit.html': 'folio.night-audit',
         'closing-log.html': 'operationLogs.close',

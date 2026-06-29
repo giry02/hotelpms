@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>정산 현황 — Hotel PMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../common/css/dashboard.css">
+    <link rel="stylesheet" href="../common/css/frontdesk.css">
+    <script src="../common/js/api/api-core.js"></script>
+    <script src="../common/js/api/api-frontdesk.js"></script>
+    <script src="../common/js/api/api-operations.js"></script>
+    <script src="../common/js/i18n-catalog.js"></script>
+    <script src="../common/js/i18n.js"></script>
+    <script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/topbar.js"></script>
+    <style>
+        .settlement-page{font-family:var(--font)}
+        .settlement-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;padding:18px 20px;border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.03)}
+        .settlement-intro h2{display:flex;align-items:center;gap:9px;margin:0 0 6px;font-size:1.05rem;color:var(--txt)}
+        .settlement-intro p{margin:0;color:var(--txt2);font-size:.82rem;font-weight:750;line-height:1.55}
+        .settlement-intro-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+        .settlement-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+        .settlement-kpi{display:flex;align-items:center;gap:13px;min-width:0;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 2px 10px rgba(15,23,42,.03)}
+        .settlement-kpi-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+        .settlement-kpi-icon.need{background:#eff6ff;color:#2563eb}
+        .settlement-kpi-icon.unpaid{background:#fff1f2;color:#dc2626}
+        .settlement-kpi-icon.deposit{background:#ecfdf5;color:#059669}
+        .settlement-kpi-icon.group{background:#f5f3ff;color:#7c3aed}
+        .settlement-kpi-value{font-size:1.35rem;font-weight:950;color:var(--txt);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .settlement-kpi-label{font-size:.75rem;font-weight:850;color:var(--txt3);margin-top:3px}
+        .settlement-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 14px;background:#fff;border:1px solid var(--border);border-radius:14px}
+        .settlement-toolbar-left,.settlement-toolbar-right{display:flex;align-items:center;gap:8px;min-width:0}
+        .settlement-toolbar-left{flex:1;overflow-x:auto;padding-bottom:1px}
+        .settlement-search{display:flex;align-items:center;gap:8px;width:260px;flex:0 0 auto;height:38px;padding:0 12px;border:1.5px solid var(--border);border-radius:9px;background:#fff}
+        .settlement-search:focus-within{border-color:var(--primary)}
+        .settlement-search input{border:0;outline:0;background:transparent;font-family:var(--font);font-size:.8rem;font-weight:750;width:100%;min-width:0;color:var(--txt)}
+        .settlement-chip{height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.74rem;font-weight:900;white-space:nowrap;cursor:pointer}
+        .settlement-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+        .settlement-sort{height:38px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:850;padding:0 32px 0 11px}
+        .settlement-section{margin-bottom:22px}
+        .settlement-section-head{display:flex;align-items:center;gap:9px;margin:0 0 10px;color:var(--txt);font-size:1rem;font-weight:900}
+        .settlement-section-head span{font-size:.78rem;font-weight:750;color:var(--txt3)}
+        .settlement-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+        .settlement-card{display:flex;flex-direction:column;gap:10px;min-height:246px;padding:15px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 2px 10px rgba(15,23,42,.04)}
+        .settlement-card.unpaid{border-color:#fecdd3;box-shadow:inset 4px 0 0 #ef4444,0 2px 10px rgba(15,23,42,.04)}
+        .settlement-card.ready{border-color:#bfdbfe;box-shadow:inset 4px 0 0 #3b82f6,0 2px 10px rgba(15,23,42,.04)}
+        .settlement-card.paid{border-color:#bbf7d0;box-shadow:inset 4px 0 0 #10b981,0 2px 10px rgba(15,23,42,.04)}
+        .settlement-card.refund{border-color:#fed7aa;box-shadow:inset 4px 0 0 #f97316,0 2px 10px rgba(15,23,42,.04)}
+        .settlement-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+        .settlement-room{min-width:0}
+        .settlement-room strong{display:block;color:var(--txt);font-size:1.15rem;font-weight:950;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .settlement-room span{display:block;color:var(--txt3);font-size:.7rem;font-weight:850;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .settlement-status{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:999px;font-size:.67rem;font-weight:950;white-space:nowrap}
+        .settlement-status.unpaid{background:#fff1f2;color:#be123c}
+        .settlement-status.ready{background:#eff6ff;color:#1d4ed8}
+        .settlement-status.paid{background:#dcfce7;color:#047857}
+        .settlement-status.refund{background:#fff7ed;color:#c2410c}
+        .settlement-guest{display:grid;gap:5px;min-width:0}
+        .settlement-guest b{display:flex;align-items:center;gap:6px;min-width:0;font-size:.88rem;color:var(--txt);font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .settlement-guest span{display:flex;align-items:center;gap:6px;min-width:0;font-size:.72rem;color:var(--txt3);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .settlement-amounts{display:grid;gap:6px;margin-top:2px}
+        .settlement-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 9px;border:1px solid var(--border2);border-radius:9px;background:#f8fafc;font-size:.74rem;font-weight:850;color:var(--txt2)}
+        .settlement-row strong{font-size:.8rem;color:var(--txt);white-space:nowrap}
+        .settlement-row.balance strong{color:#be123c}
+        .settlement-row.deposit strong{color:#047857}
+        .settlement-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:1px}
+        .settlement-tag{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:3px 7px;border:1px solid var(--border2);border-radius:999px;background:#fff;font-size:.64rem;font-weight:900;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .settlement-actions{display:flex;gap:7px;margin-top:auto}
+        .settlement-actions a{height:34px;display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:1;min-width:0;border-radius:9px;font-size:.73rem;font-weight:950;text-decoration:none;white-space:nowrap}
+        .settlement-actions .primary{background:var(--primary);color:#fff}
+        .settlement-actions .outline{border:1px solid var(--border);background:#fff;color:var(--txt2)}
+        .settlement-empty{padding:32px;border:1px dashed var(--border);border-radius:14px;background:#fff;text-align:center;color:var(--txt3);font-weight:850}
+        @media(max-width:900px){
+            .settlement-intro{flex-direction:column}
+            .settlement-intro-actions{justify-content:flex-start}
+            .settlement-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+            .settlement-toolbar{align-items:stretch;flex-direction:column}
+            .settlement-toolbar-left{flex-wrap:wrap;overflow:visible}
+            .settlement-search{width:100%;flex:1 1 100%}
+            .settlement-toolbar-right{justify-content:space-between}
+            .settlement-sort{flex:1}
+        }
+        @media(max-width:560px){
+            .settlement-kpis{grid-template-columns:1fr}
+            .settlement-grid{grid-template-columns:1fr}
+        }
+    </style>
+</head>
+<body>
+<div class="main settlement-page">
+    <header class="topbar"><h1>정산 현황</h1></header>
+    <div class="content">
+        <section class="settlement-intro">
+            <div>
+                <h2><i class="fa-solid fa-list-check"></i> 오늘 처리할 정산 큐</h2>
+                <p>정산 현황은 오늘 확인하거나 처리할 수 있는 정산 대상만 모아 보여줍니다. 전체 과거 내역과 상세 수납/영수증 처리는 정산 목록에서 이어서 처리합니다.</p>
+            </div>
+            <div class="settlement-intro-actions">
+                <a class="btn-outline-sm" href="folio.html"><i class="fa-solid fa-table-list"></i> 정산 목록</a>
+                <a class="btn-outline-sm" href="night-audit.html"><i class="fa-solid fa-moon"></i> 일일 마감</a>
+            </div>
+        </section>
+
+        <section class="settlement-kpis" aria-label="정산 현황 요약">
+            <div class="settlement-kpi"><div class="settlement-kpi-icon need"><i class="fa-solid fa-clipboard-check"></i></div><div><div class="settlement-kpi-value" id="kpiNeed">0</div><div class="settlement-kpi-label">정산 필요</div></div></div>
+            <div class="settlement-kpi"><div class="settlement-kpi-icon unpaid"><i class="fa-solid fa-circle-exclamation"></i></div><div><div class="settlement-kpi-value" id="kpiBalance">₱0</div><div class="settlement-kpi-label">미수금 합계</div></div></div>
+            <div class="settlement-kpi"><div class="settlement-kpi-icon deposit"><i class="fa-solid fa-wallet"></i></div><div><div class="settlement-kpi-value" id="kpiDeposit">₱0</div><div class="settlement-kpi-label">예치금 보유</div></div></div>
+            <div class="settlement-kpi"><div class="settlement-kpi-icon group"><i class="fa-solid fa-users-line"></i></div><div><div class="settlement-kpi-value" id="kpiGroup">0</div><div class="settlement-kpi-label">단체 정산</div></div></div>
+        </section>
+
+        <section class="settlement-toolbar" aria-label="정산 현황 필터">
+            <div class="settlement-toolbar-left">
+                <label class="settlement-search">
+                    <i class="fa-solid fa-search"></i>
+                    <input id="settlementSearch" type="search" placeholder="호실, 고객, 단체, 정산번호 검색">
+                </label>
+                <button class="settlement-chip active" data-filter="actionable"><i class="fa-solid fa-bolt"></i> 처리 대상</button>
+                <button class="settlement-chip" data-filter="unpaid"><i class="fa-solid fa-circle-exclamation"></i> 미수금</button>
+                <button class="settlement-chip" data-filter="ready"><i class="fa-solid fa-clipboard-check"></i> 정산 필요</button>
+                <button class="settlement-chip" data-filter="deposit"><i class="fa-solid fa-wallet"></i> 예치금</button>
+                <button class="settlement-chip" data-filter="group"><i class="fa-solid fa-users"></i> 단체</button>
+                <button class="settlement-chip" data-filter="all"><i class="fa-solid fa-list"></i> 전체</button>
+            </div>
+            <div class="settlement-toolbar-right">
+                <select class="settlement-sort" id="settlementSort" aria-label="정산 현황 정렬">
+                    <option value="room">호실순</option>
+                    <option value="checkout">체크아웃 기준</option>
+                    <option value="balance">미수금 큰순</option>
+                    <option value="status">상태순</option>
+                </select>
+            </div>
+        </section>
+
+        <div id="settlementSections"></div>
+    </div>
+</div>
+
+<script>
+const settlementState = {
+    folios: [],
+    reservations: [],
+    rooms: [],
+    groups: [],
+    filter: 'actionable',
+    sort: 'room',
+    query: ''
+};
+
+function settlementEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+function settlementAmount(value) {
+    if (window.PmsMockApi?.amountValue) return Number(window.PmsMockApi.amountValue(value) || 0);
+    if (value && typeof value === 'object') return Number(value.amount || 0);
+    return Number(value || 0);
+}
+
+function settlementMoney(value) {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+function settlementIso(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
+    return '';
+}
+
+function settlementTodayIso() {
+    if (window.PmsDate?.todayIso) return window.PmsDate.todayIso();
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function settlementRoomNo(value) {
+    if (!value) return '';
+    return window.PmsMockApi?.roomNoFromId ? window.PmsMockApi.roomNoFromId(value) : String(value).split('-').pop();
+}
+
+function settlementRoomSortValue(room) {
+    const text = String(room || '');
+    if (text.toLowerCase() === 'group' || text.includes('단체')) return 900000;
+    if (/ph/i.test(text)) return 200000 + Number((text.match(/\d+/) || [0])[0]);
+    const digits = (text.match(/\d+/g) || ['0']).join('');
+    return Number(digits || 0);
+}
+
+function settlementStatusInfo(folio) {
+    const icon = {
+        unpaid: 'fa-circle-exclamation',
+        ready: 'fa-clipboard-check',
+        paid: 'fa-circle-check',
+        refund: 'fa-rotate-left'
+    }[folio.status] || 'fa-clipboard-check';
+    const label = {
+        unpaid: '미수금 있음',
+        ready: '정산 필요',
+        paid: '정산 완료',
+        refund: '환불 확인'
+    }[folio.status] || '정산 필요';
+    return { icon, label };
+}
+
+function settlementServiceTags(charges) {
+    const labels = {
+        room: '객실',
+        pos: 'POS',
+        fnb: 'F&B',
+        golf: '골프',
+        rentacar: '렌터카',
+        laundry: '세탁',
+        minibar: '미니바'
+    };
+    const found = new Set();
+    (charges || []).forEach(charge => {
+        const type = String(charge.type || '').toLowerCase();
+        if (labels[type]) found.add(labels[type]);
+    });
+    return [...found].slice(0, 4);
+}
+
+function reservationById(id) {
+    if (!id) return null;
+    return settlementState.reservations.find(res =>
+        res.id === id || res.reservationId === id || (Array.isArray(res.reservationIds) && res.reservationIds.includes(id))
+    ) || null;
+}
+
+function mapSettlementFolio(item) {
+    const charges = Array.isArray(item.charges) ? item.charges : [];
+    const payments = Array.isArray(item.payments) ? item.payments : [];
+    const total = charges.reduce((sum, charge) => sum + settlementAmount(charge.amount), 0);
+    const paid = payments.reduce((sum, payment) => sum + settlementAmount(payment.amount), 0);
+    const depositPayments = payments.filter(payment => String(payment.method || payment.type || '').toLowerCase().includes('deposit'));
+    const deposit = Number(item.depositAmount || 0) + depositPayments.reduce((sum, payment) => sum + settlementAmount(payment.amount), 0);
+    let balance = settlementAmount(item.balance);
+    if (!Number.isFinite(balance) || (!balance && String(item.status || '').toLowerCase() === 'open' && total > paid)) {
+        balance = Math.max(total - paid, 0);
+    }
+    const reservation = reservationById(item.reservationId || item.reservationIds?.[0]);
+    const checkoutDate = settlementIso(item.settlementDate || item.closedAt || reservation?.checkOutDate || reservation?.checkout || item.issuedAt);
+    const statusText = String(item.status || '').toLowerCase();
+    const settled = item.settlementCompleted || ['closed', 'settled', 'paid'].includes(statusText);
+    const status = balance > 0 ? 'unpaid' : (paid > total && total > 0 ? 'refund' : (settled ? 'paid' : 'ready'));
+    const roomList = Array.isArray(item.roomIds) ? item.roomIds.map(settlementRoomNo).filter(Boolean) : [];
+    const room = item.folioType === 'group' || item.groupId
+        ? '단체'
+        : (item.roomNo || settlementRoomNo(item.roomId || item.room));
+    const group = item.groupId ? settlementState.groups.find(g => g.id === item.groupId || g.eventId === item.groupId) : null;
+    return {
+        id: item.id || item.folioId,
+        folioId: item.folioId || item.id,
+        reservationId: item.reservationId || item.reservationIds?.[0] || '',
+        groupId: item.groupId || '',
+        groupName: group?.name || item.ownerName || item.companyName || '',
+        folioType: item.folioType || (item.groupId ? 'group' : 'individual'),
+        room,
+        roomText: roomList.length ? roomList.join(', ') : room,
+        guest: item.ownerName || item.guestName || reservation?.guestName || reservation?.guest || '-',
+        checkoutDate,
+        issuedDate: settlementIso(item.issuedAt),
+        total,
+        paid,
+        balance,
+        deposit,
+        status,
+        charges,
+        tags: settlementServiceTags(charges),
+        raw: item
+    };
+}
+
+function settlementIsActionable(folio) {
+    if (['unpaid', 'ready', 'refund'].includes(folio.status)) return true;
+    return folio.checkoutDate === settlementTodayIso();
+}
+
+function filterSettlementFolios() {
+    const query = settlementState.query.trim().toLowerCase();
+    let rows = settlementState.folios.filter(settlementIsActionable);
+    if (settlementState.filter === 'all') rows = settlementState.folios.slice();
+    if (settlementState.filter === 'unpaid') rows = rows.filter(folio => folio.status === 'unpaid');
+    if (settlementState.filter === 'ready') rows = rows.filter(folio => folio.status === 'ready');
+    if (settlementState.filter === 'deposit') rows = rows.filter(folio => folio.deposit > 0);
+    if (settlementState.filter === 'group') rows = rows.filter(folio => folio.folioType === 'group' || folio.groupId);
+    if (query) {
+        rows = rows.filter(folio => [
+            folio.id, folio.folioId, folio.room, folio.roomText, folio.guest, folio.groupName,
+            folio.reservationId, folio.groupId, folio.status, settlementStatusInfo(folio).label,
+            folio.tags.join(' ')
+        ].join(' ').toLowerCase().includes(query));
+    }
+    return rows.sort((a, b) => {
+        if (settlementState.sort === 'balance') return b.balance - a.balance;
+        if (settlementState.sort === 'checkout') return String(a.checkoutDate || '').localeCompare(String(b.checkoutDate || ''));
+        if (settlementState.sort === 'status') return ['unpaid', 'ready', 'refund', 'paid'].indexOf(a.status) - ['unpaid', 'ready', 'refund', 'paid'].indexOf(b.status);
+        return settlementRoomSortValue(a.roomText || a.room) - settlementRoomSortValue(b.roomText || b.room)
+            || String(a.guest).localeCompare(String(b.guest));
+    });
+}
+
+function renderSettlementKpis() {
+    const actionable = settlementState.folios.filter(settlementIsActionable);
+    const need = actionable.filter(folio => ['unpaid', 'ready', 'refund'].includes(folio.status)).length;
+    const balance = actionable.reduce((sum, folio) => sum + Math.max(0, folio.balance), 0);
+    const deposit = actionable.reduce((sum, folio) => sum + Math.max(0, folio.deposit), 0);
+    const group = actionable.filter(folio => folio.folioType === 'group' || folio.groupId).length;
+    document.getElementById('kpiNeed').textContent = need;
+    document.getElementById('kpiBalance').textContent = settlementMoney(balance);
+    document.getElementById('kpiDeposit').textContent = settlementMoney(deposit);
+    document.getElementById('kpiGroup').textContent = group;
+}
+
+function settlementTarget(folio, receive = false) {
+    const id = encodeURIComponent(folio.folioId || folio.id);
+    return receive ? `folio.html?receive=${id}` : `folio.html?query=${id}`;
+}
+
+function settlementCard(folio) {
+    const info = settlementStatusInfo(folio);
+    const subtitle = folio.groupId ? `${folio.groupName || '단체'} · ${folio.roomText}` : `${folio.folioId} · 체크아웃 ${folio.checkoutDate || '-'}`;
+    const receiveButton = folio.balance > 0
+        ? `<a class="primary" href="${settlementTarget(folio, true)}"><i class="fa-solid fa-cash-register"></i> 수납</a>`
+        : `<a class="primary" href="${settlementTarget(folio)}"><i class="fa-solid fa-clipboard-check"></i> 확인</a>`;
+    const tags = [
+        folio.deposit > 0 ? `<span class="settlement-tag"><i class="fa-solid fa-wallet"></i>예치금 있음</span>` : '',
+        ...folio.tags.map(tag => `<span class="settlement-tag"><i class="fa-solid fa-tag"></i>${settlementEscape(tag)}</span>`)
+    ].filter(Boolean).join('');
+    return `<article class="settlement-card ${folio.status}">
+        <div class="settlement-card-top">
+            <div class="settlement-room">
+                <strong>${settlementEscape(folio.roomText || folio.room || '-')}</strong>
+                <span>${settlementEscape(subtitle)}</span>
+            </div>
+            <span class="settlement-status ${folio.status}"><i class="fa-solid ${info.icon}"></i>${info.label}</span>
+        </div>
+        <div class="settlement-guest">
+            <b><i class="fa-solid ${folio.groupId ? 'fa-users' : 'fa-user'}"></i>${settlementEscape(folio.guest || '-')}</b>
+            <span><i class="fa-regular fa-calendar"></i>${settlementEscape(folio.issuedDate || folio.checkoutDate || '-')} 기준 Folio</span>
+        </div>
+        <div class="settlement-amounts">
+            <div class="settlement-row"><span>총 객실/서비스</span><strong>${settlementMoney(folio.total)}</strong></div>
+            <div class="settlement-row"><span>수납 완료</span><strong>${settlementMoney(folio.paid)}</strong></div>
+            <div class="settlement-row balance"><span>미수금</span><strong>${settlementMoney(folio.balance)}</strong></div>
+            <div class="settlement-row deposit"><span>예치금</span><strong>${settlementMoney(folio.deposit)}</strong></div>
+        </div>
+        ${tags ? `<div class="settlement-tags">${tags}</div>` : ''}
+        <div class="settlement-actions">
+            ${receiveButton}
+            <a class="outline" href="${settlementTarget(folio)}"><i class="fa-solid fa-file-lines"></i> 상세</a>
+        </div>
+    </article>`;
+}
+
+function renderSettlementSections() {
+    renderSettlementKpis();
+    const container = document.getElementById('settlementSections');
+    const rows = filterSettlementFolios();
+    if (!rows.length) {
+        container.innerHTML = '<div class="settlement-empty">현재 조건에 맞는 정산 대상이 없습니다.</div>';
+        return;
+    }
+    const groupRows = rows.filter(folio => folio.folioType === 'group' || folio.groupId);
+    const individualRows = rows.filter(folio => !(folio.folioType === 'group' || folio.groupId));
+    const sections = [];
+    if (individualRows.length) {
+        sections.push(`<section class="settlement-section">
+            <h3 class="settlement-section-head"><i class="fa-solid fa-door-open"></i> 객실 정산 <span>${individualRows.length}건</span></h3>
+            <div class="settlement-grid">${individualRows.map(settlementCard).join('')}</div>
+        </section>`);
+    }
+    if (groupRows.length) {
+        sections.push(`<section class="settlement-section">
+            <h3 class="settlement-section-head"><i class="fa-solid fa-users-line"></i> 단체 정산 <span>${groupRows.length}건</span></h3>
+            <div class="settlement-grid">${groupRows.map(settlementCard).join('')}</div>
+        </section>`);
+    }
+    container.innerHTML = sections.join('');
+}
+
+async function loadSettlementData() {
+    const [foliosEnv, reservations, rooms, groups] = await Promise.all([
+        window.PmsMockApi ? window.PmsMockApi.request('GET', '/folios') : Promise.resolve({ data: { items: [] } }),
+        window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : [],
+        window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
+        window.PmsAPI?.getGroups ? window.PmsAPI.getGroups().catch(() => []) : []
+    ]);
+    settlementState.reservations = reservations || [];
+    settlementState.rooms = rooms || [];
+    settlementState.groups = groups || [];
+    settlementState.folios = (window.PmsMockApi?.items(foliosEnv) || []).map(mapSettlementFolio);
+}
+
+function applySettlementUrlParams() {
+    const params = new URLSearchParams(location.search);
+    const query = params.get('query') || params.get('room') || '';
+    const status = params.get('status') || params.get('filter') || '';
+    if (query) {
+        settlementState.query = query;
+        const input = document.getElementById('settlementSearch');
+        if (input) input.value = query;
+    }
+    if (status && ['actionable', 'unpaid', 'ready', 'deposit', 'group', 'all'].includes(status)) {
+        settlementState.filter = status;
+        document.querySelectorAll('.settlement-chip').forEach(chip => chip.classList.toggle('active', chip.dataset.filter === status));
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    document.querySelectorAll('.settlement-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            settlementState.filter = chip.dataset.filter || 'actionable';
+            document.querySelectorAll('.settlement-chip').forEach(item => item.classList.toggle('active', item === chip));
+            renderSettlementSections();
+        });
+    });
+    const search = document.getElementById('settlementSearch');
+    if (search) search.addEventListener('input', () => {
+        settlementState.query = search.value || '';
+        renderSettlementSections();
+    });
+    const sort = document.getElementById('settlementSort');
+    if (sort) sort.addEventListener('change', () => {
+        settlementState.sort = sort.value || 'room';
+        renderSettlementSections();
+    });
+    await loadSettlementData();
+    applySettlementUrlParams();
+    renderSettlementSections();
+});
+</script>
+</body>
+</html>
