@@ -19,36 +19,61 @@
     <script src="common/js/ui-components.js"></script>
     <script src="common/js/topbar.js"></script>
     <style>
-        .today-ops-board{margin-bottom:20px}
-        .today-work-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-        .today-work-card{min-width:0;border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.035);overflow:hidden}
-        .today-work-card.low-priority{background:#fbfdff}
-        .today-work-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border2);background:#fff}
-        .today-work-title{display:flex;align-items:center;gap:7px;color:var(--txt);font-size:.9rem;font-weight:950;line-height:1.2}
-        .today-work-desc{margin-top:3px;color:#64748b;font-size:.68rem;font-weight:800;line-height:1.35}
-        .today-work-count{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 8px;border-radius:999px;background:#e0f2fe;color:#0369a1;font-size:.7rem;font-weight:950;white-space:nowrap}
-        .today-work-card.warn .today-work-count{background:#ffedd5;color:#c2410c}
-        .today-work-card.urgent .today-work-count{background:#fee2e2;color:#b91c1c}
-        .today-work-card.good .today-work-count{background:#dcfce7;color:#047857}
-        .today-work-card.neutral .today-work-count{background:#f1f5f9;color:#475569}
-        .today-work-list{display:grid;background:#fff}
-        .today-work-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;min-height:46px;padding:8px 14px;border-top:1px solid #eef2f7;color:inherit;text-decoration:none}
-        .today-work-row:first-child{border-top:0}
-        .today-work-row:hover{background:#f8fafc}
-        .today-work-main{min-width:0}
-        .today-work-name{display:block;color:var(--txt);font-size:.76rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-work-sub{display:block;margin-top:3px;color:#64748b;font-size:.66rem;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-work-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px}
-        .today-work-chip{padding:2px 6px;border-radius:999px;background:#f8fafc;color:#64748b;font-size:.6rem;font-weight:900}
-        .today-work-chip.vip{background:#fff7ed;color:#c2410c}
-        .today-work-chip.group{background:#eff6ff;color:#1d4ed8}
-        .today-work-status{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:5px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.64rem;font-weight:950;white-space:nowrap}
-        .today-work-empty{padding:22px 14px;text-align:center;color:#94a3b8;font-size:.76rem;font-weight:850}
-        .today-work-more{display:flex;justify-content:center;padding:8px 14px;border-top:1px solid var(--border2)}
-        .today-work-more button{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid #dbeafe;border-radius:8px;background:#fff;color:#1d4ed8;font-size:.68rem;font-weight:950;cursor:pointer}
-        .today-work-more button:hover{background:#eff6ff}
-        @media(max-width:1100px){.today-work-grid{grid-template-columns:1fr}}
-        @media(max-width:720px){.today-work-head{padding:11px 12px}.today-work-row{grid-template-columns:1fr;gap:5px;padding:9px 12px}.today-work-status{width:max-content}}
+        .ops-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+        .ops-kpi-card{display:flex;align-items:center;gap:14px;min-height:86px;padding:18px 20px;border:1px solid var(--border);border-radius:12px;background:#fff;color:inherit;text-decoration:none;box-shadow:0 2px 8px rgba(15,23,42,.04)}
+        .ops-kpi-card:hover{border-color:rgba(59,130,246,.34);box-shadow:0 10px 24px rgba(15,23,42,.08)}
+        .ops-kpi-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+        .ops-kpi-card.blue .ops-kpi-icon{background:#eff6ff;color:#2563eb}
+        .ops-kpi-card.red .ops-kpi-icon{background:#fee2e2;color:#dc2626}
+        .ops-kpi-card.orange .ops-kpi-icon{background:#fff7ed;color:#ea580c}
+        .ops-kpi-card.green .ops-kpi-icon{background:#dcfce7;color:#059669}
+        .ops-kpi-value{font-size:1.55rem;font-weight:950;line-height:1;color:var(--txt)}
+        .ops-kpi-label{margin-top:6px;font-size:.82rem;font-weight:950;color:var(--txt)}
+        .ops-kpi-sub{margin-top:4px;font-size:.7rem;font-weight:800;color:#94a3b8}
+        .dashboard-work-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch}
+        .ops-card{min-width:0;border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.04);overflow:hidden}
+        .ops-card-header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:0 20px;border-bottom:1px solid var(--border2)}
+        .ops-card-title{display:flex;align-items:center;gap:8px;margin:0;color:var(--txt);font-size:.95rem;font-weight:950}
+        .ops-card-title i{color:var(--primary)}
+        .ops-card-actions{display:flex;align-items:center;gap:8px}
+        .ops-link-btn,.ops-more-btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid #dbeafe;border-radius:8px;background:#fff;color:#2563eb;font-size:.72rem;font-weight:900;text-decoration:none;cursor:pointer}
+        .ops-link-btn:hover,.ops-more-btn:hover{background:#eff6ff}
+        .ops-table-wrap{overflow-x:auto}
+        .ops-table{width:100%;border-collapse:collapse;white-space:nowrap}
+        .ops-table th{height:42px;padding:0 18px;border-bottom:1px solid var(--border);color:#94a3b8;font-size:.68rem;font-weight:900;text-align:left}
+        .ops-table td{height:50px;padding:0 18px;border-bottom:1px solid #eef2f7;color:var(--txt);font-size:.78rem;font-weight:750;vertical-align:middle}
+        .ops-table tr:last-child td{border-bottom:0}
+        .ops-guest{display:flex;align-items:center;gap:9px;min-width:190px}
+        .ops-avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#3b82f6;color:#fff;font-size:.68rem;font-weight:950;flex-shrink:0}
+        .ops-guest-main{min-width:0}
+        .ops-guest-name{display:block;max-width:210px;overflow:hidden;text-overflow:ellipsis;color:var(--txt);font-weight:950}
+        .ops-chip-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:4px}
+        .ops-chip{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:.62rem;font-weight:900}
+        .ops-chip.group{background:#eff6ff;color:#1d4ed8}
+        .ops-chip.vip{background:#fff7ed;color:#c2410c}
+        .ops-chip.good{background:#dcfce7;color:#047857}
+        .ops-chip.warn{background:#ffedd5;color:#c2410c}
+        .ops-row-action{display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 10px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.68rem;font-weight:950;text-decoration:none}
+        .ops-row-action:hover{background:#dbeafe}
+        .ops-empty{padding:26px 20px;color:#94a3b8;text-align:center;font-size:.78rem;font-weight:850}
+        .activity-list{padding:16px 20px}
+        .activity-item{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:14px 0;border-bottom:1px solid #eef2f7;color:inherit;text-decoration:none}
+        .activity-item:last-child{border-bottom:0}
+        .activity-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eff6ff;color:#2563eb;font-size:.78rem}
+        .activity-title{font-size:.78rem;font-weight:950;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .activity-sub{margin-top:4px;font-size:.68rem;font-weight:800;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .ancillary-card-body{min-height:300px}
+        .housekeeping-summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:20px}
+        .housekeeping-summary-card{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:78px;border:1px solid var(--border2);border-radius:10px;background:#fff;text-decoration:none}
+        .housekeeping-summary-card strong{font-size:1.45rem;font-weight:950;line-height:1}
+        .housekeeping-summary-card span{margin-top:7px;color:#64748b;font-size:.72rem;font-weight:900}
+        .housekeeping-summary-card.clean strong{color:#10b981}
+        .housekeeping-summary-card.need strong{color:#ef4444}
+        .housekeeping-summary-card.progress strong{color:#f59e0b}
+        .housekeeping-summary-card.dnd strong{color:#8b5cf6}
+        .housekeeping-summary-card.oos strong{color:#64748b}
+        @media(max-width:1180px){.ops-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-work-row{grid-template-columns:1fr}.housekeeping-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+        @media(max-width:720px){.ops-kpi-grid{grid-template-columns:1fr}.ops-kpi-card{min-height:74px;padding:14px 16px}.ops-card-header{padding:0 14px}.ops-table th,.ops-table td{padding:0 12px}.housekeeping-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px}.activity-list{padding:12px 14px}}
     </style>
 </head>
 <body>
@@ -248,18 +273,90 @@
 
         </div>
 
-        <section class="today-ops-board" aria-label="오늘 업무 목록">
-            <div class="today-work-grid" id="todayOpsGrid">
-                <div class="today-work-card">
-                    <div class="today-work-head">
-                        <div>
-                            <div class="today-work-title"><i class="fa-solid fa-spinner fa-spin"></i> 업무를 불러오는 중</div>
-                            <div class="today-work-desc">예약, 정산 데이터를 확인합니다.</div>
-                        </div>
-                        <span class="today-work-count">--</span>
+        <section class="ops-kpi-grid" id="opsKpiGrid" aria-label="오늘 운영 지표">
+            <a class="ops-kpi-card blue" href="frontdesk/reservation-list.html?tab=checkin">
+                <div class="ops-kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
+                <div><div class="ops-kpi-value">--</div><div class="ops-kpi-label">오늘 체크인</div><div class="ops-kpi-sub">체크아웃 --</div></div>
+            </a>
+            <a class="ops-kpi-card red" href="operations/settlement-status.html">
+                <div class="ops-kpi-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <div><div class="ops-kpi-value">--</div><div class="ops-kpi-label">정산 필요</div><div class="ops-kpi-sub">오늘 기준</div></div>
+            </a>
+            <a class="ops-kpi-card orange" href="frontdesk/reservation-board.html?filter=cleaning">
+                <div class="ops-kpi-icon"><i class="fa-solid fa-broom"></i></div>
+                <div><div class="ops-kpi-value">--</div><div class="ops-kpi-label">청소 필요</div><div class="ops-kpi-sub">체크인 전 확인</div></div>
+            </a>
+            <a class="ops-kpi-card green" href="notifications.html">
+                <div class="ops-kpi-icon"><i class="fa-solid fa-bell"></i></div>
+                <div><div class="ops-kpi-value">--</div><div class="ops-kpi-label">새 알림</div><div class="ops-kpi-sub">공유 이벤트</div></div>
+            </a>
+        </section>
+
+        <div class="dashboard-work-row">
+            <section class="ops-card">
+                <div class="ops-card-header">
+                    <h3 class="ops-card-title"><i class="fa-solid fa-clock"></i> 오늘 체크인 예정</h3>
+                    <div class="ops-card-actions">
+                        <button class="ops-more-btn" type="button" id="checkinMoreBtn">더보기 →</button>
                     </div>
-                    <div class="today-work-empty">대상 목록을 불러오는 중입니다.</div>
                 </div>
+                <div class="ops-table-wrap">
+                    <table class="ops-table" id="todayCheckinTable">
+                        <thead><tr><th>고객</th><th>객실</th><th>유형</th><th>숙박</th><th>상태</th><th></th></tr></thead>
+                        <tbody><tr><td colspan="6" class="ops-empty">체크인 예정 목록을 불러오는 중입니다.</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="ops-card">
+                <div class="ops-card-header">
+                    <h3 class="ops-card-title"><i class="fa-solid fa-bolt"></i> 실시간 활동</h3>
+                    <a class="ops-link-btn" href="notifications.html">더보기 →</a>
+                </div>
+                <div class="activity-list" id="todayActivityList">
+                    <div class="ops-empty">활동 내역을 불러오는 중입니다.</div>
+                </div>
+            </section>
+        </div>
+
+        <div class="dashboard-work-row">
+            <section class="ops-card">
+                <div class="ops-card-header">
+                    <h3 class="ops-card-title"><i class="fa-solid fa-concierge-bell"></i> 오늘 부가서비스 주문</h3>
+                    <a class="ops-link-btn" href="operations/ancillary.html">더보기 →</a>
+                </div>
+                <div class="ops-table-wrap">
+                    <table class="ops-table" id="todayAncillaryTable">
+                        <thead><tr><th>시간</th><th>객실</th><th>서비스</th><th>항목</th><th>금액</th><th>상태</th></tr></thead>
+                        <tbody><tr><td colspan="6" class="ops-empty">부가서비스 주문을 불러오는 중입니다.</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="ops-card">
+                <div class="ops-card-header">
+                    <h3 class="ops-card-title"><i class="fa-solid fa-coins"></i> 부가서비스 매출</h3>
+                    <div class="card-actions" id="ancillaryBtns">
+                        <button class="active" onclick="toggleAncillary(false)">오늘</button>
+                        <button onclick="toggleAncillary(true)">주간</button>
+                    </div>
+                </div>
+                <div class="card-body ancillary-card-body">
+                    <div class="ancillary-summary">
+                        <div id="ancillaryTotal" style="font-size:2rem;font-weight:950;color:var(--txt);line-height:1">--</div>
+                        <div id="ancillaryLabel" style="margin-top:8px;color:var(--txt2);font-size:.78rem;font-weight:800">오늘 부가서비스 매출</div>
+                    </div>
+                    <div id="svcBreakdown" style="display:grid;gap:12px"></div>
+                    <div id="svcShareGrid" class="svc-share-grid"></div>
+                </div>
+            </section>
+        </div>
+
+        <section class="ops-card" style="margin-bottom:20px">
+            <div class="ops-card-header">
+                <h3 class="ops-card-title"><i class="fa-solid fa-broom"></i> 하우스키핑 현황</h3>
+                <a class="ops-link-btn" href="frontdesk/reservation-board.html?filter=cleaning">더보기 →</a>
+            </div>
+            <div class="housekeeping-summary-grid" id="housekeepingSummaryGrid">
+                <div class="ops-empty">객실 청소 상태를 불러오는 중입니다.</div>
             </div>
         </section>
 
@@ -270,14 +367,58 @@
 
 <script>
 (function(){
-    const gridWrap = document.getElementById('todayOpsGrid');
-    if (!gridWrap) return;
-    const expandedKeys = new Set();
-    let categories = [];
-    const DETAIL_LIMIT = 5;
+    const KO = {
+        unassigned: '\uD22C\uC219\uAC1D \uBBF8\uBC30\uC815',
+        group: '\uB2E8\uCCB4',
+        personal: '\uAC1C\uC778',
+        normal: '\uC77C\uBC18',
+        nightsCheck: '\uC219\uBC15\uC77C \uD655\uC778',
+        night: '\uBC15',
+        day: '\uC77C',
+        pos: '\uD1B5\uD569 POS',
+        golf: '\uACE8\uD504\uC7A5',
+        rentacar: '\uB80C\uD130\uCE74',
+        ancillary: '\uBD80\uAC00\uC11C\uBE44\uC2A4',
+        done: '\uC644\uB8CC',
+        preparing: '\uC900\uBE44 \uC911',
+        cancel: '\uCDE8\uC18C',
+        newOrder: '\uC2E0\uADDC',
+        todayCheckin: '\uC624\uB298 \uCCB4\uD06C\uC778',
+        checkout: '\uCCB4\uD06C\uC544\uC6C3',
+        settlementNeed: '\uC815\uC0B0 \uD544\uC694',
+        todayBasis: '\uC624\uB298 \uAE30\uC900',
+        cleaningNeed: '\uCCAD\uC18C \uD544\uC694',
+        beforeCheckin: '\uCCB4\uD06C\uC778 \uC804 \uD655\uC778',
+        newAlert: '\uC0C8 \uC54C\uB9BC',
+        sharedEvent: '\uACF5\uC720 \uC774\uBCA4\uD2B8',
+        noCheckin: '\uC624\uB298 \uCCB4\uD06C\uC778 \uC608\uC815 \uACE0\uAC1D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
+        confirm: '\uD655\uC815',
+        scheduled: '\uC608\uC815',
+        checkin: '\uCCB4\uD06C\uC778',
+        collapse: '\uC811\uAE30 \u2191',
+        more: '\uB354\uBCF4\uAE30',
+        countSuffix: '\uAC74 \u2192',
+        noActivity: '\uACF5\uC720\uB41C \uC0C8 \uD65C\uB3D9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
+        roomSuffix: '\uD638 \u00B7 ',
+        noAncillary: '\uC624\uB298 \uBD80\uAC00\uC11C\uBE44\uC2A4 \uC8FC\uBB38\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
+        cleanDone: '\uCCAD\uC18C \uC644\uB8CC',
+        cleaningProgress: '\uCCAD\uC18C \uC911',
+        dnd: '\uBC29\uD574\uAE08\uC9C0',
+        loadFailed: '\uC624\uB298 \uCCB4\uD06C\uC778 \uBAA9\uB85D\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
+    };
+    const checkinLimit = 5;
+    let showAllCheckins = false;
+    let checkinRows = [];
 
     function esc(value) {
         return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+    function apiItems(envelope) {
+        if (Array.isArray(envelope)) return envelope;
+        if (window.PmsMockApi?.items) return window.PmsMockApi.items(envelope);
+        if (Array.isArray(envelope?.data?.items)) return envelope.data.items;
+        if (Array.isArray(envelope?.data)) return envelope.data;
+        return [];
     }
     function todayIso() {
         return window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
@@ -286,11 +427,11 @@
         const text = String(value || '');
         return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : '';
     }
-    function dateLabel(isoText) {
-        const text = iso(isoText);
-        if (!text) return '기준일 확인';
-        const [year, month, day] = text.split('-');
-        return `${year}년 ${Number(month)}월 ${Number(day)}일`;
+    function shortDate(value) {
+        const text = iso(value);
+        if (!text) return '-';
+        const parts = text.split('-');
+        return `${Number(parts[1])}/${Number(parts[2])}`;
     }
     function amount(value) {
         if (window.PmsMockApi?.amountValue) return Number(window.PmsMockApi.amountValue(value) || 0);
@@ -298,63 +439,82 @@
         return Number(value || 0);
     }
     function money(value) {
-        return `₱${Math.round(Number(value || 0)).toLocaleString('en-US')}`;
+        const number = Math.round(Number(value || 0));
+        return typeof window.pmsFormatCurrency === 'function' ? window.pmsFormatCurrency(number) : `PHP ${number.toLocaleString('en-US')}`;
     }
-    function statusOf(res) {
-        return String(res?.status || '').replace(/[-_\s]/g, '').toLowerCase();
-    }
-    function roomOpsStatus(room) {
-        return String(room?.status || room?.frontStatus || room?.housekeepingStatus || room?.cleaningStatus || '').replace(/[-_\s]/g, '').toLowerCase();
+    function statusOf(value) {
+        return String(value?.status || '').replace(/[-_\s]/g, '').toLowerCase();
     }
     function roomText(value) {
-        return value?.roomNo || value?.room || value?.display || value?.displayName || value?.id || '-';
+        return value?.roomNo || value?.room || value?.fullRoom || value?.display || value?.displayName || value?.id || '-';
     }
     function guestText(value) {
-        return value?.guestName || value?.guest || value?.ownerName || value?.roomingGuestName || value?.name || '투숙객 미배정';
+        return value?.guestName || value?.guest || value?.ownerName || value?.roomingGuestName || value?.name || KO.unassigned;
     }
-    function groupText(value) {
-        return value?.name || value?.groupName || value?.companyName || '단체';
+    function initials(value) {
+        const direct = value?.initials;
+        if (direct) return String(direct).slice(0, 2).toUpperCase();
+        return guestText(value).split(/\s+/).filter(Boolean).map(part => part[0]).join('').slice(0, 2).toUpperCase() || 'GU';
     }
     function audienceLabel(value) {
-        return value?.groupName || value?.groupId || value?.companyName || value?.isGroupPlaceholder ? '단체' : '개인';
+        return value?.groupName || value?.groupId || value?.companyName || value?.isGroupPlaceholder ? KO.group : KO.personal;
     }
     function tierText(value) {
-        return value?.vip || value?.tier || value?.membershipTier || (value?.isVip ? 'VIP' : '일반');
-    }
-    function orderItemsText(value) {
-        const items = value?.items;
-        if (Array.isArray(items)) return items.join(', ');
-        return String(items || value?.item || value?.serviceName || '부가서비스');
-    }
-    function serviceLabel(value) {
-        const source = value?.source || '';
-        if (source === 'pos') return 'POS';
-        if (source === 'golf') return '골프';
-        if (source === 'rentacar') return '렌터카';
-        return '부가서비스';
-    }
-    function serviceStatus(value) {
-        const status = String(value?.status || '').toLowerCase();
-        if (['done', 'completed', 'complete'].includes(status)) return '완료';
-        if (['prep', 'preparing', 'accepted'].includes(status)) return '준비';
-        if (['cancelled', 'canceled'].includes(status)) return '취소';
-        return '신규';
-    }
-    function normalizeOrder(value, source) {
-        return { ...value, source };
-    }
-    function shortDate(value) {
-        const text = iso(value);
-        if (!text) return '-';
-        const [, month, day] = text.split('-');
-        return `${Number(month)}/${Number(day)}`;
+        return value?.vip || value?.tier || value?.membershipTier || (value?.isVip ? 'VIP' : KO.normal);
     }
     function stayText(res) {
         const start = iso(res?.checkInDate || res?.checkin);
         const end = iso(res?.checkOutDate || res?.checkout);
         const nights = Number(res?.nights || res?.len || 0);
-        const stay = nights ? `${nights}박 ${nights + 1}일` : '숙박일 확인';
-        return `${shortDate(start)}~${shortDate(end)} · ${stay}`;
+        const stay = nights ? `${nights}${KO.night} ${nights + 1}${KO.day}` : KO.nightsCheck;
+        return `${shortDate(start)} - ${shortDate(end)} (${stay})`;
+    }
+    function roomOpsStatus(room) {
+        return String(room?.frontStatus || room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus || room?.status || '').replace(/[-_\s]/g, '').toLowerCase();
+    }
+    function cleanState(room) {
+        const normalize = value => String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+        const flag = normalize(room?.guestFlag || room?.stayState);
+        if (['dnd', 'donotdisturb', 'mur'].includes(flag)) return flag;
+        return normalize(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus || room?.frontStatus || room?.status || flag);
+    }
+    function isMaintenance(room) {
+        return ['oos', 'outofservice', 'maintenance', 'inspection'].includes(roomOpsStatus(room));
+    }
+    function isClean(room) {
+        return ['clean', 'vacantclean', 'completed', 'inspected'].includes(cleanState(room));
+    }
+    function isInProgress(room) {
+        return ['cleaning', 'inprogress', 'progress'].includes(cleanState(room));
+    }
+    function isDnd(room) {
+        return ['dnd', 'donotdisturb', 'mur'].includes(cleanState(room));
+    }
+    function isCleaningNeeded(room) {
+        if (isMaintenance(room)) return false;
+        return ['dnd', 'donotdisturb', 'mur', 'dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection', 'occupied'].includes(cleanState(room));
+    }
+    function serviceLabel(value) {
+        const source = value?.source || '';
+        if (source === 'pos') return KO.pos;
+        if (source === 'golf') return KO.golf;
+        if (source === 'rentacar') return KO.rentacar;
+        return KO.ancillary;
+    }
+    function orderItemsText(value) {
+        const items = value?.items;
+        if (Array.isArray(items)) return items.join(', ');
+        return String(items || value?.item || value?.serviceName || value?.packageName || KO.ancillary);
+    }
+    function serviceStatus(value) {
+        const status = String(value?.status || '').toLowerCase();
+        if (['done', 'completed', 'complete', 'paid'].includes(status)) return KO.done;
+        if (['prep', 'preparing', 'accepted', 'ready'].includes(status)) return KO.preparing;
+        if (['cancelled', 'canceled'].includes(status)) return KO.cancel;
+        return KO.newOrder;
+    }
+    function normalizeOrder(value, source) {
+        return { ...value, source };
     }
     function folioSettlementStatus(item) {
         const charges = Array.isArray(item.charges) ? item.charges : [];
@@ -364,223 +524,156 @@
         let balance = amount(item.balance);
         if (!balance && String(item.status || '').toLowerCase() === 'open' && total > paid) balance = Math.max(total - paid, 0);
         const state = balance > 0 ? 'unpaid' : (['closed', 'settled', 'paid'].includes(String(item.status || '').toLowerCase()) ? 'paid' : 'ready');
-        const deposit = Number(item.depositAmount || 0) + payments
-            .filter(payment => String(payment.method || payment.type || '').toLowerCase().includes('deposit'))
-            .reduce((sum, payment) => sum + amount(payment.amount), 0);
         const dueDate = iso(item.checkOutDate || item.checkoutDate || item.checkout || item.settlementDate || item.closedAt || item.issuedAt);
-        return { item, state, balance, deposit, dueDate };
+        return { item, state, balance, dueDate };
     }
-    function isMaintenance(room) {
-        return ['oos', 'outofservice', 'maintenance'].includes(roomOpsStatus(room));
+    function textOf(value, lang = 'ko') {
+        if (value && typeof value === 'object') return value[lang] || value.ko || value.en || '';
+        return String(value || '');
     }
-    function cleanState(room) {
-        const normalize = value => String(value || '').replace(/[-_\s]/g, '').toLowerCase();
-        const flag = normalize(room?.guestFlag || room?.stayState);
-        if (['dnd', 'donotdisturb', 'mur'].includes(flag)) return flag;
-        return normalize(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus || room?.frontStatus || room?.status || flag);
+    function isVipTier(tier) {
+        const text = String(tier || '').toLowerCase();
+        return text.includes('vip') || text.includes('\uACE8') || text.includes('\uD50C') || text.includes('\uB2E4\uC774\uC544');
     }
-    function isCleaningNeeded(room) {
-        if (isMaintenance(room)) return false;
-        return ['dnd', 'donotdisturb', 'mur', 'dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleanState(room));
+    function renderKpis({ arrivals, checkouts, settlements, cleaning, activities }) {
+        const grid = document.getElementById('opsKpiGrid');
+        if (!grid) return;
+        const unreadCount = activities.filter(item => item.unread !== false).length || activities.length;
+        const cards = [
+            { cls: 'blue', icon: 'fa-right-to-bracket', href: 'frontdesk/reservation-list.html?tab=checkin', value: arrivals.length, label: KO.todayCheckin, sub: `${KO.checkout} ${checkouts.length}` },
+            { cls: 'red', icon: 'fa-file-invoice-dollar', href: 'operations/settlement-status.html', value: settlements.length, label: KO.settlementNeed, sub: KO.todayBasis },
+            { cls: 'orange', icon: 'fa-broom', href: 'frontdesk/reservation-board.html?filter=cleaning', value: cleaning.length, label: KO.cleaningNeed, sub: KO.beforeCheckin },
+            { cls: 'green', icon: 'fa-bell', href: 'notifications.html', value: unreadCount, label: KO.newAlert, sub: KO.sharedEvent }
+        ];
+        grid.innerHTML = cards.map(card => `<a class="ops-kpi-card ${card.cls}" href="${card.href}"><div class="ops-kpi-icon"><i class="fa-solid ${card.icon}"></i></div><div><div class="ops-kpi-value">${card.value}</div><div class="ops-kpi-label">${card.label}</div><div class="ops-kpi-sub">${card.sub}</div></div></a>`).join('');
     }
-    function cleanLabel(room) {
-        const state = cleanState(room);
-        if (['dnd', 'donotdisturb'].includes(state)) return '방해금지';
-        if (['inspect', 'needsinspection'].includes(state)) return '점검 전 확인';
-        return '청소 필요';
+    function renderCheckins() {
+        const tbody = document.querySelector('#todayCheckinTable tbody');
+        const button = document.getElementById('checkinMoreBtn');
+        if (!tbody) return;
+        const rows = showAllCheckins ? checkinRows : checkinRows.slice(0, checkinLimit);
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${KO.noCheckin}</td></tr>`;
+        } else {
+            tbody.innerHTML = rows.map(res => {
+                const audience = audienceLabel(res);
+                const tier = tierText(res);
+                const tierClass = isVipTier(tier) ? 'vip' : '';
+                const href = `frontdesk/reservation-board.html?filter=checkin&query=${encodeURIComponent(roomText(res))}`;
+                return `<tr>
+                    <td><div class="ops-guest"><span class="ops-avatar" style="background:${esc(res.color || '#3b82f6')}">${esc(initials(res))}</span><div class="ops-guest-main"><span class="ops-guest-name">${esc(guestText(res))}</span><span class="ops-chip-row"><span class="ops-chip ${audience === KO.group ? 'group' : ''}">${audience}</span>${res.groupName ? `<span class="ops-chip group">${esc(res.groupName)}</span>` : ''}<span class="ops-chip ${tierClass}">${esc(tier)}</span></span></div></div></td>
+                    <td>${esc(roomText(res))}</td>
+                    <td>${esc(res.roomType || res.type || '-')}</td>
+                    <td>${esc(stayText(res))}</td>
+                    <td><span class="ops-chip ${res._dashboardToday ? 'good' : ''}">${res._dashboardToday ? KO.confirm : KO.scheduled}</span></td>
+                    <td><a class="ops-row-action" href="${href}">${KO.checkin}</a></td>
+                </tr>`;
+            }).join('');
+        }
+        if (button) {
+            const hidden = Math.max(checkinRows.length - checkinLimit, 0);
+            button.style.display = hidden > 0 ? '' : 'none';
+            button.textContent = showAllCheckins ? KO.collapse : `${KO.more} ${hidden}${KO.countSuffix}`;
+        }
     }
-    function rowHtml(row) {
-        const chips = (row.meta || []).filter(Boolean).map(item => {
-            const label = typeof item === 'string' ? item : item.label;
-            const type = typeof item === 'string' ? '' : item.type;
-            return `<span class="today-work-chip ${esc(type || '')}">${esc(label)}</span>`;
-        }).join('');
-        return `<a class="today-work-row" href="${esc(row.href)}">
-            <span class="today-work-main">
-                <span class="today-work-name">${esc(row.title)}</span>
-                <span class="today-work-sub">${esc(row.subtitle || '')}</span>
-                ${chips ? `<span class="today-work-meta">${chips}</span>` : ''}
-            </span>
-            <span class="today-work-status">${esc(row.status || '확인')}</span>
-        </a>`;
+    function renderActivities(activities) {
+        const list = document.getElementById('todayActivityList');
+        if (!list) return;
+        const rows = activities.slice(0, 4);
+        if (!rows.length) {
+            list.innerHTML = `<div class="ops-empty">${KO.noActivity}</div>`;
+            return;
+        }
+        list.innerHTML = rows.map(item => `<a class="activity-item" href="${esc(item.target || 'notifications.html')}"><span class="activity-icon"><i class="fa-solid ${esc(item.icon || 'fa-bell')}"></i></span><span><span class="activity-title">${esc(textOf(item.title))}</span><span class="activity-sub">${esc(item.roomNo ? `${item.roomNo}${KO.roomSuffix}` : '')}${esc(textOf(item.label) || item.actor || '')}</span></span></a>`).join('');
     }
-    function cardHtml(category) {
-        const isExpanded = expandedKeys.has(category.key);
-        const rows = isExpanded ? category.rows : category.rows.slice(0, DETAIL_LIMIT);
-        const tone = Number(category.count || 0) > 0 ? category.tone : 'neutral';
-        const body = rows.length
-            ? rows.map(rowHtml).join('')
-            : `<div class="today-work-empty">${esc(category.empty)}</div>`;
-        const more = category.rows.length > DETAIL_LIMIT
-            ? `<div class="today-work-more"><button type="button" data-work-toggle="${esc(category.key)}">${isExpanded ? '접기' : `상세보기 ${category.rows.length - DETAIL_LIMIT}건 더`} <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}"></i></button></div>`
-            : '';
-        return `<section class="today-work-card ${esc(tone)} ${category.low ? 'low-priority' : ''}" data-work-card="${esc(category.key)}">
-            <div class="today-work-head">
-                <div>
-                    <div class="today-work-title"><i class="fa-solid ${esc(category.icon)}"></i> ${esc(category.label)}</div>
-                    <div class="today-work-desc">${esc(category.desc)}</div>
-                </div>
-                <span class="today-work-count">${esc(category.count)}</span>
-            </div>
-            <div class="today-work-list">${body}</div>
-            ${more}
-        </section>`;
+    function renderAncillaryOrders(rows) {
+        const tbody = document.querySelector('#todayAncillaryTable tbody');
+        if (!tbody) return;
+        const display = [...rows].sort((a, b) => String(b.time || '').localeCompare(String(a.time || ''))).slice(0, 6);
+        if (!display.length) {
+            tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${KO.noAncillary}</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = display.map(order => `<tr>
+            <td>${esc(order.time || '-')}</td>
+            <td>${esc(roomText(order))}</td>
+            <td>${esc(serviceLabel(order))}</td>
+            <td>${esc(orderItemsText(order))}</td>
+            <td>${esc(money(amount(order.total || order.amount)))}</td>
+            <td><span class="ops-chip ${serviceStatus(order) === KO.done ? 'good' : 'warn'}">${esc(serviceStatus(order))}</span></td>
+        </tr>`).join('');
     }
-    function renderCards() {
-        gridWrap.innerHTML = categories.map(cardHtml).join('');
+    function renderHousekeeping(rooms, arrivals) {
+        const grid = document.getElementById('housekeepingSummaryGrid');
+        if (!grid) return;
+        const cleaning = rooms.filter(isCleaningNeeded);
+        const arrivalRoomSet = new Set(arrivals.map(roomText));
+        const confirmBeforeCheckin = cleaning.filter(room => arrivalRoomSet.has(roomText(room)));
+        const items = [
+            { key: 'clean', label: KO.cleanDone, value: rooms.filter(isClean).length, href: 'frontdesk/reservation-board.html?filter=clean' },
+            { key: 'need', label: KO.cleaningNeed, value: cleaning.length, href: 'frontdesk/reservation-board.html?filter=cleaning' },
+            { key: 'progress', label: KO.cleaningProgress, value: rooms.filter(isInProgress).length, href: 'frontdesk/reservation-board.html?filter=cleaning' },
+            { key: 'dnd', label: KO.dnd, value: rooms.filter(isDnd).length, href: 'frontdesk/reservation-board.html?filter=dnd' },
+            { key: 'oos', label: KO.beforeCheckin, value: confirmBeforeCheckin.length, href: 'frontdesk/reservation-board.html?filter=checkin&cleaning=needed' }
+        ];
+        grid.innerHTML = items.map(item => `<a class="housekeeping-summary-card ${item.key}" href="${item.href}"><strong>${item.value}</strong><span>${item.label}</span></a>`).join('');
     }
-    function bindToggles() {
-        gridWrap.addEventListener('click', event => {
-            const button = event.target.closest('[data-work-toggle]');
-            if (!button) return;
-            event.preventDefault();
-            const key = button.dataset.workToggle;
-            if (expandedKeys.has(key)) expandedKeys.delete(key);
-            else expandedKeys.add(key);
-            renderCards();
-        });
-    }
-    async function loadTodayOps() {
+    async function loadDashboardOperations() {
         const today = todayIso();
-        const [reservations, rooms, groups, foliosEnv, posEnv, golfEnv, rentacarEnv] = await Promise.all([
-            window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : [],
-            window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
-            window.PmsAPI?.getGroups ? window.PmsAPI.getGroups().catch(() => []) : [],
+        const [reservationsEnv, roomsEnv, housekeepingEnv, foliosEnv, posEnv, golfEnv, rentacarEnv, activitiesEnv] = await Promise.all([
+            window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : window.PmsMockApi.request('GET', '/reservations').catch(() => []),
+            window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : window.PmsMockApi.request('GET', '/rooms').catch(() => []),
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/operations/housekeeping-rooms').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/folios').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/pos/orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/ancillaries/golf-orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
-            window.PmsMockApi ? window.PmsMockApi.request('GET', '/ancillaries/rentacar-orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } }
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/ancillaries/rentacar-orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/dashboard/today-activities').catch(() => ({ data: { items: [] } })) : { data: { items: [] } }
         ]);
-        const arrivalRows = reservations.filter(res => iso(res.checkInDate || res.checkin) === today && !['cancelled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow', 'no_show', 'checkedin', 'inhouse'].includes(statusOf(res)));
-        const arrivalDisplayRows = [...arrivalRows].sort((a, b) => {
-            const groupDiff = (audienceLabel(b) === '단체' ? 1 : 0) - (audienceLabel(a) === '단체' ? 1 : 0);
-            if (groupDiff) return groupDiff;
-            return String(roomText(a)).localeCompare(String(roomText(b)), 'ko');
+        const reservations = apiItems(reservationsEnv);
+        const roomsFromHousekeeping = apiItems(housekeepingEnv);
+        const rooms = roomsFromHousekeeping.length ? roomsFromHousekeeping : apiItems(roomsEnv);
+        const arrivals = reservations.filter(res => iso(res.checkInDate || res.checkin) === today && !['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow', 'no_show', 'checkedin', 'inhouse'].includes(statusOf(res)));
+        const upcomingArrivals = reservations.filter(res => {
+            const checkinDate = iso(res.checkInDate || res.checkin);
+            return checkinDate > today && !['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow', 'no_show', 'checkedin', 'inhouse'].includes(statusOf(res));
         });
-        const checkoutRows = reservations.filter(res => iso(res.checkOutDate || res.checkout) === today && ['checkedin', 'inhouse', 'checkout'].includes(statusOf(res)));
-        const folios = window.PmsMockApi?.items(foliosEnv) || [];
-        const settlementRows = folios.map(folioSettlementStatus);
-        const settlementNeedRows = settlementRows.filter(row => row.state !== 'paid' && row.dueDate === today);
-        const ancillaryRows = [
-            ...(window.PmsMockApi?.items(posEnv) || []).map(item => normalizeOrder(item, 'pos')),
-            ...(window.PmsMockApi?.items(golfEnv) || []).map(item => normalizeOrder(item, 'golf')),
-            ...(window.PmsMockApi?.items(rentacarEnv) || []).map(item => normalizeOrder(item, 'rentacar'))
+        const checkouts = reservations.filter(res => iso(res.checkOutDate || res.checkout) === today && ['checkedin', 'inhouse', 'checkout'].includes(statusOf(res)));
+        const settlements = apiItems(foliosEnv).map(folioSettlementStatus).filter(row => row.state !== 'paid' && row.dueDate === today);
+        const ancillary = [
+            ...apiItems(posEnv).map(item => normalizeOrder(item, 'pos')),
+            ...apiItems(golfEnv).map(item => normalizeOrder(item, 'golf')),
+            ...apiItems(rentacarEnv).map(item => normalizeOrder(item, 'rentacar'))
         ].filter(item => iso(item.date || item.useDate || item.serviceDate) === today && !['cancelled', 'canceled'].includes(String(item.status || '').toLowerCase()));
-        const ancillaryTotal = ancillaryRows.reduce((sum, row) => sum + amount(row.total || row.amount), 0);
-        const cleaningRows = rooms.filter(isCleaningNeeded);
-        const groupRows = groups.filter(group => iso(group.checkin || group.checkInDate) === today || iso(group.checkout || group.checkOutDate) === today);
-
-        categories = [
-            {
-                key: 'checkin',
-                label: '체크인 대기',
-                count: arrivalRows.length,
-                desc: dateLabel(today),
-                icon: 'fa-right-to-bracket',
-                tone: 'good',
-                empty: '오늘 체크인 대기 대상이 없습니다.',
-                rows: arrivalDisplayRows.map(res => ({
-                    title: `${roomText(res)} · ${guestText(res)}`,
-                    subtitle: stayText(res),
-                    meta: [
-                        { label: audienceLabel(res), type: audienceLabel(res) === '단체' ? 'group' : '' },
-                        res.groupName || '',
-                        { label: tierText(res), type: !['Standard', '일반'].includes(tierText(res)) ? 'vip' : '' }
-                    ],
-                    status: '체크인',
-                    href: `frontdesk/reservation-board.html?query=${encodeURIComponent(roomText(res))}`
-                }))
-            },
-            {
-                key: 'checkout',
-                label: '체크아웃/퇴실',
-                count: checkoutRows.length,
-                desc: '오늘 퇴실 예정',
-                icon: 'fa-right-from-bracket',
-                tone: 'warn',
-                empty: '오늘 체크아웃 예정 객실이 없습니다.',
-                rows: checkoutRows.map(res => ({
-                    title: `${roomText(res)} · ${guestText(res)}`,
-                    subtitle: stayText(res),
-                    meta: [res.roomType || res.type || '', audienceLabel(res)],
-                    status: '퇴실 확인',
-                    href: `frontdesk/reservation-board.html?query=${encodeURIComponent(roomText(res))}`
-                }))
-            },
-            {
-                key: 'ancillary',
-                label: '부가서비스 확인',
-                count: ancillaryRows.length,
-                desc: ancillaryRows.length ? `오늘 합계 ${money(ancillaryTotal)}` : '오늘 주문 없음',
-                icon: 'fa-concierge-bell',
-                tone: 'warn',
-                empty: '오늘 확인할 부가서비스 주문이 없습니다.',
-                rows: ancillaryRows.map(order => ({
-                    title: `${roomText(order)} · ${guestText(order)}`,
-                    subtitle: `${serviceLabel(order)} · ${orderItemsText(order)}`,
-                    meta: [order.time ? `이용 ${order.time}` : '', `금액 ${money(amount(order.total || order.amount))}`],
-                    status: serviceStatus(order),
-                    href: `operations/ancillary.html?query=${encodeURIComponent(order.roomNo || order.guest || order.id || '')}`
-                }))
-            },
-            {
-                key: 'cleaning',
-                label: '청소 필요',
-                count: cleaningRows.length,
-                desc: '체크인 전 확인',
-                icon: 'fa-broom',
-                tone: 'warn',
-                empty: '청소 필요로 표시된 객실이 없습니다.',
-                rows: cleaningRows.map(room => ({
-                    title: `${roomText(room)} · ${cleanLabel(room)}`,
-                    subtitle: room.roomTypeName || room.roomType || room.type || room.buildingName || '객실 상태 확인',
-                    meta: ['체크인 전 확인', room.frontStatus || room.housekeepingStatus || '상태 확인'],
-                    status: cleanLabel(room),
-                    href: `frontdesk/reservation-board.html?query=${encodeURIComponent(roomText(room))}`
-                }))
-            },
-            {
-                key: 'settlement',
-                label: '정산 필요/미수금',
-                count: settlementNeedRows.length,
-                desc: settlementNeedRows.length ? '오늘 기준 대상' : '오늘 기준 미수 없음',
-                icon: 'fa-file-invoice-dollar',
-                tone: 'urgent',
-                low: true,
-                empty: '오늘 기준 정산 필요/미수금 대상이 없습니다.',
-                rows: settlementNeedRows.map(row => ({
-                    title: `${roomText(row.item)} · ${guestText(row.item)}`,
-                    subtitle: row.dueDate ? `정산 기준 ${row.dueDate}` : '정산 기준 확인',
-                    meta: [`미수금 ${money(row.balance)}`],
-                    status: '정산 필요',
-                    href: `operations/settlement-status.html?query=${encodeURIComponent(row.item.folioId || row.item.id || roomText(row.item))}`
-                }))
-            },
-            {
-                key: 'group',
-                label: '단체',
-                count: groupRows.length,
-                desc: '오늘 도착/퇴실 단체',
-                icon: 'fa-users-line',
-                tone: 'good',
-                low: true,
-                empty: '오늘 도착 또는 퇴실하는 단체가 없습니다.',
-                rows: groupRows.map(group => ({
-                    title: groupText(group),
-                    subtitle: `${group.companyName || '등록 단체'} · ${shortDate(group.checkin || group.checkInDate)}~${shortDate(group.checkout || group.checkOutDate)}`,
-                    meta: [`${group.blockedRooms || 0}객실`, `${group.pax || 0}명`],
-                    status: iso(group.checkin || group.checkInDate) === today ? '도착' : '퇴실',
-                    href: `frontdesk/groups_blocks.html?query=${encodeURIComponent(groupText(group))}`
-                }))
-            }
-        ];
-        renderCards();
+        const activities = apiItems(activitiesEnv);
+        const cleaning = rooms.filter(isCleaningNeeded);
+        checkinRows = [
+            ...arrivals.map(res => ({ ...res, _dashboardToday: true })),
+            ...upcomingArrivals.map(res => ({ ...res, _dashboardToday: false }))
+        ].sort((a, b) => {
+            const dateSort = String(iso(a.checkInDate || a.checkin)).localeCompare(String(iso(b.checkInDate || b.checkin)));
+            if (dateSort) return dateSort;
+            const roomSort = String(roomText(a)).localeCompare(String(roomText(b)), 'ko', { numeric: true });
+            const groupSort = (audienceLabel(b) === KO.group ? 1 : 0) - (audienceLabel(a) === KO.group ? 1 : 0);
+            return groupSort || roomSort;
+        });
+        renderKpis({ arrivals, checkouts, settlements, cleaning, activities });
+        renderCheckins();
+        renderActivities(activities);
+        renderAncillaryOrders(ancillary);
+        renderHousekeeping(rooms, arrivals);
     }
-    document.addEventListener('DOMContentLoaded', () => loadTodayOps().catch(error => {
-        console.warn('Today work list failed', error);
-        gridWrap.innerHTML = '<div class="today-work-card urgent"><div class="today-work-head"><div><div class="today-work-title"><i class="fa-solid fa-triangle-exclamation"></i> 업무 목록을 불러오지 못했습니다</div><div class="today-work-desc">예약, 정산 데이터를 다시 확인하세요.</div></div><span class="today-work-count">!</span></div></div>';
-    }));
-    bindToggles();
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('checkinMoreBtn')?.addEventListener('click', () => {
+            showAllCheckins = !showAllCheckins;
+            renderCheckins();
+        });
+        loadDashboardOperations().catch(error => {
+            console.warn('Dashboard operations load failed', error);
+            const tbody = document.querySelector('#todayCheckinTable tbody');
+            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${KO.loadFailed}</td></tr>`;
+        });
+    });
 })();
 
 (function(){
