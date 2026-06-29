@@ -37,8 +37,10 @@
         .criteria-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
         .criteria-name{font-size:.95rem;font-weight:850;color:var(--txt);line-height:1.2}
         .criteria-desc{font-size:.72rem;font-weight:650;color:var(--txt3);line-height:1.45;margin-top:5px}
+        .criteria-rule-note{display:inline-flex;align-items:center;gap:5px;margin-top:9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;padding:5px 9px;font-size:.68rem;font-weight:850}
         .criteria-metrics{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
         .criteria-chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:#f8fafc;border:1px solid var(--border2);padding:5px 9px;font-size:.7rem;font-weight:800;color:var(--txt2)}
+        .criteria-chip.or{border:0;background:transparent;padding-inline:0;color:var(--txt3)}
         .recent-list{display:flex;flex-direction:column;padding:8px 0}
         .recent-item{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;border:0;border-bottom:1px solid var(--border2);background:#fff;text-align:left;padding:13px 18px;font-family:var(--font);cursor:pointer}
         .recent-item:last-child{border-bottom:0}
@@ -85,9 +87,9 @@
 
     <div class="content">
         <div class="tier-overview" id="tierOverview">
-            <div class="tier-card diamond"><div class="tier-card-icon"><i class="fa-solid fa-gem"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countDiamond">0</div><div class="tier-card-name">다이아몬드</div></div><div class="tier-card-criteria" id="criteriaTextDiamond">20회 이상 투숙 · 연 ₱10,000+</div></div>
-            <div class="tier-card platinum"><div class="tier-card-icon"><i class="fa-solid fa-star"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countPlatinum">0</div><div class="tier-card-name">플래티넘</div></div><div class="tier-card-criteria" id="criteriaTextPlatinum">10회 이상 투숙 · 연 ₱5,000+</div></div>
-            <div class="tier-card gold"><div class="tier-card-icon"><i class="fa-solid fa-crown"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countGold">0</div><div class="tier-card-name">골드</div></div><div class="tier-card-criteria" id="criteriaTextGold">5회 이상 투숙 · 연 ₱2,000+</div></div>
+            <div class="tier-card diamond"><div class="tier-card-icon"><i class="fa-solid fa-gem"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countDiamond">0</div><div class="tier-card-name">다이아몬드</div></div><div class="tier-card-criteria" id="criteriaTextDiamond">투숙 20회 이상 또는 누적 결제 ₱10,000 이상</div></div>
+            <div class="tier-card platinum"><div class="tier-card-icon"><i class="fa-solid fa-star"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countPlatinum">0</div><div class="tier-card-name">플래티넘</div></div><div class="tier-card-criteria" id="criteriaTextPlatinum">투숙 10회 이상 또는 누적 결제 ₱5,000 이상</div></div>
+            <div class="tier-card gold"><div class="tier-card-icon"><i class="fa-solid fa-crown"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countGold">0</div><div class="tier-card-name">골드</div></div><div class="tier-card-criteria" id="criteriaTextGold">투숙 5회 이상 또는 누적 결제 ₱2,000 이상</div></div>
             <div class="tier-card standard"><div class="tier-card-icon"><i class="fa-solid fa-user"></i></div><div class="tier-card-info"><div class="tier-card-count" id="countStandard">0</div><div class="tier-card-name">일반</div></div><div class="tier-card-criteria">일반 회원 · 가입 즉시</div></div>
         </div>
 
@@ -107,7 +109,7 @@
                 <div class="membership-panel-header">
                     <div>
                         <div class="membership-panel-title"><i class="fa-solid fa-layer-group"></i> 등급 기준 요약</div>
-                        <div class="membership-panel-sub">고객 등급 산정에 사용하는 투숙/결제 기준입니다.</div>
+                        <div class="membership-panel-sub">투숙 횟수 또는 누적 결제 금액 중 하나를 충족하면 해당 등급 기준을 만족합니다.</div>
                     </div>
                 </div>
                 <div class="criteria-list" id="criteriaList"></div>
@@ -272,7 +274,7 @@ function updateKpiCriteria() {
     ['gold', 'platinum', 'diamond'].forEach(id => {
         const threshold = cfg.thresholds?.[id] || thresholdFor(id);
         const el = document.getElementById(`criteriaText${id.charAt(0).toUpperCase() + id.slice(1)}`);
-        if (el) el.textContent = `${threshold.stays}회 이상 투숙 · 연 ${money(threshold.spend)}+`;
+        if (el) el.textContent = `투숙 ${Number(threshold.stays || 0).toLocaleString()}회 이상 또는 누적 결제 ${money(threshold.spend)} 이상`;
     });
 }
 
@@ -301,10 +303,14 @@ function renderCriteria() {
             <div>
                 <div class="criteria-name">${escapeHtml(item.label)}</div>
                 <div class="criteria-desc">${escapeHtml(item.desc)}</div>
-                <div class="criteria-metrics">
-                    <span class="criteria-chip"><i class="fa-solid fa-bed"></i> ${Number(item.threshold.stays || 0).toLocaleString()}회 이상</span>
-                    <span class="criteria-chip"><i class="fa-solid fa-coins"></i> ${money(item.threshold.spend || 0)}+</span>
-                </div>
+                ${item.id === 'standard'
+                    ? `<div class="criteria-metrics"><span class="criteria-chip"><i class="fa-solid fa-user-check"></i> 가입 즉시 기본 등급</span></div>`
+                    : `<div class="criteria-rule-note"><i class="fa-solid fa-circle-info"></i> 둘 중 하나 충족</div>
+                        <div class="criteria-metrics">
+                            <span class="criteria-chip"><i class="fa-solid fa-bed"></i> 투숙 ${Number(item.threshold.stays || 0).toLocaleString()}회 이상</span>
+                            <span class="criteria-chip or">또는</span>
+                            <span class="criteria-chip"><i class="fa-solid fa-coins"></i> 누적 결제 ${money(item.threshold.spend || 0)} 이상</span>
+                        </div>`}
             </div>
         </div>`).join('');
     const list = document.getElementById('criteriaList');
