@@ -19,49 +19,48 @@
     <script src="common/js/ui-components.js"></script>
     <script src="common/js/topbar.js"></script>
     <style>
-        .today-ops-board{margin-bottom:20px;padding:18px;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 2px 12px rgba(15,23,42,.04)}
-        .today-ops-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+        .today-ops-board{margin-bottom:20px;padding:18px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 10px rgba(15,23,42,.035)}
+        .today-ops-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
         .today-ops-title{display:grid;gap:4px}
-        .today-ops-title h2{display:flex;align-items:center;gap:9px;margin:0;color:var(--txt);font-size:1.08rem;font-weight:950;line-height:1.2}
-        .today-ops-title p{margin:0;color:var(--txt2);font-size:.8rem;font-weight:750;line-height:1.45}
-        .today-ops-date{display:inline-flex;align-items:center;gap:6px;width:max-content;margin-top:2px;padding:5px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.72rem;font-weight:900}
-        .today-ops-total{display:inline-flex;align-items:center;gap:5px;padding:7px 10px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:.72rem;font-weight:900;white-space:nowrap}
-        .today-ops-layout{display:grid;gap:12px}
-        .today-ops-panel{border:1px solid var(--border2);border-radius:12px;background:#fbfdff;overflow:hidden}
-        .today-ops-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border2);background:#fff;color:var(--txt);font-size:.86rem;font-weight:950}
-        .today-task-list{display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px;background:#fff}
-        .today-task{display:inline-grid;grid-template-columns:30px minmax(90px,1fr) auto;gap:8px;align-items:center;min-width:178px;max-width:230px;padding:9px 10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;color:inherit;text-align:left;cursor:pointer}
+        .today-ops-title h2{display:flex;align-items:center;gap:8px;margin:0;color:var(--txt);font-size:1.02rem;font-weight:950;line-height:1.2}
+        .today-ops-title p{margin:0;color:var(--txt2);font-size:.76rem;font-weight:750;line-height:1.45}
+        .today-ops-date{display:inline-flex;align-items:center;gap:6px;width:max-content;margin-top:4px;padding:4px 8px;border-radius:999px;background:#f8fafc;color:#475569;font-size:.68rem;font-weight:900}
+        .today-ops-total{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;background:#f8fafc;color:#475569;font-size:.7rem;font-weight:900;white-space:nowrap}
+        .today-ops-layout{display:grid;gap:10px}
+        .today-ops-panel{background:#fff;overflow:hidden}
+        .today-ops-panel-head{display:none}
+        .today-task-list{display:flex;align-items:stretch;gap:0;padding:0;border:1px solid var(--border2);border-radius:10px;background:#fff;overflow:hidden}
+        .today-task{display:inline-flex;align-items:center;gap:8px;min-width:0;padding:11px 14px;border:0;border-right:1px solid var(--border2);border-bottom:2px solid transparent;background:#fff;color:#475569;text-align:left;cursor:pointer}
+        .today-task:last-child{border-right:0}
         .today-task:hover{background:#f8fafc}
-        .today-task.active{border-color:#bfdbfe;background:#eff6ff}
-        .today-task-icon{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:#eff6ff;color:#2563eb;font-size:.82rem}
-        .today-task.warn .today-task-icon{background:#fff7ed;color:#ea580c}
-        .today-task.urgent .today-task-icon{background:#fff1f2;color:#dc2626}
-        .today-task.good .today-task-icon{background:#ecfdf5;color:#059669}
-        .today-task.neutral .today-task-icon{background:#f1f5f9;color:#475569}
-        .today-task-title{display:block;color:var(--txt);font-size:.8rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-task-desc{display:block;margin-top:2px;color:var(--txt3);font-size:.66rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-task-count{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 8px;border-radius:999px;background:#e0f2fe;color:#0369a1;font-size:.72rem;font-weight:950}
+        .today-task.active{border-bottom-color:#2563eb;background:#f8fbff;color:#1d4ed8}
+        .today-task-icon{display:none}
+        .today-task-title{display:block;color:inherit;font-size:.76rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .today-task-desc{display:block;margin-top:2px;color:#94a3b8;font-size:.64rem;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .today-task-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 7px;border-radius:999px;background:#e0f2fe;color:#0369a1;font-size:.68rem;font-weight:950}
         .today-task.urgent .today-task-count{background:#fee2e2;color:#b91c1c}
         .today-task.warn .today-task-count{background:#ffedd5;color:#c2410c}
         .today-task.good .today-task-count{background:#dcfce7;color:#047857}
-        .today-detail-panel{min-width:0;background:#fff}
-        .today-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px;border-bottom:1px solid var(--border2)}
-        .today-detail-title{display:flex;align-items:center;gap:8px;color:var(--txt);font-size:.95rem;font-weight:950}
-        .today-detail-desc{margin-top:4px;color:var(--txt2);font-size:.73rem;font-weight:800;line-height:1.45}
-        .today-detail-action{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;color:#1d4ed8;text-decoration:none;font-size:.72rem;font-weight:950;white-space:nowrap}
+        .today-detail-panel{min-width:0;border:1px solid var(--border2);border-radius:10px;background:#fff}
+        .today-detail-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border-bottom:1px solid var(--border2);background:#fbfdff}
+        .today-detail-title{display:flex;align-items:center;gap:7px;color:var(--txt);font-size:.9rem;font-weight:950}
+        .today-detail-desc{margin-top:3px;color:var(--txt2);font-size:.7rem;font-weight:800;line-height:1.4}
+        .today-detail-action{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #dbeafe;border-radius:8px;background:#fff;color:#1d4ed8;text-decoration:none;font-size:.7rem;font-weight:950;white-space:nowrap}
         .today-detail-list{display:grid;background:#fff}
-        .today-detail-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--border2);color:inherit;text-decoration:none}
-        .today-detail-row:first-child{border-top:0}
+        .today-detail-table-head{display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(180px,1.3fr) 92px;gap:12px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border2);background:#f8fafc;color:#94a3b8;font-size:.62rem;font-weight:950;text-transform:uppercase;letter-spacing:0}
+        .today-detail-row{display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(180px,1.3fr) 92px;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid #eef2f7;color:inherit;text-decoration:none}
+        .today-detail-table-head+.today-detail-row{border-top:0}
         .today-detail-row:hover{background:#f8fafc}
         .today-detail-main{min-width:0}
-        .today-detail-name{display:flex;align-items:center;gap:7px;color:var(--txt);font-size:.82rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-detail-sub{margin-top:4px;color:var(--txt2);font-size:.7rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-detail-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px}
-        .today-detail-chip{padding:4px 7px;border-radius:7px;background:#f8fafc;color:#64748b;font-size:.66rem;font-weight:850}
-        .today-detail-status{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.68rem;font-weight:950;white-space:nowrap}
-        .today-detail-empty{padding:30px 14px;text-align:center;color:#94a3b8;font-size:.82rem;font-weight:850}
-        @media(max-width:1100px){.today-task{min-width:170px;max-width:none;flex:1 1 190px}}
-        @media(max-width:720px){.today-ops-head,.today-detail-head{flex-direction:column}.today-task-list{flex-wrap:nowrap;overflow-x:auto;padding-bottom:12px}.today-task{min-width:184px;flex:0 0 184px}.today-detail-row{grid-template-columns:1fr}.today-detail-action{justify-content:center;width:100%}}
+        .today-detail-name{display:flex;align-items:center;gap:6px;color:var(--txt);font-size:.78rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .today-detail-name i{display:none}
+        .today-detail-sub{color:var(--txt2);font-size:.7rem;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .today-detail-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0}
+        .today-detail-chip{padding:3px 6px;border-radius:6px;background:#f8fafc;color:#64748b;font-size:.63rem;font-weight:850}
+        .today-detail-status{display:inline-flex;align-items:center;justify-content:center;gap:5px;width:max-content;min-width:66px;padding:5px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.66rem;font-weight:950;white-space:nowrap;justify-self:end}
+        .today-detail-empty{padding:28px 14px;text-align:center;color:#94a3b8;font-size:.8rem;font-weight:850}
+        @media(max-width:1100px){.today-task-list{overflow-x:auto}.today-task{flex:0 0 auto}}
+        @media(max-width:720px){.today-ops-head,.today-detail-head{flex-direction:column;align-items:flex-start}.today-task-list{overflow-x:auto}.today-task{flex:0 0 auto}.today-detail-table-head{display:none}.today-detail-row{grid-template-columns:1fr;gap:6px;padding:11px 12px}.today-detail-status{justify-self:start}.today-detail-action{justify-content:center;width:100%}}
     </style>
 </head>
 <body>
@@ -420,11 +419,15 @@
         return `<a class="today-detail-row" href="${esc(row.href)}">
             <span class="today-detail-main">
                 <span class="today-detail-name"><i class="fa-solid ${esc(row.icon || 'fa-circle-info')}"></i>${esc(row.title)}</span>
-                <span class="today-detail-sub">${esc(row.subtitle || '')}</span>
-                ${chips ? `<span class="today-detail-meta">${chips}</span>` : ''}
             </span>
+            <span class="today-detail-sub">${esc(row.subtitle || '')}</span>
+            <span class="today-detail-meta">${chips}</span>
             <span class="today-detail-status">${esc(row.status || '확인')}</span>
         </a>`;
+    }
+    function detailTable(rows) {
+        const head = '<div class="today-detail-table-head"><span>대상</span><span>기간 / Folio</span><span>확인 정보</span><span>상태</span></div>';
+        return head + rows.map(detailRow).join('');
     }
     function renderDetail(key = activeKey) {
         const item = categories.find(category => category.key === key) || categories[0];
@@ -438,7 +441,7 @@
             detailAction.innerHTML = `${esc(item.action)} <i class="fa-solid fa-arrow-right"></i>`;
         }
         detailRows.innerHTML = item.rows.length
-            ? item.rows.map(detailRow).join('')
+            ? detailTable(item.rows)
             : `<div class="today-detail-empty">${esc(item.empty)}</div>`;
     }
     function bindTaskButtons() {
@@ -477,7 +480,7 @@
         const maintenanceRows = rooms.filter(isMaintenance);
         const groupRows = groups.filter(group => iso(group.checkin || group.checkInDate) === today || iso(group.checkout || group.checkOutDate) === today);
         const totalWork = arrivalRows.length + checkoutRows.length + settlementNeedRows.length + depositRows.length + ancillaryRows.length + maintenanceRows.length + groupRows.length;
-        if (totalEl) totalEl.innerHTML = `<i class="fa-solid fa-bolt"></i> 처리 ${totalWork}건`;
+        if (totalEl) totalEl.innerHTML = `<i class="fa-solid fa-bolt"></i> 오늘 확인 ${totalWork}건`;
 
         categories = [
             {
