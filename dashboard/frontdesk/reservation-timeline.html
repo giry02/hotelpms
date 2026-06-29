@@ -56,7 +56,9 @@
     .filter-left { flex-wrap: wrap; gap: 10px; }
     .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
-    .filter-right { justify-content: flex-start; }
+    .filter-right { justify-content: flex-start; width: 100%; }
+    .tl-legend { width: 100%; flex-wrap: wrap; overflow-x: visible; gap: 6px; }
+    .tl-leg-item { flex: 1 1 calc(50% - 6px); min-width: 0; justify-content: center; }
 }
 
 /* Fallback & Override for Timeline Blocks to bypass CSS Cache */
@@ -89,6 +91,16 @@
     min-width:0;
     box-sizing:border-box;
 }
+.tl-date-header.saturday{color:#2563EB}
+.tl-date-header.saturday .tl-day-name{color:#2563EB}
+.tl-date-header.sunday{color:#EF4444}
+.tl-date-header.sunday .tl-day-name{color:#EF4444}
+.tl-date-header.today.saturday,
+.tl-date-header.today.sunday{color:var(--primary)}
+.tl-date-header.today.saturday .tl-day-name,
+.tl-date-header.today.sunday .tl-day-name{color:var(--primary)}
+.tl-cell.saturday{background:rgba(59,130,246,.035)}
+.tl-cell.sunday{background:rgba(239,68,68,.035)}
 .tl-room-cell,
 .tl-cell{
     min-height:var(--tl-row-height,40px);
@@ -809,6 +821,13 @@ function dedupeTimelineReservations(list) {
     return (list || []).filter(res => keepIds.has(res.id));
 }
 
+function timelineDateClass(date) {
+    const day = date.getDay();
+    if (day === 6) return 'saturday';
+    if (day === 0) return 'sunday';
+    return '';
+}
+
 function buildTimeline() {
     const grid = document.getElementById('tlGrid');
     grid.innerHTML = '';
@@ -835,8 +854,8 @@ function buildTimeline() {
         date.setDate(date.getDate() + d);
         const dayName = timelineText('dayNames')[date.getDay()];
         const isToday = date.getTime() === todayDate.getTime();
-        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-        headerHTML += `<div class="tl-date-header ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}">${date.getDate()}<span class="tl-day-name">${dayName}</span></div>`;
+        const dayClass = timelineDateClass(date);
+        headerHTML += `<div class="tl-date-header ${isToday ? 'today' : ''} ${dayClass}">${date.getDate()}<span class="tl-day-name">${dayName}</span></div>`;
     }
     grid.innerHTML += `<div class="tl-header-row">${headerHTML}</div>`;
 
@@ -846,12 +865,12 @@ function buildTimeline() {
         
         // Create date cells
         for (let d = 0; d < DAYS; d++) {
-            const isWeekend = (() => {
+            const dayClass = (() => {
                 const date = new Date(baseDate);
                 date.setDate(date.getDate() + d);
-                return date.getDay() === 0 || date.getDay() === 6;
+                return timelineDateClass(date);
             })();
-            rowHTML += `<div class="tl-cell ${isWeekend ? 'weekend' : ''}" data-room="${room.id}" data-day="${d}"></div>`;
+            rowHTML += `<div class="tl-cell ${dayClass}" data-room="${room.id}" data-day="${d}"></div>`;
         }
 
         grid.innerHTML += `<div class="tl-row">${rowHTML}</div>`;
@@ -1216,7 +1235,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         timelineGroups = timelineStoredGroups();
         if (timelineGroups.length) localStorage.setItem('pms_groups', JSON.stringify(timelineGroups));
         window.reservations = dedupeTimelineReservations(resData);
-        alignTimelineToFirstGroupBlock();
 
         applyTimelineStaticLabels();
         buildTimeline();
