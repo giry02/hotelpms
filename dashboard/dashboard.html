@@ -29,11 +29,10 @@
         .today-ops-layout{display:grid;gap:10px}
         .today-ops-panel{background:#fff;overflow:hidden}
         .today-ops-panel-head{display:none}
-        .today-task-list{display:flex;align-items:stretch;gap:0;padding:0;border:1px solid var(--border2);border-radius:10px;background:#fff;overflow:hidden}
-        .today-task{display:inline-flex;align-items:center;gap:8px;min-width:0;padding:11px 14px;border:0;border-right:1px solid var(--border2);border-bottom:2px solid transparent;background:#fff;color:#475569;text-align:left;cursor:pointer}
-        .today-task:last-child{border-right:0}
+        .today-task-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0;background:#fff}
+        .today-task{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;padding:10px 12px;border:1px solid var(--border2);border-left:3px solid transparent;border-radius:8px;background:#fff;color:#475569;text-align:left;cursor:pointer}
         .today-task:hover{background:#f8fafc}
-        .today-task.active{border-bottom-color:#2563eb;background:#f8fbff;color:#1d4ed8}
+        .today-task.active{border-color:#bfdbfe;border-left-color:#2563eb;background:#f8fbff;color:#1d4ed8}
         .today-task-icon{display:none}
         .today-task-title{display:block;color:inherit;font-size:.76rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .today-task-desc{display:block;margin-top:2px;color:#94a3b8;font-size:.64rem;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -59,8 +58,10 @@
         .today-detail-chip{padding:3px 6px;border-radius:6px;background:#f8fafc;color:#64748b;font-size:.63rem;font-weight:850}
         .today-detail-status{display:inline-flex;align-items:center;justify-content:center;gap:5px;width:max-content;min-width:66px;padding:5px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.66rem;font-weight:950;white-space:nowrap;justify-self:end}
         .today-detail-empty{padding:28px 14px;text-align:center;color:#94a3b8;font-size:.8rem;font-weight:850}
-        @media(max-width:1100px){.today-task-list{overflow-x:auto}.today-task{flex:0 0 auto}}
-        @media(max-width:720px){.today-ops-head,.today-detail-head{flex-direction:column;align-items:flex-start}.today-task-list{overflow-x:auto}.today-task{flex:0 0 auto}.today-detail-table-head{display:none}.today-detail-row{grid-template-columns:1fr;gap:6px;padding:11px 12px}.today-detail-status{justify-self:start}.today-detail-action{justify-content:center;width:100%}}
+        .today-detail-more{display:flex;justify-content:center;padding:10px 14px;border-top:1px solid var(--border2);background:#fff}
+        .today-detail-more button{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid #dbeafe;border-radius:8px;background:#fff;color:#1d4ed8;font-size:.7rem;font-weight:950;cursor:pointer}
+        .today-detail-more button:hover{background:#eff6ff}
+        @media(max-width:720px){.today-ops-head,.today-detail-head{flex-direction:column;align-items:flex-start}.today-task-list{grid-template-columns:1fr}.today-detail-table-head{display:none}.today-detail-row{grid-template-columns:1fr;gap:6px;padding:11px 12px}.today-detail-status{justify-self:start}.today-detail-action{justify-content:center;width:100%}}
     </style>
 </head>
 <body>
@@ -314,6 +315,8 @@
     if (!taskWrap || !detailRows) return;
     let categories = [];
     let activeKey = 'checkin';
+    let expandedKey = '';
+    const DETAIL_LIMIT = 5;
 
     function esc(value) {
         return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -350,9 +353,6 @@
     }
     function guestText(value) {
         return value?.guestName || value?.guest || value?.ownerName || value?.roomingGuestName || value?.name || '투숙객 미배정';
-    }
-    function groupText(value) {
-        return value?.name || value?.groupName || value?.companyName || '단체';
     }
     function orderItemsText(value) {
         const items = value?.items;
@@ -406,6 +406,22 @@
     function isMaintenance(room) {
         return ['oos', 'outofservice', 'maintenance'].includes(roomOpsStatus(room));
     }
+    function cleanState(room) {
+        const normalize = value => String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+        const flag = normalize(room?.guestFlag || room?.stayState);
+        if (['dnd', 'donotdisturb', 'mur'].includes(flag)) return flag;
+        return normalize(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus || room?.frontStatus || room?.status || flag);
+    }
+    function isCleaningNeeded(room) {
+        if (isMaintenance(room)) return false;
+        return ['dnd', 'donotdisturb', 'mur', 'dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleanState(room));
+    }
+    function cleanLabel(room) {
+        const state = cleanState(room);
+        if (['dnd', 'donotdisturb'].includes(state)) return '방해금지';
+        if (['inspect', 'needsinspection'].includes(state)) return '점검 전 확인';
+        return '청소 필요';
+    }
     function taskButton(item) {
         const tone = Number(item.count || 0) > 0 ? item.tone : 'neutral';
         return `<button class="today-task ${esc(tone)} ${item.key === activeKey ? 'active' : ''}" type="button" data-task="${esc(item.key)}">
@@ -426,7 +442,7 @@
         </a>`;
     }
     function detailTable(rows) {
-        const head = '<div class="today-detail-table-head"><span>대상</span><span>기간 / Folio</span><span>확인 정보</span><span>상태</span></div>';
+        const head = '<div class="today-detail-table-head"><span>대상</span><span>기간 / 기준</span><span>확인 정보</span><span>상태</span></div>';
         return head + rows.map(detailRow).join('');
     }
     function renderDetail(key = activeKey) {
@@ -440,24 +456,35 @@
             detailAction.href = item.href;
             detailAction.innerHTML = `${esc(item.action)} <i class="fa-solid fa-arrow-right"></i>`;
         }
+        const isExpanded = expandedKey === item.key;
+        const visibleRows = isExpanded ? item.rows : item.rows.slice(0, DETAIL_LIMIT);
+        const moreHtml = item.rows.length > DETAIL_LIMIT
+            ? `<div class="today-detail-more"><button type="button" data-detail-toggle="${esc(item.key)}">${isExpanded ? '접기' : `상세보기 ${item.rows.length - DETAIL_LIMIT}건 더`} <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}"></i></button></div>`
+            : '';
         detailRows.innerHTML = item.rows.length
-            ? detailTable(item.rows)
+            ? detailTable(visibleRows) + moreHtml
             : `<div class="today-detail-empty">${esc(item.empty)}</div>`;
     }
     function bindTaskButtons() {
         taskWrap.addEventListener('click', event => {
             const button = event.target.closest('[data-task]');
             if (!button) return;
+            expandedKey = '';
             renderDetail(button.dataset.task);
+        });
+        detailRows.addEventListener('click', event => {
+            const button = event.target.closest('[data-detail-toggle]');
+            if (!button) return;
+            expandedKey = expandedKey === button.dataset.detailToggle ? '' : button.dataset.detailToggle;
+            renderDetail(activeKey);
         });
     }
     async function loadTodayOps() {
         const today = todayIso();
         if (dateEl) dateEl.innerHTML = `<i class="fa-regular fa-calendar"></i> ${esc(dateLabel(today))} 기준`;
-        const [reservations, rooms, groups, foliosEnv, posEnv, golfEnv, rentacarEnv] = await Promise.all([
+        const [reservations, rooms, foliosEnv, posEnv, golfEnv, rentacarEnv] = await Promise.all([
             window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : [],
             window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
-            window.PmsAPI?.getGroups ? window.PmsAPI.getGroups().catch(() => []) : [],
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/folios').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/pos/orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/ancillaries/golf-orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
@@ -468,9 +495,7 @@
         const folios = window.PmsMockApi?.items(foliosEnv) || [];
         const settlementRows = folios.map(folioSettlementStatus);
         const settlementNeedRows = settlementRows.filter(row => row.state !== 'paid' && (!row.dueDate || row.dueDate <= today));
-        const depositRows = settlementRows.filter(row => row.deposit > 0 && (!row.dueDate || row.dueDate <= today));
         const unpaid = settlementNeedRows.reduce((sum, row) => sum + Math.max(0, row.balance), 0);
-        const deposit = depositRows.reduce((sum, row) => sum + Math.max(0, row.deposit), 0);
         const ancillaryRows = [
             ...(window.PmsMockApi?.items(posEnv) || []).map(item => normalizeOrder(item, 'pos')),
             ...(window.PmsMockApi?.items(golfEnv) || []).map(item => normalizeOrder(item, 'golf')),
@@ -478,8 +503,8 @@
         ].filter(item => iso(item.date || item.useDate || item.serviceDate) === today && !['cancelled', 'canceled'].includes(String(item.status || '').toLowerCase()));
         const ancillaryTotal = ancillaryRows.reduce((sum, row) => sum + amount(row.total || row.amount), 0);
         const maintenanceRows = rooms.filter(isMaintenance);
-        const groupRows = groups.filter(group => iso(group.checkin || group.checkInDate) === today || iso(group.checkout || group.checkOutDate) === today);
-        const totalWork = arrivalRows.length + checkoutRows.length + settlementNeedRows.length + depositRows.length + ancillaryRows.length + maintenanceRows.length + groupRows.length;
+        const cleaningRows = rooms.filter(isCleaningNeeded);
+        const totalWork = arrivalRows.length + checkoutRows.length + settlementNeedRows.length + ancillaryRows.length + cleaningRows.length + maintenanceRows.length;
         if (totalEl) totalEl.innerHTML = `<i class="fa-solid fa-bolt"></i> 오늘 확인 ${totalWork}건`;
 
         categories = [
@@ -536,31 +561,11 @@
                 empty: '금일 기준 정산 필요 Folio가 없습니다.',
                 rows: settlementNeedRows.map(row => ({
                     title: `${roomText(row.item)} · ${guestText(row.item)}`,
-                    subtitle: row.item.folioId || row.item.id || 'Folio',
-                    meta: [row.dueDate ? `기준 ${row.dueDate}` : '', `미수금 ${money(row.balance)}`],
+                    subtitle: row.dueDate ? `정산 기준 ${row.dueDate}` : '정산 기준 확인',
+                    meta: [`미수금 ${money(row.balance)}`],
                     status: '정산 필요',
                     icon: 'fa-file-invoice-dollar',
                     href: `operations/settlement-status.html?query=${encodeURIComponent(row.item.folioId || row.item.id || roomText(row.item))}`
-                }))
-            },
-            {
-                key: 'deposit',
-                label: '예치금 확인',
-                hint: depositRows.length ? money(deposit) : '대상 없음',
-                count: depositRows.length,
-                desc: '체크아웃 전 받은 예치금 차감 여부를 확인합니다.',
-                href: 'operations/settlement-status.html?filter=deposit',
-                action: '정산현황',
-                icon: 'fa-wallet',
-                tone: 'good',
-                empty: '금일 기준 예치금 확인 대상이 없습니다.',
-                rows: depositRows.map(row => ({
-                    title: `${roomText(row.item)} · ${guestText(row.item)}`,
-                    subtitle: row.item.folioId || row.item.id || 'Folio',
-                    meta: [row.dueDate ? `기준 ${row.dueDate}` : '', `예치금 ${money(row.deposit)}`],
-                    status: '예치금',
-                    icon: 'fa-wallet',
-                    href: `operations/settlement-status.html?filter=deposit&query=${encodeURIComponent(row.item.folioId || row.item.id || roomText(row.item))}`
                 }))
             },
             {
@@ -584,6 +589,26 @@
                 }))
             },
             {
+                key: 'cleaning',
+                label: '청소 필요',
+                hint: '체크인 전 확인',
+                count: cleaningRows.length,
+                desc: '프런트가 객실 배정과 체크인 전에 확인해야 하는 청소 상태입니다.',
+                href: 'frontdesk/reservation-board.html?filter=cleaning',
+                action: '예약현황',
+                icon: 'fa-broom',
+                tone: 'warn',
+                empty: '청소 필요로 표시된 객실이 없습니다.',
+                rows: cleaningRows.map(room => ({
+                    title: `${roomText(room)} · ${cleanLabel(room)}`,
+                    subtitle: room.roomTypeName || room.roomType || room.type || room.buildingName || '객실 상태 확인',
+                    meta: ['체크인 전 확인', room.frontStatus || room.housekeepingStatus || '상태 확인'],
+                    status: cleanLabel(room),
+                    icon: 'fa-broom',
+                    href: `frontdesk/reservation-board.html?query=${encodeURIComponent(roomText(room))}`
+                }))
+            },
+            {
                 key: 'maintenance',
                 label: '점검 중 객실',
                 hint: '판매 제한',
@@ -601,26 +626,6 @@
                     status: '점검',
                     icon: 'fa-screwdriver-wrench',
                     href: `frontdesk/reservation-board.html?query=${encodeURIComponent(roomText(room))}`
-                }))
-            },
-            {
-                key: 'group',
-                label: '단체 도착/퇴실',
-                hint: '단체 업무',
-                count: groupRows.length,
-                desc: '오늘 도착 또는 퇴실하는 단체 업무를 확인합니다.',
-                href: 'frontdesk/groups_blocks.html?status=today',
-                action: '단체관리',
-                icon: 'fa-users-line',
-                tone: 'good',
-                empty: '오늘 도착 또는 퇴실하는 단체가 없습니다.',
-                rows: groupRows.map(group => ({
-                    title: groupText(group),
-                    subtitle: `${group.companyName || '등록 단체'} · ${shortDate(group.checkin || group.checkInDate)}~${shortDate(group.checkout || group.checkOutDate)}`,
-                    meta: [`${group.blockedRooms || 0}객실`, `${group.pax || 0}명`],
-                    status: iso(group.checkin || group.checkInDate) === today ? '도착' : '퇴실',
-                    icon: 'fa-users-line',
-                    href: `frontdesk/groups_blocks.html?query=${encodeURIComponent(groupText(group))}`
                 }))
             }
         ];
