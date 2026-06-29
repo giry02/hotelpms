@@ -169,6 +169,11 @@ function settlementIso(value) {
     const text = String(value || '').trim();
     if (!text) return '';
     if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
+    const monthDay = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (monthDay) {
+        const year = settlementTodayIso().slice(0, 4);
+        return `${year}-${String(monthDay[1]).padStart(2, '0')}-${String(monthDay[2]).padStart(2, '0')}`;
+    }
     return '';
 }
 
@@ -181,6 +186,74 @@ function settlementTodayIso() {
 function settlementRoomNo(value) {
     if (!value) return '';
     return window.PmsMockApi?.roomNoFromId ? window.PmsMockApi.roomNoFromId(value) : String(value).split('-').pop();
+}
+
+function settlementDateValue(isoDate) {
+    const iso = settlementIso(isoDate);
+    if (!iso) return NaN;
+    const [year, month, day] = iso.split('-').map(Number);
+    return Date.UTC(year, month - 1, day);
+}
+
+function settlementDateShort(isoDate) {
+    const iso = settlementIso(isoDate);
+    if (!iso) return '';
+    const [, month, day] = iso.split('-');
+    return `${Number(month)}/${Number(day)}`;
+}
+
+function settlementAddDays(isoDate, days) {
+    const iso = settlementIso(isoDate);
+    if (!iso) return '';
+    const [year, month, day] = iso.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day + Number(days || 0)));
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+
+function settlementMinDate(values) {
+    return values.map(settlementIso).filter(Boolean).sort()[0] || '';
+}
+
+function settlementMaxDate(values) {
+    return values.map(settlementIso).filter(Boolean).sort().slice(-1)[0] || '';
+}
+
+function settlementStaySummary(startDate, endDate, fallbackNights = 0, estimateEndDate = '') {
+    let start = settlementIso(startDate);
+    let end = settlementIso(endDate);
+    const estimatedEnd = settlementIso(estimateEndDate);
+    let nights = Number(fallbackNights || 0);
+    if (!end && estimatedEnd && nights) end = estimatedEnd;
+    if (!start && end && nights) start = settlementAddDays(end, -nights);
+    if (start && !end && nights) end = settlementAddDays(start, nights);
+    if (start && end) {
+        const diff = Math.round((settlementDateValue(end) - settlementDateValue(start)) / 86400000);
+        nights = Math.max(1, diff);
+    }
+    if (!nights && estimatedEnd) {
+        start = settlementAddDays(estimatedEnd, -1);
+        end = estimatedEnd;
+        nights = 1;
+        const days = nights + 1;
+        const period = `${settlementDateShort(start)}~${settlementDateShort(end)}`;
+        return {
+            period,
+            text: `${period} · ${nights}박 ${days}일 추정`,
+            nights,
+            days,
+            estimated: true
+        };
+    }
+    if (!nights) return { period: '', text: '숙박일 미확인', nights: 0, days: 0 };
+    const days = nights + 1;
+    const period = start && end ? `${settlementDateShort(start)}~${settlementDateShort(end)}` : '';
+    return {
+        period,
+        text: `${period ? `${period} · ` : ''}${nights}박 ${days}일`,
+        nights,
+        days,
+        estimated: false
+    };
 }
 
 function settlementRoomSortValue(room) {
@@ -232,6 +305,60 @@ function reservationById(id) {
     ) || null;
 }
 
+function reservationsByIds(ids) {
+    const normalized = new Set((ids || []).filter(Boolean).map(String));
+    if (!normalized.size) return [];
+    return settlementState.reservations.filter(res =>
+        normalized.has(String(res.id || '')) ||
+        normalized.has(String(res.reservationId || '')) ||
+        (Array.isArray(res.reservationIds) && res.reservationIds.some(id => normalized.has(String(id))))
+    );
+}
+
+function settlementNormalizeRoom(value) {
+    const text = String(value || '').trim().toLowerCase();
+    const digits = (text.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
+    return { text, digits };
+}
+
+function settlementSameRoom(left, right) {
+    const a = settlementNormalizeRoom(left);
+    const b = settlementNormalizeRoom(right);
+    if (!a.text || !b.text) return false;
+    if (a.text === b.text) return true;
+    return !!(a.digits && b.digits && a.digits === b.digits);
+}
+
+function settlementNormalizeName(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function fallbackReservationsForFolio(item, checkoutDate) {
+    const roomCandidates = [item.roomNo, item.roomId, item.room].filter(Boolean);
+    const guestCandidates = [item.ownerName, item.guestName].map(settlementNormalizeName).filter(Boolean);
+    if (!roomCandidates.length && !guestCandidates.length) return [];
+    const checkoutValue = settlementDateValue(checkoutDate || item.settlementDate || item.closedAt || item.issuedAt);
+    const matches = settlementState.reservations
+        .filter(res => {
+            const roomMatch = !roomCandidates.length || roomCandidates.some(room =>
+                settlementSameRoom(room, res.roomNo || res.room || res.fullRoom || res.roomId)
+            );
+            const guestValue = settlementNormalizeName(res.guestName || res.guest || res.roomingGuestName);
+            const guestMatch = !guestCandidates.length || guestCandidates.includes(guestValue);
+            return roomMatch && guestMatch;
+        })
+        .map(res => {
+            const resCheckout = settlementDateValue(res.checkOutDate || res.checkout || res.cout);
+            const distance = Number.isFinite(checkoutValue) && Number.isFinite(resCheckout)
+                ? Math.abs(checkoutValue - resCheckout) / 86400000
+                : 9999;
+            return { res, distance };
+        })
+        .filter(item => item.distance <= 45 || !Number.isFinite(checkoutValue))
+        .sort((a, b) => a.distance - b.distance);
+    return matches.length ? [matches[0].res] : [];
+}
+
 function mapSettlementFolio(item) {
     const charges = Array.isArray(item.charges) ? item.charges : [];
     const payments = Array.isArray(item.payments) ? item.payments : [];
@@ -243,8 +370,14 @@ function mapSettlementFolio(item) {
     if (!Number.isFinite(balance) || (!balance && String(item.status || '').toLowerCase() === 'open' && total > paid)) {
         balance = Math.max(total - paid, 0);
     }
-    const reservation = reservationById(item.reservationId || item.reservationIds?.[0]);
-    const checkoutDate = settlementIso(item.settlementDate || item.closedAt || reservation?.checkOutDate || reservation?.checkout || item.issuedAt);
+    const reservationIds = [
+        item.reservationId,
+        ...(Array.isArray(item.reservationIds) ? item.reservationIds : [])
+    ].filter(Boolean);
+    const initialCheckoutDate = settlementIso(item.checkOutDate || item.checkoutDate || item.checkout || item.settlementDate || item.closedAt || item.issuedAt);
+    let linkedReservations = reservationsByIds(reservationIds);
+    if (!linkedReservations.length && !reservationIds.length) linkedReservations = fallbackReservationsForFolio(item, initialCheckoutDate);
+    const reservation = linkedReservations[0] || reservationById(item.reservationId || item.reservationIds?.[0]);
     const statusText = String(item.status || '').toLowerCase();
     const settled = item.settlementCompleted || ['closed', 'settled', 'paid'].includes(statusText);
     const status = balance > 0 ? 'unpaid' : (paid > total && total > 0 ? 'refund' : (settled ? 'paid' : 'ready'));
@@ -253,6 +386,20 @@ function mapSettlementFolio(item) {
         ? '단체'
         : (item.roomNo || settlementRoomNo(item.roomId || item.room));
     const group = item.groupId ? settlementState.groups.find(g => g.id === item.groupId || g.eventId === item.groupId) : null;
+    const stayStart = settlementMinDate([
+        ...linkedReservations.map(res => res.checkInDate || res.checkin || res.cin),
+        group?.checkInDate || group?.checkin
+    ]);
+    const stayEnd = settlementMaxDate([
+        ...linkedReservations.map(res => res.checkOutDate || res.checkout || res.cout),
+        group?.checkOutDate || group?.checkout
+    ]);
+    const checkoutDate = settlementIso(reservation?.checkOutDate || reservation?.checkout || stayEnd || item.checkOutDate || item.checkoutDate || item.checkout || item.settlementDate || item.closedAt || item.issuedAt);
+    const fallbackNights = linkedReservations
+        .map(res => Number(res.nights || res.len || 0))
+        .filter(value => Number.isFinite(value) && value > 0)
+        .reduce((max, value) => Math.max(max, value), 0);
+    const stay = settlementStaySummary(stayStart, stayEnd, fallbackNights, checkoutDate || initialCheckoutDate);
     return {
         id: item.id || item.folioId,
         folioId: item.folioId || item.id,
@@ -264,6 +411,11 @@ function mapSettlementFolio(item) {
         roomText: roomList.length ? roomList.join(', ') : room,
         guest: item.ownerName || item.guestName || reservation?.guestName || reservation?.guest || '-',
         checkoutDate,
+        stayStart,
+        stayEnd,
+        stayText: stay.text,
+        stayNights: stay.nights,
+        stayDays: stay.days,
         issuedDate: settlementIso(item.issuedAt),
         total,
         paid,
@@ -293,7 +445,7 @@ function filterSettlementFolios() {
         rows = rows.filter(folio => [
             folio.id, folio.folioId, folio.room, folio.roomText, folio.guest, folio.groupName,
             folio.reservationId, folio.groupId, folio.status, settlementStatusInfo(folio).label,
-            folio.tags.join(' ')
+            folio.stayText, folio.tags.join(' ')
         ].join(' ').toLowerCase().includes(query));
     }
     return rows.sort((a, b) => {
@@ -324,7 +476,9 @@ function settlementTarget(folio, receive = false) {
 
 function settlementCard(folio) {
     const info = settlementStatusInfo(folio);
-    const subtitle = folio.groupId ? `${folio.groupName || '단체'} · ${folio.roomText}` : `${folio.folioId} · 체크아웃 ${folio.checkoutDate || '-'}`;
+    const subtitle = folio.groupId
+        ? `${folio.groupName || '단체'} · ${folio.stayText || folio.roomText}`
+        : `${folio.folioId} · ${folio.stayText || '숙박일 미확인'}`;
     const receiveButton = folio.balance > 0
         ? `<a class="primary" href="${settlementTarget(folio, true)}"><i class="fa-solid fa-cash-register"></i> 수납</a>`
         : `<a class="primary" href="${settlementTarget(folio)}"><i class="fa-solid fa-clipboard-check"></i> 확인</a>`;
@@ -342,7 +496,8 @@ function settlementCard(folio) {
         </div>
         <div class="settlement-guest">
             <b><i class="fa-solid ${folio.groupId ? 'fa-users' : 'fa-user'}"></i>${settlementEscape(folio.guest || '-')}</b>
-            <span><i class="fa-regular fa-calendar"></i>${settlementEscape(folio.issuedDate || folio.checkoutDate || '-')} 기준 Folio</span>
+            <span><i class="fa-solid fa-calendar-days"></i>투숙 ${settlementEscape(folio.stayText || '숙박일 미확인')}</span>
+            <span><i class="fa-regular fa-calendar-check"></i>체크아웃 ${settlementEscape(folio.checkoutDate || '-')}</span>
         </div>
         <div class="settlement-amounts">
             <div class="settlement-row"><span>총 객실/서비스</span><strong>${settlementMoney(folio.total)}</strong></div>
