@@ -19,49 +19,36 @@
     <script src="common/js/ui-components.js"></script>
     <script src="common/js/topbar.js"></script>
     <style>
-        .today-ops-board{margin-bottom:20px;padding:18px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 2px 10px rgba(15,23,42,.035)}
-        .today-ops-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
-        .today-ops-title{display:grid;gap:4px}
-        .today-ops-title h2{display:flex;align-items:center;gap:8px;margin:0;color:var(--txt);font-size:1.02rem;font-weight:950;line-height:1.2}
-        .today-ops-title p{margin:0;color:var(--txt2);font-size:.76rem;font-weight:750;line-height:1.45}
-        .today-ops-date{display:inline-flex;align-items:center;gap:6px;width:max-content;margin-top:4px;padding:4px 8px;border-radius:999px;background:#f8fafc;color:#475569;font-size:.68rem;font-weight:900}
-        .today-ops-total{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;background:#f8fafc;color:#475569;font-size:.7rem;font-weight:900;white-space:nowrap}
-        .today-ops-layout{display:grid;gap:10px}
-        .today-ops-panel{background:#fff;overflow:hidden}
-        .today-ops-panel-head{display:none}
-        .today-task-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0;background:#fff}
-        .today-task{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;padding:10px 12px;border:1px solid var(--border2);border-left:3px solid transparent;border-radius:8px;background:#fff;color:#475569;text-align:left;cursor:pointer}
-        .today-task:hover{background:#f8fafc}
-        .today-task.active{border-color:#bfdbfe;border-left-color:#2563eb;background:#f8fbff;color:#1d4ed8}
-        .today-task-icon{display:none}
-        .today-task-title{display:block;color:inherit;font-size:.76rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-task-desc{display:block;margin-top:2px;color:#94a3b8;font-size:.64rem;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-task-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 7px;border-radius:999px;background:#e0f2fe;color:#0369a1;font-size:.68rem;font-weight:950}
-        .today-task.urgent .today-task-count{background:#fee2e2;color:#b91c1c}
-        .today-task.warn .today-task-count{background:#ffedd5;color:#c2410c}
-        .today-task.good .today-task-count{background:#dcfce7;color:#047857}
-        .today-detail-panel{min-width:0;border:1px solid var(--border2);border-radius:10px;background:#fff}
-        .today-detail-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border-bottom:1px solid var(--border2);background:#fbfdff}
-        .today-detail-title{display:flex;align-items:center;gap:7px;color:var(--txt);font-size:.9rem;font-weight:950}
-        .today-detail-desc{margin-top:3px;color:var(--txt2);font-size:.7rem;font-weight:800;line-height:1.4}
-        .today-detail-action{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #dbeafe;border-radius:8px;background:#fff;color:#1d4ed8;text-decoration:none;font-size:.7rem;font-weight:950;white-space:nowrap}
-        .today-detail-list{display:grid;background:#fff}
-        .today-detail-table-head{display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(180px,1.3fr) 92px;gap:12px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border2);background:#f8fafc;color:#94a3b8;font-size:.62rem;font-weight:950;text-transform:uppercase;letter-spacing:0}
-        .today-detail-row{display:grid;grid-template-columns:minmax(160px,1.2fr) minmax(150px,1fr) minmax(180px,1.3fr) 92px;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid #eef2f7;color:inherit;text-decoration:none}
-        .today-detail-table-head+.today-detail-row{border-top:0}
-        .today-detail-row:hover{background:#f8fafc}
-        .today-detail-main{min-width:0}
-        .today-detail-name{display:flex;align-items:center;gap:6px;color:var(--txt);font-size:.78rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-detail-name i{display:none}
-        .today-detail-sub{color:var(--txt2);font-size:.7rem;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .today-detail-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0}
-        .today-detail-chip{padding:3px 6px;border-radius:6px;background:#f8fafc;color:#64748b;font-size:.63rem;font-weight:850}
-        .today-detail-status{display:inline-flex;align-items:center;justify-content:center;gap:5px;width:max-content;min-width:66px;padding:5px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.66rem;font-weight:950;white-space:nowrap;justify-self:end}
-        .today-detail-empty{padding:28px 14px;text-align:center;color:#94a3b8;font-size:.8rem;font-weight:850}
-        .today-detail-more{display:flex;justify-content:center;padding:10px 14px;border-top:1px solid var(--border2);background:#fff}
-        .today-detail-more button{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid #dbeafe;border-radius:8px;background:#fff;color:#1d4ed8;font-size:.7rem;font-weight:950;cursor:pointer}
-        .today-detail-more button:hover{background:#eff6ff}
-        @media(max-width:720px){.today-ops-head,.today-detail-head{flex-direction:column;align-items:flex-start}.today-task-list{grid-template-columns:1fr}.today-detail-table-head{display:none}.today-detail-row{grid-template-columns:1fr;gap:6px;padding:11px 12px}.today-detail-status{justify-self:start}.today-detail-action{justify-content:center;width:100%}}
+        .today-ops-board{margin-bottom:20px}
+        .today-work-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+        .today-work-card{min-width:0;border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.035);overflow:hidden}
+        .today-work-card.low-priority{background:#fbfdff}
+        .today-work-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border2);background:#fff}
+        .today-work-title{display:flex;align-items:center;gap:7px;color:var(--txt);font-size:.9rem;font-weight:950;line-height:1.2}
+        .today-work-desc{margin-top:3px;color:#64748b;font-size:.68rem;font-weight:800;line-height:1.35}
+        .today-work-count{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 8px;border-radius:999px;background:#e0f2fe;color:#0369a1;font-size:.7rem;font-weight:950;white-space:nowrap}
+        .today-work-card.warn .today-work-count{background:#ffedd5;color:#c2410c}
+        .today-work-card.urgent .today-work-count{background:#fee2e2;color:#b91c1c}
+        .today-work-card.good .today-work-count{background:#dcfce7;color:#047857}
+        .today-work-card.neutral .today-work-count{background:#f1f5f9;color:#475569}
+        .today-work-list{display:grid;background:#fff}
+        .today-work-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;min-height:46px;padding:8px 14px;border-top:1px solid #eef2f7;color:inherit;text-decoration:none}
+        .today-work-row:first-child{border-top:0}
+        .today-work-row:hover{background:#f8fafc}
+        .today-work-main{min-width:0}
+        .today-work-name{display:block;color:var(--txt);font-size:.76rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .today-work-sub{display:block;margin-top:3px;color:#64748b;font-size:.66rem;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .today-work-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px}
+        .today-work-chip{padding:2px 6px;border-radius:999px;background:#f8fafc;color:#64748b;font-size:.6rem;font-weight:900}
+        .today-work-chip.vip{background:#fff7ed;color:#c2410c}
+        .today-work-chip.group{background:#eff6ff;color:#1d4ed8}
+        .today-work-status{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:5px 8px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.64rem;font-weight:950;white-space:nowrap}
+        .today-work-empty{padding:22px 14px;text-align:center;color:#94a3b8;font-size:.76rem;font-weight:850}
+        .today-work-more{display:flex;justify-content:center;padding:8px 14px;border-top:1px solid var(--border2)}
+        .today-work-more button{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid #dbeafe;border-radius:8px;background:#fff;color:#1d4ed8;font-size:.68rem;font-weight:950;cursor:pointer}
+        .today-work-more button:hover{background:#eff6ff}
+        @media(max-width:1100px){.today-work-grid{grid-template-columns:1fr}}
+        @media(max-width:720px){.today-work-head{padding:11px 12px}.today-work-row{grid-template-columns:1fr;gap:5px;padding:9px 12px}.today-work-status{width:max-content}}
     </style>
 </head>
 <body>
@@ -261,39 +248,17 @@
 
         </div>
 
-        <section class="today-ops-board" aria-label="오늘 처리 업무">
-            <div class="today-ops-head">
-                <div class="today-ops-title">
-                    <h2><i class="fa-solid fa-clipboard-list"></i> 오늘 처리 업무</h2>
-                    <p>금일 기준으로 프런트가 바로 확인해야 할 업무를 선택하면 아래에 대상 목록이 표시됩니다.</p>
-                    <span class="today-ops-date" id="todayOpsDate"><i class="fa-regular fa-calendar"></i> 기준일 확인 중</span>
-                </div>
-                <span class="today-ops-total" id="todayOpsTotal">집계 중</span>
-            </div>
-            <div class="today-ops-layout">
-                <div class="today-ops-panel">
-                    <div class="today-ops-panel-head">
-                        <span><i class="fa-solid fa-list-check"></i> 업무 항목</span>
-                    </div>
-                    <div class="today-task-list" id="todayOpsTasks">
-                        <button class="today-task active" type="button">
-                            <span class="today-task-icon"><i class="fa-solid fa-spinner fa-spin"></i></span>
-                            <span><span class="today-task-title">업무를 불러오는 중</span><span class="today-task-desc">예약, 정산 데이터를 확인합니다.</span></span>
-                            <span class="today-task-count">--</span>
-                        </button>
-                    </div>
-                </div>
-                <div class="today-ops-panel today-detail-panel">
-                    <div class="today-detail-head">
+        <section class="today-ops-board" aria-label="오늘 업무 목록">
+            <div class="today-work-grid" id="todayOpsGrid">
+                <div class="today-work-card">
+                    <div class="today-work-head">
                         <div>
-                            <div class="today-detail-title" id="todayOpsDetailTitle"><i class="fa-solid fa-right-to-bracket"></i> 체크인 대기</div>
-                            <div class="today-detail-desc" id="todayOpsDetailDesc">오늘 도착 예정 고객을 확인합니다.</div>
+                            <div class="today-work-title"><i class="fa-solid fa-spinner fa-spin"></i> 업무를 불러오는 중</div>
+                            <div class="today-work-desc">예약, 정산 데이터를 확인합니다.</div>
                         </div>
-                        <a class="today-detail-action" id="todayOpsDetailAction" href="frontdesk/reservation-board.html?filter=checkin">예약현황 <i class="fa-solid fa-arrow-right"></i></a>
+                        <span class="today-work-count">--</span>
                     </div>
-                    <div class="today-detail-list" id="todayOpsDetailRows">
-                        <div class="today-detail-empty">대상 목록을 불러오는 중입니다.</div>
-                    </div>
+                    <div class="today-work-empty">대상 목록을 불러오는 중입니다.</div>
                 </div>
             </div>
         </section>
@@ -305,17 +270,10 @@
 
 <script>
 (function(){
-    const taskWrap = document.getElementById('todayOpsTasks');
-    const totalEl = document.getElementById('todayOpsTotal');
-    const dateEl = document.getElementById('todayOpsDate');
-    const detailTitle = document.getElementById('todayOpsDetailTitle');
-    const detailDesc = document.getElementById('todayOpsDetailDesc');
-    const detailAction = document.getElementById('todayOpsDetailAction');
-    const detailRows = document.getElementById('todayOpsDetailRows');
-    if (!taskWrap || !detailRows) return;
+    const gridWrap = document.getElementById('todayOpsGrid');
+    if (!gridWrap) return;
+    const expandedKeys = new Set();
     let categories = [];
-    let activeKey = 'checkin';
-    let expandedKey = '';
     const DETAIL_LIMIT = 5;
 
     function esc(value) {
@@ -353,6 +311,15 @@
     }
     function guestText(value) {
         return value?.guestName || value?.guest || value?.ownerName || value?.roomingGuestName || value?.name || '투숙객 미배정';
+    }
+    function groupText(value) {
+        return value?.name || value?.groupName || value?.companyName || '단체';
+    }
+    function audienceLabel(value) {
+        return value?.groupName || value?.groupId || value?.companyName || value?.isGroupPlaceholder ? '단체' : '개인';
+    }
+    function tierText(value) {
+        return value?.vip || value?.tier || value?.membershipTier || (value?.isVip ? 'VIP' : '일반');
     }
     function orderItemsText(value) {
         const items = value?.items;
@@ -422,180 +389,145 @@
         if (['inspect', 'needsinspection'].includes(state)) return '점검 전 확인';
         return '청소 필요';
     }
-    function taskButton(item) {
-        const tone = Number(item.count || 0) > 0 ? item.tone : 'neutral';
-        return `<button class="today-task ${esc(tone)} ${item.key === activeKey ? 'active' : ''}" type="button" data-task="${esc(item.key)}">
-            <span class="today-task-icon"><i class="fa-solid ${esc(item.icon)}"></i></span>
-            <span style="min-width:0"><span class="today-task-title">${esc(item.label)}</span><span class="today-task-desc">${esc(item.hint)}</span></span>
-            <span class="today-task-count">${esc(item.count)}</span>
-        </button>`;
-    }
-    function detailRow(row) {
-        const chips = (row.meta || []).filter(Boolean).map(item => `<span class="today-detail-chip">${esc(item)}</span>`).join('');
-        return `<a class="today-detail-row" href="${esc(row.href)}">
-            <span class="today-detail-main">
-                <span class="today-detail-name"><i class="fa-solid ${esc(row.icon || 'fa-circle-info')}"></i>${esc(row.title)}</span>
+    function rowHtml(row) {
+        const chips = (row.meta || []).filter(Boolean).map(item => {
+            const label = typeof item === 'string' ? item : item.label;
+            const type = typeof item === 'string' ? '' : item.type;
+            return `<span class="today-work-chip ${esc(type || '')}">${esc(label)}</span>`;
+        }).join('');
+        return `<a class="today-work-row" href="${esc(row.href)}">
+            <span class="today-work-main">
+                <span class="today-work-name">${esc(row.title)}</span>
+                <span class="today-work-sub">${esc(row.subtitle || '')}</span>
+                ${chips ? `<span class="today-work-meta">${chips}</span>` : ''}
             </span>
-            <span class="today-detail-sub">${esc(row.subtitle || '')}</span>
-            <span class="today-detail-meta">${chips}</span>
-            <span class="today-detail-status">${esc(row.status || '확인')}</span>
+            <span class="today-work-status">${esc(row.status || '확인')}</span>
         </a>`;
     }
-    function detailTable(rows) {
-        const head = '<div class="today-detail-table-head"><span>대상</span><span>기간 / 기준</span><span>확인 정보</span><span>상태</span></div>';
-        return head + rows.map(detailRow).join('');
-    }
-    function renderDetail(key = activeKey) {
-        const item = categories.find(category => category.key === key) || categories[0];
-        if (!item) return;
-        activeKey = item.key;
-        taskWrap.innerHTML = categories.map(taskButton).join('');
-        if (detailTitle) detailTitle.innerHTML = `<i class="fa-solid ${esc(item.icon)}"></i> ${esc(item.label)}`;
-        if (detailDesc) detailDesc.textContent = item.desc;
-        if (detailAction) {
-            detailAction.href = item.href;
-            detailAction.innerHTML = `${esc(item.action)} <i class="fa-solid fa-arrow-right"></i>`;
-        }
-        const isExpanded = expandedKey === item.key;
-        const visibleRows = isExpanded ? item.rows : item.rows.slice(0, DETAIL_LIMIT);
-        const moreHtml = item.rows.length > DETAIL_LIMIT
-            ? `<div class="today-detail-more"><button type="button" data-detail-toggle="${esc(item.key)}">${isExpanded ? '접기' : `상세보기 ${item.rows.length - DETAIL_LIMIT}건 더`} <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}"></i></button></div>`
+    function cardHtml(category) {
+        const isExpanded = expandedKeys.has(category.key);
+        const rows = isExpanded ? category.rows : category.rows.slice(0, DETAIL_LIMIT);
+        const tone = Number(category.count || 0) > 0 ? category.tone : 'neutral';
+        const body = rows.length
+            ? rows.map(rowHtml).join('')
+            : `<div class="today-work-empty">${esc(category.empty)}</div>`;
+        const more = category.rows.length > DETAIL_LIMIT
+            ? `<div class="today-work-more"><button type="button" data-work-toggle="${esc(category.key)}">${isExpanded ? '접기' : `상세보기 ${category.rows.length - DETAIL_LIMIT}건 더`} <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}"></i></button></div>`
             : '';
-        detailRows.innerHTML = item.rows.length
-            ? detailTable(visibleRows) + moreHtml
-            : `<div class="today-detail-empty">${esc(item.empty)}</div>`;
+        return `<section class="today-work-card ${esc(tone)} ${category.low ? 'low-priority' : ''}" data-work-card="${esc(category.key)}">
+            <div class="today-work-head">
+                <div>
+                    <div class="today-work-title"><i class="fa-solid ${esc(category.icon)}"></i> ${esc(category.label)}</div>
+                    <div class="today-work-desc">${esc(category.desc)}</div>
+                </div>
+                <span class="today-work-count">${esc(category.count)}</span>
+            </div>
+            <div class="today-work-list">${body}</div>
+            ${more}
+        </section>`;
     }
-    function bindTaskButtons() {
-        taskWrap.addEventListener('click', event => {
-            const button = event.target.closest('[data-task]');
+    function renderCards() {
+        gridWrap.innerHTML = categories.map(cardHtml).join('');
+    }
+    function bindToggles() {
+        gridWrap.addEventListener('click', event => {
+            const button = event.target.closest('[data-work-toggle]');
             if (!button) return;
-            expandedKey = '';
-            renderDetail(button.dataset.task);
-        });
-        detailRows.addEventListener('click', event => {
-            const button = event.target.closest('[data-detail-toggle]');
-            if (!button) return;
-            expandedKey = expandedKey === button.dataset.detailToggle ? '' : button.dataset.detailToggle;
-            renderDetail(activeKey);
+            event.preventDefault();
+            const key = button.dataset.workToggle;
+            if (expandedKeys.has(key)) expandedKeys.delete(key);
+            else expandedKeys.add(key);
+            renderCards();
         });
     }
     async function loadTodayOps() {
         const today = todayIso();
-        if (dateEl) dateEl.innerHTML = `<i class="fa-regular fa-calendar"></i> ${esc(dateLabel(today))} 기준`;
-        const [reservations, rooms, foliosEnv, posEnv, golfEnv, rentacarEnv] = await Promise.all([
+        const [reservations, rooms, groups, foliosEnv, posEnv, golfEnv, rentacarEnv] = await Promise.all([
             window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : [],
             window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
+            window.PmsAPI?.getGroups ? window.PmsAPI.getGroups().catch(() => []) : [],
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/folios').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/pos/orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/ancillaries/golf-orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/ancillaries/rentacar-orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } }
         ]);
         const arrivalRows = reservations.filter(res => iso(res.checkInDate || res.checkin) === today && !['cancelled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow', 'no_show', 'checkedin', 'inhouse'].includes(statusOf(res)));
+        const arrivalDisplayRows = [...arrivalRows].sort((a, b) => {
+            const groupDiff = (audienceLabel(b) === '단체' ? 1 : 0) - (audienceLabel(a) === '단체' ? 1 : 0);
+            if (groupDiff) return groupDiff;
+            return String(roomText(a)).localeCompare(String(roomText(b)), 'ko');
+        });
         const checkoutRows = reservations.filter(res => iso(res.checkOutDate || res.checkout) === today && ['checkedin', 'inhouse', 'checkout'].includes(statusOf(res)));
         const folios = window.PmsMockApi?.items(foliosEnv) || [];
         const settlementRows = folios.map(folioSettlementStatus);
-        const settlementNeedRows = settlementRows.filter(row => row.state !== 'paid' && (!row.dueDate || row.dueDate <= today));
-        const unpaid = settlementNeedRows.reduce((sum, row) => sum + Math.max(0, row.balance), 0);
+        const settlementNeedRows = settlementRows.filter(row => row.state !== 'paid' && row.dueDate === today);
         const ancillaryRows = [
             ...(window.PmsMockApi?.items(posEnv) || []).map(item => normalizeOrder(item, 'pos')),
             ...(window.PmsMockApi?.items(golfEnv) || []).map(item => normalizeOrder(item, 'golf')),
             ...(window.PmsMockApi?.items(rentacarEnv) || []).map(item => normalizeOrder(item, 'rentacar'))
         ].filter(item => iso(item.date || item.useDate || item.serviceDate) === today && !['cancelled', 'canceled'].includes(String(item.status || '').toLowerCase()));
         const ancillaryTotal = ancillaryRows.reduce((sum, row) => sum + amount(row.total || row.amount), 0);
-        const maintenanceRows = rooms.filter(isMaintenance);
         const cleaningRows = rooms.filter(isCleaningNeeded);
-        const totalWork = arrivalRows.length + checkoutRows.length + settlementNeedRows.length + ancillaryRows.length + cleaningRows.length + maintenanceRows.length;
-        if (totalEl) totalEl.innerHTML = `<i class="fa-solid fa-bolt"></i> 오늘 확인 ${totalWork}건`;
+        const groupRows = groups.filter(group => iso(group.checkin || group.checkInDate) === today || iso(group.checkout || group.checkOutDate) === today);
 
         categories = [
             {
                 key: 'checkin',
                 label: '체크인 대기',
-                hint: '오늘 도착',
                 count: arrivalRows.length,
-                desc: '오늘 도착 예정 고객의 체크인 가능 여부를 확인합니다.',
-                href: 'frontdesk/reservation-board.html?filter=checkin',
-                action: '예약현황',
+                desc: dateLabel(today),
                 icon: 'fa-right-to-bracket',
                 tone: 'good',
                 empty: '오늘 체크인 대기 대상이 없습니다.',
-                rows: arrivalRows.map(res => ({
+                rows: arrivalDisplayRows.map(res => ({
                     title: `${roomText(res)} · ${guestText(res)}`,
                     subtitle: stayText(res),
-                    meta: [res.roomType || res.type || '', statusOf(res) === 'confirmed' ? '예약 확정' : '체크인 확인'],
+                    meta: [
+                        { label: audienceLabel(res), type: audienceLabel(res) === '단체' ? 'group' : '' },
+                        res.groupName || '',
+                        { label: tierText(res), type: !['Standard', '일반'].includes(tierText(res)) ? 'vip' : '' }
+                    ],
                     status: '체크인',
-                    icon: 'fa-user-check',
                     href: `frontdesk/reservation-board.html?query=${encodeURIComponent(roomText(res))}`
                 }))
             },
             {
                 key: 'checkout',
                 label: '체크아웃/퇴실',
-                hint: '정산 연결',
                 count: checkoutRows.length,
-                desc: '오늘 퇴실 예정 객실을 정산 화면과 함께 확인합니다.',
-                href: 'frontdesk/reservation-board.html?filter=checkout',
-                action: '예약현황',
+                desc: '오늘 퇴실 예정',
                 icon: 'fa-right-from-bracket',
                 tone: 'warn',
                 empty: '오늘 체크아웃 예정 객실이 없습니다.',
                 rows: checkoutRows.map(res => ({
                     title: `${roomText(res)} · ${guestText(res)}`,
                     subtitle: stayText(res),
-                    meta: [res.roomType || res.type || '', '정산 확인'],
+                    meta: [res.roomType || res.type || '', audienceLabel(res)],
                     status: '퇴실 확인',
-                    icon: 'fa-door-open',
                     href: `frontdesk/reservation-board.html?query=${encodeURIComponent(roomText(res))}`
-                }))
-            },
-            {
-                key: 'settlement',
-                label: '정산 필요/미수금',
-                hint: money(unpaid),
-                count: settlementNeedRows.length,
-                desc: `금일 기준 처리해야 할 Folio입니다. 미수금 합계 ${money(unpaid)}.`,
-                href: 'operations/settlement-status.html',
-                action: '정산현황',
-                icon: 'fa-file-invoice-dollar',
-                tone: 'urgent',
-                empty: '금일 기준 정산 필요 Folio가 없습니다.',
-                rows: settlementNeedRows.map(row => ({
-                    title: `${roomText(row.item)} · ${guestText(row.item)}`,
-                    subtitle: row.dueDate ? `정산 기준 ${row.dueDate}` : '정산 기준 확인',
-                    meta: [`미수금 ${money(row.balance)}`],
-                    status: '정산 필요',
-                    icon: 'fa-file-invoice-dollar',
-                    href: `operations/settlement-status.html?query=${encodeURIComponent(row.item.folioId || row.item.id || roomText(row.item))}`
                 }))
             },
             {
                 key: 'ancillary',
                 label: '부가서비스 확인',
-                hint: ancillaryRows.length ? money(ancillaryTotal) : '대상 없음',
                 count: ancillaryRows.length,
-                desc: '오늘 등록되었거나 이용 예정인 POS, 골프, 렌터카 주문을 확인합니다.',
-                href: 'operations/ancillary.html',
-                action: '부가서비스',
+                desc: ancillaryRows.length ? `오늘 합계 ${money(ancillaryTotal)}` : '오늘 주문 없음',
                 icon: 'fa-concierge-bell',
                 tone: 'warn',
                 empty: '오늘 확인할 부가서비스 주문이 없습니다.',
                 rows: ancillaryRows.map(order => ({
                     title: `${roomText(order)} · ${guestText(order)}`,
                     subtitle: `${serviceLabel(order)} · ${orderItemsText(order)}`,
-                    meta: [order.time ? `이용 ${order.time}` : '', `금액 ${money(amount(order.total || order.amount))}`, order.folioId || 'Folio 연결 확인'],
+                    meta: [order.time ? `이용 ${order.time}` : '', `금액 ${money(amount(order.total || order.amount))}`],
                     status: serviceStatus(order),
-                    icon: order.source === 'golf' ? 'fa-golf-ball-tee' : (order.source === 'rentacar' ? 'fa-car' : 'fa-receipt'),
                     href: `operations/ancillary.html?query=${encodeURIComponent(order.roomNo || order.guest || order.id || '')}`
                 }))
             },
             {
                 key: 'cleaning',
                 label: '청소 필요',
-                hint: '체크인 전 확인',
                 count: cleaningRows.length,
-                desc: '프런트가 객실 배정과 체크인 전에 확인해야 하는 청소 상태입니다.',
-                href: 'frontdesk/reservation-board.html?filter=cleaning',
-                action: '예약현황',
+                desc: '체크인 전 확인',
                 icon: 'fa-broom',
                 tone: 'warn',
                 empty: '청소 필요로 표시된 객실이 없습니다.',
@@ -604,39 +536,51 @@
                     subtitle: room.roomTypeName || room.roomType || room.type || room.buildingName || '객실 상태 확인',
                     meta: ['체크인 전 확인', room.frontStatus || room.housekeepingStatus || '상태 확인'],
                     status: cleanLabel(room),
-                    icon: 'fa-broom',
                     href: `frontdesk/reservation-board.html?query=${encodeURIComponent(roomText(room))}`
                 }))
             },
             {
-                key: 'maintenance',
-                label: '점검 중 객실',
-                hint: '판매 제한',
-                count: maintenanceRows.length,
-                desc: '판매 또는 체크인을 제한해야 하는 객실입니다.',
-                href: 'frontdesk/reservation-board.html?query=점검',
-                action: '예약현황',
-                icon: 'fa-screwdriver-wrench',
+                key: 'settlement',
+                label: '정산 필요/미수금',
+                count: settlementNeedRows.length,
+                desc: settlementNeedRows.length ? '오늘 기준 대상' : '오늘 기준 미수 없음',
+                icon: 'fa-file-invoice-dollar',
                 tone: 'urgent',
-                empty: '점검 중으로 표시된 객실이 없습니다.',
-                rows: maintenanceRows.map(room => ({
-                    title: `${roomText(room)} · 점검 중`,
-                    subtitle: room.roomType || room.type || room.buildingName || '객실 상태 확인',
-                    meta: ['판매 제한', '체크인 제한'],
-                    status: '점검',
-                    icon: 'fa-screwdriver-wrench',
-                    href: `frontdesk/reservation-board.html?query=${encodeURIComponent(roomText(room))}`
+                low: true,
+                empty: '오늘 기준 정산 필요/미수금 대상이 없습니다.',
+                rows: settlementNeedRows.map(row => ({
+                    title: `${roomText(row.item)} · ${guestText(row.item)}`,
+                    subtitle: row.dueDate ? `정산 기준 ${row.dueDate}` : '정산 기준 확인',
+                    meta: [`미수금 ${money(row.balance)}`],
+                    status: '정산 필요',
+                    href: `operations/settlement-status.html?query=${encodeURIComponent(row.item.folioId || row.item.id || roomText(row.item))}`
+                }))
+            },
+            {
+                key: 'group',
+                label: '단체',
+                count: groupRows.length,
+                desc: '오늘 도착/퇴실 단체',
+                icon: 'fa-users-line',
+                tone: 'good',
+                low: true,
+                empty: '오늘 도착 또는 퇴실하는 단체가 없습니다.',
+                rows: groupRows.map(group => ({
+                    title: groupText(group),
+                    subtitle: `${group.companyName || '등록 단체'} · ${shortDate(group.checkin || group.checkInDate)}~${shortDate(group.checkout || group.checkOutDate)}`,
+                    meta: [`${group.blockedRooms || 0}객실`, `${group.pax || 0}명`],
+                    status: iso(group.checkin || group.checkInDate) === today ? '도착' : '퇴실',
+                    href: `frontdesk/groups_blocks.html?query=${encodeURIComponent(groupText(group))}`
                 }))
             }
         ];
-        renderDetail(activeKey);
+        renderCards();
     }
     document.addEventListener('DOMContentLoaded', () => loadTodayOps().catch(error => {
         console.warn('Today work list failed', error);
-        taskWrap.innerHTML = '<button class="today-task urgent active" type="button"><span class="today-task-icon"><i class="fa-solid fa-triangle-exclamation"></i></span><span><span class="today-task-title">업무 목록을 불러오지 못했습니다</span><span class="today-task-desc">예약, 정산 데이터를 다시 확인하세요.</span></span><span class="today-task-count">!</span></button>';
-        detailRows.innerHTML = '<div class="today-detail-empty">업무 대상 목록을 불러오지 못했습니다.</div>';
+        gridWrap.innerHTML = '<div class="today-work-card urgent"><div class="today-work-head"><div><div class="today-work-title"><i class="fa-solid fa-triangle-exclamation"></i> 업무 목록을 불러오지 못했습니다</div><div class="today-work-desc">예약, 정산 데이터를 다시 확인하세요.</div></div><span class="today-work-count">!</span></div></div>';
     }));
-    bindTaskButtons();
+    bindToggles();
 })();
 
 (function(){
