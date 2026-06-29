@@ -1174,6 +1174,8 @@
         const nightlyInput = document.getElementById('unifiedNightlyRate');
         const prepaidInput = document.getElementById('unifiedPrepaid');
         const balanceInput = document.getElementById('unifiedBalance');
+        const amountDisplay = document.getElementById('unifiedAmountDisplay');
+        const balanceDisplay = document.getElementById('unifiedBalanceDisplay');
         const help = document.getElementById('unifiedFinanceHelp');
         if (!amountInput || !prepaidInput || !balanceInput) return;
         const currency = amountInput.dataset.currency || 'PHP';
@@ -1192,6 +1194,8 @@
         const prepaid = prepaidRows.length ? rowsTotal : Math.min(parseMoneyInput(prepaidInput.value, currency), total);
         const balance = Math.max(total - prepaid, 0);
         balanceInput.value = formatSettlementMoney(balance, currency);
+        if (amountDisplay) amountDisplay.textContent = formatSettlementMoney(total, currency);
+        if (balanceDisplay) balanceDisplay.textContent = formatSettlementMoney(balance, currency);
         if (help) {
             help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 예치금 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)} · 예치금 수납 통화 ${prepaidRowsText(prepaidRows)}`;
         }
@@ -1424,7 +1428,8 @@
                             </div>
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">총 객실 금액</div>
-                                <input type="number" min="0" step="1" id="unifiedAmount" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:800;box-sizing:border-box;background:#f8fafc;color:var(--txt);">
+                                <input type="hidden" id="unifiedAmount">
+                                <div id="unifiedAmountDisplay" style="min-height:38px;display:flex;align-items:center;font-size:0.92rem;font-weight:900;color:var(--txt);">₱0</div>
                             </div>
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">예치금 페소 기준 합계</div>
@@ -1432,7 +1437,8 @@
                             </div>
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">추후 정산 잔액</div>
-                                <input type="text" id="unifiedBalance" readonly style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:800;box-sizing:border-box;background:#f8fafc;color:var(--primary);">
+                                <input type="hidden" id="unifiedBalance">
+                                <div id="unifiedBalanceDisplay" style="min-height:38px;display:flex;align-items:center;font-size:0.92rem;font-weight:950;color:var(--primary);">₱0</div>
                             </div>
                         </div>
                         <div style="margin-top:12px;">

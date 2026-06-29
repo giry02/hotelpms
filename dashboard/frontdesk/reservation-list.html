@@ -101,7 +101,7 @@
 .stay-state-select.dnd{color:#be123c;border-color:#fecdd3;background:#fff1f2}
 .stay-state-select.away{color:#b45309;border-color:#fed7aa;background:#fff7ed}
 .stay-state-select.clean{color:#047857;border-color:#a7f3d0;background:#ecfdf5}
-.stay-state-select.mur{color:#047857;border-color:#bbf7d0;background:#f0fdf4}
+.stay-state-select.mur{color:#b45309;border-color:#fed7aa;background:#fff7ed}
 .stay-state-select.none{color:#1d4ed8}
 .reservation-kind-tag{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:46px;height:24px;padding:0 9px;border-radius:8px;font-size:.72rem;font-weight:850;white-space:nowrap}
 .reservation-kind-tag.individual{background:#eef2ff;color:#4338ca}
@@ -375,7 +375,7 @@ const reservationLabels = {
         'action.cancelDisabledTitle': '체크인 이후 취소 불가',
         'flag.title': '상태 설정 (프론트 전용)',
         'flag.dnd': '방해금지',
-        'flag.mur': '청소요청',
+        'flag.mur': '청소필요',
         'flag.clean': '청소완료',
         'flag.away': '외출',
         'flag.none': '재실',
@@ -435,7 +435,7 @@ const reservationLabels = {
         'action.cancelDisabledTitle': 'Cannot cancel after check-in',
         'flag.title': 'Stay Status',
         'flag.dnd': 'DND',
-        'flag.mur': 'MUR',
+        'flag.mur': 'Needs Cleaning',
         'flag.clean': 'Clean Done',
         'flag.away': 'Away',
         'flag.none': 'In Room',
@@ -662,11 +662,78 @@ function isCurrentStayWindow(res, refDate = todayDate()) {
     return !!(start && end && start <= refDate && refDate < end);
 }
 
+function listDateKey(date = todayDate()) {
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+    const shifted = new Date(target.getTime() - target.getTimezoneOffset() * 60000);
+    return shifted.toISOString().slice(0, 10);
+}
+
+function reservationCleaningDate(room, res) {
+    return room?.occupiedCleaningDate || room?.cleaningStateDate || room?.cleaningDate ||
+        res?.occupiedCleaningDate || res?.cleaningStateDate || res?.cleaningDate || '';
+}
+
+function markReservationCleaningDate(room, res) {
+    const key = listDateKey();
+    if (room) {
+        room.occupiedCleaningDate = key;
+        room.cleaningStateDate = key;
+    }
+    if (res) {
+        res.occupiedCleaningDate = key;
+        res.cleaningStateDate = key;
+    }
+}
+
 function effectiveRowStatus(res, refDate = todayDate()) {
     let status = normalizeListStatus(res?.status);
     if (['confirmed', 'pending'].includes(status) && isRoomInHouse(res) && isCurrentStayWindow(res, refDate)) status = 'checkedin';
     if (status === 'checkedin' && checkoutDateIsDue(res, refDate)) return 'checkout';
     return status;
+}
+
+function reservationNeedsDailyCleaningReset(res, room) {
+    if (!res || !room) return false;
+    const resStatus = normalizeListStatus(res?.status);
+    const roomOccupancy = [room?.frontStatus, room?.status, room?.occupancyStatus]
+        .map(value => normalizedRoomOpsValue(value));
+    const isOccupiedRoom = ['checkedin', 'checkout'].includes(resStatus) ||
+        roomOccupancy.some(status => ['occupied', 'inhouse', 'checkedin', 'checkout'].includes(status));
+    if (!isOccupiedRoom) return false;
+    return reservationCleaningDate(room, res) !== listDateKey();
+}
+
+function resetReservationDailyCleaning(res, room) {
+    if (!reservationNeedsDailyCleaningReset(res, room)) return false;
+    room.housekeepingStatus = 'dirty';
+    room.cleaningStatus = 'dirty';
+    room.guestFlag = 'none';
+    res.guestFlag = 'none';
+    markReservationCleaningDate(room, res);
+    return true;
+}
+
+async function refreshReservationListDailyCleaning() {
+    const changed = [];
+    reservations.forEach(res => {
+        const room = roomForReservation(res);
+        if (resetReservationDailyCleaning(res, room)) changed.push({ res, room });
+    });
+    if (!changed.length) return;
+    localStorage.setItem('pms_rooms', JSON.stringify(rooms));
+    localStorage.setItem('pms_reservations', JSON.stringify(reservations));
+    try {
+        if (window.PmsAPI?.saveRooms) await window.PmsAPI.saveRooms(rooms);
+        if (window.PmsMockApi) {
+            await Promise.all(changed.map(({ res, room }) => Promise.all([
+                window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res }),
+                window.PmsMockApi.request('PATCH', `/rooms/${encodeURIComponent(room.roomId || room.fullRoom || room.id)}`, { body: room })
+            ])));
+        }
+    } catch(e) {
+        console.warn('Reservation list daily cleaning refresh failed', e);
+    }
 }
 
 function guestForReservation(res) {
@@ -1139,10 +1206,9 @@ function workActionButton(res, mobile = false) {
 }
 
 function stayoverFlagControls(res) {
-    const status = effectiveRowStatus(res);
-    if (!['checkedin', 'checkout'].includes(status)) return '';
     const room = roomForReservation(res);
     if (!room) return '';
+    resetReservationDailyCleaning(res, room);
     const flag = room.guestFlag || res.guestFlag || 'none';
     const roomKey = room.roomId || room.fullRoom || room.id || res.room;
     const cleaningState = normalizedRoomOpsValue(room.housekeepingStatus || room.hkStatus || room.cleaningStatus);
@@ -1150,35 +1216,29 @@ function stayoverFlagControls(res) {
     const isCleanComplete = ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState);
     const stateLabels = {
         dnd: resText('flag.dnd'),
-        away: resText('flag.away'),
-        none: resText('flag.none'),
         mur: resText('flag.mur'),
         clean: resText('flag.clean')
     };
-    const activeKey = flag === 'dnd' || flag === 'away'
+    const activeKey = flag === 'dnd'
         ? flag
-        : (isCleanRequested ? 'mur' : (isCleanComplete ? 'clean' : 'none'));
+        : (isCleanRequested ? 'mur' : (isCleanComplete ? 'clean' : 'clean'));
     const summary = stateLabels[activeKey];
     const cls = activeKey;
     const encodedRoomKey = encodeURIComponent(roomKey || '');
     const options = [
         { key: 'dnd', label: resText('flag.dnd') },
-        { key: 'away', label: resText('flag.away') },
-        { key: 'none', label: resText('flag.none') },
         { key: 'mur', label: resText('flag.mur') },
         { key: 'clean', label: resText('flag.clean') }
     ];
     return `<div class="stay-state-panel">
         <select class="stay-state-select ${cls}" title="${escapeHtml(summary)}" onchange="handleReservationStayStateChange(this,'${escapeHtml(res.id)}','${encodedRoomKey}')">
-            <option value="" selected>${escapeHtml(summary)}</option>
-            ${options.map(opt => `<option value="${opt.key}">${escapeHtml(opt.label)}</option>`).join('')}
+            ${options.map(opt => `<option value="${opt.key}"${opt.key === activeKey ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
         </select>
     </div>`;
 }
 
 window.handleReservationStayStateChange = async function(select, resId, encodedRoomKey = '') {
-    const value = select?.value || '';
-    if (!value) return;
+    const value = select?.value || 'mur';
     const roomKey = decodeURIComponent(encodedRoomKey || '');
     if (select) select.disabled = true;
     try {
@@ -1192,7 +1252,6 @@ window.handleReservationStayStateChange = async function(select, resId, encodedR
     } finally {
         if (select && document.body.contains(select)) {
             select.disabled = false;
-            select.value = '';
         }
     }
 };
@@ -1494,12 +1553,17 @@ window.setReservationStayoverFlag = async function(resId, flag, roomKey = '') {
     }
     room.guestFlag = flag;
     if (res) res.guestFlag = flag;
+    markReservationCleaningDate(room, res);
     localStorage.setItem('pms_rooms', JSON.stringify(rooms));
+    localStorage.setItem('pms_reservations', JSON.stringify(reservations));
     try {
         if (window.PmsAPI?.setGuestFlag) {
             await window.PmsAPI.setGuestFlag(room.roomId || room.fullRoom || room.id, flag);
         } else if (window.PmsMockApi) {
             await window.PmsMockApi.request('PATCH', `/rooms/${encodeURIComponent(room.roomId || room.fullRoom || room.id)}/guest-flag`, { body: { flag } });
+        }
+        if (window.PmsMockApi && res?.id) {
+            await window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res });
         }
     } catch(e) {
         console.warn('Guest flag save failed', e);
@@ -1531,6 +1595,7 @@ window.setReservationCleaningStatus = async function(resId, mode, roomKey = '') 
     room.cleaningStatus = isComplete ? 'clean' : 'dirty';
     room.guestFlag = 'none';
     if (res) res.guestFlag = room.guestFlag;
+    markReservationCleaningDate(room, res);
 
     await persistReservationAndRoom(res, room);
     try {
@@ -1897,6 +1962,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return r;
         });
         syncReservationListGlobals();
+        await refreshReservationListDailyCleaning();
     }
 
     if (requestedTab && document.querySelector(`[data-filter="${requestedTab}"]`)) {
