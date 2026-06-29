@@ -1728,7 +1728,7 @@ function ensureSearchButtons() {
         if (!isSearchInput(input)) return;
         bindSearchInputForButton(input);
         refreshSearchInputPlaceholder(input);
-        const anchor = input.closest('.search-box-mt, .search-box, .search-bar, .audit-search') || input;
+        const anchor = input.closest('.search-box-mt, .search-box, .search-bar, .audit-search, .settlement-search') || input;
         if (hasNearbySearchButton(anchor)) {
             ensureFilterSearchDivider(anchor);
             if (!input.dataset.pmsSearchEnterBound) {
