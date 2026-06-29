@@ -321,7 +321,7 @@ function assert(condition, message, details = null) {
     assert(hydratedCompanyResult.optionValues.includes('COMP-1002'), 'Group detail company select must include Hana Tour company option.', hydratedCompanyResult);
     assert(hydratedCompanyResult.value === 'COMP-1002' && hydratedCompanyResult.agencyId === 'COMP-1002', 'Group detail must auto-select the event company linkage.', hydratedCompanyResult);
     assert(Number(hydratedCompanyResult.eventDiscountValue) === 15, 'Group detail must show the event-specific discount, not only the company baseline.', hydratedCompanyResult);
-    assert(hydratedCompanyResult.overviewText.includes('업체 기준 할인') && hydratedCompanyResult.overviewText.includes('행사 적용 할인'), 'Group detail must distinguish company baseline discount from event discount.', hydratedCompanyResult);
+    assert(hydratedCompanyResult.overviewText.includes('단체 기준 할인') && hydratedCompanyResult.overviewText.includes('행사 적용 할인'), 'Group detail must distinguish group baseline discount from event discount.', hydratedCompanyResult);
 
     await page.goto(`${base}/dashboard/frontdesk/groups_block_detail.html?mode=new`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});

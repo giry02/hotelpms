@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>단체업체 관리 - Hotel PMS</title>
+    <title>단체 등록 관리 - Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -202,7 +202,7 @@
                 <button class="mobile-menu-btn" onclick="PMS_Sidebar.toggleMenu()">
                     <i class="fa-solid fa-bars"></i>
                 </button>
-                <h1 data-i18n-key="Group Companies">단체업체 관리</h1>
+                <h1 data-i18n-key="Group Companies">단체 등록 관리</h1>
             </div>
             <div class="topbar-right">
                 <div class="search-box">
@@ -222,7 +222,7 @@
             <div class="kpi-grid-4">
                 <div class="kpi-card">
                     <div class="kpi-icon" style="background:#EFF6FF;color:#2563EB"><i class="fa-solid fa-building"></i></div>
-                    <div class="kpi-info"><div class="kpi-label">등록 업체 수</div><div class="kpi-value" id="kpiTotal">0</div></div>
+                    <div class="kpi-info"><div class="kpi-label">등록 단체 수</div><div class="kpi-value" id="kpiTotal">0</div></div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-icon" style="background:#ECFDF5;color:#059669"><i class="fa-solid fa-handshake"></i></div>
@@ -243,7 +243,7 @@
                 <div class="filter-left">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" placeholder="업체명 검색..." oninput="searchCompanies(this.value)">
+                        <input type="text" placeholder="단체명 검색..." oninput="searchCompanies(this.value)">
                     </div>
                     <div class="filter-chips">
                         <button class="chip active" data-filter="all" data-label="전체" onclick="filterCompanies('all', this)">전체</button>
@@ -255,7 +255,7 @@
                 </div>
                 <div class="filter-right">
                     <button class="btn-primary-sm" onclick="openNewCompanyModal()">
-                        <i class="fa-solid fa-plus"></i> 신규 업체 등록
+                        <i class="fa-solid fa-plus"></i> 신규 단체 등록
                     </button>
                 </div>
             </div>
@@ -264,28 +264,28 @@
             
             <div id="emptyState" style="display:none;text-align:center;padding:60px 20px;color:var(--txt3)">
                 <i class="fa-solid fa-building-circle-xmark" style="font-size:2.5rem;margin-bottom:12px;display:block"></i>
-                등록된 업체가 없습니다.
+                등록된 단체가 없습니다.
             </div>
 
         </div>
     </div>
 
-<!-- 신규/수정 업체 등록 모달 -->
+<!-- 신규/수정 단체 등록 모달 -->
 <div class="modal-overlay" id="companyModal" onclick="if(event.target===this)closeModal('companyModal')">
     <div class="modal-card" style="max-width:500px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title" id="compModalTitle">업체 등록</h3>
+            <h3 class="modal-title" id="compModalTitle">단체 등록</h3>
             <input type="hidden" id="compId">
             <button class="modal-close" onclick="closeModal('companyModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
             <div>
-                <label class="form-label">업체명 (Company/Agency Name) <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="compName" class="form-input" style="width:100%" placeholder="예: 삼성전자">
+                <label class="form-label">단체명 <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="compName" class="form-input" style="width:100%" placeholder="예: 삼성전자 워크숍, 김대리 단체">
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
-                    <label class="form-label">업체 유형</label>
+                    <label class="form-label">대표 유형</label>
                     <select id="compType" class="form-input" style="width:100%">
                         <option value="Corporate">일반 기업</option>
                         <option value="Travel Agency">여행사</option>
@@ -304,7 +304,7 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
-                    <label class="form-label">담당자 이름</label>
+                    <label class="form-label">대표/담당자 이름</label>
                     <input type="text" id="compContactName" class="form-input" style="width:100%" placeholder="예: 김대리">
                 </div>
                 <div>
@@ -404,12 +404,12 @@ function companyText(key, params = {}) {
         if (translated && translated !== catalogKey) return translated;
     }
     const fallback = {
-        nameRequired: '업체명을 입력하세요.',
-        updated: '업체 정보가 수정되었습니다.',
-        created: '신규 업체가 등록되었습니다.',
-        'delete.confirm': '[{name}] 업체를 삭제하시겠습니까?',
-        'delete.done': '업체가 삭제되었습니다.',
-        'delete.blocked': '진행/예정 또는 미정산 행사가 있는 업체는 삭제할 수 없습니다. 연결된 행사를 취소하거나 정산 완료 후 삭제해 주세요.',
+        nameRequired: '단체명을 입력하세요.',
+        updated: '단체 정보가 수정되었습니다.',
+        created: '신규 단체가 등록되었습니다.',
+        'delete.confirm': '[{name}] 단체를 삭제하시겠습니까?',
+        'delete.done': '단체가 삭제되었습니다.',
+        'delete.blocked': '진행/예정 또는 미정산 행사가 있는 단체는 삭제할 수 없습니다. 연결된 행사를 취소하거나 정산 완료 후 삭제해 주세요.',
         'delete.disabledTitle': '진행/예정 또는 미정산 행사가 있어 삭제할 수 없습니다.',
         active: '진행',
         upcoming: '예정',
@@ -421,6 +421,10 @@ function companyText(key, params = {}) {
         text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
     });
     return text;
+}
+
+function displayGroupBilling(value) {
+    return String(value || '').replace(/업체 후불/g, '단체 후불');
 }
 
 function companyFilterKey(company) {
@@ -554,7 +558,7 @@ function renderCompanies(search = '') {
                 <div><i class="fa-solid fa-user"></i> 담당: ${c.contactName || '-'}</div>
                 <div><i class="fa-solid fa-phone"></i> ${c.phone || '-'}</div>
                 <div><i class="fa-solid fa-percent"></i> ${c.rate || '-'}</div>
-                <div><i class="fa-solid fa-credit-card"></i> ${c.billing || '-'}</div>
+                <div><i class="fa-solid fa-credit-card"></i> ${displayGroupBilling(c.billing) || '-'}</div>
             </div>
             <div class="card-footer-btns">
                 <button class="btn-room-assign" onclick="event.stopPropagation(); openBlockModal('${c.id}')">
@@ -570,7 +574,7 @@ function renderCompanies(search = '') {
 }
 
 function openNewCompanyModal() {
-    document.getElementById('compModalTitle').textContent = '신규 업체 등록';
+    document.getElementById('compModalTitle').textContent = '신규 단체 등록';
     document.getElementById('compId').value = '';
     document.getElementById('compName').value = '';
     document.getElementById('compContactName').value = '';
@@ -583,7 +587,7 @@ function openNewCompanyModal() {
 function editCompany(id) {
     const c = companies.find(x => x.id === id);
     if(!c) return;
-    document.getElementById('compModalTitle').textContent = '업체 정보 수정';
+    document.getElementById('compModalTitle').textContent = '단체 정보 수정';
     document.getElementById('compId').value = c.id;
     document.getElementById('compName').value = c.name;
     document.getElementById('compType').value = c.type;
@@ -804,7 +808,7 @@ function openBlockModal(compId) {
                     <div><i class="fa-solid fa-user"></i> 담당: ${c.contactName || '-'}</div>
                     <div><i class="fa-solid fa-phone"></i> ${c.phone || '-'}</div>
                     <div><i class="fa-solid fa-percent"></i> ${c.rate || (c.groupDiscount ? `객실 ${c.groupDiscount}% 할인` : '-')}</div>
-                    <div><i class="fa-solid fa-credit-card"></i> ${c.billing || '-'}</div>
+                    <div><i class="fa-solid fa-credit-card"></i> ${displayGroupBilling(c.billing) || '-'}</div>
                     <div><i class="fa-solid fa-calendar-check"></i> ${companyText('active')} ${cnt.active} · ${companyText('upcoming')} ${cnt.upcoming}</div>
                     <div><i class="fa-solid fa-file-invoice-dollar"></i> ${companyText('unsettled')} ${cnt.settlement}</div>
                     <div><i class="fa-solid fa-box-archive"></i> ${companyText('pastEvents')} ${cnt.past}</div>
@@ -812,7 +816,7 @@ function openBlockModal(compId) {
                 <div class="card-footer-btns">
                     <button type="button" class="btn-room-assign" data-company-action="create" data-company-id="${c.id}"><i class="fa-solid fa-calendar-plus"></i> 행사 생성</button>
                     <button type="button" class="btn-card-edit" data-company-action="events" data-company-id="${c.id}" title="행사 보기"><i class="fa-solid fa-list"></i></button>
-                    <button type="button" class="btn-card-edit" data-company-action="edit" data-company-id="${c.id}" title="업체 수정"><i class="fa-solid fa-pen"></i></button>
+                    <button type="button" class="btn-card-edit" data-company-action="edit" data-company-id="${c.id}" title="단체 수정"><i class="fa-solid fa-pen"></i></button>
                     <button type="button" class="btn-card-delete" data-company-action="delete" data-company-id="${c.id}" title="${deleteTitle}" ${deleteDisabled}><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>`;

@@ -551,10 +551,10 @@ window.PmsMockApi = window.PmsMockApi || (function() {
             : (item.billing || '');
         const billingLabel = {
             'master-folio': '단체 일괄 정산',
-            'agency-credit': '업체 후불',
+            'agency-credit': '단체 후불',
             'company-card': '법인카드',
             individual: '개별 결제'
-        }[billingTerm] || billingTerm;
+        }[billingTerm] || String(billingTerm || '').replace(/업체 후불/g, '단체 후불');
         return {
             ...item,
             label: item.displayName || item.name,

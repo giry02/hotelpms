@@ -40,7 +40,7 @@
                     mainHref: BASE + 'frontdesk/groups_blocks.html',
                     children: [
                         { label: '단체/행사 목록', href: BASE + 'frontdesk/groups_blocks.html' },
-                        { label: '단체업체 관리', href: BASE + 'frontdesk/groups_companies.html' },
+                        { label: '단체 등록 관리', href: BASE + 'frontdesk/groups_companies.html' },
                     ]
                 },
             ]
