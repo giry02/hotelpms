@@ -42,7 +42,7 @@
 #btnUnpaidToggle.active { background: var(--danger) !important; color: #fff !important; }
 .folio-table { table-layout: fixed; min-width: 1380px; }
 .folio-table th, .folio-table td { overflow: hidden; text-overflow: ellipsis; vertical-align: top; }
-.folio-table th:last-child,.folio-table td.folio-action-cell{width:210px}
+.folio-table th:last-child,.folio-table td.folio-action-cell{width:230px}
 .folio-table tbody tr.folio-group-row td { padding-top: 14px; padding-bottom: 14px; background: #fff; }
 .folio-id-cell .folio-id-text { display: block; color: var(--txt2); font-family: 'Courier New', monospace; font-size: .76rem; white-space: nowrap; }
 .folio-table .folio-room-cell{overflow:hidden;white-space:normal}
@@ -53,21 +53,25 @@
 .folio-date-cell,.folio-money-cell,.folio-status-cell{white-space:nowrap}
 .folio-money-cell{font-weight:800;color:var(--txt)}
 .folio-balance-cell{font-weight:800;white-space:nowrap}
-.folio-table .folio-actions { display: flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-start; align-items: center; min-width: 190px; max-width: 200px; }
+.folio-table .folio-actions { display: flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-start; align-items: center; min-width: 210px; max-width: 220px; }
 .folio-table .folio-actions .btn-outline-sm,
 .folio-table .folio-actions .btn-primary-sm,
-.folio-table .folio-actions .btn-complete-sm { width: 58px; height: 32px; padding: 0 6px; justify-content: center; font-size:.7rem; }
+.folio-table .folio-actions .folio-action-status { width: 58px; height: 32px; padding: 0 6px; justify-content: center; font-size:.7rem; }
+.folio-table .folio-actions .btn-complete-sm{width:76px;height:32px;padding:0 6px;justify-content:center;font-size:.7rem}
 .folio-table .folio-actions .btn-detail-sm{width:58px;height:32px;padding:0 6px;justify-content:center;font-size:.7rem}
-.folio-group-row .folio-actions{min-width:190px;max-width:200px;gap:6px}
+.folio-group-row .folio-actions{min-width:210px;max-width:220px;gap:6px}
 .folio-group-row .folio-actions .btn-outline-sm,
 .folio-group-row .folio-actions .btn-primary-sm,
-.folio-group-row .folio-actions .btn-complete-sm{padding:0 6px;font-size:.7rem}
+.folio-group-row .folio-actions .btn-complete-sm,
+.folio-group-row .folio-actions .folio-action-status{padding:0 6px;font-size:.7rem}
 .folio-status-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .folio-status-select{height:38px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:800;padding:0 32px 0 11px;min-width:136px}
 .folio-status-select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.08)}
 .btn-complete-sm{border:1px solid var(--success);background:var(--success);color:#fff;border-radius:6px;font-family:var(--font);font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
 .btn-complete-sm:hover{filter:brightness(.96)}
 .btn-complete-sm:disabled,.btn-primary-sm:disabled{cursor:not-allowed;opacity:.48;filter:grayscale(.1)}
+.folio-action-status{display:inline-flex;align-items:center;gap:5px;border-radius:6px;font-family:var(--font);font-weight:900;white-space:nowrap}
+.folio-action-status.done{border:1px solid rgba(5,150,105,.24);background:var(--success-lt);color:var(--success)}
 .status-badge.success{background:var(--success-lt);color:var(--success)}
 .status-badge.warning{background:var(--warning-lt);color:#92400e}
 .status-badge.danger{background:var(--danger-lt);color:var(--danger)}
@@ -195,6 +199,7 @@
 .btn-settlement-complete{border:1px solid #059669;background:#059669;color:#fff;border-radius:6px;font-family:var(--font);font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;transition:all .15s}
 .btn-settlement-complete:hover{filter:brightness(.96)}
 .btn-settlement-complete:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.1)}
+.settlement-completed-status{height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid #bbf7d0;border-radius:6px;background:#ecfdf5;color:#047857;font-family:var(--font);font-size:.78rem;font-weight:900;white-space:nowrap}
 .folio-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:#fff}
 .folio-page-info{font-size:.78rem;font-weight:800;color:var(--txt2)}
 .folio-page-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -218,6 +223,7 @@
     .search-box-mt { flex: 1; min-width: 0; width: auto; }
     .folio-breakdown{min-width:0}
     .payment-currency-grid{grid-template-columns:1fr}
+    .folio-mobile-actions .folio-action-status{width:auto;justify-content:center}
     .payment-method-grid{grid-template-columns:1fr}
     .payment-history-summary{grid-template-columns:1fr}
     .payment-history-row{grid-template-columns:1fr;gap:7px}
@@ -299,7 +305,7 @@
                         <option value="all">전체 상태</option>
                         <option value="unpaid">미수금 존재</option>
                         <option value="ready">완료 대기</option>
-                        <option value="paid">정산 완료</option>
+                        <option value="paid">완료됨</option>
                         <option value="refund">환불 처리</option>
                     </select>
                     <select id="folioSortMode" class="folio-status-select" onchange="setFolioSortMode(this.value)" title="정렬">
@@ -440,7 +446,7 @@ const foliosData = {
 };
 
 const stMap = {
-    'paid': { label:'정산 완료', badge:'success' },
+    'paid': { label:'완료됨', badge:'success' },
     'unpaid': { label:'미수금 존재', badge:'warning' },
     'ready': { label:'완료 대기', badge:'ready' },
     'refund': { label:'환불 처리', badge:'danger' },
@@ -1807,7 +1813,7 @@ function mapApiFolio(item) {
         roomChangeText: '',
         roomRevenue,
         ancillaryRevenue,
-        status: paid > total && bal <= 0 ? 'refund' : (bal > 0 ? 'unpaid' : 'paid')
+        status: paid > total && bal <= 0 ? 'refund' : (bal > 0 ? 'unpaid' : (item.settlementCompleted ? 'paid' : 'ready'))
     };
 }
 
@@ -1979,17 +1985,25 @@ function folioActionsHtml(folio, index, mode = 'table') {
     const due = Number(folio.bal || 0);
     const invoiceClass = isMobile ? 'act-btn' : 'btn-outline-sm';
     const receiveClass = isMobile ? 'act-btn' : 'btn-primary-sm';
+    const completeClass = isMobile ? 'act-btn' : 'btn-complete-sm';
     const detailClass = isMobile ? 'act-btn' : 'btn-outline-sm btn-detail-sm';
     const receiveStyle = isMobile ? ' style="background:var(--primary);color:#fff"' : '';
+    const completeStyle = isMobile ? ' style="background:var(--success);color:#fff"' : '';
     const invoiceIcon = isMobile ? '<i class="fa-solid fa-file-invoice"></i> ' : '';
     const receiveIcon = isMobile ? '<i class="fa-solid fa-credit-card"></i> ' : '';
+    const completeIcon = isMobile ? '<i class="fa-solid fa-door-open"></i> ' : '<i class="fa-solid fa-door-open"></i> ';
     const detailIcon = isMobile ? '<i class="fa-solid fa-eye"></i> ' : '<i class="fa-solid fa-eye"></i> ';
+    const folioIdArg = JSON.stringify(String(folio.id || '')).replace(/</g, '\\u003c');
     const buttons = [
         `<button class="${detailClass}" onclick="event.stopPropagation(); openSettlementDetailModal(${index})">${detailIcon}상세</button>`,
         `<button class="${invoiceClass}" onclick="event.stopPropagation(); openInvoiceModal(${index}, 'all')">${invoiceIcon}명세서</button>`
     ];
-    if (!folio.settlementCompleted && due > 0) {
-        buttons.push(`<button class="${receiveClass}"${receiveStyle} onclick="event.stopPropagation(); openPaymentModal('${folio.id}', ${due})">${receiveIcon}수납</button>`);
+    if (folio.settlementCompleted) {
+        buttons.push('<span class="folio-action-status done"><i class="fa-solid fa-circle-check"></i> 완료됨</span>');
+    } else if (due > 0) {
+        buttons.push(`<button class="${receiveClass}"${receiveStyle} onclick='event.stopPropagation(); openPaymentModal(${folioIdArg}, ${due})'>${receiveIcon}수납</button>`);
+    } else {
+        buttons.push(`<button class="${completeClass}"${completeStyle} onclick='event.stopPropagation(); completeSettlementFolio(${folioIdArg})'>${completeIcon}정산 완료</button>`);
     }
     return buttons.join('');
 }
@@ -2332,7 +2346,7 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room, guest, folio...':'객실번호, 고객명, 정산번호 검색...';
-    stMap['paid'].label = l==='en'?'Paid':'정산 완료';
+    stMap['paid'].label = l==='en'?'Done':'완료됨';
     stMap['unpaid'].label = l==='en'?'Unpaid Bal':'미수금 존재';
     stMap['ready'].label = l==='en'?'Ready to close':'완료 대기';
     stMap['refund'].label = l==='en'?'Refunded':'환불 처리';
@@ -2569,7 +2583,7 @@ function settlementDetailStatus(folio) {
     const paid = Number(folio?.paid || 0);
     const bal = Number(folio?.bal || 0);
     const deposit = folioDepositValue(folio);
-    if (folio?.settlementCompleted) return { label: '정산 완료', badge: 'success', icon: 'fa-circle-check' };
+    if (folio?.settlementCompleted) return { label: '완료됨', badge: 'success', icon: 'fa-circle-check' };
     if (bal > 0) return { label: '미수금 존재', badge: 'warning', icon: 'fa-triangle-exclamation' };
     if (paid > total) return { label: '환불 확인 필요', badge: 'danger', icon: 'fa-rotate-left' };
     if (deposit > 0) return { label: '예치금 확인 필요', badge: 'warning', icon: 'fa-vault' };
@@ -2717,7 +2731,7 @@ function renderSettlementDetailModal() {
             ? '<button class="btn-primary-sm" onclick="openSettlementPaymentFromDetail()"><i class="fa-solid fa-credit-card"></i> 수납 등록</button>'
             : '';
         const completeButton = folio.settlementCompleted
-            ? '<button class="btn-settlement-complete" disabled><i class="fa-solid fa-circle-check"></i> 정산/체크아웃 완료</button>'
+            ? '<span class="settlement-completed-status"><i class="fa-solid fa-circle-check"></i> 완료됨</span>'
             : '<button class="btn-settlement-complete" onclick="completeSettlementFromDetail()"><i class="fa-solid fa-door-open"></i> 정산 완료</button>';
         footer.innerHTML = `
             <div class="settlement-detail-footer-left">

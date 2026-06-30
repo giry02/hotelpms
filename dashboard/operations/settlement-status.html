@@ -123,6 +123,9 @@
         .btn-settlement-complete{border:1px solid #059669;background:#059669;color:#fff;border-radius:6px;font-family:var(--font);font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;transition:all .15s}
         .btn-settlement-complete:hover{filter:brightness(.96)}
         .btn-settlement-complete:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.1)}
+        .settlement-completed-status{height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid #bbf7d0;border-radius:6px;background:#ecfdf5;color:#047857;font-family:var(--font);font-size:.78rem;font-weight:900;white-space:nowrap}
+        .settlement-action-status{height:34px;display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:1;min-width:0;border-radius:8px;font-size:.73rem;font-weight:900;white-space:nowrap}
+        .settlement-action-status.done{border:1px solid #bbf7d0;background:#ecfdf5;color:#047857}
         .settlement-payment-grid{display:grid;grid-template-columns:1fr 150px;gap:12px}
         .settlement-payment-field{display:flex;flex-direction:column;gap:6px}
         .settlement-payment-field label{font-size:.76rem;font-weight:900;color:var(--txt2)}
@@ -226,7 +229,7 @@
                     <span class="legend-item"><span class="legend-dot today"></span>금일 체크아웃</span>
                     <span class="legend-item"><span class="legend-dot due"></span>수납/정산 필요</span>
                     <span class="legend-item"><span class="legend-dot unpaid"></span>미수금</span>
-                    <span class="legend-item"><span class="legend-dot done"></span>정산/체크아웃 완료</span>
+                    <span class="legend-item"><span class="legend-dot done"></span>완료됨</span>
                     <span class="legend-item"><span class="legend-dot refund"></span>환불 확인</span>
                 </div>
                 <div class="settlement-toolbar-right">
@@ -593,7 +596,7 @@ function settlementStatusInfo(folio) {
     const label = overdue ? '미수금' : ({
         unpaid: today ? '수납 필요' : '미수금',
         ready: '정산 필요',
-        paid: '정산/체크아웃 완료',
+        paid: '완료됨',
         refund: '환불 확인'
     }[folio.status] || '정산 필요');
     return { icon, label };
@@ -812,9 +815,7 @@ function mapSettlementFolio(item) {
     let linkedReservations = reservationsByIds(reservationIds);
     if (!linkedReservations.length && !reservationIds.length) linkedReservations = fallbackReservationsForFolio(item, initialCheckoutDate);
     const reservation = linkedReservations[0] || reservationById(item.reservationId || item.reservationIds?.[0]);
-    const statusText = String(item.status || '').toLowerCase();
-    const settled = item.settlementCompleted || ['closed', 'settled', 'paid'].includes(statusText);
-    const status = balance > 0 ? 'unpaid' : (paid > total && total > 0 ? 'refund' : (settled ? 'paid' : 'ready'));
+    const status = balance > 0 ? 'unpaid' : (paid > total && total > 0 ? 'refund' : (item.settlementCompleted ? 'paid' : 'ready'));
     const roomList = Array.isArray(item.roomIds) ? item.roomIds.map(settlementRoomNo).filter(Boolean) : [];
     const room = item.folioType === 'group' || item.groupId
         ? '단체'
@@ -933,7 +934,7 @@ function settlementCard(folio) {
         : `${folio.folioId} · ${folio.stayText || '숙박일 미확인'}`;
     const folioKey = settlementEscape(folio.folioId || folio.id);
     const actionButton = folio.settlementCompleted || folio.status === 'paid'
-        ? `<button type="button" class="done" onclick="openSettlementStatusDetail('${folioKey}')"><i class="fa-solid fa-circle-check"></i> 완료됨</button>`
+        ? '<span class="settlement-action-status done"><i class="fa-solid fa-circle-check"></i> 완료됨</span>'
         : folio.status === 'refund'
             ? `<button type="button" class="refund" onclick="openSettlementStatusDetail('${folioKey}')"><i class="fa-solid fa-rotate-left"></i> 환불 확인</button>`
             : folio.balance > 0
@@ -1092,7 +1093,7 @@ function renderSettlementStatusDetail(folioId) {
             ? `<button class="btn-primary-sm" onclick="openSettlementStatusPayment('${settlementEscape(folio.folioId || folio.id)}')"><i class="fa-solid fa-credit-card"></i> 수납 등록</button>`
             : '';
         const completeButton = folio.settlementCompleted
-            ? '<button class="btn-settlement-complete" disabled><i class="fa-solid fa-circle-check"></i> 정산/체크아웃 완료</button>'
+            ? '<span class="settlement-completed-status"><i class="fa-solid fa-circle-check"></i> 완료됨</span>'
             : `<button class="btn-settlement-complete" onclick="completeSettlementStatusFolio('${settlementEscape(folio.folioId || folio.id)}')"><i class="fa-solid fa-door-open"></i> 정산 완료</button>`;
         footer.innerHTML = `
             <div class="settlement-detail-footer-left">
