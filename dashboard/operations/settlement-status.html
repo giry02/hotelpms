@@ -20,13 +20,6 @@
     <script src="../common/js/topbar.js"></script>
     <style>
         .settlement-page{font-family:var(--font)}
-        .settlement-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px;padding:18px 20px;border:1px solid var(--border);border-radius:14px;background:#fff;box-shadow:0 2px 10px rgba(15,23,42,.03)}
-        .settlement-intro > div:first-child{flex:1;min-width:0}
-        .settlement-intro h2{display:flex;align-items:center;gap:9px;margin:0 0 6px;font-size:1.05rem;color:var(--txt)}
-        .settlement-intro p{margin:0;color:var(--txt2);font-size:.82rem;font-weight:750;line-height:1.55}
-        .settlement-intro-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
-        .settlement-intro-actions .btn-outline-sm{height:42px;min-width:108px;padding:0 15px;border-radius:10px;font-size:.83rem;font-weight:850;color:var(--txt);background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.04)}
-        .settlement-intro-actions .btn-outline-sm i{font-size:.9rem;color:#475569}
         .settlement-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
         .settlement-kpi{display:flex;align-items:center;gap:13px;min-width:0;padding:16px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 2px 10px rgba(15,23,42,.03)}
         .settlement-kpi-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
@@ -39,6 +32,7 @@
         .settlement-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 14px;background:#fff;border:1px solid var(--border);border-radius:14px}
         .settlement-toolbar-left,.settlement-toolbar-right{display:flex;align-items:center;gap:8px;min-width:0}
         .settlement-toolbar-left{flex:1;flex-wrap:wrap;overflow:visible;padding-bottom:1px}
+        .settlement-toolbar-right{flex:0 0 auto;justify-content:flex-end;flex-wrap:wrap}
         .settlement-search{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:auto;max-width:320px;min-width:220px;flex:1 1 280px;height:38px;padding:0 12px;border:1.5px solid var(--border);border-radius:9px;background:#fff}
         .settlement-search:focus-within{border-color:var(--primary)}
         .settlement-search input{border:0;outline:0;background:transparent;font-family:var(--font);font-size:.8rem;font-weight:750;width:100%;min-width:0;color:var(--txt)}
@@ -46,6 +40,9 @@
         .settlement-chip{height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.74rem;font-weight:900;white-space:nowrap;cursor:pointer}
         .settlement-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
         .settlement-sort{height:38px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:850;padding:0 32px 0 11px}
+        .settlement-toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .settlement-toolbar-action{height:38px;min-width:104px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:850;text-decoration:none;white-space:nowrap;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+        .settlement-toolbar-action i{font-size:.86rem;color:#475569}
         .settlement-section{margin-bottom:22px}
         .settlement-section-head{display:flex;align-items:center;gap:9px;margin:0 0 10px;color:var(--txt);font-size:1rem;font-weight:900}
         .settlement-section-head span{font-size:.78rem;font-weight:750;color:var(--txt3)}
@@ -123,13 +120,13 @@
         .settlement-payment-field input,.settlement-payment-field select{height:38px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-family:var(--font);font-size:.82rem;font-weight:750;color:var(--txt);background:#fff}
         .settlement-empty{padding:32px;border:1px dashed var(--border);border-radius:14px;background:#fff;text-align:center;color:var(--txt3);font-weight:850}
         @media(max-width:900px){
-            .settlement-intro{flex-direction:column}
-            .settlement-intro-actions{justify-content:flex-start}
             .settlement-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
             .settlement-toolbar{align-items:stretch;flex-direction:column}
             .settlement-search{width:auto;max-width:none;flex:1 1 260px}
-            .settlement-toolbar-right{justify-content:space-between}
-            .settlement-sort{flex:1}
+            .settlement-toolbar-right{justify-content:flex-start}
+            .settlement-sort{flex:1 1 150px}
+            .settlement-toolbar-actions{flex:1 1 auto}
+            .settlement-toolbar-action{flex:1 1 120px}
             .settlement-detail-summary,.settlement-detail-grid{grid-template-columns:1fr}
             .settlement-history-item{grid-template-columns:1fr}
             .settlement-history-amount{text-align:left}
@@ -150,17 +147,6 @@
 <div class="main settlement-page">
     <header class="topbar"><h1>정산 현황</h1></header>
     <div class="content">
-        <section class="settlement-intro">
-            <div>
-                <h2><i class="fa-solid fa-list-check"></i> 오늘 처리할 정산 큐</h2>
-                <p>정산 현황은 오늘 확인하거나 처리할 수 있는 정산 대상만 모아 보여줍니다. 전체 과거 내역과 상세 수납/영수증 처리는 정산 목록에서 이어서 처리합니다.</p>
-            </div>
-            <div class="settlement-intro-actions">
-                <a class="btn-outline-sm" href="folio.html"><i class="fa-solid fa-table-list"></i> 정산 목록</a>
-                <a class="btn-outline-sm" href="night-audit.html"><i class="fa-solid fa-moon"></i> 일일 마감</a>
-            </div>
-        </section>
-
         <section class="settlement-kpis" aria-label="정산 현황 요약">
             <div class="settlement-kpi"><div class="settlement-kpi-icon need"><i class="fa-solid fa-right-from-bracket"></i></div><div><div class="settlement-kpi-value" id="kpiNeed">0</div><div class="settlement-kpi-label">금일 체크아웃</div></div></div>
             <div class="settlement-kpi"><div class="settlement-kpi-icon unpaid"><i class="fa-solid fa-circle-exclamation"></i></div><div><div class="settlement-kpi-value" id="kpiBalance">₱0</div><div class="settlement-kpi-label">미수금 합계</div></div></div>
@@ -189,6 +175,10 @@
                     <option value="balance">미수금 큰순</option>
                     <option value="status">상태순</option>
                 </select>
+                <div class="settlement-toolbar-actions" aria-label="정산 이동">
+                    <a class="settlement-toolbar-action" href="folio.html"><i class="fa-solid fa-table-list"></i> 정산 목록</a>
+                    <a class="settlement-toolbar-action" href="night-audit.html"><i class="fa-solid fa-moon"></i> 일일 마감</a>
+                </div>
             </div>
         </section>
 
