@@ -19,19 +19,25 @@
     <script src="common/js/ui-components.js"></script>
     <script src="common/js/topbar.js"></script>
     <style>
-        .ops-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
-        .ops-kpi-card{display:flex;align-items:center;gap:12px;box-sizing:border-box;height:64px;padding:10px 18px;border:1px solid var(--border);border-radius:10px;background:#fff;color:inherit;text-decoration:none;box-shadow:0 2px 8px rgba(15,23,42,.04)}
-        .ops-kpi-card:hover{border-color:rgba(59,130,246,.34);box-shadow:0 8px 18px rgba(15,23,42,.07)}
-        .ops-kpi-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.82rem;flex-shrink:0}
-        .ops-kpi-card.blue .ops-kpi-icon{background:#eff6ff;color:#2563eb}
-        .ops-kpi-card.red .ops-kpi-icon{background:#fee2e2;color:#dc2626}
-        .ops-kpi-card.orange .ops-kpi-icon{background:#fff7ed;color:#ea580c}
-        .ops-kpi-card.green .ops-kpi-icon{background:#dcfce7;color:#059669}
-        .ops-kpi-body{min-width:0;display:grid;gap:3px}
-        .ops-kpi-main{display:flex;align-items:baseline;gap:7px;min-width:0}
-        .ops-kpi-label{font-size:.8rem;font-weight:900;color:var(--txt);white-space:nowrap}
-        .ops-kpi-value{font-size:1.08rem;font-weight:950;line-height:1;color:var(--txt);white-space:nowrap}
-        .ops-kpi-sub{font-size:.64rem;font-weight:700;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .ops-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-bottom:14px;border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.04);overflow:hidden}
+        .ops-kpi-card{position:relative;display:flex;align-items:center;gap:9px;box-sizing:border-box;min-height:48px;padding:0 16px;border:0;border-radius:0;background:linear-gradient(180deg,#fff 0%,#fbfdff 100%);color:inherit;text-decoration:none}
+        .ops-kpi-card + .ops-kpi-card{border-left:1px solid #eef2f7}
+        .ops-kpi-card::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:999px;background:#3b82f6}
+        .ops-kpi-card:hover{background:#f8fbff}
+        .ops-kpi-icon{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.68rem;flex-shrink:0}
+        .ops-kpi-card.blue::before,.ops-kpi-card.blue .ops-kpi-icon{color:#2563eb;background:#eff6ff}
+        .ops-kpi-card.green::before,.ops-kpi-card.green .ops-kpi-icon{color:#059669;background:#dcfce7}
+        .ops-kpi-card.orange::before,.ops-kpi-card.orange .ops-kpi-icon{color:#ea580c;background:#fff7ed}
+        .ops-kpi-card.red::before,.ops-kpi-card.red .ops-kpi-icon{color:#dc2626;background:#fee2e2}
+        .ops-kpi-card.blue::before{background:#3b82f6}
+        .ops-kpi-card.green::before{background:#10b981}
+        .ops-kpi-card.orange::before{background:#f97316}
+        .ops-kpi-card.red::before{background:#ef4444}
+        .ops-kpi-body{min-width:0}
+        .ops-kpi-main{display:flex;align-items:baseline;gap:6px;min-width:0;white-space:nowrap}
+        .ops-kpi-label{font-size:.78rem;font-weight:850;color:#334155;white-space:nowrap}
+        .ops-kpi-value{font-size:1rem;font-weight:950;line-height:1;color:var(--txt);white-space:nowrap}
+        .ops-kpi-sub{display:none}
         .dashboard-work-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px;align-items:stretch}
         .dashboard-work-row-main,.dashboard-work-row-ancillary{grid-template-columns:2.12fr 1fr}
         .ops-card{min-width:0;border:1px solid var(--border);border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(15,23,42,.04);overflow:hidden}
@@ -77,8 +83,8 @@
         .activity-sub{display:block;margin-top:3px;font-size:.66rem;font-weight:500;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .activity-meta{display:block;margin-top:3px;font-size:.62rem;font-weight:500;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .ancillary-card-body{min-height:300px}
-        @media(max-width:1180px){.ops-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-work-row,.dashboard-work-row-main,.dashboard-work-row-ancillary{grid-template-columns:1fr}}
-        @media(max-width:720px){.ops-kpi-grid{grid-template-columns:1fr}.ops-kpi-card{height:58px;padding:9px 14px}.ops-card-header{padding:0 14px}.ops-table th,.ops-table td{padding:0 12px}.checkin-card,.activity-card{min-height:0}.checkin-card .ops-table td{height:56px}.ops-activity-list{padding:8px 14px}}
+        @media(max-width:1180px){.ops-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ops-kpi-card:nth-child(odd){border-left:0}.ops-kpi-card:nth-child(n+3){border-top:1px solid #eef2f7}.dashboard-work-row,.dashboard-work-row-main,.dashboard-work-row-ancillary{grid-template-columns:1fr}}
+        @media(max-width:720px){.ops-kpi-grid{grid-template-columns:1fr}.ops-kpi-card{min-height:46px;padding:0 14px;border-left:0}.ops-kpi-card + .ops-kpi-card{border-left:0;border-top:1px solid #eef2f7}.ops-card-header{padding:0 14px}.ops-table th,.ops-table td{padding:0 12px}.checkin-card,.activity-card{min-height:0}.checkin-card .ops-table td{height:56px}.ops-activity-list{padding:8px 14px}}
     </style>
 </head>
 <body>
@@ -278,22 +284,22 @@
 
         </div>
 
-        <section class="ops-kpi-grid" id="opsKpiGrid" aria-label="오늘 운영 지표">
+        <section class="ops-kpi-grid" id="opsKpiGrid" aria-label="금일 운영 지표">
             <a class="ops-kpi-card blue" href="frontdesk/reservation-list.html?tab=checkin&period=today">
                 <div class="ops-kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
-                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">오늘 체크인</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">입실 확인</div></div>
+                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">금일 체크인</span><span class="ops-kpi-value">--</span></div></div>
             </a>
             <a class="ops-kpi-card green" href="frontdesk/reservation-list.html?tab=checkout&period=today">
                 <div class="ops-kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
-                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">오늘 체크아웃</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">정산 연결</div></div>
+                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">금일 체크아웃</span><span class="ops-kpi-value">--</span></div></div>
             </a>
             <a class="ops-kpi-card orange" href="frontdesk/reservation-board.html?filter=cleaning">
                 <div class="ops-kpi-icon"><i class="fa-solid fa-broom"></i></div>
-                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">청소 필요</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">체크인 전 확인</div></div>
+                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">청소 필요</span><span class="ops-kpi-value">--</span></div></div>
             </a>
             <a class="ops-kpi-card red" href="operations/settlement-status.html?filter=ready">
                 <div class="ops-kpi-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">정산 필요</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">오늘 기준</div></div>
+                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">정산 필요</span><span class="ops-kpi-value">--</span></div></div>
             </a>
         </section>
 
@@ -380,8 +386,8 @@
         preparing: '\uC900\uBE44 \uC911',
         cancel: '\uCDE8\uC18C',
         newOrder: '\uC2E0\uADDC',
-        todayCheckin: '\uC624\uB298 \uCCB4\uD06C\uC778',
-        todayCheckout: '\uC624\uB298 \uCCB4\uD06C\uC544\uC6C3',
+        todayCheckin: '\uAE08\uC77C \uCCB4\uD06C\uC778',
+        todayCheckout: '\uAE08\uC77C \uCCB4\uD06C\uC544\uC6C3',
         checkout: '\uCCB4\uD06C\uC544\uC6C3',
         checkinConfirm: '\uC785\uC2E4 \uD655\uC778',
         settlementConnect: '\uC815\uC0B0 \uC5F0\uACB0',
@@ -406,11 +412,63 @@
         dnd: '\uBC29\uD574\uAE08\uC9C0',
         loadFailed: '\uC624\uB298 \uCCB4\uD06C\uC778 \uBAA9\uB85D\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
     };
+    const EN = {
+        unassigned: 'Unassigned guest',
+        group: 'Group',
+        personal: 'Individual',
+        normal: 'General',
+        nightsCheck: 'Stay date check',
+        night: 'N',
+        day: 'D',
+        pos: 'POS',
+        golf: 'Golf Course',
+        rentacar: 'Rent-a-car',
+        ancillary: 'Ancillary',
+        done: 'Completed',
+        preparing: 'Preparing',
+        cancel: 'Canceled',
+        newOrder: 'New',
+        todayCheckin: 'Today Check-ins',
+        todayCheckout: 'Today Check-outs',
+        checkout: 'Check-out',
+        checkinConfirm: 'Check-in check',
+        settlementConnect: 'Settlement link',
+        settlementNeed: 'Settlement Needed',
+        todayBasis: 'Today',
+        cleaningNeed: 'Cleaning Needed',
+        beforeCheckin: 'Before check-in',
+        newAlert: 'New Alerts',
+        sharedEvent: 'Shared event',
+        noCheckin: 'No scheduled check-ins today.',
+        confirm: 'Confirmed',
+        scheduled: 'Scheduled',
+        checkin: 'Check-in',
+        collapse: 'Collapse',
+        more: 'View more',
+        countSuffix: 'more',
+        noActivity: 'No shared activity yet.',
+        roomSuffix: ' · ',
+        noAncillary: 'No ancillary orders today.',
+        cleanDone: 'Cleaning Completed',
+        cleaningProgress: 'Cleaning',
+        dnd: 'Do Not Disturb',
+        loadFailed: "Could not load today's check-in list."
+    };
+    const OPS_TEXT = { ko: KO, en: EN };
     const checkinPageSize = 5;
     const checkinDemoTotal = 14;
     const activityLimit = 5;
     let checkinPageIndex = 0;
     let checkinRows = [];
+    let dashboardOpsSnapshot = null;
+
+    function currentOpsLang() {
+        return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+    }
+    function t(key) {
+        const lang = currentOpsLang();
+        return OPS_TEXT[lang]?.[key] || KO[key] || key;
+    }
 
     function esc(value) {
         return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -462,24 +520,30 @@
         return value?.roomNo || value?.room || value?.fullRoom || value?.display || value?.displayName || value?.id || '-';
     }
     function guestText(value) {
-        return value?.guestName || value?.guest || value?.ownerName || value?.roomingGuestName || value?.name || KO.unassigned;
+        return value?.guestName || value?.guest || value?.ownerName || value?.roomingGuestName || value?.name || t('unassigned');
     }
     function initials(value) {
         const direct = value?.initials;
         if (direct) return String(direct).slice(0, 2).toUpperCase();
         return guestText(value).split(/\s+/).filter(Boolean).map(part => part[0]).join('').slice(0, 2).toUpperCase() || 'GU';
     }
+    function isGroupReservation(value) {
+        return Boolean(value?.groupName || value?.groupId || value?.companyName || value?.isGroupPlaceholder);
+    }
     function audienceLabel(value) {
-        return value?.groupName || value?.groupId || value?.companyName || value?.isGroupPlaceholder ? KO.group : KO.personal;
+        return isGroupReservation(value) ? t('group') : t('personal');
     }
     function tierText(value) {
-        return value?.vip || value?.tier || value?.membershipTier || (value?.isVip ? 'VIP' : KO.normal);
+        const tier = value?.vip || value?.tier || value?.membershipTier || (value?.isVip ? 'VIP' : '');
+        const normalized = String(tier || '').trim().toLowerCase();
+        if (!normalized || normalized === 'normal' || normalized === 'general' || tier === KO.normal || tier === EN.normal) return t('normal');
+        return tier;
     }
     function stayText(res) {
         const start = iso(res?.checkInDate || res?.checkin);
         const end = iso(res?.checkOutDate || res?.checkout);
         const nights = Number(res?.nights || res?.len || 0);
-        const stay = nights ? `${nights}${KO.night} ${nights + 1}${KO.day}` : KO.nightsCheck;
+        const stay = nights ? `${nights}${t('night')} ${nights + 1}${t('day')}` : t('nightsCheck');
         return `${shortDate(start)} - ${shortDate(end)} (${stay})`;
     }
     function roomOpsStatus(room) {
@@ -509,22 +573,22 @@
     }
     function serviceLabel(value) {
         const source = value?.source || '';
-        if (source === 'pos') return KO.pos;
-        if (source === 'golf') return KO.golf;
-        if (source === 'rentacar') return KO.rentacar;
-        return KO.ancillary;
+        if (source === 'pos') return t('pos');
+        if (source === 'golf') return t('golf');
+        if (source === 'rentacar') return t('rentacar');
+        return t('ancillary');
     }
     function orderItemsText(value) {
         const items = value?.items;
         if (Array.isArray(items)) return items.join(', ');
-        return String(items || value?.item || value?.serviceName || value?.packageName || KO.ancillary);
+        return String(items || value?.item || value?.serviceName || value?.packageName || t('ancillary'));
     }
     function serviceStatus(value) {
         const status = String(value?.status || '').toLowerCase();
-        if (['done', 'completed', 'complete', 'paid'].includes(status)) return KO.done;
-        if (['prep', 'preparing', 'accepted', 'ready'].includes(status)) return KO.preparing;
-        if (['cancelled', 'canceled'].includes(status)) return KO.cancel;
-        return KO.newOrder;
+        if (['done', 'completed', 'complete', 'paid'].includes(status)) return t('done');
+        if (['prep', 'preparing', 'accepted', 'ready'].includes(status)) return t('preparing');
+        if (['cancelled', 'canceled'].includes(status)) return t('cancel');
+        return t('newOrder');
     }
     function normalizeOrder(value, source) {
         return { ...value, source };
@@ -660,7 +724,7 @@
         const dueDate = dashboardFolioCheckoutDate(item, reservations, groups);
         return { item, state, balance, dueDate };
     }
-    function textOf(value, lang = 'ko') {
+    function textOf(value, lang = currentOpsLang()) {
         if (value && typeof value === 'object') return value[lang] || value.ko || value.en || '';
         return String(value || '');
     }
@@ -683,7 +747,7 @@
                 checkInDate: today,
                 checkOutDate: addIsoDays(today, 2 + (index % 3)),
                 nights: 2 + (index % 3),
-                tier: index % 4 === 0 ? 'VIP' : KO.normal,
+                tier: index % 4 === 0 ? 'VIP' : 'normal',
                 color: colors[index % colors.length],
                 _dashboardToday: true,
                 _dashboardDemo: true
@@ -695,12 +759,13 @@
         const grid = document.getElementById('opsKpiGrid');
         if (!grid) return;
         const cards = [
-            { cls: 'blue', icon: 'fa-right-to-bracket', href: 'frontdesk/reservation-list.html?tab=checkin&period=today', value: arrivals.length, label: KO.todayCheckin, sub: KO.checkinConfirm },
-            { cls: 'green', icon: 'fa-right-from-bracket', href: 'frontdesk/reservation-list.html?tab=checkout&period=today', value: checkouts.length, label: KO.todayCheckout, sub: KO.settlementConnect },
-            { cls: 'orange', icon: 'fa-broom', href: 'frontdesk/reservation-board.html?filter=cleaning', value: cleaning.length, label: KO.cleaningNeed, sub: KO.beforeCheckin },
-            { cls: 'red', icon: 'fa-file-invoice-dollar', href: 'operations/settlement-status.html?filter=ready', value: settlements.length, label: KO.settlementNeed, sub: KO.todayBasis }
+            { cls: 'blue', icon: 'fa-right-to-bracket', href: 'frontdesk/reservation-list.html?tab=checkin&period=today', value: arrivals.length, label: t('todayCheckin') },
+            { cls: 'green', icon: 'fa-right-from-bracket', href: 'frontdesk/reservation-list.html?tab=checkout&period=today', value: checkouts.length, label: t('todayCheckout') },
+            { cls: 'orange', icon: 'fa-broom', href: 'frontdesk/reservation-board.html?filter=cleaning', value: cleaning.length, label: t('cleaningNeed') },
+            { cls: 'red', icon: 'fa-file-invoice-dollar', href: 'operations/settlement-status.html?filter=ready', value: settlements.length, label: t('settlementNeed') }
         ];
-        grid.innerHTML = cards.map(card => `<a class="ops-kpi-card ${card.cls}" href="${card.href}"><div class="ops-kpi-icon"><i class="fa-solid ${card.icon}"></i></div><div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">${card.label}</span><span class="ops-kpi-value">${card.value}</span></div><div class="ops-kpi-sub">${card.sub}</div></div></a>`).join('');
+        grid.setAttribute('aria-label', currentOpsLang() === 'en' ? 'Today operation indicators' : '\uAE08\uC77C \uC6B4\uC601 \uC9C0\uD45C');
+        grid.innerHTML = cards.map(card => `<a class="ops-kpi-card ${card.cls}" href="${card.href}" aria-label="${esc(`${card.label} ${card.value}`)}"><div class="ops-kpi-icon"><i class="fa-solid ${card.icon}"></i></div><div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">${esc(card.label)}</span><span class="ops-kpi-value">${esc(card.value)}</span></div></div></a>`).join('');
     }
     function renderCheckins() {
         const tbody = document.querySelector('#todayCheckinTable tbody');
@@ -713,7 +778,7 @@
         const start = checkinPageIndex * checkinPageSize;
         const rows = checkinRows.slice(start, start + checkinPageSize);
         if (!rows.length) {
-            tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${KO.noCheckin}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${t('noCheckin')}</td></tr>`;
         } else {
             tbody.innerHTML = rows.map(res => {
                 const audience = audienceLabel(res);
@@ -721,12 +786,12 @@
                 const tierClass = isVipTier(tier) ? 'vip' : '';
                 const href = `frontdesk/reservation-board.html?filter=checkin&query=${encodeURIComponent(roomText(res))}`;
                 return `<tr>
-                    <td><div class="ops-guest"><span class="ops-avatar" style="background:${esc(res.color || '#3b82f6')}">${esc(initials(res))}</span><div class="ops-guest-main"><span class="ops-guest-name">${esc(guestText(res))}</span><span class="ops-chip-row"><span class="ops-chip ${audience === KO.group ? 'group' : ''}">${audience}</span>${res.groupName ? `<span class="ops-chip group">${esc(res.groupName)}</span>` : ''}<span class="ops-chip ${tierClass}">${esc(tier)}</span></span></div></div></td>
+                    <td><div class="ops-guest"><span class="ops-avatar" style="background:${esc(res.color || '#3b82f6')}">${esc(initials(res))}</span><div class="ops-guest-main"><span class="ops-guest-name">${esc(guestText(res))}</span><span class="ops-chip-row"><span class="ops-chip ${isGroupReservation(res) ? 'group' : ''}">${esc(audience)}</span>${res.groupName ? `<span class="ops-chip group">${esc(res.groupName)}</span>` : ''}<span class="ops-chip ${tierClass}">${esc(tier)}</span></span></div></div></td>
                     <td>${esc(roomText(res))}</td>
                     <td>${esc(res.roomType || res.type || '-')}</td>
                     <td>${esc(stayText(res))}</td>
-                    <td><span class="ops-chip ${res._dashboardToday ? 'good' : ''}">${res._dashboardToday ? KO.confirm : KO.scheduled}</span></td>
-                    <td><a class="ops-row-action" href="${href}">${KO.checkin}</a></td>
+                    <td><span class="ops-chip ${res._dashboardToday ? 'good' : ''}">${res._dashboardToday ? t('confirm') : t('scheduled')}</span></td>
+                    <td><a class="ops-row-action" href="${href}">${t('checkin')}</a></td>
                 </tr>`;
             }).join('');
         }
@@ -775,13 +840,13 @@
         if (!list) return;
         const rows = activities.slice(0, activityLimit);
         if (!rows.length) {
-            list.innerHTML = `<div class="ops-empty">${KO.noActivity}</div>`;
+            list.innerHTML = `<div class="ops-empty">${t('noActivity')}</div>`;
             return;
         }
         list.innerHTML = rows.map(item => {
-            const schedule = item.serviceDate ? `${shortDate(item.serviceDate)} 예정` : (item.eventDate ? shortDate(item.eventDate) : '');
+            const schedule = item.serviceDate ? `${shortDate(item.serviceDate)} ${t('scheduled')}` : (item.eventDate ? shortDate(item.eventDate) : '');
             const meta = [item.time || '', item.actor || '', schedule].filter(Boolean).join(' · ');
-            return `<a class="activity-item" href="${esc(item.target || 'notifications.html')}"><span class="activity-icon"><i class="fa-solid ${esc(item.icon || 'fa-bell')}"></i></span><span><span class="activity-title">${esc(textOf(item.title))}</span><span class="activity-sub">${esc(item.roomNo ? `${item.roomNo}${KO.roomSuffix}` : '')}${esc(textOf(item.label) || item.actor || '')}</span>${meta ? `<span class="activity-meta">${esc(meta)}</span>` : ''}</span></a>`;
+            return `<a class="activity-item" href="${esc(item.target || 'notifications.html')}"><span class="activity-icon"><i class="fa-solid ${esc(item.icon || 'fa-bell')}"></i></span><span><span class="activity-title">${esc(textOf(item.title))}</span><span class="activity-sub">${esc(item.roomNo ? `${item.roomNo}${t('roomSuffix')}` : '')}${esc(textOf(item.label) || item.actor || '')}</span>${meta ? `<span class="activity-meta">${esc(meta)}</span>` : ''}</span></a>`;
         }).join('');
     }
     function renderAncillaryOrders(rows) {
@@ -789,7 +854,7 @@
         if (!tbody) return;
         const display = [...rows].sort((a, b) => String(b.time || '').localeCompare(String(a.time || ''))).slice(0, 6);
         if (!display.length) {
-            tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${KO.noAncillary}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${t('noAncillary')}</td></tr>`;
             return;
         }
         tbody.innerHTML = display.map(order => `<tr>
@@ -798,7 +863,7 @@
             <td>${esc(serviceLabel(order))}</td>
             <td>${esc(orderItemsText(order))}</td>
             <td>${esc(money(amount(order.total || order.amount)))}</td>
-            <td><span class="ops-chip ${serviceStatus(order) === KO.done ? 'good' : 'warn'}">${esc(serviceStatus(order))}</span></td>
+            <td><span class="ops-chip ${serviceStatus(order) === t('done') ? 'good' : 'warn'}">${esc(serviceStatus(order))}</span></td>
         </tr>`).join('');
     }
     async function loadDashboardOperations() {
@@ -831,11 +896,12 @@
         const dashboardArrivals = dashboardDemoCheckins(arrivals, today);
         checkinRows = dashboardArrivals.map(res => ({ ...res, _dashboardToday: true })).sort((a, b) => {
             const roomSort = String(roomText(a)).localeCompare(String(roomText(b)), 'ko', { numeric: true });
-            const groupSort = (audienceLabel(b) === KO.group ? 1 : 0) - (audienceLabel(a) === KO.group ? 1 : 0);
+            const groupSort = (isGroupReservation(b) ? 1 : 0) - (isGroupReservation(a) ? 1 : 0);
             return groupSort || roomSort;
         });
         checkinPageIndex = 0;
-        renderKpis({ arrivals: dashboardArrivals, checkouts, settlements, cleaning, activities });
+        dashboardOpsSnapshot = { arrivals: dashboardArrivals, checkouts, settlements, cleaning, activities, ancillary };
+        renderKpis(dashboardOpsSnapshot);
         renderCheckins();
         renderActivities(activities);
         renderAncillaryOrders(ancillary);
@@ -847,8 +913,15 @@
         loadDashboardOperations().catch(error => {
             console.warn('Dashboard operations load failed', error);
             const tbody = document.querySelector('#todayCheckinTable tbody');
-            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${KO.loadFailed}</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${t('loadFailed')}</td></tr>`;
         });
+    });
+    window.addEventListener('languagechange', () => {
+        if (!dashboardOpsSnapshot) return;
+        renderKpis(dashboardOpsSnapshot);
+        renderCheckins();
+        renderActivities(dashboardOpsSnapshot.activities);
+        renderAncillaryOrders(dashboardOpsSnapshot.ancillary);
     });
 })();
 
