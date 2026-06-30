@@ -44,7 +44,8 @@ async function evaluateLayout(page) {
         && Number(style.opacity || 1) !== 0;
     };
 
-    const text = (document.body.innerText || '').trim();
+    const body = document.body;
+    const text = (body?.innerText || '').trim();
     const doc = document.scrollingElement || document.documentElement;
     const pageOverflowX = Math.max(0, doc.scrollWidth - innerWidth);
     const activeOverlays = Array.from(document.querySelectorAll('.modal-overlay.active, .bottom-sheet.active, .guest-detail-panel.active, [role="dialog"]'))
@@ -60,7 +61,7 @@ async function evaluateLayout(page) {
     ];
     const isInsideWhitelistedOverflow = el => overflowWhitelist.some(selector => el.closest(selector));
 
-    const overflowingElements = Array.from(document.body.querySelectorAll('*'))
+    const overflowingElements = Array.from((body || document).querySelectorAll('*'))
       .filter(visible)
       .filter(el => !isInsideWhitelistedOverflow(el))
       .map(el => {

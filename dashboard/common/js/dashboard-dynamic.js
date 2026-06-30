@@ -137,12 +137,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const revpar = formatMoney(dailyRoomRevenue / totalRooms, currency);
 
     const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : localIso();
+    const isTodayArrivalStatus = (status) => ![
+        'cancelled',
+        'canceled',
+        'completed',
+        'checkedout',
+        'checked-out',
+        'checkoutcompleted',
+        'checkout-completed',
+        'noshow',
+        'no-show',
+        'checkedin',
+        'checked-in',
+        'inhouse',
+        'in-house'
+    ].includes(status);
     const todayCheckinRes = reservations.filter(r =>
-        dateMatches(r.checkInDate || r.checkin || r.cin, today) && normalizeStatus(r.status) === 'confirmed'
+        dateMatches(r.checkInDate || r.checkin || r.cin, today) && isTodayArrivalStatus(normalizeStatus(r.status))
     );
     const todayCheckoutRes = reservations.filter(r => {
         const status = normalizeStatus(r.status);
-        return dateMatches(r.checkOutDate || r.checkout || r.cout, today) && ['checked-in', 'checkedin', 'checked-out', 'checkout'].includes(status);
+        return dateMatches(r.checkOutDate || r.checkout || r.cout, today) && ['checked-in', 'checkedin', 'in-house', 'inhouse', 'checkout'].includes(status);
     });
     const todayCheckin = todayCheckinRes.length;
     const todayCheckout = todayCheckoutRes.length;
@@ -152,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         kpiVals[0].textContent = occupancy;
         kpiVals[1].textContent = adr;
         kpiVals[2].textContent = revpar;
-        kpiVals[3].textContent = `${todayCheckin || summary?.arrivals || 0} / ${todayCheckout || summary?.departures || 0}`;
+        kpiVals[3].textContent = `${todayCheckin} / ${todayCheckout}`;
         const kpiLabel = kpiVals[3].nextElementSibling;
         if (kpiLabel && kpiLabel.classList.contains('kpi-label')) {
             kpiLabel.setAttribute('data-i18n-key', "Today's Check-in / Check-out");
@@ -172,7 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const checkinLink = document.querySelector('a.card-title-link[href="frontdesk/reservation-list.html?tab=checkin"]');
     const checkinBody = checkinLink ? checkinLink.closest('.card').querySelector('tbody') : null;
     if (checkinBody) {
-        const checkinRes = (todayCheckinRes.length ? todayCheckinRes : reservations.filter(r => normalizeStatus(r.status) === 'confirmed')).slice(0, 5);
+        const checkinRes = todayCheckinRes.slice(0, 5);
         if (checkinRes.length > 0) {
             checkinBody.innerHTML = checkinRes.map(r => {
                 const isVip = r.vip && (String(r.vip).includes('VIP') || String(r.vip).includes('Gold'));
