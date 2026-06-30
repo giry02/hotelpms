@@ -1168,6 +1168,10 @@ function setReservationSort(mode) {
 
 function setPeriodFilter(filter) {
     currentPeriodFilter = filter || 'week';
+    const select = document.getElementById('periodFilterSelect');
+    if (select && select.value !== currentPeriodFilter && Array.from(select.options).some(option => option.value === currentPeriodFilter)) {
+        select.value = currentPeriodFilter;
+    }
     currentPage = 1;
     updateChipCounts();
     renderTable();
@@ -1943,6 +1947,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const params = new URLSearchParams(location.search);
     const requestedTab = params.get('tab') || params.get('filter') || 'all';
+    const requestedPeriod = params.get('period') || '';
     const requestedQuery = params.get('query') || params.get('search') || '';
 
     if (window.PmsAPI) {
@@ -1972,6 +1977,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (selectedSheet) {
             document.querySelectorAll('.bs-option').forEach(btn => btn.classList.remove('selected'));
             selectedSheet.classList.add('selected');
+        }
+    }
+    if (requestedPeriod && ['today', 'tomorrow', 'week', 'month', 'all'].includes(requestedPeriod)) {
+        currentPeriodFilter = requestedPeriod;
+        const periodSelect = document.getElementById('periodFilterSelect');
+        if (periodSelect && Array.from(periodSelect.options).some(option => option.value === requestedPeriod)) {
+            periodSelect.value = requestedPeriod;
         }
     }
     if (requestedQuery) {

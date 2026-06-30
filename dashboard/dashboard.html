@@ -241,7 +241,7 @@
                     <div class="kpi-value">--</div><div class="kpi-label" data-i18n-key="Revenue per Available Room (RevPAR)">판매 가능 객실당 수익</div><div class="kpi-trend"></div>
                 </div>
             </a>
-            <a class="kpi-card purple" href="frontdesk/reservation-list.html?tab=checkin" title="체크인/아웃">
+            <a class="kpi-card purple" href="frontdesk/reservation-list.html?tab=checkin&period=today" title="체크인/아웃">
                 <div class="kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
                 <div class="kpi-body">
                     <div class="kpi-value">-- / --</div><div class="kpi-label" data-i18n-key="Today's Check-in / Check-out">오늘 체크인 / 체크아웃</div><div class="kpi-trend"></div>
@@ -280,11 +280,11 @@
         </div>
 
         <section class="ops-kpi-grid" id="opsKpiGrid" aria-label="오늘 운영 지표">
-            <a class="ops-kpi-card blue" href="frontdesk/reservation-list.html?tab=checkin">
+            <a class="ops-kpi-card blue" href="frontdesk/reservation-list.html?tab=checkin&period=today">
                 <div class="ops-kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
                 <div><div class="ops-kpi-value">--</div><div class="ops-kpi-label">오늘 체크인</div><div class="ops-kpi-sub">체크아웃 --</div></div>
             </a>
-            <a class="ops-kpi-card red" href="operations/settlement-status.html">
+            <a class="ops-kpi-card red" href="operations/settlement-status.html?filter=ready">
                 <div class="ops-kpi-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                 <div><div class="ops-kpi-value">--</div><div class="ops-kpi-label">정산 필요</div><div class="ops-kpi-sub">오늘 기준</div></div>
             </a>
@@ -522,15 +522,135 @@
     function normalizeOrder(value, source) {
         return { ...value, source };
     }
-    function folioSettlementStatus(item) {
+    const DASHBOARD_SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
+    const DASHBOARD_SETTLEMENT_COMPLETIONS_KEY = 'pms_settlement_completions';
+    function dashboardStorageJson(key, fallback) {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(key) || '');
+            return parsed ?? fallback;
+        } catch(e) {
+            return fallback;
+        }
+    }
+    function dashboardPaymentTotals(folioId) {
+        const records = dashboardStorageJson(DASHBOARD_SETTLEMENT_PAYMENTS_KEY, []);
+        return (Array.isArray(records) ? records : [])
+            .filter(item => String(item.folioId || '') === String(folioId || ''))
+            .reduce((acc, item) => {
+                const applied = Number(item.appliedPhpAmount || 0);
+                if (item.kind === 'deposit') acc.deposit += applied;
+                else acc.settlement += applied;
+                return acc;
+            }, { settlement: 0, deposit: 0 });
+    }
+    function dashboardSettlementSignature(folioId, total, paid, balance, deposit) {
+        return [
+            folioId || '',
+            Number(total || 0).toFixed(2),
+            Number(paid || 0).toFixed(2),
+            Number(balance || 0).toFixed(2),
+            Number(deposit || 0).toFixed(2)
+        ].join('|');
+    }
+    function dashboardSettlementCompleted(item, signature, balance) {
+        if (Number(balance || 0) > 0) return false;
+        if (item?.settlementCompleted) return true;
+        const folioId = item?.folioId || item?.id || '';
+        const records = dashboardStorageJson(DASHBOARD_SETTLEMENT_COMPLETIONS_KEY, []);
+        return (Array.isArray(records) ? records : []).some(record =>
+            String(record.folioId || '') === String(folioId) &&
+            (!record.signature || record.signature === signature)
+        );
+    }
+    function dashboardDateValue(value) {
+        const text = iso(value);
+        if (!text) return NaN;
+        return new Date(`${text}T00:00:00`).getTime();
+    }
+    function dashboardNormalizeRoom(value) {
+        const text = String(value || '').trim().toLowerCase();
+        const digits = (text.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
+        return { text, digits };
+    }
+    function dashboardSameRoom(left, right) {
+        const a = dashboardNormalizeRoom(left);
+        const b = dashboardNormalizeRoom(right);
+        if (!a.text || !b.text) return false;
+        if (a.text === b.text) return true;
+        return !!(a.digits && b.digits && a.digits === b.digits);
+    }
+    function dashboardNormalizeName(value) {
+        return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+    function dashboardReservationsByIds(reservations, ids) {
+        const normalized = new Set((ids || []).filter(Boolean).map(String));
+        if (!normalized.size) return [];
+        return reservations.filter(res =>
+            normalized.has(String(res.id || '')) ||
+            normalized.has(String(res.reservationId || '')) ||
+            (Array.isArray(res.reservationIds) && res.reservationIds.some(id => normalized.has(String(id))))
+        );
+    }
+    function dashboardFallbackReservationsForFolio(item, checkoutDate, reservations) {
+        const roomCandidates = [item.roomNo, item.roomId, item.room].filter(Boolean);
+        const guestCandidates = [item.ownerName, item.guestName].map(dashboardNormalizeName).filter(Boolean);
+        if (!roomCandidates.length && !guestCandidates.length) return [];
+        const checkoutValue = dashboardDateValue(checkoutDate || item.settlementDate || item.closedAt || item.issuedAt);
+        const matches = reservations
+            .filter(res => {
+                const roomMatch = !roomCandidates.length || roomCandidates.some(room =>
+                    dashboardSameRoom(room, res.roomNo || res.room || res.fullRoom || res.roomId)
+                );
+                const guestValue = dashboardNormalizeName(res.guestName || res.guest || res.roomingGuestName);
+                const guestMatch = !guestCandidates.length || guestCandidates.includes(guestValue);
+                return roomMatch && guestMatch;
+            })
+            .map(res => {
+                const resCheckout = dashboardDateValue(res.checkOutDate || res.checkout || res.cout);
+                const distance = Number.isFinite(checkoutValue) && Number.isFinite(resCheckout)
+                    ? Math.abs(checkoutValue - resCheckout) / 86400000
+                    : 9999;
+                return { res, distance };
+            })
+            .filter(match => match.distance <= 45 || !Number.isFinite(checkoutValue))
+            .sort((a, b) => a.distance - b.distance);
+        return matches.length ? [matches[0].res] : [];
+    }
+    function dashboardFolioCheckoutDate(item, reservations, groups = []) {
+        const reservationIds = [
+            item.reservationId,
+            ...(Array.isArray(item.reservationIds) ? item.reservationIds : [])
+        ].filter(Boolean);
+        const initialCheckoutDate = iso(item.checkOutDate || item.checkoutDate || item.checkout || item.settlementDate || item.closedAt || item.issuedAt);
+        let linked = dashboardReservationsByIds(reservations, reservationIds);
+        if (!linked.length && !reservationIds.length) linked = dashboardFallbackReservationsForFolio(item, initialCheckoutDate, reservations);
+        const group = item.groupId ? groups.find(group => group.id === item.groupId || group.eventId === item.groupId) : null;
+        const linkedCheckout = linked
+            .map(res => iso(res.checkOutDate || res.checkout || res.cout))
+            .filter(Boolean)
+            .sort()
+            .pop();
+        const groupCheckout = iso(group?.checkOutDate || group?.checkout || group?.cout);
+        return linkedCheckout || groupCheckout || initialCheckoutDate;
+    }
+    function folioSettlementStatus(item, reservations = [], groups = []) {
         const charges = Array.isArray(item.charges) ? item.charges : [];
         const payments = Array.isArray(item.payments) ? item.payments : [];
+        const folioId = item.folioId || item.id;
         const total = charges.reduce((sum, charge) => sum + amount(charge.amount), 0);
-        const paid = payments.reduce((sum, payment) => sum + amount(payment.amount), 0);
+        let paid = payments.reduce((sum, payment) => sum + amount(payment.amount), 0);
+        const depositPayments = payments.filter(payment => String(payment.method || payment.type || '').toLowerCase().includes('deposit'));
+        let deposit = Number(item.depositAmount || 0) + depositPayments.reduce((sum, payment) => sum + amount(payment.amount), 0);
         let balance = amount(item.balance);
         if (!balance && String(item.status || '').toLowerCase() === 'open' && total > paid) balance = Math.max(total - paid, 0);
-        const state = balance > 0 ? 'unpaid' : (['closed', 'settled', 'paid'].includes(String(item.status || '').toLowerCase()) ? 'paid' : 'ready');
-        const dueDate = iso(item.checkOutDate || item.checkoutDate || item.checkout || item.settlementDate || item.closedAt || item.issuedAt);
+        const localPayment = dashboardPaymentTotals(folioId);
+        paid += localPayment.settlement;
+        deposit += localPayment.deposit;
+        balance = Math.max(balance - localPayment.settlement, 0);
+        const signature = dashboardSettlementSignature(folioId, total, paid, balance, deposit);
+        const completed = dashboardSettlementCompleted(item, signature, balance);
+        const state = balance > 0 ? 'unpaid' : (paid > total && total > 0 ? 'refund' : (completed ? 'paid' : 'ready'));
+        const dueDate = dashboardFolioCheckoutDate(item, reservations, groups);
         return { item, state, balance, dueDate };
     }
     function textOf(value, lang = 'ko') {
@@ -546,8 +666,8 @@
         if (!grid) return;
         const unreadCount = activities.filter(item => item.unread !== false).length || activities.length;
         const cards = [
-            { cls: 'blue', icon: 'fa-right-to-bracket', href: 'frontdesk/reservation-list.html?tab=checkin', value: arrivals.length, label: KO.todayCheckin, sub: `${KO.checkout} ${checkouts.length}` },
-            { cls: 'red', icon: 'fa-file-invoice-dollar', href: 'operations/settlement-status.html', value: settlements.length, label: KO.settlementNeed, sub: KO.todayBasis },
+            { cls: 'blue', icon: 'fa-right-to-bracket', href: 'frontdesk/reservation-list.html?tab=checkin&period=today', value: arrivals.length, label: KO.todayCheckin, sub: `${KO.checkout} ${checkouts.length}` },
+            { cls: 'red', icon: 'fa-file-invoice-dollar', href: 'operations/settlement-status.html?filter=ready', value: settlements.length, label: KO.settlementNeed, sub: KO.todayBasis },
             { cls: 'orange', icon: 'fa-broom', href: 'frontdesk/reservation-board.html?filter=cleaning', value: cleaning.length, label: KO.cleaningNeed, sub: KO.beforeCheckin },
             { cls: 'green', icon: 'fa-bell', href: 'notifications.html', value: unreadCount, label: KO.newAlert, sub: KO.sharedEvent }
         ];
@@ -630,22 +750,24 @@
     }
     async function loadDashboardOperations() {
         const today = todayIso();
-        const [reservationsEnv, roomsEnv, housekeepingEnv, foliosEnv, posEnv, golfEnv, rentacarEnv, activitiesEnv] = await Promise.all([
+        const [reservationsEnv, roomsEnv, housekeepingEnv, foliosEnv, groupsEnv, posEnv, golfEnv, rentacarEnv, activitiesEnv] = await Promise.all([
             window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : window.PmsMockApi.request('GET', '/reservations').catch(() => []),
             window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : window.PmsMockApi.request('GET', '/rooms').catch(() => []),
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/operations/housekeeping-rooms').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/folios').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
+            window.PmsMockApi ? window.PmsMockApi.request('GET', '/groups/events').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/pos/orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/ancillaries/golf-orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/ancillaries/rentacar-orders').catch(() => ({ data: { items: [] } })) : { data: { items: [] } },
             window.PmsMockApi ? window.PmsMockApi.request('GET', '/dashboard/today-activities').catch(() => ({ data: { items: [] } })) : { data: { items: [] } }
         ]);
         const reservations = apiItems(reservationsEnv);
+        const groups = apiItems(groupsEnv);
         const roomsFromHousekeeping = apiItems(housekeepingEnv);
         const rooms = roomsFromHousekeeping.length ? roomsFromHousekeeping : apiItems(roomsEnv);
         const arrivals = reservations.filter(res => iso(res.checkInDate || res.checkin) === today && !['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow', 'no_show', 'checkedin', 'inhouse'].includes(statusOf(res)));
         const checkouts = reservations.filter(res => iso(res.checkOutDate || res.checkout) === today && ['checkedin', 'inhouse', 'checkout'].includes(statusOf(res)));
-        const settlements = apiItems(foliosEnv).map(folioSettlementStatus).filter(row => row.state !== 'paid' && row.dueDate === today);
+        const settlements = apiItems(foliosEnv).map(item => folioSettlementStatus(item, reservations, groups)).filter(row => row.dueDate === today && ['unpaid', 'ready'].includes(row.state));
         const ancillary = [
             ...apiItems(posEnv).map(item => normalizeOrder(item, 'pos')),
             ...apiItems(golfEnv).map(item => normalizeOrder(item, 'golf')),
