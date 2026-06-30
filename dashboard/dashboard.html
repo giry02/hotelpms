@@ -284,19 +284,19 @@
         <section class="ops-kpi-grid" id="opsKpiGrid" aria-label="오늘 운영 지표">
             <a class="ops-kpi-card blue" href="frontdesk/reservation-list.html?tab=checkin&period=today">
                 <div class="ops-kpi-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
-                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">오늘 체크인</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">체크아웃 --</div></div>
+                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">오늘 체크인</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">입실 확인</div></div>
             </a>
-            <a class="ops-kpi-card red" href="operations/settlement-status.html?filter=ready">
-                <div class="ops-kpi-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">정산 필요</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">오늘 기준</div></div>
+            <a class="ops-kpi-card green" href="frontdesk/reservation-list.html?tab=checkout&period=today">
+                <div class="ops-kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
+                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">오늘 체크아웃</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">정산 연결</div></div>
             </a>
             <a class="ops-kpi-card orange" href="frontdesk/reservation-board.html?filter=cleaning">
                 <div class="ops-kpi-icon"><i class="fa-solid fa-broom"></i></div>
                 <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">청소 필요</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">체크인 전 확인</div></div>
             </a>
-            <a class="ops-kpi-card green" href="notifications.html">
-                <div class="ops-kpi-icon"><i class="fa-solid fa-bell"></i></div>
-                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">새 알림</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">공유 이벤트</div></div>
+            <a class="ops-kpi-card red" href="operations/settlement-status.html?filter=ready">
+                <div class="ops-kpi-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">정산 필요</span><span class="ops-kpi-value">--</span></div><div class="ops-kpi-sub">오늘 기준</div></div>
             </a>
         </section>
 
@@ -392,7 +392,10 @@
         cancel: '\uCDE8\uC18C',
         newOrder: '\uC2E0\uADDC',
         todayCheckin: '\uC624\uB298 \uCCB4\uD06C\uC778',
+        todayCheckout: '\uC624\uB298 \uCCB4\uD06C\uC544\uC6C3',
         checkout: '\uCCB4\uD06C\uC544\uC6C3',
+        checkinConfirm: '\uC785\uC2E4 \uD655\uC778',
+        settlementConnect: '\uC815\uC0B0 \uC5F0\uACB0',
         settlementNeed: '\uC815\uC0B0 \uD544\uC694',
         todayBasis: '\uC624\uB298 \uAE30\uC900',
         cleaningNeed: '\uCCAD\uC18C \uD544\uC694',
@@ -663,15 +666,14 @@
         const text = String(tier || '').toLowerCase();
         return text.includes('vip') || text.includes('\uACE8') || text.includes('\uD50C') || text.includes('\uB2E4\uC774\uC544');
     }
-    function renderKpis({ arrivals, checkouts, settlements, cleaning, activities }) {
+    function renderKpis({ arrivals, checkouts, settlements, cleaning }) {
         const grid = document.getElementById('opsKpiGrid');
         if (!grid) return;
-        const unreadCount = activities.filter(item => item.unread !== false).length || activities.length;
         const cards = [
-            { cls: 'blue', icon: 'fa-right-to-bracket', href: 'frontdesk/reservation-list.html?tab=checkin&period=today', value: arrivals.length, label: KO.todayCheckin, sub: `${KO.checkout} ${checkouts.length}` },
-            { cls: 'red', icon: 'fa-file-invoice-dollar', href: 'operations/settlement-status.html?filter=ready', value: settlements.length, label: KO.settlementNeed, sub: KO.todayBasis },
+            { cls: 'blue', icon: 'fa-right-to-bracket', href: 'frontdesk/reservation-list.html?tab=checkin&period=today', value: arrivals.length, label: KO.todayCheckin, sub: KO.checkinConfirm },
+            { cls: 'green', icon: 'fa-right-from-bracket', href: 'frontdesk/reservation-list.html?tab=checkout&period=today', value: checkouts.length, label: KO.todayCheckout, sub: KO.settlementConnect },
             { cls: 'orange', icon: 'fa-broom', href: 'frontdesk/reservation-board.html?filter=cleaning', value: cleaning.length, label: KO.cleaningNeed, sub: KO.beforeCheckin },
-            { cls: 'green', icon: 'fa-bell', href: 'notifications.html', value: unreadCount, label: KO.newAlert, sub: KO.sharedEvent }
+            { cls: 'red', icon: 'fa-file-invoice-dollar', href: 'operations/settlement-status.html?filter=ready', value: settlements.length, label: KO.settlementNeed, sub: KO.todayBasis }
         ];
         grid.innerHTML = cards.map(card => `<a class="ops-kpi-card ${card.cls}" href="${card.href}"><div class="ops-kpi-icon"><i class="fa-solid ${card.icon}"></i></div><div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">${card.label}</span><span class="ops-kpi-value">${card.value}</span></div><div class="ops-kpi-sub">${card.sub}</div></div></a>`).join('');
     }
