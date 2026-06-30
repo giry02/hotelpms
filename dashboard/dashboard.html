@@ -71,17 +71,8 @@
         .activity-sub{display:block;margin-top:3px;font-size:.66rem;font-weight:500;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .activity-meta{display:block;margin-top:3px;font-size:.62rem;font-weight:500;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .ancillary-card-body{min-height:300px}
-        .housekeeping-summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:20px}
-        .housekeeping-summary-card{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:78px;border:1px solid var(--border2);border-radius:10px;background:#fff;text-decoration:none}
-        .housekeeping-summary-card strong{font-size:1.45rem;font-weight:950;line-height:1}
-        .housekeeping-summary-card span{margin-top:7px;color:#64748b;font-size:.72rem;font-weight:900}
-        .housekeeping-summary-card.clean strong{color:#10b981}
-        .housekeeping-summary-card.need strong{color:#ef4444}
-        .housekeeping-summary-card.progress strong{color:#f59e0b}
-        .housekeeping-summary-card.dnd strong{color:#8b5cf6}
-        .housekeeping-summary-card.oos strong{color:#64748b}
-        @media(max-width:1180px){.ops-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-work-row,.dashboard-work-row-main,.dashboard-work-row-ancillary{grid-template-columns:1fr}.housekeeping-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-        @media(max-width:720px){.ops-kpi-grid{grid-template-columns:1fr}.ops-kpi-card{height:58px;padding:9px 14px}.ops-card-header{padding:0 14px}.ops-table th,.ops-table td{padding:0 12px}.checkin-card,.activity-card{min-height:0}.checkin-card .ops-table td{height:56px}.housekeeping-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px}.ops-activity-list{padding:8px 14px}}
+        @media(max-width:1180px){.ops-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-work-row,.dashboard-work-row-main,.dashboard-work-row-ancillary{grid-template-columns:1fr}}
+        @media(max-width:720px){.ops-kpi-grid{grid-template-columns:1fr}.ops-kpi-card{height:58px;padding:9px 14px}.ops-card-header{padding:0 14px}.ops-table th,.ops-table td{padding:0 12px}.checkin-card,.activity-card{min-height:0}.checkin-card .ops-table td{height:56px}.ops-activity-list{padding:8px 14px}}
     </style>
 </head>
 <body>
@@ -357,16 +348,6 @@
                 </div>
             </section>
         </div>
-
-        <section class="ops-card" style="margin-bottom:20px">
-            <div class="ops-card-header">
-                <h3 class="ops-card-title"><i class="fa-solid fa-broom"></i> 하우스키핑 현황</h3>
-                <a class="ops-link-btn" href="frontdesk/reservation-board.html?filter=cleaning">더보기 →</a>
-            </div>
-            <div class="housekeeping-summary-grid" id="housekeepingSummaryGrid">
-                <div class="ops-empty">객실 청소 상태를 불러오는 중입니다.</div>
-            </div>
-        </section>
 
     </div>
 </div>
@@ -737,21 +718,6 @@
             <td><span class="ops-chip ${serviceStatus(order) === KO.done ? 'good' : 'warn'}">${esc(serviceStatus(order))}</span></td>
         </tr>`).join('');
     }
-    function renderHousekeeping(rooms, arrivals) {
-        const grid = document.getElementById('housekeepingSummaryGrid');
-        if (!grid) return;
-        const cleaning = rooms.filter(isCleaningNeeded);
-        const arrivalRoomSet = new Set(arrivals.map(roomText));
-        const confirmBeforeCheckin = cleaning.filter(room => arrivalRoomSet.has(roomText(room)));
-        const items = [
-            { key: 'clean', label: KO.cleanDone, value: rooms.filter(isClean).length, href: 'frontdesk/reservation-board.html?filter=clean' },
-            { key: 'need', label: KO.cleaningNeed, value: cleaning.length, href: 'frontdesk/reservation-board.html?filter=cleaning' },
-            { key: 'progress', label: KO.cleaningProgress, value: rooms.filter(isInProgress).length, href: 'frontdesk/reservation-board.html?filter=cleaning' },
-            { key: 'dnd', label: KO.dnd, value: rooms.filter(isDnd).length, href: 'frontdesk/reservation-board.html?filter=dnd' },
-            { key: 'oos', label: KO.beforeCheckin, value: confirmBeforeCheckin.length, href: 'frontdesk/reservation-board.html?filter=checkin&cleaning=needed' }
-        ];
-        grid.innerHTML = items.map(item => `<a class="housekeeping-summary-card ${item.key}" href="${item.href}"><strong>${item.value}</strong><span>${item.label}</span></a>`).join('');
-    }
     async function loadDashboardOperations() {
         const today = todayIso();
         const [reservationsEnv, roomsEnv, housekeepingEnv, foliosEnv, groupsEnv, posEnv, golfEnv, rentacarEnv, activitiesEnv] = await Promise.all([
@@ -788,7 +754,6 @@
         renderCheckins();
         renderActivities(activities);
         renderAncillaryOrders(ancillary);
-        renderHousekeeping(rooms, arrivals);
     }
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('checkinMoreBtn')?.addEventListener('click', () => {
