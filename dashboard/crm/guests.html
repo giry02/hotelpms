@@ -67,10 +67,17 @@
 .guest-sort-select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-lt); }
 
 @media(max-width:768px){
+    .sidebar-overlay,
+    .bottom-sheet-overlay,
+    .guest-detail-overlay{width:100vw;max-width:100vw;right:auto;box-sizing:border-box}
+    .bottom-sheet{width:100vw;max-width:100vw;right:auto;box-sizing:border-box;overflow-x:hidden}
     .m-filter-trigger{display:flex}
     .filter-chips{display:none!important}
     .filter-bar-mt { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
     .filter-left { flex-wrap: wrap !important; gap: 10px !important; }
+    .filter-right { width: 100%; flex-wrap: wrap; gap: 8px; }
+    .filter-right .btn-outline,
+    .filter-right .btn-primary-sm { flex: 1 1 calc(50% - 4px); width: auto!important; min-width: 0; justify-content: center; }
     .search-container { width: 100%; display: flex; gap: 8px; flex: 1; }
     .search-box-mt { flex: 1; min-width: 0; width: auto !important; }
     .guest-sort-select { width: 100%; min-width: 0; }
@@ -104,8 +111,9 @@
 
 @media (max-width: 768px) {
     .guest-detail-panel {
-        position: fixed; top: 0; bottom: 0; left: 0; right: 0;
-        height: 100vh;
+        position: fixed; top: 0; bottom: 0; left: 0; right: auto;
+        width: 100vw; max-width: 100vw; height: 100vh;
+        box-sizing: border-box; overflow-x: hidden;
         background: #fff; border-radius: 0;
         z-index: 10001; transform: translateY(100%);
         transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
@@ -171,6 +179,10 @@
     .gd-history td { border: none; border-bottom: 1px solid #f1f5f9; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; text-align: right; }
     .gd-history td:last-child { border-bottom: none; padding-bottom: 4px; }
     .gd-history td::before { content: attr(data-label); font-weight: 600; color: var(--txt2); text-align: left; font-size:0.8rem; }
+    .gd-body .modal-form-grid{grid-template-columns:1fr!important}
+    .gd-history .btn-primary-sm{width:auto!important;min-width:68px;justify-content:center}
+    .gd-footer .btn-outline,
+    .gd-footer .btn-primary-sm{flex:1;min-width:0;justify-content:center}
     .gd-footer{padding:12px 20px;border-radius:0}
 }
 </style>
@@ -251,7 +263,7 @@
                 <i class="fa-solid fa-chevron-down"></i>
             </button>
 
-            <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+            <div class="filter-right" style="margin-left:auto; display:flex; gap:10px; align-items:center;">
                 <select id="guestSortSelect" class="guest-sort-select" onchange="setGuestSort(this.value)">
                     <option value="joined_desc" data-i18n-key="Sort Join Newest">가입시기 최신순</option>
                     <option value="joined_asc" data-i18n-key="Sort Join Oldest">가입시기 오래된순</option>
