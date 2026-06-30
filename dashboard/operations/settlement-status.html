@@ -40,8 +40,10 @@
         .settlement-search:focus-within{border-color:var(--primary)}
         .settlement-search input{border:0;outline:0;background:transparent;font-family:var(--font);font-size:.8rem;font-weight:750;width:100%;min-width:0;color:var(--txt)}
         .settlement-toolbar-left .pms-search-button{flex:0 0 auto}
-        .settlement-chip{height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.74rem;font-weight:900;white-space:nowrap;cursor:pointer}
+        .settlement-chip{height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 10px 0 12px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.74rem;font-weight:900;white-space:nowrap;cursor:pointer}
         .settlement-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+        .settlement-chip-count{min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:.66rem;font-weight:950;line-height:1}
+        .settlement-chip.active .settlement-chip-count{background:rgba(255,255,255,.2);color:#fff}
         .settlement-sort{height:38px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:850;padding:0 32px 0 11px}
         .settlement-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;flex-wrap:wrap}
         .settlement-toolbar-action{height:38px;min-width:104px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:850;text-decoration:none;white-space:nowrap;box-shadow:0 1px 2px rgba(15,23,42,.04)}
@@ -243,13 +245,13 @@
             </div>
             <div class="settlement-toolbar-bottom">
                 <div class="settlement-toolbar-left settlement-filter-chips">
-                    <button class="settlement-chip active" data-filter="today"><i class="fa-solid fa-right-from-bracket"></i> 금일 체크아웃</button>
-                    <button class="settlement-chip" data-filter="unpaid"><i class="fa-solid fa-circle-exclamation"></i> 미수금</button>
-                    <button class="settlement-chip" data-filter="ready"><i class="fa-solid fa-clipboard-check"></i> 정산 필요</button>
-                    <button class="settlement-chip" data-filter="deposit"><i class="fa-solid fa-wallet"></i> 예치금</button>
-                    <button class="settlement-chip" data-filter="group"><i class="fa-solid fa-users"></i> 단체</button>
-                    <button class="settlement-chip" data-filter="refund"><i class="fa-solid fa-rotate-left"></i> 환불</button>
-                    <button class="settlement-chip" data-filter="all"><i class="fa-solid fa-list"></i> 전체</button>
+                    <button class="settlement-chip active" data-filter="today"><i class="fa-solid fa-right-from-bracket"></i> 금일 체크아웃 <span class="settlement-chip-count">0</span></button>
+                    <button class="settlement-chip" data-filter="unpaid"><i class="fa-solid fa-circle-exclamation"></i> 미수금 <span class="settlement-chip-count">0</span></button>
+                    <button class="settlement-chip" data-filter="ready"><i class="fa-solid fa-clipboard-check"></i> 정산 필요 <span class="settlement-chip-count">0</span></button>
+                    <button class="settlement-chip" data-filter="deposit"><i class="fa-solid fa-wallet"></i> 예치금 <span class="settlement-chip-count">0</span></button>
+                    <button class="settlement-chip" data-filter="group"><i class="fa-solid fa-users"></i> 단체 <span class="settlement-chip-count">0</span></button>
+                    <button class="settlement-chip" data-filter="refund"><i class="fa-solid fa-rotate-left"></i> 환불 <span class="settlement-chip-count">0</span></button>
+                    <button class="settlement-chip" data-filter="all"><i class="fa-solid fa-list"></i> 전체 <span class="settlement-chip-count">0</span></button>
                 </div>
                 <div class="settlement-toolbar-actions" aria-label="정산 이동">
                     <a class="settlement-toolbar-action" href="folio.html"><i class="fa-solid fa-table-list"></i> 정산 목록</a>
@@ -927,6 +929,28 @@ function renderSettlementKpis() {
     document.getElementById('kpiGroup').textContent = group;
 }
 
+function settlementFilterCounts() {
+    const todayCheckout = settlementState.folios.filter(settlementIsTodayCheckout);
+    return {
+        today: todayCheckout.length,
+        unpaid: settlementState.folios.filter(settlementIsOverdueUnpaid).length,
+        ready: todayCheckout.filter(folio => ['unpaid', 'ready'].includes(folio.status)).length,
+        deposit: todayCheckout.filter(folio => folio.deposit > 0).length,
+        group: todayCheckout.filter(folio => folio.folioType === 'group' || folio.groupId).length,
+        refund: todayCheckout.filter(folio => folio.status === 'refund').length,
+        all: settlementState.folios.length
+    };
+}
+
+function renderSettlementChipCounts() {
+    const counts = settlementFilterCounts();
+    document.querySelectorAll('.settlement-chip').forEach(chip => {
+        const key = chip.dataset.filter || 'today';
+        const count = chip.querySelector('.settlement-chip-count');
+        if (count) count.textContent = Number(counts[key] || 0).toLocaleString('ko-KR');
+    });
+}
+
 function settlementCard(folio) {
     const info = settlementStatusInfo(folio);
     const subtitle = folio.groupId
@@ -1274,6 +1298,7 @@ async function completeSettlementStatusFolio(folioId) {
 
 function renderSettlementSections() {
     renderSettlementKpis();
+    renderSettlementChipCounts();
     const container = document.getElementById('settlementSections');
     const rows = filterSettlementFolios();
     if (!rows.length) {
