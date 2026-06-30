@@ -29,9 +29,12 @@
         .settlement-kpi-icon.group{background:#f5f3ff;color:#7c3aed}
         .settlement-kpi-value{font-size:1.35rem;font-weight:950;color:var(--txt);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .settlement-kpi-label{font-size:.75rem;font-weight:850;color:var(--txt3);margin-top:3px}
-        .settlement-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 14px;background:#fff;border:1px solid var(--border);border-radius:14px}
+        .settlement-toolbar{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;padding:12px 14px;background:#fff;border:1px solid var(--border);border-radius:14px}
+        .settlement-toolbar-top,.settlement-toolbar-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
         .settlement-toolbar-left,.settlement-toolbar-right{display:flex;align-items:center;gap:8px;min-width:0}
         .settlement-toolbar-left{flex:1;flex-wrap:wrap;overflow:visible;padding-bottom:1px}
+        .settlement-toolbar-search-row{flex:0 1 430px}
+        .settlement-filter-chips{flex:1 1 auto}
         .settlement-toolbar-right{flex:0 0 auto;justify-content:flex-end;flex-wrap:wrap}
         .settlement-search{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:auto;max-width:320px;min-width:220px;flex:1 1 280px;height:38px;padding:0 12px;border:1.5px solid var(--border);border-radius:9px;background:#fff}
         .settlement-search:focus-within{border-color:var(--primary)}
@@ -40,7 +43,7 @@
         .settlement-chip{height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.74rem;font-weight:900;white-space:nowrap;cursor:pointer}
         .settlement-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
         .settlement-sort{height:38px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:850;padding:0 32px 0 11px}
-        .settlement-toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .settlement-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto;flex-wrap:wrap}
         .settlement-toolbar-action{height:38px;min-width:104px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);font-family:var(--font);font-size:.78rem;font-weight:850;text-decoration:none;white-space:nowrap;box-shadow:0 1px 2px rgba(15,23,42,.04)}
         .settlement-toolbar-action i{font-size:.86rem;color:#475569}
         .settlement-section{margin-bottom:22px}
@@ -75,7 +78,7 @@
         .settlement-actions button{height:34px;display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:1;min-width:0;border-radius:9px;font-family:var(--font);font-size:.73rem;font-weight:950;text-decoration:none;white-space:nowrap;cursor:pointer}
         .settlement-actions .primary{background:var(--primary);color:#fff}
         .settlement-actions .outline{border:1px solid var(--border);background:#fff;color:var(--txt2)}
-        .settlement-legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-4px 0 16px;padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:#fff;color:var(--txt2);font-size:.72rem;font-weight:850}
+        .settlement-legend{display:flex;align-items:center;gap:10px;flex:1 1 auto;flex-wrap:wrap;margin:0;padding:0;border:0;background:transparent;color:var(--txt2);font-size:.72rem;font-weight:850}
         .legend-item{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
         .legend-dot{width:9px;height:9px;border-radius:999px;display:inline-block}
         .legend-dot.today{background:#3b82f6}
@@ -121,11 +124,11 @@
         .settlement-empty{padding:32px;border:1px dashed var(--border);border-radius:14px;background:#fff;text-align:center;color:var(--txt3);font-weight:850}
         @media(max-width:900px){
             .settlement-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-            .settlement-toolbar{align-items:stretch;flex-direction:column}
+            .settlement-toolbar-top,.settlement-toolbar-bottom{align-items:stretch;flex-direction:column}
+            .settlement-toolbar-search-row,.settlement-filter-chips,.settlement-legend,.settlement-toolbar-right,.settlement-toolbar-actions{width:100%;flex:1 1 auto}
             .settlement-search{width:auto;max-width:none;flex:1 1 260px}
             .settlement-toolbar-right{justify-content:flex-start}
             .settlement-sort{flex:1 1 150px}
-            .settlement-toolbar-actions{flex:1 1 auto}
             .settlement-toolbar-action{flex:1 1 120px}
             .settlement-detail-summary,.settlement-detail-grid{grid-template-columns:1fr}
             .settlement-history-item{grid-template-columns:1fr}
@@ -155,39 +158,44 @@
         </section>
 
         <section class="settlement-toolbar" aria-label="정산 현황 필터">
-            <div class="settlement-toolbar-left">
-                <label class="settlement-search">
-                    <i class="fa-solid fa-search"></i>
-                    <input id="settlementSearch" type="search" placeholder="호실, 고객, 단체, 정산번호 검색">
-                </label>
-                <button class="settlement-chip active" data-filter="today"><i class="fa-solid fa-right-from-bracket"></i> 금일 체크아웃</button>
-                <button class="settlement-chip" data-filter="unpaid"><i class="fa-solid fa-circle-exclamation"></i> 미수금</button>
-                <button class="settlement-chip" data-filter="ready"><i class="fa-solid fa-clipboard-check"></i> 정산 필요</button>
-                <button class="settlement-chip" data-filter="deposit"><i class="fa-solid fa-wallet"></i> 예치금</button>
-                <button class="settlement-chip" data-filter="group"><i class="fa-solid fa-users"></i> 단체</button>
-                <button class="settlement-chip" data-filter="refund"><i class="fa-solid fa-rotate-left"></i> 환불</button>
-                <button class="settlement-chip" data-filter="all"><i class="fa-solid fa-list"></i> 전체</button>
+            <div class="settlement-toolbar-top">
+                <div class="settlement-toolbar-left settlement-toolbar-search-row">
+                    <label class="settlement-search">
+                        <i class="fa-solid fa-search"></i>
+                        <input id="settlementSearch" type="search" placeholder="호실, 고객, 단체, 정산번호 검색">
+                    </label>
+                </div>
+                <div class="settlement-legend" aria-label="정산현황 색상 안내">
+                    <span class="legend-item"><span class="legend-dot today"></span>금일 체크아웃</span>
+                    <span class="legend-item"><span class="legend-dot due"></span>수납/정산 필요</span>
+                    <span class="legend-item"><span class="legend-dot unpaid"></span>미수금</span>
+                    <span class="legend-item"><span class="legend-dot done"></span>정산/체크아웃 완료</span>
+                    <span class="legend-item"><span class="legend-dot refund"></span>환불 확인</span>
+                </div>
+                <div class="settlement-toolbar-right">
+                    <select class="settlement-sort" id="settlementSort" aria-label="정산 현황 정렬">
+                        <option value="room">호실순</option>
+                        <option value="checkout">체크아웃 기준</option>
+                        <option value="balance">미수금 큰순</option>
+                        <option value="status">상태순</option>
+                    </select>
+                </div>
             </div>
-            <div class="settlement-toolbar-right">
-                <select class="settlement-sort" id="settlementSort" aria-label="정산 현황 정렬">
-                    <option value="room">호실순</option>
-                    <option value="checkout">체크아웃 기준</option>
-                    <option value="balance">미수금 큰순</option>
-                    <option value="status">상태순</option>
-                </select>
+            <div class="settlement-toolbar-bottom">
+                <div class="settlement-toolbar-left settlement-filter-chips">
+                    <button class="settlement-chip active" data-filter="today"><i class="fa-solid fa-right-from-bracket"></i> 금일 체크아웃</button>
+                    <button class="settlement-chip" data-filter="unpaid"><i class="fa-solid fa-circle-exclamation"></i> 미수금</button>
+                    <button class="settlement-chip" data-filter="ready"><i class="fa-solid fa-clipboard-check"></i> 정산 필요</button>
+                    <button class="settlement-chip" data-filter="deposit"><i class="fa-solid fa-wallet"></i> 예치금</button>
+                    <button class="settlement-chip" data-filter="group"><i class="fa-solid fa-users"></i> 단체</button>
+                    <button class="settlement-chip" data-filter="refund"><i class="fa-solid fa-rotate-left"></i> 환불</button>
+                    <button class="settlement-chip" data-filter="all"><i class="fa-solid fa-list"></i> 전체</button>
+                </div>
                 <div class="settlement-toolbar-actions" aria-label="정산 이동">
                     <a class="settlement-toolbar-action" href="folio.html"><i class="fa-solid fa-table-list"></i> 정산 목록</a>
                     <a class="settlement-toolbar-action" href="night-audit.html"><i class="fa-solid fa-moon"></i> 일일 마감</a>
                 </div>
             </div>
-        </section>
-
-        <section class="settlement-legend" aria-label="정산현황 색상 안내">
-            <span class="legend-item"><span class="legend-dot today"></span>금일 체크아웃</span>
-            <span class="legend-item"><span class="legend-dot due"></span>수납/정산 필요</span>
-            <span class="legend-item"><span class="legend-dot unpaid"></span>미수금</span>
-            <span class="legend-item"><span class="legend-dot done"></span>정산/체크아웃 완료</span>
-            <span class="legend-item"><span class="legend-dot refund"></span>환불 확인</span>
         </section>
 
         <div id="settlementSections"></div>
