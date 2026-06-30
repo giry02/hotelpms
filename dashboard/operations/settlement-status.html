@@ -51,6 +51,12 @@
         .settlement-section{margin-bottom:22px}
         .settlement-section-head{display:flex;align-items:center;gap:9px;margin:0 0 10px;color:var(--txt);font-size:1rem;font-weight:900}
         .settlement-section-head span{font-size:.78rem;font-weight:750;color:var(--txt3)}
+        .settlement-floor-list{display:grid;gap:18px}
+        .settlement-floor-group{display:grid;gap:10px}
+        .settlement-floor-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:32px;padding:0 2px;color:var(--txt)}
+        .settlement-floor-head strong{display:inline-flex;align-items:center;gap:7px;font-size:.9rem;font-weight:950}
+        .settlement-floor-head strong i{color:var(--primary);font-size:.82rem}
+        .settlement-floor-head span{font-size:.74rem;font-weight:850;color:var(--txt3);white-space:nowrap}
         .settlement-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
         .settlement-card{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:246px;padding:15px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 2px 10px rgba(15,23,42,.04)}
         .settlement-card.unpaid{border-color:#fecdd3;box-shadow:inset 4px 0 0 #ef4444,0 2px 10px rgba(15,23,42,.04)}
@@ -584,6 +590,58 @@ function settlementRoomSortValue(room) {
     if (/ph/i.test(text)) return 200000 + Number((text.match(/\d+/) || [0])[0]);
     const digits = (text.match(/\d+/g) || ['0']).join('');
     return Number(digits || 0);
+}
+
+function settlementRoomLookupKey(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9가-힣]/g, '');
+}
+
+function settlementRoomRecordFor(value) {
+    const text = String(value || '').split(',')[0].trim();
+    if (!text) return null;
+    const keys = new Set([
+        text,
+        settlementRoomNo(text),
+        text.replace(/\s+/g, '')
+    ].map(settlementRoomLookupKey).filter(Boolean));
+    return settlementState.rooms.find(room => [
+        room.roomNo,
+        room.roomId,
+        room.id,
+        room.displayName,
+        settlementRoomNo(room.roomId || room.id)
+    ].some(candidate => keys.has(settlementRoomLookupKey(candidate)))) || null;
+}
+
+function settlementInferFloor(value) {
+    const text = String(value || '').trim();
+    const room = settlementRoomRecordFor(text);
+    if (room && Number(room.floor) > 0) return Number(room.floor);
+    if (/^ph/i.test(text)) return 20;
+    if (/^v[-\s]?\d+/i.test(text)) return 1;
+    const digits = (text.match(/\d+/g) || []).join('');
+    if (digits.length >= 4) return Number(digits.slice(0, -2).replace(/^0+(?=\d)/, '')) || 0;
+    if (digits.length === 3) return Number(digits.slice(0, 1)) || 0;
+    return 0;
+}
+
+function settlementFloorGroupForFolio(folio) {
+    const floor = settlementInferFloor(folio.roomText || folio.room || folio.raw?.roomNo || folio.raw?.roomId);
+    return {
+        key: floor > 0 ? `floor-${floor}` : 'floor-unknown',
+        label: floor > 0 ? `${floor}층` : '층 미확인',
+        sort: floor > 0 ? floor : -1
+    };
+}
+
+function settlementFloorGroups(rows) {
+    const map = new Map();
+    rows.forEach(folio => {
+        const group = settlementFloorGroupForFolio(folio);
+        if (!map.has(group.key)) map.set(group.key, { ...group, rows: [] });
+        map.get(group.key).rows.push(folio);
+    });
+    return [...map.values()].sort((a, b) => b.sort - a.sort || a.label.localeCompare(b.label, 'ko', { numeric: true }));
 }
 
 function settlementStatusInfo(folio) {
@@ -1309,9 +1367,18 @@ function renderSettlementSections() {
     const individualRows = rows.filter(folio => !(folio.folioType === 'group' || folio.groupId));
     const sections = [];
     if (individualRows.length) {
+        const floorHtml = settlementFloorGroups(individualRows).map(group => `
+            <div class="settlement-floor-group" data-floor="${settlementEscape(group.key)}">
+                <div class="settlement-floor-head">
+                    <strong><i class="fa-solid fa-layer-group"></i>${settlementEscape(group.label)}</strong>
+                    <span>${group.rows.length}건</span>
+                </div>
+                <div class="settlement-grid">${group.rows.map(settlementCard).join('')}</div>
+            </div>
+        `).join('');
         sections.push(`<section class="settlement-section">
             <h3 class="settlement-section-head"><i class="fa-solid fa-door-open"></i> 객실 정산 <span>${individualRows.length}건</span></h3>
-            <div class="settlement-grid">${individualRows.map(settlementCard).join('')}</div>
+            <div class="settlement-floor-list">${floorHtml}</div>
         </section>`);
     }
     if (groupRows.length) {
