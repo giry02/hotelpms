@@ -39,9 +39,15 @@
         .ops-card-title{display:flex;align-items:center;gap:8px;margin:0;color:var(--txt);font-size:.95rem;font-weight:850}
         .ops-card-title i{color:var(--primary)}
         .ops-card-actions{display:flex;align-items:center;gap:8px}
+        .ops-pager{display:flex;align-items:center;gap:6px}
+        .ops-pager-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #dbeafe;border-radius:8px;background:#fff;color:#2563eb;font-size:.72rem;cursor:pointer}
+        .ops-pager-btn:hover:not(:disabled){background:#eff6ff}
+        .ops-pager-btn:disabled{background:#f8fafc;color:#94a3b8;border-color:#e2e8f0;cursor:not-allowed;opacity:.65}
+        .ops-pager-count{min-width:42px;text-align:center;color:#64748b;font-size:.72rem;font-weight:900;white-space:nowrap}
         .ops-link-btn,.ops-more-btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid #dbeafe;border-radius:8px;background:#fff;color:#2563eb;font-size:.72rem;font-weight:900;text-decoration:none;cursor:pointer}
         .ops-link-btn:hover,.ops-more-btn:hover{background:#eff6ff}
         .ops-table-wrap{overflow-x:auto}
+        .checkin-card .ops-table-wrap{touch-action:pan-y}
         .ops-table{width:100%;border-collapse:collapse;white-space:nowrap}
         .ops-table th{height:42px;padding:0 18px;border-bottom:1px solid var(--border);color:#94a3b8;font-size:.68rem;font-weight:800;text-align:left}
         .ops-table td{height:46px;padding:0 18px;border-bottom:1px solid #eef2f7;color:var(--txt);font-size:.78rem;font-weight:500;vertical-align:middle}
@@ -295,8 +301,10 @@
             <section class="ops-card checkin-card">
                 <div class="ops-card-header">
                     <h3 class="ops-card-title"><i class="fa-solid fa-clock"></i> 오늘 체크인 예정</h3>
-                    <div class="ops-card-actions">
-                        <button class="ops-more-btn" type="button" id="checkinMoreBtn">더보기 →</button>
+                    <div class="ops-card-actions ops-pager" aria-label="체크인 목록 페이지 이동">
+                        <button class="ops-pager-btn" type="button" id="checkinPrevBtn" aria-label="이전 체크인 목록"><i class="fa-solid fa-chevron-left"></i></button>
+                        <span class="ops-pager-count" id="checkinPageLabel" aria-live="polite">1 / 1</span>
+                        <button class="ops-pager-btn" type="button" id="checkinNextBtn" aria-label="다음 체크인 목록"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                 </div>
                 <div class="ops-table-wrap">
@@ -398,9 +406,10 @@
         dnd: '\uBC29\uD574\uAE08\uC9C0',
         loadFailed: '\uC624\uB298 \uCCB4\uD06C\uC778 \uBAA9\uB85D\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.'
     };
-    const checkinLimit = 10;
+    const checkinPageSize = 5;
+    const checkinDemoTotal = 14;
     const activityLimit = 5;
-    let showAllCheckins = false;
+    let checkinPageIndex = 0;
     let checkinRows = [];
 
     function esc(value) {
@@ -425,6 +434,17 @@
         if (!text) return '-';
         const parts = text.split('-');
         return `${Number(parts[1])}/${Number(parts[2])}`;
+    }
+    function addIsoDays(value, days) {
+        const text = iso(value);
+        if (!text) return value;
+        const [year, month, day] = text.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        date.setDate(date.getDate() + Number(days || 0));
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
     }
     function amount(value) {
         if (window.PmsMockApi?.amountValue) return Number(window.PmsMockApi.amountValue(value) || 0);
@@ -648,6 +668,29 @@
         const text = String(tier || '').toLowerCase();
         return text.includes('vip') || text.includes('\uACE8') || text.includes('\uD50C') || text.includes('\uB2E4\uC774\uC544');
     }
+    function dashboardDemoCheckins(rows, today) {
+        const baseRows = rows.slice(0, checkinDemoTotal);
+        const demoRooms = ['1218', '1224', '1225', '1226', '1227', '1228'];
+        const demoNames = ['Chen Wei', 'Olivia Smith', 'David Chen', 'Tanaka Yuki', 'Lee Hannah', 'Robert Ford'];
+        const colors = ['#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#64748b'];
+        while (baseRows.length < checkinDemoTotal) {
+            const index = baseRows.length;
+            baseRows.push({
+                id: `DASH-CI-DEMO-${index + 1}`,
+                guestName: demoNames[index % demoNames.length],
+                roomNo: demoRooms[index % demoRooms.length],
+                roomType: index % 3 === 0 ? 'Premier' : 'Deluxe',
+                checkInDate: today,
+                checkOutDate: addIsoDays(today, 2 + (index % 3)),
+                nights: 2 + (index % 3),
+                tier: index % 4 === 0 ? 'VIP' : KO.normal,
+                color: colors[index % colors.length],
+                _dashboardToday: true,
+                _dashboardDemo: true
+            });
+        }
+        return baseRows;
+    }
     function renderKpis({ arrivals, checkouts, settlements, cleaning }) {
         const grid = document.getElementById('opsKpiGrid');
         if (!grid) return;
@@ -661,9 +704,14 @@
     }
     function renderCheckins() {
         const tbody = document.querySelector('#todayCheckinTable tbody');
-        const button = document.getElementById('checkinMoreBtn');
+        const prev = document.getElementById('checkinPrevBtn');
+        const next = document.getElementById('checkinNextBtn');
+        const label = document.getElementById('checkinPageLabel');
         if (!tbody) return;
-        const rows = showAllCheckins ? checkinRows : checkinRows.slice(0, checkinLimit);
+        const pageCount = Math.max(1, Math.ceil(checkinRows.length / checkinPageSize));
+        checkinPageIndex = Math.min(Math.max(checkinPageIndex, 0), pageCount - 1);
+        const start = checkinPageIndex * checkinPageSize;
+        const rows = checkinRows.slice(start, start + checkinPageSize);
         if (!rows.length) {
             tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${KO.noCheckin}</td></tr>`;
         } else {
@@ -682,11 +730,45 @@
                 </tr>`;
             }).join('');
         }
-        if (button) {
-            const hidden = Math.max(checkinRows.length - checkinLimit, 0);
-            button.style.display = hidden > 0 ? '' : 'none';
-            button.textContent = showAllCheckins ? KO.collapse : `${KO.more} ${hidden}${KO.countSuffix}`;
+        const controlsVisible = checkinRows.length > checkinPageSize;
+        if (prev) {
+            prev.style.display = controlsVisible ? '' : 'none';
+            prev.disabled = checkinPageIndex <= 0;
         }
+        if (next) {
+            next.style.display = controlsVisible ? '' : 'none';
+            next.disabled = checkinPageIndex >= pageCount - 1;
+        }
+        if (label) {
+            label.style.display = controlsVisible ? '' : 'none';
+            label.textContent = `${checkinPageIndex + 1} / ${pageCount}`;
+        }
+    }
+    function setCheckinPage(index) {
+        const pageCount = Math.max(1, Math.ceil(checkinRows.length / checkinPageSize));
+        const nextIndex = Math.min(Math.max(index, 0), pageCount - 1);
+        if (nextIndex === checkinPageIndex) return;
+        checkinPageIndex = nextIndex;
+        renderCheckins();
+    }
+    function bindCheckinSwipe() {
+        const target = document.querySelector('.checkin-card .ops-table-wrap');
+        if (!target || target.dataset.swipeBound === 'true') return;
+        target.dataset.swipeBound = 'true';
+        let startX = 0;
+        let startY = 0;
+        target.addEventListener('pointerdown', event => {
+            if (!['touch', 'pen'].includes(event.pointerType)) return;
+            startX = event.clientX;
+            startY = event.clientY;
+        }, { passive: true });
+        target.addEventListener('pointerup', event => {
+            if (!['touch', 'pen'].includes(event.pointerType)) return;
+            const dx = event.clientX - startX;
+            const dy = event.clientY - startY;
+            if (Math.abs(dx) < 45 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+            setCheckinPage(checkinPageIndex + (dx < 0 ? 1 : -1));
+        }, { passive: true });
     }
     function renderActivities(activities) {
         const list = document.getElementById('todayActivityList');
@@ -746,21 +828,22 @@
         ].filter(item => iso(item.date || item.useDate || item.serviceDate) === today && !['cancelled', 'canceled'].includes(String(item.status || '').toLowerCase()));
         const activities = apiItems(activitiesEnv);
         const cleaning = rooms.filter(isCleaningNeeded);
-        checkinRows = arrivals.map(res => ({ ...res, _dashboardToday: true })).sort((a, b) => {
+        const dashboardArrivals = dashboardDemoCheckins(arrivals, today);
+        checkinRows = dashboardArrivals.map(res => ({ ...res, _dashboardToday: true })).sort((a, b) => {
             const roomSort = String(roomText(a)).localeCompare(String(roomText(b)), 'ko', { numeric: true });
             const groupSort = (audienceLabel(b) === KO.group ? 1 : 0) - (audienceLabel(a) === KO.group ? 1 : 0);
             return groupSort || roomSort;
         });
-        renderKpis({ arrivals, checkouts, settlements, cleaning, activities });
+        checkinPageIndex = 0;
+        renderKpis({ arrivals: dashboardArrivals, checkouts, settlements, cleaning, activities });
         renderCheckins();
         renderActivities(activities);
         renderAncillaryOrders(ancillary);
     }
     document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('checkinMoreBtn')?.addEventListener('click', () => {
-            showAllCheckins = !showAllCheckins;
-            renderCheckins();
-        });
+        document.getElementById('checkinPrevBtn')?.addEventListener('click', () => setCheckinPage(checkinPageIndex - 1));
+        document.getElementById('checkinNextBtn')?.addEventListener('click', () => setCheckinPage(checkinPageIndex + 1));
+        bindCheckinSwipe();
         loadDashboardOperations().catch(error => {
             console.warn('Dashboard operations load failed', error);
             const tbody = document.querySelector('#todayCheckinTable tbody');
