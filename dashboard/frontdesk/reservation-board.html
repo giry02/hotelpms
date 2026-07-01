@@ -225,6 +225,65 @@ let groups = [];
 let boardFilter = 'all';
 let boardPeriod = 'today';
 
+const BOARD_TEXT = {
+    ko: {
+        'filter.all': '전체',
+        'filter.group': '단체',
+        'filter.checkin.today': '오늘 체크인',
+        'filter.checkin.tomorrow': '내일 체크인',
+        'filter.checkin.week': '1주일 체크인',
+        'filter.dirty': '청소필요',
+        'filter.inhouse': '투숙 중',
+        'filter.checkout': '체크아웃',
+        'filter.late': '레이트',
+        'filter.roommove': '객실 변경',
+        'filter.completed': '체크아웃 완료',
+        'filter.cancelled': '취소/노쇼',
+        'legend.arrival': '체크인 예정',
+        'legend.inhouse': '투숙 중',
+        'legend.checkout': '체크아웃 예정',
+        'legend.late': '레이트',
+        'legend.reserved': '예약 예정',
+        'legend.vacant': '예약 없음',
+        'legend.blocked': '단체 배정',
+        'legend.oos': '점검 중',
+        'search.placeholder': '객실번호, 이름, 단체명 검색...',
+        'search.button': '검색'
+    },
+    en: {
+        'filter.all': 'All',
+        'filter.group': 'Groups',
+        'filter.checkin.today': 'Today Check-ins',
+        'filter.checkin.tomorrow': 'Tomorrow Check-ins',
+        'filter.checkin.week': '7-day Check-ins',
+        'filter.dirty': 'Needs Cleaning',
+        'filter.inhouse': 'In-house',
+        'filter.checkout': 'Check-out Due',
+        'filter.late': 'Late',
+        'filter.roommove': 'Room Changed',
+        'filter.completed': 'Checked-out',
+        'filter.cancelled': 'Cancelled / No-show',
+        'legend.arrival': 'Check-in Due',
+        'legend.inhouse': 'In-house',
+        'legend.checkout': 'Check-out Due',
+        'legend.late': 'Late',
+        'legend.reserved': 'Reserved',
+        'legend.vacant': 'No Reservation',
+        'legend.blocked': 'Group Block',
+        'legend.oos': 'Out of Service',
+        'search.placeholder': 'Search room, name, or group...',
+        'search.button': 'Search'
+    }
+};
+
+function boardLang() {
+    return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+}
+
+function boardText(key) {
+    return BOARD_TEXT[boardLang()]?.[key] || BOARD_TEXT.ko[key] || key;
+}
+
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
@@ -385,6 +444,10 @@ function effectiveReservationStatus(res, refDate = todayDate()) {
     return status;
 }
 
+function isBoardCheckoutTargetStatus(status) {
+    return ['checkedin', 'inhouse', 'checkout'].includes(status);
+}
+
 function reservationBucket(res) {
     const range = boardRange();
     if (!reservationOverlapsRange(res, range)) return null;
@@ -396,10 +459,9 @@ function reservationBucket(res) {
     if (status === 'completed') return 'completed';
     if (status === 'checkout') return 'checkout';
     if (range.mode === 'day') {
-        if (status === 'checkedin' && end && sameDate(end, range.start)) return 'checkout';
+        if (isBoardCheckoutTargetStatus(status) && end && sameDate(end, range.start)) return 'checkout';
         if (status === 'checkedin' && reservationActiveOn(res, range.start)) return 'inhouse';
         if (start && sameDate(start, range.start)) return 'checkin';
-        if (end && sameDate(end, range.start)) return 'checkout';
         if (reservationActiveOn(res, range.start)) return status === 'checkedin' ? 'inhouse' : 'reserved';
         return 'reserved';
     }
@@ -430,9 +492,9 @@ function boardReservationCounts() {
 }
 
 function boardCheckinLabel() {
-    if (boardPeriod === 'tomorrow') return '내일 체크인';
-    if (boardPeriod === 'week') return '1주일 체크인';
-    return '오늘 체크인';
+    if (boardPeriod === 'tomorrow') return boardText('filter.checkin.tomorrow');
+    if (boardPeriod === 'week') return boardText('filter.checkin.week');
+    return boardText('filter.checkin.today');
 }
 
 function updateBoardPeriodLabels() {
@@ -444,6 +506,46 @@ function updateBoardPeriodLabels() {
         const count = chip.querySelector('.chip-count')?.textContent || '0';
         chip.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> ${label} <span class="chip-count">${escapeHtml(count)}</span>`;
     }
+}
+
+function updateBoardStaticLabels() {
+    const search = document.getElementById('boardSearch');
+    if (search) search.setAttribute('placeholder', boardText('search.placeholder'));
+    const searchButton = document.querySelector('.search-container .btn-search');
+    if (searchButton) searchButton.innerHTML = `<i class="fa-solid fa-search"></i> ${boardText('search.button')}`;
+    const legend = document.querySelector('.board-status-legend');
+    if (legend) {
+        legend.innerHTML = `
+            <span class="board-legend-item"><span class="board-legend-swatch arrival"></span>${boardText('legend.arrival')}</span>
+            <span class="board-legend-item"><span class="board-legend-swatch inhouse"></span>${boardText('legend.inhouse')}</span>
+            <span class="board-legend-item"><span class="board-legend-swatch checkout"></span>${boardText('legend.checkout')}</span>
+            <span class="board-legend-item"><span class="board-legend-swatch late"></span>${boardText('legend.late')}</span>
+            <span class="board-legend-item"><span class="board-legend-swatch reserved"></span>${boardText('legend.reserved')}</span>
+            <span class="board-legend-item"><span class="board-legend-swatch vacant"></span>${boardText('legend.vacant')}</span>
+            <span class="board-legend-item"><span class="board-legend-swatch blocked"></span>${boardText('legend.blocked')}</span>
+            <span class="board-legend-item"><span class="board-legend-swatch oos"></span>${boardText('legend.oos')}</span>
+        `;
+    }
+}
+
+function boardFilterLabel(filter) {
+    if (filter === 'checkin') return boardCheckinLabel();
+    return boardText(`filter.${filter}`);
+}
+
+function boardFilterIcon(filter) {
+    return {
+        all: 'fa-list',
+        group: 'fa-users',
+        checkin: 'fa-right-to-bracket',
+        dirty: 'fa-broom',
+        inhouse: 'fa-bed',
+        checkout: 'fa-right-from-bracket',
+        late: 'fa-clock',
+        roommove: 'fa-right-left',
+        completed: 'fa-check-double',
+        cancelled: 'fa-ban'
+    }[filter] || 'fa-circle';
 }
 
 function primaryGuest(res) {
@@ -619,7 +721,7 @@ function boardSettlementSummary(res, state) {
     const deposit = boardReservationDeposit(res);
     const status = normalizeStatus(res.status || '');
     const isCompleted = ['completed', 'checkedout', 'checked-out', 'settled', 'closed'].includes(status);
-    const checkoutToday = state?.status === 'checkout' || sameDate(reservationEnd(res), todayDate());
+    const checkoutToday = (state?.status === 'checkout' || isBoardCheckoutTargetStatus(effectiveReservationStatus(res))) && sameDate(reservationEnd(res), todayDate());
     const badges = [];
     if (balance > 0) {
         badges.push({ key: 'unpaid', label: '미수금 있음', icon: 'fa-circle-exclamation' });
@@ -656,18 +758,22 @@ function boardStatusFor(room) {
         .map(res => ({
             res,
             status: normalizeStatus(res.status),
+            effectiveStatus: effectiveReservationStatus(res, focusDate),
             start: reservationStart(res),
             end: reservationEnd(res)
         }))
         .filter(item => item.start && item.end && item.status !== 'cancelled' && item.status !== 'completed' && reservationOverlapsRange(item.res, range))
         .sort((a, b) => a.start - b.start);
 
+    const checkoutDue = related.find(item => isBoardCheckoutTargetStatus(item.effectiveStatus) && sameDate(item.end, focusDate));
+    if (checkoutDue) return { status: 'checkout', label: '체크아웃 예정', res: checkoutDue.res };
+
     const active = related.find(item => item.start <= focusDate && focusDate < item.end);
     if (active) {
         if (active.status === 'blocked' || active.res.isGroupPlaceholder) return { status: 'blocked', label: '단체 배정', res: active.res };
         if (reservationLateCheckoutEnabled(active.res)) return { status: 'late', label: '레이트', res: active.res };
-        if (sameDate(active.end, focusDate)) return { status: 'checkout', label: '체크아웃 예정', res: active.res };
-        if (['inhouse', 'checkout'].includes(active.status) || roomStatus === 'inhouse') return { status: 'inhouse', label: '투숙 중', res: active.res };
+        if (sameDate(active.end, focusDate) && isBoardCheckoutTargetStatus(active.effectiveStatus)) return { status: 'checkout', label: '체크아웃 예정', res: active.res };
+        if (isBoardCheckoutTargetStatus(active.effectiveStatus) || roomStatus === 'inhouse') return { status: 'inhouse', label: '투숙 중', res: active.res };
         if (sameDate(active.start, focusDate)) return { status: 'arrival', label: '체크인 예정', res: active.res };
         return { status: 'arrival', label: '미체크인', res: active.res };
     }
@@ -1035,6 +1141,7 @@ function boardCard(room) {
 }
 
 function updateBoardKpis() {
+    updateBoardStaticLabels();
     const reservationCounts = boardReservationCounts();
     let vacant = 0;
     const range = boardRange();
@@ -1057,8 +1164,7 @@ function updateBoardKpis() {
     document.querySelectorAll('#boardChips .chip').forEach(chip => {
         const filter = chip.dataset.filter;
         const count = reservationCounts[filter] || 0;
-        const countEl = chip.querySelector('.chip-count');
-        if (countEl) countEl.textContent = count;
+        chip.innerHTML = `<i class="fa-solid ${boardFilterIcon(filter)}"></i> ${boardFilterLabel(filter)} <span class="chip-count">${count}</span>`;
     });
 }
 
@@ -1304,6 +1410,8 @@ window.renderReservationBoard = renderReservationBoard;
 window.renderTable = renderReservationBoard;
 window.setBoardPeriod = setBoardPeriod;
 
+window.addEventListener('languagechange', () => renderReservationBoard());
+
 document.addEventListener('DOMContentLoaded', async () => {
     const [roomData, resData, groupData] = await Promise.all([
         window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
@@ -1318,6 +1426,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.groups = groups;
     await refreshBoardDailyStayCleaning();
     applyBoardUrlParams();
+    document.getElementById('langSelect')?.addEventListener('change', () => setTimeout(renderReservationBoard, 0));
     renderReservationBoard();
 });
 </script>

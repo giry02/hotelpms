@@ -353,15 +353,15 @@ const reservationLabels = {
         'status.pending': '대기',
         'status.confirmed': '예약 확정',
         'status.checkedin': '투숙 중',
-        'status.checkout': '체크아웃',
-        'status.completed': '완료',
+        'status.checkout': '체크아웃 예정',
+        'status.completed': '체크아웃 완료',
         'status.cancelled': '취소',
         'filter.all': '전체',
         'filter.checkin': '오늘 체크인',
         'filter.inhouse': '투숙 중',
-        'filter.checkout': '체크아웃',
+        'filter.checkout': '체크아웃 예정',
         'filter.lateCheckout': '레이트 체크아웃',
-        'filter.completed': '완료',
+        'filter.completed': '체크아웃 완료',
         'filter.cancelled': '취소/노쇼',
         'filter.title': '예약 상태 필터',
         'kind.individual': '개인',
@@ -413,15 +413,15 @@ const reservationLabels = {
         'status.pending': 'Pending',
         'status.confirmed': 'Confirmed',
         'status.checkedin': 'In-house',
-        'status.checkout': 'Check-out',
-        'status.completed': 'Completed',
+        'status.checkout': 'Check-out Due',
+        'status.completed': 'Checked-out',
         'status.cancelled': 'Cancelled',
         'filter.all': 'All',
         'filter.checkin': 'Today Check-in',
         'filter.inhouse': 'In-house',
-        'filter.checkout': 'Check-out',
+        'filter.checkout': 'Check-out Due',
         'filter.lateCheckout': 'Late checkout',
-        'filter.completed': 'Completed',
+        'filter.completed': 'Checked-out',
         'filter.cancelled': 'Cancelled / No-show',
         'filter.title': 'Reservation Status Filter',
         'kind.individual': 'Individual',
@@ -705,6 +705,10 @@ function effectiveRowStatus(res, refDate = todayDate()) {
     if (['confirmed', 'pending'].includes(status) && isRoomInHouse(res) && isCurrentStayWindow(res, refDate)) status = 'checkedin';
     if (status === 'checkedin' && checkoutDateIsDue(res, refDate)) return 'checkout';
     return status;
+}
+
+function isCheckoutTargetStatus(status) {
+    return ['checkedin', 'checkout'].includes(status);
 }
 
 function reservationNeedsDailyCleaningReset(res, room) {
@@ -1035,10 +1039,9 @@ function periodOperationalBucket(res) {
     if (status === 'checkout') return 'checkout';
     if (isDayRange) {
         const day = range.start;
-        if (status === 'checkedin' && end && sameDate(end, day)) return 'checkout';
+        if (isCheckoutTargetStatus(status) && end && sameDate(end, day)) return 'checkout';
         if (status === 'checkedin' && isCurrentStayWindow(res, day)) return 'inhouse';
         if (start && sameDate(start, day)) return 'checkin';
-        if (end && sameDate(end, day)) return 'checkout';
         if (start && end && start < day && day < end) {
             return status === 'checkedin' ? 'inhouse' : 'confirmed';
         }
