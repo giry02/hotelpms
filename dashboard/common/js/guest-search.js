@@ -49,6 +49,7 @@ function _refreshGuestSearchI18n(root) {
         el.setAttribute('placeholder', _guestText(key, fallback));
     });
     _hydrateGuestNationalitySelects(scope);
+    _hydrateGuestPhoneInputs(scope);
 }
 
 window.refreshGuestSearchI18n = _refreshGuestSearchI18n;
@@ -162,6 +163,48 @@ function _hydrateGuestNationalitySelects(root) {
 }
 
 window.normalizeGuestNationality = window.normalizeGuestNationality || _normalizeGuestNationality;
+
+function _normalizeGuestPhone(value) {
+    let text = String(value || '').replace(/[^\d+\-\s()]/g, '');
+    text = text.replace(/(?!^)\+/g, '');
+    text = text.replace(/\s+/g, ' ').trim();
+    return text;
+}
+
+function _guestPhoneDigits(value) {
+    return String(value || '').replace(/\D/g, '');
+}
+
+function _isValidGuestPhone(value, options = {}) {
+    const digits = _guestPhoneDigits(value);
+    if (!digits) return !options.required;
+    return digits.length >= 7 && digits.length <= 15;
+}
+
+function _attachGuestPhoneGuard(input) {
+    if (!input || input.dataset.phoneGuardBound === 'true') return;
+    input.dataset.phoneGuardBound = 'true';
+    input.setAttribute('type', 'tel');
+    input.setAttribute('inputmode', 'tel');
+    input.setAttribute('autocomplete', 'tel');
+    input.addEventListener('beforeinput', event => {
+        if (!event.data || event.inputType === 'deleteContentBackward' || event.inputType === 'deleteContentForward') return;
+        if (/[^\d+\-\s()]/.test(event.data)) event.preventDefault();
+    });
+    input.addEventListener('input', () => {
+        const normalized = _normalizeGuestPhone(input.value);
+        if (input.value !== normalized) input.value = normalized;
+    });
+}
+
+function _hydrateGuestPhoneInputs(root) {
+    const scope = root || document;
+    scope.querySelectorAll('input[data-guest-phone-input]').forEach(_attachGuestPhoneGuard);
+}
+
+window.normalizeGuestPhone = window.normalizeGuestPhone || _normalizeGuestPhone;
+window.isValidGuestPhone = window.isValidGuestPhone || _isValidGuestPhone;
+window.attachGuestPhoneGuard = window.attachGuestPhoneGuard || _attachGuestPhoneGuard;
 
 function _tierLabel(tier) {
     return String(tier || '');
@@ -444,7 +487,7 @@ function renderGuestSearchHTML(prefix) {
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
                 <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.phone" data-guest-fallback="연락처">${_guestText('guest.phone', '연락처')}</span> <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="nrPhone${prefix}" data-guest-placeholder="guest.phone.placeholder" data-guest-fallback="연락처 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.phone.placeholder', '연락처 입력')}">
+                <input type="tel" inputmode="tel" autocomplete="tel" id="nrPhone${prefix}" data-guest-phone-input data-guest-placeholder="guest.phone.placeholder" data-guest-fallback="연락처 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.phone.placeholder', '연락처 입력')}">
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
                 <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.email" data-guest-fallback="이메일">${_guestText('guest.email', '이메일')}</span></label>

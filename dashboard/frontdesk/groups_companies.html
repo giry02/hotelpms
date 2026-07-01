@@ -309,7 +309,7 @@
                 </div>
                 <div>
                     <label class="form-label">연락처</label>
-                    <input type="text" id="compPhone" class="form-input" style="width:100%" placeholder="예: 010-1234-5678">
+                    <input type="tel" inputmode="tel" autocomplete="tel" id="compPhone" class="form-input" style="width:100%" placeholder="예: 010-1234-5678">
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -346,6 +346,32 @@ function closeModal(id) { document.getElementById(id).classList.remove('active')
 let companies = [];
 let groupEvents = [];
 let currentFilter = 'all';
+
+function normalizeCompanyPhone(value) {
+    let text = String(value || '').replace(/[^\d+\-\s()]/g, '');
+    text = text.replace(/(?!^)\+/g, '');
+    return text.replace(/\s+/g, ' ').trim();
+}
+
+function isValidCompanyPhone(value, required = false) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return !required;
+    return digits.length >= 7 && digits.length <= 15;
+}
+
+function bindCompanyPhoneInput() {
+    const input = document.getElementById('compPhone');
+    if (!input || input.dataset.phoneGuardBound === 'true') return;
+    input.dataset.phoneGuardBound = 'true';
+    input.addEventListener('beforeinput', event => {
+        if (!event.data || event.inputType === 'deleteContentBackward' || event.inputType === 'deleteContentForward') return;
+        if (/[^\d+\-\s()]/.test(event.data)) event.preventDefault();
+    });
+    input.addEventListener('input', () => {
+        const normalized = normalizeCompanyPhone(input.value);
+        if (input.value !== normalized) input.value = normalized;
+    });
+}
 
 const COMPANY_TYPE_LABELS = {
     ko: {
@@ -574,6 +600,7 @@ function renderCompanies(search = '') {
 }
 
 function openNewCompanyModal() {
+    bindCompanyPhoneInput();
     document.getElementById('compModalTitle').textContent = '신규 단체 등록';
     document.getElementById('compId').value = '';
     document.getElementById('compName').value = '';
@@ -585,6 +612,7 @@ function openNewCompanyModal() {
 }
 
 function editCompany(id) {
+    bindCompanyPhoneInput();
     const c = companies.find(x => x.id === id);
     if(!c) return;
     document.getElementById('compModalTitle').textContent = '단체 정보 수정';
@@ -593,7 +621,7 @@ function editCompany(id) {
     document.getElementById('compType').value = c.type;
     document.getElementById('compStatus').value = c.status;
     document.getElementById('compContactName').value = c.contactName;
-    document.getElementById('compPhone').value = c.phone;
+    document.getElementById('compPhone').value = normalizeCompanyPhone(c.phone);
     document.getElementById('compRate').value = c.rate;
     document.getElementById('compNote').value = c.note || '';
     
@@ -613,13 +641,21 @@ async function saveCompany() {
     const id = document.getElementById('compId').value;
     const name = document.getElementById('compName').value;
     if(!name) { showToast(companyText('nameRequired'), 'error'); return; }
+    const phoneInput = document.getElementById('compPhone');
+    const phone = normalizeCompanyPhone(phoneInput.value);
+    if (!isValidCompanyPhone(phone, false)) {
+        showToast('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
+        phoneInput.focus();
+        return;
+    }
+    phoneInput.value = phone;
     
     const data = {
         name: name,
         type: document.getElementById('compType').value,
         status: document.getElementById('compStatus').value,
         contactName: document.getElementById('compContactName').value,
-        phone: document.getElementById('compPhone').value,
+        phone,
         rate: document.getElementById('compRate').value,
         billing: document.getElementById('compBilling').value,
         note: document.getElementById('compNote').value

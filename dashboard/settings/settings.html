@@ -44,7 +44,7 @@
                             </div>
                             <div class="form-group">
                                 <label class="form-label">대표 전화번호</label>
-                                <input type="text" class="form-control" value="+84 28 3915 5555">
+                                <input type="tel" inputmode="tel" autocomplete="tel" class="form-control" value="+84 28 3915 5555">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">대표 이메일</label>
@@ -92,7 +92,7 @@
                             </div>
                             <div class="form-group">
                                 <label class="form-label" for="adminPhone" data-i18n-key="Admin Phone">관리자 연락처</label>
-                                <input type="text" class="form-control" id="adminPhone" value="+84 90 000 1000">
+                                <input type="tel" inputmode="tel" autocomplete="tel" class="form-control" id="adminPhone" value="+84 90 000 1000">
                             </div>
                             <div class="form-group full">
                                 <div class="switch-group compact-switch admin-switch">
@@ -443,12 +443,41 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
         return (document.getElementById(id)?.value || fallback).trim();
     }
 
+    function normalizeSettingsPhone(value) {
+        let next = String(value || '').replace(/[^\d+\-()\s]/g, '');
+        next = next.replace(/(?!^)\+/g, '');
+        return next.replace(/\s+/g, ' ').trim();
+    }
+
+    function isValidSettingsPhone(value, required = false) {
+        const phone = String(value || '').trim();
+        if (!phone) return !required;
+        const digits = phone.replace(/\D/g, '');
+        return digits.length >= 7 && digits.length <= 15;
+    }
+
+    function bindSettingsPhoneInput(input) {
+        if (!input || input.dataset.phoneBound === 'true') return;
+        input.dataset.phoneBound = 'true';
+        input.addEventListener('beforeinput', event => {
+            if (event.inputType && !event.inputType.startsWith('insert')) return;
+            if (event.data && /[^\d+\-()\s]/.test(event.data)) event.preventDefault();
+        });
+        input.addEventListener('input', () => {
+            const normalized = normalizeSettingsPhone(input.value);
+            if (input.value !== normalized) input.value = normalized;
+        });
+    }
+
     function collectAdminContact() {
+        const adminPhone = document.getElementById('adminPhone');
+        const phone = normalizeSettingsPhone(textValue('adminPhone', '+84 90 000 1000'));
+        if (adminPhone) adminPhone.value = phone;
         return {
             name: textValue('adminName', 'Nguyen Kim'),
             roleId: document.getElementById('adminRole')?.value || 'sys_admin',
             email: textValue('adminEmail', 'kim@hotel.com'),
-            phone: textValue('adminPhone', '+84 90 000 1000'),
+            phone,
             recoveryEnabled: !!document.getElementById('adminRecoveryEnabled')?.checked
         };
     }
@@ -480,12 +509,21 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
         const adminEmail = document.getElementById('adminEmail');
         if (adminEmail) adminEmail.value = admin.email || 'kim@hotel.com';
         const adminPhone = document.getElementById('adminPhone');
-        if (adminPhone) adminPhone.value = admin.phone || '+84 90 000 1000';
+        if (adminPhone) {
+            bindSettingsPhoneInput(adminPhone);
+            adminPhone.value = normalizeSettingsPhone(admin.phone || '+84 90 000 1000');
+        }
         const recovery = document.getElementById('adminRecoveryEnabled');
         if (recovery) recovery.checked = admin.recoveryEnabled !== false;
         const saveBtn = document.getElementById('hotelSettingsSaveBtn');
         if (saveBtn) {
             saveBtn.addEventListener('click', async () => {
+                const adminPhoneInput = document.getElementById('adminPhone');
+                if (adminPhoneInput && !isValidSettingsPhone(adminPhoneInput.value, true)) {
+                    if (window.showToast) showToast('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
+                    adminPhoneInput.focus();
+                    return;
+                }
                 const next = {
                     ...(currentHotelSettings || {}),
                     adminContact: collectAdminContact(),
@@ -501,6 +539,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('input[type="tel"]').forEach(bindSettingsPhoneInput);
         loadHotelSettings().catch(error => console.warn('Hotel settings load failed', error));
     });
 })();

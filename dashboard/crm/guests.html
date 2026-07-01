@@ -437,6 +437,38 @@ function displayGuestNation(value) {
     return String(value || '').trim() || '-';
 }
 
+function normalizePhoneValue(value) {
+    let text = String(value || '').replace(/[^\d+\-\s()]/g, '');
+    text = text.replace(/(?!^)\+/g, '');
+    return text.replace(/\s+/g, ' ').trim();
+}
+
+function isValidPhoneValue(value, required = false) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return !required;
+    return digits.length >= 7 && digits.length <= 15;
+}
+
+function bindPhoneInput(input) {
+    if (!input || input.dataset.phoneGuardBound === 'true') return;
+    input.dataset.phoneGuardBound = 'true';
+    input.type = 'tel';
+    input.inputMode = 'tel';
+    input.autocomplete = 'tel';
+    input.addEventListener('beforeinput', event => {
+        if (!event.data || event.inputType === 'deleteContentBackward' || event.inputType === 'deleteContentForward') return;
+        if (/[^\d+\-\s()]/.test(event.data)) event.preventDefault();
+    });
+    input.addEventListener('input', () => {
+        const normalized = normalizePhoneValue(input.value);
+        if (input.value !== normalized) input.value = normalized;
+    });
+}
+
+function bindGuestPhoneInputs() {
+    ['addGuestPhone', 'gdInputPhone'].forEach(id => bindPhoneInput(document.getElementById(id)));
+}
+
 function formatGuestMoney(value) {
     return typeof window.pmsFormatCurrency === 'function'
         ? window.pmsFormatCurrency(value)
@@ -837,11 +869,19 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function saveGuest() {
+    const phoneInput = document.getElementById('addGuestPhone');
+    const phone = normalizePhoneValue(phoneInput?.value || '');
+    if (!isValidPhoneValue(phone, true)) {
+        showToast('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
+        phoneInput?.focus();
+        return;
+    }
+    if (phoneInput) phoneInput.value = phone;
     showToast('신규 고객이 등록되었습니다.');
     closeModal('addGuestModal');
 }
 
-document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang);hydrateGuestNationalitySelects()});
+document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang);hydrateGuestNationalitySelects();bindGuestPhoneInputs()});
 </script>
 
 <!-- Add Guest Modal -->
@@ -865,7 +905,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">연락처 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="+84 ">
+                    <input type="tel" inputmode="tel" autocomplete="tel" id="addGuestPhone" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="+84 ">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이메일</label>
@@ -935,7 +975,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr !important;gap:12px;margin-bottom:12px;">
                 <div style="display:flex;flex-direction:column;gap:4px">
                     <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">연락처 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" id="gdInputPhone" style="height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                    <input type="tel" inputmode="tel" autocomplete="tel" id="gdInputPhone" style="height:34px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:4px">
                     <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">이메일</label>
@@ -1045,7 +1085,8 @@ function openGuestDetail(email) {
     const firstName = nameParts.join(' ');
     document.getElementById('gdInputFirstName').value = firstName || guest.name;
     document.getElementById('gdInputLastName').value = lastName;
-    document.getElementById('gdInputPhone').value = guest.phone;
+    bindGuestPhoneInputs();
+    document.getElementById('gdInputPhone').value = normalizePhoneValue(guest.phone);
     document.getElementById('gdInputEmail').value = guest.email;
     hydrateGuestNationalitySelects(guest.nation);
     const nSel = document.getElementById('gdInputNation');
@@ -1166,10 +1207,18 @@ async function saveGuestDetail() {
         });
     }
 
+    const phone = normalizePhoneValue(document.getElementById('gdInputPhone').value);
+    if (!isValidPhoneValue(phone, true)) {
+        showToast('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
+        document.getElementById('gdInputPhone')?.focus();
+        return;
+    }
+    document.getElementById('gdInputPhone').value = phone;
+
     Object.assign(guest, {
         name: nextName,
         init: nextName.substring(0, 2).toUpperCase(),
-        phone: document.getElementById('gdInputPhone').value.trim(),
+        phone,
         email: document.getElementById('gdInputEmail').value.trim(),
         nation: document.getElementById('gdInputNation').value,
         nationality: document.getElementById('gdInputNation').value,

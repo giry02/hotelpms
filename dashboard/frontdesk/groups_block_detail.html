@@ -2164,6 +2164,47 @@ window.addEventListener('DataReady', () => {
         input.value = normalized || String(value || '');
     }
 
+    window.normalizeRoomingNationality = window.normalizeRoomingNationality || normalizeRoomingNationality;
+    window.setRoomingNationalityValue = window.setRoomingNationalityValue || setRoomingNationalityValue;
+
+    function normalizeRoomingPhone(value) {
+        if (typeof window.normalizeGuestPhone === 'function') return window.normalizeGuestPhone(value);
+        let text = String(value || '').replace(/[^\d+\-\s()]/g, '');
+        text = text.replace(/(?!^)\+/g, '');
+        return text.replace(/\s+/g, ' ').trim();
+    }
+
+    function isValidRoomingPhone(value, required = false) {
+        if (typeof window.isValidGuestPhone === 'function') return window.isValidGuestPhone(value, { required });
+        const digits = String(value || '').replace(/\D/g, '');
+        if (!digits) return !required;
+        return digits.length >= 7 && digits.length <= 15;
+    }
+
+    function attachRoomingPhoneGuard(input) {
+        if (!input) return;
+        if (typeof window.attachGuestPhoneGuard === 'function') {
+            window.attachGuestPhoneGuard(input);
+            return;
+        }
+        if (input.dataset.phoneGuardBound === 'true') return;
+        input.dataset.phoneGuardBound = 'true';
+        input.type = 'tel';
+        input.inputMode = 'tel';
+        input.addEventListener('beforeinput', event => {
+            if (!event.data || event.inputType === 'deleteContentBackward' || event.inputType === 'deleteContentForward') return;
+            if (/[^\d+\-\s()]/.test(event.data)) event.preventDefault();
+        });
+        input.addEventListener('input', () => {
+            const normalized = normalizeRoomingPhone(input.value);
+            if (input.value !== normalized) input.value = normalized;
+        });
+    }
+
+    window.normalizeRoomingPhone = window.normalizeRoomingPhone || normalizeRoomingPhone;
+    window.isValidRoomingPhone = window.isValidRoomingPhone || isValidRoomingPhone;
+    window.attachRoomingPhoneGuard = window.attachRoomingPhoneGuard || attachRoomingPhoneGuard;
+
     function guestSearchFallback() {
         return `
             <div id="newGuestForm${ROOMING_PREFIX}" style="display:block">
@@ -2174,7 +2215,7 @@ window.addEventListener('DataReady', () => {
                     </div>
                     <div style="display:flex;flex-direction:column;gap:5px">
                         <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">연락처</label>
-                        <input type="text" id="nrPhone${ROOMING_PREFIX}" class="form-input" placeholder="+84 000 0000">
+                        <input type="tel" inputmode="tel" autocomplete="tel" id="nrPhone${ROOMING_PREFIX}" class="form-input" placeholder="+84 000 0000">
                     </div>
                     <div style="display:flex;flex-direction:column;gap:5px">
                         <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">이메일</label>
@@ -2267,7 +2308,8 @@ window.addEventListener('DataReady', () => {
         const nationInput = document.getElementById(`nrNation${ROOMING_PREFIX}`);
         const noteInput = document.getElementById('guestNoteInput');
         if (nameInput) nameInput.value = guest?.name || '';
-        if (phoneInput) phoneInput.value = guest?.phone || '';
+        attachRoomingPhoneGuard(phoneInput);
+        if (phoneInput) phoneInput.value = normalizeRoomingPhone(guest?.phone || '');
         if (emailInput) emailInput.value = guest?.email || '';
         setRoomingNationalityValue(nationInput, guest?.nation || guest?.country || '');
         if (noteInput) noteInput.value = guest?.note || guest?.specialNotes || guest?.allergy || '';
@@ -2287,10 +2329,12 @@ window.addEventListener('DataReady', () => {
         const emailInput = document.getElementById(`nrEmail${ROOMING_PREFIX}`);
         const nationInput = document.getElementById(`nrNation${ROOMING_PREFIX}`);
         const name = selected?.name || widget?.getGuestName?.() || nameInput?.value?.trim() || '';
+        const phone = normalizeRoomingPhone(selected?.phone || phoneInput?.value || '');
+        if (phoneInput) phoneInput.value = phone;
         return {
             guestId: selected?.id || '',
             name,
-            phone: selected?.phone || phoneInput?.value?.trim() || '',
+            phone,
             email: selected?.email || emailInput?.value?.trim() || '',
             nation: selected?.country || selected?.nation || nationInput?.value || ''
         };
@@ -2819,9 +2863,10 @@ window.addEventListener('DataReady', () => {
             if (!guest && window._roomingGuestWidget?.reset) window._roomingGuestWidget.reset();
             if (!guest && window._roomingGuestWidget?.showNewForm) window._roomingGuestWidget.showNewForm();
             if (nameInput) nameInput.value = guest?.name || '';
-            if (phoneInput) phoneInput.value = guest?.phone || '';
+            window.attachRoomingPhoneGuard?.(phoneInput);
+            if (phoneInput) phoneInput.value = window.normalizeRoomingPhone ? window.normalizeRoomingPhone(guest?.phone || '') : (guest?.phone || '');
             if (emailInput) emailInput.value = guest?.email || '';
-            setRoomingNationalityValue(nationInput, guest?.nation || guest?.country || '');
+            window.setRoomingNationalityValue?.(nationInput, guest?.nation || guest?.country || '');
         }, 0);
     };
 
@@ -2839,12 +2884,20 @@ window.addEventListener('DataReady', () => {
         const name = selected?.name || widget?.getGuestName?.() || nameInput?.value?.trim() || '';
         if (!roomIdValue) { showToast('호실을 선택하세요.', 'error'); return; }
         if (!name) { showToast('투숙객 이름을 입력하거나 기존 고객을 선택하세요.', 'error'); return; }
+        const phone = window.normalizeRoomingPhone ? window.normalizeRoomingPhone(selected?.phone || phoneInput?.value || '') : (selected?.phone || phoneInput?.value || '').trim();
+        const phoneValid = window.isValidRoomingPhone ? window.isValidRoomingPhone(phone, true) : !!phone;
+        if (!selected && !phoneValid) {
+            showToast('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
+            phoneInput?.focus();
+            return;
+        }
+        if (phoneInput) phoneInput.value = phone;
         const data = {
             id: editId || selected?.id || 'GG-' + Date.now(),
             guestId: selected?.id || '',
             groupId: group.id,
             name,
-            phone: selected?.phone || phoneInput?.value?.trim() || '',
+            phone,
             email: selected?.email || emailInput?.value?.trim() || '',
             nation: selected?.country || selected?.nation || nationInput?.value?.trim() || '',
             roomId: roomIdValue,
