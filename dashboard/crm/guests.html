@@ -517,6 +517,9 @@ PmsAPI.getGuests()
             blacklistReason: guestBlacklistReason(g),
             blacklistRegisteredAt: g.blacklistRegisteredAt || g.blacklist?.registeredAt || '',
             blacklistRegisteredBy: g.blacklistRegisteredBy || g.blacklist?.registeredBy || '',
+            blacklistReleasedAt: g.blacklistReleasedAt || g.blacklist?.releasedAt || '',
+            blacklistReleasedBy: g.blacklistReleasedBy || g.blacklist?.releasedBy || '',
+            blacklistReleaseReason: g.blacklistReleaseReason || g.blacklist?.releaseReason || '',
             blacklistUpdatedAt: g.blacklistUpdatedAt || g.blacklist?.updatedAt || '',
             blacklistUpdatedBy: g.blacklistUpdatedBy || g.blacklist?.updatedBy || '',
             blacklistHistory: Array.isArray(g.blacklistHistory)
@@ -1136,18 +1139,38 @@ function updateGuestBlacklistVisibility() {
     const reason = document.getElementById('gdBlacklistReason');
     const meta = document.getElementById('gdBlacklistMeta');
     const guest = guests.find(g => g.email === currentGuestDetailEmail);
+    const releaseMode = !!originalGuestBlacklist && !active;
     if (card) card.classList.toggle('active', active);
     if (reason) {
-        reason.disabled = !active;
-        reason.style.opacity = active ? '1' : '.62';
+        const editable = active || releaseMode;
+        const nextMode = releaseMode ? 'release' : (active ? 'active' : 'idle');
+        if (reason.dataset.mode !== nextMode) {
+            if (releaseMode) reason.value = '';
+            else if (active && !reason.value.trim()) reason.value = guestBlacklistReason(guest);
+            reason.dataset.mode = nextMode;
+        }
+        reason.disabled = !editable;
+        reason.style.opacity = editable ? '1' : '.62';
+        reason.placeholder = releaseMode
+            ? guestText('블랙리스트 해제 사유를 입력하세요. 예: 미수금 정산 완료, 오등록 해제, 관리자 승인', 'Enter the blacklist release reason. Example: balance settled, incorrect registration, manager approval')
+            : guestText('블랙리스트 등록 사유를 입력하세요. 예: 반복 노쇼, 객실 파손, 결제 분쟁 등', 'Enter the blacklist reason. Example: repeated no-show, room damage, payment dispute');
     }
     if (meta) {
         const history = Array.isArray(guest?.blacklistHistory) ? guest.blacklistHistory : [];
         const latest = history[0];
         const registered = guestBlacklistMeta(guest);
-        if (active && registered) meta.textContent = `등록 정보: ${registered}`;
-        else if (latest) meta.textContent = `최근 변경: ${latest.changedBy || latest.by || '-'} · ${latest.changedAt || latest.date || '-'}`;
-        else meta.textContent = active ? '저장 시 등록자와 등록일이 기록됩니다.' : '현재 블랙리스트로 등록되어 있지 않습니다.';
+        if (active && registered) meta.textContent = `${guestText('등록 정보', 'Registered')}: ${registered}`;
+        else if (releaseMode) meta.textContent = guestText('해제 사유를 입력하고 저장하면 블랙리스트 해제 이력이 기록됩니다.', 'Enter the release reason and save to record the blacklist release history.');
+        else if (latest) {
+            const actionLabel = latest.action === 'released'
+                ? guestText('최근 해제', 'Last released')
+                : (latest.action === 'registered' ? guestText('최근 등록', 'Last registered') : guestText('최근 변경', 'Last changed'));
+            const latestReason = String(latest.reason || '').trim();
+            meta.textContent = `${actionLabel}: ${latest.changedBy || latest.by || '-'} · ${latest.changedAt || latest.date || '-'}${latestReason ? ` · ${guestText('사유', 'Reason')}: ${latestReason}` : ''}`;
+        }
+        else meta.textContent = active
+            ? guestText('저장 시 등록자와 등록일이 기록됩니다.', 'The registrant and registration time will be recorded when saved.')
+            : guestText('현재 블랙리스트로 등록되어 있지 않습니다.', 'This guest is not currently blacklisted.');
     }
 }
 
@@ -1183,8 +1206,10 @@ async function saveGuestDetail() {
         document.getElementById('gdTierChangeReason').focus();
         return;
     }
-    if (nextBlacklisted && !blacklistReason) {
-        showToast(guestText('블랙리스트 등록 사유를 입력해 주세요.', 'Enter a reason for blacklisting this guest.'), 'error');
+    if (blacklistChanged && !blacklistReason) {
+        showToast(nextBlacklisted
+            ? guestText('블랙리스트 등록 사유를 입력해 주세요.', 'Enter a reason for blacklisting this guest.')
+            : guestText('블랙리스트 해제 사유를 입력해 주세요.', 'Enter a reason for releasing this guest from the blacklist.'), 'error');
         document.getElementById('gdBlacklistReason')?.focus();
         return;
     }
@@ -1201,7 +1226,8 @@ async function saveGuestDetail() {
         blacklistHistory.unshift({
             id: `BL-${Date.now()}`,
             action: nextBlacklisted ? 'registered' : 'released',
-            reason: nextBlacklisted ? blacklistReason : previousBlacklistReason,
+            reason: blacklistReason,
+            previousReason: previousBlacklistReason,
             changedBy,
             changedAt
         });
@@ -1231,6 +1257,9 @@ async function saveGuestDetail() {
         blacklistReason: nextBlacklisted ? blacklistReason : '',
         blacklistRegisteredAt: nextBlacklisted ? (guest.blacklistRegisteredAt || changedAt) : '',
         blacklistRegisteredBy: nextBlacklisted ? (guest.blacklistRegisteredBy || changedBy) : '',
+        blacklistReleasedAt: !nextBlacklisted && blacklistChanged ? changedAt : (nextBlacklisted ? '' : (guest.blacklistReleasedAt || '')),
+        blacklistReleasedBy: !nextBlacklisted && blacklistChanged ? changedBy : (nextBlacklisted ? '' : (guest.blacklistReleasedBy || '')),
+        blacklistReleaseReason: !nextBlacklisted && blacklistChanged ? blacklistReason : (nextBlacklisted ? '' : (guest.blacklistReleaseReason || '')),
         blacklistUpdatedAt: blacklistChanged ? changedAt : (guest.blacklistUpdatedAt || ''),
         blacklistUpdatedBy: blacklistChanged ? changedBy : (guest.blacklistUpdatedBy || ''),
         blacklistHistory
@@ -1255,12 +1284,22 @@ async function saveGuestDetail() {
                 });
             }
             if (blacklistChanged && window.PmsPrivacyAudit) {
+                const beforeStatus = originalGuestBlacklist ? '블랙리스트' : '정상';
+                const afterStatus = nextBlacklisted ? '블랙리스트' : '정상';
+                const reasonField = nextBlacklisted ? 'blacklistReason' : 'blacklistReleaseReason';
                 window.PmsPrivacyAudit.log('guest.blacklist.change', {
                     screen: 'guest-crm',
                     guestId: guest.id || '',
                     guestName: guest.name,
                     action: nextBlacklisted ? 'registered' : 'released',
-                    fields: ['blacklisted', 'blacklistReason', 'blacklistHistory']
+                    beforeStatus,
+                    afterStatus,
+                    reason: blacklistReason,
+                    fields: ['blacklisted', reasonField, 'blacklistHistory'],
+                    changes: [
+                        { field: 'blacklisted', label: '블랙리스트 상태', before: beforeStatus, after: afterStatus },
+                        { field: reasonField, label: nextBlacklisted ? '등록 사유' : '해제 사유', before: nextBlacklisted ? (previousBlacklistReason || '-') : '-', after: blacklistReason }
+                    ]
                 });
             }
         }
