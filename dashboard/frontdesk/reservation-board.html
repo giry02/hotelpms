@@ -32,7 +32,7 @@
         .filter-bar-mt{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-bottom:24px;padding:12px 20px;background:#fff;border:1px solid var(--border);border-radius:14px}
         .reservation-board-topline{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%}
         .reservation-board-lefttools{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
-        .reservation-board-filters{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+        .reservation-board-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;overflow-x:visible;padding-bottom:2px;-webkit-overflow-scrolling:touch}
         .reservation-board-filters .chip{flex:0 0 auto}
         .search-container{display:flex;align-items:center;gap:8px;flex-shrink:0}
         .search-box-mt{display:flex;align-items:center;gap:8px;padding:7px 14px;border:1.5px solid var(--border);border-radius:8px;background:#fff;transition:border-color .2s;width:220px}
@@ -204,11 +204,13 @@
                 <button class="chip active" data-filter="all" onclick="setBoardFilter('all')"><i class="fa-solid fa-list"></i> 전체 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="group" onclick="setBoardFilter('group')"><i class="fa-solid fa-users"></i> 단체 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="checkin" onclick="setBoardFilter('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="checkinDirty" onclick="setBoardFilter('checkinDirty')"><i class="fa-solid fa-triangle-exclamation"></i> 오늘 체크인+청소필요 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="dirty" onclick="setBoardFilter('dirty')"><i class="fa-solid fa-broom"></i> 청소필요 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="inhouse" onclick="setBoardFilter('inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="checkout" onclick="setBoardFilter('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="late" onclick="setBoardFilter('late')"><i class="fa-solid fa-clock"></i> 레이트 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="roommove" onclick="setBoardFilter('roommove')"><i class="fa-solid fa-right-left"></i> 객실 변경 <span class="chip-count">0</span></button>
-                <button class="chip" data-filter="completed" onclick="setBoardFilter('completed')"><i class="fa-solid fa-check-double"></i> 완료 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="completed" onclick="setBoardFilter('completed')"><i class="fa-solid fa-check-double"></i> 체크아웃 완료 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="cancelled" onclick="setBoardFilter('cancelled')"><i class="fa-solid fa-ban"></i> 취소/노쇼 <span class="chip-count">0</span></button>
             </div>
         </div>
@@ -396,7 +398,7 @@ function reservationBucket(res) {
 }
 
 function boardReservationCounts() {
-    const counts = { all: 0, group: 0, checkin: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, completed: 0, cancelled: 0 };
+    const counts = { all: 0, group: 0, checkin: 0, checkinDirty: 0, dirty: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, completed: 0, cancelled: 0 };
     reservations.forEach(res => {
         const bucket = reservationBucket(res);
         if (!bucket) return;
@@ -405,6 +407,11 @@ function boardReservationCounts() {
         if (counts[bucket] !== undefined) counts[bucket]++;
         if (reservationLateCheckoutEnabled(res)) counts.late++;
         if (reservationHasRoomChange(res)) counts.roommove++;
+    });
+    rooms.forEach(room => {
+        const state = boardStatusFor(room);
+        if (boardCleaningSummary(room, state.res).key === 'dirty') counts.dirty++;
+        if (boardCheckinDirtyReservationForRoom(room)) counts.checkinDirty++;
     });
     return counts;
 }
@@ -423,6 +430,11 @@ function updateBoardPeriodLabels() {
     if (chip) {
         const count = chip.querySelector('.chip-count')?.textContent || '0';
         chip.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> ${label} <span class="chip-count">${escapeHtml(count)}</span>`;
+    }
+    const dirtyChip = document.querySelector('#boardChips .chip[data-filter="checkinDirty"]');
+    if (dirtyChip) {
+        const count = dirtyChip.querySelector('.chip-count')?.textContent || '0';
+        dirtyChip.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${label}+청소필요 <span class="chip-count">${escapeHtml(count)}</span>`;
     }
 }
 
@@ -743,6 +755,17 @@ function boardCleaningSummary(room, res) {
     return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
 }
 
+function boardCheckinDirtyReservationForRoom(room) {
+    return reservations
+        .filter(res => roomMatchesReservation(room, res) && reservationBucket(res) === 'checkin')
+        .sort((a, b) => {
+            const left = reservationStart(a)?.getTime() || 0;
+            const right = reservationStart(b)?.getTime() || 0;
+            return left - right;
+        })
+        .find(res => boardCleaningSummary(room, res).key === 'dirty') || null;
+}
+
 function boardStayEditable(res) {
     const status = effectiveReservationStatus(res);
     return ['checkedin', 'checkout'].includes(status);
@@ -835,7 +858,7 @@ function reservationStateForFilter(res) {
         checkin: '체크인 예정',
         inhouse: '투숙 중',
         checkout: '체크아웃 예정',
-        completed: '완료',
+        completed: '체크아웃 완료',
         cancelled: '취소/노쇼'
     };
     return {
@@ -856,6 +879,8 @@ function reservationMatchesBoardFilter(res, filter) {
 
 function reservationForRoomFilter(room) {
     if (boardFilter === 'all') return null;
+    if (boardFilter === 'checkinDirty') return boardCheckinDirtyReservationForRoom(room);
+    if (boardFilter === 'dirty') return null;
     return reservations
         .filter(res => roomMatchesReservation(room, res) && reservationMatchesBoardFilter(res, boardFilter))
         .sort((a, b) => {
@@ -916,11 +941,15 @@ function openBoardRoomBooking(encodedRoomId) {
 function boardCard(room) {
     let state = boardStatusFor(room);
     if (boardFilter !== 'all') {
-        const filteredRes = reservationForRoomFilter(room);
-        if (!filteredRes) return '';
-        state = boardFilter === 'late'
-            ? { status: 'late', label: '레이트', res: filteredRes }
-            : reservationStateForFilter(filteredRes);
+        if (boardFilter === 'dirty') {
+            if (boardCleaningSummary(room, state.res).key !== 'dirty') return '';
+        } else {
+            const filteredRes = reservationForRoomFilter(room);
+            if (!filteredRes) return '';
+            state = boardFilter === 'late'
+                ? { status: 'late', label: '레이트', res: filteredRes }
+                : reservationStateForFilter(filteredRes);
+        }
     }
     const res = state.res;
     const primary = res ? primaryGuest(res) : '';
