@@ -92,14 +92,14 @@
         .board-status.cancelled{background:var(--danger-lt);color:var(--danger)}
         .board-status.blocked{background:#f1f5f9;color:#111827}
         .board-status.oos{background:var(--danger-lt);color:var(--danger)}
-        .board-clean-summary{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border-top:1px solid var(--border2);padding-top:7px;margin-top:2px}
+        .board-clean-summary{display:flex;align-items:center;justify-content:flex-end;gap:8px;width:100%;border-top:1px solid var(--border2);padding-top:7px;margin-top:2px}
         .board-clean-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 8px;font-size:.64rem;font-weight:900;white-space:nowrap}
         .board-clean-badge.clean{background:#dcfce7;color:#059669}
         .board-clean-badge.dirty{background:#fef3c7;color:#d97706}
         .board-clean-badge.dnd{background:#fff1f2;color:#be123c}
         .board-clean-badge.occupied{background:#dbeafe;color:#2563eb}
         .board-clean-badge.oos{background:#fee2e2;color:#dc2626}
-        .board-clean-select{height:28px;max-width:94px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.65rem;font-weight:900;padding:0 24px 0 8px;cursor:pointer;outline:none}
+        .board-clean-select{height:28px;min-width:94px;max-width:116px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.65rem;font-weight:900;padding:0 24px 0 8px;cursor:pointer;outline:none}
         .board-clean-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
         .board-guest{width:100%;min-width:0;margin-top:4px}
         .board-group-title{display:flex;align-items:center;gap:5px;width:100%;min-width:0;margin-bottom:3px}
@@ -805,7 +805,7 @@ function boardStayActions(room, res) {
     const roomKey = room.roomId || room.fullRoom || room.id || res?.room || '';
     const cleanState = boardCleaningSummary(room, res).key;
     if (!res) {
-        return `<select class="board-clean-select" data-room-key="${escapeHtml(roomKey)}" aria-label="빈방 청소 상태 변경" onchange="setBoardCleanState(event,this)">
+        return `<select class="board-clean-select" data-room-key="${escapeHtml(roomKey)}" aria-label="빈방 청소 상태 변경" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardCleanState(event,this)">
             <option value="dirty"${cleanState === 'dirty' ? ' selected' : ''}>청소 필요</option>
             <option value="clean"${cleanState === 'clean' ? ' selected' : ''}>청소 완료</option>
         </select>`;
@@ -817,7 +817,7 @@ function boardStayActions(room, res) {
         { key: 'clean', label: '청소 완료' },
         { key: 'dnd', label: '방해금지' }
     ];
-    return `<select class="board-clean-select" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" aria-label="청소 상태 변경" onchange="setBoardStayState(event,this)">
+    return `<select class="board-clean-select" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" aria-label="청소 상태 변경" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardStayState(event,this)">
         ${options.map(opt => `<option value="${opt.key}"${active === opt.key ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
     </select>`;
 }
@@ -959,10 +959,8 @@ function boardCard(room) {
     const roomId = room.id || room.fullRoom || room.roomNo || room.number || room.display || '';
     const canCreateBooking = !res && state.status === 'vacant' && !!roomId;
     const cleanInfo = boardCleaningSummary(room, res);
-    const cleanSummary = `<div class="board-clean-summary">
-        <span class="board-clean-badge ${cleanInfo.key}"><i class="fa-solid ${cleanInfo.icon}"></i>${cleanInfo.label}</span>
-        ${boardStayActions(room, res)}
-    </div>`;
+    const cleanAction = boardStayActions(room, res);
+    const cleanSummary = cleanAction ? `<div class="board-clean-summary">${cleanAction}</div>` : '';
     const readinessHtml = boardCheckinReadiness(state, cleanInfo);
     const click = res
         ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"`
