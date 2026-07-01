@@ -22,10 +22,12 @@
         .ancillary-page .content{padding-bottom:56px}
         .ancillary-kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:18px}
         .ancillary-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding:12px 18px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
-        .ancillary-search{display:flex;align-items:center;gap:8px;flex:0 1 360px;min-width:260px;height:38px;padding:0 12px;border:1.5px solid var(--border);border-radius:9px;background:#fff}
+        .ancillary-search-group{display:flex;align-items:center;gap:8px;flex:0 1 430px;min-width:320px}
+        .ancillary-search{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;height:38px;padding:0 12px;border:1.5px solid var(--border);border-radius:9px;background:#fff}
         .ancillary-search:focus-within{border-color:var(--primary)}
         .ancillary-search i{color:var(--txt3)}
         .ancillary-search input{border:0;outline:0;width:100%;font:inherit;font-size:.84rem;background:transparent}
+        .ancillary-search-button{flex:0 0 auto;min-width:82px}
         .ancillary-toolbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
         .service-filter-chip{height:38px;border:1px solid var(--border);background:#fff;border-radius:999px;padding:0 16px;font-size:.82rem;font-weight:850;color:var(--txt2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
         .service-filter-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -56,6 +58,10 @@
         .service-summary-row.total{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
         .service-summary-row i.pos{color:#8b5cf6}.service-summary-row i.golf{color:#10b981}.service-summary-row i.rentacar{color:#f59e0b}.service-summary-row i.total{color:#2563eb}
         .service-empty{margin-top:12px;padding:9px;border:1px dashed #cbd5e1;border-radius:8px;color:var(--txt3);font-size:.72rem;font-weight:850;text-align:center}
+        .service-empty-state{min-height:230px;display:flex;align-items:center;justify-content:center;padding:34px;border:1px dashed #cbd5e1;border-radius:14px;background:#fff;color:var(--txt2);text-align:center}
+        .service-empty-state-icon{width:48px;height:48px;margin:0 auto 14px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#eff6ff;color:var(--primary);font-size:1.2rem}
+        .service-empty-state-title{font-size:.96rem;font-weight:950;color:var(--txt);margin-bottom:6px}
+        .service-empty-state-desc{font-size:.8rem;font-weight:750;line-height:1.55;color:var(--txt3)}
         .service-card-total{margin-top:10px;font-weight:950;font-size:.82rem;color:var(--txt)}
         .service-modal{width:min(980px,calc(100vw - 24px));max-height:88vh;overflow:auto}
         .service-modal-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
@@ -151,7 +157,7 @@
         .service-room-card:not(.inhouse):hover{transform:none;box-shadow:var(--shadow-sm)}
         .service-unavailable{margin-top:12px;padding:9px;border:1px dashed #cbd5e1;border-radius:8px;color:var(--txt3);font-size:.72rem;font-weight:850;text-align:center;background:#fff}
         @media(max-width:1100px){.ancillary-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.service-modal-grid{grid-template-columns:1fr}}
-        @media(max-width:768px){.ancillary-toolbar{flex-direction:column;align-items:stretch}.ancillary-search{flex:1 1 auto;min-width:0}.ancillary-toolbar-actions{margin-left:0}.modal-room-box,.modal-field-grid{grid-template-columns:1fr}.voucher-fields,.group-room-checks{grid-template-columns:1fr}}
+        @media(max-width:768px){.ancillary-toolbar{flex-direction:column;align-items:stretch}.ancillary-search-group{flex:1 1 auto;min-width:0;width:100%}.ancillary-search{flex:1 1 auto;min-width:0}.ancillary-toolbar-actions{margin-left:0}.modal-room-box,.modal-field-grid{grid-template-columns:1fr}.voucher-fields,.group-room-checks{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
@@ -167,9 +173,12 @@
         </div>
 
         <div class="ancillary-toolbar">
-            <div class="ancillary-search">
-                <i class="fa-solid fa-search"></i>
-                <input id="ancillarySearch" type="text" placeholder="객실번호, 고객명, 단체명 검색..." oninput="renderAncillaryBoard()">
+            <div class="ancillary-search-group">
+                <div class="ancillary-search">
+                    <i class="fa-solid fa-search"></i>
+                    <input id="ancillarySearch" type="text" placeholder="객실번호, 고객명, 단체명 검색..." data-pms-no-search-button="true" oninput="renderAncillaryBoard()">
+                </div>
+                <button class="btn-primary-sm ancillary-search-button" type="button" onclick="renderAncillaryBoard()"><i class="fa-solid fa-search"></i> <span data-i18n-key="Search">검색</span></button>
             </div>
             <div class="ancillary-toolbar-actions">
                 <button class="service-filter-chip active" data-service="all" onclick="setServiceFilter('all')">전체</button>
@@ -271,6 +280,10 @@ let selectedRoomId = '';
 let selectedDetailRoomId = '';
 let selectedService = 'pos';
 let serviceFilter = 'all';
+let reservationRoomCache = new WeakMap();
+let effectiveStatusCache = new WeakMap();
+const activeRoomCache = new Map();
+const nextRoomCache = new Map();
 
 const VENDOR_STORAGE = 'pms_ancillary_vendors';
 const ORDER_STORAGE = 'pms_ancillary_room_orders';
@@ -313,6 +326,25 @@ function parseDate(value) {
 function normalizeStatus(value) {
     return String(value || '').replace(/[-_\s]/g, '').toLowerCase();
 }
+function ancillaryLang() {
+    return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+}
+function ancillaryText(ko, en) {
+    return ancillaryLang() === 'en' ? en : ko;
+}
+function resetAncillaryReservationCaches() {
+    reservationRoomCache = new WeakMap();
+    effectiveStatusCache = new WeakMap();
+    activeRoomCache.clear();
+    nextRoomCache.clear();
+}
+function dateCacheKey(date) {
+    if (!date) return '';
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+function roomCacheKey(room) {
+    return [room?.id, room?.roomId, room?.fullRoom, room?.roomNo, room?.number, roomNo(room)].filter(Boolean).join('|') || String(roomNo(room));
+}
 function sameRoomValue(left, right) {
     const normalize = value => {
         const text = String(value || '').trim().toUpperCase();
@@ -349,29 +381,76 @@ function roomMatchesReservation(room, res) {
     const resValues = [res?.room, res?.fullRoom, res?.roomId, res?.roomNo, res?.roomNumber, res?.roomLabel];
     return roomValues.some(rv => resValues.some(v => sameRoomValue(rv, v)));
 }
+function reservationActiveOn(res, date) {
+    const start = parseDate(res?.checkInDate || res?.checkin || res?.cin);
+    const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
+    return !!(start && end && start <= date && date < end);
+}
+function roomForReservation(res) {
+    if (!res || typeof res !== 'object') return null;
+    if (reservationRoomCache.has(res)) return reservationRoomCache.get(res);
+    const room = rooms.find(room => roomMatchesReservation(room, res)) || null;
+    reservationRoomCache.set(res, room);
+    return room;
+}
+function isReservationRoomInHouse(res) {
+    const room = roomForReservation(res);
+    const roomStatus = normalizeStatus(room?.frontStatus || room?.status || room?.housekeepingStatus);
+    return ['checkedin', 'inhouse', 'occupied'].includes(roomStatus);
+}
+function effectiveReservationStatus(res, refDate = todayDate()) {
+    if (res && typeof res === 'object') {
+        const key = dateCacheKey(refDate);
+        const cached = effectiveStatusCache.get(res);
+        if (cached?.key === key) return cached.value;
+        const value = computeEffectiveReservationStatus(res, refDate);
+        effectiveStatusCache.set(res, { key, value });
+        return value;
+    }
+    return computeEffectiveReservationStatus(res, refDate);
+}
+function computeEffectiveReservationStatus(res, refDate = todayDate()) {
+    const status = normalizeStatus(res?.status);
+    if (['cancelled', 'canceled', 'noshow', 'no_show'].includes(status)) return 'cancelled';
+    if (['checkedout', 'completed', 'departed'].includes(status)) return 'completed';
+    if (['checkedin', 'inhouse', 'occupied'].includes(status)) {
+        const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
+        return end && end <= refDate ? 'checkout' : 'checkedin';
+    }
+    if (['confirmed', 'pending', 'reserved', 'booked', ''].includes(status) && isReservationRoomInHouse(res) && reservationActiveOn(res, refDate)) {
+        const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
+        return end && end <= refDate ? 'checkout' : 'checkedin';
+    }
+    return status || 'confirmed';
+}
 function activeReservationForRoom(room) {
+    const cacheKey = `${dateCacheKey(todayDate())}|${roomCacheKey(room)}`;
+    if (activeRoomCache.has(cacheKey)) return activeRoomCache.get(cacheKey);
     const today = todayDate();
-    return reservations.filter(res => {
-        const status = normalizeStatus(res.status);
-        if (['cancelled', 'canceled', 'completed', 'checkedout'].includes(status)) return false;
-        if (!['checkedin', 'inhouse', 'occupied'].includes(status)) return false;
+    const active = reservations.filter(res => {
+        if (effectiveReservationStatus(res, today) !== 'checkedin') return false;
         const start = parseDate(res.checkInDate || res.checkin || res.cin);
         const end = parseDate(res.checkOutDate || res.checkout || res.cout);
         return roomMatchesReservation(room, res) && start && end && start <= today && today < end;
     }).sort((a, b) => (parseDate(a.checkOutDate || a.checkout || a.cout)?.getTime() || 0) - (parseDate(b.checkOutDate || b.checkout || b.cout)?.getTime() || 0))[0] || null;
+    activeRoomCache.set(cacheKey, active);
+    return active;
 }
 function canRegisterServiceForRoom(room) {
     return !!activeReservationForRoom(room || {});
 }
 function nextReservationForRoom(room) {
+    const cacheKey = `${dateCacheKey(todayDate())}|${roomCacheKey(room)}`;
+    if (nextRoomCache.has(cacheKey)) return nextRoomCache.get(cacheKey);
     const today = todayDate();
-    return reservations.filter(res => {
-        const status = normalizeStatus(res.status);
-        if (['cancelled', 'canceled', 'completed', 'checkedout'].includes(status)) return false;
-        if (['checkedin', 'inhouse', 'occupied'].includes(status)) return false;
+    const next = reservations.filter(res => {
+        const status = effectiveReservationStatus(res, today);
+        if (['cancelled', 'completed', 'checkedin', 'checkout'].includes(status)) return false;
         const start = parseDate(res.checkInDate || res.checkin || res.cin);
         return roomMatchesReservation(room, res) && start && start >= today;
     }).sort((a, b) => (parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0) - (parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0))[0] || null;
+    nextRoomCache.set(cacheKey, next);
+    return next;
 }
 function reservationGuest(res) {
     return res?.guestName || res?.guest || res?.roomingGuestName || res?.customerName || '';
@@ -531,6 +610,15 @@ function renderAncillaryBoard() {
     updateKpis();
     const container = document.getElementById('ancillaryBoardContainer');
     const query = document.getElementById('ancillarySearch')?.value.trim().toLowerCase() || '';
+    if (!rooms.length) {
+        container.innerHTML = renderAncillaryEmptyState(
+            '등록된 객실이 없습니다.',
+            '객실 관리에 등록된 객실이 없을 때 표시되는 공통 안내입니다.',
+            'No rooms registered.',
+            'This is the common empty state shown when no rooms are registered in Room Management.'
+        );
+        return;
+    }
     const sortedRooms = [...rooms].sort((a, b) => {
         const tower = String(a.building || a.tower || '').localeCompare(String(b.building || b.tower || ''), undefined, { numeric: true });
         if (tower) return tower;
@@ -539,11 +627,21 @@ function renderAncillaryBoard() {
     const filtered = sortedRooms.filter(room => {
         const res = activeReservationForRoom(room) || nextReservationForRoom(room);
         const group = groupForReservation(res);
-        const orders = roomOrders(room);
-        if (serviceFilter !== 'all' && !orders.some(order => order.service === serviceFilter)) return false;
-        const haystack = [roomNo(room), roomType(room), reservationGuest(res), group?.name, group?.groupName, ...orders.map(order => `${order.vendor} ${order.item}`)].join(' ').toLowerCase();
+        const allOrders = roomOrders(room);
+        const filteredOrders = serviceFilter === 'all' ? allOrders : allOrders.filter(order => order.service === serviceFilter);
+        if (serviceFilter !== 'all' && !res && !filteredOrders.length) return false;
+        const haystack = [roomNo(room), roomType(room), reservationGuest(res), group?.name, group?.groupName, ...allOrders.map(order => `${order.vendor} ${order.item}`)].join(' ').toLowerCase();
         return !query || haystack.includes(query);
     });
+    if (!filtered.length) {
+        container.innerHTML = renderAncillaryEmptyState(
+            '조건에 맞는 객실이 없습니다.',
+            '검색어 또는 서비스 필터를 변경하면 다시 확인할 수 있습니다.',
+            'No rooms match the current filters.',
+            'Change the search term or service filter to check again.'
+        );
+        return;
+    }
     const byBuilding = new Map();
     filtered.forEach(room => {
         const building = room.building || room.tower || '객실';
@@ -562,14 +660,26 @@ function renderAncillaryBoard() {
                 </div>
             `).join('')}
         </section>
-    `).join('') || '<div class="empty-note">표시할 객실이 없습니다.</div>';
+    `).join('');
+}
+function renderAncillaryEmptyState(titleKo, descKo, titleEn, descEn) {
+    const title = ancillaryText(titleKo, titleEn);
+    const desc = ancillaryText(descKo, descEn);
+    return `<div class="service-empty-state">
+        <div>
+            <div class="service-empty-state-icon"><i class="fa-solid fa-bed"></i></div>
+            <div class="service-empty-state-title">${escapeHtml(title)}</div>
+            <div class="service-empty-state-desc">${escapeHtml(desc)}</div>
+        </div>
+    </div>`;
 }
 function renderRoomCard(room) {
     const active = activeReservationForRoom(room);
     const next = nextReservationForRoom(room);
     const res = active || next;
     const group = groupForReservation(res);
-    const orders = roomOrders(room);
+    const allOrders = roomOrders(room);
+    const orders = serviceFilter === 'all' ? allOrders : allOrders.filter(order => order.service === serviceFilter);
     const status = active ? 'inhouse' : next ? 'arrival' : 'empty';
     const statusLabel = active ? '투숙 중' : next ? '체크인 예정' : '공실';
     const availabilityNote = active
@@ -887,6 +997,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     rooms = roomData || [];
     reservations = reservationData || [];
     groups = groupData || [];
+    resetAncillaryReservationCaches();
     const externalOrders = [
         ...(posOrders || []).map(order => normalizeExternalOrder(order, 'pos')),
         ...(golfOrders || []).map(order => normalizeExternalOrder(order, 'golf')),
