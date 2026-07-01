@@ -661,18 +661,18 @@ async function saveCompany() {
         note: document.getElementById('compNote').value
     };
 
+    const toastMessage = id ? companyText('updated') : companyText('created');
     if(id) {
         const c = companies.find(x => x.id === id);
         Object.assign(c, data);
-        showToast(companyText('updated'));
     } else {
         data.id = 'COMP-' + Math.floor(Math.random()*10000);
         companies.unshift(data);
-        showToast(companyText('created'));
     }
     await persistCompanies();
     closeModal('companyModal');
     renderCompanies();
+    showToast(toastMessage);
 }
 
 async function deleteCompany(id) {

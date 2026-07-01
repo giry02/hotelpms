@@ -727,6 +727,7 @@ function saveGroup() {
     
     if (block === 0) { showToast('최소 1개 이상의 객실을 할당해야 합니다.', 'error'); return; }
 
+    let toastMessage = '';
     if (id) {
         const g = groups.find(x => x.id === id);
         if (g) {
@@ -734,7 +735,7 @@ function saveGroup() {
             g.block = block; g.allocations = allocations; g.pax = parseInt(pax); g.routing = routing;
             g.sales = sales; g.contact = contact; g.note = note;
         }
-        showToast('행사 정보가 수정되었습니다.');
+        toastMessage = '행사 정보가 수정되었습니다.';
     } else {
         const newId = 'GRP-' + Math.floor(Math.random()*10000);
         groups.unshift({
@@ -742,13 +743,14 @@ function saveGroup() {
             pax: parseInt(pax), routing, sales, contact, note,
             status: 'confirmed', pickup: 0
         });
-        showToast('신규 객실 배정이 등록되었습니다.');
+        toastMessage = '신규 객실 배정이 등록되었습니다.';
     }
     
     localStorage.setItem('pms_groups', JSON.stringify(groups));
     closeModal('newGroupModal');
     updateFilterCounts();
     renderGroups();
+    showToast(toastMessage);
 }
 
 function editGroup(id) {
