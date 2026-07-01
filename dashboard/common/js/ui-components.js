@@ -57,6 +57,111 @@
         }[ch]));
     }
 
+    const modalScrollLock = {
+        locked: false,
+        scrollY: 0,
+        bodyStyle: {},
+        htmlStyle: {}
+    };
+
+    function modalIsVisible(el) {
+        if (!el || !el.classList?.contains('active')) return false;
+        const style = getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+    }
+
+    function activeModalExists() {
+        return Array.from(document.querySelectorAll('.modal-overlay.active')).some(modalIsVisible);
+    }
+
+    function setModalScrollLock(locked) {
+        if (!document.body || !document.documentElement) return;
+        if (locked && !modalScrollLock.locked) {
+            modalScrollLock.locked = true;
+            modalScrollLock.scrollY = window.scrollY || window.pageYOffset || 0;
+            modalScrollLock.bodyStyle = {
+                overflow: document.body.style.overflow,
+                position: document.body.style.position,
+                top: document.body.style.top,
+                left: document.body.style.left,
+                right: document.body.style.right,
+                width: document.body.style.width,
+                paddingRight: document.body.style.paddingRight
+            };
+            modalScrollLock.htmlStyle = {
+                overflow: document.documentElement.style.overflow
+            };
+            const scrollbarGap = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${modalScrollLock.scrollY}px`;
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+            if (scrollbarGap) document.body.style.paddingRight = `${scrollbarGap}px`;
+            return;
+        }
+        if (!locked && modalScrollLock.locked) {
+            const restoreY = modalScrollLock.scrollY || 0;
+            Object.assign(document.body.style, modalScrollLock.bodyStyle);
+            Object.assign(document.documentElement.style, modalScrollLock.htmlStyle);
+            modalScrollLock.locked = false;
+            modalScrollLock.scrollY = 0;
+            window.scrollTo(0, restoreY);
+        }
+    }
+
+    function syncModalScrollLock() {
+        setModalScrollLock(activeModalExists());
+    }
+
+    function installModalScrollLockObserver() {
+        syncModalScrollLock();
+        const observer = new MutationObserver(syncModalScrollLock);
+        observer.observe(document.body, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            attributeFilter: ['class', 'style']
+        });
+        window.__pmsModalScrollLockObserver = observer;
+        window.addEventListener('beforeunload', () => setModalScrollLock(false));
+        window.PmsModalScrollLock = { sync: syncModalScrollLock };
+    }
+
+    function installModalFunctionHooks() {
+        let hookedOpen = null;
+        let hookedClose = null;
+        setInterval(() => {
+            syncModalScrollLock();
+            if (typeof window.openModal === 'function' && window.openModal !== hookedOpen && !window.openModal.__pmsScrollLockWrapped) {
+                const originalOpen = window.openModal;
+                const wrappedOpen = function(...args) {
+                    const result = originalOpen.apply(this, args);
+                    syncModalScrollLock();
+                    return result;
+                };
+                wrappedOpen.__pmsScrollLockWrapped = true;
+                wrappedOpen.__pmsOriginal = originalOpen;
+                window.openModal = wrappedOpen;
+                hookedOpen = wrappedOpen;
+            }
+            if (typeof window.closeModal === 'function' && window.closeModal !== hookedClose && !window.closeModal.__pmsScrollLockWrapped) {
+                const originalClose = window.closeModal;
+                const wrappedClose = function(...args) {
+                    const result = originalClose.apply(this, args);
+                    syncModalScrollLock();
+                    return result;
+                };
+                wrappedClose.__pmsScrollLockWrapped = true;
+                wrappedClose.__pmsOriginal = originalClose;
+                window.closeModal = wrappedClose;
+                hookedClose = wrappedClose;
+            }
+        }, 200);
+    }
+
     // Inject HTML for Toast and Confirm Modal
     const uiHtml = `
     <div id="pms-toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;"></div>
@@ -82,6 +187,8 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         document.body.insertAdjacentHTML('beforeend', uiHtml);
+        installModalScrollLockObserver();
+        installModalFunctionHooks();
     });
 
     // CSS for Toast
