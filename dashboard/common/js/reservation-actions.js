@@ -862,6 +862,147 @@
         };
     }
 
+    function normalizeReservationGuestPhone(value) {
+        if (typeof window.normalizeGuestPhone === 'function') return window.normalizeGuestPhone(value);
+        let text = String(value || '').replace(/[^\d+\-\s()]/g, '');
+        text = text.replace(/(?!^)\+/g, '');
+        return text.replace(/\s+/g, ' ').trim();
+    }
+
+    function isValidReservationGuestPhone(value, required = false) {
+        if (typeof window.isValidGuestPhone === 'function') return window.isValidGuestPhone(value, { required });
+        const digits = String(value || '').replace(/\D/g, '');
+        if (!digits) return !required;
+        return digits.length >= 7 && digits.length <= 15;
+    }
+
+    function reservationGuestInitials(name) {
+        const initials = String(name || '')
+            .trim()
+            .split(/\s+/)
+            .map(part => part[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+        return initials || 'G';
+    }
+
+    function persistentGuestMatch(raw, guestList = []) {
+        const item = raw || {};
+        const guestId = compactValue(item.guestId || item.id || item.roomingGuestId);
+        const email = compactValue(item.email || item.guestEmail).toLowerCase();
+        const name = compactValue(item.name || item.guestName || item.roomingGuestName || item.guest).toLowerCase();
+        const phoneDigits = normalizeReservationGuestPhone(item.phone || item.mobile || item.guestPhone).replace(/\D/g, '');
+        return guestList.find(guest => guestId && String(guest.id || guest.guestId || '') === guestId)
+            || guestList.find(guest => email && String(guest.email || '').toLowerCase() === email)
+            || guestList.find(guest => {
+                const guestName = compactValue(guest.name || guest.guestName).toLowerCase();
+                const guestPhoneDigits = normalizeReservationGuestPhone(guest.phone || guest.mobile || '').replace(/\D/g, '');
+                return name && phoneDigits && guestName === name && guestPhoneDigits === phoneDigits;
+            })
+            || null;
+    }
+
+    async function persistNewGuestRecord(entry) {
+        const name = compactValue(entry?.name || entry?.guestName || entry?.guest);
+        const phone = normalizeReservationGuestPhone(entry?.phone || entry?.mobile || entry?.guestPhone);
+        const email = compactValue(entry?.email || entry?.guestEmail);
+        const nationality = compactValue(entry?.country || entry?.nationality || entry?.nation);
+        const nowIso = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+        const id = `G-${nowIso.replace(/\D/g, '').slice(0, 14)}-${Math.floor(Math.random() * 1000)}`;
+        const guest = {
+            id,
+            name,
+            init: reservationGuestInitials(name),
+            color: '#3B82F6',
+            nationality,
+            nation: nationality,
+            country: nationality,
+            tier: 'standard',
+            vip: 'standard',
+            visits: 0,
+            phone,
+            email,
+            status: 'active',
+            document: { type: '', maskedNumber: '', status: 'pending' },
+            docStatus: 'pending',
+            documentStatus: 'pending',
+            specialNotes: '',
+            lastStayDate: '',
+            totalSpend: { amount: 0, currency: 'PHP' },
+            spend: 0,
+            tags: ['reservation'],
+            createdAt: nowIso,
+            source: 'reservation-modal'
+        };
+
+        if (window.PmsMockApi) {
+            await window.PmsMockApi.request('POST', '/crm/guests', { body: guest });
+        }
+
+        if (Array.isArray(window.guests)) {
+            const exists = window.guests.some(item => String(item.id || item.guestId || '') === id);
+            if (!exists) window.guests.unshift(guest);
+        } else {
+            window.guests = [guest];
+        }
+        if (Array.isArray(window.GUEST_DB)) {
+            const exists = window.GUEST_DB.some(item => String(item.id || item.guestId || '') === id);
+            if (!exists) window.GUEST_DB.unshift({ ...guest, spend: 0 });
+        }
+        try {
+            if (typeof window.loadGuestDb === 'function') await window.loadGuestDb(true);
+        } catch(e) {
+            console.warn('Guest search refresh after reservation guest create failed', e);
+        }
+        localStorage.setItem('pms_guests', JSON.stringify(window.guests || []));
+        return guest;
+    }
+
+    async function persistUnifiedRosterGuests() {
+        if (!unifiedStayGuestRoster.length) return true;
+        const guestList = await reservationGuestList();
+        for (let index = 0; index < unifiedStayGuestRoster.length; index += 1) {
+            const entry = unifiedStayGuestRoster[index];
+            const matched = persistentGuestMatch(entry, guestList);
+            if (matched) {
+                const guestId = compactValue(matched.id || matched.guestId);
+                unifiedStayGuestRoster[index] = {
+                    ...entry,
+                    id: guestId,
+                    guestId,
+                    phone: normalizeReservationGuestPhone(entry.phone || matched.phone || matched.mobile || ''),
+                    email: compactValue(entry.email || matched.email || ''),
+                    country: compactValue(entry.country || matched.country || matched.nationality || matched.nation || ''),
+                    tier: compactValue(entry.tier || matched.tier || matched.vip || '')
+                };
+                continue;
+            }
+
+            if (compactValue(entry.guestId || entry.id)) continue;
+            const phone = normalizeReservationGuestPhone(entry.phone);
+            if (!isValidReservationGuestPhone(phone, true)) {
+                if (window.showToast) window.showToast('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
+                else alert('연락처는 숫자와 +, -, 괄호만 입력해 주세요.');
+                document.getElementById('nrPhoneEdit')?.focus();
+                return false;
+            }
+            const created = await persistNewGuestRecord({ ...entry, phone });
+            guestList.unshift(created);
+            unifiedStayGuestRoster[index] = {
+                ...entry,
+                id: created.id,
+                guestId: created.id,
+                phone: created.phone,
+                email: created.email,
+                country: created.nationality,
+                tier: created.tier
+            };
+        }
+        renderUnifiedGuestRoster();
+        return true;
+    }
+
     async function rosterGuestsForReservation(res = null) {
         if (!res) return [];
         const guestList = await reservationGuestList();
@@ -2721,6 +2862,11 @@
         const rateQuote = unifiedLastRateQuote;
         const manualAmountOverride = !!(rateQuote && totalAmount !== normalizeMoneyAmount(rateQuote.total, currency));
         const shouldWriteGuest = !isBlockSave && (!isEditableGroupBlockSave || !!guest.trim() || getUnifiedCompanionGuestEntries().length > 0);
+        if (shouldWriteGuest) {
+            const guestsPersisted = await persistUnifiedRosterGuests();
+            if (!guestsPersisted) return;
+            guest = compactValue(getUnifiedPrimaryGuestEntry()?.name || guest);
+        }
         const existingGuestName = compactValue(guestNameForReservation(currentRes));
         const guestPayload = shouldWriteGuest
             ? unifiedRosterPayload(guest)
