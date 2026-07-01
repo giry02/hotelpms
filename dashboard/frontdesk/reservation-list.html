@@ -1210,14 +1210,14 @@ function rowMatchesPeriod(res) {
 
 function workActionButton(res, mobile = false) {
     const status = effectiveRowStatus(res);
-    const bucket = operationalBucket(res);
+    const bucket = periodOperationalBucket(res);
     if ((res.isGroupPlaceholder || status === 'blocked') && res.groupId) {
         return `<button class="res-work-action group" onclick="location.href='groups_block_detail.html?id=${encodeURIComponent(res.groupId)}&tab=rooms'"><i class="fa-solid fa-users"></i>${resText('action.group')}</button>`;
     }
     if (bucket === 'checkin') {
         return `<button class="res-work-action checkin" onclick="processReservationRowFlow('${res.id}','checkin')"><i class="fa-solid fa-right-to-bracket"></i>${resText('action.checkin')}</button>`;
     }
-    if (status === 'checkedin' || status === 'checkout') {
+    if (status === 'checkedin' || status === 'checkout' || bucket === 'checkout') {
         return `<button class="res-work-action checkout" onclick="processReservationRowFlow('${res.id}','checkout')"><i class="fa-solid fa-right-from-bracket"></i>${resText('action.checkout')}</button>`;
     }
     return '';
@@ -1692,11 +1692,12 @@ window.processReservationRowFlow = async function(resId, action) {
     const res = reservations.find(item => item.id === resId);
     if (!res) return;
     const status = effectiveRowStatus(res);
+    const bucket = periodOperationalBucket(res);
     if (action === 'checkin' && (!['confirmed', 'pending'].includes(status) || !checkinDateIsDue(res))) {
         if (window.showToast) window.showToast(resText('toast.checkinNotAllowed'), 'error');
         return;
     }
-    if (action === 'checkout' && !['checkedin', 'checkout'].includes(status)) {
+    if (action === 'checkout' && !['checkedin', 'checkout'].includes(status) && bucket !== 'checkout') {
         if (window.showToast) window.showToast(resText('toast.checkoutNotAllowed'), 'error');
         return;
     }

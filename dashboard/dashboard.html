@@ -65,6 +65,9 @@
         .ops-table th{height:42px;padding:0 18px;border-bottom:1px solid var(--border);color:#94a3b8;font-size:.68rem;font-weight:800;text-align:left}
         .ops-table td{height:46px;padding:0 18px;border-bottom:1px solid #eef2f7;color:var(--txt);font-size:.78rem;font-weight:500;vertical-align:middle}
         .ops-table tr:last-child td{border-bottom:0}
+        .ops-click-row{cursor:pointer;transition:background .14s ease}
+        .ops-click-row:hover,.ops-click-row:focus{background:#f8fbff}
+        .ops-click-row:focus{outline:2px solid #bfdbfe;outline-offset:-2px}
         .checkin-card{min-height:408px}
         .checkin-card .ops-table th{height:44px}
         .checkin-card .ops-table td{height:61px}
@@ -979,8 +982,8 @@
                 const audience = audienceLabel(res);
                 const tier = tierText(res);
                 const tierClass = isVipTier(tier) ? 'vip' : '';
-                const href = `frontdesk/reservation-board.html?filter=checkin&query=${encodeURIComponent(roomText(res))}`;
-                return `<tr>
+                const href = dashboardCheckinHref(res);
+                return `<tr class="ops-click-row" tabindex="0" data-href="${esc(href)}" onclick="handleDashboardRowNavigate(event)" onkeydown="handleDashboardRowKey(event)">
                     <td><div class="ops-guest"><span class="ops-avatar" style="background:${esc(res.color || '#3b82f6')}">${esc(initials(res))}</span><div class="ops-guest-main"><span class="ops-guest-name">${esc(guestText(res))}</span><span class="ops-chip-row"><span class="ops-chip ${isGroupReservation(res) ? 'group' : ''}">${esc(audience)}</span>${res.groupName ? `<span class="ops-chip group">${esc(res.groupName)}</span>` : ''}<span class="ops-chip ${tierClass}">${esc(tier)}</span></span></div></div></td>
                     <td>${esc(roomText(res))}</td>
                     <td>${esc(res.roomType || res.type || '-')}</td>
@@ -1056,15 +1059,42 @@
             tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${t('noAncillary')}</td></tr>`;
             return;
         }
-        tbody.innerHTML = display.map(order => `<tr>
+        tbody.innerHTML = display.map(order => {
+            const href = dashboardAncillaryHref(order);
+            return `<tr class="ops-click-row" tabindex="0" data-href="${esc(href)}" onclick="handleDashboardRowNavigate(event)" onkeydown="handleDashboardRowKey(event)">
             <td>${esc(order.time || '-')}</td>
             <td>${esc(roomText(order))}</td>
             <td>${esc(serviceLabel(order))}</td>
             <td>${esc(orderItemsText(order))}</td>
             <td>${esc(money(amount(order.total || order.amount)))}</td>
             <td><span class="ops-chip ${serviceStatus(order) === t('done') ? 'good' : 'warn'}">${esc(serviceStatus(order))}</span></td>
-        </tr>`).join('');
+        </tr>`;
+        }).join('');
     }
+    function dashboardCheckinHref(res) {
+        return `frontdesk/reservation-board.html?filter=checkin&query=${encodeURIComponent(roomText(res))}`;
+    }
+    function dashboardAncillaryHref(order) {
+        const params = new URLSearchParams();
+        const service = String(order?.service || order?.source || '').toLowerCase();
+        if (['pos', 'golf', 'rentacar'].includes(service)) params.set('service', service);
+        const query = roomText(order) || order?.roomNo || order?.room || order?.roomId || order?.guestName || '';
+        if (query) params.set('query', query);
+        return `operations/ancillary.html${params.toString() ? `?${params.toString()}` : ''}`;
+    }
+    function handleDashboardRowNavigate(event) {
+        if (event.target.closest('a,button,input,select,textarea')) return;
+        const href = event.currentTarget?.dataset?.href;
+        if (href) window.location.href = href;
+    }
+    function handleDashboardRowKey(event) {
+        if (!['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        const href = event.currentTarget?.dataset?.href;
+        if (href) window.location.href = href;
+    }
+    window.handleDashboardRowNavigate = handleDashboardRowNavigate;
+    window.handleDashboardRowKey = handleDashboardRowKey;
     async function loadDashboardOperations() {
         const today = todayIso();
         const [reservationsEnv, roomsEnv, housekeepingEnv, foliosEnv, groupsEnv, posEnv, golfEnv, rentacarEnv, activitiesEnv] = await Promise.all([

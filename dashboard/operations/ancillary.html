@@ -596,6 +596,17 @@ function setServiceFilter(service) {
     document.querySelectorAll('.service-filter-chip').forEach(btn => btn.classList.toggle('active', btn.dataset.service === service));
     renderAncillaryBoard();
 }
+function applyAncillaryUrlParams() {
+    const params = new URLSearchParams(location.search);
+    const requestedService = params.get('service') || params.get('filter') || params.get('type') || '';
+    if (['all', 'pos', 'golf', 'rentacar'].includes(requestedService)) {
+        serviceFilter = requestedService;
+        document.querySelectorAll('.service-filter-chip').forEach(btn => btn.classList.toggle('active', btn.dataset.service === serviceFilter));
+    }
+    const requestedQuery = params.get('query') || params.get('q') || params.get('search') || params.get('room') || '';
+    const search = document.getElementById('ancillarySearch');
+    if (requestedQuery && search) search.value = requestedQuery;
+}
 function updateKpis() {
     const inhouse = rooms.filter(room => activeReservationForRoom(room)).length;
     const visibleOrders = rooms.flatMap(room => roomOrders(room));
@@ -1005,6 +1016,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
     const merged = [...serviceOrders, ...externalOrders];
     serviceOrders = [...new Map(merged.map(order => [`${order.service}:${order.id}`, order])).values()];
+    applyAncillaryUrlParams();
     renderAncillaryBoard();
 });
 </script>
