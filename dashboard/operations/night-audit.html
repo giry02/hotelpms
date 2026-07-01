@@ -195,9 +195,9 @@
         .cash-note-link { min-height: 32px; padding: 0 12px; margin-top: 10px; width: 100%; }
         .cash-flow-reason-btn:hover,
         .cash-note-link:hover { border-color: #f59e0b; background: #fffbeb; }
-        .cash-insight-modal { max-width: 720px; width: 94vw; }
+        .cash-insight-modal { max-width: 720px; width: 94vw; background: #fff; overflow: hidden; }
         .close-basis-modal { max-width: 780px; }
-        .cash-insight-body { padding: 20px; display: grid; gap: 14px; }
+        .cash-insight-body { padding: 20px; display: grid; gap: 14px; background: #fff; overflow-y: auto; flex: 1; }
         .cash-insight-callout { border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; border-radius: 12px; padding: 12px 13px; font-size: .82rem; font-weight: 850; line-height: 1.55; }
         .close-basis-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
         .close-basis-card { border: 1px solid var(--border2); border-radius: 12px; background: #fff; padding: 13px; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
@@ -772,6 +772,7 @@
                                         <div class="cash-flow-label flow-inflow-label">Cash inflow</div>
                                         <div class="cash-flow-value" id="cashReceivedPhp">-</div>
                                         <div class="cash-flow-detail" id="cashReceivedDetail" data-no-currency-normalize="true">-</div>
+                                        <button type="button" class="cash-flow-reason-btn primary" id="cashInflowDetailBtn" onclick="openCashInflowDetailModal()"><i class="fa-solid fa-list-ul"></i> 현금입금 상세</button>
                                     </div>
                                 </div>
                                 <div class="cash-flow-node withdraw">
@@ -1011,6 +1012,16 @@
             <button type="button" class="modal-close" onclick="closeCashOnHandDetailModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="cash-insight-body" id="cashOnHandDetailBody"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="cashInflowDetailModal" onclick="if(event.target===this) closeCashInflowDetailModal()">
+    <div class="modal-card cash-insight-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-arrow-down" style="color:#047857"></i> <span id="cashInflowDetailTitle">Cash inflow detail</span></h3>
+            <button type="button" class="modal-close" onclick="closeCashInflowDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="cash-insight-body" id="cashInflowDetailBody"></div>
     </div>
 </div>
 
@@ -2570,6 +2581,77 @@ function closeCashVarianceReasonModal() {
     document.getElementById('cashVarianceReasonModal')?.classList.remove('active');
 }
 
+function renderCashInflowRecordSection(title, icon, records = [], options = {}) {
+    const recordLabel = options.recordLabel || title;
+    const iconColor = options.iconColor || 'var(--primary)';
+    const emptyText = options.emptyText || cashUiText('표시할 현금입금 내역이 없습니다.', 'No cash inflow records to show.');
+    return `
+        <div class="cash-insight-section cash-detail-breakdown">
+            <h4><i class="fa-solid ${icon}" style="color:${iconColor}"></i> ${escapeAudit(title)}</h4>
+            ${records.length ? `
+                <div class="cash-reconcile-detail-list">
+                    ${records.map((item, index) => {
+                        const meta = [item.folioId || '-', item.guest || '-', formatAuditTime(item.createdAt), item.operator || '-'].filter(Boolean).join(' · ');
+                        const note = item.note ? `${cashUiText('메모', 'Memo')} ${item.note}` : '';
+                        return `
+                            <div class="cash-reconcile-detail-card">
+                                <div class="cash-reconcile-detail-title"><i class="fa-solid ${icon}" style="color:${iconColor}"></i> ${escapeAudit(recordLabel)} ${index + 1}</div>
+                                <div class="cash-reconcile-detail-sub">${escapeAudit(meta || '-')}</div>
+                                ${renderCashCurrencyLines(receivedBreakdownForPayment(item), { includeZero: false, emptyLabel: cashUiText('금액 없음', 'No amount') })}
+                                <div class="cash-flow-detail">${escapeAudit([`${cashUiText('정산 반영', 'Applied')} ${moneyPhp(item.appliedPhpAmount || 0)}`, note].filter(Boolean).join(' · '))}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            ` : renderCashInsightSection(title, icon, [emptyText])}
+        </div>
+    `;
+}
+
+function openCashInflowDetailModal() {
+    renderCashHandover();
+    const state = cashHandoverSnapshot;
+    const body = document.getElementById('cashInflowDetailBody');
+    const title = document.getElementById('cashInflowDetailTitle');
+    if (!body || !state) return;
+    if (title) title.textContent = cashUiText('현금입금 상세', 'Cash inflow detail');
+    body.innerHTML = `
+        <div class="cash-insight-callout">
+            ${cashUiText('현금입금은 마감 보유현금에 더해지는 현금만 모아 보여줍니다. 정산 결제와 예치금은 성격이 다르므로 아래에서 분리해 확인합니다.', 'Cash inflow includes only cash added to closing cash on hand. Settlement payments and deposits are separated below because they have different meanings.')}
+        </div>
+        ${renderCashInsightCards([
+            { label: cashUiText('총 현금입금', 'Total cash inflow'), value: renderCashInsightMoneyLines(state.cashInflowCurrencies), html: true },
+            { label: cashUiText('현금 정산', 'Cash settlement'), value: renderCashInsightMoneyLines(state.cashSettlementCurrencies), html: true },
+            { label: cashUiText('예치금', 'Deposit'), value: renderCashInsightMoneyLines(state.cashDepositCurrencies), html: true }
+        ], { className: 'main-cash-overview' })}
+        ${renderCashInflowRecordSection(
+            cashUiText('정산 결제 내역', 'Settlement payment records'),
+            'fa-receipt',
+            state.cashSettlementRecords || [],
+            {
+                recordLabel: cashUiText('정산 결제', 'Settlement'),
+                iconColor: '#047857',
+                emptyText: cashUiText('현금으로 수납된 정산 결제 내역이 없습니다.', 'No cash settlement payment records.')
+            }
+        )}
+        ${renderCashInflowRecordSection(
+            cashUiText('예치금 수납 내역', 'Deposit receipt records'),
+            'fa-vault',
+            state.cashDepositRecords || [],
+            {
+                recordLabel: cashUiText('예치금 수납', 'Deposit'),
+                iconColor: '#b45309',
+                emptyText: cashUiText('현금으로 수납된 예치금 내역이 없습니다.', 'No cash deposit receipt records.')
+            }
+        )}
+    `;
+    document.getElementById('cashInflowDetailModal')?.classList.add('active');
+}
+
+function closeCashInflowDetailModal() {
+    document.getElementById('cashInflowDetailModal')?.classList.remove('active');
+}
+
 function openCashOnHandDetailModal() {
     renderCashHandover();
     const state = cashHandoverSnapshot;
@@ -3612,6 +3694,8 @@ function applyNightAuditI18n() {
         const icon = button.querySelector('i')?.outerHTML || '';
         button.innerHTML = `${icon} ${cashUiText('\uC790\uC138\uD788 \uBCF4\uAE30', 'View details')}`;
     });
+    const cashInflowDetailBtn = document.getElementById('cashInflowDetailBtn');
+    if (cashInflowDetailBtn) cashInflowDetailBtn.innerHTML = `<i class="fa-solid fa-list-ul"></i> ${cashUiText('\uD604\uAE08\uC785\uAE08 \uC0C1\uC138', 'Cash inflow detail')}`;
     const cashWithdrawDetailBtn = document.getElementById('cashWithdrawDetailBtn');
     if (cashWithdrawDetailBtn) cashWithdrawDetailBtn.innerHTML = `<i class="fa-solid fa-list-ul"></i> ${cashUiText('\uCD9C\uAE08 \uC0C1\uC138 \uBCF4\uAE30', 'Withdrawal details')}`;
     const cashOnHandFlowBtn = document.getElementById('cashOnHandFlowBtn');
