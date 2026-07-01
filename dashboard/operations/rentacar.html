@@ -895,9 +895,12 @@ function normalizeRoomKeys(value) {
     const raw = String(value || '').trim().toUpperCase();
     if (!raw) return [];
     const tail = raw.includes('-') ? raw.split('-').pop() : raw;
-    const digits = (tail.match(/\d+/g) || []).join('');
+    const compact = raw.replace(/[^A-Z0-9]/g, '');
+    const compactTail = tail.replace(/[^A-Z0-9]/g, '');
+    const hasLetters = /[A-Z]/.test(compact);
+    const digits = hasLetters ? '' : (tail.match(/\d+/g) || []).join('');
     const shortDigits = digits.replace(/^0+(?=\d)/, '');
-    return [...new Set([raw, tail, digits, shortDigits].filter(Boolean))];
+    return [...new Set([raw, tail, compact, compactTail, digits, shortDigits].filter(Boolean))];
 }
 
 function sameRoomValue(left, right) {

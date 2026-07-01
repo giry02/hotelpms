@@ -425,11 +425,18 @@ function normalizeReservationStatus(res) {
 
 function normalizeTimelineRoomValue(value) {
     const text = String(value || '').trim().toLowerCase();
+    const compact = text.replace(/[^a-z0-9]/g, '');
+    const tail = text.includes('-') ? text.split('-').pop() : text;
+    const compactTail = tail.replace(/[^a-z0-9]/g, '');
     const digits = (text.match(/\d+/g) || []).join('');
     return {
         text,
+        compact,
+        tail,
+        compactTail,
         digits,
-        strippedDigits: digits.replace(/^0+(?=\d)/, '')
+        strippedDigits: digits.replace(/^0+(?=\d)/, ''),
+        hasLetters: /[a-z]/.test(compact)
     };
 }
 
@@ -437,8 +444,11 @@ function sameTimelineRoomValue(left, right) {
     const a = normalizeTimelineRoomValue(left);
     const b = normalizeTimelineRoomValue(right);
     if (!a.text || !b.text) return false;
-    if (a.text === b.text) return true;
-    return !!(a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits));
+    const aKeys = [a.text, a.compact, a.tail, a.compactTail].filter(Boolean);
+    const bKeys = new Set([b.text, b.compact, b.tail, b.compactTail].filter(Boolean));
+    if (aKeys.some(key => bKeys.has(key))) return true;
+    const sameDigits = a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits);
+    return !!sameDigits && (!a.hasLetters || !b.hasLetters);
 }
 
 function timelineStoredGroups() {
@@ -1220,11 +1230,6 @@ window.addEventListener('languagechange', applyTimelineLanguage);
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Clear cached local storage to ensure fresh fallback data is used
-        localStorage.removeItem('pms_rooms');
-        localStorage.removeItem('pms_timeline_res');
-        // removed init
-
         const [rmData, resData, groupData] = await Promise.all([
             PmsAPI.getAllRooms(),
             PmsAPI.getTimelineReservations(),

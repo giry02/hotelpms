@@ -368,12 +368,28 @@ Object.assign(window.PmsAPI, {
         const sameRoomKey = (left, right) => {
             const normalize = value => {
                 const text = String(value || '').trim().toLowerCase();
-                const digits = (text.match(/\d+/g) || []).join('').replace(/^0+(?=\d)/, '');
-                return { text, digits };
+                const compact = text.replace(/[^a-z0-9]/g, '');
+                const tail = text.includes('-') ? text.split('-').pop() : text;
+                const compactTail = tail.replace(/[^a-z0-9]/g, '');
+                const digits = (text.match(/\d+/g) || []).join('');
+                return {
+                    text,
+                    compact,
+                    tail,
+                    compactTail,
+                    digits,
+                    strippedDigits: digits.replace(/^0+(?=\d)/, ''),
+                    hasLetters: /[a-z]/.test(compact)
+                };
             };
             const a = normalize(left);
             const b = normalize(right);
-            return !!(a.text && b.text && (a.text === b.text || (a.digits && a.digits === b.digits)));
+            if (!a.text || !b.text) return false;
+            const aKeys = [a.text, a.compact, a.tail, a.compactTail].filter(Boolean);
+            const bKeys = new Set([b.text, b.compact, b.tail, b.compactTail].filter(Boolean));
+            if (aKeys.some(key => bKeys.has(key))) return true;
+            const sameDigits = a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits);
+            return !!sameDigits && (!a.hasLetters || !b.hasLetters);
         };
         let rooms = JSON.parse(localStorage.getItem('pms_rooms') || '[]');
         let room = rooms.find(r => sameRoomKey(r.id, roomId) || sameRoomKey(r.roomId, roomId) || sameRoomKey(r.fullRoom, roomId) || sameRoomKey(r.number, roomId) || sameRoomKey(r.display, roomId));

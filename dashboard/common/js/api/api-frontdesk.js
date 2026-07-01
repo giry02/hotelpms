@@ -119,15 +119,29 @@ Object.assign(window.PmsAPI, {
         const roomId = (room) => room.id || room.roomId || room.fullRoom || room.display || room.number || '';
         const normalizeRoomValue = (value) => {
             const text = String(value || '').trim().toLowerCase();
+            const compact = text.replace(/[^a-z0-9]/g, '');
+            const tail = text.includes('-') ? text.split('-').pop() : text;
+            const compactTail = tail.replace(/[^a-z0-9]/g, '');
             const digits = (text.match(/\d+/g) || []).join('');
-            return { text, digits, strippedDigits: digits.replace(/^0+(?=\d)/, '') };
+            return {
+                text,
+                compact,
+                tail,
+                compactTail,
+                digits,
+                strippedDigits: digits.replace(/^0+(?=\d)/, ''),
+                hasLetters: /[a-z]/.test(compact)
+            };
         };
         const sameRoomValue = (left, right) => {
             const a = normalizeRoomValue(left);
             const b = normalizeRoomValue(right);
             if (!a.text || !b.text) return false;
-            if (a.text === b.text) return true;
-            return !!(a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits));
+            const aKeys = [a.text, a.compact, a.tail, a.compactTail].filter(Boolean);
+            const bKeys = new Set([b.text, b.compact, b.tail, b.compactTail].filter(Boolean));
+            if (aKeys.some(key => bKeys.has(key))) return true;
+            const sameDigits = a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits);
+            return !!sameDigits && (!a.hasLetters || !b.hasLetters);
         };
         const roomLabel = (room) => {
             const id = roomId(room);

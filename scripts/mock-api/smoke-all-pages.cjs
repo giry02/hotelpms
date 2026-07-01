@@ -44,7 +44,8 @@ const pages = [...walk('dashboard'), ...walk('admin')]
     try {
       await page.goto(`${base}${pagePath}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
       await page.waitForTimeout(650);
-      const bodyText = await page.locator('body').innerText({ timeout: 3000 }).catch(() => '');
+      const bodyText = await page.locator('body').innerText({ timeout: 3000 })
+        .catch(() => page.evaluate(() => document.body?.innerText || '').catch(() => ''));
       if (!bodyText.trim()) issues.push('blank body');
       results.push({
         page: pagePath,

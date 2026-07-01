@@ -305,7 +305,7 @@
                 <div class="ops-kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
                 <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">금일 체크아웃</span><span class="ops-kpi-value">--</span></div></div>
             </a>
-            <a class="ops-kpi-card orange" href="frontdesk/reservation-board.html?filter=cleaning">
+            <a class="ops-kpi-card orange" href="frontdesk/reservation-board.html?filter=dirty">
                 <div class="ops-kpi-icon"><i class="fa-solid fa-broom"></i></div>
                 <div class="ops-kpi-body"><div class="ops-kpi-main"><span class="ops-kpi-label">청소 필요</span><span class="ops-kpi-value">--</span></div></div>
             </a>
@@ -578,7 +578,6 @@
     };
     const OPS_TEXT = { ko: KO, en: EN };
     const checkinPageSize = 5;
-    const checkinDemoTotal = 14;
     const activityLimit = 5;
     let checkinPageIndex = 0;
     let checkinRows = [];
@@ -947,28 +946,8 @@
         const text = String(tier || '').toLowerCase();
         return text.includes('vip') || text.includes('\uACE8') || text.includes('\uD50C') || text.includes('\uB2E4\uC774\uC544');
     }
-    function dashboardDemoCheckins(rows, today) {
-        const baseRows = rows.slice(0, checkinDemoTotal);
-        const demoRooms = ['1218', '1224', '1225', '1226', '1227', '1228'];
-        const demoNames = ['Chen Wei', 'Olivia Smith', 'David Chen', 'Tanaka Yuki', 'Lee Hannah', 'Robert Ford'];
-        const colors = ['#0ea5e9', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#64748b'];
-        while (baseRows.length < checkinDemoTotal) {
-            const index = baseRows.length;
-            baseRows.push({
-                id: `DASH-CI-DEMO-${index + 1}`,
-                guestName: demoNames[index % demoNames.length],
-                roomNo: demoRooms[index % demoRooms.length],
-                roomType: index % 3 === 0 ? 'Premier' : 'Deluxe',
-                checkInDate: today,
-                checkOutDate: addIsoDays(today, 2 + (index % 3)),
-                nights: 2 + (index % 3),
-                tier: index % 4 === 0 ? 'VIP' : 'normal',
-                color: colors[index % colors.length],
-                _dashboardToday: true,
-                _dashboardDemo: true
-            });
-        }
-        return baseRows;
+    function dashboardTodayCheckins(rows) {
+        return rows.slice();
     }
     function renderKpis({ arrivals, checkouts, settlements, cleaning }) {
         const grid = document.getElementById('opsKpiGrid');
@@ -976,7 +955,7 @@
         const cards = [
             { cls: 'blue', icon: 'fa-right-to-bracket', href: 'frontdesk/reservation-list.html?tab=checkin&period=today', value: arrivals.length, label: t('todayCheckin') },
             { cls: 'green', icon: 'fa-right-from-bracket', href: 'frontdesk/reservation-list.html?tab=checkout&period=today', value: checkouts.length, label: t('todayCheckout') },
-            { cls: 'orange', icon: 'fa-broom', href: 'frontdesk/reservation-board.html?filter=cleaning', value: cleaning.length, label: t('cleaningNeed') },
+            { cls: 'orange', icon: 'fa-broom', href: 'frontdesk/reservation-board.html?filter=dirty', value: cleaning.length, label: t('cleaningNeed') },
             { cls: 'red', icon: 'fa-file-invoice-dollar', href: 'operations/settlement-status.html?filter=ready', value: settlements.length, label: t('settlementNeed') }
         ];
         grid.setAttribute('aria-label', t('todayOperationStatus'));
@@ -1101,10 +1080,12 @@
         ]);
         const reservations = apiItems(reservationsEnv);
         const groups = apiItems(groupsEnv);
+        const roomsFromApi = apiItems(roomsEnv);
         const roomsFromHousekeeping = apiItems(housekeepingEnv);
-        const rooms = roomsFromHousekeeping.length ? roomsFromHousekeeping : apiItems(roomsEnv);
+        const rooms = roomsFromApi.length ? roomsFromApi : roomsFromHousekeeping;
         const arrivals = reservations.filter(res => iso(res.checkInDate || res.checkin) === today && !['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow', 'no_show', 'checkedin', 'inhouse'].includes(statusOf(res)));
-        const checkouts = reservations.filter(res => iso(res.checkOutDate || res.checkout) === today && ['checkedin', 'inhouse', 'checkout'].includes(statusOf(res)));
+        const closedStatuses = ['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'departed', 'noshow', 'no_show'];
+        const checkouts = reservations.filter(res => iso(res.checkOutDate || res.checkout) === today && !closedStatuses.includes(statusOf(res)));
         const settlements = apiItems(foliosEnv).map(item => folioSettlementStatus(item, reservations, groups)).filter(row => row.dueDate === today && ['unpaid', 'ready'].includes(row.state));
         const ancillary = [
             ...apiItems(posEnv).map(item => normalizeOrder(item, 'pos')),
@@ -1113,7 +1094,7 @@
         ].filter(item => iso(item.date || item.useDate || item.serviceDate) === today && !['cancelled', 'canceled'].includes(String(item.status || '').toLowerCase()));
         const activities = apiItems(activitiesEnv);
         const cleaning = rooms.filter(isCleaningNeeded);
-        const dashboardArrivals = dashboardDemoCheckins(arrivals, today);
+        const dashboardArrivals = dashboardTodayCheckins(arrivals);
         checkinRows = dashboardArrivals.map(res => ({ ...res, _dashboardToday: true })).sort((a, b) => {
             const roomSort = String(roomText(a)).localeCompare(String(roomText(b)), 'ko', { numeric: true });
             const groupSort = (isGroupReservation(b) ? 1 : 0) - (isGroupReservation(a) ? 1 : 0);
