@@ -987,7 +987,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (window.PmsAPI?.getGroups) {
                 const apiGroups = await window.PmsAPI.getGroups();
                 const merged = new Map();
-                [...groups, ...apiGroups].forEach(item => {
+                [...apiGroups, ...groups].forEach(item => {
                     if (isStaleSamsungGroup(item)) return;
                     if (item?.id) merged.set(item.id, item);
                 });
@@ -1743,13 +1743,15 @@ window.addEventListener('DataReady', () => {
         });
         merged.set(group.id, group);
         groups = [...merged.values()];
+        let mockSave = null;
         try {
-            if (window.PmsMockApi) window.PmsMockApi.request('PATCH', `/groups/events/${encodeURIComponent(group.id)}`, { body: group });
+            if (window.PmsMockApi) mockSave = window.PmsMockApi.request('PATCH', `/groups/events/${encodeURIComponent(group.id)}`, { body: group });
         } catch(e) {
             console.warn('Mock group save failed', e);
         }
         localStorage.setItem('pms_groups', JSON.stringify(groups));
         try { sessionStorage.setItem('pms_selected_group', JSON.stringify(group)); } catch(e) {}
+        return mockSave || Promise.resolve(group);
     };
     try { saveGroup = window.saveGroup; } catch(e) {}
 
@@ -2663,10 +2665,12 @@ window.addEventListener('DataReady', () => {
         const res = syncReservationRoomGuests(roomIdValue);
         window.reservations = reservations;
         localStorage.setItem('pms_reservations', JSON.stringify(reservations || []));
+        let mockSave = null;
         if (window.PmsMockApi && res?.id) {
-            window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res })
+            mockSave = window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res })
                 .catch(err => console.warn('Mock reservation rooming update failed', err));
         }
+        return mockSave || Promise.resolve(res);
     }
 
     function recordHistory(action, note, extra = {}) {
@@ -2677,6 +2681,162 @@ window.addEventListener('DataReady', () => {
             note,
             ...extra
         });
+    }
+
+    function compactRoomingValue(value) {
+        const text = String(value ?? '').trim();
+        return text && text !== '-' ? text : '';
+    }
+
+    function roomingGuestPhone(value) {
+        return window.normalizeRoomingPhone
+            ? window.normalizeRoomingPhone(value)
+            : String(value || '').replace(/[^\d+\-\s()]/g, '').replace(/(?!^)\+/g, '').replace(/\s+/g, ' ').trim();
+    }
+
+    function roomingGuestPhoneDigits(value) {
+        return roomingGuestPhone(value).replace(/\D/g, '');
+    }
+
+    function roomingGuestInitials(name) {
+        const initials = String(name || '')
+            .trim()
+            .split(/\s+/)
+            .map(part => part[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+        return initials || 'G';
+    }
+
+    async function roomingGuestRecords() {
+        try {
+            if (typeof window.loadGuestDb === 'function') {
+                const loaded = await window.loadGuestDb(true);
+                if (Array.isArray(loaded) && loaded.length) return loaded;
+            }
+        } catch(e) {
+            console.warn('Rooming guest DB refresh failed', e);
+        }
+        if (Array.isArray(window.GUEST_DB) && window.GUEST_DB.length) return window.GUEST_DB;
+        if (Array.isArray(window.guests) && window.guests.length) return window.guests;
+        try {
+            if (window.PmsAPI?.getGuests) {
+                const guests = await window.PmsAPI.getGuests();
+                if (Array.isArray(guests)) return guests;
+            }
+        } catch(e) {
+            console.warn('Rooming guest API lookup failed', e);
+        }
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', '/crm/guests');
+                const items = window.PmsMockApi.items ? window.PmsMockApi.items(env) : env?.data?.items;
+                if (Array.isArray(items)) return items;
+            }
+        } catch(e) {
+            console.warn('Rooming guest mock lookup failed', e);
+        }
+        return [];
+    }
+
+    function findPersistedRoomingGuest(raw, guestList = []) {
+        const item = raw || {};
+        const guestId = compactRoomingValue(item.guestId || item.id || item.roomingGuestId);
+        const email = compactRoomingValue(item.email || item.guestEmail).toLowerCase();
+        const name = compactRoomingValue(item.name || item.guestName || item.roomingGuestName || item.guest).toLowerCase();
+        const phoneDigits = roomingGuestPhoneDigits(item.phone || item.mobile || item.guestPhone);
+        return guestList.find(guest => guestId && String(guest.id || guest.guestId || '') === guestId)
+            || guestList.find(guest => email && String(guest.email || '').toLowerCase() === email)
+            || guestList.find(guest => {
+                const guestName = compactRoomingValue(guest.name || guest.guestName).toLowerCase();
+                const guestPhoneDigits = roomingGuestPhoneDigits(guest.phone || guest.mobile || '');
+                return name && phoneDigits && guestName === name && guestPhoneDigits === phoneDigits;
+            })
+            || null;
+    }
+
+    function upsertRoomingGuestCache(guest) {
+        if (!guest?.id) return;
+        const upsert = (list, normalize = item => item) => {
+            if (!Array.isArray(list)) return list;
+            const idx = list.findIndex(item => String(item.id || item.guestId || '') === String(guest.id));
+            const next = normalize(guest);
+            if (idx >= 0) list[idx] = { ...list[idx], ...next };
+            else list.unshift(next);
+            return list;
+        };
+        window.guests = upsert(window.guests, item => item) || window.guests;
+        window.GUEST_DB = upsert(window.GUEST_DB, item => ({
+            ...item,
+            country: item.country || item.nationality || item.nation || '',
+            tier: item.tier || item.vip || 'standard',
+            spend: Number(item.spend || item.totalSpend?.amount || 0)
+        })) || window.GUEST_DB;
+        if (Array.isArray(window.guests)) {
+            try { localStorage.setItem('pms_guests', JSON.stringify(window.guests)); } catch(e) {}
+        }
+    }
+
+    async function ensurePersistedRoomingGuest(entry, selected = null) {
+        const selectedId = compactRoomingValue(selected?.id || selected?.guestId);
+        const phone = roomingGuestPhone(entry?.phone || selected?.phone || selected?.mobile || '');
+        const nationality = compactRoomingValue(entry?.nation || selected?.country || selected?.nationality || selected?.nation);
+        const candidate = {
+            ...entry,
+            id: selectedId || entry?.id,
+            guestId: selectedId || entry?.guestId,
+            phone,
+            nation: nationality,
+            email: compactRoomingValue(entry?.email || selected?.email),
+            name: compactRoomingValue(entry?.name || selected?.name)
+        };
+        const guestList = await roomingGuestRecords();
+        const matched = findPersistedRoomingGuest(candidate, guestList);
+        if (matched) {
+            upsertRoomingGuestCache(matched);
+            return matched;
+        }
+        if (selectedId) {
+            upsertRoomingGuestCache({ ...selected, id: selectedId, guestId: selectedId });
+            return { ...selected, id: selectedId, guestId: selectedId };
+        }
+        const nowIso = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+        const id = `G-${nowIso.replace(/\D/g, '').slice(0, 14)}-${Math.floor(Math.random() * 1000)}`;
+        const guest = {
+            id,
+            guestId: id,
+            name: candidate.name,
+            init: roomingGuestInitials(candidate.name),
+            color: '#3B82F6',
+            nationality,
+            nation: nationality,
+            country: nationality,
+            tier: 'standard',
+            vip: 'standard',
+            visits: 0,
+            phone,
+            email: candidate.email,
+            status: 'active',
+            document: { type: '', maskedNumber: '', status: 'pending' },
+            docStatus: 'pending',
+            documentStatus: 'pending',
+            specialNotes: entry?.note || entry?.specialNotes || '',
+            lastStayDate: '',
+            totalSpend: { amount: 0, currency: 'PHP' },
+            spend: 0,
+            tags: ['group-rooming'],
+            createdAt: nowIso,
+            source: 'group-rooming'
+        };
+        if (window.PmsMockApi) await window.PmsMockApi.request('POST', '/crm/guests', { body: guest });
+        upsertRoomingGuestCache(guest);
+        try {
+            if (typeof window.loadGuestDb === 'function') await window.loadGuestDb(true);
+        } catch(e) {
+            console.warn('Rooming guest search cache refresh failed', e);
+        }
+        return guest;
     }
 
     function collectRoomAllocations() {
@@ -2852,7 +3012,13 @@ window.addEventListener('DataReady', () => {
             const doc = document.getElementById('guestDocInput');
             const note = document.getElementById('guestNoteInput');
             if (edit) edit.value = guest && !guest.sourceReservation ? (guest.id || '') : '';
-            if (room) room.value = guest?.roomId || roomIdValue || '';
+            if (room) {
+                const targetRoomId = guest?.roomId || roomIdValue || '';
+                if (targetRoomId && !Array.from(room.options || []).some(option => option.value === targetRoomId)) {
+                    room.innerHTML = roomOptions(targetRoomId);
+                }
+                room.value = targetRoomId;
+            }
             if (role) role.value = guest?.role || preferredRole || 'primary';
             if (doc) doc.value = guest?.docStatus || 'pending';
             if (note) note.value = guest?.note || guest?.specialNotes || '';
@@ -2861,7 +3027,6 @@ window.addEventListener('DataReady', () => {
             const emailInput = document.getElementById('nrEmailRooming');
             const nationInput = document.getElementById('nrNationRooming') || document.getElementById('guestNationInput');
             if (!guest && window._roomingGuestWidget?.reset) window._roomingGuestWidget.reset();
-            if (!guest && window._roomingGuestWidget?.showNewForm) window._roomingGuestWidget.showNewForm();
             if (nameInput) nameInput.value = guest?.name || '';
             window.attachRoomingPhoneGuard?.(phoneInput);
             if (phoneInput) phoneInput.value = window.normalizeRoomingPhone ? window.normalizeRoomingPhone(guest?.phone || '') : (guest?.phone || '');
@@ -2870,7 +3035,7 @@ window.addEventListener('DataReady', () => {
         }, 0);
     };
 
-    window.saveRoomingGuest = function() {
+    window.saveRoomingGuest = async function() {
         const widget = window._roomingGuestWidget;
         const selectedRaw = widget?.getSelectedGuest?.();
         const selected = isPlaceholderGuest(selectedRaw) ? null : selectedRaw;
@@ -2892,19 +3057,37 @@ window.addEventListener('DataReady', () => {
             return;
         }
         if (phoneInput) phoneInput.value = phone;
+        const noteValue = document.getElementById('guestNoteInput')?.value.trim() || '';
+        let persistedGuest = null;
+        try {
+            persistedGuest = await ensurePersistedRoomingGuest({
+                name,
+                phone,
+                email: selected?.email || emailInput?.value?.trim() || '',
+                nation: selected?.country || selected?.nation || nationInput?.value?.trim() || '',
+                note: noteValue
+            }, selected);
+        } catch(e) {
+            console.warn('Rooming guest persistence failed', e);
+            showToast('투숙객 고객 등록에 실패했습니다. 다시 시도해주세요.', 'error');
+            return;
+        }
+        const persistedGuestId = compactRoomingValue(persistedGuest?.id || persistedGuest?.guestId || selected?.id || selected?.guestId);
+        const resolvedPhone = roomingGuestPhone(persistedGuest?.phone || phone);
+        const resolvedNation = compactRoomingValue(persistedGuest?.country || persistedGuest?.nationality || persistedGuest?.nation || selected?.country || selected?.nation || nationInput?.value);
         const data = {
-            id: editId || selected?.id || 'GG-' + Date.now(),
-            guestId: selected?.id || '',
+            id: editId || persistedGuestId || selected?.id || 'GG-' + Date.now(),
+            guestId: persistedGuestId || selected?.id || '',
             groupId: group.id,
-            name,
-            phone,
-            email: selected?.email || emailInput?.value?.trim() || '',
-            nation: selected?.country || selected?.nation || nationInput?.value?.trim() || '',
+            name: compactRoomingValue(persistedGuest?.name || selected?.name || name),
+            phone: resolvedPhone,
+            email: compactRoomingValue(persistedGuest?.email || selected?.email || emailInput?.value?.trim() || ''),
+            nation: resolvedNation,
             roomId: roomIdValue,
             role,
             docStatus: document.getElementById('guestDocInput')?.value || 'pending',
-            note: document.getElementById('guestNoteInput')?.value.trim() || '',
-            specialNotes: document.getElementById('guestNoteInput')?.value.trim() || ''
+            note: noteValue,
+            specialNotes: noteValue
         };
         const list = roomingList();
         let idx = editId ? list.findIndex(item => item.id === editId) : -1;
@@ -2918,9 +3101,14 @@ window.addEventListener('DataReady', () => {
                 if (item.roomId === roomIdValue && item.id !== data.id && item.role === 'primary') item.role = 'companion';
             });
         }
-        persistRoomReservation(roomIdValue);
+        const reservationSave = persistRoomReservation(roomIdValue);
         recordHistory(role === 'primary' ? (editId ? '대표 투숙객 수정' : '대표 투숙객 등록') : (editId ? '동반 투숙객 수정' : '동반 투숙객 등록'), `${roomLabel(roomIdValue)} · ${data.name}`);
-        saveGroup();
+        const groupSave = saveGroup();
+        try {
+            await Promise.all([Promise.resolve(reservationSave), Promise.resolve(groupSave)]);
+        } catch(e) {
+            console.warn('Rooming save synchronization failed', e);
+        }
         closeModal('roomingModal');
         renderAll();
         switchTabById('rooming');

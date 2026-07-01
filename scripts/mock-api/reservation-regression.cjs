@@ -178,6 +178,7 @@ function countValues(values) {
       await window._editGuestWidget.showNewForm();
       const newFormActionBarDisplay = getComputedStyle(document.getElementById('unifiedGuestCandidateActions')).display;
       document.getElementById('nrGuestEdit').value = 'Direct Test Guest';
+      document.getElementById('nrPhoneEdit').value = '+84 90 000 0901';
       document.getElementById('unifiedRoom').value = 'T-901';
       await saveUnifiedRes();
       return {
