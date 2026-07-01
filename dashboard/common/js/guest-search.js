@@ -48,6 +48,7 @@ function _refreshGuestSearchI18n(root) {
         const fallback = el.getAttribute('data-guest-fallback') || el.getAttribute('placeholder') || key;
         el.setAttribute('placeholder', _guestText(key, fallback));
     });
+    _hydrateGuestNationalitySelects(scope);
 }
 
 window.refreshGuestSearchI18n = _refreshGuestSearchI18n;
@@ -56,6 +57,111 @@ window.addEventListener('languagechange', () => _refreshGuestSearchI18n());
 function _guestSearchLang() {
     return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
 }
+
+const _guestNationalities = [
+    'Australia', 'Brazil', 'Canada', 'China', 'France', 'Germany',
+    'Hong Kong', 'India', 'Indonesia', 'Italy', 'Japan', 'Korea',
+    'Malaysia', 'Mexico', 'New Zealand', 'Philippines', 'Qatar',
+    'Saudi Arabia', 'Singapore', 'Spain', 'Taiwan', 'Thailand',
+    'UAE', 'United Kingdom', 'USA', 'Vietnam'
+].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
+
+const _guestNationalityLabelsKo = {
+    Australia: '호주',
+    Brazil: '브라질',
+    Canada: '캐나다',
+    China: '중국',
+    France: '프랑스',
+    Germany: '독일',
+    'Hong Kong': '홍콩',
+    India: '인도',
+    Indonesia: '인도네시아',
+    Italy: '이탈리아',
+    Japan: '일본',
+    Korea: '한국',
+    Malaysia: '말레이시아',
+    Mexico: '멕시코',
+    'New Zealand': '뉴질랜드',
+    Philippines: '필리핀',
+    Qatar: '카타르',
+    'Saudi Arabia': '사우디아라비아',
+    Singapore: '싱가포르',
+    Spain: '스페인',
+    Taiwan: '대만',
+    Thailand: '태국',
+    UAE: '아랍에미리트',
+    'United Kingdom': '영국',
+    USA: '미국',
+    Vietnam: '베트남'
+};
+
+function _normalizeGuestNationality(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (_guestNationalities.includes(raw)) return raw;
+    const stripped = raw.replace(/[\u{1F1E6}-\u{1F1FF}]/gu, '').trim();
+    if (_guestNationalities.includes(stripped)) return stripped;
+    const lower = stripped.toLowerCase();
+    const koMatch = Object.entries(_guestNationalityLabelsKo).find(([, label]) => label === stripped);
+    if (koMatch) return koMatch[0];
+    const aliasRules = [
+        [/vietnam|viet|베트남/, 'Vietnam'],
+        [/korea|south korea|대한민국|한국/, 'Korea'],
+        [/japan|일본/, 'Japan'],
+        [/china|중국/, 'China'],
+        [/taiwan|대만/, 'Taiwan'],
+        [/hong kong|홍콩/, 'Hong Kong'],
+        [/singapore|싱가포르/, 'Singapore'],
+        [/thailand|태국/, 'Thailand'],
+        [/malaysia|말레이시아/, 'Malaysia'],
+        [/indonesia|인도네시아/, 'Indonesia'],
+        [/philippines|필리핀/, 'Philippines'],
+        [/india|인도/, 'India'],
+        [/qatar|카타르/, 'Qatar'],
+        [/saudi|사우디/, 'Saudi Arabia'],
+        [/uae|emirates|아랍에미리트/, 'UAE'],
+        [/usa|u\.s\.a|united states|america|미국/, 'USA'],
+        [/canada|캐나다/, 'Canada'],
+        [/mexico|멕시코/, 'Mexico'],
+        [/brazil|브라질/, 'Brazil'],
+        [/united kingdom|uk|england|영국/, 'United Kingdom'],
+        [/germany|독일/, 'Germany'],
+        [/france|프랑스/, 'France'],
+        [/spain|스페인/, 'Spain'],
+        [/italy|이탈리아/, 'Italy'],
+        [/australia|호주/, 'Australia'],
+        [/new zealand|뉴질랜드/, 'New Zealand']
+    ];
+    const match = aliasRules.find(([pattern]) => pattern.test(lower) || pattern.test(stripped));
+    return match ? match[1] : stripped;
+}
+
+function _guestNationalityLabel(value) {
+    const normalized = _normalizeGuestNationality(value);
+    if (!normalized) return '';
+    return _guestSearchLang() === 'ko' ? (_guestNationalityLabelsKo[normalized] || normalized) : normalized;
+}
+
+function _guestNationalityOptionsHtml(selected = '') {
+    const current = _normalizeGuestNationality(selected);
+    const values = Array.from(new Set([..._guestNationalities, current].filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
+    const placeholder = _guestText('guest.nationality.placeholder', _guestSearchLang() === 'ko' ? '국적 선택' : 'Select nationality');
+    return `<option value="">${_escapeGuestHtml(placeholder)}</option>` + values
+        .map(country => `<option value="${_escapeGuestHtml(country)}"${country === current ? ' selected' : ''}>${_escapeGuestHtml(_guestNationalityLabel(country))}</option>`)
+        .join('');
+}
+
+function _hydrateGuestNationalitySelects(root) {
+    const scope = root || document;
+    scope.querySelectorAll('select[data-guest-nationality-select]').forEach(select => {
+        const current = _normalizeGuestNationality(select.value);
+        select.innerHTML = _guestNationalityOptionsHtml(current);
+        select.value = current;
+    });
+}
+
+window.normalizeGuestNationality = window.normalizeGuestNationality || _normalizeGuestNationality;
 
 function _tierLabel(tier) {
     return String(tier || '');
@@ -346,7 +452,9 @@ function renderGuestSearchHTML(prefix) {
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
                 <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.nationality" data-guest-fallback="국적">${_guestText('guest.nationality', '국적')}</span></label>
-                <input type="text" id="nrNation${prefix}" data-guest-placeholder="guest.nationality.placeholder" data-guest-fallback="국적 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.nationality.placeholder', '국적 입력')}">
+                <select id="nrNation${prefix}" data-guest-nationality-select style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem;background:#fff">
+                    ${_guestNationalityOptionsHtml()}
+                </select>
             </div>
         </div>
     </div>`;

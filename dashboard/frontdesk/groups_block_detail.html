@@ -216,7 +216,30 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
                     <label class="form-label">국적</label>
-                    <input id="guestNationInput" class="form-input" style="width:100%" placeholder="한국">
+                    <select id="guestNationInput" class="form-input" style="width:100%">
+                        <option value="">국적 선택</option>
+                        <option value="Australia">호주</option>
+                        <option value="Brazil">브라질</option>
+                        <option value="Canada">캐나다</option>
+                        <option value="China">중국</option>
+                        <option value="France">프랑스</option>
+                        <option value="Germany">독일</option>
+                        <option value="Hong Kong">홍콩</option>
+                        <option value="India">인도</option>
+                        <option value="Indonesia">인도네시아</option>
+                        <option value="Italy">이탈리아</option>
+                        <option value="Japan">일본</option>
+                        <option value="Korea">한국</option>
+                        <option value="Malaysia">말레이시아</option>
+                        <option value="Philippines">필리핀</option>
+                        <option value="Singapore">싱가포르</option>
+                        <option value="Taiwan">대만</option>
+                        <option value="Thailand">태국</option>
+                        <option value="UAE">아랍에미리트</option>
+                        <option value="United Kingdom">영국</option>
+                        <option value="USA">미국</option>
+                        <option value="Vietnam">베트남</option>
+                    </select>
                 </div>
                 <div>
                     <label class="form-label">여권/신분증 확인</label>
@@ -2080,6 +2103,67 @@ window.addEventListener('DataReady', () => {
         return `<option value="">호실 선택</option>${options}`;
     }
 
+    const ROOMING_NATIONALITIES = [
+        'Australia', 'Brazil', 'Canada', 'China', 'France', 'Germany',
+        'Hong Kong', 'India', 'Indonesia', 'Italy', 'Japan', 'Korea',
+        'Malaysia', 'Philippines', 'Singapore', 'Taiwan', 'Thailand',
+        'UAE', 'United Kingdom', 'USA', 'Vietnam'
+    ];
+    const ROOMING_NATIONALITY_LABELS = {
+        Australia: '호주',
+        Brazil: '브라질',
+        Canada: '캐나다',
+        China: '중국',
+        France: '프랑스',
+        Germany: '독일',
+        'Hong Kong': '홍콩',
+        India: '인도',
+        Indonesia: '인도네시아',
+        Italy: '이탈리아',
+        Japan: '일본',
+        Korea: '한국',
+        Malaysia: '말레이시아',
+        Philippines: '필리핀',
+        Singapore: '싱가포르',
+        Taiwan: '대만',
+        Thailand: '태국',
+        UAE: '아랍에미리트',
+        'United Kingdom': '영국',
+        USA: '미국',
+        Vietnam: '베트남'
+    };
+
+    function normalizeRoomingNationality(value) {
+        if (typeof window.normalizeGuestNationality === 'function') return window.normalizeGuestNationality(value);
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        if (ROOMING_NATIONALITIES.includes(raw)) return raw;
+        const byLabel = Object.entries(ROOMING_NATIONALITY_LABELS).find(([, label]) => label === raw);
+        return byLabel ? byLabel[0] : raw;
+    }
+
+    function roomingNationalityOptions(selected = '') {
+        const current = normalizeRoomingNationality(selected);
+        const values = Array.from(new Set([...ROOMING_NATIONALITIES, current].filter(Boolean)));
+        return `<option value="">국적 선택</option>` + values.map(country => {
+            const label = ROOMING_NATIONALITY_LABELS[country] || country;
+            return `<option value="${escapeText(country)}" ${country === current ? 'selected' : ''}>${escapeText(label)}</option>`;
+        }).join('');
+    }
+
+    function setRoomingNationalityValue(input, value) {
+        if (!input) return;
+        const normalized = normalizeRoomingNationality(value);
+        if (input.tagName === 'SELECT') {
+            if (normalized && !Array.from(input.options).some(option => option.value === normalized)) {
+                input.add(new Option(ROOMING_NATIONALITY_LABELS[normalized] || normalized, normalized));
+            }
+            input.value = normalized;
+            return;
+        }
+        input.value = normalized || String(value || '');
+    }
+
     function guestSearchFallback() {
         return `
             <div id="newGuestForm${ROOMING_PREFIX}" style="display:block">
@@ -2098,7 +2182,9 @@ window.addEventListener('DataReady', () => {
                     </div>
                     <div style="display:flex;flex-direction:column;gap:5px">
                         <label style="font-size:.75rem;font-weight:600;color:var(--txt2)">국적</label>
-                        <input type="text" id="nrNation${ROOMING_PREFIX}" class="form-input" placeholder="한국">
+                        <select id="nrNation${ROOMING_PREFIX}" class="form-input">
+                            ${roomingNationalityOptions()}
+                        </select>
                     </div>
                 </div>
             </div>`;
@@ -2183,7 +2269,7 @@ window.addEventListener('DataReady', () => {
         if (nameInput) nameInput.value = guest?.name || '';
         if (phoneInput) phoneInput.value = guest?.phone || '';
         if (emailInput) emailInput.value = guest?.email || '';
-        if (nationInput) nationInput.value = guest?.nation || guest?.country || '';
+        setRoomingNationalityValue(nationInput, guest?.nation || guest?.country || '');
         if (noteInput) noteInput.value = guest?.note || guest?.specialNotes || guest?.allergy || '';
 
         document.getElementById('guestEditId').value = guest && !guest.sourceReservation ? (guest.id || '') : '';
@@ -2735,7 +2821,7 @@ window.addEventListener('DataReady', () => {
             if (nameInput) nameInput.value = guest?.name || '';
             if (phoneInput) phoneInput.value = guest?.phone || '';
             if (emailInput) emailInput.value = guest?.email || '';
-            if (nationInput) nationInput.value = guest?.nation || guest?.country || '';
+            setRoomingNationalityValue(nationInput, guest?.nation || guest?.country || '');
         }, 0);
     };
 
