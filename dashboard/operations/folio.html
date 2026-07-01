@@ -2437,13 +2437,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('active')
 
 function syncPaymentKindLabels() {
     const isDeposit = !!document.getElementById('paymentDepositToggle')?.checked;
-    const label = document.getElementById('paymentBaseLabel');
-    const help = document.getElementById('paymentBaseHelp');
     const submit = document.getElementById('paymentSubmitLabel');
-    if (label) label.textContent = isDeposit ? '예치금 기준 금액' : '정산 기준 금액';
-    if (help) help.textContent = isDeposit
-        ? '예치금으로 보관할 기준 금액입니다.'
-        : '잔액 차감 기준 금액입니다.';
     if (submit) submit.textContent = isDeposit ? '예치금 등록' : '수납 등록';
 }
 
@@ -2788,7 +2782,6 @@ function openPaymentModal(folioId, bal) {
     currentPaymentFolioId = folioId;
     const due = parsePaymentAmount(folio?.bal ?? bal ?? 0);
     document.getElementById('paymentBalAmount').innerText = `미수금 기준: ${fmtInvoiceMoney(due)} / 예치금: ${fmtInvoiceMoney(folioDepositValue(folio || {}))}`;
-    document.getElementById('paymentInputAmount').value = due ? due.toFixed(2) : '';
     document.getElementById('paymentHistoryPanel').innerHTML = paymentHistoryHtml(folio);
     PAYMENT_CURRENCIES.forEach(currency => {
         const id = `paymentReceived${currency === 'PHP' ? 'Php' : currency === 'USD' ? 'Usd' : 'Krw'}`;
@@ -2828,8 +2821,7 @@ function processPayment(options = {}) {
     const receivedTotal = paymentBreakdownTotal(receivedBreakdown);
     const primaryReceived = paymentBreakdownPrimary(receivedBreakdown);
     const receivedPhp = Number(receivedBreakdown.PHP || 0);
-    let enteredPhp = readPaymentAmount('paymentInputAmount');
-    if (receivedPhp > 0) enteredPhp = receivedPhp;
+    let enteredPhp = receivedPhp;
     if (!enteredPhp && receivedTotal > 0) enteredPhp = isDeposit ? receivedTotal : balance;
     const appliedPhpAmount = isDeposit ? enteredPhp : Math.min(enteredPhp, balance);
     const method = document.getElementById('paymentMethod')?.value || 'cash';
@@ -2977,7 +2969,6 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                         예치금
                     </label>
                 </div>
-                <input type="hidden" id="paymentInputAmount" value="0">
                 <div class="payment-section-field">
                     <label>실제 받은 금액</label>
                     <div class="payment-currency-grid">

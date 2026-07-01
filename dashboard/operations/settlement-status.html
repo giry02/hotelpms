@@ -306,7 +306,6 @@
                         예치금
                     </label>
                 </div>
-                <input id="settlementStatusPaymentAmount" type="hidden" value="0">
                 <div class="payment-section-field">
                     <label>실제 받은 금액</label>
                     <div class="payment-currency-grid">
@@ -1566,12 +1565,10 @@ function openSettlementStatusPayment(folioId) {
     }
     settlementState.currentFolioId = folio.folioId || folio.id;
     applySettlementStaticI18n();
-    const amount = document.getElementById('settlementStatusPaymentAmount');
     const summary = document.getElementById('settlementStatusPaymentBalAmount');
     const method = document.getElementById('settlementStatusPaymentMethod');
     const note = document.getElementById('settlementStatusPaymentNote');
     const due = settlementParsePaymentAmount(folio.balance || 0);
-    if (amount) amount.value = due ? due.toFixed(2) : '';
     if (summary) summary.textContent = settlementText('paymentSummary', { due: settlementMoney(due), deposit: settlementMoney(folio.deposit) });
     if (method) method.value = 'cash';
     const depositToggle = document.getElementById('settlementStatusPaymentDepositToggle');
@@ -1600,9 +1597,9 @@ async function processSettlementStatusPayment(options = {}) {
     const receivedTotal = settlementPaymentBreakdownTotal(receivedBreakdown);
     const primaryReceived = settlementPaymentBreakdownPrimary(receivedBreakdown);
     const receivedPhp = Number(receivedBreakdown.PHP || 0);
-    let amount = settlementReadPaymentAmount('settlementStatusPaymentAmount');
-    if (receivedPhp > 0) amount = receivedPhp;
-    if (!amount && receivedTotal > 0) amount = Number(folio.balance || 0);
+    const isDeposit = !!document.getElementById('settlementStatusPaymentDepositToggle')?.checked;
+    let amount = receivedPhp;
+    if (!amount && receivedTotal > 0) amount = isDeposit ? receivedTotal : Number(folio.balance || 0);
     if (!amount) {
         showToast(settlementText('amountRequired'), 'error');
         return;
@@ -1614,7 +1611,6 @@ async function processSettlementStatusPayment(options = {}) {
     const methodSelect = document.getElementById('settlementStatusPaymentMethod');
     const method = methodSelect?.value || 'cash';
     const methodLabel = settlementMethodLabel(method, methodSelect?.selectedOptions?.[0]?.textContent || method);
-    const isDeposit = !!document.getElementById('settlementStatusPaymentDepositToggle')?.checked;
     const appliedPhpAmount = isDeposit ? amount : Math.min(amount, Number(folio.balance || 0));
     const records = settlementPaymentRecords();
     records.push({
