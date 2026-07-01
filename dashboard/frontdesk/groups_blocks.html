@@ -247,7 +247,7 @@
                     </div>
                 </div>
                 <div>
-                    <label class="form-label">총 인원 (PAX)</label>
+                    <label class="form-label">총 인원</label>
                     <input type="number" id="ngPax" class="form-input" style="width:100%" min="1" placeholder="20">
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -362,6 +362,54 @@ function groupCompanyTypeLabel(value) {
     };
     if (!key) return String(value || '').trim() || labels[groupCompanyLang()]?.Other || labels.en.Other;
     return (labels[groupCompanyLang()] && labels[groupCompanyLang()][key]) || labels.en[key] || key;
+}
+
+function groupEventTypeLabel(value) {
+    const raw = String(value || '').trim();
+    const key = raw.toLowerCase();
+    const ko = {
+        'corporate-conference': '기업 행사 / 컨퍼런스',
+        'corporate-meeting': '기업 행사 / 컨퍼런스',
+        'travel-agency': '여행사 단체',
+        'private-group': '일반인 단체',
+        'wedding-banquet': '웨딩 / 연회',
+        'sports-team': '스포츠팀'
+    };
+    const en = {
+        'corporate-conference': 'Corporate Conference',
+        'corporate-meeting': 'Corporate Meeting',
+        'travel-agency': 'Travel Agency Group',
+        'private-group': 'Private Group',
+        'wedding-banquet': 'Wedding / Banquet',
+        'sports-team': 'Sports Team'
+    };
+    if (groupCompanyLang() === 'en') return en[key] || raw || '-';
+    return ko[key] || raw || '-';
+}
+
+function groupBillingLabel(value) {
+    const raw = String(value || '').trim();
+    const key = raw.toLowerCase();
+    const ko = {
+        'master-folio': '단체 일괄 정산',
+        'master folio': '단체 일괄 정산',
+        'agency-credit': '단체 후불',
+        'company-card': '법인카드 정산',
+        'frontdesk-prepaid': '프런트 선결제',
+        'frontdesk prepaid': '프런트 선결제',
+        individual: '개별 결제'
+    };
+    const en = {
+        'master-folio': 'Master Folio',
+        'master folio': 'Master Folio',
+        'agency-credit': 'Agency Credit',
+        'company-card': 'Company Card',
+        'frontdesk-prepaid': 'Front Desk Prepaid',
+        'frontdesk prepaid': 'Front Desk Prepaid',
+        individual: 'Individual Payment'
+    };
+    if (groupCompanyLang() === 'en') return en[key] || raw || '-';
+    return ko[key] || raw.replace(/업체 후불/g, '단체 후불') || '-';
 }
 
 function isLegacyGroupSeed(list) {
@@ -520,14 +568,14 @@ function renderGroups(search = '') {
             <div class="group-card-header">
                 <div>
                     <div class="group-name">${g.name}</div>
-                    <div class="group-type">${g.type} · ${g.id}</div>
+                    <div class="group-type">${groupEventTypeLabel(g.type)} · ${g.id}</div>
                 </div>
                 <span class="status-pill ${s.cls}">${s.label}</span>
             </div>
             <div class="group-meta">
                 <div class="group-meta-item"><i class="fa-solid fa-calendar-check"></i> ${g.checkin} ~ ${g.checkout}</div>
                 <div class="group-meta-item"><i class="fa-solid fa-person"></i> ${g.pax}명</div>
-                <div class="group-meta-item"><i class="fa-solid fa-file-invoice-dollar"></i> ${g.routing}</div>
+                <div class="group-meta-item"><i class="fa-solid fa-file-invoice-dollar"></i> ${groupBillingLabel(g.routing)}</div>
                 <div class="group-meta-item"><i class="fa-solid fa-phone"></i> ${g.contact}</div>
             </div>
             <div style="background:#F8FAFC; border-radius:6px; padding:8px 10px; font-size:0.75rem; color:var(--txt2); margin-top:8px;">
@@ -565,12 +613,12 @@ function showDetail(id) {
         <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">주관 업체</div><div style="font-weight:600">${g.agency || '-'}</div></div>
-                <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">행사 유형</div><div style="font-weight:600">${g.type}</div></div>
+                <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">행사 유형</div><div style="font-weight:600">${groupEventTypeLabel(g.type)}</div></div>
                 <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">상태</div><span class="status-pill ${s.cls}">${s.label}</span></div>
                 <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">체크인</div><div style="font-weight:600">${g.checkin}</div></div>
                 <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">체크아웃</div><div style="font-weight:600">${g.checkout}</div></div>
-                <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">총 인원 (PAX)</div><div style="font-weight:600">${g.pax}명</div></div>
-                <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">결제 방식</div><div style="font-weight:600">${g.routing}</div></div>
+                <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">총 인원</div><div style="font-weight:600">${g.pax}명</div></div>
+                <div><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">결제 방식</div><div style="font-weight:600">${groupBillingLabel(g.routing)}</div></div>
                 <div style="grid-column:1/-1"><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">담당자 연락처</div><div style="font-weight:600">${g.contact}</div></div>
                 <div style="grid-column:1/-1"><div style="font-size:0.75rem;color:var(--txt3);font-weight:600;margin-bottom:4px">특이사항</div><div style="font-weight:500;color:var(--txt2)">${g.note || '없음'}</div></div>
             </div>
@@ -717,13 +765,14 @@ function editGroup(id) {
         if (aMatch) agencySel.value = aMatch.value;
     }
     
-    document.getElementById('ngType').value = g.type || '기업 행사 / 컨퍼런스';
+    document.getElementById('ngType').value = groupEventTypeLabel(g.type) || '기업 행사 / 컨퍼런스';
     document.getElementById('ngCheckin').value = g.checkin || '';
     document.getElementById('ngCheckout').value = g.checkout || '';
     document.getElementById('ngPax').value = g.pax || '';
     
     const routingSel = document.getElementById('ngRouting');
-    const rMatch = Array.from(routingSel.options).find(o => o.value.includes(g.routing) || g.routing.includes(o.value));
+    const routingLabel = groupBillingLabel(g.routing);
+    const rMatch = Array.from(routingSel.options).find(o => o.value.includes(routingLabel) || routingLabel.includes(o.value));
     if (rMatch) routingSel.value = rMatch.value;
 
     const salesSel = document.getElementById('ngSales');
@@ -930,11 +979,11 @@ async function deleteGroup(id) {
                     const settlement = g.settlementStatus === 'paid' ? '완료' : (stage.key === 'past' || stage.key === 'settlement' ? '확인 필요' : '진행 전');
                     return `<div class="event-row" role="button" tabindex="0" style="cursor:pointer" onclick="openGroupDetail('${g.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGroupDetail('${g.id}')}">
                         <div data-label="운영 상태"><span class="stage-pill ${stage.cls}">${stage.label}</span></div>
-                        <div class="event-main"><div class="event-name">${g.name || '-'}</div><div class="event-company">${g.agency || '등록 업체 필요'} · ${g.id || '-'}</div></div>
-                        <div data-label="기간"><div class="event-metric">${g.checkin || '-'} ~ ${g.checkout || '-'}</div><div class="event-sub">${g.type || '-'}</div></div>
+                        <div class="event-main"><div class="event-name">${g.name || '-'}</div><div class="event-company">${g.agency || '등록 단체 필요'} · ${g.id || '-'}</div></div>
+                        <div data-label="기간"><div class="event-metric">${g.checkin || '-'} ~ ${g.checkout || '-'}</div><div class="event-sub">${groupEventTypeLabel(g.type)}</div></div>
                         <div data-label="D-Day"><div class="event-metric">${dday(g)}</div></div>
                         <div data-label="객실"><div class="event-metric">${reservations.length}/${assigned.length}실<small>예약/배정</small></div></div>
-                        <div data-label="투숙객"><div class="event-metric">${guests}/${g.pax || 0}명<small>등록/PAX</small></div></div>
+                        <div data-label="투숙객"><div class="event-metric">${guests}/${g.pax || 0}명<small>등록/총 인원</small></div></div>
                         <div data-label="정산"><div class="event-metric">${settlement}</div></div>
                         <div><button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button></div>
                     </div>`;
@@ -1411,7 +1460,7 @@ async function deleteGroup(id) {
         document.getElementById('ngName').value = g.name || '';
         const agencySel = document.getElementById('ngAgency');
         if (agencySel && g.agencyId) agencySel.value = g.agencyId;
-        document.getElementById('ngType').value = g.type || document.getElementById('ngType').options[0].value;
+        document.getElementById('ngType').value = groupEventTypeLabel(g.type) || document.getElementById('ngType').options[0].value;
         document.getElementById('ngCheckin').value = g.checkin || '';
         document.getElementById('ngCheckout').value = g.checkout || '';
         document.getElementById('ngPax').value = g.pax || '';
@@ -1455,7 +1504,7 @@ async function deleteGroup(id) {
                 <div class="group-card-header">
                     <div>
                         <div class="group-name">${g.name}</div>
-                        <div class="group-type">${g.type || '-'} · ${g.id}</div>
+                        <div class="group-type">${groupEventTypeLabel(g.type)} · ${g.id}</div>
                     </div>
                     <span class="status-pill ${s.cls}">${s.label}</span>
                 </div>
@@ -1515,8 +1564,8 @@ async function deleteGroup(id) {
                     <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">상태</div><span class="status-pill ${s.cls}">${s.label}</span></div>
                     <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">체크인</div><div style="font-weight:700">${g.checkin || '-'}</div></div>
                     <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">체크아웃</div><div style="font-weight:700">${g.checkout || '-'}</div></div>
-                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">PAX</div><div style="font-weight:700">${g.pax || 0}명</div></div>
-                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">정산</div><div style="font-weight:700">${g.routing || '-'}</div></div>
+                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">총 인원</div><div style="font-weight:700">${g.pax || 0}명</div></div>
+                    <div><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">정산</div><div style="font-weight:700">${groupBillingLabel(g.routing)}</div></div>
                     <div style="grid-column:1/-1"><div style="font-size:.75rem;color:var(--txt3);font-weight:700;margin-bottom:4px">메모</div><div style="font-weight:500;color:var(--txt2)">${g.note || '없음'}</div></div>
                 </div>
                 <div style="border-top:1px solid var(--border);padding-top:14px">
@@ -1734,7 +1783,7 @@ async function deleteGroup(id) {
         grid.innerHTML = `
             <div class="event-register">
                 <div class="event-head">
-                    <div>운영 상태</div><div>행사 / 업체</div><div>기간</div><div>D-Day</div><div>객실</div><div>Rooming</div><div>정산</div><div></div>
+                    <div>운영 상태</div><div>행사 / 단체</div><div>기간</div><div>D-Day</div><div>객실</div><div>투숙객</div><div>정산</div><div></div>
                 </div>
                 ${list.map(g => {
                     const assigned = getAssignedRooms(g);
@@ -1744,11 +1793,11 @@ async function deleteGroup(id) {
                     const settlement = g.settlementStatus === 'paid' ? '완료' : (stage.key === 'past' || stage.key === 'settlement' ? '확인 필요' : '진행 전');
                     return `<div class="event-row" role="button" tabindex="0" style="cursor:pointer" onclick="openGroupDetail('${g.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGroupDetail('${g.id}')}">
                         <div data-label="운영 상태"><span class="stage-pill ${stage.cls}">${stage.label}</span></div>
-                        <div class="event-main"><div class="event-name">${g.name || '-'}</div><div class="event-company">${g.agency || '등록 업체 필요'} · ${g.id || '-'}</div></div>
-                        <div data-label="기간"><div class="event-metric">${g.checkin || '-'} ~ ${g.checkout || '-'}</div><div class="event-sub">${g.type || '-'}</div></div>
+                        <div class="event-main"><div class="event-name">${g.name || '-'}</div><div class="event-company">${g.agency || '등록 단체 필요'} · ${g.id || '-'}</div></div>
+                        <div data-label="기간"><div class="event-metric">${g.checkin || '-'} ~ ${g.checkout || '-'}</div><div class="event-sub">${groupEventTypeLabel(g.type)}</div></div>
                         <div data-label="D-Day"><div class="event-metric">${dday(g)}</div></div>
                         <div data-label="객실"><div class="event-metric">${resCount}/${assigned.length}실<small>예약/배정</small></div></div>
-                        <div data-label="Rooming"><div class="event-metric">${guests}/${g.pax || 0}명<small>투숙객</small></div></div>
+                        <div data-label="투숙객"><div class="event-metric">${guests}/${g.pax || 0}명<small>투숙객</small></div></div>
                         <div data-label="정산"><div class="event-metric">${settlement}</div></div>
                         <div><button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button></div>
                     </div>`;
@@ -1772,17 +1821,17 @@ async function deleteGroup(id) {
         upcoming: '\uC608\uC815',
         past: '\uC9C0\uB09C \uD589\uC0AC',
         settlement: '\uC815\uC0B0 \uD544\uC694',
-        companyManage: '\uC5C5\uCCB4 \uAD00\uB9AC',
+        companyManage: '\uB2E8\uCCB4 \uAD00\uB9AC',
         newEvent: '\uC2E0\uADDC \uD589\uC0AC \uC0DD\uC131',
         state: '\uC6B4\uC601 \uC0C1\uD0DC',
-        eventCompany: '\uD589\uC0AC / \uC5C5\uCCB4',
+        eventCompany: '\uD589\uC0AC / \uB2E8\uCCB4',
         period: '\uAE30\uAC04',
         rooms: '\uAC1D\uC2E4',
         guests: '\uD22C\uC219\uAC1D',
         billing: '\uC815\uC0B0',
-        noCompany: '\uB4F1\uB85D \uC5C5\uCCB4 \uD544\uC694',
+        noCompany: '\uB4F1\uB85D \uB2E8\uCCB4 \uD544\uC694',
         bookedAssigned: '\uC608\uC57D/\uBC30\uC815',
-        registeredPax: '\uB4F1\uB85D/PAX',
+        registeredPax: '\uB4F1\uB85D/\uCD1D \uC778\uC6D0',
         paid: '\uC644\uB8CC',
         needCheck: '\uD655\uC778 \uD544\uC694',
         inProgress: '\uC9C4\uD589 \uC911',
@@ -2085,7 +2134,7 @@ async function deleteGroup(id) {
                     return `<div class="event-row" role="button" tabindex="0" style="cursor:pointer" onclick="openGroupDetail('${html(group.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGroupDetail('${html(group.id)}')}">
                         <div data-label="${T.state}"><span class="stage-pill ${stage.cls}">${stage.label}</span></div>
                         <div class="event-main"><div class="event-name">${html(group.name || '-')}</div><div class="event-company">${html(group.agency || T.noCompany)} · ${html(group.id || '-')}</div></div>
-                        <div data-label="${T.period}"><div class="event-metric">${html(group.checkin || '-')} ~ ${html(group.checkout || '-')}</div><div class="event-sub">${html(group.type || '-')}</div></div>
+                        <div data-label="${T.period}"><div class="event-metric">${html(group.checkin || '-')} ~ ${html(group.checkout || '-')}</div><div class="event-sub">${html(groupEventTypeLabel(group.type))}</div></div>
                         <div data-label="D-Day"><div class="event-metric">${dday(group)}</div></div>
                         <div data-label="${T.rooms}"><div class="event-metric">${reservations.length}/${rooms.length}<small>${T.bookedAssigned}</small></div></div>
                         <div data-label="${T.guests}"><div class="event-metric">${guests}/${html(group.pax || 0)}<small>${T.registeredPax}</small></div></div>
