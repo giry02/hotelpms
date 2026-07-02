@@ -503,6 +503,7 @@ async function ancillaryVendorVoucherFlow(page) {
     hasLogoButton: !!Array.from(document.querySelectorAll('button')).find(button => /로고 등록/.test(button.innerText || ''))
   }));
   assert(golf.sectionTitles.some(text => /골프장 이용권/.test(text)), 'golf voucher fields were not grouped separately');
+  assert(/업체 주소/.test(golf.preview) && /Clark Freeport Zone/.test(golf.preview), 'golf voucher preview did not include vendor address');
   assert(/절취용 이용 확인/.test(golf.preview), 'golf voucher preview did not include a tear-off confirmation area');
   assert(golf.hasLogoButton, 'vendor logo upload action was not available');
 
@@ -513,6 +514,7 @@ async function ancillaryVendorVoucherFlow(page) {
     preview: document.getElementById('voucherPreview')?.innerText || ''
   }));
   assert(rentacar.sectionTitles.some(text => /렌터카 인수 정보/.test(text)), 'rent-a-car voucher fields were not grouped separately');
+  assert(/업체 주소/.test(rentacar.preview) && /NAIA Terminal 3/.test(rentacar.preview), 'rent-a-car voucher preview did not include vendor address');
   assert(/차량 인수 확인/.test(rentacar.preview), 'rent-a-car voucher preview did not include handover confirmation');
   return { initial, golf, rentacar };
 }

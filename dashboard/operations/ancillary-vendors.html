@@ -48,6 +48,7 @@
     .summary-box{border:1px solid var(--border2);border-radius:10px;padding:12px;background:#f8fafc}
     .summary-box span{display:block;font-size:.68rem;font-weight:900;color:var(--txt3)}
     .summary-box strong{display:block;margin-top:4px;font-size:.92rem;font-weight:950;color:var(--txt)}
+    .summary-box.address{grid-column:1/-1}
     .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
     .section-title{display:flex;align-items:center;gap:7px;font-size:.92rem;font-weight:950;color:var(--txt)}
     .item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
@@ -143,6 +144,7 @@
           <div><label class="form-label">담당자/연락처</label><input id="vendorContact" class="form-input" placeholder="예: 박지훈 / +82 10..."></div>
           <div><label class="form-label">수수료율(%)</label><input id="vendorCommission" type="number" class="form-input" min="0" max="100" placeholder="예: 15"></div>
         </div>
+        <div><label class="form-label">업체 주소</label><input id="vendorAddress" class="form-input" placeholder="예: Clark Freeport Zone, Pampanga"></div>
       </div>
       <div class="modal-footer"><button class="btn-outline" onclick="closeModal('vendorModal')">취소</button><button class="btn-primary-sm" onclick="saveVendor()">저장</button></div>
     </div>
@@ -169,27 +171,27 @@
     let selectedVendorId = '';
     const voucherFieldLabels = {
       guest:'투숙객명', room:'객실번호', date:'이용일시', people:'인원', teeTime:'티오프', course:'코스/업체명',
-      pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', partnerContact:'업체 연락처', memo:'메모'
+      pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', partnerContact:'업체 연락처', address:'업체 주소', memo:'메모'
     };
     const voucherFieldGroups = {
       pos: [
         { title:'전표 기본 정보', icon:'fa-receipt', fields:['guest','room','date','item','amount','memo'] }
       ],
       golf: [
-        { title:'공통 정보', icon:'fa-circle-info', fields:['guest','room','date','item','amount','partnerContact','memo'] },
+        { title:'공통 정보', icon:'fa-circle-info', fields:['guest','room','date','item','amount','partnerContact','address','memo'] },
         { title:'골프장 이용권', icon:'fa-golf-ball-tee', fields:['people','teeTime','course'] }
       ],
       rentacar: [
-        { title:'공통 정보', icon:'fa-circle-info', fields:['guest','room','date','item','amount','partnerContact','memo'] },
+        { title:'공통 정보', icon:'fa-circle-info', fields:['guest','room','date','item','amount','partnerContact','address','memo'] },
         { title:'렌터카 인수 정보', icon:'fa-car', fields:['pickup','vehicle'] }
       ]
     };
     const seedVendors = [
-      { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', commission:0, voucherFields:['guest','room','date','item','amount','memo'], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
-      { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
-      { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount'], items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'18홀 패키지', price:520, desc:'그린피+카트' }] },
-      { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount'], items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }, { name:'전기차 24시간', price:230, desc:'완충 인도' }] },
-      { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount'], items:[{ name:'SUV 24시간', price:260, desc:'보험 포함' }, { name:'기사 포함 밴', price:320, desc:'8시간 기준' }] }
+      { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:['guest','room','date','item','amount','memo'], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
+      { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
+      { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'18홀 패키지', price:520, desc:'그린피+카트' }] },
+      { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }, { name:'전기차 24시간', price:230, desc:'완충 인도' }] },
+      { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', address:'BGC Transport Hub, Taguig', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'SUV 24시간', price:260, desc:'보험 포함' }, { name:'기사 포함 밴', price:320, desc:'8시간 기준' }] }
     ];
     function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
     function money(v) { return `₱${Number(v || 0).toLocaleString('en')}`; }
@@ -216,6 +218,7 @@
         item: item.name || serviceLabel(vendor?.type),
         amount: money(item.price || 0),
         partnerContact: vendor?.contact || '-',
+        address: vendor?.address || '주소 미등록',
         memo:'프런트 확인 후 제공'
       };
     }
@@ -227,13 +230,21 @@
           vendors.push({ ...seed, items:[...(seed.items || [])], voucherFields:[...(seed.voucherFields || [])] });
         }
       });
-      vendors = vendors.map(vendor => ({
-        ...vendor,
-        type: vendor.type || 'pos',
-        items: Array.isArray(vendor.items) ? vendor.items : [],
-        logoDataUrl: vendor.logoDataUrl || '',
-        voucherFields: Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? vendor.voucherFields : defaultVoucherFields(vendor.type || 'pos')
-      }));
+      vendors = vendors.map(vendor => {
+        const seed = seedVendors.find(item => item.id === vendor.id || (item.type === vendor.type && item.name === vendor.name));
+        const type = vendor.type || seed?.type || 'pos';
+        const fields = Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type);
+        if (['golf', 'rentacar'].includes(type) && !fields.includes('address')) fields.push('address');
+        if (['golf', 'rentacar'].includes(type) && !fields.includes('partnerContact')) fields.push('partnerContact');
+        return {
+          ...vendor,
+          type,
+          items: Array.isArray(vendor.items) ? vendor.items : [],
+          address: vendor.address || seed?.address || '',
+          logoDataUrl: vendor.logoDataUrl || '',
+          voucherFields: fields
+        };
+      });
       selectedVendorId = vendors.find(v => v.type === currentType)?.id || '';
       persistVendors();
     }
@@ -249,7 +260,7 @@
     function render() {
       const list = vendors.filter(v => v.type === currentType);
       document.getElementById('vendorCount').textContent = `${list.length}개`;
-      document.getElementById('vendorList').innerHTML = list.map(v => `<button class="vendor-card ${v.id === selectedVendorId ? 'active' : ''}" onclick="selectVendor('${escapeHtml(v.id)}')"><div class="vendor-name">${escapeHtml(v.name)}</div><div class="vendor-meta"><span>담당 ${escapeHtml(v.contact || '-')}</span><span>수수료 ${Number(v.commission || 0)}%</span><span>항목 ${(v.items || []).length}개</span></div></button>`).join('') || '<div class="empty-note">등록된 업체가 없습니다.</div>';
+      document.getElementById('vendorList').innerHTML = list.map(v => `<button class="vendor-card ${v.id === selectedVendorId ? 'active' : ''}" onclick="selectVendor('${escapeHtml(v.id)}')"><div class="vendor-name">${escapeHtml(v.name)}</div><div class="vendor-meta"><span>담당 ${escapeHtml(v.contact || '-')}</span><span>수수료 ${Number(v.commission || 0)}%</span><span>항목 ${(v.items || []).length}개</span>${v.address ? `<span>${escapeHtml(v.address)}</span>` : ''}</div></button>`).join('') || '<div class="empty-note">등록된 업체가 없습니다.</div>';
       const selected = selectedVendor();
       document.getElementById('selectedVendorMeta').textContent = selected ? `${selected.name} · 항목 ${(selected.items || []).length}개 · 출력 ${(selected.voucherFields || []).length}개 필드` : '업체를 선택하세요.';
       renderDetail(selected);
@@ -265,6 +276,7 @@
           <div class="summary-box"><span>담당/연락처</span><strong>${escapeHtml(vendor.contact || '-')}</strong></div>
           <div class="summary-box"><span>수수료율</span><strong>${Number(vendor.commission || 0)}%</strong></div>
           <div class="summary-box"><span>항목 수</span><strong>${(vendor.items || []).length}개</strong></div>
+          <div class="summary-box address"><span>업체 주소</span><strong>${escapeHtml(vendor.address || '주소 미등록')}</strong></div>
         </div>
         <div>
           <div class="section-head"><div class="section-title"><i class="fa-solid fa-tags"></i> 이용 항목</div></div>
@@ -371,7 +383,7 @@
     function closeModal(id){ document.getElementById(id)?.classList.remove('active'); }
     function openVendorModal(){
       document.getElementById('vendorType').value = currentType;
-      ['vendorName','vendorContact','vendorCommission'].forEach(id => document.getElementById(id).value = '');
+      ['vendorName','vendorContact','vendorCommission','vendorAddress'].forEach(id => document.getElementById(id).value = '');
       openModal('vendorModal');
     }
     function saveVendor() {
@@ -379,7 +391,7 @@
       const name = document.getElementById('vendorName').value.trim();
       if (!name) return alert('업체명을 입력해 주세요.');
       const id = `${type.toUpperCase()}-${Date.now()}`;
-      vendors.unshift({ id, type, name, contact: document.getElementById('vendorContact').value.trim(), commission: Number(document.getElementById('vendorCommission').value || 0), voucherFields: defaultVoucherFields(type), logoDataUrl:'', items: [] });
+      vendors.unshift({ id, type, name, contact: document.getElementById('vendorContact').value.trim(), address: document.getElementById('vendorAddress').value.trim(), commission: Number(document.getElementById('vendorCommission').value || 0), voucherFields: defaultVoucherFields(type), logoDataUrl:'', items: [] });
       currentType = type;
       selectedVendorId = id;
       persistVendors();
