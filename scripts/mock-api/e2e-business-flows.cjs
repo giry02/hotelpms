@@ -400,6 +400,62 @@ async function dashboardCheckinKpiNavigationFlow(page) {
   return { setup, dashboard, list };
 }
 
+async function nightAuditClosedHandoverFlow(page) {
+  await goto(page, '/dashboard/operations/night-audit.html?test=e2e-night-audit-closed');
+  const setup = await page.evaluate(() => {
+    const businessDate = document.getElementById('currentDate')?.textContent || '2026-07-02';
+    localStorage.setItem('pms_night_audit_cash_sessions', JSON.stringify([{
+      id: `TEST-CLOSED-${businessDate}`,
+      businessDate,
+      opening: { PHP: 30000, USD: 200, KRW: 500000 },
+      openedAt: `${businessDate}T08:00:00+09:00`,
+      openedBy: 'Nguyen Kim',
+      withdrawals: [{
+        id: 'WD-TEST',
+        currency: 'PHP',
+        amount: 10000,
+        currencyBreakdown: { PHP: 10000, USD: 150, KRW: 100000 },
+        phpEquivalent: 10000,
+        receiver: 'Manager',
+        note: 'Envelope A-13',
+        createdAt: `${businessDate}T18:00:00+09:00`,
+        operator: 'Nguyen Kim'
+      }],
+      closing: { PHP: 84200, USD: 260, KRW: 650000 },
+      closingPhpEquivalent: 84200,
+      closingNote: 'Count complete',
+      closedAt: `${businessDate}T23:45:00+09:00`,
+      closedBy: 'Nguyen Kim',
+      handoverMemo: 'No special notes. Check 1206 deposit envelope.',
+      nightAuditClosed: true,
+      nightAuditClosedAt: `${businessDate}T23:50:00+09:00`,
+      nightAuditClosedBy: 'Nguyen Kim',
+      sampleData: true
+    }]));
+    return { businessDate };
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.locator('#closedAuditSummary:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+  const state = await page.evaluate(() => ({
+    bodyClosed: document.body.classList.contains('night-audit-closed'),
+    closedVisible: !document.getElementById('closedAuditSummary')?.hidden,
+    memo: document.getElementById('closedAuditMemo')?.textContent?.trim() || '',
+    closeTabDisplay: getComputedStyle(document.getElementById('auditTabBtnClose')).display,
+    cashActive: document.getElementById('auditTabCash')?.classList.contains('active'),
+    actionDisabled: Array.from(document.querySelectorAll('.cash-action-card')).every(button => button.disabled),
+    logHref: document.getElementById('closedAuditLogLink')?.getAttribute('href') || '',
+    session: JSON.parse(localStorage.getItem('pms_night_audit_cash_sessions') || '[]')[0] || null
+  }));
+  assert(state.bodyClosed && state.closedVisible, 'closed night audit summary was not shown');
+  assert(state.memo.includes('1206'), 'closed night audit handover memo was not visible');
+  assert(state.closeTabDisplay === 'none' && state.cashActive, 'closed night audit did not switch away from close input mode');
+  assert(state.actionDisabled, 'closed night audit cash action buttons were still editable');
+  assert(state.logHref.includes(`date=${setup.businessDate}`), 'closed night audit log link did not preserve business date');
+  assert(state.session?.nightAuditClosed === true, 'closed night audit state was overwritten by sample data');
+  return { setup, state };
+}
+
 async function readonlyCheckedInReservationFlow(page) {
   await goto(page, '/dashboard/frontdesk/reservation-timeline.html');
   await page.waitForFunction(() => Array.isArray(window.reservations) && window.reservations.length > 0, null, { timeout: 10000 });
@@ -549,6 +605,7 @@ async function main() {
     ['individual reservation -> timeline', individualReservationFlow],
     ['check-in and check-out', checkinCheckoutFlow],
     ['dashboard check-in KPI -> reservation list count', dashboardCheckinKpiNavigationFlow],
+    ['night audit closed handover view', nightAuditClosedHandoverFlow],
     ['checked-in reservation readonly modal', readonlyCheckedInReservationFlow],
     ['housekeeping -> maintenance', housekeepingMaintenanceFlow],
     ['admin tenant application -> list', adminTenantApplicationFlow]

@@ -78,6 +78,29 @@
         .close-previous-handover strong { display: block; color: var(--txt); font-size: .8rem; margin-bottom: 3px; }
         .close-confirm-label { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; cursor: pointer; font-size: 0.95rem; margin: 0; }
         .close-run-button { padding: 12px 30px; font-size: 1rem; }
+        .closed-audit-summary { border: 1px solid #a7f3d0; border-radius: 14px; background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%); box-shadow: 0 12px 28px rgba(15, 23, 42, .07); margin: 0 0 20px; overflow: hidden; }
+        .closed-audit-summary[hidden] { display: none !important; }
+        .closed-audit-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 18px 20px; border-bottom: 1px solid #bbf7d0; }
+        .closed-audit-title { display: flex; align-items: center; gap: 10px; color: #047857; font-size: 1.08rem; font-weight: 950; }
+        .closed-audit-title i { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: #dcfce7; color: #059669; }
+        .closed-audit-subtitle { margin-top: 6px; color: var(--txt2); font-size: .82rem; font-weight: 780; line-height: 1.5; }
+        .closed-audit-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+        .closed-audit-action { min-height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid #bfdbfe; background: #eff6ff; color: var(--primary); font-size: .8rem; font-weight: 950; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
+        .closed-audit-action.primary { border-color: #93c5fd; background: var(--primary); color: #fff; }
+        .closed-audit-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 14px 16px; }
+        .closed-audit-card { border: 1px solid var(--border2); border-radius: 11px; background: #fff; padding: 12px; min-width: 0; }
+        .closed-audit-card.wide { grid-column: span 2; }
+        .closed-audit-label { color: var(--txt3); font-size: .72rem; font-weight: 850; margin-bottom: 7px; }
+        .closed-audit-value { color: var(--txt); font-size: .94rem; font-weight: 950; line-height: 1.45; overflow-wrap: anywhere; }
+        .closed-audit-value.success { color: #047857; }
+        .closed-audit-value.memo { white-space: pre-wrap; color: var(--txt2); font-weight: 850; }
+        body.night-audit-closed #auditTabBtnClose,
+        body.night-audit-closed #auditTabClose { display: none !important; }
+        body.night-audit-closed .cash-action-card { cursor: default; opacity: .92; box-shadow: none; }
+        body.night-audit-closed .cash-action-card:hover,
+        body.night-audit-closed .cash-action-card:focus-visible { transform: none; box-shadow: none; background: #fff; }
+        body.night-audit-closed .cash-action-cta { background: #e2e8f0 !important; color: #475569; }
+        body.night-audit-closed .cash-command-kicker { background: #dcfce7; color: #047857; }
         .close-basis-section { overflow: hidden; }
         .close-basis-summary { list-style: none; cursor: pointer; justify-content: space-between; }
         .close-basis-summary::-webkit-details-marker { display: none; }
@@ -429,6 +452,11 @@
             .revenue-row { grid-template-columns: 1fr; gap: 12px; }
             .revenue-row-actions { justify-content: space-between; min-width: 0; }
             .revenue-total { grid-column: 1; }
+            .closed-audit-hero { flex-direction: column; }
+            .closed-audit-actions { width: 100%; justify-content: stretch; }
+            .closed-audit-action { flex: 1 1 160px; }
+            .closed-audit-grid { grid-template-columns: 1fr; }
+            .closed-audit-card.wide { grid-column: 1; }
             .audit-tabs { overflow-x: auto; }
             .cash-command-head { flex-direction: column; }
             .cash-command-note { flex-basis: auto; width: 100%; box-sizing: border-box; }
@@ -472,6 +500,57 @@
             <button type="button" class="audit-tab active" id="auditTabBtnClose" onclick="setAuditTab('close')"><i class="fa-solid fa-list-check"></i> 마감 체크</button>
             <button type="button" class="audit-tab" id="auditTabBtnCash" onclick="setAuditTab('cash')"><i class="fa-solid fa-cash-register"></i> 시재 인수인계</button>
         </div>
+
+        <section class="closed-audit-summary" id="closedAuditSummary" hidden>
+            <div class="closed-audit-hero">
+                <div>
+                    <div class="closed-audit-title"><i class="fa-solid fa-circle-check"></i><span id="closedAuditTitle">마감 완료</span></div>
+                    <div class="closed-audit-subtitle" id="closedAuditSubtitle">이 영업일은 이미 마감되었습니다. 다음 근무자는 아래 마감 금액과 인수인계 메모를 확인하세요.</div>
+                </div>
+                <div class="closed-audit-actions">
+                    <a class="closed-audit-action primary" href="closing-log.html" id="closedAuditLogLink"><i class="fa-solid fa-clipboard-list"></i> 마감 로그 보기</a>
+                    <button type="button" class="closed-audit-action" id="closedAuditCashButton" onclick="setAuditTab('cash')"><i class="fa-solid fa-cash-register"></i> 시재 내역 보기</button>
+                </div>
+            </div>
+            <div class="closed-audit-grid">
+                <div class="closed-audit-card">
+                    <div class="closed-audit-label" id="closedAuditDateLabel">마감 영업일</div>
+                    <div class="closed-audit-value" id="closedAuditDate">-</div>
+                </div>
+                <div class="closed-audit-card">
+                    <div class="closed-audit-label" id="closedAuditClosedAtLabel">마감 시간</div>
+                    <div class="closed-audit-value" id="closedAuditClosedAt">-</div>
+                </div>
+                <div class="closed-audit-card">
+                    <div class="closed-audit-label" id="closedAuditOperatorLabel">마감 담당자</div>
+                    <div class="closed-audit-value" id="closedAuditOperator">-</div>
+                </div>
+                <div class="closed-audit-card">
+                    <div class="closed-audit-label" id="closedAuditWithdrawalsLabel">중간출금</div>
+                    <div class="closed-audit-value" id="closedAuditWithdrawals">-</div>
+                </div>
+                <div class="closed-audit-card wide">
+                    <div class="closed-audit-label" id="closedAuditCashLabel">마감 보유현금</div>
+                    <div class="closed-audit-value success" id="closedAuditCash">-</div>
+                </div>
+                <div class="closed-audit-card wide">
+                    <div class="closed-audit-label" id="closedAuditVarianceLabel">차액 여부</div>
+                    <div class="closed-audit-value" id="closedAuditVariance">-</div>
+                </div>
+                <div class="closed-audit-card">
+                    <div class="closed-audit-label" id="closedAuditSettlementLabel">현금 정산</div>
+                    <div class="closed-audit-value" id="closedAuditSettlement">-</div>
+                </div>
+                <div class="closed-audit-card">
+                    <div class="closed-audit-label" id="closedAuditDepositLabel">예치금</div>
+                    <div class="closed-audit-value" id="closedAuditDeposit">-</div>
+                </div>
+                <div class="closed-audit-card wide">
+                    <div class="closed-audit-label" id="closedAuditMemoLabel">인수인계 메모</div>
+                    <div class="closed-audit-value memo" id="closedAuditMemo">-</div>
+                </div>
+            </div>
+        </section>
 
         <div id="auditTabClose" class="audit-tab-panel active">
         <!-- 1. Pre-Close Checklist -->
@@ -1119,6 +1198,21 @@ const NIGHT_AUDIT_I18N = {
         'close.handoverRequired': '마감 인수인계 사항을 입력해주세요.',
         'close.confirmLabel': '위 정산 내역을 확인하였으며, {date} 영업일을 마감합니다.',
         'close.run': '일일 영업 마감 실행',
+        'closed.title': '마감 완료',
+        'closed.subtitle': '이 영업일은 이미 마감되었습니다. 다음 근무자는 아래 마감 금액과 인수인계 메모를 확인하세요.',
+        'closed.businessDate': '마감 영업일',
+        'closed.closedAt': '마감 시간',
+        'closed.closedBy': '마감 담당자',
+        'closed.cashOnHand': '마감 보유현금',
+        'closed.variance': '차액 여부',
+        'closed.settlement': '현금 정산',
+        'closed.deposit': '예치금',
+        'closed.withdrawals': '중간출금',
+        'closed.handoverMemo': '인수인계 메모',
+        'closed.noMemo': '인수인계 메모 없음',
+        'closed.viewLog': '마감 로그 보기',
+        'closed.viewCash': '시재 내역 보기',
+        'closed.locked': '마감 완료된 영업일입니다. 수정은 마감 로그와 관리자 승인 흐름에서 처리해야 합니다.',
         'cash.section': '시재 시작 / 출금 / 정산 현황',
         'cash.commandKicker': '오늘 처리할 시재 업무',
         'cash.commandTitle': '시재는 아래 3개 버튼으로 등록합니다.',
@@ -1291,6 +1385,21 @@ const NIGHT_AUDIT_I18N = {
         'close.handoverRequired': 'Enter the daily close handover memo.',
         'close.confirmLabel': 'I have reviewed the settlement details and will close business date {date}.',
         'close.run': 'Run Daily Close',
+        'closed.title': 'Daily Close Completed',
+        'closed.subtitle': 'This business date is already closed. The next shift should review the closing cash and handover memo below.',
+        'closed.businessDate': 'Closed business date',
+        'closed.closedAt': 'Closed at',
+        'closed.closedBy': 'Closed by',
+        'closed.cashOnHand': 'Closing cash on hand',
+        'closed.variance': 'Variance',
+        'closed.settlement': 'Cash settlement',
+        'closed.deposit': 'Deposits',
+        'closed.withdrawals': 'Mid-shift withdrawals',
+        'closed.handoverMemo': 'Handover memo',
+        'closed.noMemo': 'No handover memo',
+        'closed.viewLog': 'View close log',
+        'closed.viewCash': 'View cash history',
+        'closed.locked': 'This business date has been closed. Changes should be handled through the close log and approval flow.',
         'cash.section': 'Cash Opening / Withdrawal / Settlement Status',
         'cash.commandKicker': 'Cash tasks for today',
         'cash.commandTitle': 'Use the three buttons below to register cash work.',
@@ -2202,7 +2311,7 @@ function ensureNightAuditSampleData() {
         if (sessionIndex < 0) {
             sessions.push(sampleSession);
             sessionChanged = true;
-        } else if (sessions[sessionIndex]?.sampleData) {
+        } else if (sessions[sessionIndex]?.sampleData && !sessions[sessionIndex]?.nightAuditClosed) {
             sessions[sessionIndex] = sampleSession;
             sessionChanged = true;
         }
@@ -2245,6 +2354,14 @@ function saveCashSession(session) {
     if (index >= 0) sessions[index] = session;
     else sessions.push(session);
     setStorageJson(CASH_SESSION_KEY, sessions);
+}
+
+function markCashSessionUserEdited(session) {
+    if (!session) return session;
+    delete session.sampleData;
+    session.updatedAt = nowIso();
+    session.updatedBy = operatorName();
+    return session;
 }
 
 function previousHandoverSession(date = auditBusinessDate()) {
@@ -3223,7 +3340,10 @@ function nightAuditTabFromLocation() {
 }
 
 function setAuditTab(tab, options = {}) {
-    const nextTab = ['close', 'cash'].includes(tab) ? tab : 'close';
+    let nextTab = ['close', 'cash'].includes(tab) ? tab : 'close';
+    if (isNightAuditClosedSession(activeCashSession(false))) {
+        nextTab = 'cash';
+    }
     document.getElementById('auditTabClose')?.classList.toggle('active', nextTab === 'close');
     document.getElementById('auditTabCash')?.classList.toggle('active', nextTab === 'cash');
     document.getElementById('auditTabBtnClose')?.classList.toggle('active', nextTab === 'close');
@@ -3239,6 +3359,10 @@ function setAuditTab(tab, options = {}) {
 function openCashEntryModal(type) {
     const modal = document.getElementById('cashEntryModal');
     if (!modal) return;
+    if (isNightAuditClosedSession(activeCashSession(false))) {
+        showToast(nightAuditText('closed.locked'), 'error');
+        return;
+    }
     renderCashHandover();
     const normalized = ['opening', 'withdraw', 'closing'].includes(type) ? type : 'opening';
     currentCashEntryType = normalized;
@@ -3284,6 +3408,7 @@ function saveOpeningCash() {
     session.openingNote = textValue('openNote');
     session.openedAt = nowIso();
     session.openedBy = operatorName();
+    markCashSessionUserEdited(session);
     saveCashSession(session);
     renderCashHandover();
     closeCashEntryModal();
@@ -3312,6 +3437,7 @@ function addWithdrawal() {
         createdAt: nowIso(),
         operator: operatorName()
     });
+    markCashSessionUserEdited(session);
     saveCashSession(session);
     ['withdrawPhp', 'withdrawUsd', 'withdrawKrw', 'withdrawReceiver', 'withdrawNote'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     renderCashHandover();
@@ -3329,6 +3455,7 @@ function saveClosingCash() {
     session.closingNote = textValue('closeNote');
     session.closedAt = nowIso();
     session.closedBy = operatorName();
+    markCashSessionUserEdited(session);
     saveCashSession(session);
     renderCashHandover();
     closeCashEntryModal();
@@ -3504,6 +3631,85 @@ function renderCashHandover() {
     if (document.getElementById('unsettledSettlementPanel')?.hidden === false) {
         renderUnsettledSettlementModal();
     }
+    renderClosedAuditSummary(cashHandoverSnapshot);
+}
+
+function isNightAuditClosedSession(session) {
+    return !!session?.nightAuditClosed;
+}
+
+function setClosedAuditText(id, key) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = nightAuditText(key);
+}
+
+function setClosedAuditHtml(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = value;
+}
+
+function closedAuditWithdrawalSummary(state) {
+    const count = Number(state?.withdrawalCount || 0);
+    if (!count) return nightAuditText('cash.noWithdrawals');
+    const currencies = compactCurrencySummary(state.withdrawalCurrencies || {}, '');
+    return `${nightAuditText('cash.withdrawCount', { count })}${currencies ? ` · ${currencies}` : ''}`;
+}
+
+function applyClosedAuditLock(isClosed) {
+    document.body.classList.toggle('night-audit-closed', isClosed);
+    const closeTab = document.getElementById('auditTabBtnClose');
+    if (closeTab) closeTab.disabled = isClosed;
+    document.querySelectorAll('.cash-action-card').forEach(card => {
+        card.disabled = isClosed;
+        card.setAttribute('aria-disabled', isClosed ? 'true' : 'false');
+    });
+    if (isClosed) {
+        document.getElementById('auditTabClose')?.classList.remove('active');
+        document.getElementById('auditTabCash')?.classList.add('active');
+        document.getElementById('auditTabBtnClose')?.classList.remove('active');
+        document.getElementById('auditTabBtnCash')?.classList.add('active');
+    }
+}
+
+function renderClosedAuditSummary(state = cashHandoverSnapshot) {
+    const session = state?.session || activeCashSession(false);
+    const isClosed = isNightAuditClosedSession(session);
+    const box = document.getElementById('closedAuditSummary');
+    if (!box) return;
+    box.hidden = !isClosed;
+    applyClosedAuditLock(isClosed);
+    if (!isClosed) return;
+
+    setClosedAuditText('closedAuditTitle', 'closed.title');
+    setClosedAuditText('closedAuditSubtitle', 'closed.subtitle');
+    setClosedAuditText('closedAuditDateLabel', 'closed.businessDate');
+    setClosedAuditText('closedAuditClosedAtLabel', 'closed.closedAt');
+    setClosedAuditText('closedAuditOperatorLabel', 'closed.closedBy');
+    setClosedAuditText('closedAuditCashLabel', 'closed.cashOnHand');
+    setClosedAuditText('closedAuditVarianceLabel', 'closed.variance');
+    setClosedAuditText('closedAuditSettlementLabel', 'closed.settlement');
+    setClosedAuditText('closedAuditDepositLabel', 'closed.deposit');
+    setClosedAuditText('closedAuditWithdrawalsLabel', 'closed.withdrawals');
+    setClosedAuditText('closedAuditMemoLabel', 'closed.handoverMemo');
+    const logLink = document.getElementById('closedAuditLogLink');
+    if (logLink) {
+        logLink.href = `closing-log.html?date=${encodeURIComponent(session.businessDate || auditBusinessDate())}`;
+        logLink.innerHTML = `<i class="fa-solid fa-clipboard-list"></i> ${nightAuditText('closed.viewLog')}`;
+    }
+    const cashButton = document.getElementById('closedAuditCashButton');
+    if (cashButton) cashButton.innerHTML = `<i class="fa-solid fa-cash-register"></i> ${nightAuditText('closed.viewCash')}`;
+
+    setClosedAuditHtml('closedAuditDate', escapeAudit(session.businessDate || auditBusinessDate()));
+    setClosedAuditHtml('closedAuditClosedAt', escapeAudit(formatAuditTime(session.nightAuditClosedAt || session.closedAt)));
+    setClosedAuditHtml('closedAuditOperator', escapeAudit(session.nightAuditClosedBy || session.closedBy || '-'));
+    setClosedAuditHtml('closedAuditCash', renderCashCurrencyLines(state?.closingCurrencies || session.closing || {}, { includeZero: false, emptyLabel: cashUiText('0원', '0') }));
+    setClosedAuditHtml('closedAuditVariance', state?.hasVariance
+        ? renderCashCurrencyLines(state.varianceCurrencies || {}, { includeZero: true, signed: true })
+        : `<span class="currency-chip success"><span>${escapeAudit(cashUiText('차액 없음', 'Matched'))}</span></span>`);
+    setClosedAuditHtml('closedAuditSettlement', moneyPhp(state?.cashSettlementPhp || 0));
+    setClosedAuditHtml('closedAuditDeposit', moneyPhp(state?.cashDepositPhp || 0));
+    setClosedAuditHtml('closedAuditWithdrawals', escapeAudit(closedAuditWithdrawalSummary(state)));
+    setClosedAuditHtml('closedAuditMemo', escapeAudit(String(session.handoverMemo || '').trim() || nightAuditText('closed.noMemo')));
 }
 
 function formatAuditTime(value) {
@@ -3751,6 +3957,7 @@ function applyNightAuditI18n() {
     if (modalPrimary && !auditIssueState.activeIssue) modalPrimary.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> ${t('issue.modalAction')}`;
     const modalClose = document.querySelector('#auditIssueModal .modal-footer .btn-outline');
     if (modalClose) modalClose.textContent = t('modal.close');
+    renderClosedAuditSummary(cashHandoverSnapshot);
 }
 
 async function loadAuditData() {
@@ -3831,12 +4038,17 @@ function runNightAudit() {
         session.nightAuditClosed = true;
         session.nightAuditClosedAt = closedAt;
         session.nightAuditClosedBy = operatorName();
+        markCashSessionUserEdited(session);
         saveCashSession(session);
 
         setTimeout(() => {
             showToast(nightAuditText('close.complete'), 'success');
-            window.location.href = '../dashboard.html';
-        }, 2000);
+            const confirm = document.getElementById('confirmCheck');
+            if (confirm) confirm.checked = false;
+            renderCashHandover();
+            applyNightAuditI18n();
+            refreshNightAuditDynamicText();
+        }, 500);
     }
 }
 
