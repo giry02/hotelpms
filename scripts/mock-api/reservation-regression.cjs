@@ -79,6 +79,85 @@ function countValues(values) {
   }, {});
 }
 
+async function dashboardCheckinCountRegression(page, base) {
+  await page.goto(`${base}/dashboard/dashboard.html?test=reservation-count-regression`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => window.PmsMockApi && document.querySelectorAll('.ops-kpi-card').length >= 4, null, { timeout: 15000 });
+
+  const setup = await page.evaluate(async () => {
+    const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
+    const reservationsEnv = await window.PmsMockApi.request('GET', '/reservations');
+    const roomsEnv = await window.PmsMockApi.request('GET', '/rooms');
+    const reservations = window.PmsMockApi.items(reservationsEnv).map(window.PmsMockApi.toLegacyReservation);
+    const rooms = window.PmsMockApi.items(roomsEnv);
+    const closed = new Set(['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow', 'no_show', 'checkedin', 'checked-in', 'inhouse', 'in-house']);
+    const statusKey = value => String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+    const todayCheckins = reservations
+      .filter(res => String(res.checkInDate || res.checkin || '').slice(0, 10) === today && !closed.has(statusKey(res.status)))
+      .sort((a, b) => String(a.room || '').localeCompare(String(b.room || ''), 'ko', { numeric: true }));
+    const targetRooms = todayCheckins
+      .filter(res => ['confirmed', 'pending'].includes(statusKey(res.status)))
+      .slice(0, 2)
+      .map(res => String(res.roomNo || res.room || '').trim())
+      .filter(Boolean);
+    if (targetRooms.length < 2) return { today, targetRooms, before: todayCheckins.length, skipped: true };
+    const nextRooms = rooms.map(room => targetRooms.includes(String(room.roomNo || '').trim())
+      ? { ...room, frontStatus: 'in-house', status: 'occupied' }
+      : room);
+    localStorage.setItem('mockapi:v1:TENANT-GRAND-SAIGON:rooms', JSON.stringify({
+      items: nextRooms,
+      page: { page: 1, pageSize: Math.max(nextRooms.length, 50), total: nextRooms.length, totalPages: 1 }
+    }));
+    return { today, targetRooms, before: todayCheckins.length, expectedAfter: todayCheckins.length - targetRooms.length };
+  });
+
+  assert(!setup.skipped, 'Dashboard check-in count regression needs at least two due check-in reservations.', setup);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => {
+    const first = document.querySelector('.ops-kpi-card');
+    return first && /\d+/.test(first.innerText || '');
+  }, null, { timeout: 15000 });
+
+  const dashboardState = await page.evaluate(() => {
+    const opsCard = document.querySelector('.ops-kpi-card');
+    const opsText = opsCard?.innerText.trim() || '';
+    const opsCount = Number((opsText.match(/(\d+)\s*$/) || [])[1]);
+    const topText = Array.from(document.querySelectorAll('.kpi-card')).map(card => card.innerText.trim()).find(text => /체크인|Check-in/.test(text)) || '';
+    return { opsText, opsCount, topText };
+  });
+
+  assert(dashboardState.opsCount === setup.expectedAfter, 'Dashboard check-in KPI did not subtract rooms already marked in-house.', { setup, dashboardState });
+
+  await page.locator('.ops-kpi-card').first().click();
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('.ops-tab.active') && document.querySelector('#periodFilterSelect'), null, { timeout: 15000 });
+
+  const listState = await page.evaluate(() => {
+    const active = document.querySelector('.ops-tab.active')?.innerText.trim() || '';
+    const tabCount = Number((active.match(/(\d+)\s*$/) || [])[1]);
+    const pageInfo = document.querySelector('#pageInfo')?.innerText.trim() || '';
+    const pageTotal = Number((pageInfo.match(/총\s*([0-9]+)건/) || [])[1] || tabCount);
+    return {
+      url: location.href,
+      active,
+      tabCount,
+      pageInfo,
+      pageTotal,
+      rowCount: document.querySelectorAll('#resBody tr.res-click-row').length,
+      period: document.querySelector('#periodFilterSelect')?.value
+    };
+  });
+
+  assert(listState.url.includes('reservation-list.html') && listState.url.includes('tab=checkin') && listState.url.includes('period=today'), 'Dashboard check-in KPI must navigate to reservation list today check-in filter.', listState);
+  assert(listState.period === 'today', 'Reservation list period must stay today after dashboard check-in navigation.', listState);
+  assert(listState.tabCount === dashboardState.opsCount && listState.pageTotal === dashboardState.opsCount, 'Dashboard and reservation list check-in counts diverged.', { setup, dashboardState, listState });
+
+  await page.evaluate(() => localStorage.removeItem('mockapi:v1:TENANT-GRAND-SAIGON:rooms'));
+  return { setup, dashboardState, listState };
+}
+
 (async () => {
   let base = DEFAULT_BASE;
   let server = null;
@@ -107,6 +186,8 @@ function countValues(values) {
       sessionStorage.setItem('admin_logged_in', 'true');
       localStorage.setItem('pms_lang', 'ko');
     });
+
+    const dashboardCountResult = await dashboardCheckinCountRegression(page, base);
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -291,8 +372,10 @@ function countValues(values) {
         'new reservation has no manual status/group conversion controls',
         'edit detail keeps guest search idle until user searches',
         'representative/companion buttons only show for active guest candidates',
-        'group block timeline modal allows guest entry without forcing conversion'
-      ]
+        'group block timeline modal allows guest entry without forcing conversion',
+        'dashboard today check-in KPI matches reservation list after rooms become in-house'
+      ],
+      dashboardCountResult
     }, null, 2));
   } catch (error) {
     console.error(JSON.stringify({ ok: false, error: error.message, details: error.details || null, consoleIssues }, null, 2));

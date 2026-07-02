@@ -147,6 +147,17 @@ async function groupRoomingTimelineFlow(page) {
   const targetRoom = '0802';
   await page.evaluate(roomId => window.openRoomingModal(roomId, '', 'primary'), targetRoom);
   await page.locator('#roomingModal.active').waitFor({ state: 'visible', timeout: 5000 });
+  const newRoomingGuestButton = await firstVisibleLocator(page, '#nrNewGuestBtnRooming');
+  if (newRoomingGuestButton && await newRoomingGuestButton.isVisible().catch(() => false)) {
+    await newRoomingGuestButton.click();
+    await page.waitForTimeout(200);
+  } else {
+    await page.evaluate(() => window._roomingGuestWidget?.showNewForm?.());
+  }
+  await page.waitForFunction(() => {
+    const input = document.getElementById('nrGuestRooming');
+    return !!input && getComputedStyle(input).display !== 'none' && input.getClientRects().length > 0;
+  }, null, { timeout: 5000 });
   await fillIfPresent(page, '#nrGuestRooming', guestName);
   await fillIfPresent(page, '#nrPhoneRooming', '+82 10 0000 0802');
   await fillIfPresent(page, '#nrEmailRooming', `group-${runId}@example.com`);
@@ -321,6 +332,74 @@ async function checkinCheckoutFlow(page) {
   return { checkedIn: guestName, checkedOut: guestName };
 }
 
+async function dashboardCheckinKpiNavigationFlow(page) {
+  await goto(page, '/dashboard/dashboard.html?test=e2e-checkin-count');
+  await page.waitForFunction(() => window.PmsMockApi && document.querySelectorAll('.ops-kpi-card').length >= 4, null, { timeout: 15000 });
+
+  const setup = await page.evaluate(async () => {
+    const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
+    const reservationsEnv = await window.PmsMockApi.request('GET', '/reservations');
+    const roomsEnv = await window.PmsMockApi.request('GET', '/rooms');
+    const reservations = window.PmsMockApi.items(reservationsEnv).map(window.PmsMockApi.toLegacyReservation);
+    const rooms = window.PmsMockApi.items(roomsEnv);
+    const statusKey = value => String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+    const closed = new Set(['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow', 'no_show', 'checkedin', 'checked-in', 'inhouse', 'in-house']);
+    const todayCheckins = reservations
+      .filter(res => String(res.checkInDate || res.checkin || '').slice(0, 10) === today && !closed.has(statusKey(res.status)))
+      .sort((a, b) => String(a.room || '').localeCompare(String(b.room || ''), 'ko', { numeric: true }));
+    const targetRooms = todayCheckins
+      .filter(res => ['confirmed', 'pending'].includes(statusKey(res.status)))
+      .slice(0, 2)
+      .map(res => String(res.roomNo || res.room || '').trim())
+      .filter(Boolean);
+    if (targetRooms.length < 2) return { today, targetRooms, before: todayCheckins.length, skipped: true };
+    const nextRooms = rooms.map(room => targetRooms.includes(String(room.roomNo || '').trim())
+      ? { ...room, frontStatus: 'in-house', status: 'occupied' }
+      : room);
+    localStorage.setItem('mockapi:v1:TENANT-GRAND-SAIGON:rooms', JSON.stringify({
+      items: nextRooms,
+      page: { page: 1, pageSize: Math.max(nextRooms.length, 50), total: nextRooms.length, totalPages: 1 }
+    }));
+    return { today, targetRooms, before: todayCheckins.length, expectedAfter: todayCheckins.length - targetRooms.length };
+  });
+
+  assert(!setup.skipped, 'dashboard check-in KPI regression needs at least two due check-in reservations');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => /\d+/.test(document.querySelector('.ops-kpi-card')?.innerText || ''), null, { timeout: 15000 });
+
+  const dashboard = await page.evaluate(() => {
+    const card = document.querySelector('.ops-kpi-card');
+    const text = card?.innerText.trim() || '';
+    return {
+      text,
+      count: Number((text.match(/(\d+)\s*$/) || [])[1]),
+      topText: Array.from(document.querySelectorAll('.kpi-card')).map(item => item.innerText.trim()).find(textValue => /체크인|Check-in/.test(textValue)) || ''
+    };
+  });
+  assert(dashboard.count === setup.expectedAfter, `dashboard check-in count did not reflect in-house room state: expected ${setup.expectedAfter}, got ${dashboard.count}`);
+
+  await page.locator('.ops-kpi-card').first().click();
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => document.querySelector('.ops-tab.active') && document.querySelector('#pageInfo'), null, { timeout: 15000 });
+  const list = await page.evaluate(() => {
+    const active = document.querySelector('.ops-tab.active')?.innerText.trim() || '';
+    const pageInfo = document.querySelector('#pageInfo')?.innerText.trim() || '';
+    return {
+      url: location.href,
+      active,
+      tabCount: Number((active.match(/(\d+)\s*$/) || [])[1]),
+      pageTotal: Number((pageInfo.match(/총\s*([0-9]+)건/) || [])[1]),
+      rowCount: document.querySelectorAll('#resBody tr.res-click-row').length,
+      period: document.querySelector('#periodFilterSelect')?.value
+    };
+  });
+  assert(list.url.includes('reservation-list.html') && list.url.includes('tab=checkin') && list.url.includes('period=today'), 'dashboard check-in KPI did not navigate to reservation list today check-in filter');
+  assert(list.period === 'today', 'reservation list period was not today after dashboard check-in KPI navigation');
+  assert(list.tabCount === dashboard.count && list.pageTotal === dashboard.count, `dashboard/list check-in counts diverged: dashboard ${dashboard.count}, tab ${list.tabCount}, total ${list.pageTotal}`);
+  return { setup, dashboard, list };
+}
+
 async function readonlyCheckedInReservationFlow(page) {
   await goto(page, '/dashboard/frontdesk/reservation-timeline.html');
   await page.waitForFunction(() => Array.isArray(window.reservations) && window.reservations.length > 0, null, { timeout: 10000 });
@@ -469,6 +548,7 @@ async function main() {
     ['group rooming -> timeline', groupRoomingTimelineFlow],
     ['individual reservation -> timeline', individualReservationFlow],
     ['check-in and check-out', checkinCheckoutFlow],
+    ['dashboard check-in KPI -> reservation list count', dashboardCheckinKpiNavigationFlow],
     ['checked-in reservation readonly modal', readonlyCheckedInReservationFlow],
     ['housekeeping -> maintenance', housekeepingMaintenanceFlow],
     ['admin tenant application -> list', adminTenantApplicationFlow]
