@@ -33,6 +33,90 @@ document.addEventListener('DOMContentLoaded', async () => {
         const md = `${d.getMonth() + 1}/${d.getDate()}`;
         return raw === md || raw.replace(/^0/, '').replace('/0', '/') === md;
     };
+    const statusKey = (value) => normalizeStatus(value).replace(/-/g, '');
+    const dateOnly = (value, isoDate) => {
+        const raw = String(value || '').trim();
+        if (!raw) return null;
+        let match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        match = raw.match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (match) {
+            const year = Number(String(isoDate || localIso()).slice(0, 4)) || new Date().getFullYear();
+            return new Date(year, Number(match[1]) - 1, Number(match[2]));
+        }
+        const parsed = new Date(raw);
+        if (Number.isNaN(parsed.getTime())) return null;
+        parsed.setHours(0, 0, 0, 0);
+        return parsed;
+    };
+    const stayIncludes = (reservation, isoDate) => {
+        const start = dateOnly(reservation?.checkInDate || reservation?.checkin || reservation?.cin, isoDate);
+        const end = dateOnly(reservation?.checkOutDate || reservation?.checkout || reservation?.cout, isoDate);
+        const target = dateOnly(isoDate, isoDate);
+        return !!(start && end && target && start <= target && target < end);
+    };
+    const checkoutDue = (reservation, isoDate) => {
+        const end = dateOnly(reservation?.checkOutDate || reservation?.checkout || reservation?.cout, isoDate);
+        const target = dateOnly(isoDate, isoDate);
+        return !!(end && target && end <= target);
+    };
+    const normalizeRoomValue = (value) => {
+        const text = String(value || '').trim().toLowerCase();
+        const compact = text.replace(/[^a-z0-9]/g, '');
+        const tail = text.includes('-') ? text.split('-').pop() : text;
+        const compactTail = tail.replace(/[^a-z0-9]/g, '');
+        const digits = (text.match(/\d+/g) || []).join('');
+        return {
+            text,
+            compact,
+            tail,
+            compactTail,
+            digits,
+            strippedDigits: digits.replace(/^0+(?=\d)/, ''),
+            hasLetters: /[a-z]/.test(compact)
+        };
+    };
+    const sameRoomValue = (left, right) => {
+        const a = normalizeRoomValue(left);
+        const b = normalizeRoomValue(right);
+        if (!a.text || !b.text) return false;
+        const aKeys = [a.text, a.compact, a.tail, a.compactTail].filter(Boolean);
+        const bKeys = new Set([b.text, b.compact, b.tail, b.compactTail].filter(Boolean));
+        if (aKeys.some(key => bKeys.has(key))) return true;
+        const sameDigits = a.digits && b.digits && (a.digits === b.digits || a.strippedDigits === b.strippedDigits);
+        return !!sameDigits && (!a.hasLetters || !b.hasLetters);
+    };
+    const roomMatchesReservation = (room, reservation) => {
+        const roomValues = [room?.id, room?.fullRoom, room?.roomId, room?.number, room?.roomNo, room?.display, room?.displayName, room?.roomLabel];
+        const reservationValues = [reservation?.room, reservation?.fullRoom, reservation?.roomId, reservation?.roomNo, reservation?.roomNumber, reservation?.roomLabel];
+        return roomValues.some(roomValue => reservationValues.some(reservationValue => sameRoomValue(roomValue, reservationValue)));
+    };
+    const roomForReservation = (reservation) => rooms.find(room => roomMatchesReservation(room, reservation)) || null;
+    const roomIsInHouseForReservation = (reservation) => {
+        const room = roomForReservation(reservation);
+        return ['checkedin', 'inhouse', 'occupied'].includes(statusKey(room?.frontStatus || room?.occupancyStatus || room?.status));
+    };
+    const effectiveReservationStatus = (reservation, isoDate) => {
+        let status = statusKey(reservation?.status);
+        if (['confirmed', 'pending'].includes(status) && roomIsInHouseForReservation(reservation) && stayIncludes(reservation, isoDate)) {
+            status = 'checkedin';
+        }
+        if (status === 'checkedin' && checkoutDue(reservation, isoDate)) return 'checkout';
+        return status;
+    };
+    const isTodayCheckinTarget = (reservation, isoDate) => {
+        if (!dateMatches(reservation?.checkInDate || reservation?.checkin || reservation?.cin, isoDate)) return false;
+        const status = effectiveReservationStatus(reservation, isoDate);
+        if (['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow'].includes(status)) return false;
+        if (status === 'checkout') return false;
+        if (status === 'checkedin' && stayIncludes(reservation, isoDate)) return false;
+        return true;
+    };
+    const isTodayCheckoutTarget = (reservation, isoDate) => {
+        if (!dateMatches(reservation?.checkOutDate || reservation?.checkout || reservation?.cout, isoDate)) return false;
+        const status = effectiveReservationStatus(reservation, isoDate);
+        return ['checkedin', 'checkout'].includes(status);
+    };
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, char => ({
         '&': '&amp;',
         '<': '&lt;',
@@ -137,28 +221,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const revpar = formatMoney(dailyRoomRevenue / totalRooms, currency);
 
     const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : localIso();
-    const isTodayArrivalStatus = (status) => ![
-        'cancelled',
-        'canceled',
-        'completed',
-        'checkedout',
-        'checked-out',
-        'checkoutcompleted',
-        'checkout-completed',
-        'noshow',
-        'no-show',
-        'checkedin',
-        'checked-in',
-        'inhouse',
-        'in-house'
-    ].includes(status);
-    const todayCheckinRes = reservations.filter(r =>
-        dateMatches(r.checkInDate || r.checkin || r.cin, today) && isTodayArrivalStatus(normalizeStatus(r.status))
-    );
-    const todayCheckoutRes = reservations.filter(r => {
-        const status = normalizeStatus(r.status);
-        return dateMatches(r.checkOutDate || r.checkout || r.cout, today) && ['checked-in', 'checkedin', 'in-house', 'inhouse', 'checkout'].includes(status);
-    });
+    const todayCheckinRes = reservations.filter(r => isTodayCheckinTarget(r, today));
+    const todayCheckoutRes = reservations.filter(r => isTodayCheckoutTarget(r, today));
     const todayCheckin = todayCheckinRes.length;
     const todayCheckout = todayCheckoutRes.length;
 

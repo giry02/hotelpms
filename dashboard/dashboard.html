@@ -730,8 +730,8 @@
         const number = Math.round(Number(value || 0));
         return typeof window.pmsFormatCurrency === 'function' ? window.pmsFormatCurrency(number) : `PHP ${number.toLocaleString('en-US')}`;
     }
-    function statusOf(value) {
-        return String(value?.status || '').replace(/[-_\s]/g, '').toLowerCase();
+    function statusKey(value) {
+        return String(value || '').replace(/[-_\s]/g, '').toLowerCase();
     }
     function roomText(value) {
         return value?.roomNo || value?.room || value?.fullRoom || value?.display || value?.displayName || value?.id || '-';
@@ -867,6 +867,14 @@
         if (a.text === b.text) return true;
         return !!(a.digits && b.digits && a.digits === b.digits);
     }
+    function dashboardRoomMatchesReservation(room, res) {
+        const roomValues = [room?.id, room?.fullRoom, room?.roomId, room?.number, room?.roomNo, room?.display, room?.displayName, room?.roomLabel];
+        const resValues = [res?.room, res?.fullRoom, res?.roomId, res?.roomNo, res?.roomNumber, res?.roomLabel];
+        return roomValues.some(roomValue => resValues.some(resValue => dashboardSameRoom(roomValue, resValue)));
+    }
+    function dashboardRoomForReservation(res, rooms = []) {
+        return rooms.find(room => dashboardRoomMatchesReservation(room, res)) || null;
+    }
     function dashboardNormalizeName(value) {
         return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
     }
@@ -951,6 +959,63 @@
     }
     function dashboardTodayCheckins(rows) {
         return rows.slice();
+    }
+    function dashboardDateOnly(value, today = todayIso()) {
+        const raw = String(value || '').trim();
+        if (!raw) return null;
+        let match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+        match = raw.match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (match) {
+            const year = Number(String(today || '').slice(0, 4)) || new Date().getFullYear();
+            return new Date(year, Number(match[1]) - 1, Number(match[2]));
+        }
+        const parsed = new Date(raw);
+        if (Number.isNaN(parsed.getTime())) return null;
+        parsed.setHours(0, 0, 0, 0);
+        return parsed;
+    }
+    function dashboardSameDateValue(value, isoDate) {
+        const date = dashboardDateOnly(value, isoDate);
+        const target = dashboardDateOnly(isoDate, isoDate);
+        return !!(date && target && date.getTime() === target.getTime());
+    }
+    function dashboardStayIncludes(res, isoDate) {
+        const start = dashboardDateOnly(res?.checkInDate || res?.checkin || res?.cin, isoDate);
+        const end = dashboardDateOnly(res?.checkOutDate || res?.checkout || res?.cout, isoDate);
+        const target = dashboardDateOnly(isoDate, isoDate);
+        return !!(start && end && target && start <= target && target < end);
+    }
+    function dashboardCheckoutDue(res, isoDate) {
+        const end = dashboardDateOnly(res?.checkOutDate || res?.checkout || res?.cout, isoDate);
+        const target = dashboardDateOnly(isoDate, isoDate);
+        return !!(end && target && end <= target);
+    }
+    function dashboardRoomIsInHouse(res, rooms = []) {
+        const room = dashboardRoomForReservation(res, rooms);
+        const status = statusKey(room?.frontStatus || room?.occupancyStatus || room?.status);
+        return ['checkedin', 'inhouse', 'occupied'].includes(status);
+    }
+    function dashboardEffectiveReservationStatus(res, rooms = [], isoDate = todayIso()) {
+        let status = statusKey(res?.status);
+        if (['confirmed', 'pending'].includes(status) && dashboardRoomIsInHouse(res, rooms) && dashboardStayIncludes(res, isoDate)) {
+            status = 'checkedin';
+        }
+        if (status === 'checkedin' && dashboardCheckoutDue(res, isoDate)) return 'checkout';
+        return status;
+    }
+    function dashboardIsTodayCheckinTarget(res, rooms = [], isoDate = todayIso()) {
+        if (!dashboardSameDateValue(res?.checkInDate || res?.checkin || res?.cin, isoDate)) return false;
+        const status = dashboardEffectiveReservationStatus(res, rooms, isoDate);
+        if (['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow'].includes(status)) return false;
+        if (status === 'checkout') return false;
+        if (status === 'checkedin' && dashboardStayIncludes(res, isoDate)) return false;
+        return true;
+    }
+    function dashboardIsTodayCheckoutTarget(res, rooms = [], isoDate = todayIso()) {
+        if (!dashboardSameDateValue(res?.checkOutDate || res?.checkout || res?.cout, isoDate)) return false;
+        const status = dashboardEffectiveReservationStatus(res, rooms, isoDate);
+        return ['checkedin', 'checkout'].includes(status);
     }
     function renderKpis({ arrivals, checkouts, settlements, cleaning }) {
         const grid = document.getElementById('opsKpiGrid');
@@ -1113,9 +1178,8 @@
         const roomsFromApi = apiItems(roomsEnv);
         const roomsFromHousekeeping = apiItems(housekeepingEnv);
         const rooms = roomsFromApi.length ? roomsFromApi : roomsFromHousekeeping;
-        const arrivals = reservations.filter(res => iso(res.checkInDate || res.checkin) === today && !['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow', 'no_show', 'checkedin', 'inhouse'].includes(statusOf(res)));
-        const closedStatuses = ['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'departed', 'noshow', 'no_show'];
-        const checkouts = reservations.filter(res => iso(res.checkOutDate || res.checkout) === today && !closedStatuses.includes(statusOf(res)));
+        const arrivals = reservations.filter(res => dashboardIsTodayCheckinTarget(res, rooms, today));
+        const checkouts = reservations.filter(res => dashboardIsTodayCheckoutTarget(res, rooms, today));
         const settlements = apiItems(foliosEnv).map(item => folioSettlementStatus(item, reservations, groups)).filter(row => row.dueDate === today && ['unpaid', 'ready'].includes(row.state));
         const ancillary = [
             ...apiItems(posEnv).map(item => normalizeOrder(item, 'pos')),
