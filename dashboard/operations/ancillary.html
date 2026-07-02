@@ -290,7 +290,7 @@ const ORDER_STORAGE = 'pms_ancillary_room_orders';
 const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
 const ORDER_DATA_VERSION = '2026-06-26-service-detail-v3';
 const seedVendors = [
-    { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B', commission:0, voucherFields:[], items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }] },
+    { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', commission:0, voucherFields:['guest','room','date','item','amount','memo'], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
     { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
     { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount'], items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'18홀 패키지', price:520, desc:'그린피+카트' }] },
     { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount'], items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }, { name:'전기차 24시간', price:230, desc:'완충 인도' }] },
@@ -298,7 +298,7 @@ const seedVendors = [
 ];
 const voucherFieldLabels = {
     guest:'투숙객명', room:'객실번호', date:'이용일시', people:'인원', teeTime:'티오프', course:'골프장/업체명',
-    pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', memo:'메모'
+    pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', partnerContact:'업체 연락처', memo:'메모'
 };
 
 function escapeHtml(value) {
@@ -492,11 +492,16 @@ function serviceOrderActionButtons(order) {
     return `${printButton}${nextButton}`;
 }
 function voucherFieldsForOrder(order) {
+    const vendor = vendorForOrder(order);
+    if (Array.isArray(vendor?.voucherFields) && vendor.voucherFields.length) return vendor.voucherFields;
     if (Array.isArray(order?.voucherFields) && order.voucherFields.length) return order.voucherFields;
-    const vendor = vendors.find(item => item.id === order?.vendorId) || vendors.find(item => item.name === order?.vendor);
-    return Array.isArray(vendor?.voucherFields) ? vendor.voucherFields : [];
+    return [];
+}
+function vendorForOrder(order) {
+    return vendors.find(item => item.id === order?.vendorId) || vendors.find(item => item.name === order?.vendor) || null;
 }
 function voucherDataFromOrder(order, room = findRoomById(order?.roomId || order?.room)) {
+    const vendor = vendorForOrder(order);
     const res = activeReservationForRoom(room || {}) || nextReservationForRoom(room || {});
     const dateTime = order?.dateTime || '';
     return {
@@ -510,6 +515,7 @@ function voucherDataFromOrder(order, room = findRoomById(order?.roomId || order?
         vehicle: order?.item || '-',
         item: order?.item || '-',
         amount: money(order?.total || 0),
+        partnerContact: vendor?.contact || order?.vendor || '-',
         memo: order?.memo || '-'
     };
 }
@@ -578,6 +584,12 @@ function loadVendors() {
     ['pos', 'golf', 'rentacar'].forEach(type => {
         if (!vendors.some(v => v.type === type)) vendors.push(...seedVendors.filter(v => v.type === type));
     });
+    vendors = vendors.map(vendor => ({
+        ...vendor,
+        items: Array.isArray(vendor.items) ? vendor.items : [],
+        voucherFields: Array.isArray(vendor.voucherFields) ? vendor.voucherFields : [],
+        logoDataUrl: vendor.logoDataUrl || ''
+    }));
 }
 function loadStoredOrders() {
     if (localStorage.getItem(ORDER_STORAGE_VERSION) !== ORDER_DATA_VERSION) {
@@ -590,6 +602,53 @@ function loadStoredOrders() {
 function persistOrders() {
     localStorage.setItem(ORDER_STORAGE_VERSION, ORDER_DATA_VERSION);
     localStorage.setItem(ORDER_STORAGE, JSON.stringify(serviceOrders.slice(0, 500)));
+}
+function seedDemoServiceOrdersIfNeeded() {
+    const visibleOrderCount = rooms.reduce((count, room) => count + roomOrders(room).length, 0);
+    if (visibleOrderCount > 0) return;
+    const activeRooms = rooms.filter(canRegisterServiceForRoom).slice(0, 5);
+    if (!activeRooms.length) return;
+    serviceOrders = serviceOrders.filter(order => !String(order.id || '').startsWith('SVC-DEMO-'));
+    const plans = [
+        { service:'pos', vendorId:'POS-HOTEL', itemIndex:0, qty:1, status:'completed', memo:'룸서비스 제공 완료' },
+        { service:'golf', vendorId:'GOLF-SUNVALLEY', itemIndex:0, qty:2, status:'accepted', memo:'프런트에서 티오프 확인' },
+        { service:'rentacar', vendorId:'RENT-LOTTE', itemIndex:1, qty:1, status:'new', memo:'공항 샌딩 요청' },
+        { service:'golf', vendorId:'GOLF-SKY72', itemIndex:1, qty:1, status:'new', memo:'바우처 출력 필요' },
+        { service:'pos', vendorId:'POS-HOTEL', itemIndex:1, qty:2, status:'accepted', memo:'미니바 추가 요청' }
+    ];
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const created = activeRooms.map((room, index) => {
+        const plan = plans[index % plans.length];
+        const vendor = vendors.find(item => item.id === plan.vendorId) || vendors.find(item => item.type === plan.service) || seedVendors.find(item => item.id === plan.vendorId);
+        const item = (vendor?.items || [])[plan.itemIndex] || (vendor?.items || [])[0] || { name: serviceMeta(plan.service).label, price:0 };
+        const res = activeReservationForRoom(room);
+        const group = groupForReservation(res);
+        return {
+            id: `SVC-DEMO-${roomNo(room)}-${plan.service}`,
+            service: plan.service,
+            serviceLabel: serviceMeta(plan.service).label,
+            room: roomNo(room),
+            roomId: room.id || room.roomId || '',
+            guest: reservationGuest(res),
+            reservationId: res?.id || '',
+            groupId: group?.id || group?.groupId || '',
+            groupName: group?.name || group?.groupName || '',
+            vendor: vendor?.name || serviceMeta(plan.service).label,
+            vendorId: vendor?.id || '',
+            item: item.name || serviceMeta(plan.service).label,
+            qty: plan.qty,
+            unitPrice: Number(item.price || 0),
+            total: Number(item.price || 0) * plan.qty,
+            dateTime: now.toISOString().slice(0, 16),
+            memo: plan.memo,
+            voucherFields: Array.isArray(vendor?.voucherFields) ? [...vendor.voucherFields] : [],
+            status: plan.status,
+            sampleData: true
+        };
+    });
+    serviceOrders = [...created, ...serviceOrders];
+    persistOrders();
 }
 function setServiceFilter(service) {
     serviceFilter = service;
@@ -990,15 +1049,43 @@ function printOrderVoucher(orderId) {
     if (!order) return;
     const fields = voucherFieldsForOrder(order);
     if (!fields.length) return alert('업체/항목 관리에서 바우처 출력 항목을 먼저 설정해 주세요.');
+    const vendor = vendorForOrder(order);
     const data = voucherDataFromOrder(order);
-    const title = `${order.vendor || serviceMeta(order.service).label} 바우처`;
-    const html = `<section style="border:1px solid #d1d5db;border-radius:12px;padding:18px;margin:0 0 14px;font-family:Arial,sans-serif">
-        <h2 style="margin:0 0 8px;font-size:18px">${escapeHtml(title)}</h2>
-        <div style="font-size:13px;color:#6b7280;margin-bottom:12px">${escapeHtml(order.item || '')}</div>
-        ${fields.map(field => `<div style="display:flex;justify-content:space-between;border-top:1px solid #eef2f7;padding:8px 0"><strong>${escapeHtml(voucherFieldLabels[field] || field)}</strong><span>${escapeHtml(data[field] || '-')}</span></div>`).join('')}
+    const service = serviceMeta(order.service);
+    const title = order.service === 'rentacar' ? '렌터카 이용 바우처' : order.service === 'golf' ? '골프장 이용권' : `${service.label} 전표`;
+    const stubRows = order.service === 'golf'
+        ? [['티오프', data.teeTime], ['코스', data.course], ['투숙객', data.guest], ['서명', '']]
+        : order.service === 'rentacar'
+            ? [['픽업', data.pickup], ['차량', data.vehicle], ['투숙객', data.guest], ['서명', '']]
+            : [];
+    const html = `<section class="voucher-sheet">
+        <div class="voucher-brand">
+            <div class="voucher-logo">${vendor?.logoDataUrl ? `<img src="${escapeHtml(vendor.logoDataUrl)}" alt="">` : 'HOTEL PMS'}</div>
+            <div>
+                <h2>${escapeHtml(title)}</h2>
+                <div class="voucher-sub">${escapeHtml(order.vendor || service.label)} · ${escapeHtml(vendor?.contact || '-')}</div>
+            </div>
+        </div>
+        <div class="voucher-body">
+            ${fields.map(field => `<div class="voucher-row"><strong>${escapeHtml(voucherFieldLabels[field] || field)}</strong><span>${escapeHtml(data[field] || '-')}</span></div>`).join('')}
+        </div>
+        ${stubRows.length ? `<div class="voucher-stub">
+            <div class="voucher-stub-title">${order.service === 'golf' ? '절취용 이용 확인' : '차량 인수 확인'}</div>
+            <div class="voucher-stub-grid">${stubRows.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong> ${escapeHtml(value || '____________')}</div>`).join('')}</div>
+        </div>` : ''}
     </section>`;
     const win = window.open('', '_blank', 'width=720,height=900');
-    win.document.write(`<!doctype html><html><head><title>부가서비스 바우처</title></head><body>${html}<script>window.print()<\/script></body></html>`);
+    win.document.write(`<!doctype html><html><head><title>부가서비스 바우처</title><style>
+        body{margin:24px;background:#f3f4f6;font-family:Arial,'Noto Sans KR',sans-serif;color:#111827}
+        .voucher-sheet{max-width:680px;margin:0 auto;background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden}
+        .voucher-brand{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:22px;border-bottom:1px solid #e5e7eb}
+        .voucher-logo{min-width:112px;min-height:58px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#6b7280;overflow:hidden}
+        .voucher-logo img{max-width:130px;max-height:58px;object-fit:contain}
+        h2{margin:0;font-size:22px;text-align:right}.voucher-sub{margin-top:6px;font-size:13px;color:#6b7280;text-align:right}
+        .voucher-body{padding:16px 22px}.voucher-row{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #eef2f7;padding:11px 0;font-size:14px}.voucher-row:first-child{border-top:0}.voucher-row strong{color:#6b7280}.voucher-row span{text-align:right;font-weight:800}
+        .voucher-stub{border-top:1px dashed #9ca3af;background:#f9fafb;padding:16px 22px}.voucher-stub-title{font-size:14px;font-weight:900;margin-bottom:10px}.voucher-stub-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;font-size:13px;color:#374151}
+        @media print{body{margin:0;background:#fff}.voucher-sheet{border-radius:0;border-color:#111827}}
+    </style></head><body>${html}<script>window.print()<\/script></body></html>`);
     win.document.close();
 }
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1023,6 +1110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
     const merged = [...serviceOrders, ...externalOrders];
     serviceOrders = [...new Map(merged.map(order => [`${order.service}:${order.id}`, order])).values()];
+    seedDemoServiceOrdersIfNeeded();
     applyAncillaryUrlParams();
     renderAncillaryBoard();
 });

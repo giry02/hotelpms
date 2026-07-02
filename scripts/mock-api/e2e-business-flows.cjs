@@ -481,6 +481,42 @@ async function ancillaryInhouseOnlyFlow(page) {
   return state;
 }
 
+async function ancillaryVendorVoucherFlow(page) {
+  await goto(page, '/dashboard/operations/ancillary-vendors.html?test=e2e-ancillary-vendors');
+  await page.waitForFunction(() => document.querySelectorAll('.vendor-tab').length >= 3 && document.querySelector('#voucherPreview'), null, { timeout: 15000 });
+  const initial = await page.evaluate(() => ({
+    tabs: Array.from(document.querySelectorAll('.vendor-tab')).map(item => item.innerText.trim()),
+    selectedMeta: document.getElementById('selectedVendorMeta')?.innerText || '',
+    preview: document.getElementById('voucherPreview')?.innerText || '',
+    itemCount: document.querySelectorAll('.item-card').length
+  }));
+  assert(initial.tabs.some(text => /통합 POS/.test(text)), 'ancillary vendor management did not expose POS item management');
+  assert(/호텔 통합 POS|POS/.test(initial.selectedMeta), 'POS vendor was not selected by default');
+  assert(initial.itemCount >= 1, 'POS items were not rendered in vendor management');
+  assert(/객실 전표|전표/.test(initial.preview), 'POS receipt preview was not rendered');
+
+  await page.locator('.vendor-tab[data-type="golf"]').click();
+  await page.waitForFunction(() => /골프장 이용권|절취용/.test(document.getElementById('voucherPreview')?.innerText || ''), null, { timeout: 10000 });
+  const golf = await page.evaluate(() => ({
+    sectionTitles: Array.from(document.querySelectorAll('.voucher-field-section-title')).map(item => item.innerText.trim()),
+    preview: document.getElementById('voucherPreview')?.innerText || '',
+    hasLogoButton: !!Array.from(document.querySelectorAll('button')).find(button => /로고 등록/.test(button.innerText || ''))
+  }));
+  assert(golf.sectionTitles.some(text => /골프장 이용권/.test(text)), 'golf voucher fields were not grouped separately');
+  assert(/절취용 이용 확인/.test(golf.preview), 'golf voucher preview did not include a tear-off confirmation area');
+  assert(golf.hasLogoButton, 'vendor logo upload action was not available');
+
+  await page.locator('.vendor-tab[data-type="rentacar"]').click();
+  await page.waitForFunction(() => /차량 인수 확인/.test(document.getElementById('voucherPreview')?.innerText || ''), null, { timeout: 10000 });
+  const rentacar = await page.evaluate(() => ({
+    sectionTitles: Array.from(document.querySelectorAll('.voucher-field-section-title')).map(item => item.innerText.trim()),
+    preview: document.getElementById('voucherPreview')?.innerText || ''
+  }));
+  assert(rentacar.sectionTitles.some(text => /렌터카 인수 정보/.test(text)), 'rent-a-car voucher fields were not grouped separately');
+  assert(/차량 인수 확인/.test(rentacar.preview), 'rent-a-car voucher preview did not include handover confirmation');
+  return { initial, golf, rentacar };
+}
+
 async function readonlyCheckedInReservationFlow(page) {
   await goto(page, '/dashboard/frontdesk/reservation-timeline.html');
   await page.waitForFunction(() => Array.isArray(window.reservations) && window.reservations.length > 0, null, { timeout: 10000 });
@@ -632,6 +668,7 @@ async function main() {
     ['dashboard check-in KPI -> reservation list count', dashboardCheckinKpiNavigationFlow],
     ['night audit closed handover view', nightAuditClosedHandoverFlow],
     ['ancillary board only shows in-house rooms', ancillaryInhouseOnlyFlow],
+    ['ancillary vendor voucher management', ancillaryVendorVoucherFlow],
     ['checked-in reservation readonly modal', readonlyCheckedInReservationFlow],
     ['housekeeping -> maintenance', housekeepingMaintenanceFlow],
     ['admin tenant application -> list', adminTenantApplicationFlow]
