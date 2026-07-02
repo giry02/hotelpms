@@ -608,10 +608,10 @@ function applyAncillaryUrlParams() {
     if (requestedQuery && search) search.value = requestedQuery;
 }
 function updateKpis() {
-    const inhouse = rooms.filter(room => activeReservationForRoom(room)).length;
-    const visibleOrders = rooms.flatMap(room => roomOrders(room));
+    const serviceRooms = rooms.filter(canRegisterServiceForRoom);
+    const visibleOrders = serviceRooms.flatMap(room => roomOrders(room));
     const total = visibleOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
-    document.getElementById('kpiInhouse').textContent = inhouse;
+    document.getElementById('kpiInhouse').textContent = serviceRooms.length;
     document.getElementById('kpiPos').textContent = visibleOrders.filter(o => o.service === 'pos').length;
     document.getElementById('kpiGolf').textContent = visibleOrders.filter(o => o.service === 'golf').length;
     document.getElementById('kpiRent').textContent = visibleOrders.filter(o => o.service === 'rentacar').length;
@@ -630,17 +630,24 @@ function renderAncillaryBoard() {
         );
         return;
     }
-    const sortedRooms = [...rooms].sort((a, b) => {
+    const sortedRooms = rooms.filter(canRegisterServiceForRoom).sort((a, b) => {
         const tower = String(a.building || a.tower || '').localeCompare(String(b.building || b.tower || ''), undefined, { numeric: true });
         if (tower) return tower;
         return String(roomNo(a)).localeCompare(String(roomNo(b)), undefined, { numeric: true });
     });
+    if (!sortedRooms.length) {
+        container.innerHTML = renderAncillaryEmptyState(
+            '현재 투숙 중인 객실이 없습니다.',
+            '부가서비스는 체크인 완료 후 투숙 중인 객실에만 등록할 수 있습니다.',
+            'No in-house rooms available.',
+            'Ancillary services can be registered only for checked-in rooms.'
+        );
+        return;
+    }
     const filtered = sortedRooms.filter(room => {
-        const res = activeReservationForRoom(room) || nextReservationForRoom(room);
+        const res = activeReservationForRoom(room);
         const group = groupForReservation(res);
         const allOrders = roomOrders(room);
-        const filteredOrders = serviceFilter === 'all' ? allOrders : allOrders.filter(order => order.service === serviceFilter);
-        if (serviceFilter !== 'all' && !res && !filteredOrders.length) return false;
         const haystack = [roomNo(room), roomType(room), reservationGuest(res), group?.name, group?.groupName, ...allOrders.map(order => `${order.vendor} ${order.item}`)].join(' ').toLowerCase();
         return !query || haystack.includes(query);
     });
@@ -818,7 +825,7 @@ function openServiceModal(roomId) {
     document.getElementById('serviceQty').value = 1;
     document.getElementById('serviceMemo').value = '';
     renderGroupSelect(group?.id || group?.groupId || '');
-    selectServiceType('pos');
+    selectServiceType(['pos', 'golf', 'rentacar'].includes(serviceFilter) ? serviceFilter : 'pos');
     const modal = document.getElementById('serviceModal');
     modal.style.display = 'flex';
     modal.classList.add('active');

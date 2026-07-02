@@ -456,6 +456,31 @@ async function nightAuditClosedHandoverFlow(page) {
   return { setup, state };
 }
 
+async function ancillaryInhouseOnlyFlow(page) {
+  await goto(page, '/dashboard/operations/ancillary.html?test=e2e-ancillary-inhouse-only');
+  await page.waitForFunction(() => document.querySelector('#ancillaryBoardContainer'), null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('.service-room-card').length > 0 || document.querySelector('.service-empty-state'), null, { timeout: 15000 });
+  const state = await page.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll('.service-room-card'));
+    const activeCards = cards.filter(card => card.classList.contains('inhouse'));
+    const blockedCards = cards.filter(card => card.classList.contains('arrival') || card.classList.contains('empty'));
+    const kpiText = document.getElementById('kpiInhouse')?.textContent || '0';
+    return {
+      cardCount: cards.length,
+      inhouseCardCount: activeCards.length,
+      blockedCardCount: blockedCards.length,
+      kpiInhouse: Number((kpiText.match(/\d+/) || ['0'])[0]),
+      boardText: document.getElementById('ancillaryBoardContainer')?.innerText || ''
+    };
+  });
+  assert(state.cardCount > 0, 'ancillary board did not render any in-house service rooms');
+  assert(state.blockedCardCount === 0, 'ancillary board rendered vacant or future check-in rooms');
+  assert(state.cardCount === state.inhouseCardCount, 'ancillary board rendered non-in-house cards');
+  assert(state.cardCount === state.kpiInhouse, `ancillary board card count diverged from in-house KPI: cards ${state.cardCount}, KPI ${state.kpiInhouse}`);
+  assert(!/공실|체크인 예정/.test(state.boardText), 'ancillary board still displayed vacant or future check-in labels');
+  return state;
+}
+
 async function readonlyCheckedInReservationFlow(page) {
   await goto(page, '/dashboard/frontdesk/reservation-timeline.html');
   await page.waitForFunction(() => Array.isArray(window.reservations) && window.reservations.length > 0, null, { timeout: 10000 });
@@ -606,6 +631,7 @@ async function main() {
     ['check-in and check-out', checkinCheckoutFlow],
     ['dashboard check-in KPI -> reservation list count', dashboardCheckinKpiNavigationFlow],
     ['night audit closed handover view', nightAuditClosedHandoverFlow],
+    ['ancillary board only shows in-house rooms', ancillaryInhouseOnlyFlow],
     ['checked-in reservation readonly modal', readonlyCheckedInReservationFlow],
     ['housekeeping -> maintenance', housekeepingMaintenanceFlow],
     ['admin tenant application -> list', adminTenantApplicationFlow]
