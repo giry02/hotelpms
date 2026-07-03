@@ -107,6 +107,19 @@
         return text && text !== '-' ? text : '';
     }
 
+    function showReservationAlert(message, type = 'error') {
+        if (window.showAlert) return window.showAlert(message, { type });
+        if (window.showToast) return window.showToast(message, type);
+        console.warn(message);
+        return null;
+    }
+
+    async function confirmReservationDialog(message, options = {}) {
+        if (window.showConfirm) return await window.showConfirm(message, options);
+        console.warn('PMS confirmation dialog is unavailable.', message);
+        return false;
+    }
+
     async function reservationGuestList() {
         try {
             if (typeof window.loadGuestDb === 'function') {
@@ -982,8 +995,7 @@
             if (compactValue(entry.guestId || entry.id)) continue;
             const phone = normalizeReservationGuestPhone(entry.phone);
             if (!isValidReservationGuestPhone(phone, true)) {
-                if (window.showToast) window.showToast('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
-                else alert('연락처는 숫자와 +, -, 괄호만 입력해 주세요.');
+                showReservationAlert('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
                 document.getElementById('nrPhoneEdit')?.focus();
                 return false;
             }
@@ -1255,7 +1267,7 @@
     window.addUnifiedSelectedGuest = function(role = 'companion') {
         const candidate = getUnifiedSelectedGuestCandidate();
         if (!candidate || !compactValue(candidate.name)) {
-            alert('상단에서 투숙객을 검색한 뒤 선택해주세요.');
+            showReservationAlert('상단에서 투숙객을 검색한 뒤 선택해주세요.', 'error');
             return;
         }
         upsertUnifiedRosterGuest(candidate, role === 'primary' ? 'primary' : 'companion');
@@ -2494,16 +2506,14 @@
         const currentStatus = effectiveReservationStatus(res);
         if (action === 'checkin' && !canProcessReservationCheckin(res)) {
             const message = checkinNotAllowedMessage(res);
-            if (window.showToast) window.showToast(message, 'error');
-            else alert(message);
+            showReservationAlert(message, 'error');
             setUnifiedReservationReadonly(isReservationReadOnly(res), res);
             renderUnifiedFlowActions(res);
             return;
         }
         if (action === 'checkout' && !['checkedin', 'checkout'].includes(currentStatus)) {
             const message = actionText('flow.checkoutOnlyInhouse');
-            if (window.showToast) window.showToast(message, 'error');
-            else alert(message);
+            showReservationAlert(message, 'error');
             renderUnifiedFlowActions(res);
             return;
         }
@@ -2512,8 +2522,7 @@
         if (action === 'checkin') {
             const blockReason = checkinBlockReasonForRoom(room);
             if (blockReason) {
-                if (window.showToast) window.showToast(blockReason, 'error');
-                else alert(blockReason);
+                showReservationAlert(blockReason, 'error');
                 return;
             }
             checkinWarning = checkinWarningForRoom(room);
@@ -2527,9 +2536,7 @@
             confirmOptions.title = actionText('flow.dirtyRoomTitle');
             confirmOptions.okText = actionText('flow.continueCheckin');
         }
-        const confirmed = window.showConfirm
-            ? await window.showConfirm(confirmMessage, confirmOptions)
-            : confirm(confirmMessage);
+        const confirmed = await confirmReservationDialog(confirmMessage, confirmOptions);
         if (!confirmed) return;
 
         if (action === 'checkin') {
@@ -2575,7 +2582,7 @@
         unifiedLastRateQuote = null;
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
         if (!allRes) {
-            alert('Error: reservations variable not found!');
+            showReservationAlert('Error: reservations variable not found!', 'error');
             return;
         }
         setUnifiedReservationReadonly(false);
@@ -2670,7 +2677,7 @@
             if (cancelBtn) cancelBtn.style.display = 'inline-flex';
             const res = allRes.find(r => r.id === resId);
             if (!res) {
-                alert('Error: reservation not found for ID ' + resId);
+                showReservationAlert('Error: reservation not found for ID ' + resId, 'error');
                 return;
             }
             const effectiveStatus = effectiveReservationStatus(res);
@@ -2793,20 +2800,20 @@
             guest = compactValue(primaryEntry?.name);
         }
         if (!isBlockSave && !isEditableGroupBlockSave && (!guest || !guest.trim())) {
-            alert(actionText('guest.required'));
+            showReservationAlert(actionText('guest.required'), 'error');
             return;
         }
         const dateRange = getUnifiedDateRange({ autoFix: false });
         if (!dateRange.checkin || !dateRange.checkout) {
-            alert(actionText('booking.dateRequired'));
+            showReservationAlert(actionText('booking.dateRequired'), 'error');
             return;
         }
         if (!currentRes && dateRange.checkin < todayStart()) {
-            alert(actionText('booking.pastCheckin'));
+            showReservationAlert(actionText('booking.pastCheckin'), 'error');
             return;
         }
         if (!dateRange.valid) {
-            alert(actionText('booking.invalidDates'));
+            showReservationAlert(actionText('booking.invalidDates'), 'error');
             return;
         }
         updateUnifiedNightsLabel();
@@ -2815,13 +2822,13 @@
         const roomSelect = document.getElementById('unifiedRoom');
         const selectedOption = roomSelect?.selectedOptions?.[0];
         if (!room || roomSelect?.disabled || selectedOption?.disabled) {
-            alert(actionText('booking.roomRequired'));
+            showReservationAlert(actionText('booking.roomRequired'), 'error');
             return;
         }
         const selectedRoom = (window.rooms || []).find(r => r.id === room || r.fullRoom === room || r.number === room || r.display === room || roomLabel(r) === room);
         const selectedIsCurrentRoom = !!(currentRes && selectedRoom && roomMatchesReservation(selectedRoom, currentRes));
         if (!selectedIsCurrentRoom && !currentRes && roomConflictForDates(selectedRoom || { id: room }, dateRange.checkin, dateRange.checkout, currentRes)) {
-            alert(actionText('booking.roomUnavailable'));
+            showReservationAlert(actionText('booking.roomUnavailable'), 'error');
             return;
         }
         let status = id
@@ -2846,12 +2853,12 @@
         const prepaidReceivedRows = prepaidRowsFromInputs();
         const invalidPrepaidRows = prepaidReceivedRows.filter(row => row.currency !== 'PHP' && Number(row.amount || 0) > 0 && Number(row.phpEquivalent || 0) <= 0);
         if (invalidPrepaidRows.length) {
-            alert('달러/원화 예치금 행에는 페소 반영액을 입력해주세요.');
+            showReservationAlert('달러/원화 예치금 행에는 페소 반영액을 입력해주세요.', 'error');
             return;
         }
         const prepaidRowsTotal = prepaidPhpTotalFromRows(prepaidReceivedRows);
         if (prepaidReceivedRows.length && prepaidRowsTotal > totalAmount) {
-            alert('예치금 페소 반영액이 총 객실 금액을 초과할 수 없습니다.');
+            showReservationAlert('예치금 페소 반영액이 총 객실 금액을 초과할 수 없습니다.', 'error');
             return;
         }
         const prepaidAmount = Math.min(prepaidReceivedRows.length ? prepaidRowsTotal : parseMoneyInput(document.getElementById('unifiedPrepaid')?.value, currency), totalAmount);
@@ -3246,13 +3253,12 @@
         const currentStatus = effectiveReservationStatus(res);
         if (['checkedin', 'checkout', 'completed'].includes(currentStatus)) {
             const message = actionText('cancel.notAllowed');
-            if (window.showToast) window.showToast(message, 'error');
-            else alert(message);
+            showReservationAlert(message, 'error');
             return;
         }
         
         const cancelMessage = actionText('cancel.confirm', { name: res.guest || guestNameForReservation(res) });
-        const confirmed = window.showConfirm ? await window.showConfirm(cancelMessage) : confirm(cancelMessage);
+        const confirmed = await confirmReservationDialog(cancelMessage);
         if (confirmed) {
             res.status = 'cancelled';
             logReservationAudit('reservation.cancel', {

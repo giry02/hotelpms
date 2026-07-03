@@ -804,7 +804,7 @@ function openServiceEntry(roomId) {
     if (!active) {
         const message = next ? '체크인 예정 객실은 체크인 처리 후 부가서비스를 등록할 수 있습니다.' : '부가서비스는 투숙 중 객실에만 등록할 수 있습니다.';
         if (window.showToast) window.showToast(message, 'warning');
-        else alert(message);
+        else window.showAlert?.(message, { type: 'warning' });
         return;
     }
     if (roomOrders(room || {}).length) openServiceDetailModal(roomId);
@@ -878,7 +878,7 @@ function openServiceModal(roomId) {
     if (!active) {
         const message = next ? '체크인 예정 객실은 체크인 처리 후 부가서비스를 등록할 수 있습니다.' : '부가서비스는 투숙 중 객실에만 등록할 수 있습니다.';
         if (window.showToast) window.showToast(message, 'warning');
-        else alert(message);
+        else window.showAlert?.(message, { type: 'warning' });
         return;
     }
     const res = active || next;
@@ -1016,7 +1016,7 @@ function targetRoomsForSave() {
 }
 function saveServiceOrder() {
     const roomsToSave = targetRoomsForSave();
-    if (!roomsToSave.length) return alert('투숙 중인 객실만 부가서비스 등록이 가능합니다.');
+    if (!roomsToSave.length) return window.showAlert?.('투숙 중인 객실만 부가서비스 등록이 가능합니다.', { type: 'warning' });
     const vendor = selectedVendor();
     const item = selectedItem();
     const qty = Math.max(1, Number(document.getElementById('serviceQty')?.value || 1));
@@ -1059,7 +1059,7 @@ function printOrderVoucher(orderId) {
     const order = serviceOrders.find(item => item.id === orderId);
     if (!order) return;
     const fields = voucherFieldsForOrder(order);
-    if (!fields.length) return alert('업체/항목 관리에서 바우처 출력 항목을 먼저 설정해 주세요.');
+    if (!fields.length) return window.showAlert?.('업체/항목 관리에서 바우처 출력 항목을 먼저 설정해 주세요.', { type: 'warning' });
     const vendor = vendorForOrder(order);
     const data = voucherDataFromOrder(order);
     const service = serviceMeta(order.service);

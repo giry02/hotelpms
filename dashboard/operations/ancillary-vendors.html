@@ -389,7 +389,7 @@
     function saveVendor() {
       const type = document.getElementById('vendorType').value;
       const name = document.getElementById('vendorName').value.trim();
-      if (!name) return alert('업체명을 입력해 주세요.');
+      if (!name) return window.showAlert('업체명을 입력해 주세요.', { type: 'error' });
       const id = `${type.toUpperCase()}-${Date.now()}`;
       vendors.unshift({ id, type, name, contact: document.getElementById('vendorContact').value.trim(), address: document.getElementById('vendorAddress').value.trim(), commission: Number(document.getElementById('vendorCommission').value || 0), voucherFields: defaultVoucherFields(type), logoDataUrl:'', items: [] });
       currentType = type;
@@ -399,7 +399,7 @@
       selectVendorType(type);
     }
     function openItemModal(){
-      if (!selectedVendorId) return alert('업체를 먼저 선택해 주세요.');
+      if (!selectedVendorId) return window.showAlert('업체를 먼저 선택해 주세요.', { type: 'error' });
       ['itemName','itemPrice','itemDesc'].forEach(id => document.getElementById(id).value = '');
       openModal('itemModal');
     }
@@ -407,7 +407,7 @@
       const vendor = selectedVendor();
       if (!vendor) return;
       const name = document.getElementById('itemName').value.trim();
-      if (!name) return alert('항목명을 입력해 주세요.');
+      if (!name) return window.showAlert('항목명을 입력해 주세요.', { type: 'error' });
       vendor.items = vendor.items || [];
       vendor.items.push({ name, price: Number(document.getElementById('itemPrice').value || 0), desc: document.getElementById('itemDesc').value.trim() });
       persistVendors();

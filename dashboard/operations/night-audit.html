@@ -4050,7 +4050,7 @@ async function loadAuditData() {
     }
 }
 
-function runNightAudit() {
+async function runNightAudit() {
     if(!document.getElementById('confirmCheck').checked) return;
     const session = activeCashSession(false);
     if (!session?.openedAt || !session?.closedAt) {
@@ -4066,7 +4066,7 @@ function runNightAudit() {
     }
 
     const confirmMessage = nightAuditText('close.confirm');
-    if(confirm(confirmMessage)) {
+    if(await window.showConfirm(confirmMessage)) {
         const btn = document.getElementById('btnRunAudit');
         btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> ${nightAuditText('close.processing')}`;
         btn.disabled = true;

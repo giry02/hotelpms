@@ -765,7 +765,7 @@ window.removeRoomingGuest = async function(id) {
     const message = typeof window.t === 'function'
         ? window.t('group.guest.delete.confirm', { name: guest.name })
         : `[${guest.name}] 투숙객을 삭제하시겠습니까?`;
-    const ok = window.showConfirm ? await showConfirm(message) : confirm(message);
+    const ok = await window.showConfirm(message);
     if (!ok) return;
     group.roomingList = roomingList().filter(g => g.id !== id);
     group.history = group.history || [];
@@ -3143,9 +3143,7 @@ window.addEventListener('DataReady', () => {
             if (typeof previousRemoveRoomingGuest === 'function') return previousRemoveRoomingGuest(id);
             return;
         }
-        const ok = window.showConfirm
-            ? await showConfirm(`[${guest.name}] 투숙객을 삭제하시겠습니까?`)
-            : confirm(`[${guest.name}] 투숙객을 삭제하시겠습니까?`);
+        const ok = await window.showConfirm(`[${guest.name}] 투숙객을 삭제하시겠습니까?`);
         if (!ok) return;
         group.roomingList = roomingList().filter(item => item.id !== id);
         persistRoomReservation(guest.roomId);

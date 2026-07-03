@@ -1539,12 +1539,24 @@ window.pmsRuntimeText = translateRuntimeMessageText;
 function installNativeDialogI18n() {
     if (window.__pmsNativeDialogI18n) return;
     window.__pmsNativeDialogI18n = true;
-    const nativeAlert = window.alert.bind(window);
-    const nativeConfirm = window.confirm.bind(window);
-    const nativePrompt = window.prompt.bind(window);
-    window.alert = message => nativeAlert(translateRuntimeMessageText(message));
-    window.confirm = message => nativeConfirm(translateRuntimeMessageText(message));
-    window.prompt = (message, defaultValue) => nativePrompt(translateRuntimeMessageText(message), defaultValue);
+    window.alert = message => {
+        const translated = translateRuntimeMessageText(message);
+        if (window.showAlert) window.showAlert(translated);
+        else if (window.showToast) window.showToast(translated, 'error');
+        else console.warn(translated);
+    };
+    window.confirm = message => {
+        const translated = translateRuntimeMessageText(message);
+        if (window.showConfirm) window.showConfirm(translated);
+        else console.warn(translated);
+        return false;
+    };
+    window.prompt = (message, defaultValue = '') => {
+        const translated = translateRuntimeMessageText(message);
+        if (window.showAlert) window.showAlert(translated);
+        else console.warn(translated);
+        return defaultValue;
+    };
 }
 
 installNativeDialogI18n();

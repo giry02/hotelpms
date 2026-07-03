@@ -1,5 +1,5 @@
 // ui-components.js
-// Provides global showToast and showConfirm for replacing native alert() and confirm()
+// Provides global showToast, showAlert, and showConfirm for replacing native browser dialogs.
 
 (function() {
     const DEFAULT_MESSAGES = {
@@ -185,8 +185,16 @@
     </div>
     `;
 
+    function ensureUiShell() {
+        if (!document.body) return false;
+        if (!document.getElementById('pms-toast-container') || !document.getElementById('pms-confirm-modal')) {
+            document.body.insertAdjacentHTML('beforeend', uiHtml);
+        }
+        return true;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-        document.body.insertAdjacentHTML('beforeend', uiHtml);
+        ensureUiShell();
         installModalScrollLockObserver();
         installModalFunctionHooks();
     });
@@ -221,8 +229,12 @@
 
     window.showToast = function(msg, type = 'success') {
         if (typeof window.pmsRuntimeText === 'function') msg = window.pmsRuntimeText(msg);
+        ensureUiShell();
         const container = document.getElementById('pms-toast-container');
-        if (!container) return alert(msg); // fallback
+        if (!container) {
+            if (window.showAlert) window.showAlert(msg, { type });
+            return;
+        }
         
         const icon = type === 'error' ? '<i class="fa-solid fa-circle-exclamation" style="color:var(--danger)"></i>' : '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i>';
         
@@ -238,29 +250,57 @@
         }, 3000);
     };
 
-    window.showConfirm = function(msg, options = {}) {
+    function showDialog(msg, options = {}, mode = 'confirm') {
         return new Promise((resolve) => {
+            ensureUiShell();
             const modal = document.getElementById('pms-confirm-modal');
-            if (!modal) return resolve(confirm(msg)); // fallback
+            if (!modal) {
+                console.warn('PMS dialog container is unavailable.', msg);
+                resolve(mode === 'alert');
+                return;
+            }
 
-            document.getElementById('pms-confirm-title').textContent = options.title || uiText('ui.confirm.title');
-            document.getElementById('pms-confirm-message').innerHTML = escapeHtml(msg || uiText('ui.confirm.default')).replace(/\n/g, '<br>');
-            document.getElementById('pms-confirm-cancel').textContent = options.cancelText || uiText('ui.confirm.cancel');
-            document.getElementById('pms-confirm-ok').textContent = options.okText || uiText('ui.confirm.ok');
-            modal.classList.add('active');
-            
+            const isAlert = mode === 'alert';
+            const titleText = options.title || (isAlert ? (currentLang() === 'ko' ? '알림' : 'Notice') : uiText('ui.confirm.title'));
+            const okText = options.okText || (isAlert ? (currentLang() === 'ko' ? '확인' : 'OK') : uiText('ui.confirm.ok'));
+            const titleEl = document.getElementById('pms-confirm-title');
+            const messageEl = document.getElementById('pms-confirm-message');
             const btnOk = document.getElementById('pms-confirm-ok');
             const btnCancel = document.getElementById('pms-confirm-cancel');
-            
+            const icon = document.querySelector('#pms-confirm-modal .modal-title i');
+
+            if (titleEl) titleEl.textContent = titleText;
+            if (messageEl) messageEl.innerHTML = escapeHtml(msg || (isAlert ? titleText : uiText('ui.confirm.default'))).replace(/\n/g, '<br>');
+            if (btnCancel) {
+                btnCancel.textContent = options.cancelText || uiText('ui.confirm.cancel');
+                btnCancel.style.display = isAlert ? 'none' : 'inline-flex';
+            }
+            if (btnOk) btnOk.textContent = okText;
+            if (icon) {
+                icon.className = isAlert ? 'fa-solid fa-circle-info' : 'fa-solid fa-circle-question';
+                icon.style.color = options.type === 'error' ? 'var(--danger)' : 'var(--primary)';
+            }
+            modal.classList.add('active');
+
             const cleanup = () => {
+                modal.classList.remove('active');
                 btnOk.replaceWith(btnOk.cloneNode(true));
                 btnCancel.replaceWith(btnCancel.cloneNode(true));
-                modal.classList.remove('active');
+                const nextCancel = document.getElementById('pms-confirm-cancel');
+                if (nextCancel) nextCancel.style.display = 'inline-flex';
             };
-            
+
             btnOk.onclick = () => { cleanup(); resolve(true); };
             btnCancel.onclick = () => { cleanup(); resolve(false); };
         });
+    }
+
+    window.showAlert = function(msg, options = {}) {
+        return showDialog(msg, options, 'alert');
+    };
+
+    window.showConfirm = function(msg, options = {}) {
+        return showDialog(msg, options, 'confirm');
     };
 
     window.renderEmptyState = function(options = {}) {
