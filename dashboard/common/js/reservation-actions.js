@@ -17,6 +17,9 @@
             'flow.occupiedRoom': '이미 투숙 중인 객실입니다.',
             'flow.futureCheckinNotAllowed': '체크인 예정일 전에는 체크인할 수 없습니다. 예약 취소 또는 예약 수정만 가능합니다.',
             'flow.confirm': '{name} 예약을 {action} 처리하시겠습니까?',
+            'flow.earlyCheckoutTitle': '조기 체크아웃 확인',
+            'flow.earlyCheckoutOk': '조기 체크아웃 처리',
+            'flow.earlyCheckoutConfirm': '{name} 예약은 예정 체크아웃일({checkoutDate} {checkoutTime}) 전입니다.\n지금 진행하면 오늘 기준 체크아웃 완료로 처리되고 객실은 청소필요 상태로 전환됩니다.\n남은 숙박 요금, 환불, 미수금은 정산에서 별도로 확인해야 합니다.\n그래도 조기 체크아웃 처리할까요?',
             'flow.completed': '{action} 처리가 완료되었습니다.',
             'flow.completedRoomNotReady': '{action} 처리가 완료되었습니다. 객실 청소 상태를 하우스키핑에서 확인하세요.',
             'edit.readonly': '체크인 이후 예약은 이 화면에서 수정할 수 없습니다.',
@@ -50,6 +53,9 @@
             'flow.occupiedRoom': 'This room is already occupied.',
             'flow.futureCheckinNotAllowed': 'Check-in is not available before the scheduled arrival date. You can cancel or edit the reservation.',
             'flow.confirm': 'Process {action} for {name}?',
+            'flow.earlyCheckoutTitle': 'Early Check-out Confirmation',
+            'flow.earlyCheckoutOk': 'Process Early Check-out',
+            'flow.earlyCheckoutConfirm': '{name} is scheduled to check out on {checkoutDate} {checkoutTime}.\nThis is before the scheduled check-out date. Continuing will mark the reservation checked out today and set the room to needs cleaning.\nReview any remaining room charge, refund, or balance in settlement.\nProcess early check-out?',
             'flow.completed': '{action} has been completed.',
             'flow.completedRoomNotReady': '{action} has been completed. Check the room cleaning status with housekeeping.',
             'edit.readonly': 'Reservations after check-in cannot be edited from this screen.',
@@ -2335,6 +2341,25 @@
         return end <= today;
     }
 
+    function checkoutDateIsFuture(res) {
+        const end = parseReservationDate(res?.checkOutDate || res?.checkout || res?.cout);
+        if (!end) return false;
+        return end > todayStart();
+    }
+
+    function reservationCheckOutTimeText(res) {
+        return res?.checkOutTime || res?.departureTime || res?.stayTimes?.checkOutTime || res?.times?.checkOut || '12:00';
+    }
+
+    function earlyCheckoutConfirmMessage(res) {
+        const end = parseReservationDate(res?.checkOutDate || res?.checkout || res?.cout);
+        return actionText('flow.earlyCheckoutConfirm', {
+            name: guestNameForReservation(res),
+            checkoutDate: toDateInputValue(end) || '-',
+            checkoutTime: reservationCheckOutTimeText(res)
+        });
+    }
+
     function effectiveReservationStatus(res) {
         if (!res) return 'confirmed';
         let status = normalizedReservationStatus(res.status || res.frontStatus || res.roomStatus);
@@ -2531,6 +2556,12 @@
         const label = action === 'checkin' ? actionText('action.checkin') : actionText('action.checkout');
         let confirmMessage = actionText('flow.confirm', { name: guestNameForReservation(res), action: label });
         const confirmOptions = {};
+        if (action === 'checkout' && checkoutDateIsFuture(res)) {
+            confirmMessage = earlyCheckoutConfirmMessage(res);
+            confirmOptions.title = actionText('flow.earlyCheckoutTitle');
+            confirmOptions.okText = actionText('flow.earlyCheckoutOk');
+            confirmOptions.type = 'error';
+        }
         if (checkinWarning) {
             confirmMessage = `${checkinWarning}\n\n${confirmMessage}`;
             confirmOptions.title = actionText('flow.dirtyRoomTitle');

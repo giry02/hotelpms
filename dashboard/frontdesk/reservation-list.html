@@ -389,6 +389,9 @@ const reservationLabels = {
         'page.empty': '총 <b>0건</b>',
         'confirm.docVerify': '{name} 고객의 신분증/여권 확인을 완료 처리할까요?',
         'confirm.flow': '{name} 예약을 {action} 처리하시겠습니까?',
+        'confirm.earlyCheckoutTitle': '조기 체크아웃 확인',
+        'confirm.earlyCheckoutOk': '조기 체크아웃 처리',
+        'confirm.earlyCheckout': '{name} 예약은 예정 체크아웃일({checkoutDate} {checkoutTime}) 전입니다.\n지금 진행하면 오늘 기준 체크아웃 완료로 처리되고 객실은 청소필요 상태로 전환됩니다.\n남은 숙박 요금, 환불, 미수금은 정산에서 별도로 확인해야 합니다.\n그래도 조기 체크아웃 처리할까요?',
         'toast.noData': '데이터가 없습니다.',
         'toast.docVerified': '신분증/여권 확인 완료로 저장했습니다.',
         'toast.roomMissing': '객실 정보를 찾을 수 없습니다.',
@@ -449,6 +452,9 @@ const reservationLabels = {
         'page.empty': '<b>0</b> reservations',
         'confirm.docVerify': 'Mark ID/passport verification as complete for {name}?',
         'confirm.flow': 'Process {action} for {name}?',
+        'confirm.earlyCheckoutTitle': 'Early Check-out Confirmation',
+        'confirm.earlyCheckoutOk': 'Process Early Check-out',
+        'confirm.earlyCheckout': '{name} is scheduled to check out on {checkoutDate} {checkoutTime}.\nThis is before the scheduled check-out date. Continuing will mark the reservation checked out today and set the room to needs cleaning.\nReview any remaining room charge, refund, or balance in settlement.\nProcess early check-out?',
         'toast.noData': 'No data available.',
         'toast.docVerified': 'ID/passport verification has been saved.',
         'toast.roomMissing': 'Room information could not be found.',
@@ -663,6 +669,25 @@ function isRoomInHouse(res) {
 function checkoutDateIsDue(res, refDate = todayDate()) {
     const end = parseListDate(res?.checkOutDate || res?.checkout || res?.cout);
     return !!end && end <= refDate;
+}
+
+function checkoutDateIsFuture(res, refDate = todayDate()) {
+    const end = parseListDate(res?.checkOutDate || res?.checkout || res?.cout);
+    return !!end && end > refDate;
+}
+
+function formatListFullDate(value) {
+    const date = parseListDate(value);
+    if (!date) return '-';
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function earlyCheckoutConfirmMessage(res, name) {
+    return resMessage('confirm.earlyCheckout', {
+        name,
+        checkoutDate: formatListFullDate(res?.checkOutDate || res?.checkout || res?.cout),
+        checkoutTime: reservationCheckOutTime(res)
+    });
 }
 
 function checkinDateIsDue(res, refDate = todayDate()) {
@@ -1718,6 +1743,12 @@ window.processReservationRowFlow = async function(resId, action) {
     const name = displayGuestName(res);
     let message = resMessage('confirm.flow', { name, action: label });
     const confirmOptions = {};
+    if (action === 'checkout' && checkoutDateIsFuture(res)) {
+        message = earlyCheckoutConfirmMessage(res, name);
+        confirmOptions.title = resText('confirm.earlyCheckoutTitle');
+        confirmOptions.okText = resText('confirm.earlyCheckoutOk');
+        confirmOptions.type = 'error';
+    }
     if (checkinWarning) {
         message = `${checkinWarning}\n\n${message}`;
         confirmOptions.title = resText('warn.dirtyRoomTitle');
