@@ -247,6 +247,17 @@ const BOARD_TEXT = {
         'legend.vacant': '예약 없음',
         'legend.blocked': '단체 배정',
         'legend.oos': '점검 중',
+        'status.arrival': '체크인 예정',
+        'status.noArrival': '미도착',
+        'status.inhouse': '투숙 중',
+        'status.checkout': '체크아웃 예정',
+        'status.late': '레이트',
+        'status.reserved': '예약 예정',
+        'status.vacant': '예약 없음',
+        'status.blocked': '단체 배정',
+        'status.oos': '점검 중',
+        'status.completed': '체크아웃 완료',
+        'status.cancelled': '취소/노쇼',
         'search.placeholder': '객실번호, 이름, 단체명 검색...',
         'search.button': '검색'
     },
@@ -271,6 +282,17 @@ const BOARD_TEXT = {
         'legend.vacant': 'No Reservation',
         'legend.blocked': 'Group Block',
         'legend.oos': 'Out of Service',
+        'status.arrival': 'Check-in Due',
+        'status.noArrival': 'Not Arrived',
+        'status.inhouse': 'In-house',
+        'status.checkout': 'Check-out Due',
+        'status.late': 'Late',
+        'status.reserved': 'Reserved',
+        'status.vacant': 'No Reservation',
+        'status.blocked': 'Group Block',
+        'status.oos': 'Out of Service',
+        'status.completed': 'Checked-out',
+        'status.cancelled': 'Cancelled / No-show',
         'search.placeholder': 'Search room, name, or group...',
         'search.button': 'Search'
     }
@@ -752,7 +774,7 @@ function boardStatusFor(room) {
     const range = boardRange();
     const focusDate = range.mode === 'day' ? range.start : todayDate();
     const roomStatus = normalizeStatus(room.status || room.frontStatus || room.housekeepingStatus);
-    if (roomStatus === 'oos') return { status: 'oos', label: '점검 중', res: null };
+    if (roomStatus === 'oos') return { status: 'oos', label: boardText('status.oos'), res: null };
     const related = reservations
         .filter(res => roomMatchesReservation(room, res))
         .map(res => ({
@@ -766,25 +788,25 @@ function boardStatusFor(room) {
         .sort((a, b) => a.start - b.start);
 
     const checkoutDue = related.find(item => isBoardCheckoutTargetStatus(item.effectiveStatus) && sameDate(item.end, focusDate));
-    if (checkoutDue) return { status: 'checkout', label: '체크아웃 예정', res: checkoutDue.res };
+    if (checkoutDue) return { status: 'checkout', label: boardText('status.checkout'), res: checkoutDue.res };
 
     const active = related.find(item => item.start <= focusDate && focusDate < item.end);
     if (active) {
-        if (active.status === 'blocked' || active.res.isGroupPlaceholder) return { status: 'blocked', label: '단체 배정', res: active.res };
-        if (reservationLateCheckoutEnabled(active.res)) return { status: 'late', label: '레이트', res: active.res };
-        if (sameDate(active.end, focusDate) && isBoardCheckoutTargetStatus(active.effectiveStatus)) return { status: 'checkout', label: '체크아웃 예정', res: active.res };
-        if (isBoardCheckoutTargetStatus(active.effectiveStatus) || roomStatus === 'inhouse') return { status: 'inhouse', label: '투숙 중', res: active.res };
-        if (sameDate(active.start, focusDate)) return { status: 'arrival', label: '체크인 예정', res: active.res };
-        return { status: 'arrival', label: '미체크인', res: active.res };
+        if (active.status === 'blocked' || active.res.isGroupPlaceholder) return { status: 'blocked', label: boardText('status.blocked'), res: active.res };
+        if (reservationLateCheckoutEnabled(active.res)) return { status: 'late', label: boardText('status.late'), res: active.res };
+        if (sameDate(active.end, focusDate) && isBoardCheckoutTargetStatus(active.effectiveStatus)) return { status: 'checkout', label: boardText('status.checkout'), res: active.res };
+        if (isBoardCheckoutTargetStatus(active.effectiveStatus) || roomStatus === 'inhouse') return { status: 'inhouse', label: boardText('status.inhouse'), res: active.res };
+        if (sameDate(active.start, focusDate)) return { status: 'arrival', label: boardText('status.arrival'), res: active.res };
+        return { status: 'arrival', label: boardText('status.noArrival'), res: active.res };
     }
 
     const arrival = range.mode === 'day'
         ? related.find(item => sameDate(item.start, focusDate))
         : related.find(item => dateInRange(item.start, range));
-    if (arrival) return { status: 'arrival', label: '체크인 예정', res: arrival.res };
+    if (arrival) return { status: 'arrival', label: boardText('status.arrival'), res: arrival.res };
     const next = related.find(item => item.start > focusDate && item.start <= range.end);
-    if (next) return { status: 'reserved', label: '예약 예정', res: next.res };
-    return { status: 'vacant', label: '예약 없음', res: null };
+    if (next) return { status: 'reserved', label: boardText('status.reserved'), res: next.res };
+    return { status: 'vacant', label: boardText('status.vacant'), res: null };
 }
 
 function roomType(room) {
@@ -969,11 +991,11 @@ function reservationStateForFilter(res) {
         cancelled: 'cancelled'
     };
     const labelByBucket = {
-        checkin: '체크인 예정',
-        inhouse: '투숙 중',
-        checkout: '체크아웃 예정',
-        completed: '체크아웃 완료',
-        cancelled: '취소/노쇼'
+        checkin: boardText('status.arrival'),
+        inhouse: boardText('status.inhouse'),
+        checkout: boardText('status.checkout'),
+        completed: boardText('status.completed'),
+        cancelled: boardText('status.cancelled')
     };
     return {
         status: statusByBucket[bucket] || 'reserved',
@@ -1061,7 +1083,7 @@ function boardCard(room) {
             const filteredRes = reservationForRoomFilter(room);
             if (!filteredRes) return '';
             state = boardFilter === 'late'
-                ? { status: 'late', label: '레이트', res: filteredRes }
+                ? { status: 'late', label: boardText('status.late'), res: filteredRes }
                 : reservationStateForFilter(filteredRes);
         }
     }
