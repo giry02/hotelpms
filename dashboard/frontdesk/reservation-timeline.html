@@ -257,6 +257,11 @@ let rooms = [];
 let timelineGroups = [];
 
 window.reservations = [];
+let timelineStoredGroupsCache = null;
+let timelineRoomForReservationCache = new WeakMap();
+let timelineGuestEntriesCache = new WeakMap();
+let timelineHandoffCache = new Map();
+let timelineSortedReservationsCache = null;
 
 const DAYS = 14;
 function timelineTodayDate() {
@@ -440,6 +445,14 @@ function normalizeTimelineRoomValue(value) {
     };
 }
 
+function resetTimelineRenderCaches() {
+    timelineStoredGroupsCache = null;
+    timelineRoomForReservationCache = new WeakMap();
+    timelineGuestEntriesCache = new WeakMap();
+    timelineHandoffCache = new Map();
+    timelineSortedReservationsCache = null;
+}
+
 function sameTimelineRoomValue(left, right) {
     const a = normalizeTimelineRoomValue(left);
     const b = normalizeTimelineRoomValue(right);
@@ -452,6 +465,7 @@ function sameTimelineRoomValue(left, right) {
 }
 
 function timelineStoredGroups() {
+    if (timelineStoredGroupsCache) return timelineStoredGroupsCache;
     const merged = new Map();
     (Array.isArray(timelineGroups) ? timelineGroups : []).forEach(group => {
         if (group?.id) merged.set(group.id, group);
@@ -464,7 +478,8 @@ function timelineStoredGroups() {
             });
         }
     } catch(e) {}
-    return [...merged.values()];
+    timelineStoredGroupsCache = [...merged.values()];
+    return timelineStoredGroupsCache;
 }
 
 function timelineRoomMatchesReservation(room, res) {
@@ -491,7 +506,12 @@ function timelineRoomMatchesReservation(room, res) {
 
 function timelineRoomForReservation(res) {
     if (!res) return null;
-    return rooms.find(room => timelineRoomMatchesReservation(room, res));
+    if (typeof res === 'object' && timelineRoomForReservationCache.has(res)) {
+        return timelineRoomForReservationCache.get(res);
+    }
+    const matched = rooms.find(room => timelineRoomMatchesReservation(room, res)) || null;
+    if (typeof res === 'object') timelineRoomForReservationCache.set(res, matched);
+    return matched;
 }
 
 function parseTimelineDate(value) {
@@ -532,7 +552,9 @@ function timelineHasSameDayRoomHandoff(res, room) {
     const checkoutDate = timelineReservationCheckoutDate(res);
     if (!checkoutDate || !room) return false;
     const resId = res?.id || res?.reservationId || '';
-    return reservations.some(other => {
+    const cacheKey = `${resId || res?.room || ''}|${room?.id || room?.roomId || ''}|${checkoutDate.getTime()}`;
+    if (timelineHandoffCache.has(cacheKey)) return timelineHandoffCache.get(cacheKey);
+    const result = reservations.some(other => {
         if (!other || other === res) return false;
         const otherId = other.id || other.reservationId || '';
         if (resId && otherId && resId === otherId) return false;
@@ -540,6 +562,8 @@ function timelineHasSameDayRoomHandoff(res, room) {
         const startDate = timelineReservationStartDate(other);
         return !!startDate && startDate.getTime() === checkoutDate.getTime();
     });
+    timelineHandoffCache.set(cacheKey, result);
+    return result;
 }
 
 function timelineReservationRenderSortValue(res) {
@@ -549,15 +573,18 @@ function timelineReservationRenderSortValue(res) {
 }
 
 function timelineReservationsForRender() {
-    return [...reservations].sort((a, b) => {
+    if (timelineSortedReservationsCache) return timelineSortedReservationsCache;
+    const roomIndexMap = new Map(rooms.map((room, index) => [room, index]));
+    timelineSortedReservationsCache = [...reservations].sort((a, b) => {
         const roomA = timelineRoomForReservation(a);
         const roomB = timelineRoomForReservation(b);
-        const roomIdxA = roomA ? rooms.indexOf(roomA) : Number.MAX_SAFE_INTEGER;
-        const roomIdxB = roomB ? rooms.indexOf(roomB) : Number.MAX_SAFE_INTEGER;
+        const roomIdxA = roomA ? (roomIndexMap.get(roomA) ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
+        const roomIdxB = roomB ? (roomIndexMap.get(roomB) ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER;
         return roomIdxA - roomIdxB
             || timelineReservationRenderSortValue(a) - timelineReservationRenderSortValue(b)
             || String(a.id || a.reservationId || '').localeCompare(String(b.id || b.reservationId || ''));
     });
+    return timelineSortedReservationsCache;
 }
 
 function isTimelineCurrentStay(res) {
@@ -621,6 +648,9 @@ function timelineGroupRoomingEntries(res) {
 
 function timelineGuestEntries(res) {
     if (!res) return [];
+    if (typeof res === 'object' && timelineGuestEntriesCache.has(res)) {
+        return timelineGuestEntriesCache.get(res);
+    }
     const entries = [];
     const addEntry = (raw, fallbackRole = 'companion', source = 'reservation', index = 0) => {
         const item = typeof raw === 'string' ? { name: raw } : (raw || {});
@@ -666,6 +696,7 @@ function timelineGuestEntries(res) {
 
     const primary = entries.find(item => item.role === 'primary');
     if (!primary && entries[0]) entries[0].role = 'primary';
+    if (typeof res === 'object') timelineGuestEntriesCache.set(res, entries);
     return entries;
 }
 
@@ -840,12 +871,14 @@ function timelineDateClass(date) {
 
 function buildTimeline() {
     const grid = document.getElementById('tlGrid');
-    grid.innerHTML = '';
+    if (!grid) return;
+    resetTimelineRenderCaches();
+    const renderReservations = timelineReservationsForRender();
 
     let cntConfirmed=0, cntCheckedin=0, cntCheckout=0, cntVip=0, cntB2B=0;
 
     // Count assigned group guests only; unassigned group block rooms are inventory, not guests.
-    timelineReservationsForRender().forEach(res => {
+    renderReservations.forEach(res => {
         const isB2BGuest = !!(res.groupId && timelineGuestName(res));
         const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
         const effectiveStatus = effectiveTimelineStatus(res);
@@ -857,6 +890,7 @@ function buildTimeline() {
     });
 
     // Header row
+    const dayMeta = [];
     let headerHTML = '<div class="tl-room-header">Room</div>';
     const todayDate = timelineTodayDate();
     for (let d = 0; d < DAYS; d++) {
@@ -865,9 +899,10 @@ function buildTimeline() {
         const dayName = timelineText('dayNames')[date.getDay()];
         const isToday = date.getTime() === todayDate.getTime();
         const dayClass = timelineDateClass(date);
+        dayMeta.push({ dayClass });
         headerHTML += `<div class="tl-date-header ${isToday ? 'today' : ''} ${dayClass}">${date.getDate()}<span class="tl-day-name">${dayName}</span></div>`;
     }
-    grid.innerHTML += `<div class="tl-header-row">${headerHTML}</div>`;
+    let gridHTML = `<div class="tl-header-row">${headerHTML}</div>`;
 
     // Room rows
     rooms.forEach(room => {
@@ -875,16 +910,15 @@ function buildTimeline() {
         
         // Create date cells
         for (let d = 0; d < DAYS; d++) {
-            const dayClass = (() => {
-                const date = new Date(baseDate);
-                date.setDate(date.getDate() + d);
-                return timelineDateClass(date);
-            })();
+            const dayClass = dayMeta[d]?.dayClass || '';
             rowHTML += `<div class="tl-cell ${dayClass}" data-room="${room.id}" data-day="${d}"></div>`;
         }
 
-        grid.innerHTML += `<div class="tl-row">${rowHTML}</div>`;
+        gridHTML += `<div class="tl-row">${rowHTML}</div>`;
     });
+    grid.innerHTML = gridHTML;
+    const rowEls = Array.from(grid.querySelectorAll('.tl-row'));
+    const roomIndexMap = new Map(rooms.map((room, index) => [room, index]));
 
     // Track levels for each room to handle overlapping blocks
     const roomLevels = {};
@@ -927,23 +961,14 @@ function buildTimeline() {
         block.onclick = () => openTimelineReservation(res);
         row.style.position = 'relative';
         row.appendChild(block);
-
-        const renderedHeight = Math.ceil(block.getBoundingClientRect().height || blockHeight);
-        const measuredRequiredHeight = blockTop + renderedHeight + 8;
-        const measuredCurrentHeight = parseInt(row.style.getPropertyValue('--tl-row-height') || row.style.height || 40);
-        if (measuredCurrentHeight < measuredRequiredHeight) {
-            row.style.setProperty('--tl-row-height', `${measuredRequiredHeight}px`);
-            row.style.height = `${measuredRequiredHeight}px`;
-            row.style.minHeight = `${measuredRequiredHeight}px`;
-        }
     };
 
-    timelineReservationsForRender().forEach(res => {
+    renderReservations.forEach(res => {
         const matchedRoom = timelineRoomForReservation(res);
-        const roomIdx = matchedRoom ? rooms.indexOf(matchedRoom) : -1;
+        const roomIdx = matchedRoom ? (roomIndexMap.get(matchedRoom) ?? -1) : -1;
         if (roomIdx === -1) return;
         
-        const row = grid.querySelectorAll('.tl-row')[roomIdx];
+        const row = rowEls[roomIdx];
         if (!row) return;
 
         let renderStart, renderEnd;
@@ -1031,7 +1056,7 @@ function buildTimeline() {
 
     document.getElementById('kpiConfirmed').textContent = cntConfirmed;
     document.getElementById('kpiCheckedin').textContent = cntCheckedin;
-        document.getElementById('kpiCheckout').textContent = cntCheckout;
+    document.getElementById('kpiCheckout').textContent = cntCheckout;
     document.getElementById('kpiVip').textContent = cntVip;
     if (document.getElementById('kpiB2B')) document.getElementById('kpiB2B').textContent = cntB2B;
 }
@@ -1148,6 +1173,7 @@ function toggleMenu() {
 // ===== MOBILE ROOM LIST VIEW =====
 function buildMobileView() {
     const container = document.getElementById('tlMobileView');
+    if (!container) return;
     const statusMap = {
         blocked: timelineText('groupBlock'),
         'group-assigned': timelineText('groupBooking'),
@@ -1160,10 +1186,19 @@ function buildMobileView() {
     const colorMap = {blocked:'#111827','group-assigned':'#2563EB',confirmed:'#3B82F6',checkedin:'#10B981',checkout:'#F97316',completed:'#94A3B8',vip:'#8B5CF6'};
     const iconMap = {blocked:'fa-building','group-assigned':'fa-users',confirmed:'fa-check',checkedin:'fa-right-to-bracket',checkout:'fa-right-from-bracket',completed:'fa-check-double',vip:'fa-crown'};
 
+    const renderReservations = timelineReservationsForRender();
+    const roomReservationMap = new Map(rooms.map(room => [room, []]));
+    renderReservations.forEach(res => {
+        const room = timelineRoomForReservation(res);
+        if (!room) return;
+        if (!roomReservationMap.has(room)) roomReservationMap.set(room, []);
+        roomReservationMap.get(room).push(res);
+    });
+
     let html = '';
     rooms.forEach(room => {
         const offset = Math.round((baseDate - EPOCH) / 86400000);
-        const roomRes = reservations.filter(r => timelineRoomMatchesReservation(room, r));
+        const roomRes = roomReservationMap.get(room) || [];
         const hasToday = roomRes.some(r => {
             let renderStart, renderEnd;
             if (r.cin && r.cout) {
@@ -1240,17 +1275,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         timelineGroups = timelineStoredGroups();
         if (timelineGroups.length) localStorage.setItem('pms_groups', JSON.stringify(timelineGroups));
         window.reservations = dedupeTimelineReservations(resData);
+        const initialLang = localStorage.getItem('pms_lang') || window.currentLang || document.getElementById('langSelect')?.value || 'ko';
+        window.currentLang = initialLang;
+        const langSelect = document.getElementById('langSelect');
+        if (langSelect) langSelect.value = initialLang;
 
         applyTimelineStaticLabels();
         buildTimeline();
         buildMobileView();
         if(typeof updateDateRangeText === 'function') updateDateRangeText();
-
-        if (typeof window.changeLang === 'function') {
-            window.changeLang(document.getElementById('langSelect')?.value || localStorage.getItem('pms_lang') || 'ko');
-        } else {
-            applyTimelineLanguage();
-        }
     } catch(e) { 
         console.error(e); 
         const container = document.querySelector('.tl-container');
