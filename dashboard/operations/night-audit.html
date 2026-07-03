@@ -218,9 +218,9 @@
         .cash-note-link { min-height: 32px; padding: 0 12px; margin-top: 10px; width: 100%; }
         .cash-flow-reason-btn:hover,
         .cash-note-link:hover { border-color: #f59e0b; background: #fffbeb; }
-        .cash-insight-modal { max-width: 720px; width: 94vw; background: #fff; overflow: hidden; }
+        .cash-insight-modal { max-width: 720px; width: 94vw; max-height: min(88vh, 860px); background: #fff; overflow: hidden; display: flex; flex-direction: column; }
         .close-basis-modal { max-width: 780px; }
-        .cash-insight-body { padding: 20px; display: grid; gap: 14px; background: #fff; overflow-y: auto; flex: 1; }
+        .cash-insight-body { padding: 20px; display: grid; gap: 14px; background: #fff; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
         .cash-insight-callout { border: 1px solid #bfdbfe; background: #eff6ff; color: #1d4ed8; border-radius: 12px; padding: 12px 13px; font-size: .82rem; font-weight: 850; line-height: 1.55; }
         .close-basis-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
         .close-basis-card { border: 1px solid var(--border2); border-radius: 12px; background: #fff; padding: 13px; min-width: 0; display: flex; flex-direction: column; gap: 9px; }
@@ -300,6 +300,17 @@
         .cash-insight-section.cash-detail-breakdown .cash-reconcile-split-card .cash-currency-amount { color: var(--txt2); font-size: .84rem; font-weight: 820; }
         .cash-insight-section { border: 1px solid var(--border2); border-radius: 12px; overflow: hidden; background: #fff; }
         .cash-insight-section h4 { margin: 0; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid var(--border2); color: var(--txt); font-size: .94rem; font-weight: 950; display: flex; align-items: center; gap: 7px; }
+        .cash-inflow-record-section { overflow: visible; }
+        .cash-inflow-record-section h4 { justify-content: space-between; }
+        .cash-inflow-record-title { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
+        .cash-inflow-record-count { flex: 0 0 auto; min-height: 23px; padding: 0 9px; border-radius: 999px; background: #eef2ff; color: var(--primary); display: inline-flex; align-items: center; font-size: .7rem; font-weight: 950; }
+        .cash-inflow-more { border-top: 1px dashed var(--border2); background: #fff; }
+        .cash-inflow-more summary { list-style: none; cursor: pointer; padding: 10px 14px; color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 7px; font-size: .78rem; font-weight: 950; }
+        .cash-inflow-more summary::-webkit-details-marker { display: none; }
+        .cash-inflow-more[open] summary { border-bottom: 1px dashed var(--border2); background: #fbfdff; }
+        .cash-inflow-more summary i { transition: transform .16s ease; }
+        .cash-inflow-more[open] summary i { transform: rotate(180deg); }
+        .cash-inflow-more .cash-reconcile-detail-list { padding-top: 10px; border-bottom: 0; }
         .cash-insight-section.cash-detail-breakdown { border-color: #e5e7eb; background: #fbfdff; }
         .cash-insight-section.cash-detail-breakdown h4 { color: var(--txt2); font-size: .9rem; font-weight: 900; background: #f8fafc; }
         .cash-insight-section.cash-detail-breakdown .cash-reconcile-split-grid { padding: 10px; gap: 8px; }
@@ -477,6 +488,10 @@
             .audit-issue-row { grid-template-columns: 1fr; align-items: stretch; }
             .unsettled-row { grid-template-columns: 1fr; align-items: stretch; }
             .audit-issue-row .btn-outline-sm { width: 100%; height: 34px; }
+            #cashVarianceReasonModal.active .cash-insight-modal,
+            #cashOnHandDetailModal.active .cash-insight-modal,
+            #cashInflowDetailModal.active .cash-insight-modal,
+            #cashWithdrawalDetailModal.active .cash-insight-modal { transform: translateY(0) !important; }
         }
     </style>
 </head>
@@ -2701,26 +2716,43 @@ function closeCashVarianceReasonModal() {
 function renderCashInflowRecordSection(title, icon, records = [], options = {}) {
     const recordLabel = options.recordLabel || title;
     const iconColor = options.iconColor || 'var(--primary)';
-    const emptyText = options.emptyText || cashUiText('표시할 현금입금 내역이 없습니다.', 'No cash inflow records to show.');
+    const previewLimit = Math.max(1, Number(options.previewLimit || 3));
+    const visibleRecords = records.slice(0, previewLimit);
+    const extraRecords = records.slice(previewLimit);
+    const countLabel = records.length ? `${records.length}${cashUiText('건', ' records')}` : cashUiText('0건', '0 records');
+    const limitedEmptyText = options.emptyText || cashUiText('표시할 현금입금 내역이 없습니다.', 'No cash inflow records to show.');
+    const renderLimitedCards = (items, startIndex = 0) => `
+        <div class="cash-reconcile-detail-list">
+            ${items.map((item, index) => {
+                const recordIndex = startIndex + index + 1;
+                const meta = [item.folioId || '-', item.guest || '-', formatAuditTime(item.createdAt), item.operator || '-'].filter(Boolean).join(' · ');
+                const note = item.note ? `${cashUiText('메모', 'Memo')} ${item.note}` : '';
+                return `
+                    <div class="cash-reconcile-detail-card">
+                        <div class="cash-reconcile-detail-title"><i class="fa-solid ${icon}" style="color:${iconColor}"></i> ${escapeAudit(recordLabel)} ${recordIndex}</div>
+                        <div class="cash-reconcile-detail-sub">${escapeAudit(meta || '-')}</div>
+                        ${renderCashCurrencyLines(receivedBreakdownForPayment(item), { includeZero: false, emptyLabel: cashUiText('금액 없음', 'No amount') })}
+                        <div class="cash-flow-detail">${escapeAudit([`${cashUiText('정산 반영', 'Applied')} ${moneyPhp(item.appliedPhpAmount || 0)}`, note].filter(Boolean).join(' · '))}</div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
     return `
-        <div class="cash-insight-section cash-detail-breakdown">
-            <h4><i class="fa-solid ${icon}" style="color:${iconColor}"></i> ${escapeAudit(title)}</h4>
+        <div class="cash-insight-section cash-detail-breakdown cash-inflow-record-section">
+            <h4>
+                <span class="cash-inflow-record-title"><i class="fa-solid ${icon}" style="color:${iconColor}"></i> ${escapeAudit(title)}</span>
+                <span class="cash-inflow-record-count">${escapeAudit(countLabel)}</span>
+            </h4>
             ${records.length ? `
-                <div class="cash-reconcile-detail-list">
-                    ${records.map((item, index) => {
-                        const meta = [item.folioId || '-', item.guest || '-', formatAuditTime(item.createdAt), item.operator || '-'].filter(Boolean).join(' · ');
-                        const note = item.note ? `${cashUiText('메모', 'Memo')} ${item.note}` : '';
-                        return `
-                            <div class="cash-reconcile-detail-card">
-                                <div class="cash-reconcile-detail-title"><i class="fa-solid ${icon}" style="color:${iconColor}"></i> ${escapeAudit(recordLabel)} ${index + 1}</div>
-                                <div class="cash-reconcile-detail-sub">${escapeAudit(meta || '-')}</div>
-                                ${renderCashCurrencyLines(receivedBreakdownForPayment(item), { includeZero: false, emptyLabel: cashUiText('금액 없음', 'No amount') })}
-                                <div class="cash-flow-detail">${escapeAudit([`${cashUiText('정산 반영', 'Applied')} ${moneyPhp(item.appliedPhpAmount || 0)}`, note].filter(Boolean).join(' · '))}</div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            ` : renderCashInsightSection(title, icon, [emptyText])}
+                ${renderLimitedCards(visibleRecords)}
+                ${extraRecords.length ? `
+                    <details class="cash-inflow-more">
+                        <summary><i class="fa-solid fa-chevron-down"></i> ${escapeAudit(cashUiText(`나머지 ${extraRecords.length}건 펼치기`, `Show ${extraRecords.length} more`))}</summary>
+                        ${renderLimitedCards(extraRecords, visibleRecords.length)}
+                    </details>
+                ` : ''}
+            ` : `<div class="history-empty">${escapeAudit(limitedEmptyText)}</div>`}
         </div>
     `;
 }
