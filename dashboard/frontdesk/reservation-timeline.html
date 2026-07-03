@@ -262,6 +262,7 @@ let timelineRoomForReservationCache = new WeakMap();
 let timelineGuestEntriesCache = new WeakMap();
 let timelineHandoffCache = new Map();
 let timelineSortedReservationsCache = null;
+let timelineRenderedReservationMap = new Map();
 
 const DAYS = 14;
 function timelineTodayDate() {
@@ -451,6 +452,7 @@ function resetTimelineRenderCaches() {
     timelineGuestEntriesCache = new WeakMap();
     timelineHandoffCache = new Map();
     timelineSortedReservationsCache = null;
+    timelineRenderedReservationMap = new Map();
 }
 
 function sameTimelineRoomValue(left, right) {
@@ -869,11 +871,27 @@ function timelineDateClass(date) {
     return '';
 }
 
+function timelineReservationRenderKey(res, index = 0) {
+    return String(res?.id || res?.reservationId || `render-${index}`).trim();
+}
+
+function ensureTimelineGridClickHandler(grid) {
+    if (!grid || grid._timelineBlockClickBound) return;
+    grid.addEventListener('click', event => {
+        const block = event.target.closest('.tl-block[data-res-key]');
+        if (!block || !grid.contains(block)) return;
+        const res = timelineRenderedReservationMap.get(block.dataset.resKey);
+        if (res) openTimelineReservation(res);
+    });
+    grid._timelineBlockClickBound = true;
+}
+
 function buildTimeline() {
     const grid = document.getElementById('tlGrid');
     if (!grid) return;
-    resetTimelineRenderCaches();
+    ensureTimelineGridClickHandler(grid);
     const renderReservations = timelineReservationsForRender();
+    timelineRenderedReservationMap = new Map();
 
     let cntConfirmed=0, cntCheckedin=0, cntCheckout=0, cntVip=0, cntB2B=0;
 
@@ -902,10 +920,10 @@ function buildTimeline() {
         dayMeta.push({ dayClass });
         headerHTML += `<div class="tl-date-header ${isToday ? 'today' : ''} ${dayClass}">${date.getDate()}<span class="tl-day-name">${dayName}</span></div>`;
     }
-    let gridHTML = `<div class="tl-header-row">${headerHTML}</div>`;
+    const headerRowHTML = `<div class="tl-header-row">${headerHTML}</div>`;
 
     // Room rows
-    rooms.forEach(room => {
+    const rowStates = rooms.map(room => {
         let rowHTML = `<div class="tl-room-cell"><span class="tl-room-num">${room.id}</span><span class="tl-room-type">${timelineRoomType(room.type)}</span></div>`;
         
         // Create date cells
@@ -914,40 +932,28 @@ function buildTimeline() {
             rowHTML += `<div class="tl-cell ${dayClass}" data-room="${room.id}" data-day="${d}"></div>`;
         }
 
-        gridHTML += `<div class="tl-row">${rowHTML}</div>`;
+        return {
+            room,
+            cellsHTML: rowHTML,
+            blocks: [],
+            height: 40,
+            levels: []
+        };
     });
-    grid.innerHTML = gridHTML;
-    const rowEls = Array.from(grid.querySelectorAll('.tl-row'));
     const roomIndexMap = new Map(rooms.map((room, index) => [room, index]));
 
-    // Track levels for each room to handle overlapping blocks
-    const roomLevels = {};
-
-    const appendTimelineBlock = ({ row, res, level, clipStart, clipEnd, renderStatus }) => {
-        if (clipEnd <= clipStart) return;
-        const block = document.createElement('div');
-        block.className = `tl-block ${renderStatus}`;
-
+    const pushTimelineBlock = ({ rowState, res, renderIndex, level, clipStart, clipEnd, renderStatus }) => {
+        if (!rowState || clipEnd <= clipStart) return;
         const renderLen = clipEnd - clipStart;
-        block.style.position = 'absolute';
         const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
         const hasCompanions = timelineCompanionGuestNames(res).length > 0;
         const guestLineCount = 1 + (hasCompanions ? 1 : 0) + (isVip ? 1 : 0) + (res.groupId ? 1 : 0);
         const blockHeight = Math.min(82, Math.max(36, Math.ceil(9 + (guestLineCount * 11.5))));
         const levelStep = 88;
-        block.style.top = `${8 + (level * levelStep)}px`;
-        block.style.left = `calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px)`;
-        block.style.width = `calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px)`;
-        block.style.minHeight = `${blockHeight}px`;
 
         const blockTop = 8 + (level * levelStep);
         const requiredHeight = blockTop + blockHeight + 8;
-        const currentHeight = parseInt(row.style.getPropertyValue('--tl-row-height') || row.style.height || 40);
-        if (currentHeight < requiredHeight) {
-            row.style.setProperty('--tl-row-height', `${requiredHeight}px`);
-            row.style.height = `${requiredHeight}px`;
-            row.style.minHeight = `${requiredHeight}px`;
-        }
+        if (rowState.height < requiredHeight) rowState.height = requiredHeight;
 
         const displayName = timelineDisplayName(res);
         const groupBadge = timelineGroupBadge(res);
@@ -955,21 +961,25 @@ function buildTimeline() {
         const timeTitle = timelineLateCheckoutEnabled(res)
             ? `입실 ${timelineCheckInTime(res)} / 레이트 ${timelineLateCheckoutTime(res)}`
             : `입실 ${timelineCheckInTime(res)} / 퇴실 ${timelineCheckOutTime(res)}`;
-        block.title = [displayName, companionTitle, timeTitle].filter(Boolean).join(' / ');
-        block.innerHTML = timelineBlockContent(res, groupBadge, isVip);
-
-        block.onclick = () => openTimelineReservation(res);
-        row.style.position = 'relative';
-        row.appendChild(block);
+        const title = [displayName, companionTitle, timeTitle].filter(Boolean).join(' / ');
+        const resKey = timelineReservationRenderKey(res, renderIndex);
+        timelineRenderedReservationMap.set(resKey, res);
+        rowState.blocks.push(`
+            <div class="tl-block ${renderStatus}"
+                data-res-key="${timelineEscapeHtml(resKey)}"
+                title="${timelineEscapeHtml(title)}"
+                style="position:absolute;top:${blockTop}px;left:calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px);width:calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px);min-height:${blockHeight}px">
+                ${timelineBlockContent(res, groupBadge, isVip)}
+            </div>`);
     };
 
-    renderReservations.forEach(res => {
+    renderReservations.forEach((res, renderIndex) => {
         const matchedRoom = timelineRoomForReservation(res);
         const roomIdx = matchedRoom ? (roomIndexMap.get(matchedRoom) ?? -1) : -1;
         if (roomIdx === -1) return;
         
-        const row = rowEls[roomIdx];
-        if (!row) return;
+        const rowState = rowStates[roomIdx];
+        if (!rowState) return;
 
         let renderStart, renderEnd;
         if (res.cin && res.cout) {
@@ -1006,14 +1016,13 @@ function buildTimeline() {
         if (renderEnd <= 0 || renderStart >= DAYS) return; // out of view
 
         // Find available level to avoid overlapping
-        if (!roomLevels[roomIdx]) roomLevels[roomIdx] = [];
         let level = 0;
         // Check if there is an overlapping reservation in this level.
         // We use > instead of >= so back-to-back reservations (checkout/checkin on same day) don't overlap vertically
-        while (roomLevels[roomIdx][level] !== undefined && roomLevels[roomIdx][level] > renderStart) {
+        while (rowState.levels[level] !== undefined && rowState.levels[level] > renderStart) {
             level++;
         }
-        roomLevels[roomIdx][level] = renderEnd;
+        rowState.levels[level] = renderEnd;
 
         let safeStatus = effectiveTimelineStatus(res);
         const clipStart = Math.max(0, renderStart);
@@ -1026,26 +1035,29 @@ function buildTimeline() {
             && renderEnd > todayOffset + 1;
 
         if (splitCurrentStay) {
-            appendTimelineBlock({
-                row,
+            pushTimelineBlock({
+                rowState,
                 res,
+                renderIndex,
                 level,
                 clipStart,
                 clipEnd: Math.min(clipEnd, todayOffset + 1),
                 renderStatus: renderTimelineStatus(res, 'checkedin')
             });
-            appendTimelineBlock({
-                row,
+            pushTimelineBlock({
+                rowState,
                 res,
+                renderIndex,
                 level,
                 clipStart: Math.max(clipStart, todayOffset + 1),
                 clipEnd,
                 renderStatus: renderTimelineStatus(res, 'confirmed')
             });
         } else {
-            appendTimelineBlock({
-                row,
+            pushTimelineBlock({
+                rowState,
                 res,
+                renderIndex,
                 level,
                 clipStart,
                 clipEnd,
@@ -1053,6 +1065,11 @@ function buildTimeline() {
             });
         }
     });
+
+    grid.innerHTML = headerRowHTML + rowStates.map(row => {
+        const height = Math.max(40, Math.ceil(row.height));
+        return `<div class="tl-row" style="position:relative;--tl-row-height:${height}px;height:${height}px;min-height:${height}px">${row.cellsHTML}${row.blocks.join('')}</div>`;
+    }).join('');
 
     document.getElementById('kpiConfirmed').textContent = cntConfirmed;
     document.getElementById('kpiCheckedin').textContent = cntCheckedin;
@@ -1098,17 +1115,36 @@ function updateDateRangeText() {
     document.getElementById('tlRange').innerText = `${formatTimelineRangeDate(baseDate)} — ${formatTimelineRangeDate(end)}`;
 }
 
+let timelineMobileViewDirty = true;
+
+function isTimelineMobileViewport() {
+    return !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+}
+
+function markTimelineMobileViewDirty() {
+    timelineMobileViewDirty = true;
+}
+
+function buildMobileViewIfNeeded(force = false) {
+    if (!force && !isTimelineMobileViewport()) return;
+    if (!force && !timelineMobileViewDirty) return;
+    buildMobileView();
+    timelineMobileViewDirty = false;
+}
+
 function shiftWeek(dir) {
     baseDate.setDate(baseDate.getDate() + dir * 7);
     updateDateRangeText();
     buildTimeline();
-    buildMobileView();
+    markTimelineMobileViewDirty();
+    buildMobileViewIfNeeded();
 }
 function goToday() {
     baseDate = timelineTodayDate();
     updateDateRangeText();
     buildTimeline();
-    buildMobileView();
+    markTimelineMobileViewDirty();
+    buildMobileViewIfNeeded();
     if (window.showToast) showToast(timelineText('todayToast'), 'success');
 }
 
@@ -1257,7 +1293,12 @@ function buildMobileView() {
     container.innerHTML = html;
 }
 
-window.addEventListener('languagechange', applyTimelineLanguage);
+window.addEventListener('languagechange', () => {
+    applyTimelineLanguage();
+    markTimelineMobileViewDirty();
+    buildMobileViewIfNeeded();
+});
+window.addEventListener('resize', () => buildMobileViewIfNeeded());
 // Timeline will be built after data load
 // Removed conflicting local i18n logic
 </script>
@@ -1275,6 +1316,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         timelineGroups = timelineStoredGroups();
         if (timelineGroups.length) localStorage.setItem('pms_groups', JSON.stringify(timelineGroups));
         window.reservations = dedupeTimelineReservations(resData);
+        resetTimelineRenderCaches();
         const initialLang = localStorage.getItem('pms_lang') || window.currentLang || document.getElementById('langSelect')?.value || 'ko';
         window.currentLang = initialLang;
         const langSelect = document.getElementById('langSelect');
@@ -1282,7 +1324,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         applyTimelineStaticLabels();
         buildTimeline();
-        buildMobileView();
+        markTimelineMobileViewDirty();
+        buildMobileViewIfNeeded();
         if(typeof updateDateRangeText === 'function') updateDateRangeText();
     } catch(e) { 
         console.error(e); 
