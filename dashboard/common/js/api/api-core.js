@@ -252,7 +252,7 @@ window.PmsMockApi = window.PmsMockApi || (function() {
     }
 
     function data(payload) {
-        return payload?.data?.items || payload?.data || null;
+        return payload?.data?.items || payload?.data?.item || payload?.data || null;
     }
 
     function applyOverlay(payload, route) {
