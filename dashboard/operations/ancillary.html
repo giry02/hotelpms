@@ -107,6 +107,7 @@
         .form-input{height:38px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 10px;font:inherit;width:100%}
         textarea.form-input{height:74px;padding:10px;resize:vertical}
         .group-bulk-box{margin-top:12px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:12px}
+        .group-bulk-box.is-hidden{display:none}
         .group-bulk-title{display:flex;align-items:center;gap:8px;font-weight:950}
         .group-room-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px;max-height:120px;overflow:auto}
         .group-room-checks label{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:8px;background:#fff;border:1px solid #dbeafe;font-size:.76rem;font-weight:850}
@@ -248,7 +249,7 @@
                         </div>
                         <div style="margin-top:10px"><label class="form-label">메모</label><textarea id="serviceMemo" class="form-input" placeholder="요청사항, 픽업 위치, 티타임 특이사항 등"></textarea></div>
 
-                        <div class="group-bulk-box">
+                        <div class="group-bulk-box is-hidden" id="groupBulkBox">
                             <label class="group-bulk-title"><input id="groupBulkToggle" type="checkbox" onchange="toggleGroupBulk()"> 단체 객실 일괄 등록</label>
                             <div style="font-size:.72rem;color:var(--txt2);font-weight:850;margin-top:5px">골프장/렌터카는 단체 선택 시 전체 객실이 기본 선택되며 필요한 객실만 해제할 수 있습니다.</div>
                             <div style="margin-top:10px"><label class="form-label">단체/행사</label><select id="groupSelect" class="form-input" onchange="onGroupSelectChange()"></select></div>
@@ -982,6 +983,20 @@ function renderServiceItems() {
     document.getElementById('serviceItem').innerHTML = items.map((item, index) => `<option value="${index}" data-price="${Number(item.price || 0)}">${escapeHtml(item.name)} · ${money(item.price)}</option>`).join('') || '<option value="0" data-price="0">기본 항목 · ₱0</option>';
     renderRegistrationPreview();
 }
+function setGroupBulkVisible(visible) {
+    const box = document.getElementById('groupBulkBox');
+    const toggle = document.getElementById('groupBulkToggle');
+    const select = document.getElementById('groupSelect');
+    const count = document.getElementById('groupRoomCount');
+    const checks = document.getElementById('groupRoomChecks');
+    if (box) box.classList.toggle('is-hidden', !visible);
+    if (!visible) {
+        if (toggle) toggle.checked = false;
+        if (select) select.value = '';
+        if (count) count.textContent = '0실';
+        if (checks) checks.innerHTML = '';
+    }
+}
 function selectedVendor() {
     return vendors.find(item => item.id === document.getElementById('serviceVendor')?.value);
 }
@@ -1038,7 +1053,9 @@ function renderGroupSelect(selectedId = '') {
     const select = document.getElementById('groupSelect');
     select.innerHTML = '<option value="">단체/행사 선택</option>' + groups.map(group => `<option value="${escapeHtml(group.id || group.groupId)}">${escapeHtml(group.name || group.groupName || group.id)}</option>`).join('');
     select.value = selectedId;
-    document.getElementById('groupBulkToggle').checked = !!selectedId && selectedService !== 'pos';
+    const hasGroupStay = !!selectedId;
+    setGroupBulkVisible(hasGroupStay);
+    document.getElementById('groupBulkToggle').checked = hasGroupStay && selectedService !== 'pos';
     renderGroupRoomChecks();
 }
 function onGroupSelectChange() {
@@ -1052,6 +1069,11 @@ function toggleGroupBulk() {
     renderRegistrationPreview();
 }
 function renderGroupRoomChecks() {
+    const bulkBox = document.getElementById('groupBulkBox');
+    if (bulkBox?.classList.contains('is-hidden')) {
+        renderRegistrationPreview();
+        return;
+    }
     const enabled = document.getElementById('groupBulkToggle').checked;
     const groupId = document.getElementById('groupSelect').value;
     const group = groups.find(item => item.id === groupId || item.groupId === groupId);
