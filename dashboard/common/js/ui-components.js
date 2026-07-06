@@ -164,6 +164,21 @@
         }, 200);
     }
 
+    function installOverlayDismissGuard() {
+        if (window.__pmsOverlayDismissGuardInstalled) return;
+        window.__pmsOverlayDismissGuardInstalled = true;
+
+        document.addEventListener('click', event => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const isPopupBackdrop = target.matches('.modal-overlay, .guest-detail-overlay, .bottom-sheet-overlay');
+            if (!isPopupBackdrop) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }, true);
+    }
+
     // Inject HTML for Toast and Confirm Modal
     const uiHtml = `
     <div id="pms-toast-container" style="position:fixed;top:20px;right:20px;z-index:${PMS_UI_TOAST_Z_INDEX};display:flex;flex-direction:column;gap:10px;pointer-events:none;"></div>
@@ -195,11 +210,18 @@
         return true;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initUiComponents() {
         ensureUiShell();
+        installOverlayDismissGuard();
         installModalScrollLockObserver();
         installModalFunctionHooks();
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initUiComponents);
+    } else {
+        initUiComponents();
+    }
 
     // CSS for Toast
     const style = document.createElement('style');
