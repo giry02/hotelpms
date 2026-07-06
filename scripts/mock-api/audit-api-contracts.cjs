@@ -200,6 +200,23 @@ function checkReservations() {
   }
 }
 
+function checkCrmGuests() {
+  const guests = listItems(readJson('crm/guests.json'));
+  for (const guest of guests) {
+    const id = itemId(guest);
+    const name = String(guest.name || '').trim();
+    const phone = String(guest.phone || guest.mobile || '').trim();
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (!name) addError('crm-guest-name', 'CRM guest is missing a display name.', { id });
+    if (name === '투숙객 미배정') {
+      addError('crm-guest-placeholder', 'Unassigned rooming placeholders must not be stored as CRM guests.', { id, name });
+    }
+    if (!phone || phone === '-' || phoneDigits.length < 7 || phoneDigits.length > 15) {
+      addError('crm-guest-phone', 'CRM guest is missing a valid required phone number.', { id, name, phone });
+    }
+  }
+}
+
 function checkGroups() {
   const groups = listItems(readJson('groups/events.json'));
   const groupsById = indexBy(groups, 'id');
@@ -295,6 +312,7 @@ function checkDashboardSummary() {
 function main() {
   checkEnvelopeFiles();
   checkRoomsAndHousekeeping();
+  checkCrmGuests();
   checkReservations();
   checkGroups();
   checkFolios();

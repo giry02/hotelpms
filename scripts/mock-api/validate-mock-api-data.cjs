@@ -108,6 +108,14 @@ guests.forEach(guest => {
   if (!String(guest.nationality || guest.nation || guest.country || '').trim()) {
     errors.push(`guest/${guest.id}: nationality is required for demo list display`);
   }
+  if (String(guest.name || '').trim() === '투숙객 미배정') {
+    errors.push(`guest/${guest.id}: unassigned rooming placeholders must not be stored as CRM guests`);
+  }
+  const phone = String(guest.phone || guest.mobile || '').trim();
+  const phoneDigits = phone.replace(/\D/g, '');
+  if (!phone || phone === '-' || phoneDigits.length < 7 || phoneDigits.length > 15) {
+    errors.push(`guest/${guest.id}: phone is required for CRM demo data`);
+  }
 });
 
 const guestsById = new Map(guests.map(guest => [guest.id, guest]));
