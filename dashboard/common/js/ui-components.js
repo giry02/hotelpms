@@ -20,6 +20,8 @@
             'ui.empty.desc': 'Register a new item to continue.'
         }
     };
+    const PMS_UI_DIALOG_Z_INDEX = 2147483000;
+    const PMS_UI_TOAST_Z_INDEX = 2147483010;
 
     function currentLang() {
         return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en'
@@ -164,9 +166,9 @@
 
     // Inject HTML for Toast and Confirm Modal
     const uiHtml = `
-    <div id="pms-toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;"></div>
+    <div id="pms-toast-container" style="position:fixed;top:20px;right:20px;z-index:${PMS_UI_TOAST_Z_INDEX};display:flex;flex-direction:column;gap:10px;pointer-events:none;"></div>
     
-    <div class="modal-overlay" id="pms-confirm-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.6);z-index:10000;align-items:center;justify-content:center;">
+    <div class="modal-overlay" id="pms-confirm-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(15,23,42,0.6);z-index:${PMS_UI_DIALOG_Z_INDEX};align-items:center;justify-content:center;">
         <div class="modal-card" style="background:#fff;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.15);overflow:hidden;max-width:400px;width:95vw">
             <div class="modal-header" style="padding:16px 20px;border-bottom:1px solid var(--border2,#e2e8f0);display:flex;align-items:center;">
                 <div class="modal-title" style="font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:8px">
@@ -202,7 +204,16 @@
     // CSS for Toast
     const style = document.createElement('style');
     style.innerHTML = `
+        #pms-toast-container {
+            z-index: ${PMS_UI_TOAST_Z_INDEX} !important;
+        }
+        #pms-confirm-modal {
+            z-index: ${PMS_UI_DIALOG_Z_INDEX} !important;
+        }
         .pms-toast {
+            position: relative;
+            z-index: 1;
+            max-width: min(420px, calc(100vw - 32px));
             background: #fff;
             color: var(--txt);
             padding: 14px 20px;
