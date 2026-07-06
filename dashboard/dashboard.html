@@ -86,6 +86,12 @@
         .ops-guest{display:flex;align-items:center;gap:9px;min-width:190px}
         .ops-avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#3b82f6;color:#fff;font-size:.68rem;font-weight:950;flex-shrink:0}
         .ops-guest-main{min-width:0}
+        .ops-guest-title{display:flex;align-items:center;gap:5px;min-width:0}
+        .ops-tier-icon{display:inline-flex;align-items:center;justify-content:center;width:15px;min-width:15px;font-size:.68rem}
+        .ops-tier-icon.diamond{color:#2563eb}
+        .ops-tier-icon.platinum{color:#7c3aed}
+        .ops-tier-icon.gold{color:#f59e0b}
+        .ops-tier-icon.vip{color:#f97316}
         .ops-guest-name{display:block;max-width:210px;overflow:hidden;text-overflow:ellipsis;color:var(--txt);font-weight:700}
         .ops-chip-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:4px}
         .ops-chip{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:.62rem;font-weight:700}
@@ -93,7 +99,7 @@
         .checkin-card .ops-chip-row{flex-wrap:wrap;max-width:100%;max-height:44px;overflow:hidden;margin-top:0}
         .checkin-card .ops-chip{flex:0 1 auto;max-width:142px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .checkin-card .ops-chip-row .ops-chip:first-child{max-width:62px}
-        .checkin-card .ops-chip-row .ops-chip:last-child{max-width:86px}
+        .checkin-card .ops-chip-row .ops-chip.group:not(:first-child){max-width:160px}
         .ops-chip.group{background:#eff6ff;color:#1d4ed8}
         .ops-chip.vip{background:#fff7ed;color:#c2410c}
         .ops-chip.good{background:#dcfce7;color:#047857}
@@ -1164,6 +1170,24 @@
         const text = String(tier || '').toLowerCase();
         return text.includes('vip') || text.includes('\uACE8') || text.includes('\uD50C') || text.includes('\uB2E4\uC774\uC544');
     }
+    function dashboardTierIcon(tier) {
+        const raw = String(tier || '').trim();
+        const text = raw.toLowerCase();
+        if (!raw || raw === t('normal') || text === 'normal' || text === 'general') return '';
+        let icon = 'fa-gem';
+        let cls = 'diamond';
+        if (text.includes('platinum') || text.includes('\uD50C')) {
+            icon = 'fa-star';
+            cls = 'platinum';
+        } else if (text.includes('gold') || text.includes('\uACE8')) {
+            icon = 'fa-crown';
+            cls = 'gold';
+        } else if (text.includes('vip') || text.includes('\uC6B0\uC218')) {
+            icon = 'fa-crown';
+            cls = 'vip';
+        }
+        return `<i class="fa-solid ${icon} ops-tier-icon ${cls}" title="${esc(raw)}" aria-label="${esc(raw)}"></i>`;
+    }
     function dashboardTodayCheckins(rows) {
         return rows.slice();
     }
@@ -1260,12 +1284,12 @@
             const rowHtml = rows.map(res => {
                 const audience = audienceLabel(res);
                 const tier = tierText(res);
-                const tierClass = isVipTier(tier) ? 'vip' : '';
+                const tierIcon = dashboardTierIcon(tier);
                 const href = dashboardCheckinHref(res);
                 const statusLabel = res._dashboardToday ? t('checkinWaiting') : t('arrivalDelayed');
                 const statusClass = res._dashboardToday ? 'warn' : '';
                 return `<tr class="ops-click-row" tabindex="0" data-href="${esc(href)}" onclick="handleDashboardRowNavigate(event)" onkeydown="handleDashboardRowKey(event)">
-                    <td><div class="ops-guest"><span class="ops-avatar" style="background:${esc(res.color || '#3b82f6')}">${esc(initials(res))}</span><div class="ops-guest-main"><span class="ops-guest-name">${esc(guestText(res))}</span><span class="ops-chip-row"><span class="ops-chip ${isGroupReservation(res) ? 'group' : ''}">${esc(audience)}</span>${res.groupName ? `<span class="ops-chip group">${esc(res.groupName)}</span>` : ''}<span class="ops-chip ${tierClass}">${esc(tier)}</span></span></div></div></td>
+                    <td><div class="ops-guest"><div class="ops-guest-main"><span class="ops-guest-title">${tierIcon}<span class="ops-guest-name">${esc(guestText(res))}</span></span><span class="ops-chip-row"><span class="ops-chip ${isGroupReservation(res) ? 'group' : ''}">${esc(audience)}</span>${res.groupName ? `<span class="ops-chip group">${esc(res.groupName)}</span>` : ''}</span></div></div></td>
                     <td>${esc(roomText(res))}</td>
                     <td>${esc(res.roomType || res.type || '-')}</td>
                     <td>${esc(stayText(res))}</td>
