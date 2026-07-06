@@ -158,6 +158,85 @@ async function dashboardCheckinCountRegression(page, base) {
   return { setup, dashboardState, listState };
 }
 
+async function reservationBoardCleaningVisibilityRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=board-cleaning-visibility`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof renderReservationBoard === 'function' && document.querySelector('#reservationBoardContainer'), null, { timeout: 15000 });
+
+  const boardState = await page.evaluate(() => {
+    const toIso = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const toMd = date => `${date.getMonth() + 1}/${date.getDate()}`;
+    const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    currentLang = 'ko';
+    window.currentLang = 'ko';
+    boardFilter = 'all';
+    boardPeriod = 'today';
+    groups = [];
+    rooms = [{
+      id: 'T-904',
+      roomNo: 'T-904',
+      fullRoom: 'T-904',
+      number: '904',
+      type: 'Standard',
+      building: 'Test Tower',
+      frontStatus: 'vacant',
+      status: 'vacant-clean',
+      housekeepingStatus: 'clean',
+      cleaningStatus: 'clean'
+    }];
+    reservations = [{
+      id: 'RSV-BOARD-CLEANING-VISIBLE',
+      room: 'T-904',
+      roomNo: 'T-904',
+      fullRoom: 'T-904',
+      type: 'Standard',
+      status: 'confirmed',
+      guest: 'Board Clean Guest',
+      guestName: 'Board Clean Guest',
+      roomingGuestName: 'Board Clean Guest',
+      checkInDate: toIso(yesterday),
+      checkOutDate: toIso(tomorrow),
+      checkin: toIso(yesterday),
+      checkout: toIso(tomorrow),
+      cin: toMd(yesterday),
+      cout: toMd(tomorrow),
+      nights: 2,
+      len: 2,
+      amount: 100
+    }];
+    window.rooms = rooms;
+    window.reservations = reservations;
+    const search = document.getElementById('boardSearch');
+    if (search) search.value = '';
+    renderReservationBoard();
+
+    const card = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => el.innerText.includes('Board Clean Guest'));
+    const cleanSelect = card?.querySelector('.board-clean-select');
+    const selectedOption = cleanSelect?.selectedOptions?.[0];
+    return {
+      cardText: card?.innerText || '',
+      cleanValue: cleanSelect?.value || '',
+      cleanLabel: selectedOption?.textContent?.trim() || '',
+      cleanClass: cleanSelect?.className || '',
+      readinessText: card?.querySelector('.board-readiness')?.innerText.trim() || '',
+      statusText: card?.querySelector('.board-status')?.innerText.trim() || ''
+    };
+  });
+
+  assert(boardState.cardText.includes('Board Clean Guest'), 'Reservation board test card did not render.', boardState);
+  assert(boardState.statusText.includes('미도착'), 'Reservation board test card must exercise the overdue check-in state.', boardState);
+  assert(boardState.readinessText.includes('체크인 가능'), 'Reservation board must keep check-in readiness visible for a clean overdue arrival.', boardState);
+  assert(boardState.cleanValue === 'clean' && boardState.cleanLabel === '청소 완료' && boardState.cleanClass.includes('clean'), 'Reservation board must show cleaning status even when check-in readiness is visible.', boardState);
+
+  return boardState;
+}
+
 (async () => {
   let base = DEFAULT_BASE;
   let server = null;
@@ -188,6 +267,7 @@ async function dashboardCheckinCountRegression(page, base) {
     });
 
     const dashboardCountResult = await dashboardCheckinCountRegression(page, base);
+    const boardCleaningVisibilityResult = await reservationBoardCleaningVisibilityRegression(page, base);
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -419,11 +499,13 @@ async function dashboardCheckinCountRegression(page, base) {
         'new reservation has no manual status/group conversion controls',
         'edit detail keeps guest search idle until user searches',
         'occupied rooms render checkout action instead of check-in',
+        'reservation board keeps cleaning status visible beside check-in readiness',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
         'dashboard today check-in KPI matches reservation list after rooms become in-house'
       ],
-      dashboardCountResult
+      dashboardCountResult,
+      boardCleaningVisibilityResult
     }, null, 2));
   } catch (error) {
     console.error(JSON.stringify({ ok: false, error: error.message, details: error.details || null, consoleIssues }, null, 2));
