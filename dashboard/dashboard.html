@@ -445,6 +445,10 @@
         newAlert: '\uC0C8 \uC54C\uB9BC',
         sharedEvent: '\uACF5\uC720 \uC774\uBCA4\uD2B8',
         noCheckin: '\uC624\uB298 \uCCB4\uD06C\uC778 \uC608\uC815 \uACE0\uAC1D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
+        workStatus: '\uCC98\uB9AC\uC0C1\uD0DC',
+        checkinWaiting: '\uCCB4\uD06C\uC778 \uB300\uAE30',
+        arrivalDelayed: '\uBBF8\uB3C4\uCC29',
+        checkinProcess: '\uC785\uC2E4 \uCC98\uB9AC',
         confirm: '\uD655\uC815',
         scheduled: '\uC608\uC815',
         checkin: '\uCCB4\uD06C\uC778',
@@ -563,6 +567,10 @@
         newAlert: 'New Alerts',
         sharedEvent: 'Shared event',
         noCheckin: 'No scheduled check-ins today.',
+        workStatus: 'Process Status',
+        checkinWaiting: 'Waiting for Check-in',
+        arrivalDelayed: 'Not Arrived',
+        checkinProcess: 'Process Check-in',
         confirm: 'Confirmed',
         scheduled: 'Scheduled',
         checkin: 'Check-in',
@@ -862,7 +870,7 @@
         setAria('.checkin-card .ops-pager', 'checkinPagerAria');
         setAria('#checkinPrevBtn', 'checkinPrevAria');
         setAria('#checkinNextBtn', 'checkinNextAria');
-        const checkinHeaders = ['guest', 'room', 'type', 'stay', 'status', ''];
+        const checkinHeaders = ['guest', 'room', 'type', 'stay', 'workStatus', ''];
         document.querySelectorAll('#todayCheckinTable thead th').forEach((th, index) => {
             th.textContent = checkinHeaders[index] ? t(checkinHeaders[index]) : '';
         });
@@ -1254,13 +1262,15 @@
                 const tier = tierText(res);
                 const tierClass = isVipTier(tier) ? 'vip' : '';
                 const href = dashboardCheckinHref(res);
+                const statusLabel = res._dashboardToday ? t('checkinWaiting') : t('arrivalDelayed');
+                const statusClass = res._dashboardToday ? 'warn' : '';
                 return `<tr class="ops-click-row" tabindex="0" data-href="${esc(href)}" onclick="handleDashboardRowNavigate(event)" onkeydown="handleDashboardRowKey(event)">
                     <td><div class="ops-guest"><span class="ops-avatar" style="background:${esc(res.color || '#3b82f6')}">${esc(initials(res))}</span><div class="ops-guest-main"><span class="ops-guest-name">${esc(guestText(res))}</span><span class="ops-chip-row"><span class="ops-chip ${isGroupReservation(res) ? 'group' : ''}">${esc(audience)}</span>${res.groupName ? `<span class="ops-chip group">${esc(res.groupName)}</span>` : ''}<span class="ops-chip ${tierClass}">${esc(tier)}</span></span></div></div></td>
                     <td>${esc(roomText(res))}</td>
                     <td>${esc(res.roomType || res.type || '-')}</td>
                     <td>${esc(stayText(res))}</td>
-                    <td><span class="ops-chip ${res._dashboardToday ? 'good' : ''}">${res._dashboardToday ? t('confirm') : t('scheduled')}</span></td>
-                    <td><a class="ops-row-action" href="${href}">${t('checkin')}</a></td>
+                    <td><span class="ops-chip ${statusClass}">${esc(statusLabel)}</span></td>
+                    <td><a class="ops-row-action" href="${href}">${t('checkinProcess')}</a></td>
                 </tr>`;
             }).join('');
             const fillerHtml = Array.from({ length: Math.max(0, checkinPageSize - rows.length) }, () =>
