@@ -48,7 +48,14 @@
 .folio-table .folio-room-cell{overflow:hidden;white-space:normal}
 .folio-room-title{font-weight:900;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .folio-customer-cell{white-space:normal}
+.folio-customer-line{display:flex;align-items:center;gap:6px;min-width:0}
+.folio-tier-badge{width:20px;height:20px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;font-size:.64rem;border:1px solid transparent}
+.folio-tier-badge.diamond{background:#eff6ff;color:#2563eb;border-color:#bfdbfe}
+.folio-tier-badge.platinum{background:#f5f3ff;color:#7c3aed;border-color:#ddd6fe}
+.folio-tier-badge.gold{background:#fffbeb;color:#d97706;border-color:#fde68a}
+.folio-tier-badge.standard{background:#f8fafc;color:#64748b;border-color:#e2e8f0}
 .folio-customer-name{display:block;font-weight:800;line-height:1.32;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folio-customer-line .folio-customer-name{min-width:0}
 .folio-group-row .folio-customer-name{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .folio-date-cell,.folio-money-cell,.folio-status-cell{white-space:nowrap}
 .folio-money-cell{font-weight:800;color:var(--txt)}
@@ -469,6 +476,9 @@ let apiFolios = [];
 let visibleFolios = [];
 let folioReservations = [];
 let folioGroups = [];
+let folioGuests = [];
+let folioGuestById = new Map();
+let folioGuestByName = new Map();
 let currentPaymentFolioId = '';
 let currentSettlementIndex = -1;
 let currentInvoiceIndex = -1;
@@ -829,6 +839,55 @@ function folioRoomChangeBadgeHtml(folio) {
     if (!text) return '';
     const display = text.replace(/\s*->\s*/g, ' → ');
     return `<div class="folio-room-change-badge" title="${escapeHtml(display)}"><i class="fa-solid fa-right-left"></i>${escapeHtml(display)}</div>`;
+}
+
+const FOLIO_TIER_META = {
+    diamond: { label: '다이아몬드', icon: 'fa-gem', cls: 'diamond' },
+    platinum: { label: '플래티넘', icon: 'fa-star', cls: 'platinum' },
+    gold: { label: '골드', icon: 'fa-crown', cls: 'gold' },
+    standard: { label: '일반', icon: 'fa-user', cls: 'standard' }
+};
+
+function normalizeGuestName(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function normalizeTierKey(value) {
+    const text = String(value || '').trim().toLowerCase();
+    if (!text) return '';
+    if (['diamond', '다이아몬드'].includes(text)) return 'diamond';
+    if (['platinum', '플래티넘', '우수 고객', '우수고객', 'vip'].includes(text)) return 'platinum';
+    if (['gold', '골드'].includes(text)) return 'gold';
+    if (['standard', 'general', 'regular', '일반'].includes(text)) return 'standard';
+    return '';
+}
+
+function rebuildFolioGuestMaps() {
+    folioGuestById = new Map();
+    folioGuestByName = new Map();
+    folioGuests.forEach(guest => {
+        if (!guest) return;
+        const id = String(guest.id || guest.guestId || '').trim();
+        const name = guest.name || guest.guestName || [guest.firstName, guest.lastName].filter(Boolean).join(' ');
+        if (id) folioGuestById.set(id, guest);
+        const key = normalizeGuestName(name);
+        if (key && !folioGuestByName.has(key)) folioGuestByName.set(key, guest);
+    });
+}
+
+function folioGuestRecord(folio) {
+    if (!folio || isGroupFolio(folio)) return null;
+    const guestId = String(folio.guestId || folio.customerId || folio.crmGuestId || '').trim();
+    return (guestId && folioGuestById.get(guestId)) || folioGuestByName.get(normalizeGuestName(folio.guest)) || null;
+}
+
+function folioTierBadgeHtml(folio) {
+    if (!folio || isGroupFolio(folio)) return '';
+    const guest = folioGuestRecord(folio);
+    const tierKey = normalizeTierKey(folio.tier || folio.guestTier || folio.membershipTier || guest?.tier || guest?.grade || guest?.membershipTier) || 'standard';
+    const meta = FOLIO_TIER_META[tierKey];
+    if (!meta) return '';
+    return `<span class="folio-tier-badge ${meta.cls}" title="${meta.label}" aria-label="${meta.label}"><i class="fa-solid ${meta.icon}"></i></span>`;
 }
 
 function folioGroupKey(folio) {
@@ -1759,6 +1818,10 @@ function mapApiFolio(item) {
         folioId: item.folioId || item.id,
         reservationId: item.reservationId || item.bookingId || item.sourceReservationId || '',
         groupId: item.groupId || '',
+        guestId: item.guestId || item.customerId || item.crmGuestId || '',
+        customerId: item.customerId || '',
+        crmGuestId: item.crmGuestId || '',
+        tier: item.tier || item.guestTier || item.membershipTier || '',
         companyId: item.companyId || '',
         companyName: item.companyName || '',
         folioType: item.folioType || '',
@@ -1832,6 +1895,31 @@ function updateApiKpis() {
     document.getElementById('kpiDiff').textContent = formatDiffPercent(totals.total, folioTotal(comparePeriodFolios()));
     document.getElementById('kpiDiff').nextElementSibling.textContent = kpiData[currentPeriod]?.label || '전기 대비';
     return true;
+}
+
+async function loadFolioGuests() {
+    const merged = new Map();
+    try {
+        JSON.parse(localStorage.getItem('pms_guests') || '[]').forEach(guest => {
+            if (guest?.id) merged.set(guest.id, guest);
+        });
+    } catch(e) {}
+    try {
+        if (!window.PmsMockApi) return;
+        const env = await window.PmsMockApi.request('GET', '/crm/guests');
+        const items = window.PmsMockApi.items ? window.PmsMockApi.items(env) : env?.data?.items;
+        if (Array.isArray(items)) {
+            items.forEach(guest => {
+                if (guest?.id) merged.set(guest.id, { ...merged.get(guest.id), ...guest });
+            });
+        }
+    } catch(e) {
+        console.warn('Guest tier fallback', e);
+    } finally {
+        folioGuests = [...merged.values()];
+        rebuildFolioGuestMaps();
+        renderFolios();
+    }
 }
 
 async function loadApiFolios() {
@@ -2150,7 +2238,7 @@ function renderFolios() {
         return `<tr class="folio-row${groupRowClass}" role="button" tabindex="0" style="cursor:pointer" onclick="openSettlementDetailModal(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSettlementDetailModal(${index})}">
             <td class="folio-id-cell"><span class="folio-id-text">${f.id}</span>${folioSourceCountHtml(f)}</td>
             <td class="folio-room-cell"><div class="folio-room-title"><strong>${f.room}</strong></div>${folioGroupBadgeHtml(f)}${folioRoomChangeBadgeHtml(f)}</td>
-            <td class="folio-customer-cell"><span class="folio-customer-name">${escapeHtml(f.guest)}</span>${folioGroupMetaHtml(f)}</td>
+            <td class="folio-customer-cell"><span class="folio-customer-line">${folioTierBadgeHtml(f)}<span class="folio-customer-name">${escapeHtml(f.guest)}</span></span>${folioGroupMetaHtml(f)}</td>
             <td class="folio-date-cell">${f.out}</td>
             <td class="folio-total-cell">${folioBreakdownHtml(f)}</td>
             <td class="folio-money-cell">${fmtMoney(f.paid, f.currency)}</td>
@@ -2174,7 +2262,7 @@ function renderFolios() {
                 <div>
                     <div style="font-size:0.7rem;color:var(--txt3);font-family:monospace">${f.id}</div>
                     ${folioSourceCountHtml(f)}
-                    <div class="m-res-name" style="margin-top:2px">${f.room} · ${f.guest}</div>
+                    <div class="m-res-name folio-customer-line" style="margin-top:2px">${folioTierBadgeHtml(f)}<span class="folio-customer-name">${escapeHtml(`${f.room} · ${f.guest}`)}</span></div>
                     ${folioGroupBadgeHtml(f)}
                     ${folioGroupMetaHtml(f)}
                     ${folioRoomChangeBadgeHtml(f)}
@@ -2264,6 +2352,7 @@ function tryOpenPaymentFromUrl() {
 
 initializeFolioPeriodControls();
 renderFolios();
+loadFolioGuests();
 loadApiFolios();
 loadReservationSettlementLinks();
 loadGroupSettlementLinks();
