@@ -136,7 +136,25 @@
         .icon-mini:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff}
         .icon-mini.danger:hover{border-color:#fecaca;color:#dc2626;background:#fff1f2}
         .room-guest-empty{font-size:.76rem;font-weight:850;color:var(--txt3);padding:8px 0}
+        .company-picker{display:flex;flex-direction:column;gap:8px}
+        .company-picker-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+        .company-picker-search{height:38px;border:1px solid var(--border);border-radius:8px;background:#fff;display:flex;align-items:center;gap:8px;padding:0 10px}
+        .company-picker-search:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+        .company-picker-search i{color:var(--txt3);font-size:.8rem}
+        .company-picker-search input{border:0;outline:0;background:transparent;width:100%;font-family:var(--font);font-size:.8rem;font-weight:750;color:var(--txt)}
+        .company-picker-selected,.company-picker-empty{border:1px solid var(--border2);border-radius:9px;background:#f8fafc;padding:10px 12px;font-size:.76rem;font-weight:800;color:var(--txt2);line-height:1.35}
+        .company-picker-selected{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a}
+        .company-picker-selected strong{display:block;font-size:.86rem;color:#1d4ed8;margin-bottom:2px}
+        .company-picker-selected span{display:block;color:#475569}
+        .company-picker-results{display:grid;gap:6px;max-height:190px;overflow-y:auto}
+        .company-picker-result{border:1px solid var(--border2);border-radius:9px;background:#fff;padding:9px 10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;cursor:pointer;text-align:left}
+        .company-picker-result:hover,.company-picker-result:focus{border-color:#bfdbfe;background:#eff6ff;outline:0}
+        .company-picker-result .name{font-size:.82rem;font-weight:900;color:var(--txt);margin-bottom:2px}
+        .company-picker-result .meta{font-size:.72rem;font-weight:800;color:var(--txt3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .company-picker-result .badge{display:inline-flex;align-items:center;border-radius:999px;background:#f1f5f9;color:#475569;font-size:.66rem;font-weight:900;padding:3px 7px;white-space:nowrap}
+        .company-picker-empty button{margin-top:8px}
         @media(max-width:900px){.detail-sticky-actions{align-items:stretch;flex-direction:column}.detail-sticky-actions .mini-btn{justify-content:center}.rooming-summary-grid{grid-template-columns:1fr}}
+        @media(max-width:900px){.company-picker-row{grid-template-columns:1fr}.company-picker-row .mini-btn{justify-content:center;height:36px}.company-picker-selected{align-items:flex-start;flex-direction:column}}
     </style>
 </head>
 <body>
@@ -253,6 +271,76 @@
         <div class="modal-footer">
             <button class="btn-outline" onclick="closeModal('roomingModal')">취소</button>
             <button class="btn-primary-sm" onclick="saveRoomingGuest()"><i class="fa-solid fa-check"></i> 저장</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="detailCompanyModal" onclick="if(event.target===this)closeModal('detailCompanyModal')">
+    <div class="modal-card" style="max-width:520px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title">신규 단체 등록</h3>
+            <button class="modal-close" onclick="closeModal('detailCompanyModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+            <div>
+                <label class="form-label">단체명 <span style="color:var(--danger)">*</span></label>
+                <input id="detailCompanyName" class="form-input" style="width:100%" placeholder="예: 삼성전자 워크숍, 김대리 단체">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">대표 유형</label>
+                    <select id="detailCompanyType" class="form-input" style="width:100%">
+                        <option value="Corporate">일반 기업</option>
+                        <option value="Travel Agency">여행사</option>
+                        <option value="Individual">일반인 대표</option>
+                        <option value="Government">정부/공공기관</option>
+                        <option value="Other">기타 단체</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">상태</label>
+                    <select id="detailCompanyStatus" class="form-input" style="width:100%">
+                        <option value="active">계약 활성</option>
+                        <option value="inactive">계약 비활성</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">대표/담당자 이름</label>
+                    <input id="detailCompanyContactName" class="form-input" style="width:100%" placeholder="예: 김대리">
+                </div>
+                <div>
+                    <label class="form-label">연락처</label>
+                    <input type="tel" inputmode="tel" autocomplete="tel" id="detailCompanyPhone" class="form-input" style="width:100%" placeholder="예: 010-1234-5678">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div>
+                    <label class="form-label">계약 조건 (Discount/Comm)</label>
+                    <input id="detailCompanyRate" class="form-input" style="width:100%" placeholder="할인율을 입력하면 자동 생성됩니다">
+                </div>
+                <div>
+                    <label class="form-label">단체 객실 할인율 (%)</label>
+                    <input type="number" min="0" max="100" step="1" id="detailCompanyDiscount" class="form-input" style="width:100%" placeholder="예: 15">
+                </div>
+            </div>
+            <div>
+                <label class="form-label">정산 방식</label>
+                <select id="detailCompanyBilling" class="form-input" style="width:100%">
+                    <option>단체 일괄 후불 정산</option>
+                    <option>현장 개별 결제</option>
+                    <option>가상계좌 선입금</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">메모</label>
+                <textarea id="detailCompanyNote" class="form-input" style="width:100%;min-height:60px;resize:vertical" placeholder="추가 계약사항 등"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="closeModal('detailCompanyModal')">취소</button>
+            <button class="btn-primary-sm" onclick="saveDetailCompany()"><i class="fa-solid fa-check"></i> 저장</button>
         </div>
     </div>
 </div>
@@ -1197,10 +1285,95 @@ window.addEventListener('DataReady', () => {
         if (!base) return type || '';
         return type && !base.includes(type) ? `${base} (${type})` : base;
     }
+    function normalizeDetailCompanyPhone(value) {
+        let text = String(value || '').replace(/[^\d+\-\s()]/g, '');
+        text = text.replace(/(?!^)\+/g, '');
+        return text.replace(/\s+/g, ' ').trim();
+    }
+    function isValidDetailCompanyPhone(value, required = false) {
+        const digits = String(value || '').replace(/\D/g, '');
+        if (!digits) return !required;
+        return digits.length >= 7 && digits.length <= 15;
+    }
+    function bindDetailCompanyPhoneInput() {
+        const input = document.getElementById('detailCompanyPhone');
+        if (!input || input.dataset.phoneGuardBound === 'true') return;
+        input.dataset.phoneGuardBound = 'true';
+        input.addEventListener('beforeinput', event => {
+            if (!event.data || event.inputType === 'deleteContentBackward' || event.inputType === 'deleteContentForward') return;
+            if (/[^\d+\-\s()]/.test(event.data)) event.preventDefault();
+        });
+        input.addEventListener('input', () => {
+            const normalized = normalizeDetailCompanyPhone(input.value);
+            if (input.value !== normalized) input.value = normalized;
+        });
+    }
+    function companySearchText(company) {
+        return [
+            company?.id,
+            company?.name,
+            company?.displayName,
+            company?.label,
+            company?.typeLabel,
+            company?.contactName,
+            company?.phone,
+            company?.email,
+            company?.billing
+        ].filter(Boolean).join(' ').toLowerCase();
+    }
+    function detailCompanyMatches(company, query) {
+        const q = String(query || '').trim().toLowerCase();
+        return !q || companySearchText(company).includes(q);
+    }
+    async function persistDetailCompanies() {
+        localStorage.setItem('pms_companies', JSON.stringify(detailCompanies));
+        try {
+            if (window.PmsAPI?.saveCompanies) await window.PmsAPI.saveCompanies(detailCompanies);
+        } catch(e) {
+            console.warn('save companies fallback', e);
+        }
+    }
+    function nextCompanyId() {
+        const used = new Set(loadDetailCompanies().map(c => String(c.id)));
+        let id = `COMP-${Date.now().toString(36).toUpperCase()}`;
+        let suffix = 1;
+        while (used.has(id)) id = `COMP-${Date.now().toString(36).toUpperCase()}-${suffix++}`;
+        return id;
+    }
+    function companySelectionHtml(company) {
+        if (!company) {
+            return `<div class="company-picker-empty" id="detailCompanySelection">단체를 검색하거나 신규 단체 등록으로 바로 추가해 주세요.</div>`;
+        }
+        const contact = [company.contactName, company.phone].filter(Boolean).join(' / ') || '연락처 미등록';
+        const discount = discountFromCompany(company);
+        return `<div class="company-picker-selected" id="detailCompanySelection">
+            <div>
+                <strong>${safeAttr(company.name || companyDisplayName(company))}</strong>
+                <span>${safeAttr(company.typeLabel || companyTypeLabel(company.type) || '단체')} · ${safeAttr(contact)} · 할인 ${safeAttr(discount)}%</span>
+            </div>
+            <button type="button" class="mini-btn" onclick="clearDetailCompanySelection()"><i class="fa-solid fa-rotate-left"></i> 다시 선택</button>
+        </div>`;
+    }
+    function companyPickerHtml(company) {
+        const selectedId = company?.id || '';
+        const searchValue = company ? companyDisplayName(company) : '';
+        return `<div class="company-picker" id="detailCompanyPicker">
+            <input type="hidden" id="detailAgencyId" value="${safeAttr(selectedId)}">
+            <div class="company-picker-row">
+                <div class="company-picker-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input id="detailAgencySearch" value="${safeAttr(searchValue)}" placeholder="단체명, 담당자, 연락처 검색" autocomplete="off" onfocus="renderCompanyPickerResults(this.value)" oninput="renderCompanyPickerResults(this.value)">
+                </div>
+                <button type="button" class="mini-btn primary" onclick="openDetailCompanyModal(document.getElementById('detailAgencySearch')?.value || '')"><i class="fa-solid fa-plus"></i> 신규 단체</button>
+            </div>
+            ${companySelectionHtml(company)}
+            <div class="company-picker-results" id="detailCompanyResults"></div>
+        </div>`;
+    }
     function companyInfoHtml(company) {
         if (!company) {
             return `<div class="empty-guide wide" id="detailCompanyInfo" style="text-align:left">
-                등록 단체를 선택해야 행사 저장이 가능합니다. 단체가 없다면 단체 등록 관리에서 먼저 등록해 주세요.
+                단체를 검색하거나 신규 단체 등록으로 바로 추가해 주세요. 행사 저장은 등록 단체가 선택된 뒤 가능합니다.
             </div>`;
         }
         const discount = discountFromCompany(company);
@@ -1212,6 +1385,122 @@ window.addEventListener('DataReady', () => {
             <div><div class="form-label" style="margin-bottom:3px">대표/연락처</div><div style="font-weight:850">${safeAttr(contact)}</div></div>
         </div>`;
     }
+    window.renderCompanyPickerResults = function(query = '') {
+        const wrap = document.getElementById('detailCompanyResults');
+        if (!wrap) return;
+        const companies = loadDetailCompanies();
+        const q = String(query || '').trim();
+        const matched = companies.filter(c => detailCompanyMatches(c, q)).slice(0, 8);
+        if (!companies.length) {
+            wrap.innerHTML = `<div class="company-picker-empty">
+                등록된 단체가 없습니다.
+                <br><button type="button" class="mini-btn primary" onclick="openDetailCompanyModal(document.getElementById('detailAgencySearch')?.value || '')"><i class="fa-solid fa-plus"></i> 신규 단체 등록</button>
+            </div>`;
+            return;
+        }
+        if (!matched.length) {
+            wrap.innerHTML = `<div class="company-picker-empty">
+                일치하는 단체가 없습니다.
+                <br><button type="button" class="mini-btn primary" onclick="openDetailCompanyModal(document.getElementById('detailAgencySearch')?.value || '')"><i class="fa-solid fa-plus"></i> 검색어로 신규 단체 등록</button>
+            </div>`;
+            return;
+        }
+        wrap.innerHTML = matched.map(c => {
+            const contact = [c.contactName, c.phone].filter(Boolean).join(' / ') || '연락처 미등록';
+            return `<button type="button" class="company-picker-result" data-company-id="${safeAttr(c.id)}" onclick="selectDetailCompany(this.dataset.companyId)">
+                <div>
+                    <div class="name">${safeAttr(c.name || companyDisplayName(c))}</div>
+                    <div class="meta">${safeAttr(c.typeLabel || companyTypeLabel(c.type) || '단체')} · ${safeAttr(contact)} · ${safeAttr(billingTermLabel(c.billing) || '-')}</div>
+                </div>
+                <span class="badge">${safeAttr(discountFromCompany(c))}%</span>
+            </button>`;
+        }).join('');
+    };
+    window.clearDetailCompanySelection = function() {
+        const hidden = document.getElementById('detailAgencyId');
+        const search = document.getElementById('detailAgencySearch');
+        const selection = document.getElementById('detailCompanySelection');
+        const info = document.getElementById('detailCompanyInfo');
+        if (hidden) hidden.value = '';
+        if (search) {
+            search.value = '';
+            search.focus();
+        }
+        if (selection) selection.outerHTML = companySelectionHtml(null);
+        if (info) info.outerHTML = companyInfoHtml(null);
+        renderCompanyPickerResults('');
+    };
+    window.selectDetailCompany = function(id) {
+        const c = companyById(id);
+        if (!c) return;
+        const hidden = document.getElementById('detailAgencyId');
+        const search = document.getElementById('detailAgencySearch');
+        const selection = document.getElementById('detailCompanySelection');
+        const results = document.getElementById('detailCompanyResults');
+        if (hidden) hidden.value = c.id;
+        if (search) search.value = companyDisplayName(c);
+        if (selection) selection.outerHTML = companySelectionHtml(c);
+        group.agencyId = c.id;
+        group.companyId = c.id;
+        group.agency = c.name || c.displayName || '';
+        group.companyName = group.agency;
+        if (results) results.innerHTML = '';
+        syncSelectedCompanyInfo();
+    };
+    window.openDetailCompanyModal = function(prefill = '') {
+        bindDetailCompanyPhoneInput();
+        const name = document.getElementById('detailCompanyName');
+        const typed = String(prefill || '').trim();
+        const duplicate = typed && loadDetailCompanies().some(c => companyDisplayName(c).toLowerCase() === typed.toLowerCase() || String(c.name || '').toLowerCase() === typed.toLowerCase());
+        if (name) name.value = duplicate ? '' : typed;
+        const type = document.getElementById('detailCompanyType');
+        const status = document.getElementById('detailCompanyStatus');
+        const contact = document.getElementById('detailCompanyContactName');
+        const phone = document.getElementById('detailCompanyPhone');
+        const rate = document.getElementById('detailCompanyRate');
+        const discount = document.getElementById('detailCompanyDiscount');
+        const billing = document.getElementById('detailCompanyBilling');
+        const note = document.getElementById('detailCompanyNote');
+        if (type) type.value = 'Individual';
+        if (status) status.value = 'active';
+        if (contact) contact.value = '';
+        if (phone) phone.value = '';
+        if (rate) rate.value = '';
+        if (discount) discount.value = '';
+        if (billing) billing.value = '단체 일괄 후불 정산';
+        if (note) note.value = '';
+        openModal('detailCompanyModal');
+        setTimeout(() => name?.focus(), 0);
+    };
+    window.saveDetailCompany = async function() {
+        const nameInput = document.getElementById('detailCompanyName');
+        const phoneInput = document.getElementById('detailCompanyPhone');
+        const name = nameInput?.value.trim() || '';
+        const phone = normalizeDetailCompanyPhone(phoneInput?.value || '');
+        if (!name) { showToast('단체명을 입력해 주세요.', 'error'); nameInput?.focus(); return; }
+        if (!isValidDetailCompanyPhone(phone)) { showToast('연락처는 숫자 기준 7~15자리로 입력해 주세요.', 'error'); phoneInput?.focus(); return; }
+        if (phoneInput) phoneInput.value = phone;
+        const discount = Number(document.getElementById('detailCompanyDiscount')?.value || 0);
+        const typedRate = document.getElementById('detailCompanyRate')?.value.trim() || '';
+        const company = normalizeCompanyRecord({
+            id: nextCompanyId(),
+            name,
+            type: document.getElementById('detailCompanyType')?.value || 'Individual',
+            status: document.getElementById('detailCompanyStatus')?.value || 'active',
+            contactName: document.getElementById('detailCompanyContactName')?.value.trim() || '',
+            phone,
+            rate: typedRate || (discount ? `객실 ${discount}% 할인` : ''),
+            groupDiscount: discount,
+            discountPercent: discount,
+            billing: document.getElementById('detailCompanyBilling')?.value || '단체 일괄 후불 정산',
+            note: document.getElementById('detailCompanyNote')?.value.trim() || ''
+        });
+        detailCompanies = [company, ...loadDetailCompanies().filter(c => c.id !== company.id)];
+        await persistDetailCompanies();
+        closeModal('detailCompanyModal');
+        selectDetailCompany(company.id);
+        showToast('신규 단체가 등록되고 선택되었습니다.');
+    };
     function companySelectOptions(selectedId = '') {
         const selectedCompany = companyById(selectedId || group?.agencyId || group?.companyId) || companyForGroup();
         const selected = selectedCompany?.id || '';
@@ -1256,7 +1545,7 @@ window.addEventListener('DataReady', () => {
                 </div>
                 <div>
                     <label class="form-label">등록 단체 <span style="color:var(--danger)">*</span></label>
-                    <select id="detailAgencyId" class="form-input" style="width:100%" onchange="syncSelectedCompanyInfo()">${companySelectOptions(group.agencyId)}</select>
+                    ${companyPickerHtml(c)}
                 </div>
                 ${companyInfoHtml(c)}
                 <div><label class="form-label">행사 유형</label><select id="detailType" class="form-input" style="width:100%">${['기업 행사 / 컨퍼런스','여행사 단체','일반인 단체','웨딩 / 연회','스포츠팀','기타'].map(v => `<option ${eventTypeLabel(group.type) === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
@@ -1296,9 +1585,13 @@ window.addEventListener('DataReady', () => {
         const contact = document.getElementById('detailContact');
         const discount = document.getElementById('detailEventDiscount');
         const info = document.getElementById('detailCompanyInfo');
+        const search = document.getElementById('detailAgencySearch');
+        const selection = document.getElementById('detailCompanySelection');
         if (routing && c.billing) routing.value = [...routing.options].some(o => o.value === c.billing) ? c.billing : routing.value;
         if (contact) contact.value = [c.contactName, c.phone].filter(Boolean).join(' / ');
         if (discount && (!discount.value || isDraftGroup())) discount.value = discountFromCompany(c);
+        if (search) search.value = companyDisplayName(c);
+        if (selection) selection.outerHTML = companySelectionHtml(c);
         if (info) info.outerHTML = companyInfoHtml(c);
     };
     window.saveBasicInfo = function() {

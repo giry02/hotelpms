@@ -296,30 +296,34 @@ function assert(condition, message, details = null) {
     await page.goto(`${base}/dashboard/frontdesk/groups_block_detail.html?id=GRP-260604-01`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForFunction(() => {
-      const select = document.getElementById('detailAgencyId');
-      return !!select && Array.from(select.options).some(option => option.value === 'COMP-1002');
+      const hidden = document.getElementById('detailAgencyId');
+      let storedIds = [];
+      try { storedIds = JSON.parse(localStorage.getItem('pms_companies') || '[]').map(company => company.id); } catch (e) {}
+      return !!hidden && !!document.getElementById('detailAgencySearch') && hidden.value === 'COMP-1002' && storedIds.includes('COMP-1002');
     }, null, { timeout: 15000 });
 
     const hydratedCompanyResult = await page.evaluate(() => {
-      const select = document.getElementById('detailAgencyId');
-      const options = Array.from(select?.options || []).map(option => ({ value: option.value, text: option.textContent || '' }));
-      let storedCount = 0;
-      try { storedCount = JSON.parse(localStorage.getItem('pms_companies') || '[]').length; } catch (e) {}
+      const hidden = document.getElementById('detailAgencyId');
+      const search = document.getElementById('detailAgencySearch');
+      let stored = [];
+      try { stored = JSON.parse(localStorage.getItem('pms_companies') || '[]'); } catch (e) {}
       return {
-        value: select?.value || '',
-        optionValues: options.map(option => option.value),
-        optionText: options.map(option => option.text).join(' | '),
+        value: hidden?.value || '',
+        searchValue: search?.value || '',
+        storedCompanyIds: stored.map(company => company.id),
         agencyId: group?.agencyId || '',
         agency: group?.agency || '',
         eventDiscountValue: document.getElementById('detailEventDiscount')?.value || '',
-        storedCount,
+        storedCount: stored.length,
+        pickerText: document.getElementById('detailCompanyPicker')?.innerText || '',
         overviewText: document.getElementById('overview')?.innerText || ''
       };
     });
 
     assert(hydratedCompanyResult.storedCount >= 3, 'Group detail must hydrate registered companies from API data.', hydratedCompanyResult);
-    assert(hydratedCompanyResult.optionValues.includes('COMP-1002'), 'Group detail company select must include Hana Tour company option.', hydratedCompanyResult);
+    assert(hydratedCompanyResult.storedCompanyIds.includes('COMP-1002'), 'Group detail company picker must hydrate Hana Tour company data.', hydratedCompanyResult);
     assert(hydratedCompanyResult.value === 'COMP-1002' && hydratedCompanyResult.agencyId === 'COMP-1002', 'Group detail must auto-select the event company linkage.', hydratedCompanyResult);
+    assert(hydratedCompanyResult.searchValue.includes('Hana Tour') || hydratedCompanyResult.pickerText.includes('Hana Tour'), 'Group detail must show the selected company in the searchable picker.', hydratedCompanyResult);
     assert(Number(hydratedCompanyResult.eventDiscountValue) === 15, 'Group detail must show the event-specific discount, not only the company baseline.', hydratedCompanyResult);
     assert(hydratedCompanyResult.overviewText.includes('단체 기준 할인') && hydratedCompanyResult.overviewText.includes('행사 적용 할인'), 'Group detail must distinguish group baseline discount from event discount.', hydratedCompanyResult);
 
@@ -327,7 +331,7 @@ function assert(condition, message, details = null) {
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForFunction(() => typeof window.renderRooms === 'function', null, { timeout: 15000 });
 
-    const companySelectionResult = await page.evaluate(() => {
+    const companySelectionResult = await page.evaluate(async () => {
       const companies = [{
         id: 'COMP-HANA',
         name: 'Hana Tour',
@@ -341,13 +345,13 @@ function assert(condition, message, details = null) {
       group = createDraftGroup();
       renderOverview();
       const manualExists = !!document.getElementById('detailAgencyManual');
+      const pickerExists = !!document.getElementById('detailCompanyPicker') && !!document.getElementById('detailAgencySearch');
       const initialText = document.getElementById('overview')?.innerText || '';
       document.getElementById('detailName').value = 'No Company Event';
       document.getElementById('detailAgencyId').value = '';
       saveBasicInfo();
       const blockedWithoutCompany = !group.id && !group.agencyId;
-      document.getElementById('detailAgencyId').value = 'COMP-HANA';
-      syncSelectedCompanyInfo();
+      selectDetailCompany('COMP-HANA');
       document.getElementById('detailName').value = 'Hana Linked Event';
       document.getElementById('detailCheckin').value = '2026-06-10';
       document.getElementById('detailCheckout').value = '2026-06-12';
@@ -356,25 +360,44 @@ function assert(condition, message, details = null) {
       switchTabById('rooms');
       addDetailAllocationRow();
       const newAllocationDiscount = document.querySelector('.detail-discount')?.value || '';
+      const companyInfoText = document.getElementById('detailCompanyInfo')?.innerText || '';
+      const savedAgencyId = group.agencyId;
+      const savedAgency = group.agency;
+      const savedEventDiscount = group.eventDiscountPercent;
+      openDetailCompanyModal('Nguyen Family Group');
+      document.getElementById('detailCompanyName').value = 'Nguyen Family Group';
+      document.getElementById('detailCompanyType').value = 'Individual';
+      document.getElementById('detailCompanyContactName').value = 'Nguyen Thi Lan';
+      document.getElementById('detailCompanyPhone').value = '+84 90 222 1144';
+      document.getElementById('detailCompanyDiscount').value = '12';
+      await saveDetailCompany();
+      const newCompanyId = document.getElementById('detailAgencyId')?.value || '';
+      const storedAfterNew = JSON.parse(localStorage.getItem('pms_companies') || '[]');
       return {
         manualExists,
+        pickerExists,
         initialText,
         blockedWithoutCompany,
-        savedAgencyId: group.agencyId,
-        savedAgency: group.agency,
-        savedEventDiscount: group.eventDiscountPercent,
+        savedAgencyId,
+        savedAgency,
+        savedEventDiscount,
         newAllocationDiscount,
-        companyInfoText: document.getElementById('detailCompanyInfo')?.innerText || ''
+        companyInfoText,
+        newCompanyId,
+        newCompanyCreated: storedAfterNew.some(company => company.id === newCompanyId && company.name === 'Nguyen Family Group'),
+        newCompanySearchValue: document.getElementById('detailAgencySearch')?.value || ''
       };
     });
 
     assert(!companySelectionResult.manualExists, 'Group detail must not expose manual company input.', companySelectionResult);
+    assert(companySelectionResult.pickerExists, 'Group detail must use searchable company picker controls.', companySelectionResult);
     assert(!/직접 입력|미지정/.test(companySelectionResult.initialText), 'Group detail must not show direct/unassigned company options.', companySelectionResult);
     assert(companySelectionResult.blockedWithoutCompany, 'Group detail must block saving without a registered company.', companySelectionResult);
     assert(companySelectionResult.savedAgencyId === 'COMP-HANA' && companySelectionResult.savedAgency === 'Hana Tour', 'Group detail must save the selected company linkage.', companySelectionResult);
     assert(Number(companySelectionResult.savedEventDiscount) === 18, 'Group detail must save event-specific discount separately from the company baseline.', companySelectionResult);
     assert(Number(companySelectionResult.newAllocationDiscount) === 18, 'New room allocation rows must use the event-specific discount by default.', companySelectionResult);
     assert(companySelectionResult.companyInfoText.includes('Travel Agency') && companySelectionResult.companyInfoText.includes('10'), 'Group detail must show selected company metadata.', companySelectionResult);
+    assert(companySelectionResult.newCompanyCreated && companySelectionResult.newCompanySearchValue.includes('Nguyen Family Group'), 'Group detail must create a new company from the picker modal and select it immediately.', companySelectionResult);
 
     const detailResult = await page.evaluate(() => {
       group.id = 'GRP-EMPTY-ALIGN';
