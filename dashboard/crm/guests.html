@@ -137,6 +137,15 @@
 
 .gd-history-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 12px; color: var(--txt); display:flex; align-items:center; gap:8px; }
 .gd-history-title i { color: var(--primary); }
+.gd-history-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px; }
+.gd-history-controls { display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+.gd-history-control { height:30px; padding:0 8px; border:1px solid var(--border); border-radius:4px; font-size:0.75rem; font-family:var(--font); background:#fff; }
+.gd-history-control:disabled { background:#f8fafc; color:var(--txt3); cursor:not-allowed; }
+.gd-history-count { min-height:22px; margin:-2px 0 8px; font-size:.74rem; font-weight:700; color:var(--txt3); }
+.gd-history-table-wrap { max-height:390px; overflow:auto; border:1px solid var(--border2); border-radius:8px; }
+.gd-history-table-wrap table { margin:0; }
+.gd-history-more { display:flex; justify-content:center; padding-top:10px; }
+.gd-history-more .btn-outline { min-width:120px; justify-content:center; }
 .gd-history table { width: 100%; border-collapse: collapse; }
 .gd-history th, .gd-history td { padding: 14px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
 .gd-history th { background: #f1f5f9; font-weight: 600; color: var(--txt2); }
@@ -172,6 +181,10 @@
 .gd-blacklist-meta{margin-top:8px;font-weight:700}
 
 @media (max-width: 768px) {
+    .gd-history-head{align-items:flex-start}
+    .gd-history-controls{width:100%;justify-content:flex-start}
+    .gd-history-control{flex:1 1 auto;min-width:118px}
+    .gd-history-table-wrap{max-height:none;overflow:visible;border:none;border-radius:0}
     .gd-history table, .gd-history thead, .gd-history tbody, .gd-history tr, .gd-history td { display: block; width: 100%; }
     .gd-history thead { display: none; }
     .gd-history tbody tr { background: #fff !important; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
@@ -866,6 +879,7 @@ function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});    document.getElementById('searchInput').placeholder=l==='en'?'Search name or email...':'이름, 이메일 검색...';
     const tierReason = document.getElementById('gdTierChangeReason');
     if (tierReason) tierReason.placeholder = l === 'en' ? 'Example: corrected tier after merging duplicate VIP profiles' : '예: 중복 우수 고객 프로필 병합 후 등급 정정';
+    if (typeof applyGuestHistoryI18n === 'function') applyGuestHistoryI18n();
 }
 
 // 모달
@@ -1028,28 +1042,37 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
         </div>
         <!-- 하단 상세 이력 (Bottom Stay History) -->
         <div class="gd-history">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-                <div class="gd-history-title" style="margin-bottom:0;"><i class="fa-solid fa-list"></i> 상세 투숙 이력</div>
-                <div style="display:flex; gap:6px; align-items:center;">
-                    <input type="date" class="form-control" style="height:30px; padding:0 8px; border:1px solid var(--border); border-radius:4px; font-size:0.75rem; font-family:var(--font);" id="gdFilterStart">
+            <div class="gd-history-head">
+                <div class="gd-history-title" style="margin-bottom:0;"><i class="fa-solid fa-list"></i> <span id="gdHistoryTitleText">상세 투숙 이력</span></div>
+                <div class="gd-history-controls">
+                    <select id="gdHistoryRangeMode" class="gd-history-control" onchange="handleGuestHistoryRangeModeChange()">
+                        <option value="all">전체</option>
+                        <option value="year">최근 1년</option>
+                        <option value="custom">기간 선택</option>
+                    </select>
+                    <input type="date" class="form-control gd-history-control" id="gdFilterStart" disabled>
                     <span style="color:var(--txt2);font-size:0.8rem">~</span>
-                    <input type="date" class="form-control" style="height:30px; padding:0 8px; border:1px solid var(--border); border-radius:4px; font-size:0.75rem; font-family:var(--font);" id="gdFilterEnd">
-                    <button class="btn-primary-sm" style="height:30px; padding:0 12px; font-size:0.75rem; white-space:nowrap;" onclick="filterGuestHistory()">조회</button>
+                    <input type="date" class="form-control gd-history-control" id="gdFilterEnd" disabled>
+                    <button class="btn-primary-sm" style="height:30px; padding:0 12px; font-size:0.75rem; white-space:nowrap;" onclick="filterGuestHistory(true)" id="gdHistoryApplyBtn">조회</button>
                 </div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>투숙 일자</th>
-                        <th>객실 유형</th>
-                        <th>결제 금액</th>
-                        <th>상태</th>
-                    </tr>
-                </thead>
-                <tbody id="gdHistoryBody">
-                    <!-- JS Injected -->
-                </tbody>
-            </table>
+            <div class="gd-history-count" id="gdHistoryCount"></div>
+            <div class="gd-history-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th id="gdHistoryStayDateHead">투숙 일자</th>
+                            <th id="gdHistoryRoomTypeHead">객실 유형</th>
+                            <th id="gdHistoryPaymentHead">결제 금액</th>
+                            <th id="gdHistoryStatusHead">상태</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gdHistoryBody">
+                        <!-- JS Injected -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="gd-history-more" id="gdHistoryMore"></div>
         </div>
     </div>
     <div class="gd-footer">
@@ -1110,12 +1133,10 @@ function openGuestDetail(email) {
     document.getElementById('gdCancel').textContent = `${noShow} / ${cancel}`;
 
     window.currentGuestVisits = normalizeGuestHistory(guest);
-    const startFilter = document.getElementById('gdFilterStart');
-    const endFilter = document.getElementById('gdFilterEnd');
-    if (startFilter) startFilter.value = '';
-    if (endFilter) endFilter.value = '';
     syncGuestHistoryDateBounds(window.currentGuestVisits);
-    renderGuestHistory(window.currentGuestVisits);
+    resetGuestHistoryControls();
+    applyGuestHistoryI18n();
+    filterGuestHistory(true);
 
     // Mobile Expansion Reset
     const panel = document.getElementById('guestDetailPanel');
@@ -1188,6 +1209,36 @@ function getCurrentStaffName() {
 
 function guestText(ko, en) {
     return (localStorage.getItem('pms_lang') || window.currentLang || 'ko') === 'en' ? en : ko;
+}
+
+const GUEST_HISTORY_PAGE_SIZE = 5;
+let guestHistoryVisibleCount = GUEST_HISTORY_PAGE_SIZE;
+let currentGuestHistoryFiltered = [];
+
+function guestHistorySetText(id, ko, en) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = guestText(ko, en);
+}
+
+function applyGuestHistoryI18n() {
+    guestHistorySetText('gdHistoryTitleText', '상세 투숙 이력', 'Stay History');
+    guestHistorySetText('gdHistoryApplyBtn', '조회', 'Apply');
+    guestHistorySetText('gdHistoryStayDateHead', '투숙 일자', 'Stay Date');
+    guestHistorySetText('gdHistoryRoomTypeHead', '객실 유형', 'Room Type');
+    guestHistorySetText('gdHistoryPaymentHead', '결제 금액', 'Payment');
+    guestHistorySetText('gdHistoryStatusHead', '상태', 'Status');
+    const mode = document.getElementById('gdHistoryRangeMode');
+    if (mode) {
+        const selected = mode.value || 'all';
+        const labels = [
+            ['all', guestText('전체', 'All')],
+            ['year', guestText('최근 1년', 'Last 1 Year')],
+            ['custom', guestText('기간 선택', 'Custom Period')]
+        ];
+        mode.innerHTML = labels.map(([value, label]) => `<option value="${value}">${guestEscape(label)}</option>`).join('');
+        mode.value = selected;
+    }
+    if (Array.isArray(currentGuestHistoryFiltered)) updateGuestHistoryMeta(currentGuestHistoryFiltered);
 }
 
 async function saveGuestDetail() {
@@ -1371,32 +1422,124 @@ function syncGuestHistoryDateBounds(data) {
     endInput.max = max;
 }
 
+function guestHistoryTodayKey() {
+    return window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
+}
+
+function guestHistoryAddYears(isoDate, years) {
+    const [year, month, day] = String(isoDate || guestHistoryTodayKey()).split('-').map(Number);
+    const date = new Date(year, (month || 1) - 1, day || 1);
+    date.setFullYear(date.getFullYear() + years);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+function guestHistoryCurrentRange() {
+    const mode = document.getElementById('gdHistoryRangeMode')?.value || 'all';
+    if (mode === 'year') {
+        return { mode, from: guestHistoryAddYears(guestHistoryTodayKey(), -1), to: guestHistoryTodayKey() };
+    }
+    if (mode === 'custom') {
+        return {
+            mode,
+            from: guestHistoryDateKey(document.getElementById('gdFilterStart')?.value),
+            to: guestHistoryDateKey(document.getElementById('gdFilterEnd')?.value)
+        };
+    }
+    return { mode, from: '', to: '' };
+}
+
+function resetGuestHistoryControls() {
+    guestHistoryVisibleCount = GUEST_HISTORY_PAGE_SIZE;
+    const mode = document.getElementById('gdHistoryRangeMode');
+    const startInput = document.getElementById('gdFilterStart');
+    const endInput = document.getElementById('gdFilterEnd');
+    if (mode) mode.value = 'all';
+    if (startInput) {
+        startInput.value = '';
+        startInput.disabled = true;
+    }
+    if (endInput) {
+        endInput.value = '';
+        endInput.disabled = true;
+    }
+}
+
+function handleGuestHistoryRangeModeChange() {
+    const mode = document.getElementById('gdHistoryRangeMode')?.value || 'all';
+    const startInput = document.getElementById('gdFilterStart');
+    const endInput = document.getElementById('gdFilterEnd');
+    const custom = mode === 'custom';
+    if (startInput) startInput.disabled = !custom;
+    if (endInput) endInput.disabled = !custom;
+    if (mode === 'year') {
+        if (startInput) startInput.value = guestHistoryAddYears(guestHistoryTodayKey(), -1);
+        if (endInput) endInput.value = guestHistoryTodayKey();
+    } else if (mode === 'all') {
+        if (startInput) startInput.value = '';
+        if (endInput) endInput.value = '';
+    }
+    filterGuestHistory(true);
+}
+
+function updateGuestHistoryMeta(data) {
+    const count = document.getElementById('gdHistoryCount');
+    const more = document.getElementById('gdHistoryMore');
+    const total = data.length;
+    const shown = Math.min(guestHistoryVisibleCount, total);
+    const mode = document.getElementById('gdHistoryRangeMode')?.value || 'all';
+    const scope = mode === 'all' ? guestText('전체', 'All') : guestText('조회 결과', 'Filtered');
+    if (count) {
+        count.textContent = total
+            ? guestText(`${scope} ${total}건 중 ${shown}건 표시`, `${scope} ${shown} of ${total}`)
+            : guestText(`${scope} 0건`, `${scope} 0`);
+    }
+    if (more) {
+        const remain = Math.max(0, total - shown);
+        more.innerHTML = remain
+            ? `<button class="btn-outline" onclick="showMoreGuestHistory()">${guestEscape(guestText(`더보기 ${Math.min(GUEST_HISTORY_PAGE_SIZE, remain)}건`, `Show ${Math.min(GUEST_HISTORY_PAGE_SIZE, remain)} more`))}</button>`
+            : '';
+    }
+}
+
 function renderGuestHistory(data) {
     const tbody = document.getElementById('gdHistoryBody');
-    if(data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--txt3)">해당 기간의 이력이 없습니다.</td></tr>`;
+    const source = Array.isArray(data) ? data : [];
+    const rows = source.slice(0, guestHistoryVisibleCount);
+    updateGuestHistoryMeta(source);
+    if(source.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--txt3)">${guestEscape(guestText('해당 조건의 투숙 이력이 없습니다.', 'No stay history matches this condition.'))}</td></tr>`;
         return;
     }
     let html = '';
-    data.forEach(v => {
+    rows.forEach(v => {
         const isCancelled = v.status === 'cancelled' || v.status === 'cancel';
+        const stayDateLabel = guestText('투숙 일자', 'Stay Date');
+        const roomTypeLabel = guestText('객실 유형', 'Room Type');
+        const paymentLabel = guestText('결제 금액', 'Payment');
+        const statusLabel = guestText('상태', 'Status');
         html += `
         <tr>
-            <td data-label="투숙 일자">${v.checkIn} ~ ${v.checkOut}</td>
-            <td data-label="객실 타입">${v.rt}</td>
-            <td data-label="결제 금액"><strong>${formatGuestMoney(v.pmt)}</strong></td>
-            <td data-label="상태"><span style="color:${isCancelled ? 'var(--danger)' : 'var(--success)'};font-weight:600">${isCancelled ? '취소' : '완료'}</span></td>
+            <td data-label="${guestEscape(stayDateLabel)}">${guestEscape(v.checkIn)} ~ ${guestEscape(v.checkOut)}</td>
+            <td data-label="${guestEscape(roomTypeLabel)}">${guestEscape(v.rt)}</td>
+            <td data-label="${guestEscape(paymentLabel)}"><strong>${guestEscape(formatGuestMoney(v.pmt))}</strong></td>
+            <td data-label="${guestEscape(statusLabel)}"><span style="color:${isCancelled ? 'var(--danger)' : 'var(--success)'};font-weight:600">${guestEscape(isCancelled ? guestText('취소', 'Cancelled') : guestText('완료', 'Completed'))}</span></td>
         </tr>`;
     });
     tbody.innerHTML = html;
 }
 
-function filterGuestHistory() {
-    const start = guestHistoryDateKey(document.getElementById('gdFilterStart')?.value);
-    const end = guestHistoryDateKey(document.getElementById('gdFilterEnd')?.value);
+function filterGuestHistory(resetVisible = false) {
+    if (resetVisible) guestHistoryVisibleCount = GUEST_HISTORY_PAGE_SIZE;
+    const range = guestHistoryCurrentRange();
+    const start = range.from;
+    const end = range.to;
     const visits = Array.isArray(window.currentGuestVisits) ? window.currentGuestVisits : [];
     if(!start && !end) {
-        renderGuestHistory(visits);
+        currentGuestHistoryFiltered = visits;
+        renderGuestHistory(currentGuestHistoryFiltered);
         return;
     }
 
@@ -1407,12 +1550,17 @@ function filterGuestHistory() {
 
     const from = start || '0000-01-01';
     const to = end || '9999-12-31';
-    const filtered = visits.filter(v => {
+    currentGuestHistoryFiltered = visits.filter(v => {
         const checkIn = v.checkInKey || guestHistoryDateKey(v.checkIn);
         const checkOut = v.checkOutKey || guestHistoryDateKey(v.checkOut) || checkIn;
         return checkIn <= to && checkOut >= from;
     });
-    renderGuestHistory(filtered);
+    renderGuestHistory(currentGuestHistoryFiltered);
+}
+
+function showMoreGuestHistory() {
+    guestHistoryVisibleCount += GUEST_HISTORY_PAGE_SIZE;
+    renderGuestHistory(currentGuestHistoryFiltered);
 }
 
 function closeGuestDetail() {
