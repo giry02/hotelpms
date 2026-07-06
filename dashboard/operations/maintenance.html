@@ -129,6 +129,28 @@
         }
         .action-btn:hover { border-color: var(--primary); color: var(--primary); background: #EFF6FF; }
         .action-btn.danger:hover { border-color: #DC2626; color: #DC2626; background: #FEF2F2; }
+        .action-btn.action-start {
+            border-color: #93C5FD;
+            background: #EFF6FF;
+            color: #1D4ED8;
+            font-weight: 800;
+        }
+        .action-btn.action-start:hover {
+            border-color: #2563EB;
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+        .action-btn.action-complete {
+            border-color: #86EFAC;
+            background: #ECFDF5;
+            color: #047857;
+            font-weight: 800;
+        }
+        .action-btn.action-complete:hover {
+            border-color: #10B981;
+            background: #D1FAE5;
+            color: #065F46;
+        }
 
         /* ── Toggle View ── */
         .view-toggle {
@@ -169,6 +191,10 @@
             transition: background .2s, transform .15s; box-shadow: 0 2px 8px rgba(59,130,246,.2);
         }
         .btn-primary-sm:hover { background: #1D4ED8; transform: translateY(-1px); }
+        .btn-primary-sm.btn-maintenance-start { background: #2563EB; box-shadow: 0 2px 8px rgba(37,99,235,.22); }
+        .btn-primary-sm.btn-maintenance-start:hover { background: #1D4ED8; }
+        .btn-primary-sm.btn-maintenance-complete { background: #059669; box-shadow: 0 2px 8px rgba(5,150,105,.22); }
+        .btn-primary-sm.btn-maintenance-complete:hover { background: #047857; }
 
         .btn-outline {
             display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
@@ -1001,8 +1027,8 @@ function renderTable(data) {
             </td>
             <td data-label="액션" class="maintenance-action-cell">
                 <div class="maintenance-actions">
-                    ${r.status === 'open' ? `<button class="action-btn" onclick="event.stopPropagation(); changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> 착수</button>` : ''}
-                    ${r.status === 'in-progress' ? `<button class="action-btn" onclick="event.stopPropagation(); changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> 완료 확인</button>` : ''}
+                    ${r.status === 'open' ? `<button class="action-btn action-start" onclick="event.stopPropagation(); changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> 착수</button>` : ''}
+                    ${r.status === 'in-progress' ? `<button class="action-btn action-complete" onclick="event.stopPropagation(); changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> 완료 확인</button>` : ''}
                     <button class="action-btn icon-only" onclick="event.stopPropagation(); showDetail('${r.id}')" aria-label="상세 보기"><i class="fa-solid fa-eye"></i></button>
                 </div>
             </td>
@@ -1103,8 +1129,8 @@ async function showDetail(id) {
         </div>
     `;
     let footerHtml = '<button class="btn-outline" onclick="closeModal(\'detailModal\')">닫기</button>';
-    if (r.status === 'open') footerHtml += `<button class="btn-primary-sm" onclick="changeStatus('${r.id}','in-progress'); closeModal('detailModal');"><i class="fa-solid fa-play"></i> 작업 착수</button>`;
-    if (r.status === 'in-progress') footerHtml += `<button class="btn-primary-sm" onclick="changeStatus('${r.id}','done'); closeModal('detailModal');"><i class="fa-solid fa-check"></i> 완료 확인</button>`;
+    if (r.status === 'open') footerHtml += `<button class="btn-primary-sm btn-maintenance-start" onclick="changeStatus('${r.id}','in-progress'); closeModal('detailModal');"><i class="fa-solid fa-play"></i> 작업 착수</button>`;
+    if (r.status === 'in-progress') footerHtml += `<button class="btn-primary-sm btn-maintenance-complete" onclick="changeStatus('${r.id}','done'); closeModal('detailModal');"><i class="fa-solid fa-check"></i> 완료 확인</button>`;
     document.getElementById('detailFooter').innerHTML = footerHtml;
     openModal('detailModal');
 }
