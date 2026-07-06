@@ -92,14 +92,15 @@
         .board-status.cancelled{background:var(--danger-lt);color:var(--danger)}
         .board-status.blocked{background:#f1f5f9;color:#111827}
         .board-status.oos{background:var(--danger-lt);color:var(--danger)}
-        .board-clean-summary{display:flex;align-items:center;justify-content:flex-end;gap:8px;width:100%;border-top:1px solid var(--border2);padding-top:7px;margin-top:2px}
+        .board-clean-summary{display:flex;align-items:center;justify-content:flex-end;gap:8px;width:100%}
         .board-clean-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 8px;font-size:.64rem;font-weight:900;white-space:nowrap}
         .board-clean-badge.clean{background:#dcfce7;color:#059669}
         .board-clean-badge.dirty{background:#fef3c7;color:#d97706}
         .board-clean-badge.dnd{background:#fff1f2;color:#be123c}
         .board-clean-badge.occupied{background:#dbeafe;color:#2563eb}
         .board-clean-badge.oos{background:#fee2e2;color:#dc2626}
-        .board-clean-select{height:28px;min-width:94px;max-width:116px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.65rem;font-weight:900;padding:0 24px 0 8px;cursor:pointer;outline:none;transition:border-color .15s,background .15s,color .15s}
+        .board-clean-select{height:30px;width:86px;min-width:86px;max-width:86px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.76rem;font-weight:900;line-height:1.2;padding:0 18px 0 8px;cursor:pointer;outline:none;transition:border-color .15s,background .15s,color .15s}
+        .board-clean-select option{font-family:var(--font);font-size:.78rem;font-weight:800;color:var(--txt)}
         .board-clean-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
         .board-clean-select.dirty,
         .board-clean-select.mur{color:#b45309;border-color:#fed7aa;background:#fff7ed}
@@ -139,8 +140,9 @@
         .board-stay-btn.mur.active{background:#fffbeb;color:#d97706;border-color:#fde68a}
         .board-stay-btn.clean.active{background:#f0fdf4;color:#15803d;border-color:#bbf7d0}
         .board-stay-btn:disabled{opacity:.55;cursor:wait;transform:none}
-        .board-empty{font-size:.74rem;color:var(--txt3);font-weight:750;margin-top:8px}
-        .board-money{font-size:.68rem;color:var(--txt2);font-weight:800;margin-top:auto}
+        .board-empty{font-size:.74rem;color:var(--txt3);font-weight:750;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .board-card-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;margin-top:auto;padding-top:4px}
+        .board-money{font-size:.68rem;color:var(--txt2);font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .board-readiness{display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;padding:3px 8px;border-radius:999px;font-size:.63rem;font-weight:950;white-space:nowrap}
         .board-readiness.ready{background:#dcfce7;color:#047857}
         .board-readiness.warn{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa}
@@ -1143,7 +1145,6 @@ function boardCard(room) {
     const canCreateBooking = !res && state.status === 'vacant' && !!roomId;
     const cleanInfo = boardCleaningSummary(room, res);
     const cleanAction = boardStayActions(room, res);
-    const cleanSummary = cleanAction ? `<div class="board-clean-summary">${cleanAction}</div>` : '';
     const readinessHtml = boardCheckinReadiness(state, cleanInfo);
     const click = res
         ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"`
@@ -1173,10 +1174,16 @@ function boardCard(room) {
         <div class="board-date">${escapeHtml(reservationDates(res))}</div>
         ${flags ? `<div class="board-flags">${flags}</div>` : ''}
         ${reservationStayTimeHtml(res)}
-        ${cleanSummary}
         ${readinessHtml}
         ${settlementInfo.html}
-        <div class="board-money">${formatMoney(amountValue(res))}${boardReservationBalance(res) ? ` · 잔액 ${formatMoney(boardReservationBalance(res))}` : ''}</div>` : `<div class="board-empty">예약 없음</div>${cleanSummary}`}
+        <div class="board-card-footer">
+            <div class="board-money">${formatMoney(amountValue(res))}${boardReservationBalance(res) ? ` · 잔액 ${formatMoney(boardReservationBalance(res))}` : ''}</div>
+            ${cleanAction ? `<div class="board-clean-summary">${cleanAction}</div>` : ''}
+        </div>` : `<div class="board-empty">예약 없음</div>
+        <div class="board-card-footer">
+            <div class="board-money"></div>
+            ${cleanAction ? `<div class="board-clean-summary">${cleanAction}</div>` : ''}
+        </div>`}
     </div>`;
 }
 
