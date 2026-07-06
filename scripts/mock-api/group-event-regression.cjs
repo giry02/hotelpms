@@ -428,6 +428,57 @@ function assert(condition, message, details = null) {
     assert(detailResult.roomsTabText === '객실 배정', 'Group detail rooms tab must only represent room allocation.', detailResult);
     assert(detailResult.roomingTabText === '투숙객 명단' && detailResult.roomingTabVisible, 'Group detail rooming tab must be visible as a separate guest list.', detailResult);
     assert(!detailResult.roomsPanelText.includes('투숙객 등록'), 'Room allocation tab must not include guest registration actions.', detailResult);
+
+    const roomMoveResult = await page.evaluate(async () => {
+      const roomValues = (rooms || []).map(room => roomId(room)).filter(Boolean);
+      const originalMoveRoom = roomValues.find(value => /1222|0802|1402/.test(value)) || roomValues[0] || '';
+      const originalStayRoom = roomValues.find(value => value !== originalMoveRoom && /1225|0803|1403/.test(value)) || roomValues.find(value => value !== originalMoveRoom) || '';
+      const replacementCandidate = roomValues.find(value => value && value !== originalMoveRoom && value !== originalStayRoom) || '';
+      group.id = 'GRP-ROOM-MOVE';
+      group.name = 'Room Move Event';
+      group.pax = 2;
+      group.roomAllocations = [
+        { roomId: originalMoveRoom, roomLabel: originalMoveRoom, type: 'Deluxe', rate: 140, baseRate: 140, discountPercent: 0 },
+        { roomId: originalStayRoom, roomLabel: originalStayRoom, type: 'Deluxe', rate: 140, baseRate: 140, discountPercent: 0 }
+      ];
+      group.allocations = group.roomAllocations.slice();
+      group.roomingList = [
+        { id: 'MOVE-GUEST-1', guestId: 'MOVE-GUEST-1', groupId: group.id, roomId: originalMoveRoom, role: 'primary', name: 'Move Primary', docStatus: 'pending' },
+        { id: 'MOVE-GUEST-2', guestId: 'MOVE-GUEST-2', groupId: group.id, roomId: originalStayRoom, role: 'primary', name: 'Stay Primary', docStatus: 'pending' }
+      ];
+      window.renderRooms();
+      const targetRow = Array.from(document.querySelectorAll('.allocation-editor-row')).find(row => row.dataset.originalRoomId === originalMoveRoom);
+      const select = targetRow?.querySelector('.detail-room');
+      const replacementRoom = Array.from(select?.options || []).map(option => option.value).find(value => value === replacementCandidate) ||
+        Array.from(select?.options || []).map(option => option.value).find(value => value && value !== originalMoveRoom && value !== originalStayRoom) || '';
+      if (select) {
+        select.value = replacementRoom;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      await saveRoomAllocationsFromDetail();
+      window.renderRooming();
+      const moved = roomingList().find(guest => guest.id === 'MOVE-GUEST-1');
+      const stayed = roomingList().find(guest => guest.id === 'MOVE-GUEST-2');
+      const panelText = document.getElementById('rooming')?.innerText || '';
+      return {
+        targetRowFound: !!targetRow,
+        originalMoveRoom,
+        originalStayRoom,
+        replacementRoom,
+        movedRoom: moved?.roomId || '',
+        stayedRoom: stayed?.roomId || '',
+        allocationRooms: group.roomAllocations.map(item => item.roomId),
+        panelText,
+        unassignedMoveDuplicate: panelText.includes(`Move Primary · ${originalMoveRoom}`) || panelText.includes(`Move Primary 쨌 ${originalMoveRoom}`)
+      };
+    });
+
+    assert(roomMoveResult.targetRowFound, 'Room allocation editor must preserve original room identity per row.', roomMoveResult);
+    assert(!!roomMoveResult.replacementRoom, 'Room allocation editor must offer an available replacement room.', roomMoveResult);
+    assert(roomMoveResult.movedRoom === roomMoveResult.replacementRoom, 'Changing an assigned room must move existing rooming guests to the new room.', roomMoveResult);
+    assert(roomMoveResult.stayedRoom === roomMoveResult.originalStayRoom, 'Changing one assigned room must not move guests from other room rows.', roomMoveResult);
+    assert(roomMoveResult.allocationRooms.includes(roomMoveResult.replacementRoom) && !roomMoveResult.allocationRooms.includes(roomMoveResult.originalMoveRoom), 'Room allocation must save the changed room id.', roomMoveResult);
+    assert(!roomMoveResult.unassignedMoveDuplicate, 'Moved rooming guest must not remain as an unassigned duplicate after room allocation change.', roomMoveResult);
     assert(consoleIssues.length === 0, 'Console warnings/errors during group event regression.', consoleIssues);
 
     console.log(JSON.stringify({

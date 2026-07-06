@@ -1736,6 +1736,7 @@ window.addEventListener('DataReady', () => {
         const finalRate = allocation.rate || (base ? Math.round(base * (100 - Number(discount || 0)) / 100) : '');
         const row = document.createElement('div');
         row.className = 'allocation-editor-row';
+        row.dataset.originalRoomId = allocation.roomId || '';
         row.innerHTML = `
             <div class="alloc-field">
                 <label>호실</label>
@@ -3156,6 +3157,30 @@ window.addEventListener('DataReady', () => {
         return (list || []).map(item => item.roomLabel || item.roomId).filter(Boolean).join(', ') || '-';
     }
 
+    function allocationRoomMoves(rows) {
+        return rows.map(row => ({
+            from: String(row.dataset.originalRoomId || '').trim(),
+            to: String(row.querySelector('.detail-room')?.value || '').trim()
+        })).filter(move => move.from && move.to && move.from !== move.to);
+    }
+
+    function applyRoomingRoomMoves(moves) {
+        if (!moves.length) return { movedCount: 0, rooms: [], moves: [] };
+        const moveByRoom = new Map(moves.map(move => [move.from, move.to]));
+        const touchedRooms = new Set();
+        let movedCount = 0;
+        roomingList().forEach(guest => {
+            const currentRoom = String(guest.roomId || '').trim();
+            const nextRoom = moveByRoom.get(currentRoom);
+            if (!nextRoom) return;
+            guest.roomId = nextRoom;
+            touchedRooms.add(currentRoom);
+            touchedRooms.add(nextRoom);
+            movedCount += 1;
+        });
+        return { movedCount, rooms: [...touchedRooms], moves };
+    }
+
     window.saveRoomAllocationsFromDetail = async function() {
         if (isDraftGroup()) {
             showToast('기본 정보를 먼저 저장해주세요.', 'error');
@@ -3169,6 +3194,7 @@ window.addEventListener('DataReady', () => {
             showToast('같은 호실이 중복되었습니다.', 'error');
             return;
         }
+        const roomingMoveResult = applyRoomingRoomMoves(allocationRoomMoves(Array.from(document.querySelectorAll('.allocation-editor-row'))));
         group.roomAllocations = allocations;
         group.allocations = allocations;
         group.block = allocations.length;
@@ -3184,10 +3210,12 @@ window.addEventListener('DataReady', () => {
                 beforeRooms: before.map(item => item.roomId),
                 afterRooms: allocations.map(item => item.roomId),
                 addedRooms: added.map(item => item.roomId),
-                removedRooms: removed.map(item => item.roomId)
+                removedRooms: removed.map(item => item.roomId),
+                roomGuestMoves: roomingMoveResult.moves
             }
         );
         saveGroup();
+        await Promise.all(roomingMoveResult.rooms.map(roomIdValue => Promise.resolve(persistRoomReservation(roomIdValue))));
         if (window.PmsAPI?.getReservations) window.reservations = reservations = await PmsAPI.getReservations();
         renderAll();
         switchTabById('rooms');
