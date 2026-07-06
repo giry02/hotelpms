@@ -99,8 +99,12 @@
         .board-clean-badge.dnd{background:#fff1f2;color:#be123c}
         .board-clean-badge.occupied{background:#dbeafe;color:#2563eb}
         .board-clean-badge.oos{background:#fee2e2;color:#dc2626}
-        .board-clean-select{height:28px;min-width:94px;max-width:116px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.65rem;font-weight:900;padding:0 24px 0 8px;cursor:pointer;outline:none}
+        .board-clean-select{height:28px;min-width:94px;max-width:116px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--txt2);font-family:var(--font);font-size:.65rem;font-weight:900;padding:0 24px 0 8px;cursor:pointer;outline:none;transition:border-color .15s,background .15s,color .15s}
         .board-clean-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+        .board-clean-select.dirty,
+        .board-clean-select.mur{color:#b45309;border-color:#fed7aa;background:#fff7ed}
+        .board-clean-select.clean{color:#047857;border-color:#a7f3d0;background:#ecfdf5}
+        .board-clean-select.dnd{color:#be123c;border-color:#fecdd3;background:#fff1f2}
         .board-guest{width:100%;min-width:0;margin-top:4px}
         .board-group-title{display:flex;align-items:center;gap:5px;width:100%;min-width:0;margin-bottom:3px}
         .board-group-badge{display:inline-flex;align-items:center;gap:3px;background:#111827;color:#fff;border-radius:4px;padding:2px 5px;font-size:.56rem;font-weight:950;line-height:1;flex:0 0 auto}
@@ -964,7 +968,7 @@ function boardStayActions(room, res) {
     const roomKey = room.roomId || room.fullRoom || room.id || res?.room || '';
     const cleanState = boardCleaningSummary(room, res).key;
     if (!res) {
-        return `<select class="board-clean-select" data-room-key="${escapeHtml(roomKey)}" aria-label="빈방 청소 상태 변경" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardCleanState(event,this)">
+        return `<select class="board-clean-select ${escapeHtml(cleanState)}" data-room-key="${escapeHtml(roomKey)}" aria-label="빈방 청소 상태 변경" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardCleanState(event,this)">
             <option value="dirty"${cleanState === 'dirty' ? ' selected' : ''}>청소 필요</option>
             <option value="clean"${cleanState === 'clean' ? ' selected' : ''}>청소 완료</option>
         </select>`;
@@ -976,9 +980,16 @@ function boardStayActions(room, res) {
         { key: 'clean', label: '청소 완료' },
         { key: 'dnd', label: '방해금지' }
     ];
-    return `<select class="board-clean-select" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" aria-label="청소 상태 변경" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardStayState(event,this)">
+    return `<select class="board-clean-select ${escapeHtml(active)}" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" aria-label="청소 상태 변경" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardStayState(event,this)">
         ${options.map(opt => `<option value="${opt.key}"${active === opt.key ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
     </select>`;
+}
+
+function updateBoardCleanSelectTone(select, state = '') {
+    if (!select) return;
+    select.classList.remove('dirty', 'mur', 'clean', 'dnd');
+    const next = String(state || select.value || '').toLowerCase();
+    if (['dirty', 'mur', 'clean', 'dnd'].includes(next)) select.classList.add(next);
 }
 
 function reservationStateForFilter(res) {
@@ -1314,6 +1325,7 @@ window.setBoardStayState = async function(event, button) {
     event?.preventDefault();
     event?.stopPropagation();
     const state = button?.value || button?.dataset?.state || 'mur';
+    updateBoardCleanSelectTone(button, state);
     const resId = button?.dataset?.resId || '';
     const roomKey = button?.dataset?.roomKey || '';
     const res = reservations.find(item => item.id === resId);
@@ -1358,6 +1370,7 @@ window.setBoardCleanState = async function(event, button) {
     event?.preventDefault();
     event?.stopPropagation();
     const state = button?.value || button?.dataset?.state || 'clean';
+    updateBoardCleanSelectTone(button, state);
     const roomKey = button?.dataset?.roomKey || '';
     const room = rooms.find(item => sameRoomValue(item.id, roomKey) || sameRoomValue(item.roomId, roomKey) || sameRoomValue(item.fullRoom, roomKey) || sameRoomValue(item.roomNo, roomKey));
     if (!room) {
