@@ -203,6 +203,38 @@
     function serviceIcon(type) {
       return { pos:'fa-cash-register', golf:'fa-golf-ball-tee', rentacar:'fa-car' }[type] || 'fa-bell-concierge';
     }
+    function itemExamples(type) {
+      return {
+        pos: {
+          name: '예: 룸서비스 세트',
+          price: '예: 8500',
+          desc: '예: 조식 2인, 객실 세탁, 미니바 추가'
+        },
+        golf: {
+          name: '예: 18홀 그린피',
+          price: '예: 450',
+          desc: '예: 주중 18홀, 카트 별도'
+        },
+        rentacar: {
+          name: '예: 공항 픽업',
+          price: '예: 90',
+          desc: '예: 편도 픽업, 세단 8시간, 기사 포함 밴'
+        }
+      }[type] || {
+        name: '예: 이용 항목',
+        price: '예: 0',
+        desc: '예: 제공 조건 또는 이용 기준'
+      };
+    }
+    function applyItemModalExamples(type) {
+      const examples = itemExamples(type);
+      const name = document.getElementById('itemName');
+      const price = document.getElementById('itemPrice');
+      const desc = document.getElementById('itemDesc');
+      if (name) name.placeholder = examples.name;
+      if (price) price.placeholder = examples.price;
+      if (desc) desc.placeholder = examples.desc;
+    }
     function defaultVoucherFields(type) {
       return (voucherFieldGroups[type] || voucherFieldGroups.pos).flatMap(group => group.fields);
     }
@@ -403,6 +435,7 @@
     function openItemModal(){
       if (!selectedVendorId) return window.showAlert('업체를 먼저 선택해 주세요.', { type: 'error' });
       ['itemName','itemPrice','itemDesc'].forEach(id => document.getElementById(id).value = '');
+      applyItemModalExamples(selectedVendor()?.type || currentType);
       openModal('itemModal');
     }
     function saveItem() {
