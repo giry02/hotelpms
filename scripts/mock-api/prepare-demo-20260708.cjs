@@ -5,7 +5,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const API_ROOT = path.join(ROOT, 'dashboard', 'data', 'api', 'v1');
 const TENANT_ID = 'TENANT-GRAND-SAIGON';
 const CURRENCY = 'PHP';
-const DEMO_BASE_DATE = '2026-06-10'; // Displays as 2026-07-08 after mock date shifting.
+const DEMO_BASE_DATE = '2026-06-10'; // Mock anchor date. The browser shifts this to today's operating date.
 const DAY_BEFORE = '2026-06-09';
 const TWO_DAYS_BEFORE = '2026-06-08';
 const DAY_AFTER = '2026-06-11';
@@ -13,6 +13,12 @@ const TWO_DAYS_AFTER = '2026-06-12';
 
 function apiPath(rel) {
   return path.join(API_ROOT, rel);
+}
+
+function currentIsoDate() {
+  const now = new Date();
+  const shifted = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return shifted.toISOString().slice(0, 10);
 }
 
 function readJson(rel) {
@@ -376,12 +382,12 @@ const groups = items(groupsEnv);
 });
 
 const checkinReservations = [
-  ['RSV-DEMO-0708-1208', 'FT-1208', 'Chen Wei', 'Gold', '2026-06-10', '2026-06-12', 140],
-  ['RSV-DEMO-0708-1211', 'FT-1211', 'Maria Santos', 'Gold', '2026-06-10', '2026-06-13', 140],
-  ['RSV-DEMO-0708-1212', 'FT-1212', 'Olivia Smith', 'General', '2026-06-10', '2026-06-11', 140],
-  ['RSV-DEMO-0708-1213', 'FT-1213', 'Park Minji', 'VIP', '2026-06-10', '2026-06-12', 140],
-  ['RSV-DEMO-0708-1220', 'FT-1220', 'Robert Ford', 'Diamond', '2026-06-10', '2026-06-13', 140],
-  ['RSV-DEMO-0708-1221', 'FT-1221', 'Grace Miller', 'Platinum', '2026-06-10', '2026-06-11', 140]
+  ['RSV-DEMO-TODAY-1208', 'FT-1208', 'Chen Wei', 'Gold', '2026-06-10', '2026-06-12', 140],
+  ['RSV-DEMO-TODAY-1211', 'FT-1211', 'Maria Santos', 'Gold', '2026-06-10', '2026-06-13', 140],
+  ['RSV-DEMO-TODAY-1212', 'FT-1212', 'Olivia Smith', 'General', '2026-06-10', '2026-06-11', 140],
+  ['RSV-DEMO-TODAY-1213', 'FT-1213', 'Park Minji', 'VIP', '2026-06-10', '2026-06-12', 140],
+  ['RSV-DEMO-TODAY-1220', 'FT-1220', 'Robert Ford', 'Diamond', '2026-06-10', '2026-06-13', 140],
+  ['RSV-DEMO-TODAY-1221', 'FT-1221', 'Grace Miller', 'Platinum', '2026-06-10', '2026-06-11', 140]
 ].map(([id, roomId, guestName, vip, checkInDate, checkOutDate, rate]) => makeReservation(rooms, {
   id,
   roomId,
@@ -397,13 +403,13 @@ const checkinReservations = [
 }));
 
 const checkoutReservations = [
-  ['RSV-DEMO-0708-1402-OUT', 'OT-1402', 'Yamamoto K.', 'General', DAY_BEFORE, DEMO_BASE_DATE, 100, '11:00'],
-  ['RSV-DEMO-0708-1205-OUT', 'FT-1205', 'Maria Santos', 'Gold', TWO_DAYS_BEFORE, DEMO_BASE_DATE, 140, '12:00'],
-  ['RSV-DEMO-0708-1206-OUT', 'FT-1206', 'Robert Ford', 'VIP', DAY_BEFORE, DEMO_BASE_DATE, 140, '13:00'],
-  ['RSV-DEMO-0708-V02-OUT', 'LV-V02', 'Tanaka Yuki', 'Platinum', DAY_BEFORE, DEMO_BASE_DATE, 380, '12:00'],
-  ['RSV-DEMO-0708-1218-OUT', 'FT-1218', 'Pham David', 'General', TWO_DAYS_BEFORE, DEMO_BASE_DATE, 140, '12:00'],
-  ['RSV-DEMO-0708-1226-OUT', 'FT-1226', 'Lee Hannah', 'Gold', DAY_BEFORE, DEMO_BASE_DATE, 140, '15:00'],
-  ['RSV-DEMO-0708-1228-OUT', 'FT-1228', 'Garcia Miguel', 'Diamond', DAY_BEFORE, DEMO_BASE_DATE, 140, '12:00']
+  ['RSV-DEMO-TODAY-1402-OUT', 'OT-1402', 'Yamamoto K.', 'General', DAY_BEFORE, DEMO_BASE_DATE, 100, '11:00'],
+  ['RSV-DEMO-TODAY-1205-OUT', 'FT-1205', 'Maria Santos', 'Gold', TWO_DAYS_BEFORE, DEMO_BASE_DATE, 140, '12:00'],
+  ['RSV-DEMO-TODAY-1206-OUT', 'FT-1206', 'Robert Ford', 'VIP', DAY_BEFORE, DEMO_BASE_DATE, 140, '13:00'],
+  ['RSV-DEMO-TODAY-V02-OUT', 'LV-V02', 'Tanaka Yuki', 'Platinum', DAY_BEFORE, DEMO_BASE_DATE, 380, '12:00'],
+  ['RSV-DEMO-TODAY-1218-OUT', 'FT-1218', 'Pham David', 'General', TWO_DAYS_BEFORE, DEMO_BASE_DATE, 140, '12:00'],
+  ['RSV-DEMO-TODAY-1226-OUT', 'FT-1226', 'Lee Hannah', 'Gold', DAY_BEFORE, DEMO_BASE_DATE, 140, '15:00'],
+  ['RSV-DEMO-TODAY-1228-OUT', 'FT-1228', 'Garcia Miguel', 'Diamond', DAY_BEFORE, DEMO_BASE_DATE, 140, '12:00']
 ].map(([id, roomId, guestName, vip, checkInDate, checkOutDate, rate, checkOutTime]) => makeReservation(rooms, {
   id,
   roomId,
@@ -419,7 +425,7 @@ const checkoutReservations = [
 }));
 
 const missedArrival = makeReservation(rooms, {
-  id: 'RSV-DEMO-0708-MISSED-1222',
+  id: 'RSV-DEMO-TODAY-MISSED-1222',
   roomId: 'FT-1222',
   guestName: 'No Show Pending Guest',
   vip: 'General',
@@ -447,8 +453,8 @@ reservations
 
 const folioConfigs = [
   {
-    id: 'FOL-DEMO-0708-1402-COMPLETE',
-    reservationId: 'RSV-DEMO-0708-1402-OUT',
+    id: 'FOL-DEMO-TODAY-1402-COMPLETE',
+    reservationId: 'RSV-DEMO-TODAY-1402-OUT',
     roomId: 'OT-1402',
     ownerName: 'Yamamoto K.',
     status: 'closed',
@@ -456,102 +462,102 @@ const folioConfigs = [
     closedAt: `${DEMO_BASE_DATE}T09:45:00+09:00`,
     settlementCompleted: true,
     charges: [
-      makeCharge('FOL-DEMO-0708-1402-CHG-ROOM', 'room', 'Premier 1박 객실 요금', 2300, 'OT-1402', 'RSV-DEMO-0708-1402-OUT')
+      makeCharge('FOL-DEMO-TODAY-1402-CHG-ROOM', 'room', 'Premier 1박 객실 요금', 2300, 'OT-1402', 'RSV-DEMO-TODAY-1402-OUT')
     ],
     payments: [
-      makePayment('FOL-DEMO-0708-1402-PAY-CARD', 'card', 2300, `${DEMO_BASE_DATE}T09:35:00+09:00`, '카드 수납 및 체크아웃 완료')
+      makePayment('FOL-DEMO-TODAY-1402-PAY-CARD', 'card', 2300, `${DEMO_BASE_DATE}T09:35:00+09:00`, '카드 수납 및 체크아웃 완료')
     ],
     balance: 0
   },
   {
-    id: 'FOL-DEMO-0708-1205-UNPAID',
-    reservationId: 'RSV-DEMO-0708-1205-OUT',
+    id: 'FOL-DEMO-TODAY-1205-UNPAID',
+    reservationId: 'RSV-DEMO-TODAY-1205-OUT',
     roomId: 'FT-1205',
     ownerName: 'Maria Santos',
     status: 'unpaid',
     issueTime: '10:00',
     closedAt: `${DEMO_BASE_DATE}T10:20:00+09:00`,
     charges: [
-      makeCharge('FOL-DEMO-0708-1205-CHG-ROOM', 'room', 'Deluxe 2박 객실 요금', 2800, 'FT-1205', 'RSV-DEMO-0708-1205-OUT'),
-      makeCharge('FOL-DEMO-0708-1205-CHG-POS', 'fnb', '룸서비스 및 미니바', 780, 'FT-1205', 'RSV-DEMO-0708-1205-OUT')
+      makeCharge('FOL-DEMO-TODAY-1205-CHG-ROOM', 'room', 'Deluxe 2박 객실 요금', 2800, 'FT-1205', 'RSV-DEMO-TODAY-1205-OUT'),
+      makeCharge('FOL-DEMO-TODAY-1205-CHG-POS', 'fnb', '룸서비스 및 미니바', 780, 'FT-1205', 'RSV-DEMO-TODAY-1205-OUT')
     ],
     payments: [
-      makePayment('FOL-DEMO-0708-1205-PAY-CASH', 'cash', 1500, `${DEMO_BASE_DATE}T10:10:00+09:00`, '현금 일부 수납')
+      makePayment('FOL-DEMO-TODAY-1205-PAY-CASH', 'cash', 1500, `${DEMO_BASE_DATE}T10:10:00+09:00`, '현금 일부 수납')
     ],
     balance: 2080
   },
   {
-    id: 'FOL-DEMO-0708-1206-DEPOSIT',
-    reservationId: 'RSV-DEMO-0708-1206-OUT',
+    id: 'FOL-DEMO-TODAY-1206-DEPOSIT',
+    reservationId: 'RSV-DEMO-TODAY-1206-OUT',
     roomId: 'FT-1206',
     ownerName: 'Robert Ford',
     status: 'unpaid',
     issueTime: '10:35',
     closedAt: `${DEMO_BASE_DATE}T11:00:00+09:00`,
     charges: [
-      makeCharge('FOL-DEMO-0708-1206-CHG-ROOM', 'room', 'Deluxe 1박 객실 요금', 1400, 'FT-1206', 'RSV-DEMO-0708-1206-OUT'),
-      makeCharge('FOL-DEMO-0708-1206-CHG-CAR', 'rentacar', '공항 샌딩 렌터카', 420, 'FT-1206', 'RSV-DEMO-0708-1206-OUT')
+      makeCharge('FOL-DEMO-TODAY-1206-CHG-ROOM', 'room', 'Deluxe 1박 객실 요금', 1400, 'FT-1206', 'RSV-DEMO-TODAY-1206-OUT'),
+      makeCharge('FOL-DEMO-TODAY-1206-CHG-CAR', 'rentacar', '공항 샌딩 렌터카', 420, 'FT-1206', 'RSV-DEMO-TODAY-1206-OUT')
     ],
     payments: [
-      makePayment('FOL-DEMO-0708-1206-PAY-DEP', 'deposit', 1000, `${DEMO_BASE_DATE}T09:00:00+09:00`, '키 보증/추가 숙박 보관금', { kind: 'deposit' })
+      makePayment('FOL-DEMO-TODAY-1206-PAY-DEP', 'deposit', 1000, `${DEMO_BASE_DATE}T09:00:00+09:00`, '키 보증/추가 숙박 보관금', { kind: 'deposit' })
     ],
     depositAmount: 1000,
     balance: 820
   },
   {
-    id: 'FOL-DEMO-0708-V02-REFUND',
-    reservationId: 'RSV-DEMO-0708-V02-OUT',
+    id: 'FOL-DEMO-TODAY-V02-REFUND',
+    reservationId: 'RSV-DEMO-TODAY-V02-OUT',
     roomId: 'LV-V02',
     ownerName: 'Tanaka Yuki',
     status: 'closed',
     issueTime: '11:15',
     closedAt: `${DEMO_BASE_DATE}T11:45:00+09:00`,
     charges: [
-      makeCharge('FOL-DEMO-0708-V02-CHG-ROOM', 'room', 'Pool Villa 1박 객실 요금', 3800, 'LV-V02', 'RSV-DEMO-0708-V02-OUT')
+      makeCharge('FOL-DEMO-TODAY-V02-CHG-ROOM', 'room', 'Pool Villa 1박 객실 요금', 3800, 'LV-V02', 'RSV-DEMO-TODAY-V02-OUT')
     ],
     payments: [
-      makePayment('FOL-DEMO-0708-V02-PAY-DEP', 'deposit', 4500, `${DAY_BEFORE}T16:30:00+09:00`, '예약 예치금 선수납', { kind: 'deposit' })
+      makePayment('FOL-DEMO-TODAY-V02-PAY-DEP', 'deposit', 4500, `${DAY_BEFORE}T16:30:00+09:00`, '예약 예치금 선수납', { kind: 'deposit' })
     ],
     depositAmount: 4500,
     balance: 0
   },
   {
-    id: 'FOL-DEMO-0708-1218-READY',
-    reservationId: 'RSV-DEMO-0708-1218-OUT',
+    id: 'FOL-DEMO-TODAY-1218-READY',
+    reservationId: 'RSV-DEMO-TODAY-1218-OUT',
     roomId: 'FT-1218',
     ownerName: 'Pham David',
     status: 'open',
     issueTime: '12:05',
     charges: [
-      makeCharge('FOL-DEMO-0708-1218-CHG-ROOM', 'room', 'Deluxe 2박 객실 요금', 2800, 'FT-1218', 'RSV-DEMO-0708-1218-OUT'),
-      makeCharge('FOL-DEMO-0708-1218-CHG-GOLF', 'golf', '18홀 그린피 / 2인', 900, 'FT-1218', 'RSV-DEMO-0708-1218-OUT')
+      makeCharge('FOL-DEMO-TODAY-1218-CHG-ROOM', 'room', 'Deluxe 2박 객실 요금', 2800, 'FT-1218', 'RSV-DEMO-TODAY-1218-OUT'),
+      makeCharge('FOL-DEMO-TODAY-1218-CHG-GOLF', 'golf', '18홀 그린피 / 2인', 900, 'FT-1218', 'RSV-DEMO-TODAY-1218-OUT')
     ],
     payments: [
-      makePayment('FOL-DEMO-0708-1218-PAY-TRANSFER', 'transfer', 3700, `${DEMO_BASE_DATE}T12:10:00+09:00`, '계좌이체 입금 확인, 정산 완료 대기')
+      makePayment('FOL-DEMO-TODAY-1218-PAY-TRANSFER', 'transfer', 3700, `${DEMO_BASE_DATE}T12:10:00+09:00`, '계좌이체 입금 확인, 정산 완료 대기')
     ],
     balance: 0
   },
   {
-    id: 'FOL-DEMO-0708-1226-MIXED',
-    reservationId: 'RSV-DEMO-0708-1226-OUT',
+    id: 'FOL-DEMO-TODAY-1226-MIXED',
+    reservationId: 'RSV-DEMO-TODAY-1226-OUT',
     roomId: 'FT-1226',
     ownerName: 'Lee Hannah',
     status: 'unpaid',
     issueTime: '13:20',
     closedAt: `${DEMO_BASE_DATE}T13:45:00+09:00`,
     charges: [
-      makeCharge('FOL-DEMO-0708-1226-CHG-ROOM', 'room', 'Deluxe 1박 객실 요금', 1400, 'FT-1226', 'RSV-DEMO-0708-1226-OUT'),
-      makeCharge('FOL-DEMO-0708-1226-CHG-FNB', 'fnb', '조식/세탁 서비스', 360, 'FT-1226', 'RSV-DEMO-0708-1226-OUT')
+      makeCharge('FOL-DEMO-TODAY-1226-CHG-ROOM', 'room', 'Deluxe 1박 객실 요금', 1400, 'FT-1226', 'RSV-DEMO-TODAY-1226-OUT'),
+      makeCharge('FOL-DEMO-TODAY-1226-CHG-FNB', 'fnb', '조식/세탁 서비스', 360, 'FT-1226', 'RSV-DEMO-TODAY-1226-OUT')
     ],
     payments: [
-      makePayment('FOL-DEMO-0708-1226-PAY-CASH', 'cash', 900, `${DEMO_BASE_DATE}T13:30:00+09:00`, '페소 현금 일부 수납', { receivedCurrency: 'PHP', receivedAmount: 900 }),
-      makePayment('FOL-DEMO-0708-1226-PAY-USD', 'cash', 300, `${DEMO_BASE_DATE}T13:32:00+09:00`, '달러 현금 일부 수납', { receivedCurrency: 'USD', receivedAmount: 6 })
+      makePayment('FOL-DEMO-TODAY-1226-PAY-CASH', 'cash', 900, `${DEMO_BASE_DATE}T13:30:00+09:00`, '페소 현금 일부 수납', { receivedCurrency: 'PHP', receivedAmount: 900 }),
+      makePayment('FOL-DEMO-TODAY-1226-PAY-USD', 'cash', 300, `${DEMO_BASE_DATE}T13:32:00+09:00`, '달러 현금 일부 수납', { receivedCurrency: 'USD', receivedAmount: 6 })
     ],
     balance: 560
   },
   {
-    id: 'FOL-DEMO-0708-1228-COMPLETE',
-    reservationId: 'RSV-DEMO-0708-1228-OUT',
+    id: 'FOL-DEMO-TODAY-1228-COMPLETE',
+    reservationId: 'RSV-DEMO-TODAY-1228-OUT',
     roomId: 'FT-1228',
     ownerName: 'Garcia Miguel',
     status: 'closed',
@@ -559,11 +565,11 @@ const folioConfigs = [
     closedAt: `${DEMO_BASE_DATE}T14:35:00+09:00`,
     settlementCompleted: true,
     charges: [
-      makeCharge('FOL-DEMO-0708-1228-CHG-ROOM', 'room', 'Deluxe 1박 객실 요금', 1400, 'FT-1228', 'RSV-DEMO-0708-1228-OUT'),
-      makeCharge('FOL-DEMO-0708-1228-CHG-CAR', 'rentacar', '시내 투어 렌터카', 260, 'FT-1228', 'RSV-DEMO-0708-1228-OUT')
+      makeCharge('FOL-DEMO-TODAY-1228-CHG-ROOM', 'room', 'Deluxe 1박 객실 요금', 1400, 'FT-1228', 'RSV-DEMO-TODAY-1228-OUT'),
+      makeCharge('FOL-DEMO-TODAY-1228-CHG-CAR', 'rentacar', '시내 투어 렌터카', 260, 'FT-1228', 'RSV-DEMO-TODAY-1228-OUT')
     ],
     payments: [
-      makePayment('FOL-DEMO-0708-1228-PAY-CARD', 'card', 1660, `${DEMO_BASE_DATE}T14:25:00+09:00`, '카드 일괄 수납')
+      makePayment('FOL-DEMO-TODAY-1228-PAY-CARD', 'card', 1660, `${DEMO_BASE_DATE}T14:25:00+09:00`, '카드 일괄 수납')
     ],
     balance: 0
   }
@@ -578,25 +584,25 @@ folios.forEach(folio => {
 });
 
 [
-  makeOrder({ id: 'ORD-DEMO-0708-1206-01', room: '1206', guestName: 'Robert Ford', time: '09:30', status: 'new', type: 'roomservice', source: 'pos', item: '아메리카노 2잔 / 조식 세트', amount: 72 }),
-  makeOrder({ id: 'ORD-DEMO-0708-V02-01', room: 'V-02', guestName: 'Tanaka Yuki', time: '10:15', status: 'preparing', type: 'dining', source: 'pos', item: '프라이빗 다이닝 준비', amount: 380 }),
-  makeOrder({ id: 'ORD-DEMO-0708-1218-01', room: '1218', guestName: 'Pham David', time: '11:45', status: 'done', type: 'laundry', source: 'pos', item: '셔츠 세탁 3벌', amount: 54 }),
-  makeOrder({ id: 'ORD-DEMO-0708-1226-01', room: '1226', guestName: 'Lee Hannah', time: '13:10', status: 'done', type: 'minibar', source: 'pos', item: '미니바 정산', amount: 86 })
+  makeOrder({ id: 'ORD-DEMO-TODAY-1206-01', room: '1206', guestName: 'Robert Ford', time: '09:30', status: 'new', type: 'roomservice', source: 'pos', item: '아메리카노 2잔 / 조식 세트', amount: 72 }),
+  makeOrder({ id: 'ORD-DEMO-TODAY-V02-01', room: 'V-02', guestName: 'Tanaka Yuki', time: '10:15', status: 'preparing', type: 'dining', source: 'pos', item: '프라이빗 다이닝 준비', amount: 380 }),
+  makeOrder({ id: 'ORD-DEMO-TODAY-1218-01', room: '1218', guestName: 'Pham David', time: '11:45', status: 'done', type: 'laundry', source: 'pos', item: '셔츠 세탁 3벌', amount: 54 }),
+  makeOrder({ id: 'ORD-DEMO-TODAY-1226-01', room: '1226', guestName: 'Lee Hannah', time: '13:10', status: 'done', type: 'minibar', source: 'pos', item: '미니바 정산', amount: 86 })
 ].forEach(order => upsert(posOrders, order));
 
 [
-  makeOrder({ id: 'GLF-DEMO-0708-1218-01', room: '1218', guestName: 'Pham David', time: '07:20', status: 'new', type: 'club_a', source: 'golf', item: '18홀 그린피 / 2인', amount: 900 }),
-  makeOrder({ id: 'GLF-DEMO-0708-1228-01', room: '1228', guestName: 'Garcia Miguel', time: '08:10', status: 'done', type: 'club_b', source: 'golf', item: '카트 이용권 / 클럽 대여', amount: 210 })
+  makeOrder({ id: 'GLF-DEMO-TODAY-1218-01', room: '1218', guestName: 'Pham David', time: '07:20', status: 'new', type: 'club_a', source: 'golf', item: '18홀 그린피 / 2인', amount: 900 }),
+  makeOrder({ id: 'GLF-DEMO-TODAY-1228-01', room: '1228', guestName: 'Garcia Miguel', time: '08:10', status: 'done', type: 'club_b', source: 'golf', item: '카트 이용권 / 클럽 대여', amount: 210 })
 ].forEach(order => upsert(golfOrders, order));
 
 [
-  makeOrder({ id: 'RNT-DEMO-0708-1206-01', room: '1206', guestName: 'Robert Ford', time: '09:50', status: 'prep', type: 'lotte', source: 'rentacar', item: '공항 샌딩 / 밴', amount: 420 }),
-  makeOrder({ id: 'RNT-DEMO-0708-1228-01', room: '1228', guestName: 'Garcia Miguel', time: '14:00', status: 'done', type: 'sk', source: 'rentacar', item: '시내 투어 / 4시간', amount: 260 })
+  makeOrder({ id: 'RNT-DEMO-TODAY-1206-01', room: '1206', guestName: 'Robert Ford', time: '09:50', status: 'prep', type: 'lotte', source: 'rentacar', item: '공항 샌딩 / 밴', amount: 420 }),
+  makeOrder({ id: 'RNT-DEMO-TODAY-1228-01', room: '1228', guestName: 'Garcia Miguel', time: '14:00', status: 'done', type: 'sk', source: 'rentacar', item: '시내 투어 / 4시간', amount: 260 })
 ].forEach(order => upsert(carOrders, order));
 
 [
   eventItem({
-    id: 'EVT-DEMO-0708-001',
+    id: 'EVT-DEMO-TODAY-001',
     type: 'frontdesk.arrival-delay',
     category: 'frontdesk',
     severity: 'warning',
@@ -610,7 +616,7 @@ folios.forEach(folio => {
     target: 'frontdesk/reservation-board.html?query=1222'
   }),
   eventItem({
-    id: 'EVT-DEMO-0708-002',
+    id: 'EVT-DEMO-TODAY-002',
     type: 'billing.settlement-needed',
     category: 'billing',
     severity: 'urgent',
@@ -621,11 +627,11 @@ folios.forEach(folio => {
     time: '10:20',
     actor: 'Cashier Mina',
     roomNo: '1205',
-    folioId: 'FOL-DEMO-0708-1205-UNPAID',
+    folioId: 'FOL-DEMO-TODAY-1205-UNPAID',
     target: 'operations/settlement-status.html?query=1205'
   }),
   eventItem({
-    id: 'EVT-DEMO-0708-003',
+    id: 'EVT-DEMO-TODAY-003',
     type: 'ancillary.golf',
     category: 'ancillary',
     icon: 'fa-golf-ball-tee',
@@ -639,7 +645,7 @@ folios.forEach(folio => {
     target: 'operations/ancillary.html?service=golf&query=1218'
   }),
   eventItem({
-    id: 'EVT-DEMO-0708-004',
+    id: 'EVT-DEMO-TODAY-004',
     type: 'group.arrival',
     category: 'group',
     icon: 'fa-users-line',
@@ -652,7 +658,7 @@ folios.forEach(folio => {
     target: 'frontdesk/groups_block_detail.html?id=GRP-DEMO-THU-PRIVATE'
   }),
   eventItem({
-    id: 'EVT-DEMO-0708-005',
+    id: 'EVT-DEMO-TODAY-005',
     type: 'housekeeping.cleaning',
     category: 'housekeeping',
     icon: 'fa-broom',
@@ -685,10 +691,76 @@ function expandDemoGroup(groupId) {
   writeJson(`groups/rooming-list/${groupId}.json`, listEnvelope(group.roomingList || [], `REQ-${groupId}-ROOMING`));
 });
 
-const todayCheckins = reservations.filter(res => res.checkInDate === DEMO_BASE_DATE && ['confirmed', 'pending'].includes(String(res.status || '').toLowerCase()));
-const todayCheckouts = reservations.filter(res => res.checkOutDate === DEMO_BASE_DATE && ['checked-in', 'checkedin', 'checkout'].includes(String(res.status || '').toLowerCase().replace(/[-_\s]/g, '')));
+function statusKey(value) {
+  return String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+}
+
+function dateValue(value) {
+  const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+function sameDateValue(value, targetIso) {
+  const date = dateValue(value);
+  const target = dateValue(targetIso);
+  return !!(date && target && date.getTime() === target.getTime());
+}
+
+function stayIncludesDate(res, targetIso) {
+  const start = dateValue(res?.checkInDate || res?.checkin || res?.cin);
+  const end = dateValue(res?.checkOutDate || res?.checkout || res?.cout);
+  const target = dateValue(targetIso);
+  return !!(start && end && target && start <= target && target < end);
+}
+
+function roomForRes(res) {
+  const roomNo = roomNoFromId(res?.roomId || res?.room || res?.roomNo);
+  return rooms.find(room =>
+    room.id === res?.roomId ||
+    room.roomId === res?.roomId ||
+    room.fullRoom === res?.room ||
+    room.roomNo === res?.roomNo ||
+    room.room === res?.room ||
+    roomNoFromId(room.id || room.roomId || room.fullRoom || room.roomNo || room.room) === roomNo
+  );
+}
+
+function roomIsInHouse(res) {
+  const room = roomForRes(res);
+  const status = statusKey(room?.frontStatus || room?.occupancyStatus || room?.status);
+  return ['checkedin', 'inhouse', 'occupied'].includes(status);
+}
+
+function effectiveResStatus(res, targetIso = DEMO_BASE_DATE) {
+  let status = statusKey(res?.status);
+  if (['confirmed', 'pending'].includes(status) && roomIsInHouse(res) && stayIncludesDate(res, targetIso)) status = 'checkedin';
+  if (status === 'checkedin') {
+    const end = dateValue(res?.checkOutDate || res?.checkout || res?.cout);
+    const target = dateValue(targetIso);
+    if (end && target && end <= target) return 'checkout';
+  }
+  return status;
+}
+
+function isTodayCheckinTarget(res) {
+  if (!sameDateValue(res?.checkInDate || res?.checkin || res?.cin, DEMO_BASE_DATE)) return false;
+  const status = effectiveResStatus(res);
+  if (['cancelled', 'canceled', 'completed', 'checkedout', 'checkoutcompleted', 'noshow'].includes(status)) return false;
+  if (status === 'checkout') return false;
+  if (status === 'checkedin' && stayIncludesDate(res, DEMO_BASE_DATE)) return false;
+  return true;
+}
+
+function isTodayCheckoutTarget(res) {
+  if (!sameDateValue(res?.checkOutDate || res?.checkout || res?.cout, DEMO_BASE_DATE)) return false;
+  return ['checkedin', 'checkout'].includes(effectiveResStatus(res));
+}
+
+const todayCheckins = reservations.filter(isTodayCheckinTarget);
+const todayCheckouts = reservations.filter(isTodayCheckoutTarget);
 const todayFolios = folios.filter(folio => (folio.checkOutDate || folio.checkoutDate || '').slice(0, 10) === DEMO_BASE_DATE || String(folio.closedAt || '').slice(0, 10) === DEMO_BASE_DATE);
-const inHouse = rooms.filter(room => room.status === 'in-house').length;
+const inHouse = rooms.filter(room => ['inhouse', 'occupied', 'checkedin'].includes(statusKey(room.frontStatus || room.status || room.occupancyStatus))).length;
 const revenue = todayFolios.reduce((sum, folio) => sum + (folio.charges || []).reduce((acc, charge) => acc + amountValue(charge.amount), 0), 0);
 
 summaryEnv.data.occupancy = Math.round((inHouse / rooms.length) * 1000) / 10;
@@ -727,7 +799,7 @@ writeJson('dashboard/kpis.json', kpisEnv);
 
 console.log(JSON.stringify({
   demoBaseDate: DEMO_BASE_DATE,
-  displaysAs: '2026-07-08',
+  displaysAs: currentIsoDate(),
   rooms: rooms.length,
   reservations: reservations.length,
   todayCheckins: todayCheckins.length,

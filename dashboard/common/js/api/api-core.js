@@ -1,5 +1,5 @@
 // api-core.js
-const API_VERSION = 'v2.9';
+const API_VERSION = 'v2.10';
 
 window.PmsDate = window.PmsDate || (function() {
     function todayIsoDate() {
@@ -72,7 +72,7 @@ function initStorage(key, fallbackData) {
 
 window.PmsMockApi = window.PmsMockApi || (function() {
     const TENANT_ID = 'TENANT-GRAND-SAIGON';
-    const API_VERSION = 'v9';
+    const API_VERSION = 'v10';
     const scriptUrl = document.currentScript ? document.currentScript.src : location.href;
     const dashboardRoot = new URL('../../../', scriptUrl);
     const apiRoot = new URL('data/api/v1/', dashboardRoot);

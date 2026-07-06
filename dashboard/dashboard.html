@@ -1092,6 +1092,7 @@
             item.reservationId,
             ...(Array.isArray(item.reservationIds) ? item.reservationIds : [])
         ].filter(Boolean);
+        const hasDirectReservationLink = reservationIds.length > 0;
         const initialCheckoutDate = iso(item.checkOutDate || item.checkoutDate || item.checkout || item.settlementDate || item.closedAt || item.issuedAt);
         let linked = dashboardReservationsByIds(reservations, reservationIds);
         if (!linked.length && !reservationIds.length) linked = dashboardFallbackReservationsForFolio(item, initialCheckoutDate, reservations);
@@ -1102,7 +1103,9 @@
             .sort()
             .pop();
         const groupCheckout = iso(group?.checkOutDate || group?.checkout || group?.cout);
-        return linkedCheckout || groupCheckout || initialCheckoutDate;
+        if (hasDirectReservationLink) return linkedCheckout || groupCheckout || initialCheckoutDate;
+        if (item.folioType === 'group' || item.groupId) return groupCheckout || initialCheckoutDate || linkedCheckout;
+        return initialCheckoutDate || linkedCheckout || groupCheckout;
     }
     function folioSettlementStatus(item, reservations = [], groups = []) {
         const charges = Array.isArray(item.charges) ? item.charges : [];
@@ -1119,7 +1122,9 @@
         deposit += localPayment.deposit;
         balance = Math.max(balance - localPayment.settlement, 0);
         const signature = dashboardSettlementSignature(folioId, total, paid, balance, deposit);
-        const completed = dashboardSettlementCompleted(item, signature, balance);
+        const rawStatus = String(item.status || '').replace(/[-_\s]/g, '').toLowerCase();
+        const rawCompleted = item.settlementCompleted || ['closed', 'paid', 'settled', 'completed', 'checkedout'].includes(rawStatus);
+        const completed = rawCompleted || dashboardSettlementCompleted(item, signature, balance);
         const state = balance > 0 ? 'unpaid' : (paid > total && total > 0 ? 'refund' : (completed ? 'paid' : 'ready'));
         const dueDate = dashboardFolioCheckoutDate(item, reservations, groups);
         return { item, state, balance, dueDate };
