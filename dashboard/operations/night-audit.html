@@ -302,13 +302,6 @@
         .cash-inflow-record-section h4 { justify-content: space-between; }
         .cash-inflow-record-title { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
         .cash-inflow-record-count { flex: 0 0 auto; min-height: 23px; padding: 0 9px; border-radius: 999px; background: #eef2ff; color: var(--primary); display: inline-flex; align-items: center; font-size: .7rem; font-weight: 950; }
-        .cash-inflow-more { border-top: 1px dashed var(--border2); background: #fff; }
-        .cash-inflow-more summary { list-style: none; cursor: pointer; padding: 10px 14px; color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 7px; font-size: .78rem; font-weight: 950; }
-        .cash-inflow-more summary::-webkit-details-marker { display: none; }
-        .cash-inflow-more[open] summary { border-bottom: 1px dashed var(--border2); background: #fbfdff; }
-        .cash-inflow-more summary i { transition: transform .16s ease; }
-        .cash-inflow-more[open] summary i { transform: rotate(180deg); }
-        .cash-inflow-more .cash-reconcile-detail-list { padding-top: 10px; border-bottom: 0; }
         .cash-insight-section.cash-detail-breakdown { border-color: #e5e7eb; background: #fbfdff; }
         .cash-insight-section.cash-detail-breakdown h4 { color: var(--txt2); font-size: .9rem; font-weight: 900; background: #f8fafc; }
         .cash-insight-section.cash-detail-breakdown .cash-reconcile-split-grid { padding: 10px; gap: 8px; }
@@ -2709,15 +2702,12 @@ function closeCashVarianceReasonModal() {
 function renderCashInflowRecordSection(title, icon, records = [], options = {}) {
     const recordLabel = options.recordLabel || title;
     const iconColor = options.iconColor || 'var(--primary)';
-    const previewLimit = Math.max(1, Number(options.previewLimit || 3));
-    const visibleRecords = records.slice(0, previewLimit);
-    const extraRecords = records.slice(previewLimit);
     const countLabel = records.length ? `${records.length}${cashUiText('건', ' records')}` : cashUiText('0건', '0 records');
     const limitedEmptyText = options.emptyText || cashUiText('표시할 현금입금 내역이 없습니다.', 'No cash inflow records to show.');
-    const renderLimitedCards = (items, startIndex = 0) => `
+    const renderRecordCards = items => `
         <div class="cash-reconcile-detail-list">
             ${items.map((item, index) => {
-                const recordIndex = startIndex + index + 1;
+                const recordIndex = index + 1;
                 const meta = [item.folioId || '-', item.guest || '-', formatAuditTime(item.createdAt), item.operator || '-'].filter(Boolean).join(' · ');
                 const note = item.note ? `${cashUiText('메모', 'Memo')} ${item.note}` : '';
                 return `
@@ -2737,15 +2727,7 @@ function renderCashInflowRecordSection(title, icon, records = [], options = {}) 
                 <span class="cash-inflow-record-title"><i class="fa-solid ${icon}" style="color:${iconColor}"></i> ${escapeAudit(title)}</span>
                 <span class="cash-inflow-record-count">${escapeAudit(countLabel)}</span>
             </h4>
-            ${records.length ? `
-                ${renderLimitedCards(visibleRecords)}
-                ${extraRecords.length ? `
-                    <details class="cash-inflow-more">
-                        <summary><i class="fa-solid fa-chevron-down"></i> ${escapeAudit(cashUiText(`나머지 ${extraRecords.length}건 펼치기`, `Show ${extraRecords.length} more`))}</summary>
-                        ${renderLimitedCards(extraRecords, visibleRecords.length)}
-                    </details>
-                ` : ''}
-            ` : `<div class="history-empty">${escapeAudit(limitedEmptyText)}</div>`}
+            ${records.length ? renderRecordCards(records) : `<div class="history-empty">${escapeAudit(limitedEmptyText)}</div>`}
         </div>
     `;
 }
