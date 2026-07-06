@@ -119,15 +119,17 @@
         .reconcile-detail-btn.warning { border-color:#fed7aa; background:#fff7ed; color:#b45309; }
         .reconcile-detail-btn.warning:hover { border-color:#f59e0b; background:#fffbeb; }
         .reconcile-flow { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:stretch; }
-        .reconcile-flow-main { position:relative; grid-column:1 / -1; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+        .reconcile-flow-main { position:relative; grid-column:1 / -1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
         .reconcile-flow-result { grid-column:2 / 3; margin-top:30px; }
         .reconcile-card { position:relative; min-height:112px; border:1px solid var(--border2); border-radius:12px; background:#fff; padding:15px 14px; display:flex; align-items:flex-start; justify-content:flex-start; gap:12px; text-align:left; min-width:0; box-shadow:0 8px 20px rgba(15,23,42,.04); }
+        .reconcile-card.previous { border-color:#cbd5e1; background:#fbfdff; }
         .reconcile-card.opening { border-color:#bfdbfe; }
         .reconcile-card.inflow { border-color:#a7f3d0; }
         .reconcile-card.withdraw { border-color:#fed7aa; }
         .reconcile-card.result { border-color:#bfdbfe; }
         .reconcile-card.variance { grid-column:3 / 4; margin-top:30px; border-color:#c7d2fe; }
         .reconcile-card-icon { width:42px; height:42px; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 42px; background:#eff6ff; color:var(--primary); font-size:1rem; }
+        .reconcile-card.previous .reconcile-card-icon { background:#f1f5f9; color:#475569; }
         .reconcile-card.inflow .reconcile-card-icon { background:#ecfdf5; color:#047857; }
         .reconcile-card.withdraw .reconcile-card-icon { background:#fff7ed; color:#b45309; }
         .reconcile-card.variance .reconcile-card-icon { background:#eef2ff; color:#4f46e5; }
@@ -136,8 +138,9 @@
         .reconcile-card strong { display:block; color:var(--txt); font-size:.94rem; font-weight:950; line-height:1.45; overflow-wrap:anywhere; }
         .reconcile-card small { display:block; margin-top:8px; color:var(--txt2); font-size:.78rem; font-weight:850; line-height:1.45; }
         .reconcile-op { position:absolute; z-index:5; width:34px; height:34px; border-radius:999px; border:2px solid #fff; box-shadow:0 10px 18px rgba(15,23,42,.15); display:inline-flex; align-items:center; justify-content:center; font-size:1rem; font-weight:950; }
-        .reconcile-op.plus { left:calc(33.333333% - 2.333px); top:50%; transform:translate(-50%,-50%); background:#dcfce7; color:#047857; }
-        .reconcile-op.minus { left:calc(66.666667% + 2.333px); top:50%; transform:translate(-50%,-50%); background:#ffedd5; color:#b45309; }
+        .reconcile-op.handover { left:25%; top:50%; transform:translate(-50%,-50%); background:#f1f5f9; color:#475569; }
+        .reconcile-op.plus { left:50%; top:50%; transform:translate(-50%,-50%); background:#dcfce7; color:#047857; }
+        .reconcile-op.minus { left:75%; top:50%; transform:translate(-50%,-50%); background:#ffedd5; color:#b45309; }
         .reconcile-op.equals { left:50%; top:calc(100% + 23px); transform:translate(-50%,-50%); background:#dbeafe; color:#1d4ed8; }
         .cash-flow-formula { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; border:1px dashed #bfdbfe; background:#fbfdff; border-radius:12px; padding:12px 14px; margin-top:14px; }
         .cash-flow-formula[hidden] { display:none !important; }
@@ -290,7 +293,7 @@
             <div class="reconcile-header" role="button" tabindex="0" onclick="toggleCloseReconcile()" onkeydown="handleCloseReconcileKey(event)">
                 <div>
                     <div class="reconcile-title"><i class="fa-solid fa-scale-balanced" style="color:var(--primary)"></i> 시재 대조 보기</div>
-                    <div class="reconcile-desc">현금입금, 보유 현금, 차액 여부를 필요한 항목만 상세 확인합니다.</div>
+                    <div class="reconcile-desc">전일 마감현금부터 시작시재, 현금입금, 중간출금, 보유 현금, 차액 여부를 마감 기준으로 확인합니다.</div>
                 </div>
                 <span class="reconcile-toggle"><span id="reconcileToggleLabel">펼치기</span><i class="fa-solid fa-chevron-down"></i></span>
                 <div class="reconcile-summary-grid">
@@ -325,9 +328,18 @@
             <div class="reconcile-body">
                 <div class="reconcile-flow">
                     <div class="reconcile-flow-main">
+                        <span class="reconcile-op handover">→</span>
                         <span class="reconcile-op plus">+</span>
                         <span class="reconcile-op minus">-</span>
                         <span class="reconcile-op equals">=</span>
+                        <div class="reconcile-card previous">
+                            <span class="reconcile-card-icon"><i class="fa-solid fa-vault"></i></span>
+                            <div class="reconcile-copy">
+                                <span class="reconcile-card-title">전일 마감현금</span>
+                                <strong id="detailPreviousCloseLegacy">-</strong>
+                                <small id="detailPreviousCloseMetaLegacy">이전 마감 기준</small>
+                            </div>
+                        </div>
                         <div class="reconcile-card opening">
                             <span class="reconcile-card-icon"><i class="fa-solid fa-play"></i></span>
                             <div class="reconcile-copy">
@@ -823,6 +835,12 @@ function cashSessionForDate(date) {
     return cashSessions().find(item => item.businessDate === date) || null;
 }
 
+function previousCloseCashSession(date = logDateValue()) {
+    return cashSessions()
+        .filter(item => item.businessDate < date && item.closing)
+        .sort((a, b) => String(b.businessDate || '').localeCompare(String(a.businessDate || '')))[0] || null;
+}
+
 function normalizeRows(date) {
     const session = cashSessionForDate(date);
     const payments = paymentsForDate(date);
@@ -912,12 +930,20 @@ function setHtml(id, value) {
     if (el) el.innerHTML = value;
 }
 
-function renderFormula({ opening, inflow, settlement, deposit, withdrawal, closing, variance, expected, hasClosing, hasVariance }) {
+function renderFormula({ previousClose, previousCloseSession, handoverVariance, opening, inflow, settlement, deposit, withdrawal, closing, variance, expected, hasClosing, hasVariance }) {
     const expectedValues = expected || expectedCurrencyValues(opening, inflow, withdrawal);
     return `
         <div class="formula-detail-card">
+            <div class="formula-detail-title"><i class="fa-solid fa-vault" style="color:#475569"></i> 전일 마감현금</div>
+            ${previousCloseSession ? renderCurrencyLines(previousClose, { includeZero: true }) : '<span class="cash-currency-empty">이전 마감 기록이 없습니다.</span>'}
+        </div>
+        <div class="formula-detail-card">
             <div class="formula-detail-title"><i class="fa-solid fa-play" style="color:var(--primary)"></i> 시작시재 입력 금액</div>
             ${renderCurrencyLines(opening, { includeZero: true })}
+        </div>
+        <div class="formula-detail-card wide">
+            <div class="formula-detail-title"><i class="fa-solid fa-right-left" style="color:#4f46e5"></i> 시작시재 인수 차액</div>
+            ${previousCloseSession ? renderCurrencyLines(handoverVariance, { includeZero: true, signed: true }) : '<span class="cash-currency-empty">전일 마감현금이 있어야 비교할 수 있습니다.</span>'}
         </div>
         <div class="formula-detail-card">
             <div class="formula-detail-title"><i class="fa-solid fa-arrow-down" style="color:#047857"></i> 현금입금</div>
@@ -1004,6 +1030,14 @@ function openCloseReconcileDetailModal(type) {
         body.innerHTML = `
             <div class="cash-flow-formula" style="margin-top:0">
                 <div class="formula-detail-card wide">
+                    <div class="formula-detail-title"><i class="fa-solid fa-vault" style="color:#475569"></i> 전일 마감현금 / 시작시재 인수</div>
+                    <div class="formula-split-grid triple">
+                        ${state.previousCloseSession ? renderFormulaSplitCard('전일 마감현금', state.previousCloseCurrencies || {}) : `<div class="formula-split-card"><span class="formula-split-label">전일 마감현금</span><span class="cash-currency-empty">이전 마감 없음</span></div>`}
+                        ${renderFormulaSplitCard('시작시재', state.openingCurrencies || {})}
+                        ${state.previousCloseSession ? renderFormulaSplitCard('인수 차액', state.handoverVariance || {}, { signed: true }) : `<div class="formula-split-card"><span class="formula-split-label">인수 차액</span><span class="cash-currency-empty">비교 대상 없음</span></div>`}
+                    </div>
+                </div>
+                <div class="formula-detail-card wide">
                     <div class="formula-detail-title"><i class="fa-solid fa-arrow-down" style="color:#047857"></i> 현금입금 구성</div>
                     <div class="formula-split-grid">
                         ${renderFormulaSplitCard('정산 결제', state.settlementCurrencies || {})}
@@ -1059,6 +1093,9 @@ function renderCloseLog() {
     const withdrawalCurrencies = withdrawalTotals(session);
     const openingCurrencies = currencyValues(session?.opening);
     const closingCurrencies = currencyValues(session?.closing);
+    const previousCloseSession = previousCloseCashSession(date);
+    const previousCloseCurrencies = previousCloseSession ? currencyValues(previousCloseSession.closing || {}) : {};
+    const handoverVariance = previousCloseSession ? diffCurrencyValues(openingCurrencies, previousCloseCurrencies) : {};
     const expected = expectedCurrencyValues(openingCurrencies, inflowCurrencies, withdrawalCurrencies);
     const variance = diffCurrencyValues(closingCurrencies, expected);
     const hasClosing = !!session?.closing;
@@ -1078,6 +1115,9 @@ function renderCloseLog() {
         depositCurrencies,
         inflowCurrencies,
         withdrawalCurrencies,
+        previousCloseSession,
+        previousCloseCurrencies,
+        handoverVariance,
         openingCurrencies,
         closingCurrencies,
         expected,
@@ -1102,6 +1142,12 @@ function renderCloseLog() {
     const varianceCurrencyCount = CASH_CURRENCIES.filter(currency => Number(variance[currency] || 0) !== 0).length;
     setText('summaryVariance', !hasClosing ? '실사 전' : hasVariance ? '차액 확인' : '정상');
     setText('summaryVarianceSub', !hasClosing ? '마감 실사 후 확인' : hasVariance ? `${varianceCurrencyCount}종 통화 확인 필요` : '마감 실사 일치');
+    setHtml('detailPreviousCloseLegacy', previousCloseSession
+        ? renderCurrencyLines(previousCloseCurrencies, { includeZero: false, emptyLabel: '0' })
+        : '<span class="cash-currency-empty">이전 마감 없음</span>');
+    setText('detailPreviousCloseMetaLegacy', previousCloseSession
+        ? `${previousCloseSession.businessDate} 마감 보유`
+        : '마감 기록이 생기면 자동 표시');
     setHtml('detailOpening', renderCurrencyLines(openingCurrencies, { includeZero: false, emptyLabel: '미등록' }));
     setHtml('detailInflow', renderCurrencyLines(inflowCurrencies, { includeZero: false, emptyLabel: moneyPhp(0) }));
     setText('detailInflowMeta', `정산 ${moneyPhp(settlementPhp)} · 예치금 ${moneyPhp(depositPhp)}`);
@@ -1123,6 +1169,9 @@ function renderCloseLog() {
     const withdrawLogBtn = document.getElementById('detailWithdrawLogBtn');
     if (withdrawLogBtn) withdrawLogBtn.hidden = withdrawalCount <= 1;
     setHtml('detailFormula', renderFormula({
+        previousClose: previousCloseCurrencies,
+        previousCloseSession,
+        handoverVariance,
         opening: openingCurrencies,
         inflow: inflowCurrencies,
         settlement: settlementCurrencies,
