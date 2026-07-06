@@ -18,6 +18,7 @@
     <script src="../common/js/topbar.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/api/api-operations.js"></script>
+    <script src="../common/js/partner-vendors.js"></script>
     <style>
         .ancillary-page .content{padding-bottom:56px}
         .ancillary-kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:18px}
@@ -280,6 +281,7 @@ let selectedRoomId = '';
 let selectedDetailRoomId = '';
 let selectedService = 'pos';
 let serviceFilter = 'all';
+let requestedVendorId = '';
 let reservationRoomCache = new WeakMap();
 let effectiveStatusCache = new WeakMap();
 const activeRoomCache = new Map();
@@ -291,6 +293,7 @@ const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
 const ORDER_DATA_VERSION = '2026-07-02-vendor-address-v1';
 const seedVendors = [
     { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:['guest','room','date','item','amount','memo'], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
+    { id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:['guest','room','date','item','amount','partnerContact','address','memo'], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
     { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
     { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'18홀 패키지', price:520, desc:'그린피+카트' }] },
     { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }, { name:'전기차 24시간', price:230, desc:'완충 인도' }] },
@@ -585,6 +588,11 @@ function loadVendors() {
     ['pos', 'golf', 'rentacar'].forEach(type => {
         if (!vendors.some(v => v.type === type)) vendors.push(...seedVendors.filter(v => v.type === type));
     });
+    seedVendors.forEach(seed => {
+        if (!vendors.some(vendor => vendor.id === seed.id || (vendor.type === seed.type && vendor.name === seed.name))) {
+            vendors.push({ ...seed, items:[...(seed.items || [])], voucherFields:[...(seed.voucherFields || [])] });
+        }
+    });
     vendors = vendors.map(vendor => {
         const seed = seedVendors.find(item => item.id === vendor.id || (item.type === vendor.type && item.name === vendor.name));
         const type = vendor.type || seed?.type || 'pos';
@@ -669,8 +677,16 @@ function setServiceFilter(service) {
 function applyAncillaryUrlParams() {
     const params = new URLSearchParams(location.search);
     const requestedService = params.get('service') || params.get('filter') || params.get('type') || '';
+    requestedVendorId = params.get('vendorId') || '';
+    const requestedVendor = requestedVendorId ? vendors.find(vendor => vendor.id === requestedVendorId) : null;
+    if (requestedVendor?.type && ['pos', 'golf', 'rentacar'].includes(requestedVendor.type)) {
+        serviceFilter = requestedVendor.type;
+    }
     if (['all', 'pos', 'golf', 'rentacar'].includes(requestedService)) {
         serviceFilter = requestedService;
+        document.querySelectorAll('.service-filter-chip').forEach(btn => btn.classList.toggle('active', btn.dataset.service === serviceFilter));
+    }
+    if (requestedVendor?.type) {
         document.querySelectorAll('.service-filter-chip').forEach(btn => btn.classList.toggle('active', btn.dataset.service === serviceFilter));
     }
     const requestedQuery = params.get('query') || params.get('q') || params.get('search') || params.get('room') || '';
@@ -919,7 +935,9 @@ function selectServiceType(type) {
 }
 function renderServiceVendors() {
     const list = vendors.filter(vendor => vendor.type === selectedService);
-    document.getElementById('serviceVendor').innerHTML = list.map(vendor => `<option value="${escapeHtml(vendor.id)}">${escapeHtml(vendor.name)}</option>`).join('');
+    const vendorSelect = document.getElementById('serviceVendor');
+    vendorSelect.innerHTML = list.map(vendor => `<option value="${escapeHtml(vendor.id)}">${escapeHtml(vendor.name)}</option>`).join('');
+    if (requestedVendorId && list.some(vendor => vendor.id === requestedVendorId)) vendorSelect.value = requestedVendorId;
     renderServiceItems();
 }
 function renderServiceItems() {

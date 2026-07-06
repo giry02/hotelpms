@@ -519,6 +519,55 @@ async function ancillaryVendorVoucherFlow(page) {
   return { initial, golf, rentacar };
 }
 
+async function dashboardPartnerVendorDetailFlow(page) {
+  await goto(page, '/dashboard/dashboard.html?test=e2e-partner-detail');
+  await page.waitForFunction(() => document.querySelector('[data-partner-id="POS-RIVERSIDE"]'), null, { timeout: 15000 });
+  await page.locator('[data-partner-id="POS-RIVERSIDE"]').first().click();
+  await page.locator('#partnerDetailModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  const modal = await page.evaluate(() => {
+    const root = document.getElementById('partnerDetailModal');
+    const admin = root?.querySelector('a[href*="ancillary-vendors.html"]');
+    const voucher = root?.querySelector('a[href*="#voucher"]');
+    const ancillary = root?.querySelector('a[href*="ancillary.html"]');
+    return {
+      title: document.getElementById('partnerDetailTitle')?.innerText || '',
+      text: root?.innerText || '',
+      adminHref: admin?.getAttribute('href') || '',
+      voucherHref: voucher?.getAttribute('href') || '',
+      ancillaryHref: ancillary?.getAttribute('href') || ''
+    };
+  });
+  assert(/Riverside|POS/.test(modal.title + modal.text), 'dashboard partner modal did not show the selected vendor detail');
+  assert(modal.adminHref.includes('ancillary-vendors.html') && modal.adminHref.includes('type=pos') && modal.adminHref.includes('vendorId=POS-RIVERSIDE'), 'partner admin link did not preserve selected vendor');
+  assert(modal.voucherHref.includes('#voucher'), 'partner voucher preview link was missing');
+  assert(modal.ancillaryHref.includes('ancillary.html') && modal.ancillaryHref.includes('service=pos') && modal.ancillaryHref.includes('vendorId=POS-RIVERSIDE'), 'partner ancillary registration link did not preserve selected vendor');
+
+  await goto(page, '/dashboard/operations/ancillary-vendors.html?type=pos&vendorId=POS-RIVERSIDE&test=e2e-partner-admin-link#voucher');
+  await page.waitForFunction(() => document.querySelector('#voucherPreview'), null, { timeout: 15000 });
+  const adminState = await page.evaluate(() => ({
+    activeTab: document.querySelector('.vendor-tab.active')?.dataset.type || '',
+    selectedName: document.querySelector('.vendor-card.active .vendor-name')?.innerText || '',
+    selectedAction: document.querySelector('.vendor-card.active')?.getAttribute('onclick') || '',
+    preview: document.getElementById('voucherPreview')?.innerText || ''
+  }));
+  assert(adminState.activeTab === 'pos', 'partner admin link did not open the POS vendor tab');
+  assert(adminState.selectedAction.includes('POS-RIVERSIDE'), 'partner admin link did not select the requested vendor');
+
+  await goto(page, '/dashboard/operations/ancillary.html?service=pos&vendorId=POS-RIVERSIDE&test=e2e-partner-ancillary-link');
+  await page.waitForFunction(() => document.querySelector('.service-filter-chip.active') && document.querySelectorAll('.service-room-card').length > 0, null, { timeout: 15000 });
+  const ancillaryState = await page.evaluate(() => ({
+    activeFilter: document.querySelector('.service-filter-chip.active')?.dataset.service || '',
+    cardCount: document.querySelectorAll('.service-room-card').length
+  }));
+  assert(ancillaryState.activeFilter === 'pos', 'partner ancillary link did not open POS service filter');
+  assert(ancillaryState.cardCount > 0, 'partner ancillary link did not render in-house service rooms');
+  await page.locator('.service-room-card').first().click();
+  await page.locator('#serviceModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  const vendorValue = await page.locator('#serviceVendor').inputValue();
+  assert(vendorValue === 'POS-RIVERSIDE', 'partner ancillary registration did not preselect the requested vendor');
+  return { modal, adminState, ancillaryState };
+}
+
 async function readonlyCheckedInReservationFlow(page) {
   await goto(page, '/dashboard/frontdesk/reservation-timeline.html');
   await page.waitForFunction(() => Array.isArray(window.reservations) && window.reservations.length > 0, null, { timeout: 10000 });
@@ -671,6 +720,7 @@ async function main() {
     ['night audit closed handover view', nightAuditClosedHandoverFlow],
     ['ancillary board only shows in-house rooms', ancillaryInhouseOnlyFlow],
     ['ancillary vendor voucher management', ancillaryVendorVoucherFlow],
+    ['dashboard partner vendor detail links', dashboardPartnerVendorDetailFlow],
     ['checked-in reservation readonly modal', readonlyCheckedInReservationFlow],
     ['housekeeping -> maintenance', housekeepingMaintenanceFlow],
     ['admin tenant application -> list', adminTenantApplicationFlow]
