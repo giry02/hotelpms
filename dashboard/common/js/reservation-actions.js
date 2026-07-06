@@ -1334,6 +1334,7 @@
         const prepaidInput = document.getElementById('unifiedPrepaid');
         const balanceInput = document.getElementById('unifiedBalance');
         const amountDisplay = document.getElementById('unifiedAmountDisplay');
+        const prepaidDisplay = document.getElementById('unifiedPrepaidDisplay');
         const balanceDisplay = document.getElementById('unifiedBalanceDisplay');
         const help = document.getElementById('unifiedFinanceHelp');
         if (!amountInput || !prepaidInput || !balanceInput) return;
@@ -1347,13 +1348,12 @@
         const total = parseMoneyInput(amountInput.value, currency);
         const prepaidRows = prepaidRowsFromInputs();
         const rowsTotal = prepaidPhpTotalFromRows(prepaidRows);
-        if (prepaidRows.length && rowsTotal >= 0) {
-            prepaidInput.value = formatMoneyInputValue(rowsTotal, currency);
-        }
-        const prepaid = prepaidRows.length ? rowsTotal : Math.min(parseMoneyInput(prepaidInput.value, currency), total);
+        const prepaid = prepaidRows.length ? rowsTotal : 0;
+        prepaidInput.value = formatMoneyInputValue(prepaid, currency);
         const balance = Math.max(total - prepaid, 0);
         balanceInput.value = formatSettlementMoney(balance, currency);
         if (amountDisplay) amountDisplay.textContent = formatSettlementMoney(total, currency);
+        if (prepaidDisplay) prepaidDisplay.textContent = formatSettlementMoney(prepaid, currency);
         if (balanceDisplay) balanceDisplay.textContent = formatSettlementMoney(balance, currency);
         if (help) {
             help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 예치금 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)} · 예치금 수납 통화 ${prepaidRowsText(prepaidRows)}`;
@@ -1592,7 +1592,8 @@
                             </div>
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">예치금 페소 기준 합계</div>
-                                <input type="number" min="0" step="1" id="unifiedPrepaid" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                                <input type="hidden" id="unifiedPrepaid">
+                                <div id="unifiedPrepaidDisplay" style="min-height:38px;display:flex;align-items:center;font-size:0.92rem;font-weight:950;color:var(--primary);">₱0</div>
                             </div>
                             <div class="md-item">
                                 <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">추후 정산 잔액</div>
@@ -2892,7 +2893,7 @@
             showReservationAlert('예치금 페소 반영액이 총 객실 금액을 초과할 수 없습니다.', 'error');
             return;
         }
-        const prepaidAmount = Math.min(prepaidReceivedRows.length ? prepaidRowsTotal : parseMoneyInput(document.getElementById('unifiedPrepaid')?.value, currency), totalAmount);
+        const prepaidAmount = Math.min(prepaidRowsTotal, totalAmount);
         const prepaidReceivedBreakdown = prepaidBreakdownFromRows(prepaidReceivedRows);
         const balanceDue = normalizeMoneyAmount(totalAmount - prepaidAmount, currency);
         const enteredNightlyRate = parseMoneyInput(document.getElementById('unifiedNightlyRate')?.value, currency);
