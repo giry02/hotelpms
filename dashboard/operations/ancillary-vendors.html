@@ -57,6 +57,11 @@
     .item-card-title{font-size:.88rem;font-weight:950;color:var(--txt);display:flex;align-items:center;gap:7px}
     .item-card-desc{font-size:.73rem;font-weight:800;color:var(--txt2)}
     .item-card-price{font-size:.9rem;font-weight:950;color:var(--primary)}
+    .item-meta-grid{display:flex;flex-wrap:wrap;gap:6px}
+    .item-meta-chip{display:inline-flex;align-items:center;gap:5px;max-width:100%;border:1px solid #dbeafe;border-radius:999px;background:#eff6ff;color:#1d4ed8;padding:4px 8px;font-size:.68rem;font-weight:900;line-height:1.2}
+    .item-type-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;border:1px solid var(--border2);border-radius:12px;background:#f8fafc;padding:12px}
+    .item-type-fields .field-full{grid-column:1/-1}
+    .item-type-help{grid-column:1/-1;font-size:.72rem;font-weight:800;color:var(--txt3);line-height:1.45}
     .voucher-field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
     .voucher-field{border:1px solid var(--border);border-radius:9px;background:#fff;padding:9px 10px;display:flex;align-items:center;gap:7px;font-size:.76rem;font-weight:900;color:var(--txt2)}
     .voucher-field input{accent-color:var(--primary)}
@@ -93,7 +98,7 @@
     .empty-note{padding:22px;color:var(--txt3);font-weight:850;text-align:center}
     @media(max-width:1180px){.voucher-layout{grid-template-columns:1fr}}
     @media(max-width:1000px){.vendor-grid{grid-template-columns:1fr}.detail-summary{grid-template-columns:1fr 1fr}}
-    @media(max-width:700px){.vendor-toolbar{flex-direction:column;align-items:stretch}.vendor-actions{width:100%}.vendor-actions .btn-outline,.vendor-actions .btn-primary-sm{flex:1 1 auto}.form-row,.detail-summary{grid-template-columns:1fr}.voucher-stub-grid{grid-template-columns:1fr}}
+    @media(max-width:700px){.vendor-toolbar{flex-direction:column;align-items:stretch}.vendor-actions{width:100%}.vendor-actions .btn-outline,.vendor-actions .btn-primary-sm{flex:1 1 auto}.form-row,.detail-summary,.item-type-fields{grid-template-columns:1fr}.voucher-stub-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -159,6 +164,7 @@
           <div><label class="form-label">항목명</label><input id="itemName" class="form-input" placeholder="예: 18홀 그린피"></div>
           <div><label class="form-label">기준 금액</label><input id="itemPrice" type="number" class="form-input" min="0" placeholder="예: 450"></div>
         </div>
+        <div id="itemTypeFields"></div>
         <div><label class="form-label">설명</label><input id="itemDesc" class="form-input" placeholder="예: 주중 18홀, 카트 별도"></div>
       </div>
       <div class="modal-footer"><button class="btn-outline" onclick="closeModal('itemModal')">취소</button><button class="btn-primary-sm" onclick="saveItem()">저장</button></div>
@@ -190,10 +196,10 @@
     const seedVendors = [
       { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:['guest','room','date','item','amount','memo'], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
       { id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:['guest','room','date','item','amount','partnerContact','address','memo'], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
-      { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
-      { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'18홀 패키지', price:520, desc:'그린피+카트' }] },
-      { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }, { name:'전기차 24시간', price:230, desc:'완충 인도' }] },
-      { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', address:'BGC Transport Hub, Taguig', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'SUV 24시간', price:260, desc:'보험 포함' }, { name:'기사 포함 밴', price:320, desc:'8시간 기준' }] }
+      { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀', category:'golf', courseName:'Sun Course', holes:'18홀', basePeople:4, teeTime:'07:30' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트', category:'golf', courseName:'Sun Course', holes:'18홀', basePeople:4 }, { name:'클럽 대여', price:60, desc:'1인 기준', category:'golf', courseName:'Sun Course', holes:'18홀', basePeople:1 }] },
+      { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀', category:'golf', courseName:'East Course', holes:'9홀', basePeople:2, teeTime:'08:10' }, { name:'18홀 패키지', price:520, desc:'그린피+카트', category:'golf', courseName:'West Course', holes:'18홀', basePeople:4, teeTime:'12:30' }] },
+      { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 8시간', price:160, desc:'기사 미포함', category:'rentacar', vehicleClass:'세단', duration:'8시간', pickupBase:'호텔 로비' }, { name:'공항 픽업', price:90, desc:'편도 픽업', category:'rentacar', vehicleClass:'세단', duration:'공항 픽업', pickupBase:'NAIA Terminal 3' }, { name:'전기차 24시간', price:230, desc:'완충 인도', category:'rentacar', vehicleClass:'전기차', duration:'24시간', pickupBase:'호텔 로비' }] },
+      { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', address:'BGC Transport Hub, Taguig', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'SUV 24시간', price:260, desc:'보험 포함', category:'rentacar', vehicleClass:'SUV', duration:'24시간', pickupBase:'BGC Transport Hub' }, { name:'기사 포함 밴', price:320, desc:'8시간 기준', category:'rentacar', vehicleClass:'기사 포함 밴', duration:'8시간', pickupBase:'호텔 로비' }] }
     ];
     function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
     function money(v) { return `₱${Number(v || 0).toLocaleString('en')}`; }
@@ -235,20 +241,164 @@
       if (price) price.placeholder = examples.price;
       if (desc) desc.placeholder = examples.desc;
     }
+    function renderItemTypeFields(type) {
+      const target = document.getElementById('itemTypeFields');
+      if (!target) return;
+      if (type === 'rentacar') {
+        target.innerHTML = `
+          <div class="item-type-fields">
+            <div>
+              <label class="form-label">차량 등급</label>
+              <select id="itemVehicleClass" class="form-input" onchange="toggleItemCustomField('itemVehicleClass','itemVehicleCustom')">
+                <option value="">차량 선택</option>
+                <option>세단</option>
+                <option>프리미엄 세단</option>
+                <option>SUV</option>
+                <option>밴</option>
+                <option>기사 포함 밴</option>
+                <option value="custom">직접 입력</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">대여 시간/기간</label>
+              <select id="itemDuration" class="form-input" onchange="toggleItemCustomField('itemDuration','itemDurationCustom')">
+                <option value="">시간 선택</option>
+                <option>공항 픽업</option>
+                <option>4시간</option>
+                <option>8시간</option>
+                <option>12시간</option>
+                <option>24시간</option>
+                <option value="custom">직접 입력</option>
+              </select>
+            </div>
+            <div><label class="form-label">차량 직접 입력</label><input id="itemVehicleCustom" class="form-input" style="display:none" placeholder="예: 리무진, 전기 SUV"></div>
+            <div><label class="form-label">시간 직접 입력</label><input id="itemDurationCustom" class="form-input" style="display:none" placeholder="예: 2박 3일, 편도 샌딩"></div>
+            <div class="field-full"><label class="form-label">기본 픽업/반납 위치</label><input id="itemPickupBase" class="form-input" placeholder="예: 호텔 로비 픽업, 공항 샌딩"></div>
+            <div class="item-type-help">렌터카 항목은 차량과 시간을 따로 저장합니다. 실제 등록 화면에서는 이 기준을 불러와 차량/시간을 다시 선택할 수 있습니다.</div>
+          </div>
+        `;
+        return;
+      }
+      if (type === 'golf') {
+        target.innerHTML = `
+          <div class="item-type-fields">
+            <div><label class="form-label">코스</label><input id="itemCourseName" class="form-input" placeholder="예: Sun Course, Lake Course"></div>
+            <div>
+              <label class="form-label">홀</label>
+              <select id="itemHoles" class="form-input">
+                <option>9홀</option>
+                <option selected>18홀</option>
+                <option>27홀</option>
+              </select>
+            </div>
+            <div><label class="form-label">기준 인원</label><input id="itemBasePeople" class="form-input" type="number" min="1" placeholder="예: 4"></div>
+            <div><label class="form-label">기준 티오프</label><input id="itemTeeTime" class="form-input" type="time"></div>
+            <div class="item-type-help">골프 항목은 코스, 홀, 인원을 분리해 저장합니다. 바우처 출력 시 코스와 티오프 정보가 따로 표시됩니다.</div>
+          </div>
+        `;
+        return;
+      }
+      target.innerHTML = '';
+    }
+    function toggleItemCustomField(selectId, inputId) {
+      const select = document.getElementById(selectId);
+      const input = document.getElementById(inputId);
+      if (!select || !input) return;
+      input.style.display = select.value === 'custom' ? 'block' : 'none';
+      if (select.value !== 'custom') input.value = '';
+    }
+    function itemSelectValue(selectId, customId) {
+      const select = document.getElementById(selectId);
+      const custom = document.getElementById(customId);
+      if (!select) return '';
+      if (select.value === 'custom') return (custom?.value || '').trim();
+      return select.value.trim();
+    }
+    function readItemExtraFields(type) {
+      if (type === 'rentacar') {
+        const vehicleClass = itemSelectValue('itemVehicleClass', 'itemVehicleCustom');
+        const duration = itemSelectValue('itemDuration', 'itemDurationCustom');
+        if (!vehicleClass) return { error:'차량 등급을 선택해 주세요.' };
+        if (!duration) return { error:'대여 시간/기간을 선택해 주세요.' };
+        return {
+          vehicleClass,
+          duration,
+          pickupBase: document.getElementById('itemPickupBase')?.value.trim() || ''
+        };
+      }
+      if (type === 'golf') {
+        const holes = document.getElementById('itemHoles')?.value || '';
+        const basePeople = Number(document.getElementById('itemBasePeople')?.value || 0);
+        if (!holes) return { error:'홀 수를 선택해 주세요.' };
+        if (!basePeople) return { error:'기준 인원을 입력해 주세요.' };
+        return {
+          courseName: document.getElementById('itemCourseName')?.value.trim() || '',
+          holes,
+          basePeople,
+          teeTime: document.getElementById('itemTeeTime')?.value || ''
+        };
+      }
+      return {};
+    }
+    function inferItemExtras(type, item = {}) {
+      if (type === 'rentacar') {
+        const text = `${item.name || ''} ${item.desc || ''}`;
+        return {
+          vehicleClass: item.vehicleClass || item.vehicle || (text.match(/기사 포함 밴|프리미엄 세단|세단|SUV|밴|전기차/) || [])[0] || '',
+          duration: item.duration || (text.match(/공항 픽업|공항 샌딩|4시간|8시간|12시간|24시간|편도 픽업/) || [])[0] || '',
+          pickupBase: item.pickupBase || item.pickup || ''
+        };
+      }
+      if (type === 'golf') {
+        const text = `${item.name || ''} ${item.desc || ''}`;
+        return {
+          courseName: item.courseName || item.course || '',
+          holes: item.holes || (text.match(/9홀|18홀|27홀/) || [])[0] || '',
+          basePeople: item.basePeople || item.people || '',
+          teeTime: item.teeTime || ''
+        };
+      }
+      return {};
+    }
+    function renderItemMeta(type, item) {
+      const extra = inferItemExtras(type, item);
+      const chips = [];
+      if (type === 'rentacar') {
+        if (extra.vehicleClass) chips.push(['차량', extra.vehicleClass]);
+        if (extra.duration) chips.push(['시간', extra.duration]);
+        if (extra.pickupBase) chips.push(['픽업', extra.pickupBase]);
+      } else if (type === 'golf') {
+        if (extra.courseName) chips.push(['코스', extra.courseName]);
+        if (extra.holes) chips.push(['홀', extra.holes]);
+        if (extra.basePeople) chips.push(['인원', `${extra.basePeople}명`]);
+        if (extra.teeTime) chips.push(['티오프', extra.teeTime]);
+      }
+      if (!chips.length) return '';
+      return `<div class="item-meta-grid">${chips.map(([label, value]) => `<span class="item-meta-chip">${escapeHtml(label)} · ${escapeHtml(value)}</span>`).join('')}</div>`;
+    }
+    function renderVendorItemCard(vendor, item) {
+      return `<div class="item-card">
+        <div class="item-card-title"><i class="fa-solid ${serviceIcon(vendor.type)}" style="color:var(--primary)"></i>${escapeHtml(item.name)}</div>
+        ${renderItemMeta(vendor.type, item)}
+        <div class="item-card-desc">${escapeHtml(item.desc || '-')}</div>
+        <div class="item-card-price">${money(item.price)}</div>
+      </div>`;
+    }
     function defaultVoucherFields(type) {
       return (voucherFieldGroups[type] || voucherFieldGroups.pos).flatMap(group => group.fields);
     }
     function sampleVoucherData(vendor) {
       const item = (vendor?.items || [])[0] || { name: serviceLabel(vendor?.type), price: 0 };
+      const extra = inferItemExtras(vendor?.type, item);
       return {
         guest:'Lee Hannah',
         room:'0801',
         date:'2026-07-02 14:30',
-        people:'2명',
-        teeTime:'07:30',
-        course: vendor?.name || '썬밸리 CC',
-        pickup:'호텔 로비',
-        vehicle: item.name || '공항 픽업',
+        people: extra.basePeople ? `${extra.basePeople}명` : '2명',
+        teeTime: extra.teeTime || '07:30',
+        course: extra.courseName || vendor?.name || '썬밸리 CC',
+        pickup: extra.pickupBase || '호텔 로비',
+        vehicle: extra.vehicleClass || item.name || '공항 픽업',
         item: item.name || serviceLabel(vendor?.type),
         amount: money(item.price || 0),
         partnerContact: vendor?.contact || '-',
@@ -314,7 +464,7 @@
         </div>
         <div>
           <div class="section-head"><div class="section-title"><i class="fa-solid fa-tags"></i> 이용 항목</div></div>
-          <div class="item-grid" style="margin-top:10px">${(vendor.items || []).map(item => `<div class="item-card"><div class="item-card-title"><i class="fa-solid ${serviceIcon(vendor.type)}" style="color:var(--primary)"></i>${escapeHtml(item.name)}</div><div class="item-card-desc">${escapeHtml(item.desc || '-')}</div><div class="item-card-price">${money(item.price)}</div></div>`).join('') || '<div class="empty-note">등록된 항목이 없습니다.</div>'}</div>
+          <div class="item-grid" style="margin-top:10px">${(vendor.items || []).map(item => renderVendorItemCard(vendor, item)).join('') || '<div class="empty-note">등록된 항목이 없습니다.</div>'}</div>
         </div>
         <div>
           <div class="section-head">
@@ -434,8 +584,10 @@
     }
     function openItemModal(){
       if (!selectedVendorId) return window.showAlert('업체를 먼저 선택해 주세요.', { type: 'error' });
+      const type = selectedVendor()?.type || currentType;
+      renderItemTypeFields(type);
       ['itemName','itemPrice','itemDesc'].forEach(id => document.getElementById(id).value = '');
-      applyItemModalExamples(selectedVendor()?.type || currentType);
+      applyItemModalExamples(type);
       openModal('itemModal');
     }
     function saveItem() {
@@ -443,8 +595,16 @@
       if (!vendor) return;
       const name = document.getElementById('itemName').value.trim();
       if (!name) return window.showAlert('항목명을 입력해 주세요.', { type: 'error' });
+      const extra = readItemExtraFields(vendor.type);
+      if (extra.error) return window.showAlert(extra.error, { type: 'error' });
       vendor.items = vendor.items || [];
-      vendor.items.push({ name, price: Number(document.getElementById('itemPrice').value || 0), desc: document.getElementById('itemDesc').value.trim() });
+      vendor.items.push({
+        name,
+        price: Number(document.getElementById('itemPrice').value || 0),
+        desc: document.getElementById('itemDesc').value.trim(),
+        category: vendor.type,
+        ...extra
+      });
       persistVendors();
       closeModal('itemModal');
       render();
