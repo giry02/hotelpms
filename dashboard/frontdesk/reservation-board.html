@@ -446,7 +446,9 @@ function roomForReservation(res) {
 
 function isReservationRoomInHouse(res) {
     const room = roomForReservation(res);
-    return normalizeStatus(room?.frontStatus || room?.status || room?.housekeepingStatus) === 'inhouse';
+    return [room?.frontStatus, room?.status, room?.housekeepingStatus, room?.occupancyStatus]
+        .map(normalizeStatus)
+        .some(status => status === 'inhouse');
 }
 
 function checkoutDateIsDue(res, refDate = todayDate()) {
@@ -463,9 +465,15 @@ function isCurrentStayWindow(res, refDate = todayDate()) {
     return reservationActiveOn(res, refDate);
 }
 
+function isOperationalStayWindow(res, refDate = todayDate()) {
+    const start = reservationStart(res);
+    const end = reservationEnd(res);
+    return !!(start && end && start <= refDate && refDate <= end);
+}
+
 function effectiveReservationStatus(res, refDate = todayDate()) {
     let status = normalizeReservationStatus(res?.status);
-    if (['confirmed', 'pending'].includes(status) && isReservationRoomInHouse(res) && isCurrentStayWindow(res, refDate)) status = 'checkedin';
+    if (['confirmed', 'pending'].includes(status) && isReservationRoomInHouse(res) && isOperationalStayWindow(res, refDate)) status = 'checkedin';
     if (status === 'checkedin' && checkoutDateIsDue(res, refDate)) return 'checkout';
     return status;
 }

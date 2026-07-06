@@ -1171,14 +1171,21 @@
         const target = dashboardDateOnly(isoDate, isoDate);
         return !!(end && target && end <= target);
     }
+    function dashboardOperationalStayWindow(res, isoDate) {
+        const start = dashboardDateOnly(res?.checkInDate || res?.checkin || res?.cin, isoDate);
+        const end = dashboardDateOnly(res?.checkOutDate || res?.checkout || res?.cout, isoDate);
+        const target = dashboardDateOnly(isoDate, isoDate);
+        return !!(start && end && target && start <= target && target <= end);
+    }
     function dashboardRoomIsInHouse(res, rooms = []) {
         const room = dashboardRoomForReservation(res, rooms);
-        const status = statusKey(room?.frontStatus || room?.occupancyStatus || room?.status);
-        return ['checkedin', 'inhouse', 'occupied'].includes(status);
+        return [room?.frontStatus, room?.occupancyStatus, room?.status, room?.housekeepingStatus]
+            .map(statusKey)
+            .some(status => ['checkedin', 'inhouse', 'occupied'].includes(status));
     }
     function dashboardEffectiveReservationStatus(res, rooms = [], isoDate = todayIso()) {
         let status = statusKey(res?.status);
-        if (['confirmed', 'pending'].includes(status) && dashboardRoomIsInHouse(res, rooms) && dashboardStayIncludes(res, isoDate)) {
+        if (['confirmed', 'pending'].includes(status) && dashboardRoomIsInHouse(res, rooms) && dashboardOperationalStayWindow(res, isoDate)) {
             status = 'checkedin';
         }
         if (status === 'checkedin' && dashboardCheckoutDue(res, isoDate)) return 'checkout';

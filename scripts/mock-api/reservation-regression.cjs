@@ -323,6 +323,53 @@ async function dashboardCheckinCountRegression(page, base) {
     assert(editSearchState.rosterText.includes('Alexander Kim'), 'Edit detail must still show the reservation guest roster.', editSearchState);
     assert(editSearchState.privacyText.includes('Alexander Kim'), 'Edit detail must still show guest detail information below.', editSearchState);
 
+    const occupiedRoomFlowState = await page.evaluate(async () => {
+      const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
+      const tomorrowDate = new Date(`${today}T00:00:00`);
+      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+      const tomorrow = tomorrowDate.toISOString().slice(0, 10);
+      window.rooms = [{
+        id: 'T-903',
+        number: '903',
+        fullRoom: 'T-903',
+        roomNo: 'T-903',
+        type: 'Standard',
+        building: 'Test Tower',
+        frontStatus: 'vacant',
+        status: 'occupied',
+        housekeepingStatus: 'clean'
+      }];
+      window.reservations = [{
+        id: 'RSV-OCCUPIED-ROOM',
+        room: 'T-903',
+        fullRoom: 'T-903',
+        roomNo: 'T-903',
+        type: 'Standard',
+        status: 'confirmed',
+        guest: 'Occupied Room Guest',
+        guestName: 'Occupied Room Guest',
+        cin: today,
+        cout: tomorrow,
+        checkin: today,
+        checkout: tomorrow,
+        checkInDate: today,
+        checkOutDate: tomorrow,
+        nights: 1,
+        len: 1
+      }];
+      reservations = window.reservations;
+      await openUnifiedResModal('RSV-OCCUPIED-ROOM');
+      const actionText = document.getElementById('unifiedFlowActions')?.innerText.trim() || '';
+      return {
+        actionText,
+        readonly: document.getElementById('unifiedResModal')?.dataset.readonlyReservation,
+        roomStatuses: window.rooms.map(room => [room.frontStatus, room.status, room.housekeepingStatus])
+      };
+    });
+
+    assert(occupiedRoomFlowState.actionText.includes('체크아웃') && !occupiedRoomFlowState.actionText.includes('체크인'), 'Occupied room reservation detail must render checkout action, not check-in.', occupiedRoomFlowState);
+    assert(occupiedRoomFlowState.readonly === 'true', 'Occupied room reservation detail must be treated as post-check-in readonly.', occupiedRoomFlowState);
+
     const blockResult = await page.evaluate(async () => {
       window.reservations = [{
         id: 'BLK-901',
@@ -371,6 +418,7 @@ async function dashboardCheckinCountRegression(page, base) {
         'Korean/English headers stay consistent',
         'new reservation has no manual status/group conversion controls',
         'edit detail keeps guest search idle until user searches',
+        'occupied rooms render checkout action instead of check-in',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
         'dashboard today check-in KPI matches reservation list after rooms become in-house'

@@ -389,6 +389,11 @@ function reservationActiveOn(res, date) {
     const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
     return !!(start && end && start <= date && date < end);
 }
+function reservationOperationalOn(res, refDate = todayDate()) {
+    const start = parseDate(res?.checkInDate || res?.checkin || res?.cin);
+    const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
+    return !!(start && end && start <= refDate && refDate <= end);
+}
 function roomForReservation(res) {
     if (!res || typeof res !== 'object') return null;
     if (reservationRoomCache.has(res)) return reservationRoomCache.get(res);
@@ -398,8 +403,9 @@ function roomForReservation(res) {
 }
 function isReservationRoomInHouse(res) {
     const room = roomForReservation(res);
-    const roomStatus = normalizeStatus(room?.frontStatus || room?.status || room?.housekeepingStatus);
-    return ['checkedin', 'inhouse', 'occupied'].includes(roomStatus);
+    return [room?.frontStatus, room?.status, room?.housekeepingStatus, room?.occupancyStatus]
+        .map(normalizeStatus)
+        .some(status => ['checkedin', 'inhouse', 'occupied'].includes(status));
 }
 function effectiveReservationStatus(res, refDate = todayDate()) {
     if (res && typeof res === 'object') {
@@ -420,7 +426,7 @@ function computeEffectiveReservationStatus(res, refDate = todayDate()) {
         const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
         return end && end <= refDate ? 'checkout' : 'checkedin';
     }
-    if (['confirmed', 'pending', 'reserved', 'booked', ''].includes(status) && isReservationRoomInHouse(res) && reservationActiveOn(res, refDate)) {
+    if (['confirmed', 'pending', 'reserved', 'booked', ''].includes(status) && isReservationRoomInHouse(res) && reservationOperationalOn(res, refDate)) {
         const end = parseDate(res?.checkOutDate || res?.checkout || res?.cout);
         return end && end <= refDate ? 'checkout' : 'checkedin';
     }

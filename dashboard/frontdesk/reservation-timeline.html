@@ -597,15 +597,23 @@ function isTimelineCurrentStay(res) {
     return start <= today && today < end;
 }
 
+function isTimelineOperationalStayWindow(res) {
+    const start = timelineReservationStartDate(res);
+    const end = timelineReservationCheckoutDate(res);
+    const today = timelineTodayDate();
+    return !!(start && end && start <= today && today <= end);
+}
+
 function isTimelineRoomInHouse(res) {
     const room = timelineRoomForReservation(res);
-    const status = String(room?.frontStatus || room?.status || room?.housekeepingStatus || '').replace(/[- _]/g, '').toLowerCase();
-    return ['inhouse', 'checkedin', 'occupied'].includes(status);
+    return [room?.frontStatus, room?.status, room?.housekeepingStatus, room?.occupancyStatus]
+        .map(value => String(value || '').replace(/[- _]/g, '').toLowerCase())
+        .some(status => ['inhouse', 'checkedin', 'occupied'].includes(status));
 }
 
 function effectiveTimelineStatus(res) {
     let safeStatus = normalizeReservationStatus(res);
-    if (safeStatus === 'confirmed' && isTimelineRoomInHouse(res) && isTimelineCurrentStay(res)) safeStatus = 'checkedin';
+    if (['confirmed', 'pending'].includes(safeStatus) && isTimelineRoomInHouse(res) && isTimelineOperationalStayWindow(res)) safeStatus = 'checkedin';
     const checkoutDate = parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
     const today = timelineTodayDate();
     if (checkoutDate && safeStatus === 'checkedin') {
@@ -1049,7 +1057,7 @@ function buildTimeline() {
                 level,
                 clipStart: Math.max(clipStart, todayOffset + 1),
                 clipEnd,
-                renderStatus: renderTimelineStatus(res, 'confirmed')
+                renderStatus: renderTimelineStatus(res, 'checkedin')
             });
         } else {
             pushTimelineBlock({

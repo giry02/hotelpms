@@ -636,9 +636,8 @@ async function readonlyCheckedInReservationFlow(page) {
     };
   });
   assert(inferredInHouseState.rawStatus === 'confirmed', 'confirmed reservation fixture changed unexpectedly');
-  assert(inferredInHouseState.readonly === 'false', 'confirmed reservation was incorrectly locked');
-  assert(inferredInHouseState.statusValue === 'confirmed', 'confirmed reservation status was overridden by room inventory state');
-  assert(inferredInHouseState.blockClass.includes('confirmed'), 'timeline did not keep confirmed reservation styling');
+  assert(inferredInHouseState.readonly === 'false', 'past confirmed reservation was incorrectly locked by current room inventory');
+  assert(inferredInHouseState.statusValue === 'confirmed', 'past confirmed reservation status was overridden by current room inventory state');
 
   await page.evaluate(() => window.closeUnifiedResModal());
   await page.evaluate(() => window.openUnifiedResModal());

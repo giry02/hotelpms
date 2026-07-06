@@ -1765,6 +1765,14 @@
         return start <= today && today < end;
     }
 
+    function isOperationalStayWindow(res) {
+        const start = parseReservationDate(res?.checkInDate || res?.checkin || res?.cin);
+        const end = parseReservationDate(res?.checkOutDate || res?.checkout || res?.cout);
+        if (!start || !end) return false;
+        const today = todayStart();
+        return start <= today && today <= end;
+    }
+
     function reservationCheckInDate(res) {
         return parseReservationDate(res?.checkInDate || res?.checkin || res?.cin);
     }
@@ -2217,8 +2225,7 @@
     }
 
     function roomMaintenanceBlocked(room) {
-        const status = normalizedReservationStatus(room?.frontStatus || room?.status || room?.housekeepingStatus);
-        return ['maintenance', 'outofservice', 'oos'].includes(status);
+        return roomOpsStatuses(room).some(status => ['maintenance', 'outofservice', 'outoforder', 'oos'].includes(status));
     }
 
     function roomConflictForDates(room, checkin, checkout, currentRes = null) {
@@ -2306,8 +2313,7 @@
 
     function isRoomInHouse(res) {
         const room = roomForReservation(res);
-        const roomStatus = normalizedReservationStatus(room?.frontStatus || room?.status || room?.housekeepingStatus);
-        return roomStatus === 'checkedin';
+        return roomOpsStatuses(room).some(status => ['occupied', 'inhouse', 'checkedin'].includes(status));
     }
 
     function normalizedRoomOpsValue(value) {
@@ -2364,7 +2370,7 @@
     function effectiveReservationStatus(res) {
         if (!res) return 'confirmed';
         let status = normalizedReservationStatus(res.status || res.frontStatus || res.roomStatus);
-        if (['confirmed', 'pending'].includes(status) && isRoomInHouse(res) && isCurrentStayWindow(res)) status = 'checkedin';
+        if (['confirmed', 'pending'].includes(status) && isRoomInHouse(res) && isOperationalStayWindow(res)) status = 'checkedin';
         if (status === 'checkedin' && checkoutDateIsTodayOrPast(res)) return 'checkout';
         return status;
     }
@@ -2373,7 +2379,7 @@
         if (!res) return false;
         const status = effectiveReservationStatus(res);
         if (['checkedin', 'checkout', 'completed', 'cancelled'].includes(status)) return true;
-        return isRoomInHouse(res) && isCurrentStayWindow(res);
+        return isRoomInHouse(res) && isOperationalStayWindow(res);
     }
 
     function guestNameForReservation(res) {
@@ -2648,8 +2654,7 @@
                         const opt = document.createElement('option');
                         opt.value = r.id;
                         const blocked = !prefillGroupId && allRes.some(res => (res.room === r.id || res.fullRoom === r.id) && res.status === 'blocked' && (!currentRes || res.id !== currentRes.id));
-                        const roomState = normalizedReservationStatus(r.frontStatus || r.status || r.housekeepingStatus);
-                        const occupied = !currentRes && roomState === 'checkedin';
+                        const occupied = !currentRes && roomOpsStatuses(r).some(status => ['occupied', 'inhouse', 'checkedin'].includes(status));
                         opt.disabled = blocked || occupied;
                         opt.textContent = `${r.id} (${roomTypeDisplay(r.type)})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
                         group.appendChild(opt);
@@ -2661,8 +2666,7 @@
                     const opt = document.createElement('option');
                     opt.value = r.id;
                     const blocked = !prefillGroupId && allRes.some(res => (res.room === r.id || res.fullRoom === r.id) && res.status === 'blocked' && (!currentRes || res.id !== currentRes.id));
-                    const roomState = normalizedReservationStatus(r.frontStatus || r.status || r.housekeepingStatus);
-                    const occupied = !currentRes && roomState === 'checkedin';
+                    const occupied = !currentRes && roomOpsStatuses(r).some(status => ['occupied', 'inhouse', 'checkedin'].includes(status));
                     opt.disabled = blocked || occupied;
                     opt.textContent = `${r.id} (${roomTypeDisplay(r.type)})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
                     roomSelect.appendChild(opt);

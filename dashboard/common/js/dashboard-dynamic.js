@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const normalizeStatus = (value) => String(value || '').toLowerCase().replace(/[_\s]/g, '-');
-    const isOccupiedRoom = (room) => ['occupied', 'checked-in', 'in-house'].includes(normalizeStatus(room.frontStatus || room.status));
+    const roomOpsStatuses = (room) => [room?.frontStatus, room?.occupancyStatus, room?.status, room?.housekeepingStatus]
+        .map(normalizeStatus)
+        .filter(Boolean);
+    const isOccupiedRoom = (room) => roomOpsStatuses(room).some(status => ['occupied', 'checked-in', 'in-house', 'checkedin', 'inhouse'].includes(status));
     const amountValue = (value) => {
         if (typeof value === 'number') return value;
         if (value && typeof value === 'object') return Number(value.amount || 0);
@@ -60,6 +63,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const target = dateOnly(isoDate, isoDate);
         return !!(end && target && end <= target);
     };
+    const operationalStayWindow = (reservation, isoDate) => {
+        const start = dateOnly(reservation?.checkInDate || reservation?.checkin || reservation?.cin, isoDate);
+        const end = dateOnly(reservation?.checkOutDate || reservation?.checkout || reservation?.cout, isoDate);
+        const target = dateOnly(isoDate, isoDate);
+        return !!(start && end && target && start <= target && target <= end);
+    };
     const normalizeRoomValue = (value) => {
         const text = String(value || '').trim().toLowerCase();
         const compact = text.replace(/[^a-z0-9]/g, '');
@@ -94,11 +103,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const roomForReservation = (reservation) => rooms.find(room => roomMatchesReservation(room, reservation)) || null;
     const roomIsInHouseForReservation = (reservation) => {
         const room = roomForReservation(reservation);
-        return ['checkedin', 'inhouse', 'occupied'].includes(statusKey(room?.frontStatus || room?.occupancyStatus || room?.status));
+        return roomOpsStatuses(room).some(status => ['occupied', 'checked-in', 'in-house', 'checkedin', 'inhouse'].includes(status));
     };
     const effectiveReservationStatus = (reservation, isoDate) => {
         let status = statusKey(reservation?.status);
-        if (['confirmed', 'pending'].includes(status) && roomIsInHouseForReservation(reservation) && stayIncludes(reservation, isoDate)) {
+        if (['confirmed', 'pending'].includes(status) && roomIsInHouseForReservation(reservation) && operationalStayWindow(reservation, isoDate)) {
             status = 'checkedin';
         }
         if (status === 'checkedin' && checkoutDue(reservation, isoDate)) return 'checkout';
