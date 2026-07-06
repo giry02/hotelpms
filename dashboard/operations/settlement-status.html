@@ -946,22 +946,44 @@ function settlementStatusInfo(folio) {
     return { icon, label };
 }
 
-function settlementServiceTags(charges) {
-    const labels = {
-        room: settlementText('room'),
-        pos: 'POS',
-        fnb: 'F&B',
-        golf: settlementLang() === 'en' ? 'Golf' : '골프',
-        rentacar: settlementLang() === 'en' ? 'Rent-a-car' : '렌터카',
-        laundry: settlementLang() === 'en' ? 'Laundry' : '세탁',
-        minibar: settlementLang() === 'en' ? 'Minibar' : '미니바'
+function settlementChargeTypeKey(type) {
+    const normalized = String(type || '').toLowerCase().replace(/[-_\s]/g, '');
+    if (['car', 'rentacar', 'rentalcar', 'vehicle'].includes(normalized)) return 'rentacar';
+    if (['pos', 'fnb', 'restaurant', 'minibar', 'retail', 'foodbeverage'].includes(normalized)) return 'pos';
+    if (normalized === 'golf') return 'golf';
+    if (normalized === 'room') return 'room';
+    return normalized || 'other';
+}
+
+function settlementChargeTypeMeta(type) {
+    const key = settlementChargeTypeKey(type);
+    const meta = {
+        room: { label: settlementText('room'), icon: 'fa-bed', order: 1 },
+        pos: { label: settlementLang() === 'en' ? 'Integrated POS' : '통합 POS', icon: 'fa-cash-register', order: 2 },
+        golf: { label: settlementLang() === 'en' ? 'Golf Course' : '골프장', icon: 'fa-golf-ball-tee', order: 3 },
+        rentacar: { label: settlementLang() === 'en' ? 'Rent-a-car' : '렌터카', icon: 'fa-car', order: 4 },
+        other: { label: settlementLang() === 'en' ? 'Other' : '기타', icon: 'fa-tag', order: 99 }
     };
-    const found = new Set();
+    return { key, ...(meta[key] || meta.other) };
+}
+
+function settlementChargeGroups(charges) {
+    const groups = new Map();
     (charges || []).forEach(charge => {
-        const type = String(charge.type || '').toLowerCase();
-        if (labels[type]) found.add(labels[type]);
+        const meta = settlementChargeTypeMeta(charge.type);
+        if (!groups.has(meta.key)) {
+            groups.set(meta.key, { ...meta, amount: 0, count: 0, descriptions: [] });
+        }
+        const group = groups.get(meta.key);
+        group.amount += settlementAmount(charge.amount);
+        group.count += 1;
+        if (charge.desc) group.descriptions.push(String(charge.desc));
     });
-    return [...found].slice(0, 4);
+    return [...groups.values()].sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+}
+
+function settlementServiceTags(charges) {
+    return settlementChargeGroups(charges).map(group => group.label).slice(0, 4);
 }
 
 function settlementPaymentRecordsForFolio(folioId) {
@@ -1213,7 +1235,8 @@ function mapSettlementFolio(item) {
     const rawCompleted = item.settlementCompleted || ['closed', 'paid', 'settled', 'completed', 'checkedout'].includes(rawStatus);
     const status = balance > 0 ? 'unpaid' : (paid > total && total > 0 ? 'refund' : (rawCompleted ? 'paid' : 'ready'));
     const roomList = Array.isArray(item.roomIds) ? item.roomIds.map(settlementRoomNo).filter(Boolean) : [];
-    const room = item.folioType === 'group' || item.groupId
+    const isGroupFolio = item.folioType === 'group' || Boolean(item.groupId);
+    const room = isGroupFolio
         ? '단체'
         : (item.roomNo || settlementRoomNo(item.roomId || item.room));
     const group = item.groupId ? settlementState.groups.find(g => g.id === item.groupId || g.eventId === item.groupId) : null;
@@ -1227,9 +1250,8 @@ function mapSettlementFolio(item) {
     ]);
     const itemCheckoutDate = settlementIso(item.checkOutDate || item.checkoutDate || item.checkout || item.settlementDate || item.closedAt || item.issuedAt);
     const checkoutDate = settlementIso(
-        (hasDirectReservationLink ? (reservation?.checkOutDate || reservation?.checkout) : '') ||
-        ((item.folioType === 'group' || item.groupId || !hasDirectReservationLink) ? itemCheckoutDate : stayEnd) ||
         itemCheckoutDate ||
+        (hasDirectReservationLink ? (reservation?.checkOutDate || reservation?.checkout) : '') ||
         stayEnd
     );
     const fallbackNights = linkedReservations
@@ -1242,8 +1264,8 @@ function mapSettlementFolio(item) {
         folioId,
         reservationId: item.reservationId || item.reservationIds?.[0] || '',
         groupId: item.groupId || '',
-        groupName: group?.name || item.ownerName || item.companyName || '',
-        folioType: item.folioType || (item.groupId ? 'group' : 'individual'),
+        groupName: isGroupFolio ? (group?.name || item.companyName || item.ownerName || '') : (item.companyName || ''),
+        folioType: item.folioType || (isGroupFolio ? 'group' : 'individual'),
         room,
         roomText: roomList.length ? roomList.join(', ') : room,
         guest: item.ownerName || item.guestName || reservation?.guestName || reservation?.guest || '-',
@@ -1600,16 +1622,17 @@ function settlementDetailRowsHtml(folio) {
 }
 
 function settlementDetailLinesHtml(folio) {
-    if (!folio.tags.length) {
+    const groups = settlementChargeGroups(folio.charges);
+    if (!groups.length) {
         return `<div class="settlement-line-item">
             <div class="settlement-line-main"><i class="fa-solid fa-bed"></i><span>${settlementText('room')}</span></div>
             <div class="settlement-line-amount">${settlementMoney(folio.total)}</div>
         </div>`;
     }
-    return folio.tags.map(tag => `
+    return groups.map(group => `
         <div class="settlement-line-item">
-            <div class="settlement-line-main"><i class="fa-solid fa-tag"></i><span>${settlementEscape(tag)}</span></div>
-            <div class="settlement-line-amount">${settlementMoney(folio.total)}</div>
+            <div class="settlement-line-main"><i class="fa-solid ${group.icon}"></i><span>${settlementEscape(group.label)}</span></div>
+            <div class="settlement-line-amount">${settlementMoney(group.amount)}</div>
         </div>
     `).join('');
 }
@@ -1667,11 +1690,11 @@ function printSettlementStatusReceipt(folioId) {
     const infoRows = settlementDetailRows(folio)
         .map(([label, value]) => `<tr><th>${settlementEscape(label)}</th><td>${settlementEscape(value)}</td></tr>`)
         .join('');
-    const billItems = Array.isArray(folio.tags) && folio.tags.length ? folio.tags : [settlementText('room')];
-    const billRows = billItems.map((tag, index) => `
+    const billItems = settlementChargeGroups(folio.charges);
+    const billRows = (billItems.length ? billItems : [{ label: settlementText('room'), amount: folio.total }]).map(item => `
         <tr>
-            <td>${settlementEscape(tag)}</td>
-            <td class="amount">${index === 0 ? settlementEscape(settlementMoney(folio.total)) : '-'}</td>
+            <td>${settlementEscape(item.label)}</td>
+            <td class="amount">${settlementEscape(settlementMoney(item.amount))}</td>
         </tr>
     `).join('');
     const payments = settlementPaymentRecordsForFolio(folioNo);
