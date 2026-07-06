@@ -488,21 +488,32 @@ function formatGuestMoney(value) {
         : '₱' + Number(value || 0).toLocaleString();
 }
 
-function nationalityOptionsHtml(selected = '') {
+function nationalityOptionsHtml(selected = '', options = {}) {
     const current = normalizeGuestNationality(selected);
     const values = Array.from(new Set([...PMS_GUEST_NATIONALITIES, current].filter(Boolean)))
         .sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
-    return values.map(country => `<option value="${guestEscape(country)}"${country === current ? ' selected' : ''}>${guestEscape(country)}</option>`).join('');
+    const placeholderText = typeof guestText === 'function'
+        ? guestText('국적 선택', 'Select nationality')
+        : '국적 선택';
+    const placeholder = options.includePlaceholder
+        ? `<option value=""${!current ? ' selected' : ''}>${guestEscape(placeholderText)}</option>`
+        : '';
+    return placeholder + values.map(country => `<option value="${guestEscape(country)}"${country === current ? ' selected' : ''}>${guestEscape(country)}</option>`).join('');
 }
 
 function hydrateGuestNationalitySelects(selected = '') {
-    const addSelect = document.querySelector('#addGuestModal select');
+    const addSelect = document.getElementById('addGuestNation');
     const detailSelect = document.getElementById('gdInputNation');
-    [addSelect, detailSelect].filter(Boolean).forEach(select => {
-        const current = normalizeGuestNationality(selected || select.value) || 'Vietnam';
-        select.innerHTML = nationalityOptionsHtml(current);
-        select.value = current;
-    });
+    if (addSelect) {
+        const current = normalizeGuestNationality(selected || addSelect.value);
+        addSelect.innerHTML = nationalityOptionsHtml(current, { includePlaceholder: true });
+        addSelect.value = current;
+    }
+    if (detailSelect) {
+        const current = normalizeGuestNationality(selected || detailSelect.value) || 'Vietnam';
+        detailSelect.innerHTML = nationalityOptionsHtml(current);
+        detailSelect.value = current;
+    }
 }
 
 PmsAPI.getGuests()
@@ -846,7 +857,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"Guest CRM":"투숙객 관리","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Total Guests":"총 고객 수","Return Rate":"재방문율","VIP Guests":"우수 고객","Avg. Spend/Guest":"고객당 평균 지출","All":"전체","Export":"엑셀 다운로드","고객 등록":"고객 등록","Guest":"고객","Country":"국적","Tier":"등급","Visits":"방문 횟수","Last Stay":"최근 투숙","Total Spend":"총 지출","Contact":"연락처","Actions":"관리","Sort Join Newest":"가입시기 최신순","Sort Join Oldest":"가입시기 오래된순","Sort Name Asc":"이름 오름차순","Sort Name Desc":"이름 내림차순"},en: {
+"Guest CRM":"투숙객 관리","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Total Guests":"총 고객 수","Return Rate":"재방문율","VIP Guests":"우수 고객","Avg. Spend/Guest":"고객당 평균 지출","All":"전체","Export":"엑셀 다운로드","고객 등록":"고객 등록","신규 고객 등록":"신규 고객 등록","고객명":"고객명","연락처":"연락처","이메일":"이메일","국적":"국적","특이사항 / 알러지":"특이사항 / 알러지","취소":"취소","국적 선택":"국적 선택","Guest":"고객","Country":"국적","Tier":"등급","Visits":"방문 횟수","Last Stay":"최근 투숙","Total Spend":"총 지출","Contact":"연락처","Actions":"관리","Sort Join Newest":"가입시기 최신순","Sort Join Oldest":"가입시기 오래된순","Sort Name Asc":"이름 오름차순","Sort Name Desc":"이름 내림차순"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -874,28 +885,165 @@ const translations={ko: {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
-"Guest CRM":"Guest CRM","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Guests":"Total Guests","Return Rate":"Return Rate","VIP Guests":"VIP Guests","Avg. Spend/Guest":"Avg. Spend/Guest","All":"All","Export":"Export","고객 등록":"Add Guest","Guest":"Guest","Country":"Country","Tier":"Tier","Visits":"Visits","Last Stay":"Last Stay","Total Spend":"Total Spend","Contact":"Contact","Actions":"Actions","Sort Join Newest":"Join date: newest","Sort Join Oldest":"Join date: oldest","Sort Name Asc":"Name A-Z","Sort Name Desc":"Name Z-A"}};
+"Guest CRM":"Guest CRM","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Total Guests":"Total Guests","Return Rate":"Return Rate","VIP Guests":"VIP Guests","Avg. Spend/Guest":"Avg. Spend/Guest","All":"All","Export":"Export","고객 등록":"Add Guest","신규 고객 등록":"New Guest Registration","고객명":"Guest Name","연락처":"Contact","이메일":"Email","국적":"Nationality","특이사항 / 알러지":"Notes / Allergies","취소":"Cancel","국적 선택":"Select nationality","Guest":"Guest","Country":"Country","Tier":"Tier","Visits":"Visits","Last Stay":"Last Stay","Total Spend":"Total Spend","Contact":"Contact","Actions":"Actions","Sort Join Newest":"Join date: newest","Sort Join Oldest":"Join date: oldest","Sort Name Asc":"Name A-Z","Sort Name Desc":"Name Z-A"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});    document.getElementById('searchInput').placeholder=l==='en'?'Search name or email...':'이름, 이메일 검색...';
     const tierReason = document.getElementById('gdTierChangeReason');
     if (tierReason) tierReason.placeholder = l === 'en' ? 'Example: corrected tier after merging duplicate VIP profiles' : '예: 중복 우수 고객 프로필 병합 후 등급 정정';
+    const addPlaceholders = {
+        addGuestName: l === 'en' ? 'Enter guest name' : '고객명 입력',
+        addGuestPhone: l === 'en' ? 'Enter contact number' : '연락처 입력',
+        addGuestEmail: l === 'en' ? 'Enter email' : '이메일 입력',
+        addGuestSpecialNotes: l === 'en' ? 'Example: peanut allergy, high floor, late arrival' : '예: 땅콩 알러지, 고층 선호, 늦은 도착'
+    };
+    Object.entries(addPlaceholders).forEach(([id, text]) => {
+        const el = document.getElementById(id);
+        if (el) el.placeholder = text;
+    });
+    const addNation = document.getElementById('addGuestNation');
+    if (addNation) hydrateGuestNationalitySelects(addNation.value);
     if (typeof applyGuestHistoryI18n === 'function') applyGuestHistoryI18n();
 }
 
 // 모달
-function openModal(id) { document.getElementById(id).classList.add('active'); }
+function openModal(id) {
+    if (id === 'addGuestModal') resetAddGuestForm();
+    document.getElementById(id).classList.add('active');
+}
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function saveGuest() {
+
+function newGuestInitials(name) {
+    const initials = String(name || '')
+        .trim()
+        .split(/\s+/)
+        .map(part => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+    return initials || 'G';
+}
+
+function resetAddGuestForm() {
+    ['addGuestName', 'addGuestPhone', 'addGuestEmail', 'addGuestSpecialNotes'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const nation = document.getElementById('addGuestNation');
+    if (nation) {
+        nation.value = '';
+        hydrateGuestNationalitySelects();
+    }
+}
+
+function normalizeCreatedGuest(guest) {
+    return {
+        ...guest,
+        id: guest.id || guest.guestId || `G-${Date.now()}`,
+        init: guest.init || newGuestInitials(guest.name),
+        color: guest.color || '#3B82F6',
+        nation: cleanGuestNation(guest),
+        nationality: cleanGuestNation(guest),
+        tier: String(guest.tier || 'standard').toLowerCase(),
+        tierLabel: guest.tierLabel || 'standard',
+        visits: Number(guest.visits || 0),
+        last: guest.last || '-',
+        spend: Number(guest.spend || 0),
+        email: guest.email || '-',
+        phone: guest.phone || '-',
+        registeredAt: guest.registeredAt || guest.createdAt || '',
+        specialNotes: guest.specialNotes || '',
+        blacklisted: false,
+        isBlacklisted: false,
+        blacklistReason: '',
+        blacklistHistory: []
+    };
+}
+
+async function saveGuest() {
+    const nameInput = document.getElementById('addGuestName');
     const phoneInput = document.getElementById('addGuestPhone');
+    const emailInput = document.getElementById('addGuestEmail');
+    const nationInput = document.getElementById('addGuestNation');
+    const notesInput = document.getElementById('addGuestSpecialNotes');
+    const name = String(nameInput?.value || '').trim();
     const phone = normalizePhoneValue(phoneInput?.value || '');
+
+    if (!name) {
+        showToast(guestText('고객명을 입력해 주세요.', 'Enter the guest name.'), 'error');
+        nameInput?.focus();
+        return;
+    }
     if (!isValidPhoneValue(phone, true)) {
-        showToast('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
+        showToast(guestText('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'Use only numbers, +, -, and parentheses for phone numbers.'), 'error');
         phoneInput?.focus();
         return;
     }
     if (phoneInput) phoneInput.value = phone;
-    closeModal('addGuestModal');
-    showToast('신규 고객이 등록되었습니다.');
+
+    const nowIso = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+    const nationality = normalizeGuestNationality(nationInput?.value || '');
+    const guest = normalizeCreatedGuest({
+        id: `G-${nowIso.replace(/\D/g, '').slice(0, 14)}-${Math.floor(Math.random() * 1000)}`,
+        name,
+        init: newGuestInitials(name),
+        phone,
+        email: String(emailInput?.value || '').trim(),
+        nation: nationality,
+        nationality,
+        country: nationality,
+        tier: 'standard',
+        tierLabel: 'standard',
+        vip: 'standard',
+        visits: 0,
+        last: '-',
+        spend: 0,
+        totalSpend: { amount: 0, currency: 'PHP' },
+        status: 'active',
+        document: { type: '', maskedNumber: '', status: 'pending' },
+        docStatus: 'pending',
+        documentStatus: 'pending',
+        specialNotes: String(notesInput?.value || '').trim(),
+        stayHistory: [],
+        tags: ['guest-crm'],
+        registeredAt: nowIso,
+        createdAt: nowIso,
+        source: 'guest-crm'
+    });
+
+    try {
+        if (window.PmsMockApi) {
+            await window.PmsMockApi.request('POST', '/crm/guests', { body: guest });
+        }
+        guests = guests.filter(item => String(item.id || item.guestId || '') !== String(guest.id));
+        guests.unshift({ ...guest, _registeredIndex: -1 });
+        window.guests = guests;
+        if (Array.isArray(window.GUEST_DB)) {
+            window.GUEST_DB = window.GUEST_DB.filter(item => String(item.id || item.guestId || '') !== String(guest.id));
+            window.GUEST_DB.unshift({ ...guest, country: guest.nationality });
+        }
+        try {
+            if (typeof window.loadGuestDb === 'function') await window.loadGuestDb(true);
+        } catch(e) {
+            console.warn('Guest cache refresh after guest create failed', e);
+        }
+        localStorage.setItem('pms_guests', JSON.stringify(guests));
+        currentTier = 'all';
+        currentGuestSort = 'joined_desc';
+        currentPage = 1;
+        document.querySelectorAll('.chip[data-tier]').forEach(chip => {
+            chip.classList.toggle('active', chip.getAttribute('data-tier') === 'all');
+        });
+        const filterLabel = document.getElementById('mFilterLabel');
+        if (filterLabel) filterLabel.textContent = '전체';
+        renderGuests();
+        updateFilterCounts();
+        resetAddGuestForm();
+        closeModal('addGuestModal');
+        showToast(guestText('신규 고객이 등록되었습니다.', 'New guest has been registered.'), 'success');
+    } catch (error) {
+        console.error(error);
+        showToast(guestText('고객 등록 중 오류가 발생했습니다.', 'An error occurred while registering the guest.'), 'error');
+    }
 }
 
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang);hydrateGuestNationalitySelects();bindGuestPhoneInputs()});
@@ -905,51 +1053,34 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 <div class="modal-overlay" id="addGuestModal" onclick="if(event.target===this) closeModal('addGuestModal')">
     <div class="modal-card" style="max-width:500px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title">신규 투숙객 등록</h3>
+            <h3 class="modal-title">신규 고객 등록</h3>
             <button class="modal-close" onclick="closeModal('addGuestModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이름 (이름) <span style="color:var(--danger)">*</span></label>
-                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">고객명 <span style="color:var(--danger)">*</span></label>
+                    <input type="text" id="addGuestName" autocomplete="name" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="고객명 입력">
                 </div>
-                <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">성 (성) <span style="color:var(--danger)">*</span></label>
-                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
-                </div>
-            </div>
-            <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">연락처 <span style="color:var(--danger)">*</span></label>
-                    <input type="tel" inputmode="tel" autocomplete="tel" id="addGuestPhone" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="+84 ">
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이메일</label>
-                    <input type="email" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%">
+                    <input type="tel" inputmode="tel" autocomplete="tel" id="addGuestPhone" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="연락처 입력">
                 </div>
             </div>
             <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">국적</label>
-                    <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option value="Vietnam">Vietnam</option>
-                    </select>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">이메일</label>
+                    <input type="email" id="addGuestEmail" autocomplete="email" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="이메일 입력">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">우수 고객 등급 지정</label>
-                    <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option value="standard">일반</option>
-                        <option value="gold">골드</option>
-                        <option value="platinum">플래티넘</option>
-                        <option value="diamond">다이아몬드</option>
-                    </select>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">국적</label>
+                    <select id="addGuestNation" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff"></select>
                 </div>
             </div>
 
             <div style="display:flex;flex-direction:column;gap:6px">
-                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">특이사항 / 선호도</label>
-                <textarea style="min-height:60px;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--font);width:100%;resize:vertical" placeholder="금연 객실 선호 등..."></textarea>
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">특이사항 / 알러지</label>
+                <textarea id="addGuestSpecialNotes" style="min-height:60px;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--font);width:100%;resize:vertical" placeholder="예: 땅콩 알러지, 고층 선호, 늦은 도착"></textarea>
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
