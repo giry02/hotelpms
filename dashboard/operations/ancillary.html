@@ -127,6 +127,22 @@
         .register-existing-title{font-size:.82rem;font-weight:950;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .register-existing-meta{font-size:.68rem;font-weight:850;color:var(--txt3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .register-existing-money{font-size:.86rem;font-weight:950;color:var(--txt)}
+        .register-output-preview{margin-top:14px}
+        .service-voucher-preview{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:14px}
+        .voucher-sheet{max-width:680px;margin:0 auto;background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden}
+        .voucher-brand{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:22px;border-bottom:1px solid #e5e7eb}
+        .voucher-logo{min-width:112px;min-height:58px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#6b7280;overflow:hidden}
+        .voucher-logo img{max-width:130px;max-height:58px;object-fit:contain}
+        .voucher-heading{margin:0;font-size:22px;text-align:right;color:#111827}
+        .voucher-sub{margin-top:6px;font-size:13px;color:#6b7280;text-align:right;font-weight:800}
+        .voucher-body{padding:16px 22px}
+        .voucher-row{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #eef2f7;padding:11px 0;font-size:14px}
+        .voucher-row:first-child{border-top:0}
+        .voucher-row strong{color:#6b7280}
+        .voucher-row span{text-align:right;font-weight:800;color:#111827}
+        .voucher-stub{border-top:1px dashed #9ca3af;background:#f9fafb;padding:16px 22px}
+        .voucher-stub-title{font-size:14px;font-weight:900;margin-bottom:10px;color:#111827}
+        .voucher-stub-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;font-size:13px;color:#374151}
         .voucher-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
         .voucher-fields label{display:flex;align-items:center;gap:7px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;font-size:.75rem;font-weight:850}
         .voucher-preview{margin-top:10px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:.75rem;line-height:1.7;color:var(--txt2)}
@@ -191,6 +207,7 @@
         .service-room-card:not(.inhouse):hover{transform:none;box-shadow:var(--shadow-sm)}
         .service-unavailable{margin-top:12px;padding:9px;border:1px dashed #cbd5e1;border-radius:8px;color:var(--txt3);font-size:.72rem;font-weight:850;text-align:center;background:#fff}
         @media(max-width:1100px){.ancillary-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.service-modal-grid{grid-template-columns:1fr}}
+        @media(max-width:900px){.voucher-brand{align-items:flex-start;flex-direction:column}.voucher-heading,.voucher-sub{text-align:left}.voucher-row{align-items:flex-start;flex-direction:column;gap:4px}.voucher-row span{text-align:left}.voucher-stub-grid{grid-template-columns:1fr}}
         @media(max-width:768px){.ancillary-toolbar{flex-direction:column;align-items:stretch}.ancillary-search-group{flex:1 1 auto;min-width:0;width:100%}.ancillary-search{flex:1 1 auto;min-width:0}.ancillary-toolbar-actions{margin-left:0}.modal-room-box,.modal-field-grid{grid-template-columns:1fr}.voucher-fields,.group-room-checks{grid-template-columns:1fr}}
     </style>
 </head>
@@ -257,10 +274,10 @@
                             <div class="modal-field-grid">
                                 <div><label class="form-label" id="vendorLabel">처리 부서/업체</label><select id="serviceVendor" class="form-input" onchange="renderServiceItems()"></select></div>
                                 <div><label class="form-label">이용 항목</label><select id="serviceItem" class="form-input" onchange="renderRegistrationPreview()"></select></div>
-                                <div><label class="form-label">이용 일시</label><input id="serviceDateTime" class="form-input" type="datetime-local"></div>
+                                <div><label class="form-label">이용 일시</label><input id="serviceDateTime" class="form-input" type="datetime-local" onchange="renderRegistrationPreview()"></div>
                                 <div><label class="form-label">수량/인원</label><input id="serviceQty" class="form-input" type="number" min="1" value="1" oninput="renderRegistrationPreview()"></div>
                             </div>
-                            <div style="margin-top:10px"><label class="form-label">메모</label><textarea id="serviceMemo" class="form-input" placeholder="요청사항, 픽업 위치, 티타임 특이사항 등"></textarea></div>
+                            <div style="margin-top:10px"><label class="form-label">메모</label><textarea id="serviceMemo" class="form-input" placeholder="요청사항, 픽업 위치, 티타임 특이사항 등" oninput="renderRegistrationPreview()"></textarea></div>
                             <div class="group-bulk-box is-hidden" id="groupBulkBox">
                                 <label class="group-bulk-title"><input id="groupBulkToggle" type="checkbox" onchange="toggleGroupBulk()"> 단체 객실 일괄 등록</label>
                                 <div style="font-size:.72rem;color:var(--txt2);font-weight:850;margin-top:5px">골프장/렌터카는 단체 선택 시 전체 객실이 기본 선택되며 필요한 객실만 해제할 수 있습니다.</div>
@@ -270,18 +287,18 @@
                             </div>
                         </section>
                         <section class="register-side-body">
-                            <div class="register-preview-title"><span><i class="fa-solid fa-clipboard-check"></i> 등록 요약</span><span id="registrationPreviewBadge"></span></div>
-                            <div id="registrationPreview"></div>
-                            <div>
-                                <div class="register-preview-title"><span><i class="fa-solid fa-clock-rotate-left"></i> 현재 이용내역</span><span id="registrationExistingCount"></span></div>
-                                <div id="registrationExistingList" class="register-existing-list"></div>
-                            </div>
+                            <div class="register-preview-title"><span><i class="fa-solid fa-clock-rotate-left"></i> 현재 이용내역</span><span id="registrationExistingCount"></span></div>
+                            <div id="registrationExistingList" class="register-existing-list"></div>
                             <div style="display:flex;justify-content:flex-end;gap:8px">
                                 <button class="btn-outline" onclick="closeServiceModal()">취소</button>
                                 <button class="btn-primary-sm" onclick="saveServiceOrder()"><i class="fa-solid fa-check"></i> 등록</button>
                             </div>
                         </section>
                     </div>
+                    <section class="register-output-preview">
+                        <div class="register-preview-title"><span><i class="fa-solid fa-print"></i> 출력 미리보기</span><span id="registrationPreviewBadge"></span></div>
+                        <div id="registrationPreview" class="service-voucher-preview"></div>
+                    </section>
                 </div>
             </section>
         </div>
@@ -548,6 +565,40 @@ function voucherDataFromOrder(order, room = findRoomById(order?.roomId || order?
         address: vendor?.address || '-',
         memo: order?.memo || '-'
     };
+}
+function voucherTitleForOrder(order) {
+    const service = serviceMeta(order?.service);
+    if (order?.service === 'rentacar') return '렌터카 이용 바우처';
+    if (order?.service === 'golf') return '골프장 이용권';
+    return `${service.label} 전표`;
+}
+function voucherStubRowsForOrder(order, data) {
+    if (order?.service === 'golf') return [['티오프', data.teeTime], ['코스', data.course], ['투숙객', data.guest], ['서명', '']];
+    if (order?.service === 'rentacar') return [['픽업', data.pickup], ['차량', data.vehicle], ['투숙객', data.guest], ['서명', '']];
+    return [];
+}
+function renderVoucherSheet(order) {
+    const fields = voucherFieldsForOrder(order);
+    const vendor = vendorForOrder(order);
+    const data = voucherDataFromOrder(order);
+    const service = serviceMeta(order?.service);
+    const stubRows = voucherStubRowsForOrder(order, data);
+    return `<section class="voucher-sheet">
+        <div class="voucher-brand">
+            <div class="voucher-logo">${vendor?.logoDataUrl ? `<img src="${escapeHtml(vendor.logoDataUrl)}" alt="">` : 'HOTEL PMS'}</div>
+            <div>
+                <h2 class="voucher-heading">${escapeHtml(voucherTitleForOrder(order))}</h2>
+                <div class="voucher-sub">${escapeHtml(order.vendor || service.label)} · ${escapeHtml(vendor?.contact || '-')}</div>
+            </div>
+        </div>
+        <div class="voucher-body">
+            ${fields.map(field => `<div class="voucher-row"><strong>${escapeHtml(voucherFieldLabels[field] || field)}</strong><span>${escapeHtml(data[field] || '-')}</span></div>`).join('')}
+        </div>
+        ${stubRows.length ? `<div class="voucher-stub">
+            <div class="voucher-stub-title">${order.service === 'golf' ? '절취용 이용 확인' : '차량 인수 확인'}</div>
+            <div class="voucher-stub-grid">${stubRows.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong> ${escapeHtml(value || '____________')}</div>`).join('')}</div>
+        </div>` : ''}
+    </section>`;
 }
 function findRoomById(roomId) {
     return rooms.find(room => [room.id, room.roomId, room.fullRoom, room.roomNo, roomNo(room)].some(value => sameRoomValue(value, roomId)));
@@ -1010,20 +1061,33 @@ function renderRegistrationPreview() {
     const total = unitPrice * qty;
     const bulk = document.getElementById('groupBulkToggle')?.checked && selectedService !== 'pos';
     const targetCount = bulk ? document.querySelectorAll('.group-room-check:checked').length : 1;
-    const voucherCount = Array.isArray(vendor?.voucherFields) ? vendor.voucherFields.length : 0;
-    document.getElementById('registrationPreviewBadge').textContent = `${meta.label} · ${money(total)}`;
-    preview.innerHTML = `
-        <div class="register-preview-card primary">
-            <div class="register-preview-title">
-                <span><i class="fa-solid ${meta.icon} ${meta.cls}"></i> 선택 내역</span>
-                <strong>${money(total * Math.max(1, targetCount))}</strong>
-            </div>
-            <div class="register-preview-row"><span>업체/부서</span><strong>${escapeHtml(vendor?.name || meta.label)}</strong></div>
-            <div class="register-preview-row"><span>이용 항목</span><strong>${escapeHtml(item.name || meta.label)}</strong></div>
-            <div class="register-preview-row"><span>수량/대상</span><strong>${qty.toLocaleString('ko-KR')} × ${targetCount.toLocaleString('ko-KR')}실</strong></div>
-            <div class="register-preview-row"><span>바우처 설정</span><strong>${voucherCount ? `${voucherCount}개 항목` : '해당 없음'}</strong></div>
-        </div>
-    `;
+    const res = room ? activeReservationForRoom(room) || nextReservationForRoom(room) : null;
+    const group = groupForReservation(res);
+    const previewOrder = {
+        id: 'SVC-PREVIEW',
+        service: selectedService,
+        serviceLabel: meta.label,
+        room: room ? roomNo(room) : '-',
+        roomId: room?.id || room?.roomId || selectedRoomId,
+        guest: reservationGuest(res),
+        reservationId: res?.id || '',
+        groupId: group?.id || group?.groupId || '',
+        groupName: group?.name || group?.groupName || '',
+        vendor: vendor?.name || meta.label,
+        vendorId: vendor?.id || '',
+        item: item.name || meta.label,
+        qty,
+        unitPrice,
+        total,
+        dateTime: document.getElementById('serviceDateTime')?.value || new Date().toISOString().slice(0, 16),
+        status: 'new',
+        memo: document.getElementById('serviceMemo')?.value || '-',
+        voucherFields: Array.isArray(vendor?.voucherFields) ? [...vendor.voucherFields] : [],
+        createdAt: new Date().toISOString()
+    };
+    const targetText = bulk ? `객실당 ${money(total)} · 총 ${targetCount.toLocaleString('ko-KR')}실` : money(total);
+    document.getElementById('registrationPreviewBadge').textContent = `${meta.label} · ${targetText}`;
+    preview.innerHTML = renderVoucherSheet(previewOrder);
     document.getElementById('registrationExistingCount').textContent = `${orders.length}건`;
     existingList.innerHTML = orders.length ? orders.slice(0, 7).map(order => {
         const orderMeta = serviceMeta(order.service);
@@ -1127,31 +1191,7 @@ function printOrderVoucher(orderId) {
     if (!order) return;
     const fields = voucherFieldsForOrder(order);
     if (!fields.length) return window.showAlert?.('업체/항목 관리에서 바우처 출력 항목을 먼저 설정해 주세요.', { type: 'warning' });
-    const vendor = vendorForOrder(order);
-    const data = voucherDataFromOrder(order);
-    const service = serviceMeta(order.service);
-    const title = order.service === 'rentacar' ? '렌터카 이용 바우처' : order.service === 'golf' ? '골프장 이용권' : `${service.label} 전표`;
-    const stubRows = order.service === 'golf'
-        ? [['티오프', data.teeTime], ['코스', data.course], ['투숙객', data.guest], ['서명', '']]
-        : order.service === 'rentacar'
-            ? [['픽업', data.pickup], ['차량', data.vehicle], ['투숙객', data.guest], ['서명', '']]
-            : [];
-    const html = `<section class="voucher-sheet">
-        <div class="voucher-brand">
-            <div class="voucher-logo">${vendor?.logoDataUrl ? `<img src="${escapeHtml(vendor.logoDataUrl)}" alt="">` : 'HOTEL PMS'}</div>
-            <div>
-                <h2>${escapeHtml(title)}</h2>
-                <div class="voucher-sub">${escapeHtml(order.vendor || service.label)} · ${escapeHtml(vendor?.contact || '-')}</div>
-            </div>
-        </div>
-        <div class="voucher-body">
-            ${fields.map(field => `<div class="voucher-row"><strong>${escapeHtml(voucherFieldLabels[field] || field)}</strong><span>${escapeHtml(data[field] || '-')}</span></div>`).join('')}
-        </div>
-        ${stubRows.length ? `<div class="voucher-stub">
-            <div class="voucher-stub-title">${order.service === 'golf' ? '절취용 이용 확인' : '차량 인수 확인'}</div>
-            <div class="voucher-stub-grid">${stubRows.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong> ${escapeHtml(value || '____________')}</div>`).join('')}</div>
-        </div>` : ''}
-    </section>`;
+    const html = renderVoucherSheet(order);
     const win = window.open('', '_blank', 'width=720,height=900');
     win.document.write(`<!doctype html><html><head><title>부가서비스 바우처</title><style>
         body{margin:24px;background:#f3f4f6;font-family:Arial,'Noto Sans KR',sans-serif;color:#111827}
@@ -1159,7 +1199,7 @@ function printOrderVoucher(orderId) {
         .voucher-brand{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:22px;border-bottom:1px solid #e5e7eb}
         .voucher-logo{min-width:112px;min-height:58px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#6b7280;overflow:hidden}
         .voucher-logo img{max-width:130px;max-height:58px;object-fit:contain}
-        h2{margin:0;font-size:22px;text-align:right}.voucher-sub{margin-top:6px;font-size:13px;color:#6b7280;text-align:right}
+        .voucher-heading{margin:0;font-size:22px;text-align:right}.voucher-sub{margin-top:6px;font-size:13px;color:#6b7280;text-align:right;font-weight:800}
         .voucher-body{padding:16px 22px}.voucher-row{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #eef2f7;padding:11px 0;font-size:14px}.voucher-row:first-child{border-top:0}.voucher-row strong{color:#6b7280}.voucher-row span{text-align:right;font-weight:800}
         .voucher-stub{border-top:1px dashed #9ca3af;background:#f9fafb;padding:16px 22px}.voucher-stub-title{font-size:14px;font-weight:900;margin-bottom:10px}.voucher-stub-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;font-size:13px;color:#374151}
         @media print{body{margin:0;background:#fff}.voucher-sheet{border-radius:0;border-color:#111827}}
