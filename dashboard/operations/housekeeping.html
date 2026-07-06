@@ -160,10 +160,18 @@
     .modal-close { background: none; border: none; font-size: 1.1rem; color: var(--txt3); cursor: pointer; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all .2s; }
     .modal-close:hover { background: var(--border2); color: var(--txt); }
     .modal-body { padding: 0; }
+    #logModal .hk-log-modal-card { width: 460px; overflow: hidden; }
+    #logModalBody { padding: 0; }
+    .log-summary { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px 24px; border-bottom:1px solid var(--border2); background:#f8fafc; }
+    .log-summary strong { font-size:.86rem; font-weight:800; color:var(--txt); white-space:nowrap; }
+    .log-summary span { font-size:.72rem; font-weight:600; color:var(--txt3); text-align:right; line-height:1.45; }
+    .log-list { max-height: 340px; overflow-y: auto; }
     .log-item { display:flex; justify-content:space-between; align-items:center; padding:14px 24px; border-bottom:1px solid var(--border2); }
     .log-item:last-child { border-bottom:none; }
-    .log-date { font-size:0.75rem; color:var(--txt3); margin-bottom:4px; }
+    .log-main { min-width: 0; }
+    .log-date { font-size:0.75rem; font-weight:700; color:var(--txt3); margin-bottom:4px; }
     .log-info { display:flex; align-items:center; gap:8px; font-size:0.85rem; font-weight:600; color:var(--txt); }
+    .log-meta { margin-top:5px; font-size:.72rem; font-weight:600; color:var(--txt3); line-height:1.45; word-break:keep-all; }
     .log-status { padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:700; }
     .status-clean-log { background:var(--success-lt); color:var(--success); }
 
@@ -313,7 +321,7 @@
 
 <!-- Log Modal -->
 <div class="modal-overlay" id="logModal" onclick="if(event.target===this)closeModal('logModal')">
-    <div class="modal-card">
+    <div class="modal-card hk-log-modal-card">
         <div class="modal-header">
             <h3 class="modal-title" id="logModalTitle">객실 청소 로그</h3>
             <button class="modal-close" onclick="closeModal('logModal')"><i class="fa-solid fa-xmark"></i></button>
@@ -997,35 +1005,65 @@ function setFilter(btn, status) {
     renderAllViews();
 }
 
+function hkEscape(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
+function hkLogDate(daysAgo, time) {
+    const base = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+    base.setHours(0, 0, 0, 0);
+    base.setDate(base.getDate() - daysAgo);
+    return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}-${String(base.getDate()).padStart(2, '0')} ${time}`;
+}
+
+function buildHousekeepingLogs(roomNum) {
+    const staff = ['김철수', 'Sarah Connor', '홍길동', 'Tran Linh', 'Nguyen Kim', 'Park Minjae'];
+    const seed = String(roomNum || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+    const rows = [
+        { days: 0, time: '09:20', before: '청소 필요', after: '청소 완료', type: '퇴실 청소', memo: '퇴실 후 객실 정리 및 어메니티 보충' },
+        { days: 1, time: '15:40', before: '청소 완료', after: '청소 완료', type: '재실 청소', memo: '수건 교체 및 쓰레기 수거' },
+        { days: 3, time: '10:10', before: '방해금지', after: '청소 완료', type: '재실 청소', memo: '프런트 확인 후 고객 요청 청소' },
+        { days: 5, time: '11:05', before: '청소 필요', after: '청소 완료', type: '정밀 청소', memo: '욕실 및 침구 정밀 점검' },
+        { days: 7, time: '16:30', before: '점검 완료', after: '청소 완료', type: '입실 전 확인', memo: '체크인 전 최종 상태 확인' },
+        { days: 10, time: '09:35', before: '청소 필요', after: '청소 완료', type: '퇴실 청소', memo: '미니바 확인 및 린넨 교체' },
+        { days: 14, time: '14:15', before: '청소 완료', after: '청소 완료', type: '정기 점검', memo: '장기 미사용 객실 환기 및 먼지 제거' }
+    ];
+    return rows.map((row, index) => ({
+        ...row,
+        date: hkLogDate(row.days, row.time),
+        name: staff[(seed + index) % staff.length]
+    }));
+}
+
 function showHkLog(roomNum) {
     document.getElementById('logModalTitle').innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> ${roomNum}호 청소 로그`;
-    
-    // Generate 1-week mock data
-    const logs = [];
-    const names = ['홍길동', '김철수', 'Maria Garcia', '이영호', 'Sarah Connor'];
-    let d = new Date();
-    for (let i = 0; i < 7; i++) {
-        // Skip some days randomly to make it look realistic
-        if (Math.random() > 0.3) {
-            const dateStr = d.toISOString().split('T')[0];
-            const name = names[Math.floor(Math.random() * names.length)];
-            logs.push({ date: dateStr, name: name, type: '정밀 청소' });
-        }
-        d.setDate(d.getDate() - 1);
-    }
-    
-    if (logs.length === 0) logs.push({ date: new Date().toISOString().split('T')[0], name: names[0], type: '재실 청소' });
+    const logs = buildHousekeepingLogs(roomNum);
     
     const body = document.getElementById('logModalBody');
-    body.innerHTML = logs.map(l => `
-        <div class="log-item">
-            <div>
-                <div class="log-date">${l.date}</div>
-                <div class="log-info"><i class="fa-solid fa-user-circle" style="color:var(--border)"></i> ${l.name}</div>
-            </div>
-            <div class="log-status status-clean-log">${l.type} 완료</div>
+    body.innerHTML = `
+        <div class="log-summary">
+            <strong>최근 5건</strong>
+            <span>전체 ${logs.length}건 · 최신순<br>5건 초과 내역은 내부 스크롤로 확인</span>
         </div>
-    `).join('');
+        <div class="log-list">
+            ${logs.map(l => `
+        <div class="log-item">
+            <div class="log-main">
+                <div class="log-date">${hkEscape(l.date)}</div>
+                <div class="log-info"><i class="fa-solid fa-user-circle" style="color:var(--border)"></i> ${hkEscape(l.name)}</div>
+                <div class="log-meta">${hkEscape(l.before)} → ${hkEscape(l.after)} · ${hkEscape(l.memo)}</div>
+            </div>
+            <div class="log-status status-clean-log">${hkEscape(l.type)} 완료</div>
+        </div>
+            `).join('')}
+        </div>
+    `;
     
     openModal('logModal');
 }
