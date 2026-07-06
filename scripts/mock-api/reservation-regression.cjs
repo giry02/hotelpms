@@ -294,6 +294,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       renderTable();
       return {
         headers: Array.from(document.querySelectorAll('#resTable thead th')).map(th => th.innerText.trim()),
+        sortLabels: Array.from(document.querySelectorAll('.reservation-sort-group .sort-label')).map(el => el.innerText.trim()),
         desktopBadges,
         mobileBadges,
         channelLeaks: ['Direct', 'OTA', 'Agoda', 'Booking.com', 'Walk-in', 'Channel', '채널', '직접', '방문'].filter(word => tableText.includes(word) || mobileText.includes(word)),
@@ -307,6 +308,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
     assert(!koList.otaSearchText.includes('RSV-002'), 'Reservation search must not match hidden channel values.');
     assert(JSON.stringify(countValues(koList.desktopBadges)) === JSON.stringify({ '단체': 1, '개인': 2 }), 'Desktop reservation kind badges are wrong.', koList.desktopBadges);
     assert(JSON.stringify(countValues(koList.mobileBadges)) === JSON.stringify({ '단체': 1, '개인': 2 }), 'Mobile reservation kind badges are wrong.', koList.mobileBadges);
+    assert(koList.sortLabels.includes('레이트 우선') && !koList.sortLabels.includes('레이트 체크아웃'), 'Late checkout sort button must not duplicate the filter label in Korean.', koList.sortLabels);
 
     const enList = await page.evaluate(() => {
       document.getElementById('searchInput').value = '';
@@ -314,6 +316,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       renderTable();
       return {
         headers: Array.from(document.querySelectorAll('#resTable thead th')).map(th => th.innerText.trim()),
+        sortLabels: Array.from(document.querySelectorAll('.reservation-sort-group .sort-label')).map(el => el.innerText.trim()),
         badges: Array.from(document.querySelectorAll('#resBody .reservation-kind-tag')).map(el => el.innerText.trim())
       };
     });
@@ -322,6 +325,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
     assert(enHeaders.includes('guest type'), 'Reservation list must show Guest Type header in English.', enList.headers);
     assert(!enHeaders.includes('channel'), 'Reservation list must not show Channel header in English.', enList.headers);
     assert(JSON.stringify(countValues(enList.badges)) === JSON.stringify({ Group: 1, Individual: 2 }), 'English reservation kind badges are wrong.', enList.badges);
+    assert(enList.sortLabels.includes('Late first') && !enList.sortLabels.includes('Late checkout'), 'Late checkout sort button must not duplicate the filter label in English.', enList.sortLabels);
 
     const modalResult = await page.evaluate(async () => {
       currentLang = 'ko';
@@ -496,6 +500,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
         'reservation list uses personal/group only',
         'channel labels do not render or search',
         'Korean/English headers stay consistent',
+        'late checkout filter and sort labels stay distinct',
         'new reservation has no manual status/group conversion controls',
         'edit detail keeps guest search idle until user searches',
         'occupied rooms render checkout action instead of check-in',
