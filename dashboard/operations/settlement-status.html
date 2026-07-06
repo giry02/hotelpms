@@ -436,10 +436,24 @@ const SETTLEMENT_TEXT = {
         settlementComplete: '정산 완료',
         close: '닫기',
         print: '인쇄',
-        receipt: '영수증',
-        receiptTitle: '정산 영수증',
+        receipt: '명세서',
+        receiptTitle: '정산 명세서',
         amountSummary: '금액 요약',
         receiptItems: '청구 항목',
+        statementIntegrated: '통합 명세서',
+        statementScoped: '{type} 명세서',
+        statementTypeTitle: '{type} 정산 명세서',
+        groupStatementTitle: '단체 통합 정산 명세서',
+        roomIntegratedStatementTitle: '객실 정산 명세서',
+        statementIssueDateTime: '발행 일시',
+        statementSourceFolio: '원천 Folio',
+        statementIncludedItems: '포함 항목',
+        statementCustomerName: '고객명',
+        statementRoom: '객실',
+        statementCheckoutDate: '체크아웃/정산일',
+        statementTotal: '합계',
+        statementPaid: '결제액',
+        statementBalanceDue: '미수금 잔액',
         paymentModalTitle: '정산 수납 처리',
         paymentSummary: '미수금 기준: {due} / 예치금: {deposit}',
         paymentMethod: '결제 수단',
@@ -559,10 +573,24 @@ const SETTLEMENT_TEXT = {
         settlementComplete: 'Complete Settlement',
         close: 'Close',
         print: 'Print',
-        receipt: 'Receipt',
-        receiptTitle: 'Settlement Receipt',
+        receipt: 'Statement',
+        receiptTitle: 'Settlement Statement',
         amountSummary: 'Amount Summary',
         receiptItems: 'Billing Items',
+        statementIntegrated: 'Integrated Statement',
+        statementScoped: '{type} Statement',
+        statementTypeTitle: '{type} Settlement Statement',
+        groupStatementTitle: 'Group Integrated Settlement Statement',
+        roomIntegratedStatementTitle: 'Room Settlement Statement',
+        statementIssueDateTime: 'Issued At',
+        statementSourceFolio: 'Source Folio',
+        statementIncludedItems: 'Included Items',
+        statementCustomerName: 'Guest',
+        statementRoom: 'Room',
+        statementCheckoutDate: 'Check-out/Settlement Date',
+        statementTotal: 'Total',
+        statementPaid: 'Paid',
+        statementBalanceDue: 'Balance Due',
         paymentModalTitle: 'Settlement Payment',
         paymentSummary: 'Balance due: {due} / Deposit: {deposit}',
         paymentMethod: 'Payment Method',
@@ -1672,50 +1700,90 @@ function settlementDetailHistoryHtml(folio) {
     `).join('');
 }
 
+function settlementStatementTitle(folio, groups) {
+    if (folio.folioType === 'group' || folio.groupId) return settlementText('groupStatementTitle');
+    if ((groups || []).length > 1) return settlementText('roomIntegratedStatementTitle');
+    const type = groups?.[0]?.label || settlementText('room');
+    return settlementText('statementTypeTitle', { type }) || settlementText('receiptTitle');
+}
+
+function settlementStatementScopeLabel(groups) {
+    if ((groups || []).length > 1) return settlementText('statementIntegrated');
+    const type = groups?.[0]?.label || settlementText('room');
+    return settlementText('statementScoped', { type });
+}
+
+function settlementStatementMetaRows(folio, groups) {
+    const isGroup = folio.folioType === 'group' || Boolean(folio.groupId);
+    return [
+        [settlementText('settlementNo'), folio.folioId || folio.id || '-'],
+        [isGroup ? settlementText('settlementTarget') : settlementText('statementCustomerName'), folio.guest || '-'],
+        [isGroup ? settlementText('roomOrGroup') : settlementText('statementRoom'), folio.roomText || folio.room || '-'],
+        [settlementText('statementIncludedItems'), (groups || []).map(group => group.label).join(' · ') || settlementText('room')],
+        [settlementText('statementCheckoutDate'), `${folio.checkoutDate || '-'} ${folio.checkoutTime || ''}`.trim()],
+        [settlementText('statementSourceFolio'), folio.folioId || folio.id || '-'],
+        [settlementText('statementIssueDateTime'), settlementFormatDateTime(new Date().toISOString())]
+    ];
+}
+
+function settlementStatementChargeRoomLabel(charge, folio) {
+    const raw = charge.roomNo || charge.room || charge.roomId || '';
+    if (raw) return settlementRoomNo(raw);
+    if (folio.folioType === 'group' || folio.groupId) return folio.roomText || settlementText('groupDefault');
+    return folio.roomText || folio.room || '-';
+}
+
+function settlementStatementChargeLabel(charge, folio, multiType) {
+    const meta = settlementChargeTypeMeta(charge.type);
+    const parts = [
+        multiType ? meta.label : '',
+        settlementStatementChargeRoomLabel(charge, folio),
+        charge.desc || meta.label
+    ].filter(Boolean);
+    const source = charge.id || charge.sourceFolioId || '';
+    return `${parts.join(' · ')}${source ? ` (${source})` : ''}`;
+}
+
+function settlementStatementItemsHtml(folio, groups) {
+    const charges = Array.isArray(folio.charges) ? folio.charges : [];
+    const multiType = (groups || []).length > 1 || folio.folioType === 'group' || Boolean(folio.groupId);
+    if (!charges.length) {
+        return `<div style="display:flex;justify-content:space-between;gap:16px">
+            <span>${settlementEscape(settlementText('room'))}</span>
+            <span>${settlementEscape(settlementMoney(folio.total))}</span>
+        </div>`;
+    }
+    return charges.map(charge => `
+        <div style="display:flex;justify-content:space-between;gap:16px">
+            <span>${settlementEscape(settlementStatementChargeLabel(charge, folio, multiType))}</span>
+            <span>${settlementEscape(settlementMoney(settlementAmount(charge.amount)))}</span>
+        </div>
+    `).join('');
+}
+
 function printSettlementStatusReceipt(folioId) {
     const folio = settlementFolioById(folioId || settlementState.currentFolioId);
     if (!folio) return;
-    const title = settlementText('receiptTitle');
-    const hotelName = document.querySelector('.brand-title')?.textContent?.trim()
-        || document.querySelector('.topbar-brand strong')?.textContent?.trim()
-        || 'The Grand Saigon';
     const folioNo = folio.folioId || folio.id || '-';
-    const summaryRows = [
-        [settlementText('totalCharge'), settlementMoney(folio.total)],
-        [settlementText('paidAmount'), settlementMoney(folio.paid)],
-        [settlementText('deposit'), settlementMoney(folio.deposit)],
-        [settlementText('balance'), settlementMoney(folio.balance)],
-        [settlementText('refundAmount'), settlementMoney(settlementRefundValue(folio))]
-    ].map(([label, value]) => `<tr><th>${settlementEscape(label)}</th><td>${settlementEscape(value)}</td></tr>`).join('');
-    const infoRows = settlementDetailRows(folio)
-        .map(([label, value]) => `<tr><th>${settlementEscape(label)}</th><td>${settlementEscape(value)}</td></tr>`)
-        .join('');
-    const billItems = settlementChargeGroups(folio.charges);
-    const billRows = (billItems.length ? billItems : [{ label: settlementText('room'), amount: folio.total }]).map(item => `
-        <tr>
-            <td>${settlementEscape(item.label)}</td>
-            <td class="amount">${settlementEscape(settlementMoney(item.amount))}</td>
-        </tr>
+    const groups = settlementChargeGroups(folio.charges);
+    const title = settlementStatementTitle(folio, groups);
+    const scopeLabel = settlementStatementScopeLabel(groups);
+    const metaHtml = settlementStatementMetaRows(folio, groups).map(([label, value]) => `
+        <div>${settlementEscape(label)}: ${settlementEscape(value)}</div>
     `).join('');
-    const payments = settlementPaymentRecordsForFolio(folioNo);
-    const completion = settlementCompletionForFolio(folio);
-    const paymentRows = payments.length ? payments.map(item => {
-        const method = settlementMethodLabel(item.method, item.methodLabel);
-        const actual = settlementFormatPaymentBreakdown(item.receivedBreakdown || { [item.receivedCurrency || 'PHP']: item.receivedAmount || 0 });
-        return `
-            <tr>
-                <td>${settlementEscape(settlementFormatDateTime(item.createdAt))}</td>
-                <td>${settlementEscape(item.kind === 'deposit' ? settlementText('depositPayment') : settlementText('settlementPayment'))}<br><span>${settlementEscape(method)} · ${settlementEscape(actual)}</span></td>
-                <td class="amount">${settlementEscape(settlementMoney(item.appliedPhpAmount))}</td>
-            </tr>
-        `;
-    }).join('') : (Number(folio.paid || 0) > 0 ? `
-        <tr>
-            <td>${settlementEscape(settlementFormatDateTime(completion?.completedAt || folio.settlementCompletedAt || folio.checkoutDate))}</td>
-            <td>${settlementEscape(settlementText('settlementCheckoutCompleted'))}<br><span>${settlementEscape(completion?.completedBy || folio.settlementCompletedBy || '-')}</span></td>
-            <td class="amount">${settlementEscape(settlementMoney(folio.paid))}</td>
-        </tr>
-    ` : `<tr><td colspan="3" class="empty">${settlementEscape(settlementText('noHistory'))}</td></tr>`);
+    const paidPrefix = Number(folio.paid || 0) > 0 ? '-' : '';
+    const content = `
+        <div class="invoice-title" style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${settlementEscape(title)}</div>
+        <div class="invoice-subtitle">${settlementEscape(scopeLabel)}</div>
+        ${metaHtml}
+        <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
+        ${settlementStatementItemsHtml(folio, groups)}
+        <hr style="border:0;border-top:1px dashed var(--border);margin:12px 0">
+        <div style="display:flex;justify-content:space-between;font-weight:700"><span>${settlementEscape(settlementText('statementTotal'))}</span><span>${settlementEscape(settlementMoney(folio.total))}</span></div>
+        <div style="display:flex;justify-content:space-between"><span>${settlementEscape(settlementText('statementPaid'))}</span><span>${paidPrefix}${settlementEscape(settlementMoney(folio.paid))}</span></div>
+        <div style="display:flex;justify-content:space-between"><span>${settlementEscape(settlementText('deposit'))}</span><span>${settlementEscape(settlementMoney(folio.deposit))}</span></div>
+        <div style="display:flex;justify-content:space-between;color:${Number(folio.balance || 0) > 0 ? '#ef4444' : '#059669'};font-weight:700;margin-top:8px"><span>${settlementEscape(settlementText('statementBalanceDue'))}</span><span>${settlementEscape(settlementMoney(folio.balance))}</span></div>
+    `;
     const printWindow = window.open('', '_blank', 'width=760,height=900');
     if (!printWindow) {
         window.print();
@@ -1727,41 +1795,17 @@ function printSettlementStatusReceipt(folioId) {
         <head>
             <meta charset="UTF-8">
             <title>${settlementEscape(title)} - ${settlementEscape(folioNo)}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
             <style>
-                *{box-sizing:border-box} body{margin:0;background:#fff;color:#111827;font-family:'Inter','Noto Sans KR',sans-serif}
-                .receipt{width:720px;max-width:100%;margin:0 auto;padding:32px}
-                .head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:2px solid #111827;padding-bottom:16px;margin-bottom:18px}
-                .head h1{margin:0;font-size:24px;font-weight:900}.head p{margin:4px 0 0;color:#64748b;font-size:13px;font-weight:800}
-                .folio{font-size:13px;text-align:right;color:#334155;font-weight:800}
-                .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
-                .section{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:14px}
-                .section h2{margin:0;padding:10px 12px;background:#f8fafc;font-size:14px;font-weight:900}
-                table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
-                th,td{padding:9px 12px;border-top:1px solid #edf2f7;text-align:left;vertical-align:top;overflow-wrap:anywhere}
-                th{width:38%;color:#64748b;font-weight:900;background:#fcfcfd}
-                td{font-weight:800}.amount{text-align:right;white-space:nowrap;font-weight:900}
-                td span{display:inline-block;margin-top:3px;color:#64748b;font-size:12px;font-weight:700}
-                .empty{text-align:center;color:#94a3b8;font-weight:800;padding:18px}
-                .footer{margin-top:24px;padding-top:12px;border-top:1px dashed #cbd5e1;color:#64748b;font-size:12px;font-weight:800;text-align:center}
-                @media print{.receipt{width:100%;padding:20px}.section{break-inside:avoid}}
+                :root{--font:'Inter','Noto Sans KR',sans-serif;--border:#d1d5db}
+                body{font-family:'Inter','Noto Sans KR',sans-serif;margin:32px;color:#111827}
+                .invoice-title{text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:'Inter','Noto Sans KR',sans-serif}
+                .invoice-subtitle{font-family:'Inter','Noto Sans KR',sans-serif;font-size:.78rem;color:#64748b;text-align:center;margin-top:-10px;margin-bottom:14px;font-weight:800}
+                hr{border:0;border-top:1px dashed #d1d5db;margin:12px 0}
+                div{line-height:1.6}
             </style>
         </head>
-        <body>
-            <main class="receipt">
-                <div class="head">
-                    <div><h1>${settlementEscape(title)}</h1><p>${settlementEscape(hotelName)}</p></div>
-                    <div class="folio">${settlementEscape(folioNo)}<br>${settlementEscape(settlementFormatDateTime(new Date().toISOString()))}</div>
-                </div>
-                <div class="grid">
-                    <section class="section"><h2>${settlementEscape(settlementText('basicInfo'))}</h2><table>${infoRows}</table></section>
-                    <section class="section"><h2>${settlementEscape(settlementText('amountSummary'))}</h2><table>${summaryRows}</table></section>
-                </div>
-                <section class="section"><h2>${settlementEscape(settlementText('receiptItems'))}</h2><table><thead><tr><th>${settlementEscape(settlementText('receiptItems'))}</th><th class="amount">${settlementEscape(settlementText('totalCharge'))}</th></tr></thead><tbody>${billRows}</tbody></table></section>
-                <section class="section"><h2>${settlementEscape(settlementText('history'))}</h2><table><thead><tr><th>${settlementEscape(settlementText('checkout'))}</th><th>${settlementEscape(settlementText('payment'))}</th><th class="amount">${settlementEscape(settlementText('paidAmount'))}</th></tr></thead><tbody>${paymentRows}</tbody></table></section>
-                <div class="footer">${settlementEscape(settlementText('receiptTitle'))} · ${settlementEscape(hotelName)}</div>
-            </main>
-        </body>
+        <body>${content}</body>
         </html>
     `);
     printWindow.document.close();
