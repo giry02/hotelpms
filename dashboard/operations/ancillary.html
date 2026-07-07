@@ -66,7 +66,7 @@
         .service-card-total{margin-top:10px;font-weight:950;font-size:.82rem;color:var(--txt)}
         .service-modal{width:min(980px,calc(100vw - 24px));max-height:88vh;overflow:auto}
         .service-modal-grid{display:block}
-        .service-detail-modal{width:min(980px,calc(100vw - 24px));max-height:88vh;overflow:auto}
+        .service-detail-modal{width:min(1120px,calc(100vw - 24px));max-height:92vh;overflow:auto}
         .detail-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 14px;align-items:stretch}
         .service-detail-list{display:flex;flex-direction:column;gap:10px}
         .service-detail-row{display:grid;grid-template-columns:1.25fr .9fr .7fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff}
@@ -118,6 +118,7 @@
         .service-tab i{width:15px;font-size:.82rem;line-height:1;display:inline-flex;align-items:center;justify-content:center}
         .service-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
         .modal-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .modal-field-grid .is-hidden{display:none}
         .form-label{display:block;font-size:.75rem;font-weight:900;color:var(--txt2);margin-bottom:6px}
         .form-input{height:38px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 10px;font:inherit;width:100%}
         textarea.form-input{height:74px;padding:10px;resize:vertical}
@@ -131,10 +132,13 @@
         .service-price-note{margin-top:7px;font-size:.7rem;font-weight:800;color:var(--txt3);line-height:1.45}
         .service-register-action{margin-top:12px;display:flex;justify-content:flex-end}
         .service-register-action .btn-primary-sm{height:42px;min-width:150px;font-size:.86rem}
-        .group-bulk-box{margin-top:12px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:12px}
+        .group-bulk-box{margin-top:12px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:11px 12px}
         .group-bulk-box.is-hidden{display:none}
-        .group-bulk-title{display:flex;align-items:center;gap:8px;font-weight:950}
+        .group-bulk-title{display:flex;align-items:center;gap:8px;font-weight:950;cursor:pointer}
+        .group-bulk-title input{width:16px;height:16px;margin:0;accent-color:var(--primary)}
         .group-bulk-desc{font-size:.72rem;color:var(--txt2);font-weight:850;margin-top:5px;line-height:1.45}
+        .group-bulk-body{margin-top:10px}
+        .group-bulk-body.is-hidden{display:none}
         .group-bulk-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:9px 10px;border:1px solid #dbeafe;border-radius:10px;background:#fff;font-size:.76rem;font-weight:900;color:var(--txt2)}
         .group-bulk-summary strong{color:var(--primary);font-size:.82rem}
         .group-room-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px;max-height:170px;overflow:auto}
@@ -341,7 +345,7 @@
                                 <div><label class="form-label" id="vendorLabel">처리 부서/업체</label><select id="serviceVendor" class="form-input" onchange="renderServiceItems()"></select></div>
                                 <div><label class="form-label">이용 항목</label><select id="serviceItem" class="form-input" onchange="handleServiceItemChange()"></select></div>
                                 <div><label class="form-label">이용 일시</label><input id="serviceDateTime" class="form-input" type="datetime-local" onchange="renderRegistrationPreview()"></div>
-                                <div><label class="form-label">수량/인원</label><input id="serviceQty" class="form-input" type="number" min="1" value="1" oninput="renderRegistrationPreview()"></div>
+                                <div id="serviceQtyField"><label class="form-label">수량/인원</label><input id="serviceQty" class="form-input" type="number" min="1" value="1" oninput="renderRegistrationPreview()"></div>
                             </div>
                             <div class="service-variable-fields" id="serviceVariableFields">
                                 <div class="service-variable-title"><i class="fa-solid fa-sliders"></i> 현장 입력 정보</div>
@@ -357,16 +361,20 @@
                             </div>
                             <div style="margin-top:10px"><label class="form-label">메모</label><textarea id="serviceMemo" class="form-input" placeholder="요청사항, 픽업 위치, 티타임 특이사항 등" oninput="renderRegistrationPreview()"></textarea></div>
                             <div class="group-bulk-box is-hidden" id="groupBulkBox">
-                                <input id="groupBulkToggle" type="checkbox" checked hidden>
                                 <input id="groupSelect" type="hidden">
-                                <div class="group-bulk-title"><i class="fa-solid fa-users" style="color:var(--primary)"></i> 단체 동반 등록</div>
+                                <label class="group-bulk-title">
+                                    <input id="groupBulkToggle" type="checkbox" onchange="toggleGroupBulk()">
+                                    <span><i class="fa-solid fa-users" style="color:var(--primary)"></i> 단체 동반 등록</span>
+                                </label>
                                 <div class="group-bulk-desc">현재 객실이 속한 단체 안에서 같이 이용할 객실/투숙객만 선택해 한 번에 등록합니다.</div>
-                                <div class="group-bulk-summary">
-                                    <span>대상 단체</span>
-                                    <strong id="groupBulkName">-</strong>
-                                    <span id="groupRoomCount">0실 선택</span>
+                                <div class="group-bulk-body is-hidden" id="groupBulkBody">
+                                    <div class="group-bulk-summary">
+                                        <span>대상 단체</span>
+                                        <strong id="groupBulkName">-</strong>
+                                        <span id="groupRoomCount">0실 선택</span>
+                                    </div>
+                                    <div id="groupRoomChecks" class="group-room-checks"></div>
                                 </div>
-                                <div id="groupRoomChecks" class="group-room-checks"></div>
                             </div>
                             <div class="service-register-action">
                                 <button class="btn-primary-sm" onclick="saveServiceOrder()"><i class="fa-solid fa-check"></i> 등록</button>
@@ -1137,13 +1145,21 @@ function selectServiceType(type) {
     selectedService = type;
     document.querySelectorAll('.service-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.service === type));
     document.getElementById('vendorLabel').textContent = type === 'pos' ? '처리 부서/업체' : '업체';
+    updateServiceQtyField();
     const bulkToggle = document.getElementById('groupBulkToggle');
     const groupSelect = document.getElementById('groupSelect');
     const hasGroupStay = !!groupSelect.value;
+    if (bulkToggle) bulkToggle.checked = false;
     setGroupBulkVisible(type !== 'pos' && hasGroupStay);
-    bulkToggle.checked = type !== 'pos' && hasGroupStay;
     renderGroupRoomChecks();
     renderServiceVendors();
+}
+function updateServiceQtyField() {
+    const field = document.getElementById('serviceQtyField');
+    const input = document.getElementById('serviceQty');
+    const isRentacar = selectedService === 'rentacar';
+    if (field) field.classList.toggle('is-hidden', isRentacar);
+    if (isRentacar && input) input.value = 1;
 }
 function renderServiceVendors() {
     const list = vendors.filter(vendor => vendor.type === selectedService);
@@ -1202,7 +1218,7 @@ function renderServiceVariableFields() {
 }
 function servicePricingSnapshot() {
     const item = selectedItem();
-    const qty = Math.max(1, Number(document.getElementById('serviceQty')?.value || 1));
+    const qty = selectedService === 'rentacar' ? 1 : Math.max(1, Number(document.getElementById('serviceQty')?.value || 1));
     const baseUnitPrice = Number(item.price || 0);
     const unitInput = document.getElementById('serviceUnitPrice');
     const unitPrice = Math.max(0, Number(unitInput?.value || baseUnitPrice));
@@ -1218,11 +1234,19 @@ function servicePricingSnapshot() {
 function setGroupBulkVisible(visible) {
     const box = document.getElementById('groupBulkBox');
     const toggle = document.getElementById('groupBulkToggle');
+    const body = document.getElementById('groupBulkBody');
     const count = document.getElementById('groupRoomCount');
     const checks = document.getElementById('groupRoomChecks');
     if (box) box.classList.toggle('is-hidden', !visible);
     if (!visible) {
         if (toggle) toggle.checked = false;
+        if (body) body.classList.add('is-hidden');
+        if (count) count.textContent = '0실 선택';
+        if (checks) checks.innerHTML = '';
+        return;
+    }
+    if (body) body.classList.toggle('is-hidden', !toggle?.checked);
+    if (!toggle?.checked) {
         if (count) count.textContent = '0실 선택';
         if (checks) checks.innerHTML = '';
     }
@@ -1264,8 +1288,9 @@ function renderGroupSelect(selectedId = '') {
     if (select) select.value = group ? (group.id || group.groupId || '') : '';
     const hasGroupStay = !!group;
     document.getElementById('groupBulkName').textContent = group ? (group.name || group.groupName || group.id || '-') : '-';
+    const toggle = document.getElementById('groupBulkToggle');
+    if (toggle) toggle.checked = false;
     setGroupBulkVisible(hasGroupStay && selectedService !== 'pos');
-    document.getElementById('groupBulkToggle').checked = hasGroupStay && selectedService !== 'pos';
     renderGroupRoomChecks();
 }
 function onGroupSelectChange() {
@@ -1275,16 +1300,34 @@ function onGroupSelectChange() {
     renderRegistrationPreview();
 }
 function toggleGroupBulk() {
+    const enabled = document.getElementById('groupBulkToggle')?.checked;
+    const body = document.getElementById('groupBulkBody');
+    const checks = document.getElementById('groupRoomChecks');
+    const count = document.getElementById('groupRoomCount');
+    if (body) body.classList.toggle('is-hidden', !enabled);
+    if (!enabled) {
+        if (checks) checks.innerHTML = '';
+        if (count) count.textContent = '0실 선택';
+        renderRegistrationPreview();
+        return;
+    }
     renderGroupRoomChecks();
     renderRegistrationPreview();
 }
 function renderGroupRoomChecks() {
     const bulkBox = document.getElementById('groupBulkBox');
-    if (bulkBox?.classList.contains('is-hidden')) {
+    const bulkBody = document.getElementById('groupBulkBody');
+    const enabled = document.getElementById('groupBulkToggle')?.checked;
+    if (bulkBox?.classList.contains('is-hidden') || !enabled) {
+        if (bulkBody) bulkBody.classList.add('is-hidden');
+        const checks = document.getElementById('groupRoomChecks');
+        const count = document.getElementById('groupRoomCount');
+        if (checks) checks.innerHTML = '';
+        if (count) count.textContent = '0실 선택';
         renderRegistrationPreview();
         return;
     }
-    const enabled = document.getElementById('groupBulkToggle').checked;
+    if (bulkBody) bulkBody.classList.remove('is-hidden');
     const groupId = document.getElementById('groupSelect').value;
     const group = groups.find(item => item.id === groupId || item.groupId === groupId);
     const currentRoom = findRoomById(selectedRoomId);
@@ -1318,7 +1361,8 @@ function updateGroupRoomSelectionCount() {
     if (count) count.textContent = total ? `${checked}/${total}실 선택` : '0실 선택';
 }
 function targetRoomsForSave() {
-    const bulk = document.getElementById('groupBulkToggle').checked && selectedService !== 'pos';
+    const bulkBox = document.getElementById('groupBulkBox');
+    const bulk = !bulkBox?.classList.contains('is-hidden') && document.getElementById('groupBulkToggle')?.checked && selectedService !== 'pos';
     if (!bulk) return [findRoomById(selectedRoomId)].filter(canRegisterServiceForRoom);
     return Array.from(document.querySelectorAll('.group-room-check:checked')).map(input => findRoomById(input.value)).filter(canRegisterServiceForRoom);
 }

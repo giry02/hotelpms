@@ -924,6 +924,9 @@ function setText(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
 }
+function isEnglishMode() {
+    return (localStorage.getItem('pms_lang') || localStorage.getItem('pms_admin_lang') || '').toLowerCase().startsWith('en');
+}
 
 function setHtml(id, value) {
     const el = document.getElementById(id);
@@ -1185,7 +1188,7 @@ function renderCloseLog() {
     }));
     setText('logLedgerCount', `${rows.length}건`);
     setText('logPageInfo', `총 ${rows.length}건 표시`);
-    setText('logSelectedDate', `영업일 ${date}`);
+    setText('logSelectedDate', isEnglishMode() ? `Business date ${date}` : `영업일 ${date}`);
 
     const body = document.getElementById('logLedgerBody');
     if (!body) return;
@@ -1237,6 +1240,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logSearch')?.addEventListener('keydown', event => {
         if (event.key === 'Enter') renderCloseLog();
     });
+    setTimeout(() => {
+        const originalChangeLang = window.changeLang;
+        if (typeof originalChangeLang !== 'function' || originalChangeLang.__closingLogHook) return;
+        window.changeLang = function closingLogChangeLang(lang) {
+            const result = originalChangeLang.apply(this, arguments);
+            renderCloseLog();
+            return result;
+        };
+        window.changeLang.__closingLogHook = true;
+    }, 0);
 });
 </script>
 </body>
