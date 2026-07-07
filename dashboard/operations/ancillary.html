@@ -980,6 +980,7 @@ function openServiceDetailModal(roomId, options = {}) {
         </div>`;
     }).join('') : '<div class="detail-empty">등록된 부가서비스 내역이 없습니다.</div>';
     prepareServiceRegistration(roomId);
+    if (['pos', 'golf', 'rentacar'].includes(options.serviceType)) selectServiceType(options.serviceType);
     toggleServiceRegistration(!!options.showRegistration);
     const modal = document.getElementById('serviceDetailModal');
     modal.style.display = 'flex';
@@ -1204,10 +1205,9 @@ function saveServiceOrder() {
     });
     serviceOrders = [...created, ...serviceOrders];
     persistOrders();
-    closeServiceModal();
     renderAncillaryBoard();
     if (window.showToast) window.showToast(`${meta.label} ${created.length}건이 등록되었습니다.`, 'success');
-    if (created.length) openServiceDetailModal(roomsToSave[0].id || roomsToSave[0].roomId || roomNo(roomsToSave[0]));
+    if (created.length) openServiceDetailModal(roomsToSave[0].id || roomsToSave[0].roomId || roomNo(roomsToSave[0]), { showRegistration: true, serviceType: selectedService });
 }
 function openOrderVoucherModal(orderId) {
     const order = serviceOrders.find(item => item.id === orderId);
