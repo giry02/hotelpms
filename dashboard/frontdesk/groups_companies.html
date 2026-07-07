@@ -312,18 +312,19 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
-                    <label class="form-label">계약 조건 요약(자동)</label>
-                    <input type="text" id="compRate" class="form-input" style="width:100%" readonly placeholder="기본 객실 할인율과 정산 방식으로 자동 생성">
+                    <label class="form-label">기본 객실 할인율 (%)</label>
+                    <input type="number" id="compGroupDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" placeholder="예: 15" oninput="updateCompanyRateSummary()">
                 </div>
                 <div>
                     <label class="form-label">정산 방식</label>
-                    <select id="compBilling" class="form-input" style="width:100%">
+                    <select id="compBilling" class="form-input" style="width:100%" onchange="updateCompanyRateSummary()">
                         <option>단체 일괄 후불 정산</option>
                         <option>현장 개별 결제</option>
                         <option>가상계좌 선입금</option>
                     </select>
                 </div>
             </div>
+            <input type="hidden" id="compRate" value="">
             <div>
                 <label class="form-label">메모</label>
                 <textarea id="compNote" class="form-input" style="width:100%;min-height:60px;resize:vertical" placeholder="추가 계약사항 등"></textarea>
@@ -870,7 +871,15 @@ function openBlockModal(compId) {
         return m ? Number(m[1]) : 0;
     }
     function ensureCompanyDiscountField() {
-        if (document.getElementById('compGroupDiscount')) return;
+        if (document.getElementById('compGroupDiscount')) {
+            const billing = document.getElementById('compBilling');
+            if (billing && billing.dataset.summaryBound !== 'true') {
+                billing.dataset.summaryBound = 'true';
+                billing.addEventListener('change', updateCompanyRateSummary);
+            }
+            updateCompanyRateSummary();
+            return;
+        }
         const rateInput = document.getElementById('compRate');
         if (!rateInput) return;
         const wrap = rateInput.closest('div');
@@ -880,7 +889,7 @@ function openBlockModal(compId) {
             <input type="number" id="compGroupDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" placeholder="예: 15" oninput="updateCompanyRateSummary()">
         `;
         wrap.parentElement.insertBefore(field, wrap.nextSibling);
-        rateInput.placeholder = '기본 객실 할인율과 정산 방식으로 자동 생성';
+        rateInput.placeholder = '기본 객실 할인율로 자동 생성';
         rateInput.readOnly = true;
         const billing = document.getElementById('compBilling');
         if (billing && billing.dataset.summaryBound !== 'true') {
@@ -891,13 +900,9 @@ function openBlockModal(compId) {
     }
     function updateCompanyRateSummary() {
         const discount = Number(document.getElementById('compGroupDiscount')?.value || 0);
-        const billing = document.getElementById('compBilling')?.value || '';
         const rate = document.getElementById('compRate');
         if (!rate) return;
-        const parts = [];
-        if (discount > 0) parts.push(`객실 ${discount}% 할인`);
-        if (billing) parts.push(billing);
-        rate.value = parts.join(' · ');
+        rate.value = discount > 0 ? `객실 ${discount}% 할인` : '';
     }
     window.updateCompanyRateSummary = updateCompanyRateSummary;
     function normalizeCompanies() {

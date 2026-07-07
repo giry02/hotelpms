@@ -320,22 +320,19 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
-                    <label class="form-label">계약 조건 요약(자동)</label>
-                    <input id="detailCompanyRate" class="form-input" style="width:100%" readonly placeholder="기본 객실 할인율과 정산 방식으로 자동 생성">
-                </div>
-                <div>
                     <label class="form-label">기본 객실 할인율 (%)</label>
                     <input type="number" min="0" max="100" step="1" id="detailCompanyDiscount" class="form-input" style="width:100%" placeholder="예: 15" oninput="updateDetailCompanyRateSummary()">
                 </div>
+                <div>
+                    <label class="form-label">정산 방식</label>
+                    <select id="detailCompanyBilling" class="form-input" style="width:100%" onchange="updateDetailCompanyRateSummary()">
+                        <option>단체 일괄 후불 정산</option>
+                        <option>현장 개별 결제</option>
+                        <option>가상계좌 선입금</option>
+                    </select>
+                </div>
             </div>
-            <div>
-                <label class="form-label">정산 방식</label>
-                <select id="detailCompanyBilling" class="form-input" style="width:100%" onchange="updateDetailCompanyRateSummary()">
-                    <option>단체 일괄 후불 정산</option>
-                    <option>현장 개별 결제</option>
-                    <option>가상계좌 선입금</option>
-                </select>
-            </div>
+            <input type="hidden" id="detailCompanyRate" value="">
             <div>
                 <label class="form-label">메모</label>
                 <textarea id="detailCompanyNote" class="form-input" style="width:100%;min-height:60px;resize:vertical" placeholder="추가 계약사항 등"></textarea>
@@ -566,7 +563,7 @@ function createDraftGroup() {
         checkout: '',
         block: 0,
         pickup: 0,
-        pax: 0,
+        pax: 1,
         routing: '단체 일괄 정산',
         sales: '',
         contact: '',
@@ -924,7 +921,7 @@ function renderOverview() {
             <div><label class="form-label">총 인원 <span style="color:var(--danger)">*</span></label><input type="number" id="detailPax" class="form-input" style="width:100%" min="1" value="${group.pax || ''}"></div>
             <div><label class="form-label">체크인 <span style="color:var(--danger)">*</span></label><input type="date" id="detailCheckin" class="form-input" style="width:100%" value="${group.checkin || ''}"></div>
             <div><label class="form-label">체크아웃 <span style="color:var(--danger)">*</span></label><input type="date" id="detailCheckout" class="form-input" style="width:100%" value="${group.checkout || ''}"></div>
-            <div><label class="form-label">객실 할인율(%)</label><input type="number" id="detailEventDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" value="${group.eventDiscountPercent ?? 0}"></div>
+            <div><label class="form-label">행사 적용 할인율(%)</label><input type="number" id="detailEventDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" value="${group.eventDiscountPercent ?? 0}"></div>
             <div><label class="form-label">상태 <span style="color:var(--danger)">*</span></label><select id="detailStatus" class="form-input" style="width:100%">${Object.entries(statusMap).map(([k,v]) => `<option value="${k}" ${group.status === k ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div>
             <div><label class="form-label">정산 방식</label><select id="detailRouting" class="form-input" style="width:100%">${groupRoutingOptions().map(v => `<option ${billingTermLabel(group.routing) === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
             <div><label class="form-label">담당 영업 직원(선택)</label><input id="detailSales" class="form-input" style="width:100%" value="${group.sales || ''}" placeholder="기업/여행사 단체 담당자"></div>
@@ -1391,7 +1388,7 @@ window.addEventListener('DataReady', () => {
         const contact = [company.contactName, company.phone, company.email].filter(Boolean).join(' / ') || '-';
         return `<div class="wide" id="detailCompanyInfo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;background:#f8fafc;border:1px solid var(--border2);border-radius:10px;padding:12px">
             <div><div class="form-label" style="margin-bottom:3px">등록 단체 유형</div><div style="font-weight:850">${safeAttr(company.typeLabel || companyTypeLabel(company.type) || '-')}</div></div>
-            <div><div class="form-label" style="margin-bottom:3px">기본 객실 할인(참고)</div><div style="font-weight:850">${safeAttr(`${discount}%`)}</div></div>
+            <div><div class="form-label" style="margin-bottom:3px">단체 기준 할인</div><div style="font-weight:850">${safeAttr(`${discount}%`)}</div></div>
             <div><div class="form-label" style="margin-bottom:3px">기본 정산 방식(참고)</div><div style="font-weight:850">${safeAttr(billingTermLabel(company.billing) || '-')}</div></div>
             <div><div class="form-label" style="margin-bottom:3px">대표/연락처</div><div style="font-weight:850">${safeAttr(contact)}</div></div>
         </div>`;
@@ -1460,13 +1457,9 @@ window.addEventListener('DataReady', () => {
     };
     window.updateDetailCompanyRateSummary = function() {
         const discount = Number(document.getElementById('detailCompanyDiscount')?.value || 0);
-        const billing = document.getElementById('detailCompanyBilling')?.value || '';
         const rate = document.getElementById('detailCompanyRate');
         if (!rate) return;
-        const parts = [];
-        if (discount > 0) parts.push(`객실 ${discount}% 할인`);
-        if (billing) parts.push(billing);
-        rate.value = parts.join(' · ');
+        rate.value = discount > 0 ? `객실 ${discount}% 할인` : '';
     };
     window.openDetailCompanyModal = function(prefill = '') {
         bindDetailCompanyPhoneInput();
@@ -1545,7 +1538,7 @@ window.addEventListener('DataReady', () => {
             checkout: '',
             block: 0,
             pickup: 0,
-            pax: 0,
+            pax: 1,
             eventDiscountPercent: c ? discountFromCompany(c) : 0,
             routing: c?.billing || '단체 일괄 정산',
             sales: '',
@@ -1576,7 +1569,7 @@ window.addEventListener('DataReady', () => {
                 <div><label class="form-label">총 인원 <span style="color:var(--danger)">*</span></label><input type="number" id="detailPax" class="form-input" style="width:100%" min="1" value="${safeAttr(group.pax || '')}"></div>
                 <div><label class="form-label">체크인 <span style="color:var(--danger)">*</span></label><input type="date" id="detailCheckin" class="form-input" style="width:100%" value="${safeAttr(group.checkin)}"></div>
                 <div><label class="form-label">체크아웃 <span style="color:var(--danger)">*</span></label><input type="date" id="detailCheckout" class="form-input" style="width:100%" value="${safeAttr(group.checkout)}"></div>
-                <div><label class="form-label">객실 할인율(%)</label><input type="number" id="detailEventDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" value="${safeAttr(eventDiscountPercent())}"></div>
+                <div><label class="form-label">행사 적용 할인율(%)</label><input type="number" id="detailEventDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" value="${safeAttr(eventDiscountPercent())}"></div>
                 <div><label class="form-label">상태 <span style="color:var(--danger)">*</span></label><select id="detailStatus" class="form-input" style="width:100%">
                     <option value="pending" ${group.status === 'pending' ? 'selected' : ''}>대기</option>
                     <option value="confirmed" ${group.status === 'confirmed' ? 'selected' : ''}>확정</option>
@@ -1663,6 +1656,10 @@ window.addEventListener('DataReady', () => {
         renderAll();
         showToast(wasDraft ? '행사가 생성되었습니다. 이제 객실을 배정하세요.' : '행사 정보가 저장되었습니다.');
     };
+    try {
+        renderOverview = window.renderOverview;
+        saveBasicInfo = window.saveBasicInfo;
+    } catch(e) {}
     window.addDetailAllocationRow = function(allocation = {}) {
         const wrap = document.getElementById('detailAllocationEditor');
         if (!wrap) return;

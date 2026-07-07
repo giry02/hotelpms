@@ -396,7 +396,7 @@ function assert(condition, message, details = null) {
     assert(companySelectionResult.savedAgencyId === 'COMP-HANA' && companySelectionResult.savedAgency === 'Hana Tour', 'Group detail must save the selected company linkage.', companySelectionResult);
     assert(Number(companySelectionResult.savedEventDiscount) === 18, 'Group detail must save event-specific discount separately from the company baseline.', companySelectionResult);
     assert(Number(companySelectionResult.newAllocationDiscount) === 18, 'New room allocation rows must use the event-specific discount by default.', companySelectionResult);
-    assert(companySelectionResult.companyInfoText.includes('Travel Agency') && companySelectionResult.companyInfoText.includes('10'), 'Group detail must show selected company metadata.', companySelectionResult);
+    assert((companySelectionResult.companyInfoText.includes('Travel Agency') || companySelectionResult.companyInfoText.includes('여행사 단체')) && companySelectionResult.companyInfoText.includes('10'), 'Group detail must show selected company metadata.', companySelectionResult);
     assert(companySelectionResult.newCompanyCreated && companySelectionResult.newCompanySearchValue.includes('Nguyen Family Group'), 'Group detail must create a new company from the picker modal and select it immediately.', companySelectionResult);
 
     const detailResult = await page.evaluate(() => {
