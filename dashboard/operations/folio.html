@@ -129,6 +129,8 @@
 .invoice-scope-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
 .invoice-scope-tab{height:30px;padding:0 10px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--txt2);font-size:.72rem;font-weight:900;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .invoice-scope-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.invoice-hotel-info{font-family:var(--font);text-align:center;border-bottom:1px solid var(--border2);padding-bottom:14px;margin-bottom:18px;color:var(--txt2);font-size:.76rem;line-height:1.55}
+.invoice-hotel-name{font-size:1.08rem;font-weight:900;color:var(--txt);margin-bottom:4px}
 .invoice-subtitle{font-family:var(--font);font-size:.78rem;color:var(--txt2);text-align:center;margin-top:-10px;margin-bottom:14px;font-weight:800}
 .invoice-payment-section{font-family:var(--font);margin-top:12px}
 .invoice-payment-title{display:flex;align-items:center;gap:7px;font-size:.9rem;font-weight:900;margin-bottom:7px;color:var(--txt)}
@@ -1118,6 +1120,23 @@ function invoiceScopeTabsHtml(folio, activeScope) {
             <i class="fa-solid ${scope === 'all' ? 'fa-layer-group' : deptIcon(scope)}"></i>${escapeHtml(invoiceScopeLabel(scope))}
         </button>
     `).join('')}</div>`;
+}
+
+const STATEMENT_HOTEL_INFO = {
+    name: 'The Grand Saigon',
+    phone: '+84 28 3915 5555',
+    email: 'info@grandsaigon.com',
+    address: '8 Dong Khoi Street, District 1, Ho Chi Minh City'
+};
+
+function statementHotelInfoHtml() {
+    return `
+        <div class="invoice-hotel-info">
+            <div class="invoice-hotel-name">${escapeHtml(STATEMENT_HOTEL_INFO.name)}</div>
+            <div>${escapeHtml(STATEMENT_HOTEL_INFO.address)}</div>
+            <div>Tel. ${escapeHtml(STATEMENT_HOTEL_INFO.phone)} · Email. ${escapeHtml(STATEMENT_HOTEL_INFO.email)}</div>
+        </div>
+    `;
 }
 
 function allocateScopedAmount(amount, ratio) {
@@ -2502,6 +2521,7 @@ function renderInvoiceModal() {
     const depositAmount = folioDepositValue(scopedFolio);
     content.innerHTML = `
         ${invoiceScopeTabsHtml(folio, currentInvoiceScope)}
+        ${statementHotelInfoHtml()}
         <div class="invoice-title" style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${escapeHtml(invoiceTitleForFolio(scopedFolio))}</div>
         <div class="invoice-subtitle">${escapeHtml(scopedFolio.invoiceScopeLabel || invoiceScopeLabel(currentInvoiceScope))}</div>
         <div>정산 번호: ${escapeHtml(scopedFolio.id)}</div>
@@ -2543,6 +2563,8 @@ function printCurrentInvoice() {
             <style>
                 body{font-family:'Inter','Noto Sans KR',sans-serif;margin:32px;color:#111827}
                 button,.invoice-scope-tabs{display:none!important}
+                .invoice-hotel-info{font-family:'Inter','Noto Sans KR',sans-serif;text-align:center;border-bottom:1px solid #e5e7eb;padding-bottom:14px;margin-bottom:18px;color:#475569;font-size:12px;line-height:1.55}
+                .invoice-hotel-name{font-size:18px;font-weight:800;color:#111827;margin-bottom:4px}
                 hr{border:0;border-top:1px dashed #d1d5db;margin:12px 0}
                 .invoice-payment-section{font-family:'Inter','Noto Sans KR',sans-serif;margin-top:12px}
                 .invoice-payment-title{font-weight:800;margin-bottom:6px}

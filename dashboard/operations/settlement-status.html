@@ -1714,6 +1714,23 @@ function settlementStatementScopeLabel(groups) {
     return settlementText('statementScoped', { type });
 }
 
+const SETTLEMENT_STATEMENT_HOTEL_INFO = {
+    name: 'The Grand Saigon',
+    phone: '+84 28 3915 5555',
+    email: 'info@grandsaigon.com',
+    address: '8 Dong Khoi Street, District 1, Ho Chi Minh City'
+};
+
+function settlementStatementHotelInfoHtml() {
+    return `
+        <div class="invoice-hotel-info">
+            <div class="invoice-hotel-name">${settlementEscape(SETTLEMENT_STATEMENT_HOTEL_INFO.name)}</div>
+            <div>${settlementEscape(SETTLEMENT_STATEMENT_HOTEL_INFO.address)}</div>
+            <div>Tel. ${settlementEscape(SETTLEMENT_STATEMENT_HOTEL_INFO.phone)} · Email. ${settlementEscape(SETTLEMENT_STATEMENT_HOTEL_INFO.email)}</div>
+        </div>
+    `;
+}
+
 function settlementStatementMetaRows(folio, groups) {
     const isGroup = folio.folioType === 'group' || Boolean(folio.groupId);
     return [
@@ -1774,6 +1791,7 @@ function printSettlementStatusReceipt(folioId) {
     `).join('');
     const paidPrefix = Number(folio.paid || 0) > 0 ? '-' : '';
     const content = `
+        ${settlementStatementHotelInfoHtml()}
         <div class="invoice-title" style="text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:var(--font)">${settlementEscape(title)}</div>
         <div class="invoice-subtitle">${settlementEscape(scopeLabel)}</div>
         ${metaHtml}
@@ -1800,6 +1818,8 @@ function printSettlementStatusReceipt(folioId) {
             <style>
                 :root{--font:'Inter','Noto Sans KR',sans-serif;--border:#d1d5db}
                 body{font-family:'Inter','Noto Sans KR',sans-serif;margin:32px;color:#111827}
+                .invoice-hotel-info{font-family:'Inter','Noto Sans KR',sans-serif;text-align:center;border-bottom:1px solid #e5e7eb;padding-bottom:14px;margin-bottom:18px;color:#475569;font-size:12px;line-height:1.55}
+                .invoice-hotel-name{font-size:18px;font-weight:800;color:#111827;margin-bottom:4px}
                 .invoice-title{text-align:center;font-weight:700;font-size:1.2rem;margin-bottom:16px;font-family:'Inter','Noto Sans KR',sans-serif}
                 .invoice-subtitle{font-family:'Inter','Noto Sans KR',sans-serif;font-size:.78rem;color:#64748b;text-align:center;margin-top:-10px;margin-bottom:14px;font-weight:800}
                 hr{border:0;border-top:1px dashed #d1d5db;margin:12px 0}
