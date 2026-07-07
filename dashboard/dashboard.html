@@ -522,9 +522,13 @@
         partnerInternalLabel: '계약 검토용 광고',
         partnerService: '서비스 구분',
         partnerContact: '계약 문의 연락처',
+        partnerContactPerson: '담당자',
+        partnerPhone: '연락처',
+        partnerEmail: '이메일',
         partnerAddress: '주소',
         partnerHours: '운영 시간',
         partnerPeriod: '적용 기간',
+        partnerDetailContent: '상세 내용',
         partnerBenefit: '광고 제안',
         partnerSettlement: '정산 조건',
         partnerFrontdeskMemo: '호텔 확인사항',
@@ -640,9 +644,13 @@
         partnerInternalLabel: 'Partnership review ad',
         partnerService: 'Service',
         partnerContact: 'Contract Contact',
+        partnerContactPerson: 'Manager',
+        partnerPhone: 'Phone',
+        partnerEmail: 'Email',
         partnerAddress: 'Address',
         partnerHours: 'Hours',
         partnerPeriod: 'Period',
+        partnerDetailContent: 'Detail Content',
         partnerBenefit: 'Ad Offer',
         partnerSettlement: 'Settlement',
         partnerFrontdeskMemo: 'Hotel Review Notes',
@@ -672,6 +680,40 @@
 
     function esc(value) {
         return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+    function localized(value, fallback = '') {
+        if (value && typeof value === 'object') {
+            const lang = currentOpsLang();
+            return value[lang] || value.ko || value.en || fallback;
+        }
+        return value || fallback;
+    }
+    function sanitizePartnerHtml(html) {
+        const template = document.createElement('template');
+        template.innerHTML = String(html || '');
+        const allowedTags = new Set(['H3','H4','P','UL','OL','LI','STRONG','B','EM','I','BR','A','FIGURE','FIGCAPTION','IMG']);
+        const allowedAttrs = {
+            A: new Set(['href','target','rel']),
+            IMG: new Set(['src','alt'])
+        };
+        template.content.querySelectorAll('*').forEach(node => {
+            if (!allowedTags.has(node.tagName)) {
+                node.replaceWith(...Array.from(node.childNodes));
+                return;
+            }
+            Array.from(node.attributes).forEach(attr => {
+                const name = attr.name.toLowerCase();
+                const value = attr.value || '';
+                const isAllowed = allowedAttrs[node.tagName]?.has(name) || false;
+                const isUnsafeUrl = (name === 'href' || name === 'src') && /^\s*javascript:/i.test(value);
+                if (!isAllowed || isUnsafeUrl) node.removeAttribute(attr.name);
+            });
+            if (node.tagName === 'A') {
+                node.setAttribute('target', '_blank');
+                node.setAttribute('rel', 'noopener noreferrer');
+            }
+        });
+        return template.innerHTML;
     }
     function setText(selector, key) {
         const el = document.querySelector(selector);
@@ -725,6 +767,10 @@
         }
         const icon = partnerKit()?.serviceIcon?.(vendor.type) || 'fa-bell-concierge';
         const items = Array.isArray(vendor.items) ? vendor.items : [];
+        const contactPerson = vendor.contactPerson || String(vendor.contact || '').split('/')[0]?.trim() || '-';
+        const contactPhone = vendor.contactPhone || String(vendor.contact || '').split('/')[1]?.trim() || '-';
+        const contactEmail = vendor.contactEmail || vendor.email || '-';
+        const detailHtml = sanitizePartnerHtml(localized(vendor.detailContentHtml, ''));
         title.innerHTML = `<i class="fa-solid ${esc(icon)}" style="color:var(--primary)"></i> ${esc(vendor.name || t('partnerDetailTitle'))}`;
         body.innerHTML = `
             <section class="partner-hero">
@@ -736,10 +782,14 @@
                 </div>
             </section>
             <section class="partner-contact-card">
-                <div>
+                <div class="partner-contact-card__head">
                     <span>${esc(t('partnerContact'))}</span>
-                    <strong>${esc(vendor.contact || '-')}</strong>
                     <small>${esc(t('partnerContactGuide'))}</small>
+                </div>
+                <div class="partner-contact-grid">
+                    ${partnerInfoRow('partnerContactPerson', contactPerson)}
+                    ${partnerInfoRow('partnerPhone', contactPhone)}
+                    ${partnerInfoRow('partnerEmail', contactEmail)}
                 </div>
             </section>
             <section class="partner-info-grid">
@@ -749,21 +799,10 @@
                 ${partnerInfoRow('partnerPeriod', vendor.usagePeriod || '-')}
                 ${partnerInfoRow('partnerSettlement', vendor.settlementPolicy || '-')}
             </section>
-            <section class="partner-section">
-                <h4><i class="fa-solid fa-bullhorn"></i> ${esc(t('partnerBenefit'))}</h4>
-                <p>${esc(vendor.benefit || '-')}</p>
-            </section>
-            <section class="partner-section">
-                <h4><i class="fa-solid fa-route"></i> ${esc(t('partnerBookingGuide'))}</h4>
-                <p>${esc(vendor.bookingGuide || '-')}</p>
-            </section>
+            ${detailHtml ? `<section class="partner-section partner-editor-content"><h4><i class="fa-solid fa-file-lines"></i> ${esc(t('partnerDetailContent'))}</h4><div class="partner-editor-body">${detailHtml}</div></section>` : ''}
             <section class="partner-section">
                 <h4><i class="fa-solid fa-tags"></i> ${esc(t('partnerLinkedItems'))}</h4>
                 ${items.length ? `<div class="partner-item-list">${items.map(item => `<div class="partner-item"><span>${esc(item.name)}</span><strong>${esc(partnerKit()?.money?.(item.price) || money(item.price))}</strong><small>${esc(item.desc || '')}</small></div>`).join('')}</div>` : `<div class="partner-empty">${esc(t('partnerNoItems'))}</div>`}
-            </section>
-            <section class="partner-section">
-                <h4><i class="fa-solid fa-clipboard-check"></i> ${esc(t('partnerFrontdeskMemo'))}</h4>
-                <p>${esc(vendor.frontdeskMemo || '-')}</p>
             </section>
         `;
         if (footer) {
