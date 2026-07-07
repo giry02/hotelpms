@@ -131,7 +131,6 @@
         .register-existing-title{font-size:.82rem;font-weight:950;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .register-existing-meta{font-size:.68rem;font-weight:850;color:var(--txt3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .register-existing-money{font-size:.86rem;font-weight:950;color:var(--txt)}
-        .register-output-preview{margin-top:14px}
         .service-voucher-preview{background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:14px}
         .voucher-sheet{max-width:680px;margin:0 auto;background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden}
         .voucher-brand{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:22px;border-bottom:1px solid #e5e7eb}
@@ -150,6 +149,20 @@
         .voucher-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
         .voucher-fields label{display:flex;align-items:center;gap:7px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;font-size:.75rem;font-weight:850}
         .voucher-preview{margin-top:10px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px;font-size:.75rem;line-height:1.7;color:var(--txt2)}
+        .service-voucher-modal{width:min(820px,calc(100vw - 24px));max-height:88vh;overflow:auto}
+        #serviceVoucherModal,
+        #serviceVoucherModal *{font-family:var(--font)}
+        .voucher-print-wrap{padding:18px;background:#f8fafc;border:1px solid var(--border);border-radius:14px}
+        body.printing-service-voucher *{visibility:hidden!important}
+        body.printing-service-voucher #serviceVoucherModal,
+        body.printing-service-voucher #serviceVoucherModal *{visibility:visible!important}
+        body.printing-service-voucher #serviceVoucherModal{position:absolute!important;inset:0!important;background:#fff!important;display:block!important;z-index:99999!important}
+        body.printing-service-voucher #serviceVoucherModal .modal-card{width:100%!important;max-width:none!important;box-shadow:none!important;border:0!important;border-radius:0!important;max-height:none!important;overflow:visible!important}
+        body.printing-service-voucher #serviceVoucherModal .modal-header,
+        body.printing-service-voucher #serviceVoucherModal .modal-footer{display:none!important}
+        body.printing-service-voucher #serviceVoucherModal .modal-body{padding:0!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-print-wrap{padding:0!important;background:#fff!important;border:0!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-sheet{border-color:#111827!important;border-radius:0!important;max-width:720px!important}
         .modal-footer{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;padding:14px;background:#f8fafc;border-top:1px solid var(--border)}
         #serviceModal,
         #serviceDetailModal,
@@ -299,15 +312,26 @@
                             </div>
                         </section>
                     </div>
-                    <section class="register-output-preview">
-                        <div class="register-preview-title"><span><i class="fa-solid fa-print"></i> 출력 미리보기</span><span id="registrationPreviewBadge"></span></div>
-                        <div id="registrationPreview" class="service-voucher-preview"></div>
-                    </section>
                 </div>
             </section>
         </div>
         <div class="modal-footer">
             <button class="btn-outline" onclick="closeServiceDetailModal()">닫기</button>
+        </div>
+    </div>
+</div>
+<div class="modal" id="serviceVoucherModal" style="display:none">
+    <div class="modal-card service-voucher-modal">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-ticket" style="color:var(--primary)"></i> 바우처 출력</h3>
+            <button class="modal-close" onclick="closeOrderVoucherModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="serviceVoucherPrintBody" class="voucher-print-wrap"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="closeOrderVoucherModal()">닫기</button>
+            <button class="btn-primary-sm" onclick="printServiceVoucher()"><i class="fa-solid fa-print"></i> 인쇄하기</button>
         </div>
     </div>
 </div>
@@ -320,6 +344,7 @@ let vendors = [];
 let serviceOrders = [];
 let selectedRoomId = '';
 let selectedDetailRoomId = '';
+let selectedVoucherOrderId = '';
 let selectedService = 'pos';
 let serviceFilter = 'all';
 let requestedVendorId = '';
@@ -533,13 +558,13 @@ function serviceOrderStatusMeta(status) {
 }
 function serviceOrderActionButtons(order) {
     const status = serviceOrderStatusMeta(order.status);
-    const printButton = order.service === 'pos' ? '' : `<button class="btn-outline" style="height:30px;padding:0 10px" onclick="printOrderVoucher('${escapeHtml(order.id)}')"><i class="fa-solid fa-print"></i> 출력</button>`;
+    const voucherButton = order.service === 'pos' ? '' : `<button class="btn-outline" style="height:30px;padding:0 10px" onclick="openOrderVoucherModal('${escapeHtml(order.id)}')"><i class="fa-solid fa-ticket"></i> 바우처 출력</button>`;
     const nextButton = status.key === 'new'
         ? `<button class="btn-primary-sm" style="height:30px;padding:0 10px" onclick="updateServiceOrderStatus('${escapeHtml(order.id)}','accepted')"><i class="fa-solid fa-check"></i> 수락</button>`
         : status.key === 'accepted'
             ? `<button class="btn-primary-sm" style="height:30px;padding:0 10px;background:var(--success);border-color:var(--success)" onclick="updateServiceOrderStatus('${escapeHtml(order.id)}','completed')"><i class="fa-solid fa-check-double"></i> 완료</button>`
             : '';
-    return `${printButton}${nextButton}`;
+    return `${voucherButton}${nextButton}`;
 }
 function voucherFieldsForOrder(order) {
     const vendor = vendorForOrder(order);
@@ -1052,46 +1077,10 @@ function selectedItem() {
     return (vendor?.items || [])[index] || { name:'기본 항목', price:0 };
 }
 function renderRegistrationPreview() {
-    const preview = document.getElementById('registrationPreview');
     const existingList = document.getElementById('registrationExistingList');
-    if (!preview || !existingList) return;
+    if (!existingList) return;
     const room = findRoomById(selectedRoomId);
     const orders = roomOrders(room || {});
-    const vendor = selectedVendor();
-    const item = selectedItem();
-    const meta = serviceMeta(selectedService);
-    const qty = Math.max(1, Number(document.getElementById('serviceQty')?.value || 1));
-    const unitPrice = Number(item.price || 0);
-    const total = unitPrice * qty;
-    const bulk = document.getElementById('groupBulkToggle')?.checked && selectedService !== 'pos';
-    const targetCount = bulk ? document.querySelectorAll('.group-room-check:checked').length : 1;
-    const res = room ? activeReservationForRoom(room) || nextReservationForRoom(room) : null;
-    const group = groupForReservation(res);
-    const previewOrder = {
-        id: 'SVC-PREVIEW',
-        service: selectedService,
-        serviceLabel: meta.label,
-        room: room ? roomNo(room) : '-',
-        roomId: room?.id || room?.roomId || selectedRoomId,
-        guest: reservationGuest(res),
-        reservationId: res?.id || '',
-        groupId: group?.id || group?.groupId || '',
-        groupName: group?.name || group?.groupName || '',
-        vendor: vendor?.name || meta.label,
-        vendorId: vendor?.id || '',
-        item: item.name || meta.label,
-        qty,
-        unitPrice,
-        total,
-        dateTime: document.getElementById('serviceDateTime')?.value || new Date().toISOString().slice(0, 16),
-        status: 'new',
-        memo: document.getElementById('serviceMemo')?.value || '-',
-        voucherFields: Array.isArray(vendor?.voucherFields) ? [...vendor.voucherFields] : [],
-        createdAt: new Date().toISOString()
-    };
-    const targetText = bulk ? `객실당 ${money(total)} · 총 ${targetCount.toLocaleString('ko-KR')}실` : money(total);
-    document.getElementById('registrationPreviewBadge').textContent = `${meta.label} · ${targetText}`;
-    preview.innerHTML = renderVoucherSheet(previewOrder);
     document.getElementById('registrationExistingCount').textContent = `${orders.length}건`;
     existingList.innerHTML = orders.length ? orders.slice(0, 7).map(order => {
         const orderMeta = serviceMeta(order.service);
@@ -1190,25 +1179,35 @@ function saveServiceOrder() {
     if (window.showToast) window.showToast(`${meta.label} ${created.length}건이 등록되었습니다.`, 'success');
     if (created.length) openServiceDetailModal(roomsToSave[0].id || roomsToSave[0].roomId || roomNo(roomsToSave[0]));
 }
-function printOrderVoucher(orderId) {
+function openOrderVoucherModal(orderId) {
     const order = serviceOrders.find(item => item.id === orderId);
-    if (!order) return;
+    if (!order || order.service === 'pos') return;
     const fields = voucherFieldsForOrder(order);
     if (!fields.length) return window.showAlert?.('업체/항목 관리에서 바우처 출력 항목을 먼저 설정해 주세요.', { type: 'warning' });
-    const html = renderVoucherSheet(order);
-    const win = window.open('', '_blank', 'width=720,height=900');
-    win.document.write(`<!doctype html><html><head><title>부가서비스 바우처</title><style>
-        body{margin:24px;background:#f3f4f6;font-family:Arial,'Noto Sans KR',sans-serif;color:#111827}
-        .voucher-sheet{max-width:680px;margin:0 auto;background:#fff;border:1px solid #d1d5db;border-radius:14px;overflow:hidden}
-        .voucher-brand{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:22px;border-bottom:1px solid #e5e7eb}
-        .voucher-logo{min-width:112px;min-height:58px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#6b7280;overflow:hidden}
-        .voucher-logo img{max-width:130px;max-height:58px;object-fit:contain}
-        .voucher-heading{margin:0;font-size:22px;text-align:right}.voucher-sub{margin-top:6px;font-size:13px;color:#6b7280;text-align:right;font-weight:800}
-        .voucher-body{padding:16px 22px}.voucher-row{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #eef2f7;padding:11px 0;font-size:14px}.voucher-row:first-child{border-top:0}.voucher-row strong{color:#6b7280}.voucher-row span{text-align:right;font-weight:800}
-        .voucher-stub{border-top:1px dashed #9ca3af;background:#f9fafb;padding:16px 22px}.voucher-stub-title{font-size:14px;font-weight:900;margin-bottom:10px}.voucher-stub-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;font-size:13px;color:#374151}
-        @media print{body{margin:0;background:#fff}.voucher-sheet{border-radius:0;border-color:#111827}}
-    </style></head><body>${html}<script>window.print()<\/script></body></html>`);
-    win.document.close();
+    selectedVoucherOrderId = orderId;
+    const body = document.getElementById('serviceVoucherPrintBody');
+    if (body) body.innerHTML = renderVoucherSheet(order);
+    const modal = document.getElementById('serviceVoucherModal');
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+}
+function closeOrderVoucherModal() {
+    selectedVoucherOrderId = '';
+    const modal = document.getElementById('serviceVoucherModal');
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+}
+function printServiceVoucher() {
+    const order = serviceOrders.find(item => item.id === selectedVoucherOrderId);
+    if (!order || order.service === 'pos') return;
+    document.body.classList.add('printing-service-voucher');
+    setTimeout(() => {
+        window.print();
+        setTimeout(() => document.body.classList.remove('printing-service-voucher'), 250);
+    }, 50);
+}
+function printOrderVoucher(orderId) {
+    openOrderVoucherModal(orderId);
 }
 document.addEventListener('DOMContentLoaded', async () => {
     loadVendors();
