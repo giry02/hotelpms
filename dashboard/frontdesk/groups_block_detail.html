@@ -1361,7 +1361,7 @@ window.addEventListener('DataReady', () => {
             <div class="company-picker-row">
                 <div class="company-picker-search">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input id="detailAgencySearch" value="${safeAttr(searchValue)}" placeholder="단체명, 담당자, 연락처 검색" autocomplete="off" onfocus="renderCompanyPickerResults(this.value)" oninput="renderCompanyPickerResults(this.value)">
+                    <input id="detailAgencySearch" value="${safeAttr(searchValue)}" placeholder="단체명, 담당자, 연락처 검색" autocomplete="off" oninput="renderCompanyPickerResults(this.value)">
                 </div>
                 <button type="button" class="mini-btn primary company-create-btn" onclick="openDetailCompanyModal(document.getElementById('detailAgencySearch')?.value || '')"><i class="fa-solid fa-plus"></i> 신규 단체</button>
             </div>
@@ -1389,18 +1389,25 @@ window.addEventListener('DataReady', () => {
         if (!wrap) return;
         const companies = loadDetailCompanies();
         const q = String(query || '').trim();
+        const selectedId = document.getElementById('detailAgencyId')?.value || '';
+        if (selectedId) {
+            wrap.innerHTML = '';
+            return;
+        }
+        if (!q) {
+            wrap.innerHTML = '';
+            return;
+        }
         const matched = companies.filter(c => detailCompanyMatches(c, q)).slice(0, 8);
         if (!companies.length) {
             wrap.innerHTML = `<div class="company-picker-empty">
                 등록된 단체가 없습니다.
-                <br><button type="button" class="mini-btn primary" onclick="openDetailCompanyModal(document.getElementById('detailAgencySearch')?.value || '')"><i class="fa-solid fa-plus"></i> 신규 단체 등록</button>
             </div>`;
             return;
         }
         if (!matched.length) {
             wrap.innerHTML = `<div class="company-picker-empty">
                 일치하는 단체가 없습니다.
-                <br><button type="button" class="mini-btn primary" onclick="openDetailCompanyModal(document.getElementById('detailAgencySearch')?.value || '')"><i class="fa-solid fa-plus"></i> 검색어로 신규 단체 등록</button>
             </div>`;
             return;
         }
