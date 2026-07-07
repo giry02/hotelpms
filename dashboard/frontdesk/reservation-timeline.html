@@ -67,7 +67,8 @@
 .tl-block.blocked { background: #111827 !important; }
 .tl-block.pending { background: #F59E0B !important; }
 .tl-block.checkedin { background: #10B981 !important; }
-.tl-block.checkout, .tl-block.checkedout { background: #F97316 !important; }
+.tl-block.checkout, .tl-block.checkedout { background: #F59E0B !important; }
+.tl-block.late { background: #EA580C !important; }
 .tl-block.cancelled { background: #EF4444 !important; }
 .tl-block.completed { background: #94A3B8 !important; } /* Completed checkout / out-of-service (gray) */
 .tl-header-row,
@@ -116,19 +117,19 @@
     padding:5px 8px!important;
 }
 .tl-block{
-    min-height:40px;
-    height:var(--tl-block-height,44px)!important;
+    min-height:44px;
+    height:var(--tl-block-height,48px)!important;
     flex-direction:column;
     align-items:flex-start!important;
     justify-content:center;
     gap:0;
-    padding:4px 8px!important;
+    padding:5px 8px!important;
     box-sizing:border-box;
     overflow:hidden;
 }
-.tl-block-text{width:100%;display:flex;flex-direction:column;justify-content:center;gap:1px;line-height:1.08;min-width:0;min-height:0}
-.tl-group-title{display:flex;align-items:center;gap:4px;min-width:0;width:100%;font-size:.6rem;font-weight:950;color:#fff;white-space:nowrap;overflow:hidden;line-height:1.12}
-.tl-group-title .tl-group-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tl-block-text{width:100%;display:flex;flex-direction:column;justify-content:center;gap:1px;line-height:1.12;min-width:0;min-height:0}
+.tl-group-title{display:flex;align-items:flex-start;gap:4px;min-width:0;width:100%;font-size:.6rem;font-weight:950;color:#fff;overflow:hidden;line-height:1.12}
+.tl-group-title .tl-group-name{min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:keep-all}
 .tl-guest-stack{display:flex;flex-direction:column;gap:0;min-width:0;width:100%;line-height:1.1}
 .tl-primary-guest{display:flex;align-items:center;gap:5px;min-width:0;width:100%;font-size:.64rem;font-weight:950;color:#fff;white-space:nowrap;overflow:hidden;line-height:1.14}
 .tl-primary-guest i.fa-user{font-size:.6rem;color:rgba(255,255,255,.94);flex:0 0 auto}
@@ -142,7 +143,7 @@
 .tl-time-row i{font-size:.52rem;color:rgba(255,255,255,.9)}
 .tl-time-row span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .tl-block.group-assigned {
-    background: #2563EB !important;
+    background: #111827 !important;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
 }
 .tl-group-badge {
@@ -227,7 +228,7 @@
                 <div class="tl-legend">
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#3B82F6"></span><span id="legendConfirmedLabel">예약 확정</span></div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#10B981"></span><span id="legendCheckedinLabel">투숙 중</span></div>
-                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#F97316"></span><span id="legendCheckoutLabel">체크아웃 대상</span></div>
+                    <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#F59E0B"></span><span id="legendCheckoutLabel">체크아웃 대상</span></div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#94A3B8"></span><span id="legendPreviousLabel">이전 예약 / 점검</span></div>
                     <div class="tl-leg-item"><span class="tl-leg-dot" style="background:#111827"></span><span id="legendGroupLabel">단체 블록</span></div>
                 </div>
@@ -760,7 +761,7 @@ function hasTimelineGroupGuest(res) {
 }
 
 function renderTimelineStatus(res, safeStatus) {
-    if (hasTimelineGroupGuest(res) && (res.isGroupPlaceholder || ['blocked', 'confirmed', 'pending'].includes(safeStatus))) return 'group-assigned';
+    if (res && (res.isGroupPlaceholder || normalizeReservationStatus(res) === 'blocked')) return 'group-assigned';
     return safeStatus;
 }
 
@@ -1242,7 +1243,7 @@ function buildMobileView() {
         completed: timelineText('completed'),
         vip: 'VIP'
     };
-    const colorMap = {blocked:'#111827','group-assigned':'#2563EB',confirmed:'#3B82F6',checkedin:'#10B981',checkout:'#F97316',completed:'#94A3B8',vip:'#8B5CF6'};
+    const colorMap = {blocked:'#111827','group-assigned':'#111827',confirmed:'#3B82F6',checkedin:'#10B981',checkout:'#F59E0B',late:'#EA580C',completed:'#94A3B8',vip:'#8B5CF6'};
     const iconMap = {blocked:'fa-building','group-assigned':'fa-users',confirmed:'fa-check',checkedin:'fa-right-to-bracket',checkout:'fa-right-from-bracket',completed:'fa-check-double',vip:'fa-crown'};
 
     const renderReservations = timelineReservationsForRender();
