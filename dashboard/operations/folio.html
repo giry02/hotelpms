@@ -301,8 +301,9 @@
                     </button>
                 </div>
                 <div class="filter-chips" style="display:flex; align-items:center; gap:8px">
-                    <button class="chip dept-chip active" onclick="setDept(this,'individual')"><i class="fa-solid fa-user"></i> 개인</button>
-                    <button class="chip dept-chip" onclick="setDept(this,'group')"><i class="fa-solid fa-people-group"></i> 단체</button>
+                    <button class="chip dept-chip active" onclick="setDept(this,'all')"><i class="fa-solid fa-list"></i> <span data-i18n-key="common.all">전체</span></button>
+                    <button class="chip dept-chip" onclick="setDept(this,'individual')"><i class="fa-solid fa-user"></i> <span data-i18n-key="common.individual">개인</span></button>
+                    <button class="chip dept-chip" onclick="setDept(this,'group')"><i class="fa-solid fa-people-group"></i> <span data-i18n-key="common.group">단체</span></button>
                     
                     <button class="chip" id="btnUnpaidToggle" onclick="toggleUnpaidOnly()"><i class="fa-solid fa-exclamation-circle"></i> <span data-i18n-key="folio.filter.hasOutstanding">미수금 있음</span></button>
 <input type="checkbox" id="chkUnpaid" style="display:none;">
@@ -460,7 +461,7 @@ const stMap = {
     'group': { label:'단체 관리', badge:'confirmed' }
 };
 
-let currentDept = 'individual';
+let currentDept = 'all';
 let currentPeriod = 'day';
 let currentStatusFilter = 'all';
 let currentFolioSortMode = 'latest';
@@ -707,13 +708,18 @@ function groupGuestCount(group = {}) {
     return Number(group.pickup || group.pickedUpRooms || rooming || 0);
 }
 
+function folioUiLang() {
+    return (window.currentLang || localStorage.getItem('pms_lang') || 'ko') === 'en' ? 'en' : 'ko';
+}
+
 function groupStatusText(group = {}) {
+    const lang = folioUiLang();
     const status = String(group.status || '').toLowerCase().replace(/[_\s]/g, '-');
-    if (status === 'inhouse' || status === 'in-house') return '투숙 중';
-    if (status === 'departed' || status === 'checked-out') return '체크아웃';
-    if (status === 'confirmed') return '예약 확정';
-    if (status === 'pending') return '대기';
-    return group.status || '단체';
+    if (status === 'inhouse' || status === 'in-house') return lang === 'en' ? 'In-house' : '투숙 중';
+    if (status === 'departed' || status === 'checked-out') return lang === 'en' ? 'Checked out' : '체크아웃';
+    if (status === 'confirmed') return lang === 'en' ? 'Confirmed' : '예약 확정';
+    if (status === 'pending') return lang === 'en' ? 'Pending' : '대기';
+    return group.status || (lang === 'en' ? 'Group' : '단체');
 }
 
 function folioGroupBadgeHtml(folio) {
@@ -725,6 +731,7 @@ function folioGroupBadgeHtml(folio) {
 
 function folioGroupMetaHtml(folio) {
     if (!isGroupFolio(folio)) return '';
+    const lang = folioUiLang();
     const group = folio.group || groupById(folio.groupId) || {};
     const rooms = groupRooms(group);
     const block = Number(group.block || group.blockedRooms || rooms.length || 0);
@@ -732,11 +739,14 @@ function folioGroupMetaHtml(folio) {
     const pax = Number(group.pax || 0);
     const company = group.agency || group.companyName || folio.companyName || '-';
     const routing = sanitizeSettlementRouting(group.routing || folio.routing);
+    const blockLabel = lang === 'en' ? 'Block' : '블록';
+    const pickupLabel = lang === 'en' ? 'Pickup' : '픽업';
+    const detailLabel = lang === 'en' ? 'Group details' : '단체 상세 관리';
     return `<div class="folio-group-meta">
         <span><i class="fa-solid fa-building"></i>${escapeHtml(company)}</span>
-        <span><i class="fa-solid fa-door-open"></i>블록 ${block} · 픽업 ${pickup}${pax ? ` · PAX ${pax}` : ''}</span>
+        <span><i class="fa-solid fa-door-open"></i>${blockLabel} ${block} · ${pickupLabel} ${pickup}${pax ? ` · PAX ${pax}` : ''}</span>
         <span><i class="fa-solid fa-file-invoice-dollar"></i>${escapeHtml(routing)}</span>
-        ${folio.groupId ? `<a class="folio-group-manage-link" href="../frontdesk/groups_block_detail.html?id=${encodeURIComponent(folio.groupId)}" onclick="event.stopPropagation()"><i class="fa-solid fa-arrow-up-right-from-square"></i>단체 상세 관리</a>` : ''}
+        ${folio.groupId ? `<a class="folio-group-manage-link" href="../frontdesk/groups_block_detail.html?id=${encodeURIComponent(folio.groupId)}" onclick="event.stopPropagation()"><i class="fa-solid fa-arrow-up-right-from-square"></i>${detailLabel}</a>` : ''}
     </div>`;
 }
 
@@ -2168,7 +2178,11 @@ function renderFolioPagination(totalCount) {
     const startNo = totalCount ? ((folioCurrentPage - 1) * folioPageSize) + 1 : 0;
     const endNo = Math.min(totalCount, folioCurrentPage * folioPageSize);
     const info = document.getElementById('folioPageInfo');
-    if (info) info.textContent = `총 ${totalCount.toLocaleString()}건 · ${startNo.toLocaleString()}-${endNo.toLocaleString()} 표시`;
+    if (info) {
+        info.textContent = folioUiLang() === 'en'
+            ? `Total ${totalCount.toLocaleString()} items · Showing ${startNo.toLocaleString()}-${endNo.toLocaleString()}`
+            : `총 ${totalCount.toLocaleString()}건 · ${startNo.toLocaleString()}-${endNo.toLocaleString()} 표시`;
+    }
     const prev = document.getElementById('folioPrevPage');
     const next = document.getElementById('folioNextPage');
     if (prev) prev.disabled = folioCurrentPage <= 1;
