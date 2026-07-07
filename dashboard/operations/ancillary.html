@@ -96,7 +96,7 @@
         .modal-section{border:1px solid var(--border);border-radius:12px;background:#fff;overflow:hidden}
         .modal-section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border);background:#f8fafc;font-weight:950}
         .modal-section-body{padding:14px}
-        .service-register-section{margin-top:14px}
+        .service-register-section{margin-top:14px;scroll-margin-top:14px}
         .service-register-section.is-hidden{display:none}
         .modal-room-box{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:2px}
         .info-tile{min-width:0;min-height:62px;padding:10px;border:1px solid var(--border);border-radius:10px;background:#f8fafc;display:flex;flex-direction:column;justify-content:center}
@@ -1110,6 +1110,14 @@ function closeServiceDetailModal() {
 }
 function openServiceModalFromDetail() {
     toggleServiceRegistration(true);
+    scrollServiceRegistrationIntoView();
+}
+function scrollServiceRegistrationIntoView() {
+    const section = document.getElementById('detailRegistrationSection');
+    if (!section || section.classList.contains('is-hidden')) return;
+    requestAnimationFrame(() => {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
 }
 function updateServiceOrderStatus(orderId, status) {
     const order = serviceOrders.find(item => item.id === orderId);
