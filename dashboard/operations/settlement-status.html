@@ -299,8 +299,8 @@
                         <label for="settlementStatusPaymentMethod">결제 수단</label>
                         <select id="settlementStatusPaymentMethod">
                             <option value="cash">현금</option>
-                            <option value="card">카드</option>
-                            <option value="transfer">계좌이체</option>
+                            <option value="card">신용카드</option>
+                            <option value="bank">계좌이체</option>
                             <option value="other">기타</option>
                         </select>
                     </div>
@@ -460,7 +460,7 @@ const SETTLEMENT_TEXT = {
         paymentMethod: '결제 수단',
         depositToggleTitle: '예치금으로 보관할 수납이면 체크',
         methodCash: '현금',
-        methodCard: '카드',
+        methodCard: '신용카드',
         methodTransfer: '계좌이체',
         methodOther: '기타',
         actualReceived: '실제 받은 금액',
@@ -488,6 +488,7 @@ const SETTLEMENT_TEXT = {
         targetMissing: '정산 대상을 찾지 못했습니다.',
         amountRequired: '수납 금액을 입력해주세요.',
         receivedRequired: '실제 받은 금액을 페소, 달러, 원화 중 하나 이상 입력해주세요.',
+        otherMemoRequired: '기타 결제수단은 메모를 입력해야 합니다.',
         paymentSaved: '정산 수납 내역이 저장되었습니다.',
         depositSaved: '예치금 수납 내역이 저장되었습니다.',
         completeBalanceFirst: '미수금이 남아 있어 정산 완료 처리할 수 없습니다. 먼저 수납 금액을 입력해주세요.',
@@ -597,7 +598,7 @@ const SETTLEMENT_TEXT = {
         paymentMethod: 'Payment Method',
         depositToggleTitle: 'Check when the payment should be kept as a deposit',
         methodCash: 'Cash',
-        methodCard: 'Card',
+        methodCard: 'Credit Card',
         methodTransfer: 'Bank Transfer',
         methodOther: 'Other',
         actualReceived: 'Actual Received Amount',
@@ -625,6 +626,7 @@ const SETTLEMENT_TEXT = {
         targetMissing: 'Could not find the settlement item.',
         amountRequired: 'Please enter the payment amount.',
         receivedRequired: 'Please enter at least one actual received amount in peso, dollar, or won.',
+        otherMemoRequired: 'Please enter a memo when using Other as the payment method.',
         paymentSaved: 'Settlement payment history has been saved.',
         depositSaved: 'Deposit payment history has been saved.',
         completeBalanceFirst: 'Balance remains. Enter payment amount before completing settlement.',
@@ -767,7 +769,14 @@ function settlementSetStorageJson(key, value) {
 
 function settlementPaymentRecords() {
     const records = settlementStorageJson(SETTLEMENT_PAYMENTS_KEY, []);
-    return Array.isArray(records) ? records : [];
+    return Array.isArray(records) ? records.map(record => {
+        const method = settlementNormalizePaymentMethod(record.method, record.methodLabel);
+        return {
+            ...record,
+            method,
+            methodLabel: settlementMethodLabel(method, record.methodLabel)
+        };
+    }) : [];
 }
 
 function settlementCompletionRecords() {
@@ -1466,7 +1475,7 @@ function applySettlementStaticI18n() {
     if (methodLabel) methodLabel.textContent = settlementText('paymentMethod');
     const method = document.getElementById('settlementStatusPaymentMethod');
     if (method) {
-        const methodLabels = { cash: 'methodCash', card: 'methodCard', transfer: 'methodTransfer', other: 'methodOther' };
+        const methodLabels = { cash: 'methodCash', card: 'methodCard', bank: 'methodTransfer', transfer: 'methodTransfer', other: 'methodOther' };
         Array.from(method.options).forEach(option => {
             option.textContent = settlementText(methodLabels[option.value] || 'methodOther');
         });
@@ -1561,9 +1570,19 @@ function settlementDetailStatus(folio) {
     };
 }
 
+function settlementNormalizePaymentMethod(method, fallback = '') {
+    const raw = String(method || fallback || '').trim().toLowerCase().replace(/[\s-]/g, '_');
+    if (['cash', '현금'].includes(raw)) return 'cash';
+    if (['card', 'credit_card', 'creditcard', '신용카드', '카드'].includes(raw)) return 'card';
+    if (['bank', 'transfer', 'bank_transfer', 'banktransfer', 'account_transfer', 'wire', '계좌이체', '이체'].includes(raw)) return 'bank';
+    if (['other', 'etc', '기타'].includes(raw)) return 'other';
+    return raw ? 'other' : 'cash';
+}
+
 function settlementMethodLabel(method, fallback = '') {
-    const methodKeys = { cash: 'methodCash', card: 'methodCard', transfer: 'methodTransfer', other: 'methodOther' };
-    return methodKeys[method] ? settlementText(methodKeys[method]) : (fallback || method || settlementText('payment'));
+    const normalized = settlementNormalizePaymentMethod(method, fallback);
+    const methodKeys = { cash: 'methodCash', card: 'methodCard', bank: 'methodTransfer', other: 'methodOther' };
+    return settlementText(methodKeys[normalized] || 'methodOther');
 }
 
 function settlementPaymentCurrencyCardsHtml(record) {
@@ -1945,8 +1964,13 @@ async function processSettlementStatusPayment(options = {}) {
         return;
     }
     const methodSelect = document.getElementById('settlementStatusPaymentMethod');
-    const method = methodSelect?.value || 'cash';
-    const methodLabel = settlementMethodLabel(method, methodSelect?.selectedOptions?.[0]?.textContent || method);
+    const method = settlementNormalizePaymentMethod(methodSelect?.value || 'cash', methodSelect?.selectedOptions?.[0]?.textContent || '');
+    const note = document.getElementById('settlementStatusPaymentNote')?.value?.trim() || '';
+    if (method === 'other' && !note) {
+        showToast(settlementText('otherMemoRequired'), 'error');
+        return;
+    }
+    const methodLabel = settlementMethodLabel(method);
     const appliedPhpAmount = isDeposit ? amount : Math.min(amount, Number(folio.balance || 0));
     const records = settlementPaymentRecords();
     records.push({
@@ -1967,7 +1991,7 @@ async function processSettlementStatusPayment(options = {}) {
         businessDate: settlementTodayIso(),
         createdAt: settlementNowIso(),
         operator: settlementCurrentOperator(),
-        note: document.getElementById('settlementStatusPaymentNote')?.value || ''
+        note
     });
     settlementSetStorageJson(SETTLEMENT_PAYMENTS_KEY, records);
     window.dispatchEvent(new CustomEvent('pms:settlement-payments-updated'));

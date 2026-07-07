@@ -1911,8 +1911,14 @@ function saveCashSettlementPayment() {
         return;
     }
     const primary = cashSettlementPrimaryBreakdown(receivedBreakdown);
-    const method = document.getElementById('cashSettleMethod')?.value || 'cash';
-    const methodLabel = document.getElementById('cashSettleMethod')?.selectedOptions?.[0]?.textContent || method;
+    const methodSelect = document.getElementById('cashSettleMethod');
+    const method = normalizeCloseBasisPaymentMethod(methodSelect?.value || 'cash', methodSelect?.selectedOptions?.[0]?.textContent || '');
+    const methodLabel = closeBasisPaymentMethodLabel({ method });
+    const note = textValue('cashSettleNote');
+    if (method === 'other' && !note) {
+        showToast(cashUiText('기타 결제수단은 메모를 입력해야 합니다.', 'Please enter a memo when using Other as the payment method.'), 'error');
+        return;
+    }
     const completeSettlement = !!document.getElementById('cashSettleCompleteSettlement')?.checked;
     const records = settlementPayments();
     records.push({
@@ -1934,7 +1940,7 @@ function saveCashSettlementPayment() {
         businessDate: auditBusinessDate(),
         createdAt: nowIso(),
         operator: operatorName(),
-        note: textValue('cashSettleNote')
+        note
     });
     setStorageJson(SETTLEMENT_PAYMENTS_KEY, records);
     if (completeSettlement) {
@@ -1950,7 +1956,7 @@ function saveCashSettlementPayment() {
                 completedAt: nowIso(),
                 completedBy: operatorName(),
                 businessDate: auditBusinessDate(),
-                note: textValue('cashSettleNote') || '정산 완료 확정'
+                note: note || '정산 완료 확정'
             });
             setStorageJson(SETTLEMENT_COMPLETIONS_KEY, completions);
         }
@@ -2076,7 +2082,14 @@ function cashSessions() {
 
 function settlementPayments() {
     const payments = storageJson(SETTLEMENT_PAYMENTS_KEY, []);
-    return Array.isArray(payments) ? payments : [];
+    return Array.isArray(payments) ? payments.map(item => {
+        const method = normalizeCloseBasisPaymentMethod(item.method, item.methodLabel);
+        return {
+            ...item,
+            method,
+            methodLabel: closeBasisPaymentMethodLabel({ ...item, method })
+        };
+    }) : [];
 }
 
 function settlementCompletionRecords() {
@@ -2277,7 +2290,7 @@ function sampleAuditPayments(date, offset, relativeOffset = null) {
             ['DEP-260617-1401', 'Maria Santos', 'deposit', 9800, 'KRW', 245000, 'cash', '연박 예치금 수납', '18:35', 'Nguyen Kim']
         ];
     }
-    const methodLabels = { cash: '현금', card: '카드', bank: '계좌이체', transfer: '이체', bank_transfer: '계좌이체' };
+    const methodLabels = { cash: '현금', card: '신용카드', bank: '계좌이체', transfer: '계좌이체', bank_transfer: '계좌이체', other: '기타' };
     return rows.map((row, index) => ({
         id: `SAMPLE-PAY-${date}-${index + 1}`,
         folioId: String(row[0]).replace(/26\d{4}/, ymd),
@@ -2584,11 +2597,12 @@ function renderCloseBasisFlow(state = {}) {
                 <div class="close-basis-mini-list">
                     <div class="close-basis-mini-row"><span>${cashUiText('현금 정산', 'Cash settlement')}</span><strong>${moneyPhp(state.cashSettlementPhp || 0)}</strong></div>
                     <div class="close-basis-mini-row"><span>${cashUiText('카드 정산', 'Card settlement')}</span><strong>${moneyPhp(state.cardSettlementPhp || 0)}</strong></div>
-                    <div class="close-basis-mini-row"><span>${cashUiText('이체 정산', 'Bank transfer settlement')}</span><strong>${moneyPhp(state.bankSettlementPhp || 0)}</strong></div>
+                    <div class="close-basis-mini-row"><span>${cashUiText('계좌이체 정산', 'Bank transfer settlement')}</span><strong>${moneyPhp(state.bankSettlementPhp || 0)}</strong></div>
+                    <div class="close-basis-mini-row"><span>${cashUiText('기타 정산', 'Other settlement')}</span><strong>${moneyPhp(state.otherSettlementPhp || 0)}</strong></div>
                     <div class="close-basis-mini-row"><span>${cashUiText('예치금', 'Deposit')}</span><strong>${moneyPhp(state.cashDepositPhp || 0)}</strong></div>
                     <div class="close-basis-mini-row"><span>${cashUiText('중간 출금', 'Withdrawal')}</span><strong>${state.withdrawalCount ? compactCurrencySummary(state.withdrawalCurrencies || {}, '') : cashUiText('없음', 'None')}</strong></div>
                 </div>
-                <div class="close-basis-subtext">${cashUiText('정산 금액을 현금/카드/이체로 나누고 예치금과 출금을 별도 관리합니다.', 'Splits settlement by cash/card/bank and separates deposits and withdrawals.')}</div>
+                <div class="close-basis-subtext">${cashUiText('정산 금액을 현금/신용카드/계좌이체/기타로 나누고 예치금과 출금을 별도 관리합니다.', 'Splits settlement by cash/card/bank/other and separates deposits and withdrawals.')}</div>
             </div>
             <div class="close-basis-card result">
                 <div class="close-basis-card-title"><i class="fa-solid fa-wallet"></i>${cashUiText('현금내역', 'Cash basis')}</div>
@@ -2867,12 +2881,20 @@ function closeBasisRecordItems(state = {}) {
     ];
 }
 
+function normalizeCloseBasisPaymentMethod(method, fallback = '') {
+    const raw = String(method || fallback || '').trim().toLowerCase().replace(/[\s-]/g, '_');
+    if (['cash', '현금'].includes(raw)) return 'cash';
+    if (['card', 'credit_card', 'creditcard', '신용카드', '카드'].includes(raw)) return 'card';
+    if (['bank', 'transfer', 'bank_transfer', 'banktransfer', 'account_transfer', 'wire', '계좌이체', '이체'].includes(raw)) return 'bank';
+    if (['other', 'etc', '기타'].includes(raw)) return 'other';
+    return raw ? 'other' : 'cash';
+}
+
 function closeBasisPaymentMethodLabel(item = {}) {
-    const method = item.method || 'cash';
-    if (item.methodLabel && !/[?�]/.test(item.methodLabel)) return item.methodLabel;
+    const method = normalizeCloseBasisPaymentMethod(item.method, item.methodLabel);
     return ({
         cash: cashUiText('현금', 'Cash'),
-        card: cashUiText('카드', 'Card'),
+        card: cashUiText('신용카드', 'Credit Card'),
         bank: cashUiText('계좌이체', 'Bank transfer'),
         other: cashUiText('기타', 'Other')
     })[method] || method;
@@ -2891,7 +2913,7 @@ function renderCloseBasisRecordRow(item = {}, type = 'settlement') {
     const amount = isWithdrawal ? formatCurrencyBreakdown(withdrawalBreakdownForRecord(item)) : moneyPhp(item.appliedPhpAmount || 0);
     const sub = isWithdrawal
         ? cashUiText('실제 출금 통화', 'Actual withdrawal')
-        : ((item.method || 'cash') === 'cash' ? formatReceivedBreakdown(item) : `${method} ${moneyPhp(item.appliedPhpAmount || 0)}`);
+        : (normalizeCloseBasisPaymentMethod(item.method, item.methodLabel) === 'cash' ? formatReceivedBreakdown(item) : `${method} ${moneyPhp(item.appliedPhpAmount || 0)}`);
     return `
         <div class="close-basis-record-row">
             <span class="close-basis-record-icon ${iconTone}"><i class="fa-solid ${iconClass}"></i></span>
@@ -3223,16 +3245,22 @@ function dailyHistoryRows(date) {
             note: session.openingNote || '-'
         });
     }
-    payments.forEach(item => rows.push({
-        at: item.createdAt || `${date}T12:00:00+09:00`,
-        type: item.kind === 'deposit' ? cashUiText('\uC608\uCE58\uAE08 \uC785\uAE08', 'Deposit inflow') : cashUiText('\uD604\uAE08\uC785\uAE08', 'Cash inflow'),
-        pill: item.kind === 'deposit' ? 'deposit' : 'payment',
-        target: `${item.folioId || '-'} / ${item.guest || '-'}`,
-        php: item.appliedPhpAmount || 0,
-        actual: `${formatReceivedBreakdown(item)} · ${item.methodLabel || item.method || '-'}`,
-        operator: item.operator || '-',
-        note: item.note || '-'
-    }));
+    payments.forEach(item => {
+        const method = closeBasisPaymentMethodLabel(item);
+        const isCash = normalizeCloseBasisPaymentMethod(item.method, item.methodLabel) === 'cash';
+        rows.push({
+            at: item.createdAt || `${date}T12:00:00+09:00`,
+            type: item.kind === 'deposit'
+                ? cashUiText('\uC608\uCE58\uAE08 \uC785\uAE08', 'Deposit inflow')
+                : (isCash ? cashUiText('\uD604\uAE08\uC785\uAE08', 'Cash inflow') : `${method} ${cashUiText('\uC815\uC0B0', 'Settlement')}`),
+            pill: item.kind === 'deposit' ? 'deposit' : 'payment',
+            target: `${item.folioId || '-'} / ${item.guest || '-'}`,
+            php: item.appliedPhpAmount || 0,
+            actual: `${isCash ? formatReceivedBreakdown(item) : moneyPhp(item.appliedPhpAmount || 0)} · ${method}`,
+            operator: item.operator || '-',
+            note: item.note || '-'
+        });
+    });
     (session?.withdrawals || []).forEach(item => rows.push({
         at: item.createdAt || `${date}T13:00:00+09:00`,
         type: nightAuditText('cash.type.withdraw'),
@@ -3471,21 +3499,30 @@ function saveClosingCash() {
 
 function renderCashHandover() {
     const session = activeCashSession(false) || { opening: { PHP: 0, USD: 0, KRW: 0 }, openingPhpEquivalent: 0, withdrawals: [], carryover: { PHP: 0, USD: 0, KRW: 0 }, takeaway: { PHP: 0, USD: 0, KRW: 0 } };
-    const payments = paymentsForBusinessDate();
+    const payments = paymentsForBusinessDate().map(item => {
+        const method = normalizeCloseBasisPaymentMethod(item.method, item.methodLabel);
+        return {
+            ...item,
+            method,
+            methodLabel: closeBasisPaymentMethodLabel({ ...item, method })
+        };
+    });
     const snapshot = settlementStatusSnapshot();
     const settlementRecords = payments.filter(item => item.kind !== 'deposit');
     const depositRecords = payments.filter(item => item.kind === 'deposit');
-    const cashPayments = payments.filter(item => (item.method || 'cash') === 'cash');
+    const cashPayments = payments.filter(item => item.method === 'cash');
     const cashSettlementRecords = cashPayments.filter(item => item.kind !== 'deposit');
     const cashDepositRecords = cashPayments.filter(item => item.kind === 'deposit');
-    const nonCashSettlementRecords = settlementRecords.filter(item => (item.method || 'cash') !== 'cash');
-    const cardSettlementRecords = settlementRecords.filter(item => (item.method || 'cash') === 'card');
-    const bankSettlementRecords = settlementRecords.filter(item => ['bank', 'transfer', 'bankTransfer', 'bank_transfer'].includes(item.method || ''));
+    const nonCashSettlementRecords = settlementRecords.filter(item => item.method !== 'cash');
+    const cardSettlementRecords = settlementRecords.filter(item => item.method === 'card');
+    const bankSettlementRecords = settlementRecords.filter(item => item.method === 'bank');
+    const otherSettlementRecords = settlementRecords.filter(item => item.method === 'other');
     const cashSettlementPhp = cashSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const cashDepositPhp = cashDepositRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const nonCashSettlementPhp = nonCashSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const cardSettlementPhp = cardSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const bankSettlementPhp = bankSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
+    const otherSettlementPhp = otherSettlementRecords.reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const cashSettlementCurrencies = currencyTotals(cashSettlementRecords);
     const cashDepositCurrencies = currencyTotals(cashDepositRecords);
     const nonCashSettlementCurrencies = currencyTotals(nonCashSettlementRecords);
@@ -3509,6 +3546,7 @@ function renderCashHandover() {
         nonCashSettlementRecords,
         cardSettlementRecords,
         bankSettlementRecords,
+        otherSettlementRecords,
         cashSettlementRecords,
         cashDepositRecords,
         cashSettlementPhp,
@@ -3516,6 +3554,7 @@ function renderCashHandover() {
         nonCashSettlementPhp,
         cardSettlementPhp,
         bankSettlementPhp,
+        otherSettlementPhp,
         cashSettlementCurrencies,
         cashDepositCurrencies,
         nonCashSettlementCurrencies,

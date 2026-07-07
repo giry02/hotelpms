@@ -572,7 +572,14 @@ function currentBusinessDate() {
 
 function settlementPaymentRecords() {
     const records = storageJson(SETTLEMENT_PAYMENTS_KEY, []);
-    return Array.isArray(records) ? records : [];
+    return Array.isArray(records) ? records.map(record => {
+        const method = normalizePaymentMethod(record.method, record.methodLabel);
+        return {
+            ...record,
+            method,
+            methodLabel: paymentMethodLabel(method, record.methodLabel)
+        };
+    }) : [];
 }
 
 function saveSettlementPaymentRecords(records) {
@@ -1901,20 +1908,20 @@ function mapApiFolio(item) {
         closedAt,
         charges: mappedCharges,
         payments: settlementPayments.map(payment => ({
-            method: payment.method || '-',
+            method: normalizePaymentMethod(payment.method || payment.type || payment.methodLabel || ''),
             amount: apiAmount(payment.amount),
             paidAt: payment.paidAt || null
         })),
         settlementPaymentRecords: payments.map((payment, index) => {
             const deposit = paymentIsDeposit(payment);
-            const method = payment.method || payment.type || '-';
+            const method = normalizePaymentMethod(payment.method || payment.type || payment.methodLabel || '');
             const amount = apiAmount(payment.amount);
             return {
                 id: payment.id || `${item.id}-PAY-${index + 1}`,
                 folioId: item.id,
                 kind: deposit ? 'deposit' : 'settlement',
                 method,
-                methodLabel: payment.methodLabel || method,
+                methodLabel: paymentMethodLabel(method, payment.methodLabel),
                 appliedPhpAmount: amount,
                 receivedCurrency: payment.receivedCurrency || payment.currency || item.balance?.currency || 'PHP',
                 receivedAmount: Number(payment.receivedAmount ?? amount),
@@ -2659,9 +2666,29 @@ function paymentCurrencyIcon(currency) {
     return 'fa-peso-sign';
 }
 
+function normalizePaymentMethod(method, fallback = '') {
+    const raw = String(method || fallback || '').trim().toLowerCase().replace(/[\s-]/g, '_');
+    if (['cash', '현금'].includes(raw)) return 'cash';
+    if (['card', 'credit_card', 'creditcard', '신용카드', '카드'].includes(raw)) return 'card';
+    if (['bank', 'transfer', 'bank_transfer', 'banktransfer', 'account_transfer', 'wire', '계좌이체', '이체'].includes(raw)) return 'bank';
+    if (['other', 'etc', '기타'].includes(raw)) return 'other';
+    return raw ? 'other' : 'cash';
+}
+
+function paymentMethodLabel(methodOrRecord, fallback = '') {
+    const rawMethod = typeof methodOrRecord === 'object' ? methodOrRecord.method : methodOrRecord;
+    const rawFallback = typeof methodOrRecord === 'object' ? methodOrRecord.methodLabel : fallback;
+    const normalized = normalizePaymentMethod(rawMethod, rawFallback);
+    const isEnglish = (localStorage.getItem('pms_language') || localStorage.getItem('pms_lang') || 'ko').startsWith('en');
+    const labels = isEnglish
+        ? { cash: 'Cash', card: 'Credit Card', bank: 'Bank Transfer', other: 'Other' }
+        : { cash: '현금', card: '신용카드', bank: '계좌이체', other: '기타' };
+    return labels[normalized] || labels.other;
+}
+
 function paymentCurrencyCardsHtml(record) {
     const breakdown = paymentBreakdownForRecord(record);
-    const method = record.methodLabel || record.method || '수납';
+    const method = paymentMethodLabel(record);
     return PAYMENT_CURRENCIES.map(currency => {
         const amount = Number(breakdown[currency] || 0);
         const active = amount > 0;
@@ -2686,7 +2713,8 @@ function paymentHistoryHtml(folio) {
         .reduce((sum, item) => sum + Number(item.appliedPhpAmount || 0), 0);
     const remaining = Number(folio?.bal || 0);
     const rows = records.length ? records.map(item => {
-        const meta = [item.methodLabel || item.method, item.operator].filter(Boolean).join(' / ') || '-';
+        const method = paymentMethodLabel(item);
+        const meta = [method, item.operator].filter(Boolean).join(' / ') || '-';
         const note = item.note
             ? `<span class="payment-history-note"><b>메모</b>${escapeHtml(item.note)}</span>`
             : '';
@@ -2695,7 +2723,7 @@ function paymentHistoryHtml(folio) {
             <div class="payment-history-row-time">${escapeHtml(formatDateTime(item.createdAt))}</div>
             <div class="payment-history-row-main">
                 <div class="payment-history-method">
-                    <strong>${escapeHtml(item.kind === 'deposit' ? '예치금' : '정산 수납')} · ${escapeHtml(item.methodLabel || item.method || '수납')}</strong>
+                    <strong>${escapeHtml(item.kind === 'deposit' ? '예치금' : '정산 수납')} · ${escapeHtml(method)}</strong>
                     <span class="payment-history-meta">${escapeHtml(meta)}</span>
                     ${note}
                 </div>
@@ -2795,7 +2823,7 @@ function settlementDetailHistoryHtml(folio) {
         ...records.map(item => ({
             at: item.createdAt,
             title: item.kind === 'deposit' ? '예치금 수납' : '정산 수납',
-            sub: [item.methodLabel || item.method, item.operator].filter(Boolean).join(' / '),
+            sub: [paymentMethodLabel(item), item.operator].filter(Boolean).join(' / '),
             note: item.note || '',
             amount: fmtInvoiceMoney(item.appliedPhpAmount),
             tone: item.kind === 'deposit' ? 'warning' : 'primary'
@@ -2976,14 +3004,20 @@ function processPayment(options = {}) {
     let enteredPhp = receivedPhp;
     if (!enteredPhp && receivedTotal > 0) enteredPhp = isDeposit ? receivedTotal : balance;
     const appliedPhpAmount = isDeposit ? enteredPhp : Math.min(enteredPhp, balance);
-    const method = document.getElementById('paymentMethod')?.value || 'cash';
-    const methodLabel = document.getElementById('paymentMethod')?.selectedOptions?.[0]?.textContent || method;
+    const methodSelect = document.getElementById('paymentMethod');
+    const method = normalizePaymentMethod(methodSelect?.value || 'cash', methodSelect?.selectedOptions?.[0]?.textContent || '');
+    const methodLabel = paymentMethodLabel(method);
+    const note = document.getElementById('paymentNote')?.value?.trim() || '';
     if (!enteredPhp) {
         showToast(isDeposit ? '예치금으로 기록할 금액을 입력해주세요.' : '수납 금액을 입력해주세요.', 'error');
         return;
     }
     if (!receivedTotal) {
         showToast('실제 받은 금액을 페소/달러/원화 중 하나 이상 입력해주세요.', 'error');
+        return;
+    }
+    if (method === 'other' && !note) {
+        showToast('기타 결제수단은 메모를 입력해야 합니다.', 'error');
         return;
     }
     const records = settlementPaymentRecords();
@@ -3006,7 +3040,7 @@ function processPayment(options = {}) {
         businessDate: currentBusinessDate(),
         createdAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
         operator: currentOperatorName(),
-        note: document.getElementById('paymentNote')?.value || ''
+        note
     });
     saveSettlementPaymentRecords(records);
     closeModal('paymentModal');
