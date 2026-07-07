@@ -265,14 +265,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             checkinBody.innerHTML = checkinRes.map(r => {
                 const isVip = r.vip && (String(r.vip).includes('VIP') || String(r.vip).includes('Gold'));
                 const vipBadge = isVip ? `<span style="font-size:.62rem;color:#9CA3AF">${lang() === 'en' ? escapeHtml(r.vip) : '우수 고객'}</span>` : '';
-                const initials = escapeHtml(r.initials || String(r.guest || r.guestName || '-').slice(0, 2).toUpperCase());
                 const guest = escapeHtml(r.guest || r.guestName || '-');
                 const room = escapeHtml(r.room || r.roomNo || '-');
                 const type = escapeHtml(roomTypeText(r.type || r.roomTypeName || '-'));
                 const stayUnit = lang() === 'en' ? 'N' : '박';
                 const stay = `${escapeHtml(r.cin || r.checkInDate || '-')} - ${escapeHtml(r.cout || r.checkOutDate || '-')} (${escapeHtml(r.nights || r.len || 1)}${stayUnit})`;
                 const confirmedText = lang() === 'en' ? 'Confirmed' : '확정';
-                return `<tr><td><div class="guest-cell"><div class="guest-avatar" style="background:${escapeHtml(r.color || '#3B82F6')}">${initials}</div><div>${guest} ${vipBadge}</div></div></td><td>${room}</td><td>${type}</td><td>${stay}</td><td><span class="status-badge confirmed">${confirmedText}</span></td></tr>`;
+                return `<tr><td><div class="guest-cell"><div>${guest} ${vipBadge}</div></div></td><td>${room}</td><td>${type}</td><td>${stay}</td><td><span class="status-badge confirmed">${confirmedText}</span></td></tr>`;
             }).join('');
         } else {
             checkinBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:20px">${tr('No scheduled check-ins for today.')}</td></tr>`;

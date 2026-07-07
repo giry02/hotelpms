@@ -239,13 +239,46 @@ function tierInfo(value) {
     return tierMeta[tierId(value)] || tierMeta.standard;
 }
 
+function activeLang() {
+    const value = localStorage.getItem('pms_lang') || window.currentLang || document.getElementById('langSelect')?.value || 'ko';
+    return String(value).toLowerCase().startsWith('en') ? 'en' : 'ko';
+}
+
 function tierLabel(value) {
-    return tierInfo(value).label;
+    const id = tierId(value);
+    const labels = {
+        standard: { ko: '일반', en: 'Standard' },
+        silver: { ko: '실버', en: 'Silver' },
+        gold: { ko: '골드', en: 'Gold' },
+        platinum: { ko: '플래티넘', en: 'Platinum' },
+        diamond: { ko: '다이아몬드', en: 'Diamond' },
+        group: { ko: '단체', en: 'Group' }
+    };
+    const lang = activeLang();
+    return labels[id]?.[lang] || tierInfo(value).label;
 }
 
 function tierBadge(value) {
     const meta = tierInfo(value);
-    return `<span class="tier-badge" style="background:${meta.bg};color:${meta.color}"><i class="fa-solid ${meta.icon}"></i> ${meta.label}</span>`;
+    return `<span class="tier-badge" style="background:${meta.bg};color:${meta.color}"><i class="fa-solid ${meta.icon}"></i> ${escapeHtml(tierLabel(value))}</span>`;
+}
+
+function tierRank(value) {
+    const ranks = { standard: 0, silver: 1, gold: 2, platinum: 3, diamond: 4 };
+    return ranks[tierId(value)] ?? 0;
+}
+
+function membershipChangeDisplay(change) {
+    const isManual = change?.changeType === 'manual';
+    const fromRank = tierRank(change?.from);
+    const toRank = tierRank(change?.to);
+    const dir = toRank > fromRank ? 'up' : toRank < fromRank ? 'down' : 'same';
+    const lang = activeLang();
+    if (isManual && dir === 'up') return { label: lang === 'en' ? 'Manual upgrade' : '수동 승급', color: '#059669', bg: 'rgba(16,185,129,.14)', icon: 'fa-arrow-up' };
+    if (isManual && dir === 'down') return { label: lang === 'en' ? 'Manual downgrade' : '수동 강등', color: '#DC2626', bg: 'rgba(239,68,68,.12)', icon: 'fa-arrow-down' };
+    if (isManual) return { label: lang === 'en' ? 'Manual adjustment' : '수동 조정', color: '#D97706', bg: 'rgba(245,158,11,.14)', icon: 'fa-user-pen' };
+    if (dir === 'down') return { label: lang === 'en' ? 'Downgrade' : '강등', color: '#DC2626', bg: 'rgba(239,68,68,.12)', icon: 'fa-arrow-down' };
+    return { label: lang === 'en' ? 'Upgrade' : '승급', color: '#059669', bg: 'rgba(16,185,129,.14)', icon: 'fa-arrow-up' };
 }
 
 function currentConfig() {
@@ -333,13 +366,13 @@ function renderRecentChanges() {
         return;
     }
     root.innerHTML = items.map(change => {
-        const isManual = change.changeType === 'manual';
+        const changeMeta = membershipChangeDisplay(change);
         const toMeta = tierInfo(change.to);
         return `<button type="button" class="recent-item" data-change-id="${escapeHtml(change.id)}">
-            <span class="recent-icon" style="background:${isManual ? 'rgba(245,158,11,.14)' : 'rgba(16,185,129,.14)'};color:${isManual ? '#D97706' : '#059669'}"><i class="fa-solid ${isManual ? 'fa-user-pen' : 'fa-arrow-up'}"></i></span>
+            <span class="recent-icon" style="background:${changeMeta.bg};color:${changeMeta.color}"><i class="fa-solid ${changeMeta.icon}"></i></span>
             <span>
                 <span class="recent-name">${escapeHtml(change.name)}</span>
-                <span class="recent-detail">${escapeHtml(tierLabel(change.from))} → <strong style="color:${toMeta.color}">${escapeHtml(tierLabel(change.to))}</strong> · ${escapeHtml(cleanReason(change))}</span>
+                <span class="recent-detail">${escapeHtml(changeMeta.label)} · ${escapeHtml(tierLabel(change.from))} → <strong style="color:${toMeta.color}">${escapeHtml(tierLabel(change.to))}</strong> · ${escapeHtml(cleanReason(change))}</span>
             </span>
             <span class="recent-date">${escapeHtml(change.date || '-')}</span>
         </button>`;
@@ -370,10 +403,8 @@ function openTierGuestModal(changeId) {
     }
     const guest = findGuest(change) || {};
     const displayName = guest.name || change.name;
-    const meta = tierInfo(guest.tier || change.to);
     body.innerHTML = `
         <div class="guest-head">
-            <div class="guest-avatar" style="background:${escapeHtml(guest.color || meta.color)}">${escapeHtml(guest.init || initial(displayName))}</div>
             <div style="min-width:0">
                 <div class="guest-name">${escapeHtml(displayName)}</div>
                 <div class="guest-sub">${tierBadge(guest.tier || change.to)}</div>
@@ -444,12 +475,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderRecentChanges();
         if (typeof window.changeLang === 'function') {
             window.changeLang(localStorage.getItem('pms_lang') || 'ko');
+            renderRecentChanges();
         }
+        document.getElementById('langSelect')?.addEventListener('change', () => setTimeout(renderRecentChanges, 0));
     } catch (error) {
         console.error(error);
         const root = document.getElementById('tierChangesList');
         if (root) root.innerHTML = '<div class="empty-state-line">등급 데이터를 불러오지 못했습니다.</div>';
     }
+});
+
+window.addEventListener('languagechange', () => {
+    if (!tierHistory.length) return;
+    setTimeout(renderRecentChanges, 0);
 });
 </script>
 </body>

@@ -299,6 +299,24 @@ function tierBadge(tier) {
     return `<span class="tier-badge" style="background:${meta.bg};color:${meta.color}"><i class="fa-solid ${meta.icon}"></i> ${historyEscape(tierLabel(tier))}</span>`;
 }
 
+function tierRank(tier) {
+    const ranks = { standard: 0, silver: 1, gold: 2, platinum: 3, diamond: 4 };
+    return ranks[String(tier || 'standard').toLowerCase()] ?? 0;
+}
+
+function tierChangeDisplay(change) {
+    const manual = change?.changeType === 'manual';
+    const fromRank = tierRank(change?.from);
+    const toRank = tierRank(change?.to);
+    const dir = toRank > fromRank ? 'up' : toRank < fromRank ? 'down' : 'same';
+    const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+    if (manual && dir === 'up') return { label: lang === 'en' ? 'Manual upgrade' : '수동 승급', color: 'var(--success)', icon: 'fa-arrow-up' };
+    if (manual && dir === 'down') return { label: lang === 'en' ? 'Manual downgrade' : '수동 강등', color: 'var(--danger)', icon: 'fa-arrow-down' };
+    if (manual) return { label: lang === 'en' ? 'Manual adjustment' : '수동 조정', color: 'var(--warning)', icon: 'fa-user-pen' };
+    if (dir === 'down') return { label: lang === 'en' ? 'Downgrade' : '강등', color: 'var(--danger)', icon: 'fa-arrow-down' };
+    return { label: textFor('Upgrade'), color: 'var(--success)', icon: 'fa-arrow-up' };
+}
+
 function crmInitialFallback(name) {
     return String(name || 'G').split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
 }
@@ -351,14 +369,14 @@ function renderHistory() {
     // Desktop table
     document.getElementById('historyBody').innerHTML = paged.map(h => {
         const from = tierCfg[h.from], to = tierCfg[h.to];
-        const isManual = h.changeType === 'manual';
-        const changeColor = isManual ? 'var(--warning)' : 'var(--success)';
-        const changeIcon = isManual ? 'fa-user-pen' : 'fa-arrow-up';
-        const changeLabel = textFor(isManual ? 'Manual Change' : 'Upgrade');
+        const changeMeta = tierChangeDisplay(h);
+        const changeColor = changeMeta.color;
+        const changeIcon = changeMeta.icon;
+        const changeLabel = changeMeta.label;
         const reason = h.reason || textFor('Reason Required');
         return `<tr class="tier-history-row" data-change-id="${historyEscape(h.id)}" tabindex="0">
             <td style="white-space:nowrap;font-size:.78rem;color:var(--txt2)">${historyEscape(h.date)}</td>
-            <td><div class="guest-cell"><div class="guest-avatar" style="background:${historyEscape(h.color)}">${historyEscape(h.init)}</div><strong>${historyEscape(h.name)}</strong></div></td>
+            <td><div class="guest-cell"><strong>${historyEscape(h.name)}</strong></div></td>
             <td><span style="color:${changeColor};font-weight:700"><i class="fa-solid ${changeIcon}"></i> ${changeLabel}</span></td>
             <td>${tierBadge(h.from)}</td>
             <td>${tierBadge(h.to)}</td>
@@ -370,15 +388,14 @@ function renderHistory() {
     // Mobile cards
     document.getElementById('historyMobile').innerHTML = paged.map(h => {
         const from = tierCfg[h.from], to = tierCfg[h.to];
-        const isManual = h.changeType === 'manual';
-        const dirLabel = textFor(isManual ? 'Manual Change' : 'Upgrade');
-        const dirColor = isManual ? 'var(--warning)' : 'var(--success)';
-        const dirIcon = isManual ? 'fa-user-pen' : 'fa-arrow-up';
+        const changeMeta = tierChangeDisplay(h);
+        const dirLabel = changeMeta.label;
+        const dirColor = changeMeta.color;
+        const dirIcon = changeMeta.icon;
         const reason = h.reason || textFor('Reason Required');
         return `<div class="m-res-card tier-history-row" data-change-id="${historyEscape(h.id)}" tabindex="0" style="border-left-color:${dirColor}">
             <div class="m-res-top">
                 <div class="m-res-guest">
-                    <div class="guest-avatar" style="background:${historyEscape(h.color)}">${historyEscape(h.init)}</div>
                     <div>
                         <div class="m-res-name">${historyEscape(h.name)}</div>
                         <div class="m-res-sub">${historyEscape(h.date)}</div>
@@ -446,13 +463,11 @@ function openTierGuestModal(changeId) {
         color: change.color,
         tier: change.to
     };
-    const guestMeta = tierDisplayMeta(displayGuest.tier || change.to);
     const notes = displayGuest.specialNotes
         ? `<div class="tier-guest-field" style="grid-column:1/-1"><div class="tier-guest-field-label">특이사항</div><div class="tier-guest-field-value" style="white-space:normal;line-height:1.45">${historyEscape(displayGuest.specialNotes)}</div></div>`
         : '';
     body.innerHTML = `
         <div class="tier-guest-head">
-            <div class="tier-guest-avatar" style="background:${historyEscape(displayGuest.color || guestMeta.color)}">${historyEscape(displayGuest.init || crmInitialFallback(displayGuest.name))}</div>
             <div style="min-width:0">
                 <div class="tier-guest-name">${historyEscape(displayGuest.name || change.name)}</div>
                 <div class="tier-guest-sub">${tierBadge(displayGuest.tier || change.to)}</div>
