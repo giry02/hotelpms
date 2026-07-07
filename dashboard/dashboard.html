@@ -62,12 +62,11 @@
         .ops-table-wrap{overflow-x:auto}
         .checkin-card .ops-table-wrap{touch-action:pan-y;min-height:404px}
         .checkin-card .ops-table{table-layout:fixed}
-        .checkin-card .ops-table .col-guest{width:34%}
-        .checkin-card .ops-table .col-room{width:11%}
-        .checkin-card .ops-table .col-type{width:14%}
-        .checkin-card .ops-table .col-stay{width:18%}
-        .checkin-card .ops-table .col-status{width:10%}
-        .checkin-card .ops-table .col-action{width:13%}
+        .checkin-card .ops-table .col-guest{width:38%}
+        .checkin-card .ops-table .col-room{width:12%}
+        .checkin-card .ops-table .col-type{width:15%}
+        .checkin-card .ops-table .col-stay{width:20%}
+        .checkin-card .ops-table .col-status{width:15%}
         .ops-table{width:100%;border-collapse:collapse;white-space:nowrap}
         .ops-table th{height:42px;padding:0 18px;border-bottom:1px solid var(--border);color:#94a3b8;font-size:.68rem;font-weight:800;text-align:left}
         .ops-table td{height:46px;padding:0 18px;border-bottom:1px solid #eef2f7;color:var(--txt);font-size:.78rem;font-weight:500;vertical-align:middle}
@@ -104,8 +103,6 @@
         .ops-chip.vip{background:#fff7ed;color:#c2410c}
         .ops-chip.good{background:#dcfce7;color:#047857}
         .ops-chip.warn{background:#ffedd5;color:#c2410c}
-        .ops-row-action{display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 10px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:.68rem;font-weight:950;text-decoration:none}
-        .ops-row-action:hover{background:#dbeafe}
         .ops-empty{padding:26px 20px;color:#94a3b8;text-align:center;font-size:.78rem;font-weight:850}
         .activity-card{min-height:408px}
         .ops-activity-list{padding:10px 20px}
@@ -354,10 +351,9 @@
                             <col class="col-type">
                             <col class="col-stay">
                             <col class="col-status">
-                            <col class="col-action">
                         </colgroup>
-                        <thead><tr><th>고객</th><th>객실</th><th>유형</th><th>숙박</th><th>상태</th><th></th></tr></thead>
-                        <tbody><tr><td colspan="6" class="ops-empty">체크인 예정 목록을 불러오는 중입니다.</td></tr></tbody>
+                        <thead><tr><th>고객</th><th>객실</th><th>유형</th><th>숙박</th><th>상태</th></tr></thead>
+                        <tbody><tr><td colspan="5" class="ops-empty">체크인 예정 목록을 불러오는 중입니다.</td></tr></tbody>
                     </table>
                 </div>
             </section>
@@ -876,7 +872,7 @@
         setAria('.checkin-card .ops-pager', 'checkinPagerAria');
         setAria('#checkinPrevBtn', 'checkinPrevAria');
         setAria('#checkinNextBtn', 'checkinNextAria');
-        const checkinHeaders = ['guest', 'room', 'type', 'stay', 'workStatus', ''];
+        const checkinHeaders = ['guest', 'room', 'type', 'stay', 'workStatus'];
         document.querySelectorAll('#todayCheckinTable thead th').forEach((th, index) => {
             th.textContent = checkinHeaders[index] ? t(checkinHeaders[index]) : '';
         });
@@ -1279,7 +1275,7 @@
         const start = checkinPageIndex * checkinPageSize;
         const rows = checkinRows.slice(start, start + checkinPageSize);
         if (!rows.length) {
-            tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${t('noCheckin')}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="ops-empty">${t('noCheckin')}</td></tr>`;
         } else {
             const rowHtml = rows.map(res => {
                 const audience = audienceLabel(res);
@@ -1288,17 +1284,16 @@
                 const href = dashboardCheckinHref(res);
                 const statusLabel = res._dashboardToday ? t('checkinWaiting') : t('arrivalDelayed');
                 const statusClass = res._dashboardToday ? 'warn' : '';
-                return `<tr class="ops-click-row" tabindex="0" data-href="${esc(href)}" onclick="handleDashboardRowNavigate(event)" onkeydown="handleDashboardRowKey(event)">
+                return `<tr class="ops-click-row" tabindex="0" data-href="${esc(href)}" aria-label="${esc(`${guestText(res)} ${roomText(res)}`)}" onclick="handleDashboardRowNavigate(event)" onkeydown="handleDashboardRowKey(event)">
                     <td><div class="ops-guest"><div class="ops-guest-main"><span class="ops-guest-title">${tierIcon}<span class="ops-guest-name">${esc(guestText(res))}</span></span><span class="ops-chip-row"><span class="ops-chip ${isGroupReservation(res) ? 'group' : ''}">${esc(audience)}</span>${res.groupName ? `<span class="ops-chip group">${esc(res.groupName)}</span>` : ''}</span></div></div></td>
                     <td>${esc(roomText(res))}</td>
                     <td>${esc(res.roomType || res.type || '-')}</td>
                     <td>${esc(stayText(res))}</td>
                     <td><span class="ops-chip ${statusClass}">${esc(statusLabel)}</span></td>
-                    <td><a class="ops-row-action" href="${href}">${t('checkinProcess')}</a></td>
                 </tr>`;
             }).join('');
             const fillerHtml = Array.from({ length: Math.max(0, checkinPageSize - rows.length) }, () =>
-                '<tr class="ops-filler-row" aria-hidden="true"><td colspan="6">&nbsp;</td></tr>'
+                '<tr class="ops-filler-row" aria-hidden="true"><td colspan="5">&nbsp;</td></tr>'
             ).join('');
             tbody.innerHTML = rowHtml + fillerHtml;
         }
@@ -1450,7 +1445,7 @@
         loadDashboardOperations().catch(error => {
             console.warn('Dashboard operations load failed', error);
             const tbody = document.querySelector('#todayCheckinTable tbody');
-            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="ops-empty">${t('loadFailed')}</td></tr>`;
+            if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="ops-empty">${t('loadFailed')}</td></tr>`;
         });
     });
     window.addEventListener('languagechange', () => {
