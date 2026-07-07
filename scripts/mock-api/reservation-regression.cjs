@@ -132,10 +132,10 @@ async function dashboardCheckinCountRegression(page, base) {
 
   await page.locator('.ops-kpi-card').first().click();
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForFunction(() => document.querySelector('.ops-tab.active') && document.querySelector('#periodFilterSelect'), null, { timeout: 15000 });
+  await page.waitForFunction(() => location.href.includes('reservation-board.html') && typeof renderReservationBoard === 'function' && document.querySelector('#boardChips .chip.active[data-filter="checkin"]'), null, { timeout: 15000 });
 
-  const listState = await page.evaluate(() => {
-    const active = document.querySelector('.ops-tab.active')?.innerText.trim() || '';
+  const boardState = await page.evaluate(() => {
+    const active = document.querySelector('#boardChips .chip.active[data-filter="checkin"]')?.innerText.trim() || '';
     const tabCount = Number((active.match(/(\d+)\s*$/) || [])[1]);
     const pageInfo = document.querySelector('#pageInfo')?.innerText.trim() || '';
     const pageTotal = Number((pageInfo.match(/총\s*([0-9]+)건/) || [])[1] || tabCount);
@@ -143,6 +143,8 @@ async function dashboardCheckinCountRegression(page, base) {
       url: location.href,
       active,
       tabCount,
+      isCheckinActive: !!document.querySelector('#boardChips .chip.active[data-filter="checkin"]'),
+      cardCount: document.querySelectorAll('.reservation-board-box').length,
       pageInfo,
       pageTotal,
       rowCount: document.querySelectorAll('#resBody tr.res-click-row').length,
@@ -150,12 +152,12 @@ async function dashboardCheckinCountRegression(page, base) {
     };
   });
 
-  assert(listState.url.includes('reservation-list.html') && listState.url.includes('tab=checkin') && listState.url.includes('period=today'), 'Dashboard check-in KPI must navigate to reservation list today check-in filter.', listState);
-  assert(listState.period === 'today', 'Reservation list period must stay today after dashboard check-in navigation.', listState);
-  assert(listState.tabCount === dashboardState.opsCount && listState.pageTotal === dashboardState.opsCount, 'Dashboard and reservation list check-in counts diverged.', { setup, dashboardState, listState });
+  assert(boardState.url.includes('reservation-board.html') && boardState.url.includes('filter=checkin'), 'Dashboard check-in KPI must navigate to reservation board check-in filter.', boardState);
+  assert(boardState.isCheckinActive, 'Reservation board filter must stay checkin after dashboard check-in navigation.', boardState);
+  assert(boardState.tabCount === dashboardState.opsCount && boardState.cardCount === dashboardState.opsCount, 'Dashboard and reservation board check-in counts diverged.', { setup, dashboardState, boardState });
 
   await page.evaluate(() => localStorage.removeItem('mockapi:v1:TENANT-GRAND-SAIGON:rooms'));
-  return { setup, dashboardState, listState };
+  return { setup, dashboardState, boardState };
 }
 
 async function reservationBoardCleaningVisibilityRegression(page, base) {
@@ -232,7 +234,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
   assert(boardState.cardText.includes('Board Clean Guest'), 'Reservation board test card did not render.', boardState);
   assert(boardState.statusText.includes('미도착'), 'Reservation board test card must exercise the overdue check-in state.', boardState);
   assert(boardState.readinessText.includes('체크인 가능'), 'Reservation board must keep check-in readiness visible for a clean overdue arrival.', boardState);
-  assert(boardState.cleanValue === 'clean' && boardState.cleanLabel === '청소 완료' && boardState.cleanClass.includes('clean'), 'Reservation board must show cleaning status even when check-in readiness is visible.', boardState);
+  assert(boardState.cleanValue === 'clean' && boardState.cleanLabel === '청소완료' && boardState.cleanClass.includes('clean'), 'Reservation board must show cleaning status even when check-in readiness is visible.', boardState);
 
   return boardState;
 }
@@ -507,7 +509,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
         'reservation board keeps cleaning status visible beside check-in readiness',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
-        'dashboard today check-in KPI matches reservation list after rooms become in-house'
+        'dashboard today check-in KPI matches reservation board after rooms become in-house'
       ],
       dashboardCountResult,
       boardCleaningVisibilityResult
