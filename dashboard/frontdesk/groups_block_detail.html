@@ -92,15 +92,17 @@
         .progress{height:7px;background:#eef2f7;border-radius:99px;overflow:hidden}.progress>div{height:100%;background:var(--primary)}
         .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
         .form-grid .wide{grid-column:1/-1}
-        .overview-form-grid{grid-template-columns:repeat(2,minmax(300px,520px));max-width:1064px}
+        .overview-form-grid{width:100%;max-width:none;grid-template-columns:repeat(4,minmax(180px,1fr));align-items:start}
+        .overview-form-grid .span-2{grid-column:span 2}
         .overview-form-grid .company-picker{max-width:100%}
-        .overview-actions{max-width:1064px}
+        .overview-actions{width:100%;max-width:none}
         .management-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
         .allocation-editor{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
         .allocation-editor-row{display:grid;grid-template-columns:minmax(180px,1fr) 120px 120px 44px;gap:8px;align-items:end;border:1px solid var(--border2);border-radius:8px;background:#f8fafc;padding:8px}
         .allocation-editor-row>.mini-btn.danger{width:40px;height:40px;min-width:40px;padding:0;justify-content:center;align-self:end}
         .empty-guide{border:1px dashed var(--border);border-radius:10px;padding:18px;text-align:center;color:var(--txt2);font-size:.86rem;font-weight:700;background:#f8fafc}
-        @media(max-width:900px){.detail-hero{grid-template-columns:1fr}.summary-grid{grid-template-columns:repeat(2,1fr)}.info-grid{grid-template-columns:1fr}.overview-form-grid{grid-template-columns:1fr;max-width:none}.overview-actions{max-width:none}.panel{overflow-x:auto}.room-assignment-toolbar{flex-direction:column}.room-assignment-actions{width:100%;justify-content:flex-start}.room-assignment-table{min-width:920px}.allocation-editor-row>.mini-btn.danger{width:40px}}
+        @media(max-width:1280px){.overview-form-grid{grid-template-columns:repeat(3,minmax(180px,1fr))}}
+        @media(max-width:900px){.detail-hero{grid-template-columns:1fr}.summary-grid{grid-template-columns:repeat(2,1fr)}.info-grid{grid-template-columns:1fr}.overview-form-grid{grid-template-columns:1fr;max-width:none}.overview-form-grid .span-2{grid-column:1/-1}.overview-actions{max-width:none}.panel{overflow-x:auto}.room-assignment-toolbar{flex-direction:column}.room-assignment-actions{width:100%;justify-content:flex-start}.room-assignment-table{min-width:920px}.allocation-editor-row>.mini-btn.danger{width:40px}}
         .detail-sticky-actions{position:sticky;bottom:0;z-index:20;margin-top:14px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.97);box-shadow:0 -8px 24px rgba(15,23,42,.08);display:flex;align-items:center;justify-content:space-between;gap:12px}
         .detail-sticky-actions .hint{font-size:.76rem;color:var(--txt2);font-weight:800}
         .rooming-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
@@ -907,7 +909,7 @@ function renderOverview() {
                 <label class="form-label">행사명 <span style="color:var(--danger)">*</span></label>
                 <input id="detailName" class="form-input" style="width:100%" value="${group.name || ''}" placeholder="예: Samsung Tech Conference 2026">
             </div>
-            <div><label class="form-label">주관 업체</label><input id="detailAgency" class="form-input" style="width:100%" value="${group.agency || ''}" placeholder="업체/여행사/기업명"></div>
+            <div class="span-2"><label class="form-label">주관 업체</label><input id="detailAgency" class="form-input" style="width:100%" value="${group.agency || ''}" placeholder="업체/여행사/기업명"></div>
             <div><label class="form-label">행사 목적(선택)</label><select id="detailType" class="form-input" style="width:100%">${['기업 행사 / 컨퍼런스','여행사 단체','일반인 단체','웨딩 / 연회','스포츠팀','기타'].map(v => `<option ${eventTypeLabel(group.type) === v ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
             <div><label class="form-label">총 인원 <span style="color:var(--danger)">*</span></label><input type="number" id="detailPax" class="form-input" style="width:100%" min="1" value="${group.pax || ''}"></div>
             <div><label class="form-label">체크인 <span style="color:var(--danger)">*</span></label><input type="date" id="detailCheckin" class="form-input" style="width:100%" value="${group.checkin || ''}"></div>
@@ -1558,7 +1560,7 @@ window.addEventListener('DataReady', () => {
                     <label class="form-label">행사명 <span style="color:var(--danger)">*</span></label>
                     <input id="detailName" class="form-input" style="width:100%" value="${safeAttr(group.name)}" placeholder="예: Samsung Tech Conference 2026">
                 </div>
-                <div>
+                <div class="span-2">
                     <label class="form-label">등록 단체 <span style="color:var(--danger)">*</span></label>
                     ${companyPickerHtml(c)}
                 </div>
