@@ -1866,6 +1866,13 @@
         return compactValue(res?.fullRoom || res?.roomId || res?.room || res?.roomNo || res?.roomLabel);
     }
 
+    function reservationModalRoomTitle(res) {
+        const room = compactValue(res?.roomNo || res?.roomNumber || res?.roomLabel || res?.room || res?.fullRoom || res?.roomId);
+        if (!room) return actionLang() === 'en' ? 'Reservation detail' : '\uC608\uC57D \uC0C1\uC138';
+        if (actionLang() === 'en') return /^room\b/i.test(room) ? room : `Room ${room}`;
+        return /\uD638$/.test(room) ? room : `${room}\uD638`;
+    }
+
     function allocationRoomId(allocation) {
         return compactValue(allocation?.roomId || allocation?.fullRoom || allocation?.room || allocation?.roomNo || allocation?.roomLabel);
     }
@@ -2727,7 +2734,7 @@
             const vipText = actionLang() === 'en' ? 'VIP' : '우수 고객';
             const vipBadge = isVip ? `<span style="background:rgba(245,158,11,.15);color:#D97706;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:700;vertical-align:middle;"><i class="fa-solid fa-crown"></i> ${vipText}</span>` : '';
             
-            document.getElementById('unifiedModalTitle').innerHTML = `${res.id} ${b2bBadge} ${vipBadge}`;
+            document.getElementById('unifiedModalTitle').innerHTML = `${reservationModalRoomTitle(res)} ${b2bBadge} ${vipBadge}`;
             document.getElementById('unifiedResId').value = res.id;
             
             if (window.rooms && window.rooms.length === 0) {
