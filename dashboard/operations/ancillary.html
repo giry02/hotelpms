@@ -65,7 +65,7 @@
         .service-empty-state-desc{font-size:.8rem;font-weight:750;line-height:1.55;color:var(--txt3)}
         .service-card-total{margin-top:10px;font-weight:950;font-size:.82rem;color:var(--txt)}
         .service-modal{width:min(980px,calc(100vw - 24px));max-height:88vh;overflow:auto}
-        .service-modal-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
+        .service-modal-grid{display:block}
         .service-detail-modal{width:min(980px,calc(100vw - 24px));max-height:88vh;overflow:auto}
         .detail-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 14px;align-items:stretch}
         .service-detail-list{display:flex;flex-direction:column;gap:10px}
@@ -118,7 +118,7 @@
         .group-bulk-desc{font-size:.72rem;color:var(--txt2);font-weight:850;margin-top:5px;line-height:1.45}
         .group-bulk-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:9px 10px;border:1px solid #dbeafe;border-radius:10px;background:#fff;font-size:.76rem;font-weight:900;color:var(--txt2)}
         .group-bulk-summary strong{color:var(--primary);font-size:.82rem}
-        .group-room-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px;max-height:170px;overflow:auto}
+        .group-room-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px;max-height:170px;overflow:auto}
         .group-room-option{display:flex;align-items:flex-start;gap:8px;padding:8px 9px;border-radius:10px;background:#fff;border:1px solid #dbeafe;font-size:.76rem;font-weight:850;cursor:pointer}
         .group-room-option:has(input:checked){border-color:#60a5fa;background:#f8fbff;box-shadow:inset 3px 0 0 var(--primary)}
         .group-room-option input{margin-top:2px}
@@ -231,7 +231,7 @@
         .service-room-card:not(.inhouse){cursor:not-allowed}
         .service-room-card:not(.inhouse):hover{transform:none;box-shadow:var(--shadow-sm)}
         .service-unavailable{margin-top:12px;padding:9px;border:1px dashed #cbd5e1;border-radius:8px;color:var(--txt3);font-size:.72rem;font-weight:850;text-align:center;background:#fff}
-        @media(max-width:1100px){.ancillary-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.service-modal-grid{grid-template-columns:1fr}}
+        @media(max-width:1100px){.ancillary-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.group-room-checks{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:900px){.voucher-brand{align-items:flex-start;flex-direction:column}.voucher-heading,.voucher-sub{text-align:left}.voucher-row{align-items:flex-start;flex-direction:column;gap:4px}.voucher-row span{text-align:left}.voucher-stub-grid{grid-template-columns:1fr}}
         @media(max-width:768px){.ancillary-toolbar{flex-direction:column;align-items:stretch}.ancillary-search-group{flex:1 1 auto;min-width:0;width:100%}.ancillary-search{flex:1 1 auto;min-width:0}.ancillary-toolbar-actions{margin-left:0}.modal-room-box,.modal-field-grid{grid-template-columns:1fr}.voucher-fields,.group-room-checks{grid-template-columns:1fr}}
     </style>
@@ -287,7 +287,10 @@
                 </div>
             </section>
             <section class="modal-section service-register-section is-hidden" id="detailRegistrationSection">
-                <div class="modal-section-head"><span>부가서비스 등록</span><span id="modalSelectedRoom"></span></div>
+                <div class="modal-section-head">
+                    <span>부가서비스 등록</span>
+                    <button class="btn-primary-sm" onclick="saveServiceOrder()"><i class="fa-solid fa-check"></i> 등록</button>
+                </div>
                 <div class="modal-section-body">
                     <div class="service-modal-grid">
                         <section>
@@ -314,14 +317,6 @@
                                     <span id="groupRoomCount">0실 선택</span>
                                 </div>
                                 <div id="groupRoomChecks" class="group-room-checks"></div>
-                            </div>
-                        </section>
-                        <section class="register-side-body">
-                            <div class="register-preview-title"><span><i class="fa-solid fa-clock-rotate-left"></i> 현재 이용내역</span><span id="registrationExistingCount"></span></div>
-                            <div id="registrationExistingList" class="register-existing-list"></div>
-                            <div style="display:flex;justify-content:flex-end;gap:8px">
-                                <button class="btn-outline" onclick="closeServiceModal()">취소</button>
-                                <button class="btn-primary-sm" onclick="saveServiceOrder()"><i class="fa-solid fa-check"></i> 등록</button>
                             </div>
                         </section>
                     </div>
@@ -1020,7 +1015,8 @@ function prepareServiceRegistration(roomId) {
     }
     const res = active || next;
     const group = groupForReservation(res);
-    document.getElementById('modalSelectedRoom').textContent = `${roomNo(room)}호`;
+    const modalSelectedRoom = document.getElementById('modalSelectedRoom');
+    if (modalSelectedRoom) modalSelectedRoom.textContent = `${roomNo(room)}호`;
     const dt = new Date();
     dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
     document.getElementById('serviceDateTime').value = dt.toISOString().slice(0, 16);
