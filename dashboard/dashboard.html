@@ -403,7 +403,7 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="partnerDetailModal" onclick="if(event.target===this)closePartnerDetailModal()">
+<div class="modal-overlay" id="partnerDetailModal">
     <div class="modal-card partner-detail-modal" role="dialog" aria-modal="true" aria-labelledby="partnerDetailTitle">
         <div class="modal-header">
             <h3 class="modal-title" id="partnerDetailTitle"><i class="fa-solid fa-building" style="color:var(--primary)"></i> 제휴 업체 상세</h3>
@@ -518,25 +518,21 @@
         amount: '금액',
         today: '오늘',
         weekly: '주간',
-        partnerDetailTitle: '제휴 업체 상세',
-        partnerInternalLabel: '호텔 내부 운영용',
+        partnerDetailTitle: '제휴 광고 상세',
+        partnerInternalLabel: '계약 검토용 광고',
         partnerService: '서비스 구분',
-        partnerContact: '담당/연락처',
+        partnerContact: '계약 문의 연락처',
         partnerAddress: '주소',
         partnerHours: '운영 시간',
         partnerPeriod: '적용 기간',
-        partnerBenefit: '적용 혜택',
+        partnerBenefit: '광고 제안',
         partnerSettlement: '정산 조건',
-        partnerFrontdeskMemo: '프런트 확인사항',
-        partnerBookingGuide: '처리 방법',
-        partnerLinkedItems: '연결된 부가서비스 항목',
-        partnerVoucher: '바우처/전표 양식',
-        partnerVoucherFields: '출력 필드',
-        partnerInternalNote: '내부 메모',
-        partnerOpenAncillary: '부가서비스 등록',
-        partnerOpenAdmin: '업체/항목 관리',
-        partnerPrintPreview: '바우처 양식 보기',
-        partnerNoItems: '연결된 항목이 없습니다.',
+        partnerFrontdeskMemo: '호텔 확인사항',
+        partnerBookingGuide: '계약 후 사용 흐름',
+        partnerLinkedItems: '대표 상품 예시',
+        partnerContactGuide: '이 광고는 고객에게 직접 노출하는 화면이 아니라, 호텔 담당자가 업체에 연락해 제휴 조건을 확인하기 위한 상세입니다.',
+        partnerClose: '닫기',
+        partnerNoItems: '등록된 상품 예시가 없습니다.',
         partnerModalMissing: '업체 정보를 찾을 수 없습니다.',
         partnerUnitFields: '개 필드'
     };
@@ -640,25 +636,21 @@
         amount: 'Amount',
         today: 'Today',
         weekly: 'Weekly',
-        partnerDetailTitle: 'Partner Vendor Details',
-        partnerInternalLabel: 'Hotel internal use',
+        partnerDetailTitle: 'Partner Ad Details',
+        partnerInternalLabel: 'Partnership review ad',
         partnerService: 'Service',
-        partnerContact: 'Contact',
+        partnerContact: 'Contract Contact',
         partnerAddress: 'Address',
         partnerHours: 'Hours',
         partnerPeriod: 'Period',
-        partnerBenefit: 'Benefit',
+        partnerBenefit: 'Ad Offer',
         partnerSettlement: 'Settlement',
-        partnerFrontdeskMemo: 'Front Desk Notes',
-        partnerBookingGuide: 'Workflow',
-        partnerLinkedItems: 'Linked Ancillary Items',
-        partnerVoucher: 'Voucher / Receipt Form',
-        partnerVoucherFields: 'Print Fields',
-        partnerInternalNote: 'Internal Memo',
-        partnerOpenAncillary: 'Register Ancillary',
-        partnerOpenAdmin: 'Vendor / Item Management',
-        partnerPrintPreview: 'View Voucher Form',
-        partnerNoItems: 'No linked items.',
+        partnerFrontdeskMemo: 'Hotel Review Notes',
+        partnerBookingGuide: 'After-contract Workflow',
+        partnerLinkedItems: 'Sample Offers',
+        partnerContactGuide: 'This ad detail is for hotel staff to contact the partner and review terms, not for direct guest-facing promotion.',
+        partnerClose: 'Close',
+        partnerNoItems: 'No sample offers.',
         partnerModalMissing: 'Vendor information was not found.',
         partnerUnitFields: 'fields'
     };
@@ -733,7 +725,6 @@
         }
         const icon = partnerKit()?.serviceIcon?.(vendor.type) || 'fa-bell-concierge';
         const items = Array.isArray(vendor.items) ? vendor.items : [];
-        const fields = Array.isArray(vendor.voucherFields) ? vendor.voucherFields : [];
         title.innerHTML = `<i class="fa-solid ${esc(icon)}" style="color:var(--primary)"></i> ${esc(vendor.name || t('partnerDetailTitle'))}`;
         body.innerHTML = `
             <section class="partner-hero">
@@ -744,17 +735,23 @@
                     <p>${esc(vendor.benefit || '-')}</p>
                 </div>
             </section>
+            <section class="partner-contact-card">
+                <div>
+                    <span>${esc(t('partnerContact'))}</span>
+                    <strong>${esc(vendor.contact || '-')}</strong>
+                    <small>${esc(t('partnerContactGuide'))}</small>
+                </div>
+            </section>
             <section class="partner-info-grid">
                 ${partnerInfoRow('partnerService', partnerServiceLabel(vendor.type))}
-                ${partnerInfoRow('partnerContact', vendor.contact || '-')}
                 ${partnerInfoRow('partnerAddress', vendor.address || '-')}
                 ${partnerInfoRow('partnerHours', vendor.operatingHours || '-')}
                 ${partnerInfoRow('partnerPeriod', vendor.usagePeriod || '-')}
                 ${partnerInfoRow('partnerSettlement', vendor.settlementPolicy || '-')}
             </section>
             <section class="partner-section">
-                <h4><i class="fa-solid fa-clipboard-check"></i> ${esc(t('partnerFrontdeskMemo'))}</h4>
-                <p>${esc(vendor.frontdeskMemo || '-')}</p>
+                <h4><i class="fa-solid fa-bullhorn"></i> ${esc(t('partnerBenefit'))}</h4>
+                <p>${esc(vendor.benefit || '-')}</p>
             </section>
             <section class="partner-section">
                 <h4><i class="fa-solid fa-route"></i> ${esc(t('partnerBookingGuide'))}</h4>
@@ -765,24 +762,14 @@
                 ${items.length ? `<div class="partner-item-list">${items.map(item => `<div class="partner-item"><span>${esc(item.name)}</span><strong>${esc(partnerKit()?.money?.(item.price) || money(item.price))}</strong><small>${esc(item.desc || '')}</small></div>`).join('')}</div>` : `<div class="partner-empty">${esc(t('partnerNoItems'))}</div>`}
             </section>
             <section class="partner-section">
-                <h4><i class="fa-solid fa-ticket"></i> ${esc(t('partnerVoucher'))}</h4>
-                <div class="partner-voucher-summary">
-                    <span>${esc(t('partnerVoucherFields'))}</span>
-                    <strong>${fields.length} ${esc(t('partnerUnitFields'))}</strong>
-                </div>
-                <div class="partner-field-list">${fields.map(field => `<span>${esc(partnerFieldLabel(field))}</span>`).join('')}</div>
-            </section>
-            <section class="partner-section">
-                <h4><i class="fa-solid fa-note-sticky"></i> ${esc(t('partnerInternalNote'))}</h4>
-                <p>${esc(vendor.internalNote || '-')}</p>
+                <h4><i class="fa-solid fa-clipboard-check"></i> ${esc(t('partnerFrontdeskMemo'))}</h4>
+                <p>${esc(vendor.frontdeskMemo || '-')}</p>
             </section>
         `;
         if (footer) {
             footer.innerHTML = `
                 <div class="partner-detail-actions">
-                    <a class="btn-outline" href="${esc(partnerAdminHref(vendor))}"><i class="fa-solid fa-gear"></i> ${esc(t('partnerOpenAdmin'))}</a>
-                    <a class="btn-outline" href="${esc(partnerAdminHref(vendor))}#voucher"><i class="fa-solid fa-ticket"></i> ${esc(t('partnerPrintPreview'))}</a>
-                    <a class="btn-primary-sm" href="${esc(partnerAncillaryHref(vendor))}"><i class="fa-solid fa-concierge-bell"></i> ${esc(t('partnerOpenAncillary'))}</a>
+                    <button class="btn-outline" type="button" onclick="closePartnerDetailModal()">${esc(t('partnerClose'))}</button>
                 </div>
             `;
         }
