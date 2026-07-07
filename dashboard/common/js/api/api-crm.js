@@ -146,7 +146,7 @@ Object.assign(window.PmsAPI, {
                     color: item.color || ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B'][index % 4],
                     from,
                     to,
-                    dir: order[to] > order[from] ? 'up' : 'change',
+                    dir: order[to] > order[from] ? 'up' : order[to] < order[from] ? 'down' : 'change',
                     changeType,
                     reason: localized(item.reason),
                     by: changedBy

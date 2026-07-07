@@ -113,7 +113,7 @@
                 <div class="tier-card-icon" style="background:rgba(245,158,11,.15);color:#D97706"><i class="fa-solid fa-user-pen"></i></div>
                 <div class="tier-card-info">
                     <div class="tier-card-count" id="kpiManualChanges">0</div>
-                    <div class="tier-card-name">수동 변경</div>
+                    <div class="tier-card-name">수동변경</div>
                 </div>
                 <div class="tier-card-criteria" data-i18n-key="Admin reason required">관리자 사유 필수</div>
             </div>
@@ -129,7 +129,8 @@
                 <div class="filter-chips">
                     <button class="chip active" onclick="setDir(this,'all')">전체</button>
                     <button class="chip" onclick="setDir(this,'up')"><i class="fa-solid fa-arrow-up" style="color:var(--success)"></i> 승급</button>
-                    <button class="chip" onclick="setDir(this,'manual')"><i class="fa-solid fa-user-pen" style="color:var(--warning)"></i> 수동 변경</button>
+                    <button class="chip" onclick="setDir(this,'down')"><i class="fa-solid fa-arrow-down" style="color:var(--danger)"></i> 강등</button>
+                    <button class="chip" onclick="setDir(this,'manual')"><i class="fa-solid fa-user-pen" style="color:var(--warning)"></i> 수동변경</button>
                 </div>
                 <button class="m-filter-trigger" onclick="openBottomSheet()">
                     <i class="fa-solid fa-filter"></i>
@@ -156,7 +157,7 @@
             <div class="card-body" style="padding:0">
                 <div class="table-wrap">
                     <table><thead><tr>
-                        <th>일자</th><th>고객</th><th>변동</th><th>이전 등급</th><th>변경 등급</th><th>사유</th><th>처리</th>
+                        <th>일자</th><th>고객</th><th>변동</th><th>변경 방식</th><th>이전 등급</th><th>변경 등급</th><th>사유</th><th>처리</th>
                     </tr></thead>
                     <tbody id="historyBody"></tbody></table>
                 </div>
@@ -186,7 +187,7 @@
 <div class="bottom-sheet-overlay" id="bsOverlay" onclick="closeBottomSheet()"></div>
 <div class="bottom-sheet" id="bsPanel">
     <div class="bottom-sheet-handle"></div>
-    <div class="bottom-sheet-title">변동 Type 선택</div>
+    <div class="bottom-sheet-title">변동 유형 선택</div>
     <div class="bottom-sheet-options">
         <button class="bs-option selected" onclick="selectFilter('all','전체')">
             <div class="bs-option-icon" style="background:var(--border2);color:var(--txt2)"><i class="fa-solid fa-list"></i></div>
@@ -198,9 +199,14 @@
             <div class="bs-option-label">승급<div class="bs-option-desc">등급이 올라간 변동만</div></div>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
-        <button class="bs-option" onclick="selectFilter('manual','수동 변경')">
+        <button class="bs-option" onclick="selectFilter('down','강등')">
+            <div class="bs-option-icon" style="background:rgba(239,68,68,.1);color:#DC2626"><i class="fa-solid fa-arrow-down"></i></div>
+            <div class="bs-option-label">강등<div class="bs-option-desc">등급이 내려간 변동만</div></div>
+            <i class="fa-solid fa-check bs-option-check"></i>
+        </button>
+        <button class="bs-option" onclick="selectFilter('manual','수동변경')">
             <div class="bs-option-icon" style="background:rgba(245,158,11,.1);color:#D97706"><i class="fa-solid fa-user-pen"></i></div>
-            <div class="bs-option-label">수동 변경<div class="bs-option-desc">관리자가 사유를 남긴 변경만</div></div>
+            <div class="bs-option-label">수동변경<div class="bs-option-desc">관리자가 사유를 남긴 변경만</div></div>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
     </div>
@@ -242,6 +248,7 @@ function getFiltered() {
     const month = document.getElementById('monthFilter').value;
     return history.filter(h => {
         if (currentDir === 'up' && h.dir !== 'up') return false;
+        if (currentDir === 'down' && h.dir !== 'down') return false;
         if (currentDir === 'manual' && h.changeType !== 'manual') return false;
         if (search && !h.name.toLowerCase().includes(search)) return false;
         if (month !== 'all' && !h.date.startsWith(month)) return false;
@@ -305,16 +312,22 @@ function tierRank(tier) {
 }
 
 function tierChangeDisplay(change) {
-    const manual = change?.changeType === 'manual';
     const fromRank = tierRank(change?.from);
     const toRank = tierRank(change?.to);
-    const dir = toRank > fromRank ? 'up' : toRank < fromRank ? 'down' : 'same';
+    const dir = toRank < fromRank ? 'down' : 'up';
     const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
-    if (manual && dir === 'up') return { label: lang === 'en' ? 'Manual upgrade' : '수동 승급', color: 'var(--success)', icon: 'fa-arrow-up' };
-    if (manual && dir === 'down') return { label: lang === 'en' ? 'Manual downgrade' : '수동 강등', color: 'var(--danger)', icon: 'fa-arrow-down' };
-    if (manual) return { label: lang === 'en' ? 'Manual adjustment' : '수동 조정', color: 'var(--warning)', icon: 'fa-user-pen' };
     if (dir === 'down') return { label: lang === 'en' ? 'Downgrade' : '강등', color: 'var(--danger)', icon: 'fa-arrow-down' };
     return { label: textFor('Upgrade'), color: 'var(--success)', icon: 'fa-arrow-up' };
+}
+
+function tierChangeMethodDisplay(change) {
+    const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+    const manual = change?.changeType === 'manual';
+    return {
+        label: manual ? (lang === 'en' ? 'Manual Change' : '수동변경') : (lang === 'en' ? 'Auto Change' : '자동변경'),
+        color: manual ? 'var(--warning)' : 'var(--primary)',
+        icon: manual ? 'fa-user-pen' : 'fa-gear'
+    };
 }
 
 function crmInitialFallback(name) {
@@ -373,11 +386,13 @@ function renderHistory() {
         const changeColor = changeMeta.color;
         const changeIcon = changeMeta.icon;
         const changeLabel = changeMeta.label;
+        const methodMeta = tierChangeMethodDisplay(h);
         const reason = h.reason || textFor('Reason Required');
         return `<tr class="tier-history-row" data-change-id="${historyEscape(h.id)}" tabindex="0">
             <td style="white-space:nowrap;font-size:.78rem;color:var(--txt2)">${historyEscape(h.date)}</td>
             <td><div class="guest-cell"><strong>${historyEscape(h.name)}</strong></div></td>
             <td><span style="color:${changeColor};font-weight:700"><i class="fa-solid ${changeIcon}"></i> ${changeLabel}</span></td>
+            <td><span style="color:${methodMeta.color};font-weight:700"><i class="fa-solid ${methodMeta.icon}"></i> ${methodMeta.label}</span></td>
             <td>${tierBadge(h.from)}</td>
             <td>${tierBadge(h.to)}</td>
             <td style="font-size:.78rem;color:var(--txt2);max-width:240px;white-space:normal">${historyEscape(reason)}</td>
@@ -392,6 +407,7 @@ function renderHistory() {
         const dirLabel = changeMeta.label;
         const dirColor = changeMeta.color;
         const dirIcon = changeMeta.icon;
+        const methodMeta = tierChangeMethodDisplay(h);
         const reason = h.reason || textFor('Reason Required');
         return `<div class="m-res-card tier-history-row" data-change-id="${historyEscape(h.id)}" tabindex="0" style="border-left-color:${dirColor}">
             <div class="m-res-top">
@@ -412,6 +428,7 @@ function renderHistory() {
                     ${tierBadge(h.to)}
                 </div>
                 <div class="m-res-detail"><i class="fa-solid fa-clipboard-list"></i> ${historyEscape(reason)}</div>
+                <div class="m-res-detail"><i class="fa-solid ${methodMeta.icon}"></i> ${methodMeta.label}</div>
                 <div class="m-res-detail"><i class="fa-solid fa-user-check"></i> ${historyEscape(h.by)}</div>
             </div>
         </div>`;
@@ -529,7 +546,8 @@ function selectFilter(dir, label) {
     chips.forEach(c => c.classList.remove('active'));
     if (dir === 'all' && chips[0]) chips[0].classList.add('active');
     else if (dir === 'up' && chips[1]) chips[1].classList.add('active');
-    else if (dir === 'manual' && chips[2]) chips[2].classList.add('active');
+    else if (dir === 'down' && chips[2]) chips[2].classList.add('active');
+    else if (dir === 'manual' && chips[3]) chips[3].classList.add('active');
     closeBottomSheet();
     renderHistory();
 }
@@ -564,7 +582,7 @@ const translations={ko: {
         "Billing & Payment": "요금 및 결제",
         "Notices": "공지사항",
         "Support": "고객지원",
-"Tier Change History":"등급 변동 이력","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Upgrades (Month)":"이번 달 승급","VIP Customers":"우수 고객","New VIP":"신규 우수 고객","Manual Changes":"수동 변경","Manual Change":"수동 변경","Reason Required":"사유 미입력","New entries this month":"이번 달 신규 진입","Admin reason required":"관리자 사유 필수","All":"전체","Upgrade":"승급"},en: {
+"Tier Change History":"등급 변동 이력","Dashboard":"대시보드","Reservations":"예약 타임라인","Booking List":"예약 목록","Check-in/out":"체크인/아웃","Guest CRM":"투숙객 관리","VIP Members":"우수 고객 멤버십","Room Mgmt":"객실 관리","Housekeeping":"하우스키핑","Folio & Billing":"통합 정산","Ancillary Svcs":"부가서비스","Hotel Settings":"호텔 설정","Staff Mgmt":"직원 관리","Upgrades (Month)":"이번 달 승급","VIP Customers":"우수 고객","New VIP":"신규 우수 고객","Manual Changes":"수동변경","Manual Change":"수동변경","Reason Required":"사유 미입력","New entries this month":"이번 달 신규 진입","Admin reason required":"관리자 사유 필수","All":"전체","Upgrade":"승급","Downgrade":"강등","Change Method":"변경 방식","Auto Change":"자동변경","Manual Change Compact":"수동변경","변경 방식":"변경 방식","수동변경":"수동변경","자동변경":"자동변경","강등":"강등","변동 유형 선택":"변동 유형 선택"},en: {
         "Main": "Main",
         "Front Desk": "Front Desk",
         "Guest & CRM": "Guest & CRM",
@@ -592,7 +610,7 @@ const translations={ko: {
         "Billing & Payment": "Billing & Payment",
         "Notices": "Notices",
         "Support": "Support",
-"Tier Change History":"Tier Change History","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Upgrades (Month)":"Upgrades (Month)","VIP Customers":"VIP Customers","New VIP":"New VIP","Manual Changes":"Manual Changes","Manual Change":"Manual Change","Reason Required":"Reason required","New entries this month":"New entries this month","Admin reason required":"Admin reason required","All":"All","Upgrade":"Upgrade"}};
+"Tier Change History":"Tier Change History","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","Upgrades (Month)":"Upgrades (Month)","VIP Customers":"VIP Customers","New VIP":"New VIP","Manual Changes":"Manual Changes","Manual Change":"Manual Change","Reason Required":"Reason required","New entries this month":"New entries this month","Admin reason required":"Admin reason required","All":"All","Upgrade":"Upgrade","Downgrade":"Downgrade","Change Method":"Change Method","Auto Change":"Auto Change","Manual Change Compact":"Manual Change","변경 방식":"Change Method","수동변경":"Manual Change","자동변경":"Auto Change","강등":"Downgrade","변동 유형 선택":"Change Type"}};
 translations.ko["Tier Member Criteria"] = "등급 회원 기준";
 translations.en["Tier Member Criteria"] = "Tier Member Criteria";
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
