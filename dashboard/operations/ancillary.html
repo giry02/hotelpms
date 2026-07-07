@@ -204,6 +204,18 @@
         #serviceModal *,
         #serviceDetailModal *,
         #serviceVoucherModal *{font-family:var(--font)}
+        #serviceModal .fa-solid,
+        #serviceDetailModal .fa-solid,
+        #serviceVoucherModal .fa-solid,
+        .ancillary-page .fa-solid{font-family:"Font Awesome 6 Free";font-weight:900}
+        #serviceModal .fa-regular,
+        #serviceDetailModal .fa-regular,
+        #serviceVoucherModal .fa-regular,
+        .ancillary-page .fa-regular{font-family:"Font Awesome 6 Free";font-weight:400}
+        #serviceModal .fa-brands,
+        #serviceDetailModal .fa-brands,
+        #serviceVoucherModal .fa-brands,
+        .ancillary-page .fa-brands{font-family:"Font Awesome 6 Brands";font-weight:400}
         #serviceModal .modal-card,
         #serviceDetailModal .modal-card,
         #serviceVoucherModal .modal-card{font-family:var(--font);color:var(--txt);letter-spacing:0}
@@ -285,7 +297,7 @@
     <main class="content">
         <div class="kpi-grid ancillary-kpis">
             <div class="kpi-card blue"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiInhouse">0</div><div class="kpi-label">투숙 객실</div></div></div>
-            <div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiPos">0</div><div class="kpi-label">통합 POS</div></div></div>
+            <div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-cash-register"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiPos">0</div><div class="kpi-label">통합 POS</div></div></div>
             <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-golf-ball-tee"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiGolf">0</div><div class="kpi-label">골프장</div></div></div>
             <div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-car"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRent">0</div><div class="kpi-label">렌터카</div></div></div>
             <div class="kpi-card teal"><div class="kpi-icon"><i class="fa-solid fa-coins"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRevenue">₱0</div><div class="kpi-label">누적 이용금액</div></div></div>
@@ -301,7 +313,7 @@
             </div>
             <div class="ancillary-toolbar-actions">
                 <button class="service-filter-chip active" data-service="all" onclick="setServiceFilter('all')">전체</button>
-                <button class="service-filter-chip" data-service="pos" onclick="setServiceFilter('pos')"><i class="fa-solid fa-utensils"></i> 통합 POS</button>
+                <button class="service-filter-chip" data-service="pos" onclick="setServiceFilter('pos')"><i class="fa-solid fa-cash-register"></i> 통합 POS</button>
                 <button class="service-filter-chip" data-service="golf" onclick="setServiceFilter('golf')"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</button>
                 <button class="service-filter-chip" data-service="rentacar" onclick="setServiceFilter('rentacar')"><i class="fa-solid fa-car"></i> 렌터카</button>
             </div>
@@ -337,7 +349,7 @@
                     <div class="service-modal-grid">
                         <section>
                             <div class="service-tabs">
-                                <button class="service-tab active" data-service="pos" onclick="selectServiceType('pos')"><i class="fa-solid fa-utensils"></i> 통합 POS</button>
+                                <button class="service-tab active" data-service="pos" onclick="selectServiceType('pos')"><i class="fa-solid fa-cash-register"></i> 통합 POS</button>
                                 <button class="service-tab" data-service="golf" onclick="selectServiceType('golf')"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</button>
                                 <button class="service-tab" data-service="rentacar" onclick="selectServiceType('rentacar')"><i class="fa-solid fa-car"></i> 렌터카</button>
                             </div>
@@ -606,9 +618,11 @@ function displayDate(value) {
 }
 function serviceMeta(service) {
     return {
-        pos: { label:'통합 POS', icon:'fa-utensils', cls:'pos' },
+        pos: { label:'통합 POS', icon:'fa-cash-register', cls:'pos' },
+        fnb: { label:'통합 POS', icon:'fa-cash-register', cls:'pos' },
         golf: { label:'골프장', icon:'fa-golf-ball-tee', cls:'golf' },
-        rentacar: { label:'렌터카', icon:'fa-car', cls:'rentacar' }
+        rentacar: { label:'렌터카', icon:'fa-car', cls:'rentacar' },
+        car: { label:'렌터카', icon:'fa-car', cls:'rentacar' }
     }[service] || { label:'부가서비스', icon:'fa-bell', cls:'pos' };
 }
 function normalizeVendorItem(type, item = {}) {
@@ -1060,7 +1074,7 @@ function openServiceDetailModal(roomId, options = {}) {
     document.getElementById('detailRoomSummary').innerHTML = serviceRoomSummaryHtml(room, res, group);
     document.getElementById('detailServiceSummary').innerHTML = [
         ...serviceSummary(orders).map(item => `<div class="info-tile"><span><i class="fa-solid ${item.icon} ${item.cls}"></i> ${escapeHtml(item.label)}</span><strong>${money(item.total)}</strong></div>`),
-        `<div class="info-tile total-summary"><span><i class="fa-solid fa-calculator"></i> 합산</span><strong>${money(total)}</strong></div>`
+        `<div class="info-tile total-summary"><span><i class="fa-solid fa-calculator total"></i> 합산</span><strong>${money(total)}</strong></div>`
     ].join('');
     document.getElementById('detailOrderList').innerHTML = orders.length ? orders.map(order => {
         const meta = serviceMeta(order.service);
