@@ -25,7 +25,8 @@
         { key: 'auditLogs', src: `${BASE}data/api/v1/admin/audit-logs.json`, legacySrc: `${BASE}data/audit-logs.json` },
         { key: 'tenantApplications', src: `${BASE}data/api/v1/admin/tenant-applications.json`, legacySrc: `${BASE}data/tenant-applications.json` },
         { key: 'dashboardSummary', src: `${BASE}data/api/v1/admin/dashboard/summary.json` },
-        { key: 'tenants', src: `${BASE}data/api/v1/admin/tenants.json` }
+        { key: 'tenants', src: `${BASE}data/api/v1/admin/tenants.json` },
+        { key: 'adCampaigns', src: `${BASE}data/api/v1/admin/ads/campaigns.json` }
     ];
 
     const FALLBACK_DATA = {

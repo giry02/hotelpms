@@ -32,19 +32,6 @@
       items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }]
     },
     {
-      id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8,
-      voucherFields:['guest','room','date','item','amount','partnerContact','address','memo'], logoDataUrl:'',
-      campaignTitle:'투숙객 전용 주변 식당 혜택',
-      benefit:'호텔 키 확인 시 세트 메뉴 20% 할인',
-      operatingHours:'11:30~22:30',
-      usagePeriod:'2026-07-01 ~ 2026-07-31',
-      settlementPolicy:'현장 결제 우선, 호텔 예약 대행 시 월말 수수료 정산',
-      frontdeskMemo:'호텔이 제휴 조건을 검토한 뒤 계약 여부를 결정하는 광고입니다. 계약 전에는 고객에게 예약 확정 안내를 하지 않습니다.',
-      bookingGuide:'담당자에게 연락해 제공 메뉴, 할인율, 정산 방식, 예약 가능 시간을 확인한 뒤 계약이 확정되면 업체/항목 관리에 등록합니다.',
-      internalNote:'계약 전 검토용 광고입니다.',
-      items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }]
-    },
-    {
       id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager / +63 917 230 4471', address:'Clark Freeport Zone, Pampanga', commission:15,
       voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], logoDataUrl:'',
       campaignTitle:'제휴 골프장 그린피 혜택',
