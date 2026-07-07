@@ -706,15 +706,6 @@ function groupStoredSettlementItems() {
     }).filter(item => item.amount > 0);
 }
 
-function fallbackGroupServiceItems() {
-    if (groupStoredSettlementItems().length) return [];
-    return [
-        { id: 'GROUP-POS-001', type: 'pos', desc: '행사 커피 브레이크 / 식음료 일괄', ref: group.name || '단체 공용', qty: 1, amount: 220, status: 'pending' },
-        { id: 'GROUP-RENT-001', type: 'rentacar', desc: 'VIP 스피커 공항 픽업 렌터카', ref: 'OT 1401', qty: 1, amount: 180, status: 'pending' },
-        { id: 'GROUP-GOLF-001', type: 'golf', desc: '임원 골프장 제휴 예약', ref: 'FT 0801', qty: 1, amount: 300, status: 'pending' }
-    ];
-}
-
 function groupSettlementLines() {
     const n = nights();
     const roomLines = getAssignedRooms(group).map(room => ({
@@ -726,7 +717,7 @@ function groupSettlementLines() {
         amount: amountNumber(room.rate) * n,
         status: 'pending'
     }));
-    return [...roomLines, ...groupStoredSettlementItems(), ...fallbackGroupServiceItems()];
+    return [...roomLines, ...groupStoredSettlementItems()];
 }
 
 function groupSettlementTotals(lines) {
