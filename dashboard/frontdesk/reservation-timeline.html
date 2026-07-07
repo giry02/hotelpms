@@ -116,20 +116,20 @@
     padding:5px 8px!important;
 }
 .tl-block{
-    min-height:48px;
-    height:var(--tl-block-height,48px)!important;
+    min-height:40px;
+    height:var(--tl-block-height,44px)!important;
     flex-direction:column;
     align-items:flex-start!important;
     justify-content:center;
     gap:0;
-    padding:5px 8px!important;
+    padding:4px 8px!important;
     box-sizing:border-box;
     overflow:hidden;
 }
-.tl-block-text{width:100%;display:flex;flex-direction:column;justify-content:center;gap:2px;line-height:1.12;min-width:0;min-height:0}
+.tl-block-text{width:100%;display:flex;flex-direction:column;justify-content:center;gap:1px;line-height:1.08;min-width:0;min-height:0}
 .tl-group-title{display:flex;align-items:center;gap:4px;min-width:0;width:100%;font-size:.6rem;font-weight:950;color:#fff;white-space:nowrap;overflow:hidden;line-height:1.12}
 .tl-group-title .tl-group-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
-.tl-guest-stack{display:flex;flex-direction:column;gap:1px;min-width:0;width:100%;line-height:1.14}
+.tl-guest-stack{display:flex;flex-direction:column;gap:0;min-width:0;width:100%;line-height:1.1}
 .tl-primary-guest{display:flex;align-items:center;gap:5px;min-width:0;width:100%;font-size:.64rem;font-weight:950;color:#fff;white-space:nowrap;overflow:hidden;line-height:1.14}
 .tl-primary-guest i.fa-user{font-size:.6rem;color:rgba(255,255,255,.94);flex:0 0 auto}
 .tl-primary-guest span{min-width:0;overflow:hidden;text-overflow:ellipsis}
@@ -138,7 +138,7 @@
 .tl-vip-row i{font-size:.58rem;color:#F59E0B}
 .tl-role-badge{flex:0 0 auto;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.22);padding:1px 4px;font-size:.5rem;font-weight:950;line-height:1;color:#fff}
 .tl-block-label{font-size:.65rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tl-time-row{display:flex;align-items:center;gap:4px;padding-left:17px;font-size:.56rem;font-weight:800;color:rgba(255,255,255,.84);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.12}
+.tl-time-row{display:flex;align-items:center;gap:4px;padding-left:17px;font-size:.56rem;font-weight:800;color:rgba(255,255,255,.84);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.08}
 .tl-time-row i{font-size:.52rem;color:rgba(255,255,255,.9)}
 .tl-time-row span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .tl-block.group-assigned {
@@ -959,7 +959,7 @@ function buildTimeline() {
         const visibleLineCount = hasPrimaryGuest
             ? 2 + (hasCompanions ? 1 : 0) + (isVip ? 1 : 0) + (res.groupId ? 1 : 0)
             : 2 + (isVip ? 1 : 0);
-        const blockHeight = Math.min(88, Math.max(48, Math.ceil(14 + (visibleLineCount * 12))));
+        const blockHeight = Math.min(64, Math.max(40, Math.ceil(12 + (visibleLineCount * 9))));
 
         const displayName = timelineDisplayName(res);
         const groupBadge = timelineGroupBadge(res);
@@ -1076,16 +1076,19 @@ function buildTimeline() {
         }
     });
 
-    const allBlocks = rowStates.flatMap(row => row.blocks);
-    const maxBlockHeight = Math.max(36, ...allBlocks.map(block => block.blockHeight || 36));
-    const maxLevelCount = Math.max(1, ...rowStates.map(row => row.blocks.reduce((max, block) => Math.max(max, (block.level || 0) + 1), 0)));
-    const rowPadding = 8;
-    const levelGap = 8;
-    const height = rowPadding * 2 + (maxLevelCount * maxBlockHeight) + ((maxLevelCount - 1) * levelGap);
+    const baseRowHeight = 58;
+    const rowPadding = 6;
+    const levelGap = 4;
 
     grid.innerHTML = headerRowHTML + rowStates.map(row => {
+        const rowMaxBlockHeight = Math.max(40, ...row.blocks.map(block => block.blockHeight || 40));
+        const rowLevelCount = Math.max(1, row.blocks.reduce((max, block) => Math.max(max, (block.level || 0) + 1), 0));
+        const height = Math.max(
+            baseRowHeight,
+            rowPadding * 2 + (rowLevelCount * rowMaxBlockHeight) + ((rowLevelCount - 1) * levelGap)
+        );
         const blocksHTML = row.blocks.map(block => {
-            const blockTop = rowPadding + ((block.level || 0) * (maxBlockHeight + levelGap)) + Math.max(0, (maxBlockHeight - (block.blockHeight || maxBlockHeight)) / 2);
+            const blockTop = rowPadding + ((block.level || 0) * (rowMaxBlockHeight + levelGap)) + Math.max(0, (rowMaxBlockHeight - (block.blockHeight || rowMaxBlockHeight)) / 2);
             return block.html.replace('__BLOCK_TOP__', String(Math.round(blockTop)));
         }).join('');
         return `<div class="tl-row" style="position:relative;--tl-row-height:${height}px;height:${height}px;min-height:${height}px">${row.cellsHTML}${blocksHTML}</div>`;
