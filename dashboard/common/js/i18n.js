@@ -1713,6 +1713,7 @@ function translateKoreanPattern(text) {
         'Room 세탁 접수': 'Room Laundry Request',
         '전표 Print 양식': 'Slip Print Template',
         '체크한 Item은 부가서비스 상세 Screen의 Print 버튼과 오른쪽 미리보기에 그대로 반영됩니다.': 'Checked items are reflected in the print button and right-side preview on the ancillary detail screen.',
+        '체크한 Item은 부가서비스 상세 Screen의 Print 버튼과 미리보기 팝업에 그대로 반영됩니다.': 'Checked items are reflected in the print button and preview popup on the ancillary detail screen.',
         '양식 저장': 'Save Template',
         'Print 로고': 'Print Logo',
         '바우처 상단에 표시됩니다.': 'Shown at the top of the voucher.',

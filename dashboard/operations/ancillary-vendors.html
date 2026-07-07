@@ -29,11 +29,12 @@
     .vendor-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .vendor-page .btn-outline,.vendor-page .btn-primary-sm,
     #vendorModal .btn-outline,#vendorModal .btn-primary-sm,
-    #itemModal .btn-outline,#itemModal .btn-primary-sm{height:38px;padding:0 14px;border-radius:9px;font-family:var(--font);font-size:.8rem;font-weight:850;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
-    .vendor-page .btn-outline,#vendorModal .btn-outline,#itemModal .btn-outline{background:#fff;color:var(--txt2);border:1px solid var(--border)}
-    .vendor-page .btn-outline:hover,#vendorModal .btn-outline:hover,#itemModal .btn-outline:hover{border-color:var(--primary);color:var(--primary);box-shadow:0 2px 8px rgba(59,130,246,.12)}
-    .vendor-page .btn-primary-sm,#vendorModal .btn-primary-sm,#itemModal .btn-primary-sm{background:var(--primary);color:#fff;border:1px solid var(--primary)}
-    .vendor-page .btn-primary-sm:hover,#vendorModal .btn-primary-sm:hover,#itemModal .btn-primary-sm:hover{background:var(--primary-dk);border-color:var(--primary-dk);box-shadow:0 3px 10px rgba(59,130,246,.22)}
+    #itemModal .btn-outline,#itemModal .btn-primary-sm,
+    #voucherPreviewModal .btn-outline,#voucherPreviewModal .btn-primary-sm{height:38px;padding:0 14px;border-radius:9px;font-family:var(--font);font-size:.8rem;font-weight:850;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
+    .vendor-page .btn-outline,#vendorModal .btn-outline,#itemModal .btn-outline,#voucherPreviewModal .btn-outline{background:#fff;color:var(--txt2);border:1px solid var(--border)}
+    .vendor-page .btn-outline:hover,#vendorModal .btn-outline:hover,#itemModal .btn-outline:hover,#voucherPreviewModal .btn-outline:hover{border-color:var(--primary);color:var(--primary);box-shadow:0 2px 8px rgba(59,130,246,.12)}
+    .vendor-page .btn-primary-sm,#vendorModal .btn-primary-sm,#itemModal .btn-primary-sm,#voucherPreviewModal .btn-primary-sm{background:var(--primary);color:#fff;border:1px solid var(--primary)}
+    .vendor-page .btn-primary-sm:hover,#vendorModal .btn-primary-sm:hover,#itemModal .btn-primary-sm:hover,#voucherPreviewModal .btn-primary-sm:hover{background:var(--primary-dk);border-color:var(--primary-dk);box-shadow:0 3px 10px rgba(59,130,246,.22)}
     .vendor-grid{display:grid;grid-template-columns:minmax(300px,390px) 1fr;gap:16px;align-items:start}
     .vendor-panel{background:#fff;border:1px solid var(--border2);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm)}
     .vendor-panel-head{padding:16px 18px;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff}
@@ -65,7 +66,7 @@
     .voucher-field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
     .voucher-field{border:1px solid var(--border);border-radius:9px;background:#fff;padding:9px 10px;display:flex;align-items:center;gap:7px;font-size:.76rem;font-weight:900;color:var(--txt2)}
     .voucher-field input{accent-color:var(--primary)}
-    .voucher-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,420px);gap:14px;align-items:start}
+    .voucher-layout{display:block}
     .voucher-config{display:flex;flex-direction:column;gap:12px}
     .voucher-field-section{border:1px solid var(--border2);border-radius:12px;background:#f8fafc;padding:12px}
     .voucher-field-section-title{font-size:.78rem;font-weight:950;color:var(--txt);display:flex;align-items:center;gap:7px;margin-bottom:9px}
@@ -94,6 +95,8 @@
     .voucher-stub-title{font-size:.74rem;font-weight:950;color:#111827;margin-bottom:7px}
     .voucher-stub-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.7rem;color:#374151}
     .voucher-help{font-size:.72rem;line-height:1.5;color:var(--txt3);font-weight:800}
+    .voucher-preview-modal .modal-body{padding:18px;background:#f8fafc;display:flex;justify-content:center}
+    .voucher-preview-modal .voucher-preview-card{width:min(560px,100%);margin:0}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .empty-note{padding:22px;color:var(--txt3);font-weight:850;text-align:center}
     @media(max-width:1180px){.voucher-layout{grid-template-columns:1fr}}
@@ -168,6 +171,21 @@
         <div><label class="form-label">설명</label><input id="itemDesc" class="form-input" placeholder="예: 주중 18홀, 카트 별도"></div>
       </div>
       <div class="modal-footer"><button class="btn-outline" onclick="closeModal('itemModal')">취소</button><button class="btn-primary-sm" onclick="saveItem()">저장</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="voucherPreviewModal">
+    <div class="modal-card voucher-preview-modal" style="max-width:720px;width:95vw">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-receipt" style="color:var(--primary)"></i> 출력 미리보기 <span id="voucherPreviewModalType" class="badge-soft" style="margin-left:8px">-</span></h3>
+        <button class="modal-close" onclick="closeModal('voucherPreviewModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="voucherPreviewModalBody"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeModal('voucherPreviewModal')">닫기</button>
+      </div>
     </div>
   </div>
 
@@ -461,9 +479,12 @@
           <div class="section-head">
             <div>
               <div class="section-title"><i class="fa-solid fa-ticket"></i> ${vendor.type === 'pos' ? '전표 출력 양식' : '바우처 출력 양식'}</div>
-              <div class="voucher-help">체크한 항목은 부가서비스 상세 화면의 출력 버튼과 오른쪽 미리보기에 그대로 반영됩니다.</div>
+              <div class="voucher-help">체크한 항목은 부가서비스 상세 화면의 출력 버튼과 미리보기 팝업에 그대로 반영됩니다.</div>
             </div>
-            <button class="btn-primary-sm" onclick="saveVoucherFields()"><i class="fa-solid fa-check"></i> 양식 저장</button>
+            <div class="vendor-actions">
+              <button class="btn-outline" onclick="openVoucherPreviewModal()"><i class="fa-solid fa-eye"></i> 출력 미리보기</button>
+              <button class="btn-primary-sm" onclick="saveVoucherFields()"><i class="fa-solid fa-check"></i> 양식 저장</button>
+            </div>
           </div>
           <div class="voucher-layout" style="margin-top:10px">
             <div class="voucher-config">
@@ -479,10 +500,6 @@
                 </div>
               </div>
               ${renderVoucherFieldGroups(vendor)}
-            </div>
-            <div class="voucher-preview-wrap">
-              <div class="voucher-preview-head"><strong>출력 미리보기</strong><span class="badge-soft">${escapeHtml(serviceLabel(vendor.type))}</span></div>
-              <div id="voucherPreview"></div>
             </div>
           </div>
       </div>`;
@@ -503,11 +520,7 @@
       const checked = Array.from(document.querySelectorAll('.voucher-field input:checked')).map(input => input.value);
       return checked.length ? checked : (vendor?.voucherFields || []);
     }
-    function renderVoucherPreview() {
-      const vendor = selectedVendor();
-      const target = document.getElementById('voucherPreview');
-      if (!vendor || !target) return;
-      const fields = selectedVoucherFieldsFromDom(vendor);
+    function buildVoucherPreviewHtml(vendor, fields = selectedVoucherFieldsFromDom(vendor)) {
       const sample = sampleVoucherData(vendor);
       const title = vendor.type === 'pos' ? '객실 전표' : `${serviceLabel(vendor.type)} 바우처`;
       const stubTitle = vendor.type === 'golf' ? '절취용 이용 확인' : vendor.type === 'rentacar' ? '차량 인수 확인' : '프런트 확인';
@@ -516,7 +529,7 @@
         : vendor.type === 'rentacar'
           ? [['픽업', sample.pickup], ['차량', sample.vehicle], ['투숙객', sample.guest], ['서명', '']]
           : [['객실', sample.room], ['담당', sample.partnerContact]];
-      target.innerHTML = `
+      return `
         <div class="voucher-preview-card">
           <div class="voucher-preview-brand">
             <div class="voucher-preview-logo">${vendor.logoDataUrl ? `<img src="${escapeHtml(vendor.logoDataUrl)}" alt="">` : 'HOTEL PMS'}</div>
@@ -531,6 +544,25 @@
           ${vendor.type !== 'pos' ? `<div class="voucher-stub"><div class="voucher-stub-title">${escapeHtml(stubTitle)}</div><div class="voucher-stub-grid">${stubRows.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong> ${escapeHtml(value || '____________')}</div>`).join('')}</div></div>` : ''}
         </div>
       `;
+    }
+    function renderVoucherPreview() {
+      const vendor = selectedVendor();
+      if (!vendor) return;
+      const html = buildVoucherPreviewHtml(vendor);
+      const inlineTarget = document.getElementById('voucherPreview');
+      if (inlineTarget) inlineTarget.innerHTML = html;
+      const modal = document.getElementById('voucherPreviewModal');
+      const modalBody = document.getElementById('voucherPreviewModalBody');
+      if (modal?.classList.contains('active') && modalBody) modalBody.innerHTML = html;
+    }
+    function openVoucherPreviewModal() {
+      const vendor = selectedVendor();
+      const modalBody = document.getElementById('voucherPreviewModalBody');
+      const modalType = document.getElementById('voucherPreviewModalType');
+      if (!vendor || !modalBody) return window.showAlert('업체를 먼저 선택해 주세요.', { type: 'error' });
+      modalBody.innerHTML = buildVoucherPreviewHtml(vendor);
+      if (modalType) modalType.textContent = serviceLabel(vendor.type);
+      openModal('voucherPreviewModal');
     }
     function triggerLogoUpload() {
       document.getElementById('vendorLogoInput')?.click();
@@ -622,7 +654,7 @@
       document.querySelectorAll('.vendor-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.type === currentType));
       render();
       if (location.hash === '#voucher') {
-        setTimeout(() => document.getElementById('voucherPreview')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 80);
+        setTimeout(() => openVoucherPreviewModal(), 80);
       }
     }
     document.addEventListener('DOMContentLoaded', initFromQuery);
