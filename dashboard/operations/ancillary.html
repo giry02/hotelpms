@@ -112,6 +112,14 @@
         .form-label{display:block;font-size:.75rem;font-weight:900;color:var(--txt2);margin-bottom:6px}
         .form-input{height:38px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:0 10px;font:inherit;width:100%}
         textarea.form-input{height:74px;padding:10px;resize:vertical}
+        .service-variable-fields{display:none;margin-top:10px;border:1px solid #dbeafe;border-radius:12px;background:#f8fbff;padding:12px}
+        .service-variable-fields.active{display:block}
+        .service-variable-title{display:flex;align-items:center;gap:7px;font-size:.78rem;font-weight:950;color:var(--txt);margin-bottom:10px}
+        .service-variable-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+        .service-price-panel{margin-top:10px;border:1px solid var(--border);border-radius:12px;background:#fff;padding:12px}
+        .service-price-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end}
+        .service-total-preview{height:38px;border-radius:8px;background:#eff6ff;color:var(--primary);font-weight:950;display:flex;align-items:center;padding:0 10px}
+        .service-price-note{margin-top:7px;font-size:.7rem;font-weight:800;color:var(--txt3);line-height:1.45}
         .group-bulk-box{margin-top:12px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:12px}
         .group-bulk-box.is-hidden{display:none}
         .group-bulk-title{display:flex;align-items:center;gap:8px;font-weight:950}
@@ -302,9 +310,21 @@
                             </div>
                             <div class="modal-field-grid">
                                 <div><label class="form-label" id="vendorLabel">처리 부서/업체</label><select id="serviceVendor" class="form-input" onchange="renderServiceItems()"></select></div>
-                                <div><label class="form-label">이용 항목</label><select id="serviceItem" class="form-input" onchange="renderRegistrationPreview()"></select></div>
+                                <div><label class="form-label">이용 항목</label><select id="serviceItem" class="form-input" onchange="handleServiceItemChange()"></select></div>
                                 <div><label class="form-label">이용 일시</label><input id="serviceDateTime" class="form-input" type="datetime-local" onchange="renderRegistrationPreview()"></div>
                                 <div><label class="form-label">수량/인원</label><input id="serviceQty" class="form-input" type="number" min="1" value="1" oninput="renderRegistrationPreview()"></div>
+                            </div>
+                            <div class="service-variable-fields" id="serviceVariableFields">
+                                <div class="service-variable-title"><i class="fa-solid fa-sliders"></i> 현장 입력 정보</div>
+                                <div class="service-variable-grid" id="serviceVariableGrid"></div>
+                            </div>
+                            <div class="service-price-panel">
+                                <div class="service-price-grid">
+                                    <div><label class="form-label">기준 단가</label><input id="serviceBasePrice" class="form-input" type="number" readonly></div>
+                                    <div><label class="form-label">적용 단가</label><input id="serviceUnitPrice" class="form-input" type="number" min="0" oninput="renderRegistrationPreview()"></div>
+                                    <div><label class="form-label">예상 합계</label><div id="serviceTotalPreview" class="service-total-preview">₱0</div></div>
+                                </div>
+                                <div class="service-price-note">기준 단가와 적용 단가가 다르면 등록 시 금액 조정 로그가 남습니다.</div>
                             </div>
                             <div style="margin-top:10px"><label class="form-label">메모</label><textarea id="serviceMemo" class="form-input" placeholder="요청사항, 픽업 위치, 티타임 특이사항 등" oninput="renderRegistrationPreview()"></textarea></div>
                             <div class="group-bulk-box is-hidden" id="groupBulkBox">
@@ -369,10 +389,10 @@ const ORDER_DATA_VERSION = '2026-07-06-today-demo-v1';
 const seedVendors = [
     { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:['guest','room','date','item','amount','memo'], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
     { id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:['guest','room','date','item','amount','partnerContact','address','memo'], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
-    { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }] },
-    { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'18홀 패키지', price:520, desc:'그린피+카트' }] },
-    { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }, { name:'전기차 24시간', price:230, desc:'완충 인도' }] },
-    { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', address:'BGC Transport Hub, Taguig', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'SUV 24시간', price:260, desc:'보험 포함' }, { name:'기사 포함 밴', price:320, desc:'8시간 기준' }] }
+    { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀 기준 단가', holes:'18홀', basePeople:4 }, { name:'카트 이용권', price:70, desc:'팀 단위 카트 기준 단가', holes:'18홀', basePeople:4 }, { name:'클럽 대여', price:60, desc:'1인 기준 단가', holes:'18홀', basePeople:1 }] },
+    { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'9홀 라운딩', price:180, desc:'9홀 기준 단가', holes:'9홀', basePeople:2 }, { name:'18홀 패키지', price:520, desc:'그린피+카트 기준 단가', holes:'18홀', basePeople:4 }] },
+    { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 기본 대여', price:160, desc:'1시간 기준 단가', vehicleClass:'세단', pickupBase:'호텔 로비' }, { name:'공항 픽업 기본료', price:90, desc:'편도 기본료', vehicleClass:'세단', pickupBase:'NAIA Terminal 3' }, { name:'전기차 기본 대여', price:230, desc:'1시간 기준 단가', vehicleClass:'전기차', pickupBase:'호텔 로비' }] },
+    { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', address:'BGC Transport Hub, Taguig', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'SUV 기본 대여', price:260, desc:'1시간 기준 단가', vehicleClass:'SUV', pickupBase:'BGC Transport Hub' }, { name:'기사 포함 밴 기본 대여', price:320, desc:'1시간 기준 단가', vehicleClass:'기사 포함 밴', pickupBase:'호텔 로비' }] }
 ];
 const voucherFieldLabels = {
     guest:'투숙객명', room:'객실번호', date:'이용일시', people:'인원', teeTime:'티오프', course:'골프장/업체명',
@@ -551,6 +571,23 @@ function serviceMeta(service) {
         rentacar: { label:'렌터카', icon:'fa-car', cls:'rentacar' }
     }[service] || { label:'부가서비스', icon:'fa-bell-concierge', cls:'pos' };
 }
+function normalizeVendorItem(type, item = {}) {
+    const normalized = { ...item, category: item.category || type };
+    if (type === 'golf') {
+        delete normalized.courseName;
+        delete normalized.course;
+        delete normalized.teeTime;
+        return normalized;
+    }
+    if (type === 'rentacar') {
+        delete normalized.duration;
+        if (/8시간|12시간|24시간/.test(normalized.name || '')) {
+            normalized.name = String(normalized.name).replace(/\s*(8시간|12시간|24시간)\s*/g, ' 기본 대여').replace(/\s+/g, ' ').trim();
+        }
+        return normalized;
+    }
+    return normalized;
+}
 function serviceSummary(orders = []) {
     return ['pos', 'golf', 'rentacar'].map(service => {
         const meta = serviceMeta(service);
@@ -593,10 +630,10 @@ function voucherDataFromOrder(order, room = findRoomById(order?.roomId || order?
         room: order?.room || (room ? roomNo(room) : '-'),
         date: dateTime ? dateTime.replace('T', ' ') : '-',
         people: `${Number(order?.qty || 1).toLocaleString('ko-KR')}명`,
-        teeTime: dateTime ? dateTime.slice(11, 16) : '-',
-        course: order?.vendor || '-',
+        teeTime: order?.teeTime || (dateTime ? dateTime.slice(11, 16) : '-'),
+        course: order?.courseName || order?.vendor || '-',
         pickup: order?.pickup || '호텔 로비',
-        vehicle: order?.item || '-',
+        vehicle: order?.vehicle || order?.item || '-',
         item: order?.item || '-',
         amount: money(order?.total || 0),
         partnerContact: vendor?.contact || order?.vendor || '-',
@@ -717,7 +754,7 @@ function loadVendors() {
         return {
             ...vendor,
             type,
-            items: Array.isArray(vendor.items) ? vendor.items : [],
+            items: Array.isArray(vendor.items) ? vendor.items.map(item => normalizeVendorItem(type, item)) : [],
             address: vendor.address || seed?.address || '',
             voucherFields: fields,
             logoDataUrl: vendor.logoDataUrl || ''
@@ -745,9 +782,9 @@ function seedDemoServiceOrdersIfNeeded() {
     serviceOrders = serviceOrders.filter(order => !String(order.id || '').startsWith('SVC-DEMO-'));
     const plans = [
         { service:'pos', vendorId:'POS-HOTEL', itemIndex:0, qty:1, status:'completed', memo:'룸서비스 제공 완료' },
-        { service:'golf', vendorId:'GOLF-SUNVALLEY', itemIndex:0, qty:2, status:'accepted', memo:'프런트에서 티오프 확인' },
-        { service:'rentacar', vendorId:'RENT-LOTTE', itemIndex:1, qty:1, status:'new', memo:'공항 샌딩 요청' },
-        { service:'golf', vendorId:'GOLF-SKY72', itemIndex:1, qty:1, status:'new', memo:'바우처 출력 필요' },
+        { service:'golf', vendorId:'GOLF-SUNVALLEY', itemIndex:0, qty:2, status:'accepted', memo:'프런트에서 티오프 확인', courseName:'Sun Course', teeTime:'07:30' },
+        { service:'rentacar', vendorId:'RENT-LOTTE', itemIndex:1, qty:1, status:'new', memo:'공항 샌딩 요청', rentalHours:1, pickup:'NAIA Terminal 3' },
+        { service:'golf', vendorId:'GOLF-SKY72', itemIndex:1, qty:1, status:'new', memo:'바우처 출력 필요', courseName:'West Course', teeTime:'12:30' },
         { service:'pos', vendorId:'POS-HOTEL', itemIndex:1, qty:2, status:'accepted', memo:'미니바 추가 요청' }
     ];
     const now = new Date();
@@ -772,10 +809,19 @@ function seedDemoServiceOrdersIfNeeded() {
             vendorId: vendor?.id || '',
             item: item.name || serviceMeta(plan.service).label,
             qty: plan.qty,
+            baseUnitPrice: Number(item.price || 0),
             unitPrice: Number(item.price || 0),
-            total: Number(item.price || 0) * plan.qty,
+            rentalHours: plan.service === 'rentacar' ? Number(plan.rentalHours || 1) : undefined,
+            total: Number(item.price || 0) * plan.qty * (plan.service === 'rentacar' ? Number(plan.rentalHours || 1) : 1),
             dateTime: now.toISOString().slice(0, 16),
+            courseName: plan.courseName || '',
+            teeTime: plan.teeTime || '',
+            holes: item.holes || '',
+            vehicle: plan.service === 'rentacar' ? (item.vehicleClass || item.name || '') : '',
+            pickup: plan.pickup || '',
             memo: plan.memo,
+            priceOverride: false,
+            pricingLog: [],
             voucherFields: Array.isArray(vendor?.voucherFields) ? [...vendor.voucherFields] : [],
             status: plan.status,
             sampleData: true
@@ -947,6 +993,21 @@ function serviceRoomSummaryHtml(room, res, group) {
         <div class="info-tile"><span>단체/행사</span><strong>${escapeHtml(group?.name || group?.groupName || '-')}</strong></div>
     `;
 }
+function serviceOrderContextText(order) {
+    const parts = [];
+    if (order.service === 'golf') {
+        if (order.courseName) parts.push(`코스 ${order.courseName}`);
+        if (order.teeTime) parts.push(`티오프 ${order.teeTime}`);
+        if (order.holes) parts.push(order.holes);
+    }
+    if (order.service === 'rentacar') {
+        if (order.vehicle) parts.push(order.vehicle);
+        if (order.rentalHours) parts.push(`${order.rentalHours}시간`);
+        if (order.pickup) parts.push(`픽업 ${order.pickup}`);
+    }
+    if (order.priceOverride) parts.push(`단가 조정 ${money(order.baseUnitPrice)} -> ${money(order.unitPrice)}`);
+    return parts.join(' · ');
+}
 function openServiceDetailModal(roomId, options = {}) {
     selectedDetailRoomId = roomId;
     selectedRoomId = roomId;
@@ -969,10 +1030,10 @@ function openServiceDetailModal(roomId, options = {}) {
                 <span class="service-detail-icon ${meta.cls}"><i class="fa-solid ${meta.icon}"></i></span>
                 <div style="min-width:0">
                     <div class="service-detail-title">${escapeHtml(order.item || meta.label)}</div>
-                    <div class="service-detail-meta">${escapeHtml(order.vendor || meta.label)} · ${escapeHtml(order.dateTime ? order.dateTime.replace('T', ' ') : '-')} · ${escapeHtml(order.memo || '메모 없음')}</div>
+                    <div class="service-detail-meta">${escapeHtml(order.vendor || meta.label)} · ${escapeHtml(order.dateTime ? order.dateTime.replace('T', ' ') : '-')}${serviceOrderContextText(order) ? ` · ${escapeHtml(serviceOrderContextText(order))}` : ''} · ${escapeHtml(order.memo || '메모 없음')}</div>
                 </div>
             </div>
-            <div class="service-detail-meta">수량 ${Number(order.qty || 1).toLocaleString('ko-KR')} · 단가 ${money(order.unitPrice || order.total || 0)}</div>
+            <div class="service-detail-meta">수량 ${Number(order.qty || 1).toLocaleString('ko-KR')} · 단가 ${money(order.unitPrice || order.total || 0)}${order.rentalHours ? ` · 시간 ${Number(order.rentalHours).toLocaleString('ko-KR')}` : ''}</div>
             <div class="service-detail-money">${money(order.total)}</div>
             <div class="service-detail-actions">
                 <span class="service-status-pill ${status.key}"><i class="fa-solid ${status.icon}"></i>${status.label}</span>
@@ -1063,7 +1124,64 @@ function renderServiceItems() {
     const vendor = selectedVendor();
     const items = vendor?.items || [];
     document.getElementById('serviceItem').innerHTML = items.map((item, index) => `<option value="${index}" data-price="${Number(item.price || 0)}">${escapeHtml(item.name)} · ${money(item.price)}</option>`).join('') || '<option value="0" data-price="0">기본 항목 · ₱0</option>';
+    handleServiceItemChange();
+}
+function selectedItemBasePrice() {
+    return Number(selectedItem()?.price || 0);
+}
+function handleServiceItemChange() {
+    const price = selectedItemBasePrice();
+    const baseInput = document.getElementById('serviceBasePrice');
+    const unitInput = document.getElementById('serviceUnitPrice');
+    if (baseInput) baseInput.value = price;
+    if (unitInput) {
+        unitInput.value = price;
+        unitInput.readOnly = selectedService === 'pos';
+    }
+    renderServiceVariableFields();
     renderRegistrationPreview();
+}
+function renderServiceVariableFields() {
+    const wrap = document.getElementById('serviceVariableFields');
+    const grid = document.getElementById('serviceVariableGrid');
+    if (!wrap || !grid) return;
+    const vendor = selectedVendor();
+    const item = selectedItem();
+    if (selectedService === 'golf') {
+        wrap.classList.add('active');
+        grid.innerHTML = `
+            <div><label class="form-label">코스</label><input id="serviceCourse" class="form-input" placeholder="예: Sun Course" value="${escapeHtml(item.courseName || vendor?.name || '')}" oninput="renderRegistrationPreview()"></div>
+            <div><label class="form-label">티오프</label><input id="serviceTeeTime" class="form-input" type="time" oninput="renderRegistrationPreview()"></div>
+            <div><label class="form-label">홀</label><input id="serviceHoles" class="form-input" value="${escapeHtml(item.holes || '18홀')}" oninput="renderRegistrationPreview()"></div>
+        `;
+        return;
+    }
+    if (selectedService === 'rentacar') {
+        wrap.classList.add('active');
+        grid.innerHTML = `
+            <div><label class="form-label">차량/차종</label><input id="serviceVehicle" class="form-input" value="${escapeHtml(item.vehicleClass || item.name || '')}" oninput="renderRegistrationPreview()"></div>
+            <div><label class="form-label">대여 시간</label><input id="serviceRentalHours" class="form-input" type="number" min="1" value="1" oninput="renderRegistrationPreview()"></div>
+            <div><label class="form-label">픽업 위치</label><input id="servicePickup" class="form-input" value="${escapeHtml(item.pickupBase || '호텔 로비')}" oninput="renderRegistrationPreview()"></div>
+        `;
+        return;
+    }
+    wrap.classList.remove('active');
+    grid.innerHTML = '';
+}
+function servicePricingSnapshot() {
+    const item = selectedItem();
+    const qty = Math.max(1, Number(document.getElementById('serviceQty')?.value || 1));
+    const baseUnitPrice = Number(item.price || 0);
+    const unitInput = document.getElementById('serviceUnitPrice');
+    const unitPrice = Math.max(0, Number(unitInput?.value || baseUnitPrice));
+    const rentalHours = selectedService === 'rentacar' ? Math.max(1, Number(document.getElementById('serviceRentalHours')?.value || 1)) : 1;
+    return {
+        qty,
+        baseUnitPrice,
+        unitPrice,
+        rentalHours,
+        total: unitPrice * qty * rentalHours
+    };
 }
 function setGroupBulkVisible(visible) {
     const box = document.getElementById('groupBulkBox');
@@ -1086,6 +1204,8 @@ function selectedItem() {
     return (vendor?.items || [])[index] || { name:'기본 항목', price:0 };
 }
 function renderRegistrationPreview() {
+    const totalPreview = document.getElementById('serviceTotalPreview');
+    if (totalPreview) totalPreview.textContent = money(servicePricingSnapshot().total);
     const existingList = document.getElementById('registrationExistingList');
     if (!existingList) return;
     const room = findRoomById(selectedRoomId);
@@ -1175,10 +1295,14 @@ function saveServiceOrder() {
     if (!roomsToSave.length) return window.showAlert?.('투숙 중인 객실만 부가서비스 등록이 가능합니다.', { type: 'warning' });
     const vendor = selectedVendor();
     const item = selectedItem();
-    const qty = Math.max(1, Number(document.getElementById('serviceQty')?.value || 1));
-    const unitPrice = Number(item.price || 0);
+    const pricing = servicePricingSnapshot();
+    const qty = pricing.qty;
+    const unitPrice = pricing.unitPrice;
+    const baseUnitPrice = pricing.baseUnitPrice;
     const meta = serviceMeta(selectedService);
     const selectedGroup = groups.find(item => item.id === document.getElementById('groupSelect')?.value || item.groupId === document.getElementById('groupSelect')?.value);
+    const priceChanged = unitPrice !== baseUnitPrice;
+    const commonMemo = document.getElementById('serviceMemo')?.value || '';
     const created = roomsToSave.map(room => {
         const res = activeReservationForRoom(room) || nextReservationForRoom(room);
         const ownGroup = selectedGroup || groupForReservation(res);
@@ -1196,10 +1320,25 @@ function saveServiceOrder() {
             vendorId: vendor?.id || '',
             item: item.name || meta.label,
             qty,
+            baseUnitPrice,
             unitPrice,
-            total: unitPrice * qty,
+            rentalHours: selectedService === 'rentacar' ? pricing.rentalHours : undefined,
+            total: pricing.total,
             dateTime: document.getElementById('serviceDateTime')?.value || '',
-            memo: document.getElementById('serviceMemo')?.value || '',
+            courseName: selectedService === 'golf' ? (document.getElementById('serviceCourse')?.value.trim() || vendor?.name || '') : '',
+            teeTime: selectedService === 'golf' ? (document.getElementById('serviceTeeTime')?.value || '') : '',
+            holes: selectedService === 'golf' ? (document.getElementById('serviceHoles')?.value.trim() || item.holes || '') : '',
+            vehicle: selectedService === 'rentacar' ? (document.getElementById('serviceVehicle')?.value.trim() || item.vehicleClass || item.name || '') : '',
+            pickup: selectedService === 'rentacar' ? (document.getElementById('servicePickup')?.value.trim() || item.pickupBase || '호텔 로비') : '',
+            memo: commonMemo,
+            priceOverride: priceChanged,
+            pricingLog: priceChanged ? [{
+                at: new Date().toISOString(),
+                by: 'Nguyen Kim',
+                from: baseUnitPrice,
+                to: unitPrice,
+                reason: commonMemo || '현장 적용 단가 조정'
+            }] : [],
             voucherFields: Array.isArray(vendor?.voucherFields) ? [...vendor.voucherFields] : [],
             status: 'new'
         };
