@@ -36,6 +36,20 @@ function _guestText(key, fallback) {
     return translated && translated !== key ? translated : fallback;
 }
 
+function _guestSplitName(value) {
+    const parts = String(value || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length <= 1) return { firstName: parts[0] || '', lastName: '' };
+    return {
+        firstName: parts.slice(0, -1).join(' '),
+        lastName: parts[parts.length - 1]
+    };
+}
+
+function _guestJoinName(firstName, lastName, fallback) {
+    const name = [firstName, lastName].map(v => String(v || '').trim()).filter(Boolean).join(' ');
+    return name || String(fallback || '').trim();
+}
+
 function _refreshGuestSearchI18n(root) {
     const scope = root || document;
     scope.querySelectorAll('[data-guest-text]').forEach(el => {
@@ -288,7 +302,10 @@ class GuestSearchWidget {
             results: document.getElementById(opts.resultsId),
             selected: document.getElementById(opts.selectedId),
             newForm: document.getElementById(opts.newFormId),
-            guestName: document.getElementById(opts.guestNameId)
+            guestName: document.getElementById(opts.guestNameId),
+            firstName: document.getElementById(opts.firstNameId),
+            lastName: document.getElementById(opts.lastNameId),
+            notes: document.getElementById(opts.notesId)
         };
         this._selectedGuest = null;
         this._mode = 'idle';
@@ -371,8 +388,15 @@ class GuestSearchWidget {
         this._mode = 'newForm';
         this._hideAll();
         this.els.newForm.style.display = 'block';
-        if (this.els.guestName) {
-            this.els.guestName.value = this.els.search?.value || '';
+        const initialName = this.els.search?.value || '';
+        const split = _guestSplitName(initialName);
+        if (this.els.firstName) {
+            this.els.firstName.value = split.firstName;
+            if (this.els.lastName) this.els.lastName.value = split.lastName;
+            if (this.els.guestName) this.els.guestName.value = _guestJoinName(split.firstName, split.lastName, initialName);
+            this.els.firstName.focus();
+        } else if (this.els.guestName) {
+            this.els.guestName.value = initialName;
             this.els.guestName.focus();
         }
     }
@@ -386,12 +410,27 @@ class GuestSearchWidget {
 
     getGuestName() {
         if (this._selectedGuest) return this._selectedGuest.name;
-        if (this._mode === 'newForm' && this.els.guestName) return this.els.guestName.value.trim();
+        if (this._mode === 'newForm') {
+            return _guestJoinName(this.els.firstName?.value, this.els.lastName?.value, this.els.guestName?.value);
+        }
         return '';
     }
 
     getSelectedGuest() {
         return this._selectedGuest;
+    }
+
+    getNewGuestFields() {
+        if (this._selectedGuest || this._mode !== 'newForm') return null;
+        const firstName = String(this.els.firstName?.value || '').trim();
+        const lastName = String(this.els.lastName?.value || '').trim();
+        const name = _guestJoinName(firstName, lastName, this.els.guestName?.value);
+        return {
+            firstName,
+            lastName,
+            name,
+            specialNotes: String(this.els.notes?.value || '').trim()
+        };
     }
 
     _hideAll() {
@@ -482,8 +521,13 @@ function renderGuestSearchHTML(prefix) {
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             <div style="display:flex;flex-direction:column;gap:5px">
-                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.name" data-guest-fallback="고객명">${_guestText('guest.name', '고객명')}</span> <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="nrGuest${prefix}" data-guest-placeholder="guest.name.placeholder" data-guest-fallback="고객명 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.name.placeholder', '고객명 입력')}">
+                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.firstName" data-guest-fallback="이름 (이름)">${_guestText('guest.firstName', '이름 (이름)')}</span> <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="nrFirstName${prefix}" data-guest-placeholder="guest.firstName.placeholder" data-guest-fallback="이름 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.firstName.placeholder', '이름 입력')}">
+                <input type="hidden" id="nrGuest${prefix}">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.lastName" data-guest-fallback="성 (성)">${_guestText('guest.lastName', '성 (성)')}</span> <span style="color:var(--danger)">*</span></label>
+                <input type="text" id="nrLastName${prefix}" data-guest-placeholder="guest.lastName.placeholder" data-guest-fallback="성 입력" style="height:38px;border:1px solid var(--border);border-radius:6px;padding:0 12px;font-family:var(--font);font-size:.82rem" placeholder="${_guestText('guest.lastName.placeholder', '성 입력')}">
             </div>
             <div style="display:flex;flex-direction:column;gap:5px">
                 <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.phone" data-guest-fallback="연락처">${_guestText('guest.phone', '연락처')}</span> <span style="color:var(--danger)">*</span></label>
@@ -499,6 +543,10 @@ function renderGuestSearchHTML(prefix) {
                     ${_guestNationalityOptionsHtml()}
                 </select>
             </div>
+            <div style="grid-column:1 / -1;display:flex;flex-direction:column;gap:5px">
+                <label style="font-size:.75rem;font-weight:600;color:var(--txt2)"><span data-guest-text="guest.notes" data-guest-fallback="특이사항 / 선호도">${_guestText('guest.notes', '특이사항 / 선호도')}</span></label>
+                <textarea id="nrNotes${prefix}" data-guest-placeholder="guest.notes.placeholder" data-guest-fallback="예: 금연 객실 선호, 고층 선호, 늦은 도착" style="min-height:62px;border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-family:var(--font);font-size:.82rem;resize:vertical" placeholder="${_guestText('guest.notes.placeholder', '예: 금연 객실 선호, 고층 선호, 늦은 도착')}"></textarea>
+            </div>
         </div>
     </div>`;
 }
@@ -510,7 +558,10 @@ function initGuestSearch(prefix) {
         resultsId: 'guestSearchResults' + prefix,
         selectedId: 'selectedGuestCard' + prefix,
         newFormId: 'newGuestForm' + prefix,
-        guestNameId: 'nrGuest' + prefix
+        guestNameId: 'nrGuest' + prefix,
+        firstNameId: 'nrFirstName' + prefix,
+        lastNameId: 'nrLastName' + prefix,
+        notesId: 'nrNotes' + prefix
     });
 
     const searchBtn = document.getElementById('nrSearchBtn' + prefix);
@@ -518,6 +569,18 @@ function initGuestSearch(prefix) {
 
     const newBtn = document.getElementById('nrNewGuestBtn' + prefix);
     if (newBtn) newBtn.onclick = () => widget.showNewForm();
+
+    const syncHiddenGuestName = () => {
+        const hidden = document.getElementById('nrGuest' + prefix);
+        if (!hidden) return;
+        hidden.value = _guestJoinName(
+            document.getElementById('nrFirstName' + prefix)?.value,
+            document.getElementById('nrLastName' + prefix)?.value,
+            hidden.value
+        );
+    };
+    document.getElementById('nrFirstName' + prefix)?.addEventListener('input', syncHiddenGuestName);
+    document.getElementById('nrLastName' + prefix)?.addEventListener('input', syncHiddenGuestName);
 
     _refreshGuestSearchI18n(document);
     return widget;

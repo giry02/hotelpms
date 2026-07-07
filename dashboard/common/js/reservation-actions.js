@@ -843,16 +843,24 @@
         const item = typeof source === 'string' ? { name: source } : source;
         const name = compactValue(item.name || item.guestName || item.roomingGuestName || item.guest);
         if (!name) return null;
+        const nameParts = name.split(/\s+/).filter(Boolean);
+        const firstName = compactValue(item.firstName || item.givenName || (nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : name));
+        const lastName = compactValue(item.lastName || item.familyName || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''));
         const guestId = compactValue(item.guestId || item.id || item.roomingGuestId);
         return {
             key: guestId ? `id:${guestId}` : `name:${name.toLowerCase()}`,
             guestId,
             id: guestId,
             name,
+            firstName,
+            lastName,
             phone: compactValue(item.phone || item.mobile || item.guestPhone),
             email: compactValue(item.email || item.guestEmail),
-            tier: compactValue(item.tier || item.vip),
+            tier: compactValue(item.tier || item.vip || 'standard'),
+            vip: compactValue(item.vip || item.tier || 'standard'),
             country: compactValue(item.country || item.nationality || item.nation),
+            specialNotes: compactValue(item.specialNotes || item.guestNote || item.note || item.preferences),
+            note: compactValue(item.note || item.specialNotes || item.guestNote || item.preferences),
             role: rosterGuestRole(item.role || fallbackRole)
         };
     }
@@ -923,15 +931,20 @@
     }
 
     async function persistNewGuestRecord(entry) {
-        const name = compactValue(entry?.name || entry?.guestName || entry?.guest);
+        const firstName = compactValue(entry?.firstName || entry?.givenName);
+        const lastName = compactValue(entry?.lastName || entry?.familyName);
+        const name = compactValue(entry?.name || entry?.guestName || entry?.guest || [firstName, lastName].filter(Boolean).join(' '));
         const phone = normalizeReservationGuestPhone(entry?.phone || entry?.mobile || entry?.guestPhone);
         const email = compactValue(entry?.email || entry?.guestEmail);
         const nationality = compactValue(entry?.country || entry?.nationality || entry?.nation);
+        const specialNotes = compactValue(entry?.specialNotes || entry?.guestNote || entry?.note || entry?.preferences);
         const nowIso = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
         const id = `G-${nowIso.replace(/\D/g, '').slice(0, 14)}-${Math.floor(Math.random() * 1000)}`;
         const guest = {
             id,
             name,
+            firstName: firstName || name.split(/\s+/).slice(0, -1).join(' ') || name,
+            lastName: lastName || (name.split(/\s+/).length > 1 ? name.split(/\s+/).slice(-1)[0] : ''),
             init: reservationGuestInitials(name),
             color: '#3B82F6',
             nationality,
@@ -946,7 +959,9 @@
             document: { type: '', maskedNumber: '', status: 'pending' },
             docStatus: 'pending',
             documentStatus: 'pending',
-            specialNotes: '',
+            specialNotes,
+            note: specialNotes,
+            preferences: specialNotes,
             lastStayDate: '',
             totalSpend: { amount: 0, currency: 'PHP' },
             spend: 0,
@@ -990,15 +1005,25 @@
                     ...entry,
                     id: guestId,
                     guestId,
+                    firstName: compactValue(entry.firstName || matched.firstName || matched.givenName || ''),
+                    lastName: compactValue(entry.lastName || matched.lastName || matched.familyName || ''),
                     phone: normalizeReservationGuestPhone(entry.phone || matched.phone || matched.mobile || ''),
                     email: compactValue(entry.email || matched.email || ''),
                     country: compactValue(entry.country || matched.country || matched.nationality || matched.nation || ''),
-                    tier: compactValue(entry.tier || matched.tier || matched.vip || '')
+                    tier: compactValue(entry.tier || matched.tier || matched.vip || 'standard'),
+                    vip: compactValue(entry.vip || matched.vip || matched.tier || 'standard'),
+                    specialNotes: compactValue(entry.specialNotes || entry.note || matched.specialNotes || matched.note || ''),
+                    note: compactValue(entry.note || entry.specialNotes || matched.note || matched.specialNotes || '')
                 };
                 continue;
             }
 
             if (compactValue(entry.guestId || entry.id)) continue;
+            if (!compactValue(entry.firstName) || !compactValue(entry.lastName)) {
+                showReservationAlert('신규 고객은 이름과 성을 모두 입력해 주세요.', 'error');
+                document.getElementById(!compactValue(entry.firstName) ? 'nrFirstNameEdit' : 'nrLastNameEdit')?.focus();
+                return false;
+            }
             const phone = normalizeReservationGuestPhone(entry.phone);
             if (!isValidReservationGuestPhone(phone, true)) {
                 showReservationAlert('연락처는 숫자와 +, -, 괄호만 입력해 주세요.', 'error');
@@ -1011,10 +1036,15 @@
                 ...entry,
                 id: created.id,
                 guestId: created.id,
+                firstName: created.firstName,
+                lastName: created.lastName,
                 phone: created.phone,
                 email: created.email,
                 country: created.nationality,
-                tier: created.tier
+                tier: created.tier,
+                vip: created.vip,
+                specialNotes: created.specialNotes,
+                note: created.note
             };
         }
         renderUnifiedGuestRoster();
@@ -1160,13 +1190,23 @@
         const widget = window._editGuestWidget;
         const selected = widget?.getSelectedGuest ? widget.getSelectedGuest() : null;
         if (selected) return selected;
-        const name = compactValue(widget?.getGuestName ? widget.getGuestName() : document.getElementById('nrGuestEdit')?.value);
+        const newFields = widget?.getNewGuestFields ? widget.getNewGuestFields() : null;
+        const firstName = compactValue(newFields?.firstName || document.getElementById('nrFirstNameEdit')?.value);
+        const lastName = compactValue(newFields?.lastName || document.getElementById('nrLastNameEdit')?.value);
+        const name = compactValue(newFields?.name || widget?.getGuestName?.() || document.getElementById('nrGuestEdit')?.value || [firstName, lastName].filter(Boolean).join(' '));
         if (!name) return null;
         return {
             name,
+            firstName,
+            lastName,
             phone: compactValue(document.getElementById('nrPhoneEdit')?.value),
             email: compactValue(document.getElementById('nrEmailEdit')?.value),
-            country: compactValue(document.getElementById('nrNationEdit')?.value)
+            country: compactValue(document.getElementById('nrNationEdit')?.value),
+            nationality: compactValue(document.getElementById('nrNationEdit')?.value),
+            tier: 'standard',
+            vip: 'standard',
+            specialNotes: compactValue(newFields?.specialNotes || document.getElementById('nrNotesEdit')?.value),
+            note: compactValue(newFields?.specialNotes || document.getElementById('nrNotesEdit')?.value)
         };
     }
 
@@ -1274,6 +1314,11 @@
         const candidate = getUnifiedSelectedGuestCandidate();
         if (!candidate || !compactValue(candidate.name)) {
             showReservationAlert('상단에서 투숙객을 검색한 뒤 선택해주세요.', 'error');
+            return;
+        }
+        if ((window._editGuestWidget?._mode || '') === 'newForm' && (!compactValue(candidate.firstName) || !compactValue(candidate.lastName))) {
+            showReservationAlert('신규 고객은 이름과 성을 모두 입력해 주세요.', 'error');
+            document.getElementById(!compactValue(candidate.firstName) ? 'nrFirstNameEdit' : 'nrLastNameEdit')?.focus();
             return;
         }
         upsertUnifiedRosterGuest(candidate, role === 'primary' ? 'primary' : 'companion');
