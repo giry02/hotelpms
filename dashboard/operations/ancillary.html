@@ -115,8 +115,16 @@
         .group-bulk-box{margin-top:12px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:12px}
         .group-bulk-box.is-hidden{display:none}
         .group-bulk-title{display:flex;align-items:center;gap:8px;font-weight:950}
-        .group-room-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px;max-height:120px;overflow:auto}
-        .group-room-checks label{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:8px;background:#fff;border:1px solid #dbeafe;font-size:.76rem;font-weight:850}
+        .group-bulk-desc{font-size:.72rem;color:var(--txt2);font-weight:850;margin-top:5px;line-height:1.45}
+        .group-bulk-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:9px 10px;border:1px solid #dbeafe;border-radius:10px;background:#fff;font-size:.76rem;font-weight:900;color:var(--txt2)}
+        .group-bulk-summary strong{color:var(--primary);font-size:.82rem}
+        .group-room-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px;max-height:170px;overflow:auto}
+        .group-room-option{display:flex;align-items:flex-start;gap:8px;padding:8px 9px;border-radius:10px;background:#fff;border:1px solid #dbeafe;font-size:.76rem;font-weight:850;cursor:pointer}
+        .group-room-option:has(input:checked){border-color:#60a5fa;background:#f8fbff;box-shadow:inset 3px 0 0 var(--primary)}
+        .group-room-option input{margin-top:2px}
+        .group-room-option strong{display:block;color:var(--txt);font-size:.8rem;line-height:1.25}
+        .group-room-option small{display:block;color:var(--txt3);font-size:.68rem;font-weight:850;margin-top:2px;line-height:1.25}
+        .group-room-option .current-room-badge{display:inline-flex;margin-left:4px;padding:1px 5px;border-radius:999px;background:#dbeafe;color:#2563eb;font-size:.62rem;font-weight:950;vertical-align:middle}
         .register-side-body{display:flex;flex-direction:column;gap:12px}
         .register-preview-card{border:1px solid var(--border);border-radius:12px;background:#f8fafc;padding:12px}
         .register-preview-card.primary{background:#eff6ff;border-color:#bfdbfe}
@@ -296,10 +304,15 @@
                             </div>
                             <div style="margin-top:10px"><label class="form-label">메모</label><textarea id="serviceMemo" class="form-input" placeholder="요청사항, 픽업 위치, 티타임 특이사항 등" oninput="renderRegistrationPreview()"></textarea></div>
                             <div class="group-bulk-box is-hidden" id="groupBulkBox">
-                                <label class="group-bulk-title"><input id="groupBulkToggle" type="checkbox" onchange="toggleGroupBulk()"> 단체 객실 일괄 등록</label>
-                                <div style="font-size:.72rem;color:var(--txt2);font-weight:850;margin-top:5px">골프장/렌터카는 단체 선택 시 전체 객실이 기본 선택되며 필요한 객실만 해제할 수 있습니다.</div>
-                                <div style="margin-top:10px"><label class="form-label">단체/행사</label><select id="groupSelect" class="form-input" onchange="onGroupSelectChange()"></select></div>
-                                <div id="groupRoomCount" style="font-size:.72rem;color:var(--txt3);font-weight:900;margin-top:8px">0실</div>
+                                <input id="groupBulkToggle" type="checkbox" checked hidden>
+                                <input id="groupSelect" type="hidden">
+                                <div class="group-bulk-title"><i class="fa-solid fa-users" style="color:var(--primary)"></i> 단체 동반 등록</div>
+                                <div class="group-bulk-desc">현재 객실이 속한 단체 안에서 같이 이용할 객실/투숙객만 선택해 한 번에 등록합니다.</div>
+                                <div class="group-bulk-summary">
+                                    <span>대상 단체</span>
+                                    <strong id="groupBulkName">-</strong>
+                                    <span id="groupRoomCount">0실 선택</span>
+                                </div>
                                 <div id="groupRoomChecks" class="group-room-checks"></div>
                             </div>
                         </section>
@@ -1035,9 +1048,9 @@ function selectServiceType(type) {
     document.getElementById('vendorLabel').textContent = type === 'pos' ? '처리 부서/업체' : '업체';
     const bulkToggle = document.getElementById('groupBulkToggle');
     const groupSelect = document.getElementById('groupSelect');
-    bulkToggle.disabled = type === 'pos';
-    if (type === 'pos') bulkToggle.checked = false;
-    else if (groupSelect.value) bulkToggle.checked = true;
+    const hasGroupStay = !!groupSelect.value;
+    setGroupBulkVisible(type !== 'pos' && hasGroupStay);
+    bulkToggle.checked = type !== 'pos' && hasGroupStay;
     renderGroupRoomChecks();
     renderServiceVendors();
 }
@@ -1057,14 +1070,12 @@ function renderServiceItems() {
 function setGroupBulkVisible(visible) {
     const box = document.getElementById('groupBulkBox');
     const toggle = document.getElementById('groupBulkToggle');
-    const select = document.getElementById('groupSelect');
     const count = document.getElementById('groupRoomCount');
     const checks = document.getElementById('groupRoomChecks');
     if (box) box.classList.toggle('is-hidden', !visible);
     if (!visible) {
         if (toggle) toggle.checked = false;
-        if (select) select.value = '';
-        if (count) count.textContent = '0실';
+        if (count) count.textContent = '0실 선택';
         if (checks) checks.innerHTML = '';
     }
 }
@@ -1099,16 +1110,17 @@ function renderRegistrationPreview() {
 }
 function renderGroupSelect(selectedId = '') {
     const select = document.getElementById('groupSelect');
-    select.innerHTML = '<option value="">단체/행사 선택</option>' + groups.map(group => `<option value="${escapeHtml(group.id || group.groupId)}">${escapeHtml(group.name || group.groupName || group.id)}</option>`).join('');
-    select.value = selectedId;
-    const hasGroupStay = !!selectedId;
-    setGroupBulkVisible(hasGroupStay);
+    const group = groups.find(item => item.id === selectedId || item.groupId === selectedId);
+    if (select) select.value = group ? (group.id || group.groupId || '') : '';
+    const hasGroupStay = !!group;
+    document.getElementById('groupBulkName').textContent = group ? (group.name || group.groupName || group.id || '-') : '-';
+    setGroupBulkVisible(hasGroupStay && selectedService !== 'pos');
     document.getElementById('groupBulkToggle').checked = hasGroupStay && selectedService !== 'pos';
     renderGroupRoomChecks();
 }
 function onGroupSelectChange() {
-    const toggle = document.getElementById('groupBulkToggle');
-    if (selectedService !== 'pos' && document.getElementById('groupSelect').value) toggle.checked = true;
+    const groupId = document.getElementById('groupSelect').value;
+    renderGroupSelect(groupId);
     renderGroupRoomChecks();
     renderRegistrationPreview();
 }
@@ -1125,13 +1137,35 @@ function renderGroupRoomChecks() {
     const enabled = document.getElementById('groupBulkToggle').checked;
     const groupId = document.getElementById('groupSelect').value;
     const group = groups.find(item => item.id === groupId || item.groupId === groupId);
-    const groupRoomsList = enabled && group ? groupRooms(group).filter(canRegisterServiceForRoom) : [];
-    document.getElementById('groupRoomCount').textContent = `${groupRoomsList.length}실`;
+    const currentRoom = findRoomById(selectedRoomId);
+    const currentKey = currentRoom ? roomNo(currentRoom) : '';
+    const groupRoomsList = enabled && group ? groupRooms(group)
+        .filter(canRegisterServiceForRoom)
+        .sort((a, b) => {
+            const aCurrent = sameRoomValue(roomNo(a), currentKey) ? -1 : 0;
+            const bCurrent = sameRoomValue(roomNo(b), currentKey) ? -1 : 0;
+            if (aCurrent !== bCurrent) return aCurrent - bCurrent;
+            return String(roomNo(a)).localeCompare(String(roomNo(b)), undefined, { numeric: true });
+        }) : [];
     document.getElementById('groupRoomChecks').innerHTML = groupRoomsList.map(room => {
         const res = activeReservationForRoom(room) || nextReservationForRoom(room);
-        return `<label><input type="checkbox" class="group-room-check" value="${escapeHtml(room.id || roomNo(room))}" checked onchange="renderRegistrationPreview()"> ${escapeHtml(roomNo(room))} <span style="color:var(--txt3)"> ${escapeHtml(reservationGuest(res) || '')}</span></label>`;
-    }).join('') || '<div style="font-size:.72rem;color:var(--txt3);font-weight:850">단체 일괄 등록 대상 객실이 표시됩니다.</div>';
+        const isCurrent = sameRoomValue(roomNo(room), currentKey);
+        return `<label class="group-room-option">
+            <input type="checkbox" class="group-room-check" value="${escapeHtml(room.id || roomNo(room))}" checked onchange="updateGroupRoomSelectionCount();renderRegistrationPreview()">
+            <span>
+                <strong>${escapeHtml(roomNo(room))} · ${escapeHtml(reservationGuest(res) || '투숙객 미등록')}${isCurrent ? '<em class="current-room-badge">현재 객실</em>' : ''}</strong>
+                <small>${escapeHtml(roomType(room))}${group ? ` · ${escapeHtml(group.name || group.groupName || '')}` : ''}</small>
+            </span>
+        </label>`;
+    }).join('') || '<div style="font-size:.72rem;color:var(--txt3);font-weight:850">같이 등록할 수 있는 단체 투숙 객실이 없습니다.</div>';
+    updateGroupRoomSelectionCount();
     renderRegistrationPreview();
+}
+function updateGroupRoomSelectionCount() {
+    const total = document.querySelectorAll('.group-room-check').length;
+    const checked = document.querySelectorAll('.group-room-check:checked').length;
+    const count = document.getElementById('groupRoomCount');
+    if (count) count.textContent = total ? `${checked}/${total}실 선택` : '0실 선택';
 }
 function targetRoomsForSave() {
     const bulk = document.getElementById('groupBulkToggle').checked && selectedService !== 'pos';
