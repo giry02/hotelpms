@@ -801,11 +801,22 @@ function timelineLateCheckoutTime(res) {
     return normalizeReservationTime(res?.lateCheckoutTime || res?.extendedCheckOutTime || res?.stayTimes?.lateCheckoutTime, timelineCheckOutTime(res));
 }
 
-function timelineStayTimeRow(res) {
+function timelineStayTimeText(res, renderStatus = '') {
     const late = timelineLateCheckoutEnabled(res);
-    const text = late
-        ? `입실 ${timelineCheckInTime(res)} · 레이트 ${timelineLateCheckoutTime(res)}`
-        : `입실 ${timelineCheckInTime(res)} · 퇴실 ${timelineCheckOutTime(res)}`;
+    const isCheckoutBlock = ['checkout', 'completed'].includes(renderStatus);
+    const labels = timelineLang() === 'en'
+        ? { checkin: 'Check-in', checkout: 'Check-out', late: 'Late' }
+        : { checkin: '입실', checkout: '퇴실', late: '레이트' };
+    if (isCheckoutBlock) {
+        return late ? `${labels.late} ${timelineLateCheckoutTime(res)}` : `${labels.checkout} ${timelineCheckOutTime(res)}`;
+    }
+    return late
+        ? `${labels.checkin} ${timelineCheckInTime(res)} · ${labels.late} ${timelineLateCheckoutTime(res)}`
+        : `${labels.checkin} ${timelineCheckInTime(res)} · ${labels.checkout} ${timelineCheckOutTime(res)}`;
+}
+
+function timelineStayTimeRow(res, renderStatus = '') {
+    const text = timelineStayTimeText(res, renderStatus);
     return `<span class="tl-time-row"><i class="fa-regular fa-clock"></i><span>${timelineEscapeHtml(text)}</span></span>`;
 }
 
@@ -813,7 +824,7 @@ function timelineVipRow(isVip) {
     return isVip ? '<span class="tl-vip-row"><i class="fa-solid fa-crown"></i><span>VIP</span></span>' : '';
 }
 
-function timelineBlockContent(res, groupBadge, isVip) {
+function timelineBlockContent(res, groupBadge, isVip, renderStatus = '') {
     const primary = timelinePrimaryGuestName(res);
     const companions = timelineCompanionGuestNames(res);
     if (primary) {
@@ -827,13 +838,13 @@ function timelineBlockContent(res, groupBadge, isVip) {
             groupTitle,
             timelineVipRow(isVip),
             `<span class="tl-guest-stack">${res?.groupId ? '' : groupBadge}<span class="tl-primary-guest"><i class="fa-solid fa-user"></i><span>${timelineEscapeHtml(primary)}</span></span>${companionLine}</span>`,
-            timelineStayTimeRow(res)
+            timelineStayTimeRow(res, renderStatus)
         ].filter(Boolean).join('');
         return `<span class="tl-block-text">
             ${guestRows}
         </span>`;
     }
-    return `<span class="tl-block-text">${timelineVipRow(isVip)}<span class="tl-block-label">${groupBadge}${timelineEscapeHtml(timelineDisplayName(res))}</span>${timelineStayTimeRow(res)}</span>`;
+    return `<span class="tl-block-text">${timelineVipRow(isVip)}<span class="tl-block-label">${groupBadge}${timelineEscapeHtml(timelineDisplayName(res))}</span>${timelineStayTimeRow(res, renderStatus)}</span>`;
 }
 
 function timelineGroupBadge(res) {
@@ -965,9 +976,7 @@ function buildTimeline() {
         const displayName = timelineDisplayName(res);
         const groupBadge = timelineGroupBadge(res);
         const companionTitle = timelineCompanionGuestNames(res).join(', ');
-        const timeTitle = timelineLateCheckoutEnabled(res)
-            ? `입실 ${timelineCheckInTime(res)} / 레이트 ${timelineLateCheckoutTime(res)}`
-            : `입실 ${timelineCheckInTime(res)} / 퇴실 ${timelineCheckOutTime(res)}`;
+        const timeTitle = timelineStayTimeText(res, renderStatus);
         const title = [displayName, companionTitle, timeTitle].filter(Boolean).join(' / ');
         const resKey = timelineReservationRenderKey(res, renderIndex);
         timelineRenderedReservationMap.set(resKey, res);
@@ -979,7 +988,7 @@ function buildTimeline() {
                 data-res-key="${timelineEscapeHtml(resKey)}"
                 title="${timelineEscapeHtml(title)}"
                 style="position:absolute;top:__BLOCK_TOP__px;left:calc(140px + ${clipStart} * ((100% - 140px) / ${DAYS}) + 3px);width:calc(${renderLen} * ((100% - 140px) / ${DAYS}) - 6px);--tl-block-height:${blockHeight}px">
-                ${timelineBlockContent(res, groupBadge, isVip)}
+                ${timelineBlockContent(res, groupBadge, isVip, renderStatus)}
             </div>`
         });
     };
