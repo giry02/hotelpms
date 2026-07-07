@@ -285,7 +285,7 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
-                    <label class="form-label">대표 유형</label>
+                    <label class="form-label">대표 유형 <span style="color:var(--danger)">*</span></label>
                     <select id="compType" class="form-input" style="width:100%">
                         <option value="Corporate">일반 기업</option>
                         <option value="Travel Agency">여행사</option>
@@ -295,7 +295,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="form-label">상태</label>
+                    <label class="form-label">상태 <span style="color:var(--danger)">*</span></label>
                     <select id="compStatus" class="form-input" style="width:100%">
                         <option value="active">계약 활성</option>
                         <option value="inactive">계약 만료/비활성</option>
@@ -314,8 +314,8 @@
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
-                    <label class="form-label">계약 조건 (Discount/Comm)</label>
-                    <input type="text" id="compRate" class="form-input" style="width:100%" placeholder="예: 객실 15% 할인">
+                    <label class="form-label">계약 조건 요약(자동)</label>
+                    <input type="text" id="compRate" class="form-input" style="width:100%" readonly placeholder="기본 객실 할인율과 정산 방식으로 자동 생성">
                 </div>
                 <div>
                     <label class="form-label">정산 방식</label>
@@ -878,12 +878,30 @@ function openBlockModal(compId) {
         const wrap = rateInput.closest('div');
         const field = document.createElement('div');
         field.innerHTML = `
-            <label class="form-label">단체 객실 할인율 (%)</label>
-            <input type="number" id="compGroupDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" placeholder="예: 15">
+            <label class="form-label">기본 객실 할인율 (%)</label>
+            <input type="number" id="compGroupDiscount" class="form-input" style="width:100%" min="0" max="100" step="1" placeholder="예: 15" oninput="updateCompanyRateSummary()">
         `;
         wrap.parentElement.insertBefore(field, wrap.nextSibling);
-        rateInput.placeholder = '할인율을 입력하면 자동 생성됩니다';
+        rateInput.placeholder = '기본 객실 할인율과 정산 방식으로 자동 생성';
+        rateInput.readOnly = true;
+        const billing = document.getElementById('compBilling');
+        if (billing && billing.dataset.summaryBound !== 'true') {
+            billing.dataset.summaryBound = 'true';
+            billing.addEventListener('change', updateCompanyRateSummary);
+        }
+        updateCompanyRateSummary();
     }
+    function updateCompanyRateSummary() {
+        const discount = Number(document.getElementById('compGroupDiscount')?.value || 0);
+        const billing = document.getElementById('compBilling')?.value || '';
+        const rate = document.getElementById('compRate');
+        if (!rate) return;
+        const parts = [];
+        if (discount > 0) parts.push(`객실 ${discount}% 할인`);
+        if (billing) parts.push(billing);
+        rate.value = parts.join(' · ');
+    }
+    window.updateCompanyRateSummary = updateCompanyRateSummary;
     function normalizeCompanies() {
         try {
             const saved = JSON.parse(localStorage.getItem('pms_companies') || '[]');
@@ -909,6 +927,7 @@ function openBlockModal(compId) {
         ensureCompanyDiscountField();
         oldOpen();
         document.getElementById('compGroupDiscount').value = '';
+        updateCompanyRateSummary();
     };
     const oldEdit = window.editCompany;
     window.editCompany = function(id) {
@@ -916,13 +935,14 @@ function openBlockModal(compId) {
         oldEdit(id);
         const c = companies.find(x => x.id === id);
         document.getElementById('compGroupDiscount').value = c?.groupDiscount ?? parseDiscount(c?.rate);
+        updateCompanyRateSummary();
     };
     const oldSave = window.saveCompany;
     window.saveCompany = function() {
         ensureCompanyDiscountField();
         const discount = Number(document.getElementById('compGroupDiscount').value || 0);
+        updateCompanyRateSummary();
         const rate = document.getElementById('compRate');
-        if (rate) rate.value = `객실 ${discount}% 할인`;
         oldSave();
         try {
             const saved = JSON.parse(localStorage.getItem('pms_companies') || '[]');
@@ -931,7 +951,7 @@ function openBlockModal(compId) {
             const c = saved.find(x => (id && x.id === id) || x.name === name);
             if (c) {
                 c.groupDiscount = discount;
-                c.rate = `객실 ${discount}% 할인`;
+                c.rate = rate?.value || '';
                 localStorage.setItem('pms_companies', JSON.stringify(saved));
                 companies = saved;
                 renderCompanies();
