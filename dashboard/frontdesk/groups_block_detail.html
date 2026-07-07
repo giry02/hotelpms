@@ -92,12 +92,15 @@
         .progress{height:7px;background:#eef2f7;border-radius:99px;overflow:hidden}.progress>div{height:100%;background:var(--primary)}
         .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
         .form-grid .wide{grid-column:1/-1}
+        .overview-form-grid{grid-template-columns:repeat(2,minmax(300px,520px));max-width:1064px}
+        .overview-form-grid .company-picker{max-width:100%}
+        .overview-actions{max-width:1064px}
         .management-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
         .allocation-editor{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
         .allocation-editor-row{display:grid;grid-template-columns:minmax(180px,1fr) 120px 120px 44px;gap:8px;align-items:end;border:1px solid var(--border2);border-radius:8px;background:#f8fafc;padding:8px}
         .allocation-editor-row>.mini-btn.danger{width:40px;height:40px;min-width:40px;padding:0;justify-content:center;align-self:end}
         .empty-guide{border:1px dashed var(--border);border-radius:10px;padding:18px;text-align:center;color:var(--txt2);font-size:.86rem;font-weight:700;background:#f8fafc}
-        @media(max-width:900px){.detail-hero{grid-template-columns:1fr}.summary-grid{grid-template-columns:repeat(2,1fr)}.info-grid{grid-template-columns:1fr}.panel{overflow-x:auto}.room-assignment-toolbar{flex-direction:column}.room-assignment-actions{width:100%;justify-content:flex-start}.room-assignment-table{min-width:920px}.allocation-editor-row>.mini-btn.danger{width:40px}}
+        @media(max-width:900px){.detail-hero{grid-template-columns:1fr}.summary-grid{grid-template-columns:repeat(2,1fr)}.info-grid{grid-template-columns:1fr}.overview-form-grid{grid-template-columns:1fr;max-width:none}.overview-actions{max-width:none}.panel{overflow-x:auto}.room-assignment-toolbar{flex-direction:column}.room-assignment-actions{width:100%;justify-content:flex-start}.room-assignment-table{min-width:920px}.allocation-editor-row>.mini-btn.danger{width:40px}}
         .detail-sticky-actions{position:sticky;bottom:0;z-index:20;margin-top:14px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.97);box-shadow:0 -8px 24px rgba(15,23,42,.08);display:flex;align-items:center;justify-content:space-between;gap:12px}
         .detail-sticky-actions .hint{font-size:.76rem;color:var(--txt2);font-weight:800}
         .rooming-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
@@ -899,7 +902,7 @@ function formatMD(value) {
 function renderOverview() {
     document.getElementById('overview').innerHTML = `
         <div class="section-title"><i class="fa-solid fa-circle-info"></i> 기본 정보</div>
-        <div class="form-grid">
+        <div class="form-grid overview-form-grid">
             <div class="wide">
                 <label class="form-label">행사명 <span style="color:var(--danger)">*</span></label>
                 <input id="detailName" class="form-input" style="width:100%" value="${group.name || ''}" placeholder="예: Samsung Tech Conference 2026">
@@ -916,7 +919,7 @@ function renderOverview() {
             <div><label class="form-label">행사 연락 담당자/연락처</label><input id="detailContact" class="form-input" style="width:100%" value="${group.contact || ''}" placeholder="예: 홍길동 / 010-1234-5678"></div>
             <div class="wide"><label class="form-label">특이사항 / 메모</label><textarea id="detailNote" class="form-input" style="width:100%;min-height:76px;resize:vertical">${group.note || ''}</textarea></div>
         </div>
-        <div class="management-actions"><button class="mini-btn primary" onclick="saveBasicInfo()"><i class="fa-solid fa-check"></i> 기본 정보 저장</button></div>`;
+        <div class="management-actions overview-actions"><button class="mini-btn primary" onclick="saveBasicInfo()"><i class="fa-solid fa-check"></i> 기본 정보 저장</button></div>`;
 }
 
 window.saveBasicInfo = function() {
@@ -1543,7 +1546,7 @@ window.addEventListener('DataReady', () => {
         const hideSalesStaff = isIndividualCompany(c);
         document.getElementById('overview').innerHTML = `
             <div class="section-title"><i class="fa-solid fa-circle-info"></i> 행사 기본 정보</div>
-            <div class="form-grid">
+            <div class="form-grid overview-form-grid">
                 <div class="wide">
                     <label class="form-label">행사명 <span style="color:var(--danger)">*</span></label>
                     <input id="detailName" class="form-input" style="width:100%" value="${safeAttr(group.name)}" placeholder="예: Samsung Tech Conference 2026">
@@ -1569,7 +1572,7 @@ window.addEventListener('DataReady', () => {
                 <div><label class="form-label">행사 연락 담당자/연락처</label><input id="detailContact" class="form-input" style="width:100%" value="${safeAttr(group.contact)}" placeholder="예: 홍길동 / 010-1234-5678"></div>
                 <div class="wide"><label class="form-label">특이사항 / 메모</label><textarea id="detailNote" class="form-input" style="width:100%;min-height:76px;resize:vertical">${safeAttr(group.note)}</textarea></div>
             </div>
-            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:14px">
+            <div class="overview-actions" style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:14px">
                 <button class="mini-btn" onclick="location.href='groups_companies.html'"><i class="fa-solid fa-building"></i> 단체 등록/관리</button>
                 <button class="mini-btn primary" onclick="saveBasicInfo()"><i class="fa-solid fa-check"></i> 행사 저장</button>
             </div>`;
