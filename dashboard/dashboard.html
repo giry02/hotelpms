@@ -870,9 +870,12 @@
             <section class="partner-hero">
                 <div class="partner-hero__logo">${vendor.logoDataUrl ? `<img src="${esc(vendor.logoDataUrl)}" alt="">` : '<i class="fa-solid fa-building"></i>'}</div>
                 <div class="partner-hero__copy">
-                    <div class="partner-eyebrow">${esc(t('partnerInternalLabel'))}</div>
                     <h4>${esc(vendor.campaignTitle || vendor.name || t('partnerDetailTitle'))}</h4>
-                    <p>${esc(vendor.benefit || '-')}</p>
+                    <div class="partner-hero__meta">
+                        ${partnerHeroMeta('partnerPeriod', vendor.usagePeriod || '-')}
+                        ${partnerHeroMeta('partnerAddress', vendor.address || '-')}
+                        ${partnerHeroMeta('partnerHours', vendor.operatingHours || '-')}
+                    </div>
                 </div>
             </section>
             <section class="partner-contact-card">
@@ -884,11 +887,6 @@
                     ${partnerInfoRow('partnerPhone', contactPhone)}
                     ${partnerInfoRow('partnerEmail', contactEmail)}
                 </div>
-            </section>
-            <section class="partner-info-grid partner-info-grid--compact">
-                ${partnerInfoRow('partnerAddress', vendor.address || '-')}
-                ${partnerInfoRow('partnerHours', vendor.operatingHours || '-')}
-                ${partnerInfoRow('partnerPeriod', vendor.usagePeriod || '-')}
             </section>
             ${detailHtml ? `<section class="partner-section partner-editor-content${editorImageHtml || hasUploadedEditorImage ? ' partner-editor-content--image' : ''}"><h4><i class="fa-solid fa-file-lines"></i> ${esc(t('partnerDetailContent'))}</h4><div class="partner-editor-body${editorImageHtml || hasUploadedEditorImage ? ' partner-editor-body--image' : ''}">${detailHtml}</div></section>` : ''}
         `;
@@ -902,6 +900,9 @@
     }
     function partnerInfoRow(labelKey, value) {
         return `<div class="partner-info"><span>${esc(t(labelKey))}</span><strong>${esc(value || '-')}</strong></div>`;
+    }
+    function partnerHeroMeta(labelKey, value) {
+        return `<span class="partner-hero__meta-item"><b>${esc(t(labelKey))}</b>${esc(value || '-')}</span>`;
     }
     function openPartnerDetailModal(vendorId) {
         activePartnerDetailId = vendorId || '';
