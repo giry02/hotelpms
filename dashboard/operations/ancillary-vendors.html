@@ -53,6 +53,12 @@
     .summary-box.address{grid-column:1/-1}
     .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
     .section-title{display:flex;align-items:center;gap:7px;font-size:.92rem;font-weight:950;color:var(--txt)}
+    .detail-group{border:1px solid var(--border2);border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+    .detail-group-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border2);background:#f8fafc}
+    .detail-group-head .voucher-help{margin-top:4px}
+    .detail-group-body{padding:14px 16px}
+    .detail-group--voucher{border-color:#bfdbfe}
+    .detail-group--voucher .detail-group-head{background:#eff6ff}
     .item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
     .item-card{border:1px solid var(--border2);border-radius:10px;padding:13px;background:#fff;display:flex;flex-direction:column;gap:7px}
     .item-card-title{font-size:.88rem;font-weight:950;color:var(--txt);display:flex;align-items:center;gap:7px}
@@ -471,12 +477,14 @@
           <div class="summary-box"><span>항목 수</span><strong>${(vendor.items || []).length}개</strong></div>
           <div class="summary-box address"><span>업체 주소</span><strong>${escapeHtml(vendor.address || '주소 미등록')}</strong></div>
         </div>
-        <div>
-          <div class="section-head"><div class="section-title"><i class="fa-solid fa-tags"></i> 이용 항목</div></div>
-          <div class="item-grid" style="margin-top:10px">${(vendor.items || []).map(item => renderVendorItemCard(vendor, item)).join('') || '<div class="empty-note">등록된 항목이 없습니다.</div>'}</div>
-        </div>
-        <div>
-          <div class="section-head">
+        <section class="detail-group">
+          <div class="detail-group-head"><div class="section-title"><i class="fa-solid fa-tags"></i> 이용 항목</div></div>
+          <div class="detail-group-body">
+            <div class="item-grid">${(vendor.items || []).map(item => renderVendorItemCard(vendor, item)).join('') || '<div class="empty-note">등록된 항목이 없습니다.</div>'}</div>
+          </div>
+        </section>
+        <section class="detail-group detail-group--voucher">
+          <div class="detail-group-head">
             <div>
               <div class="section-title"><i class="fa-solid fa-ticket"></i> ${vendor.type === 'pos' ? '전표 출력 양식' : '바우처 출력 양식'}</div>
               <div class="voucher-help">체크한 항목은 부가서비스 상세 화면의 출력 버튼과 미리보기 팝업에 그대로 반영됩니다.</div>
@@ -486,7 +494,8 @@
               <button class="btn-primary-sm" onclick="saveVoucherFields()"><i class="fa-solid fa-check"></i> 양식 저장</button>
             </div>
           </div>
-          <div class="voucher-layout" style="margin-top:10px">
+          <div class="detail-group-body">
+          <div class="voucher-layout">
             <div class="voucher-config">
               <div class="logo-config">
                 <div class="logo-current">
@@ -502,7 +511,8 @@
               ${renderVoucherFieldGroups(vendor)}
             </div>
           </div>
-      </div>`;
+          </div>
+        </section>`;
       renderVoucherPreview();
     }
     function renderVoucherFieldGroups(vendor) {
