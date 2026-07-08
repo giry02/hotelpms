@@ -120,6 +120,7 @@
         .service-tab{height:40px;border:1px solid var(--border);border-radius:10px;background:#fff;font-weight:950;color:var(--txt2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;line-height:1}
         .service-tab i{width:15px;font-size:.82rem;line-height:1;display:inline-flex;align-items:center;justify-content:center}
         .service-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
+        .service-tab.is-hidden{display:none}
         .modal-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         .modal-field-grid .is-hidden{display:none}
         .form-label{display:block;font-size:.75rem;font-weight:900;color:var(--txt2);margin-bottom:6px}
@@ -906,17 +907,18 @@ function normalizeExternalOrder(order, service) {
         status: order.status || 'new'
     };
 }
+function cloneSeedVendor(seed) {
+    return { ...seed, items:[...(seed.items || [])], voucherFields:[...(seed.voucherFields || [])] };
+}
 function loadVendors() {
-    try { vendors = JSON.parse(localStorage.getItem(VENDOR_STORAGE) || '[]'); } catch(e) { vendors = []; }
-    if (!Array.isArray(vendors) || !vendors.length) vendors = seedVendors.map(v => ({ ...v, items:[...(v.items || [])], voucherFields:[...(v.voucherFields || [])] }));
-    ['pos', 'golf', 'rentacar'].forEach(type => {
-        if (!vendors.some(v => v.type === type)) vendors.push(...seedVendors.filter(v => v.type === type));
-    });
-    seedVendors.forEach(seed => {
-        if (!vendors.some(vendor => vendor.id === seed.id || (vendor.type === seed.type && vendor.name === seed.name))) {
-            vendors.push({ ...seed, items:[...(seed.items || [])], voucherFields:[...(seed.voucherFields || [])] });
-        }
-    });
+    const storedVendorData = localStorage.getItem(VENDOR_STORAGE);
+    try { vendors = storedVendorData === null ? [] : JSON.parse(storedVendorData); } catch(e) { vendors = []; }
+    if (!Array.isArray(vendors)) vendors = [];
+    if (storedVendorData === null) {
+        vendors = seedVendors.map(cloneSeedVendor);
+    } else if (!vendors.some(v => v.type === 'pos')) {
+        vendors.push(...seedVendors.filter(v => v.type === 'pos').map(cloneSeedVendor));
+    }
     vendors = vendors.map(vendor => {
         const seed = seedVendors.find(item => item.id === vendor.id || (item.type === vendor.type && item.name === vendor.name));
         const type = vendor.type || seed?.type || 'pos';
@@ -933,6 +935,18 @@ function loadVendors() {
         };
     });
     localStorage.setItem(VENDOR_STORAGE, JSON.stringify(vendors));
+}
+function serviceVendorList(type) {
+    return vendors.filter(vendor => vendor.type === type);
+}
+function isRegisterServiceAvailable(type) {
+    return serviceVendorList(type).length > 0;
+}
+function firstAvailableRegisterService(preferred = 'pos') {
+    const serviceTypes = ['pos', 'golf', 'rentacar'];
+    const available = serviceTypes.filter(isRegisterServiceAvailable);
+    if (available.includes(preferred)) return preferred;
+    return available[0] || 'pos';
 }
 function loadStoredOrders() {
     if (localStorage.getItem(ORDER_STORAGE_VERSION) !== ORDER_DATA_VERSION) {
@@ -1292,10 +1306,22 @@ function toggleServiceRegistration(show) {
     if (addButton) addButton.style.display = show ? 'none' : 'inline-flex';
     if (show) renderRegistrationPreview();
 }
+function refreshServiceTypeTabs() {
+    const serviceTypes = ['pos', 'golf', 'rentacar'];
+    const available = serviceTypes.filter(isRegisterServiceAvailable);
+    document.querySelectorAll('.service-tab').forEach(btn => {
+        const enabled = available.includes(btn.dataset.service);
+        btn.classList.toggle('is-hidden', !enabled);
+        btn.disabled = !enabled;
+    });
+    const tabWrap = document.querySelector('.service-tabs');
+    if (tabWrap) tabWrap.style.gridTemplateColumns = `repeat(${Math.max(1, available.length)}, 1fr)`;
+}
 function selectServiceType(type) {
-    selectedService = type;
-    document.querySelectorAll('.service-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.service === type));
-    document.getElementById('vendorLabel').textContent = type === 'pos' ? '처리 부서/업체' : '업체';
+    selectedService = firstAvailableRegisterService(type);
+    refreshServiceTypeTabs();
+    document.querySelectorAll('.service-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.service === selectedService));
+    document.getElementById('vendorLabel').textContent = selectedService === 'pos' ? '처리 부서/업체' : '업체';
     updateServiceQtyField();
     const bulkToggle = document.getElementById('groupBulkToggle');
     const groupSelect = document.getElementById('groupSelect');
@@ -1313,9 +1339,9 @@ function updateServiceQtyField() {
     if (isRentacar && input) input.value = 1;
 }
 function renderServiceVendors() {
-    const list = vendors.filter(vendor => vendor.type === selectedService);
+    const list = serviceVendorList(selectedService);
     const vendorSelect = document.getElementById('serviceVendor');
-    vendorSelect.innerHTML = list.map(vendor => `<option value="${escapeHtml(vendor.id)}">${escapeHtml(vendor.name)}</option>`).join('');
+    vendorSelect.innerHTML = list.map(vendor => `<option value="${escapeHtml(vendor.id)}">${escapeHtml(vendor.name)}</option>`).join('') || '<option value="">등록된 업체 없음</option>';
     if (requestedVendorId && list.some(vendor => vendor.id === requestedVendorId)) vendorSelect.value = requestedVendorId;
     renderServiceItems();
 }
