@@ -527,7 +527,7 @@
             inject();
 
             // 2. 언어 번역 적용 (changeLang은 i18n.js가 먼저 로드되어야 함)
-            const lang = window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+            const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
             if (typeof window.changeLang === 'function') {
                 window.changeLang(lang);
             }

@@ -250,23 +250,13 @@
                     <label class="form-label">총 인원</label>
                     <input type="number" id="ngPax" class="form-input" style="width:100%" min="1" placeholder="20">
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                    <div>
-                        <label class="form-label">결제 방식</label>
-                        <select id="ngRouting" class="form-input" style="width:100%">
-                            <option>단체 일괄 정산</option>
-                            <option>개별 정산</option>
-                            <option>혼합 정산</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="form-label">담당 영업 직원</label>
-                        <select id="ngSales" class="form-input" style="width:100%">
-                            <option>김지연 (영업담당)</option>
-                            <option>이수진 (세일즈)</option>
-                            <option>담당자 없음</option>
-                        </select>
-                    </div>
+                <div>
+                    <label class="form-label">결제 방식</label>
+                    <select id="ngRouting" class="form-input" style="width:100%">
+                        <option>단체 일괄 정산</option>
+                        <option>개별 정산</option>
+                        <option>혼합 정산</option>
+                    </select>
                 </div>
                 <div>
                     <label class="form-label">담당자 연락처</label>
@@ -332,7 +322,7 @@ let groups = [];
 let currentFilter = 'all';
 
 function groupCompanyLang() {
-    return window.currentLang || localStorage.getItem('pms_lang') || 'ko';
+    return localStorage.getItem('pms_lang') || window.currentLang || 'ko';
 }
 
 function groupCompanyTypeKey(value) {
@@ -595,7 +585,7 @@ function renderGroups(search = '') {
                 <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
             </div>
             <div class="group-card-footer">
-                <div style="font-size:0.78rem;color:var(--txt3)">담당: ${g.sales}</div>
+                <div></div>
                 <div style="display:flex;gap:8px">
                     <button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button>
                 </div>
@@ -707,7 +697,7 @@ function saveGroup() {
     const checkout = document.getElementById('ngCheckout').value;
     const pax = document.getElementById('ngPax').value || 0;
     const routing = document.getElementById('ngRouting').value;
-    const sales = document.getElementById('ngSales').value.split(' ')[0];
+    const sales = '';
     const contact = document.getElementById('ngContact').value;
     const note = document.getElementById('ngNote').value;
 
@@ -777,9 +767,6 @@ function editGroup(id) {
     const rMatch = Array.from(routingSel.options).find(o => o.value.includes(routingLabel) || routingLabel.includes(o.value));
     if (rMatch) routingSel.value = rMatch.value;
 
-    const salesSel = document.getElementById('ngSales');
-    const sMatch = Array.from(salesSel.options).find(o => o.value.includes(g.sales) || g.sales.includes(o.value));
-    if (sMatch) salesSel.value = sMatch.value;
 
     document.getElementById('ngContact').value = g.contact || '';
     document.getElementById('ngNote').value = g.note || '';
@@ -949,7 +936,7 @@ async function deleteGroup(id) {
             const stage = stageOf(g);
             const statusMatch = eventStatusFilter === 'all' || stage.key === eventStatusFilter;
             const roomText = assignedRoomsOf(g).map(r => `${r.roomId} ${r.roomLabel}`).join(' ').toLowerCase();
-            const text = [g.name, g.agency, companyOf(g)?.name, g.sales, g.contact, g.id].filter(Boolean).join(' ').toLowerCase();
+            const text = [g.name, g.agency, companyOf(g)?.name, g.contact, g.id].filter(Boolean).join(' ').toLowerCase();
             return statusMatch && (!q || text.includes(q) || roomText.includes(q));
         }).sort((a,b) => {
             const order = { today:0, active:1, settlement:2, upcoming:3, past:4 };
@@ -1424,7 +1411,7 @@ async function deleteGroup(id) {
         const agency = agencySelect.options[agencySelect.selectedIndex]?.textContent || agencySelect.value || '';
         const pax = parseInt(document.getElementById('ngPax').value || 0, 10);
         const routing = document.getElementById('ngRouting').value;
-        const sales = document.getElementById('ngSales').value.split(' ')[0];
+        const sales = '';
         const contact = document.getElementById('ngContact').value;
         const note = document.getElementById('ngNote').value;
 
@@ -1535,7 +1522,7 @@ async function deleteGroup(id) {
                     <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
                 </div>
                 <div class="group-card-footer">
-                    <div style="font-size:.78rem;color:var(--txt3)">담당: ${g.sales || '-'}</div>
+                    <div></div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
                         <button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${g.id}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> 관리</button>
                     </div>
@@ -1768,7 +1755,7 @@ async function deleteGroup(id) {
             const stage = stageOf(g);
             const stageMatch = currentFilter === 'all' || stage.key === currentFilter;
             const roomsText = getAssignedRooms(g).map(a => `${a.roomLabel} ${a.roomId}`).join(' ').toLowerCase();
-            const searchMatch = !query || [g.name, g.agency, g.sales, g.contact, g.id].filter(Boolean).join(' ').toLowerCase().includes(query) || roomsText.includes(query);
+            const searchMatch = !query || [g.name, g.agency, g.contact, g.id].filter(Boolean).join(' ').toLowerCase().includes(query) || roomsText.includes(query);
             return stageMatch && searchMatch;
         }).sort((a,b) => {
             const order = {today:0, active:1, settlement:2, upcoming:3, past:4};
@@ -1999,7 +1986,7 @@ async function deleteGroup(id) {
     function matchesSearchFilter(group, query) {
         if (!query) return true;
         const roomText = assignedRooms(group).map(room => `${room.roomId} ${room.roomLabel} ${room.type}`).join(' ').toLowerCase();
-        const searchText = [group.name, group.agency, companyOf(group)?.name, group.sales, group.contact, group.id]
+        const searchText = [group.name, group.agency, companyOf(group)?.name, group.contact, group.id]
             .filter(Boolean).join(' ').toLowerCase();
         return searchText.includes(query) || roomText.includes(query);
     }
