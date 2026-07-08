@@ -1,13 +1,11 @@
 // api-core.js
-const API_VERSION = 'v2.12';
+const API_VERSION = 'v2.13';
 
 window.PmsDate = window.PmsDate || (function() {
+    const DEMO_TODAY_ISO = '2026-07-10';
+
     function todayIsoDate() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        return DEMO_TODAY_ISO;
     }
 
     function fromCurrentIso(isoDate) {
@@ -238,7 +236,12 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         if (!payload || payload.success !== true || !payload.data || !payload.meta) {
             throw new Error(`Mock API invalid envelope: ${route.file}`);
         }
-        return shiftMockDates(payload, dateShiftDays());
+        const shifted = shiftMockDates(payload, dateShiftDays());
+        if (shifted?.meta) {
+            shifted.meta.generatedAt = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : shifted.meta.generatedAt;
+            shifted.meta.demoDate = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : shifted.meta.demoDate;
+        }
+        return shifted;
     }
 
     function isListPayload(payload) {

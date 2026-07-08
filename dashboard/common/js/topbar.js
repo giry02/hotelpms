@@ -2,12 +2,10 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
 
 (function() {
     window.PmsDate = window.PmsDate || (function() {
+        const DEMO_TODAY_ISO = '2026-07-10';
+
         function todayIsoDate() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            return DEMO_TODAY_ISO;
         }
 
         function fromCurrentIso(isoDate) {
