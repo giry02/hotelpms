@@ -217,18 +217,19 @@
         body.printing-service-voucher #serviceVoucherModal .voucher-print-wrap{width:100%!important;padding:0!important;background:#fff!important;border:0!important;display:block!important;max-height:none!important;overflow:visible!important}
         body.printing-service-voucher #serviceVoucherModal .voucher-batch-note,
         body.printing-service-voucher #serviceVoucherModal .voucher-batch-list{display:none!important}
-        body.printing-service-voucher #serviceVoucherModal .voucher-print-sheets{display:grid!important;grid-template-columns:repeat(2,88mm)!important;gap:5mm 6mm!important;width:182mm!important;margin:0 auto!important;padding:0!important;overflow:visible!important;align-items:start!important;justify-content:center!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-print-sheets{display:grid!important;grid-template-columns:repeat(2,82mm)!important;gap:4mm 5mm!important;width:169mm!important;margin:0 auto!important;padding:0!important;overflow:visible!important;align-items:start!important;justify-content:center!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-print-sheets.is-single-print{grid-template-columns:82mm!important;width:82mm!important}
         body.printing-service-voucher #serviceVoucherModal .voucher-sheet.is-print-hidden{display:none!important}
-        body.printing-service-voucher #serviceVoucherModal .voucher-sheet{box-sizing:border-box!important;width:88mm!important;max-width:88mm!important;margin:0!important;border:1px dashed #64748b!important;border-radius:3mm!important;box-shadow:none!important;overflow:hidden!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:auto!important;page-break-after:auto!important;background:#fff!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-sheet{box-sizing:border-box!important;width:82mm!important;max-width:82mm!important;min-height:0!important;height:auto!important;margin:0!important;border:1px dashed #64748b!important;border-radius:3mm!important;box-shadow:none!important;overflow:hidden!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:auto!important;page-break-after:auto!important;background:#fff!important}
         body.printing-service-voucher #serviceVoucherModal .voucher-sheet:nth-child(4n):not(:last-child){break-after:page!important;page-break-after:always!important}
-        body.printing-service-voucher #serviceVoucherModal .voucher-brand{padding:4mm 5mm 3mm!important;gap:3mm!important;border-bottom:1px solid #e5e7eb!important}
-        body.printing-service-voucher #serviceVoucherModal .voucher-logo{min-width:16mm!important;min-height:10mm!important;border-radius:2.5mm!important}
-        body.printing-service-voucher #serviceVoucherModal .voucher-logo img{max-width:17mm!important;max-height:10mm!important}
-        body.printing-service-voucher #serviceVoucherModal .voucher-logo-mark{width:8mm!important;height:8mm!important;border-radius:2mm!important;font-size:9px!important}
-        body.printing-service-voucher #serviceVoucherModal .voucher-heading{font-size:11px!important;line-height:1.2!important}
-        body.printing-service-voucher #serviceVoucherModal .voucher-sub{font-size:7px!important;line-height:1.25!important;margin-top:1.2mm!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-brand{padding:3.5mm 4mm 2.5mm!important;gap:2.5mm!important;border-bottom:1px solid #e5e7eb!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-logo{min-width:14mm!important;min-height:9mm!important;border-radius:2.5mm!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-logo img{max-width:15mm!important;max-height:9mm!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-logo-mark{width:7mm!important;height:7mm!important;border-radius:2mm!important;font-size:8px!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-heading{font-size:10px!important;line-height:1.2!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-sub{font-size:6.5px!important;line-height:1.25!important;margin-top:1mm!important}
         body.printing-service-voucher #serviceVoucherModal .voucher-body{padding:2mm 5mm!important}
-        body.printing-service-voucher #serviceVoucherModal .voucher-row{padding:1.2mm 0!important;gap:2.5mm!important;font-size:7px!important;line-height:1.25!important}
+        body.printing-service-voucher #serviceVoucherModal .voucher-row{padding:1mm 0!important;gap:2.5mm!important;font-size:6.8px!important;line-height:1.22!important}
         body.printing-service-voucher #serviceVoucherModal .voucher-row strong{font-size:7px!important}
         body.printing-service-voucher #serviceVoucherModal .voucher-row span{font-size:7.5px!important;line-height:1.25!important}
         body.printing-service-voucher #serviceVoucherModal .voucher-stub{padding:2.5mm 5mm!important}
@@ -237,6 +238,9 @@
         @media print{
             @page{size:A4 portrait;margin:8mm}
             html,body{width:100%!important;height:auto!important;overflow:visible!important}
+            body.printing-service-voucher #serviceVoucherModal .voucher-print-sheets{display:grid!important;grid-template-columns:repeat(2,82mm)!important;gap:4mm 5mm!important;width:169mm!important;margin:0 auto!important}
+            body.printing-service-voucher #serviceVoucherModal .voucher-print-sheets.is-single-print{grid-template-columns:82mm!important;width:82mm!important}
+            body.printing-service-voucher #serviceVoucherModal .voucher-sheet{width:82mm!important;max-width:82mm!important;min-height:0!important;height:auto!important}
         }
         .modal-footer{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;padding:14px;background:#f8fafc;border-top:1px solid var(--border)}
         #serviceModal,
@@ -469,6 +473,7 @@ let selectedRoomId = '';
 let selectedDetailRoomId = '';
 let selectedVoucherOrderId = '';
 let selectedVoucherOrderIds = [];
+let serviceVoucherPrintCleanupTimer = null;
 let selectedService = 'pos';
 let serviceFilter = 'all';
 let requestedVendorId = '';
@@ -1625,18 +1630,29 @@ function closeOrderVoucherModal() {
     modal.classList.remove('active');
     modal.style.display = 'none';
 }
+function cleanupServiceVoucherPrint() {
+    if (serviceVoucherPrintCleanupTimer) {
+        clearTimeout(serviceVoucherPrintCleanupTimer);
+        serviceVoucherPrintCleanupTimer = null;
+    }
+    window.removeEventListener('afterprint', cleanupServiceVoucherPrint);
+    document.body.classList.remove('printing-service-voucher');
+}
 function printServiceVoucher(orderId = '') {
     const ids = orderId ? [orderId] : (selectedVoucherOrderIds.length ? selectedVoucherOrderIds : [selectedVoucherOrderId]);
     const orders = ids.map(id => serviceOrders.find(item => item.id === id)).filter(order => order && order.service !== 'pos');
     if (!orders.length) return;
     const printHost = document.querySelector('#serviceVoucherModal .voucher-print-sheets');
-    if (printHost) printHost.innerHTML = orders.map(renderVoucherSheet).join('');
+    if (printHost) {
+        printHost.innerHTML = orders.map(renderVoucherSheet).join('');
+        printHost.classList.toggle('is-single-print', orders.length === 1);
+    }
+    cleanupServiceVoucherPrint();
     document.body.classList.add('printing-service-voucher');
+    window.addEventListener('afterprint', cleanupServiceVoucherPrint);
+    serviceVoucherPrintCleanupTimer = setTimeout(cleanupServiceVoucherPrint, 15000);
     setTimeout(() => {
         window.print();
-        setTimeout(() => {
-            document.body.classList.remove('printing-service-voucher');
-        }, 250);
     }, 50);
 }
 function printOrderVoucher(orderId) {
