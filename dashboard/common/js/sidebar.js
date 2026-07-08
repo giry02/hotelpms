@@ -26,7 +26,7 @@
         );
         const desktopViewRequested = forcedView === 'desktop' || (touchDevice && desktopLikeUa && screenShortSide <= 1024);
         if (!desktopViewRequested) return;
-        meta.setAttribute('content', 'width=1280, initial-scale=1.0');
+        meta.setAttribute('content', 'width=1180, initial-scale=1.0');
         document.documentElement.classList.add('desktop-viewport-requested');
     }
 
@@ -496,10 +496,32 @@
         window.location.reload();
     };
 
+    const TABLET_MENU_BREAKPOINT = 1180;
+
+    function setSidebarOpen(open) {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        if (!sidebar || !overlay) return;
+        sidebar.classList.toggle('active', open);
+        overlay.classList.toggle('active', open);
+        document.body.classList.toggle('sidebar-open', open);
+        document.querySelectorAll('.mobile-menu-btn').forEach(btn => {
+            btn.setAttribute('aria-expanded', String(open));
+        });
+    }
+
+    function syncSidebarForViewport() {
+        if (window.innerWidth > TABLET_MENU_BREAKPOINT) setSidebarOpen(false);
+    }
+
     window.PMS_Sidebar = {
         toggleMenu() {
-            document.querySelector('.sidebar').classList.toggle('active');
-            document.querySelector('.sidebar-overlay').classList.toggle('active');
+            const sidebar = document.querySelector('.sidebar');
+            setSidebarOpen(!sidebar?.classList.contains('active'));
+        },
+
+        closeMenu() {
+            setSidebarOpen(false);
         },
 
         toggleSubMenu(iconElement) {
@@ -560,6 +582,8 @@
             });
 
             window.addEventListener('hashchange', updateActiveSidebarLinks);
+            window.addEventListener('resize', syncSidebarForViewport);
+            syncSidebarForViewport();
 
             // 7. 데이터 로딩 완료 이벤트 dispatch
             window.dispatchEvent(new Event('DataReady'));
