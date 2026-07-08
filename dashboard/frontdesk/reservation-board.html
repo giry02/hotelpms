@@ -211,6 +211,7 @@
             <div class="filter-chips reservation-board-filters" id="boardChips">
                 <button class="chip active" data-filter="all" onclick="setBoardFilter('all')"><i class="fa-solid fa-list"></i> 전체 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="group" onclick="setBoardFilter('group')"><i class="fa-solid fa-users"></i> 단체 <span class="chip-count">0</span></button>
+                <button class="chip" data-filter="vacant" onclick="setBoardFilter('vacant')"><i class="fa-solid fa-door-open"></i> 공실 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="checkin" onclick="setBoardFilter('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="dirty" onclick="setBoardFilter('dirty')"><i class="fa-solid fa-broom"></i> 청소필요 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="inhouse" onclick="setBoardFilter('inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="chip-count">0</span></button>
@@ -237,6 +238,7 @@ const BOARD_TEXT = {
     ko: {
         'filter.all': '전체',
         'filter.group': '단체',
+        'filter.vacant': '공실',
         'filter.checkin.today': '오늘 체크인',
         'filter.checkin.tomorrow': '내일 체크인',
         'filter.checkin.week': '1주일 체크인',
@@ -272,6 +274,7 @@ const BOARD_TEXT = {
     en: {
         'filter.all': 'All',
         'filter.group': 'Groups',
+        'filter.vacant': 'Vacant',
         'filter.checkin.today': 'Today Check-ins',
         'filter.checkin.tomorrow': 'Tomorrow Check-ins',
         'filter.checkin.week': '7-day Check-ins',
@@ -511,7 +514,7 @@ function reservationBucket(res) {
 }
 
 function boardReservationCounts() {
-    const counts = { all: 0, group: 0, checkin: 0, checkinDirty: 0, dirty: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, completed: 0, cancelled: 0 };
+    const counts = { all: 0, group: 0, vacant: 0, checkin: 0, checkinDirty: 0, dirty: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, completed: 0, cancelled: 0 };
     counts.all = rooms.length;
     reservations.forEach(res => {
         const bucket = reservationBucket(res);
@@ -523,6 +526,7 @@ function boardReservationCounts() {
     });
     rooms.forEach(room => {
         const state = boardStatusFor(room);
+        if (state.status === 'vacant') counts.vacant++;
         if (boardCleaningSummary(room, state.res).key === 'dirty') counts.dirty++;
         if (boardCheckinDirtyReservationForRoom(room)) counts.checkinDirty++;
     });
@@ -575,6 +579,7 @@ function boardFilterIcon(filter) {
     return {
         all: 'fa-list',
         group: 'fa-users',
+        vacant: 'fa-door-open',
         checkin: 'fa-right-to-bracket',
         dirty: 'fa-broom',
         inhouse: 'fa-bed',
@@ -785,7 +790,6 @@ function boardCheckinReadiness(state, cleanInfo) {
     if (cleanInfo?.key === 'clean') return '<span class="board-readiness ready"><i class="fa-solid fa-circle-check"></i>체크인 가능</span>';
     return '';
 }
-
 function boardStatusFor(room) {
     const range = boardRange();
     const focusDate = range.mode === 'day' ? range.start : todayDate();
@@ -1101,6 +1105,8 @@ function boardCard(room) {
     if (boardFilter !== 'all') {
         if (boardFilter === 'dirty') {
             if (boardCleaningSummary(room, state.res).key !== 'dirty') return '';
+        } else if (boardFilter === 'vacant') {
+            if (state.status !== 'vacant') return '';
         } else {
             const filteredRes = reservationForRoomFilter(room);
             if (!filteredRes) return '';
@@ -1192,23 +1198,11 @@ function boardCard(room) {
 function updateBoardKpis() {
     updateBoardStaticLabels();
     const reservationCounts = boardReservationCounts();
-    let vacant = 0;
-    const range = boardRange();
-    rooms.forEach(room => {
-        const roomStatus = normalizeStatus(room.status || room.frontStatus || room.housekeepingStatus);
-        if (roomStatus === 'oos') return;
-        const hasReservation = reservations.some(res => {
-            const status = normalizeReservationStatus(res?.status);
-            if (['cancelled', 'completed'].includes(status)) return false;
-            return roomMatchesReservation(room, res) && reservationOverlapsRange(res, range);
-        });
-        if (!hasReservation) vacant++;
-    });
     document.getElementById('kpiArrival').textContent = reservationCounts.checkin;
     document.getElementById('kpiInhouse').textContent = reservationCounts.inhouse;
     document.getElementById('kpiCheckout').textContent = reservationCounts.checkout;
     document.getElementById('kpiReserved').textContent = reservationCounts.reserved;
-    document.getElementById('kpiVacant').textContent = vacant;
+    document.getElementById('kpiVacant').textContent = reservationCounts.vacant;
     updateBoardPeriodLabels();
     document.querySelectorAll('#boardChips .chip').forEach(chip => {
         const filter = chip.dataset.filter;
@@ -1444,7 +1438,7 @@ function setBoardFilter(filter) {
 
 function applyBoardUrlParams() {
     const params = new URLSearchParams(location.search);
-    const filterAliases = { cleaning: 'dirty', clean: 'dirty' };
+    const filterAliases = { cleaning: 'dirty', clean: 'dirty', vacancy: 'vacant', empty: 'vacant' };
     const rawFilter = params.get('filter');
     const filter = filterAliases[rawFilter] || rawFilter;
     const chips = Array.from(document.querySelectorAll('#boardChips .chip'));
