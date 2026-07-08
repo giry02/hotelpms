@@ -689,10 +689,15 @@
     function sanitizePartnerHtml(html) {
         const template = document.createElement('template');
         template.innerHTML = String(html || '');
-        const allowedTags = new Set(['H3','H4','P','UL','OL','LI','STRONG','B','EM','I','BR','A','FIGURE','FIGCAPTION','IMG']);
+        const allowedTags = new Set(['DIV','SPAN','SMALL','H3','H4','P','UL','OL','LI','STRONG','B','EM','I','BR','A','FIGURE','FIGCAPTION','IMG']);
         const allowedAttrs = {
+            DIV: new Set(['class']),
+            SPAN: new Set(['class']),
+            SMALL: new Set(['class']),
             A: new Set(['href','target','rel']),
-            IMG: new Set(['src','alt'])
+            FIGURE: new Set(['class']),
+            FIGCAPTION: new Set(['class']),
+            IMG: new Set(['src','alt','class'])
         };
         template.content.querySelectorAll('*').forEach(node => {
             if (!allowedTags.has(node.tagName)) {
@@ -852,20 +857,20 @@
             return;
         }
         const icon = partnerKit()?.serviceIcon?.(vendor.type) || 'fa-bell-concierge';
-        const items = Array.isArray(vendor.items) ? vendor.items : [];
         const contactPerson = vendor.contactPerson || String(vendor.contact || '').split('/')[0]?.trim() || '-';
         const contactPhone = vendor.contactPhone || String(vendor.contact || '').split('/')[1]?.trim() || '-';
         const contactEmail = vendor.contactEmail || vendor.email || '-';
         const rawDetailHtml = localized(vendor.detailContentHtml, '');
+        const hasCustomDetail = String(rawDetailHtml || '').trim().length > 0;
         const hasUploadedEditorImage = /<img\b/i.test(String(rawDetailHtml || ''));
-        const editorImageHtml = hasUploadedEditorImage ? '' : partnerEditorAdImageHtml(vendor);
-        const detailHtml = editorImageHtml || sanitizePartnerHtml(rawDetailHtml);
+        const editorImageHtml = hasCustomDetail ? '' : partnerEditorAdImageHtml(vendor);
+        const detailHtml = hasCustomDetail ? sanitizePartnerHtml(rawDetailHtml) : editorImageHtml;
         title.innerHTML = `<i class="fa-solid ${esc(icon)}" style="color:var(--primary)"></i> ${esc(vendor.name || t('partnerDetailTitle'))}`;
         body.innerHTML = `
             <section class="partner-hero">
                 <div class="partner-hero__logo">${vendor.logoDataUrl ? `<img src="${esc(vendor.logoDataUrl)}" alt="">` : '<i class="fa-solid fa-building"></i>'}</div>
                 <div class="partner-hero__copy">
-                    <div class="partner-eyebrow">${esc(t('partnerInternalLabel'))} · ${esc(partnerServiceLabel(vendor.type))}</div>
+                    <div class="partner-eyebrow">${esc(t('partnerInternalLabel'))}</div>
                     <h4>${esc(vendor.campaignTitle || vendor.name || t('partnerDetailTitle'))}</h4>
                     <p>${esc(vendor.benefit || '-')}</p>
                 </div>
@@ -880,18 +885,12 @@
                     ${partnerInfoRow('partnerEmail', contactEmail)}
                 </div>
             </section>
-            <section class="partner-info-grid">
-                ${partnerInfoRow('partnerService', partnerServiceLabel(vendor.type))}
+            <section class="partner-info-grid partner-info-grid--compact">
                 ${partnerInfoRow('partnerAddress', vendor.address || '-')}
                 ${partnerInfoRow('partnerHours', vendor.operatingHours || '-')}
                 ${partnerInfoRow('partnerPeriod', vendor.usagePeriod || '-')}
-                ${partnerInfoRow('partnerSettlement', vendor.settlementPolicy || '-')}
             </section>
-            ${detailHtml ? `<section class="partner-section partner-editor-content${editorImageHtml ? ' partner-editor-content--image' : ''}"><h4><i class="fa-solid fa-file-lines"></i> ${esc(t('partnerDetailContent'))}</h4><div class="partner-editor-body${editorImageHtml ? ' partner-editor-body--image' : ''}">${detailHtml}</div></section>` : ''}
-            <section class="partner-section">
-                <h4><i class="fa-solid fa-tags"></i> ${esc(t('partnerLinkedItems'))}</h4>
-                ${items.length ? `<div class="partner-item-list">${items.map(item => `<div class="partner-item"><span>${esc(item.name)}</span><strong>${esc(partnerKit()?.money?.(item.price) || money(item.price))}</strong><small>${esc(item.desc || '')}</small></div>`).join('')}</div>` : `<div class="partner-empty">${esc(t('partnerNoItems'))}</div>`}
-            </section>
+            ${detailHtml ? `<section class="partner-section partner-editor-content${editorImageHtml || hasUploadedEditorImage ? ' partner-editor-content--image' : ''}"><h4><i class="fa-solid fa-file-lines"></i> ${esc(t('partnerDetailContent'))}</h4><div class="partner-editor-body${editorImageHtml || hasUploadedEditorImage ? ' partner-editor-body--image' : ''}">${detailHtml}</div></section>` : ''}
         `;
         if (footer) {
             footer.innerHTML = `
