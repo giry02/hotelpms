@@ -66,7 +66,10 @@
         .service-card-total{margin-top:10px;font-weight:950;font-size:.82rem;color:var(--txt)}
         .service-modal{width:min(980px,calc(100vw - 24px));max-height:88vh;overflow:auto}
         .service-modal-grid{display:block}
-        .service-detail-modal{width:min(1120px,calc(100vw - 24px));max-height:92vh;overflow:auto}
+        .service-detail-modal{width:min(1120px,calc(100vw - 24px));max-height:calc(100vh - 48px);overflow:hidden;display:flex;flex-direction:column}
+        #serviceDetailModal .modal-header{flex:0 0 auto}
+        #serviceDetailModal .modal-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding-bottom:18px}
+        #serviceDetailModal .modal-footer{position:static;flex:0 0 auto}
         .detail-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 14px;align-items:stretch}
         .service-detail-list{display:flex;flex-direction:column;gap:10px}
         .service-detail-row{display:grid;grid-template-columns:1.25fr .9fr .7fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff}
@@ -1101,6 +1104,7 @@ function openServiceDetailModal(roomId, options = {}) {
     const modal = document.getElementById('serviceDetailModal');
     modal.style.display = 'flex';
     modal.classList.add('active');
+    if (options.showRegistration) scrollServiceRegistrationIntoView('auto');
 }
 function closeServiceDetailModal() {
     const modal = document.getElementById('serviceDetailModal');
@@ -1112,11 +1116,21 @@ function openServiceModalFromDetail() {
     toggleServiceRegistration(true);
     scrollServiceRegistrationIntoView();
 }
-function scrollServiceRegistrationIntoView() {
+function scrollServiceRegistrationIntoView(behavior = 'smooth') {
     const section = document.getElementById('detailRegistrationSection');
     if (!section || section.classList.contains('is-hidden')) return;
     requestAnimationFrame(() => {
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const body = document.querySelector('#serviceDetailModal .modal-body');
+        if (body && body.contains(section)) {
+            const bodyRect = body.getBoundingClientRect();
+            const sectionRect = section.getBoundingClientRect();
+            body.scrollTo({
+                top: Math.max(0, body.scrollTop + sectionRect.top - bodyRect.top - 10),
+                behavior
+            });
+            return;
+        }
+        section.scrollIntoView({ behavior, block: 'start' });
     });
 }
 function updateServiceOrderStatus(orderId, status) {
@@ -1172,7 +1186,7 @@ function selectServiceType(type) {
     const groupSelect = document.getElementById('groupSelect');
     const hasGroupStay = !!groupSelect.value;
     if (bulkToggle) bulkToggle.checked = false;
-    setGroupBulkVisible(type !== 'pos' && hasGroupStay);
+    setGroupBulkVisible(hasGroupStay);
     renderGroupRoomChecks();
     renderServiceVendors();
 }
@@ -1312,7 +1326,7 @@ function renderGroupSelect(selectedId = '') {
     document.getElementById('groupBulkName').textContent = group ? (group.name || group.groupName || group.id || '-') : '-';
     const toggle = document.getElementById('groupBulkToggle');
     if (toggle) toggle.checked = false;
-    setGroupBulkVisible(hasGroupStay && selectedService !== 'pos');
+    setGroupBulkVisible(hasGroupStay);
     renderGroupRoomChecks();
 }
 function onGroupSelectChange() {
@@ -1384,7 +1398,7 @@ function updateGroupRoomSelectionCount() {
 }
 function targetRoomsForSave() {
     const bulkBox = document.getElementById('groupBulkBox');
-    const bulk = !bulkBox?.classList.contains('is-hidden') && document.getElementById('groupBulkToggle')?.checked && selectedService !== 'pos';
+    const bulk = !bulkBox?.classList.contains('is-hidden') && document.getElementById('groupBulkToggle')?.checked;
     if (!bulk) return [findRoomById(selectedRoomId)].filter(canRegisterServiceForRoom);
     return Array.from(document.querySelectorAll('.group-room-check:checked')).map(input => findRoomById(input.value)).filter(canRegisterServiceForRoom);
 }
