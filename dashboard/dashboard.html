@@ -777,9 +777,10 @@
         const address = vendor?.address || '-';
         return {
             title,
-            line: lang === 'en'
-                ? `${benefit} · Period ${period} · ${address}`
-                : `${benefit} · 적용 기간 ${period} · ${address}`
+            benefitLine: benefit,
+            metaLine: lang === 'en'
+                ? `Period ${period} · ${address}`
+                : `적용 기간 ${period} · ${address}`
         };
     }
     function partnerAdVisualKind(vendor) {
@@ -885,7 +886,7 @@
         const hasCustomDetail = vendor.type === 'pos' && vendor.id === 'POS-HOTEL' && String(rawDetailHtml || '').trim().length > 0;
         const summary = partnerAdSummary(vendor);
         const detailHtml = hasCustomDetail ? sanitizePartnerHtml(rawDetailHtml) : partnerAdVisualHtml(vendor);
-        title.innerHTML = `<i class="fa-solid ${esc(icon)}" style="color:var(--primary)"></i><span class="partner-title-stack"><strong>${esc(summary.title)}</strong><small>${esc(summary.line)}</small></span>`;
+        title.innerHTML = `<i class="fa-solid ${esc(icon)}" style="color:var(--primary)"></i><span class="partner-title-stack"><strong>${esc(summary.title)}</strong><small>${esc(summary.benefitLine)}<br>${esc(summary.metaLine)}</small></span>`;
         body.innerHTML = `
             ${detailHtml ? `<section class="partner-ad-detail-body">${detailHtml}</section>` : ''}
         `;
