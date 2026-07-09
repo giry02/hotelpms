@@ -768,61 +768,74 @@
         const text = String(value || '').trim();
         return text.length > max ? `${text.slice(0, max - 1)}...` : text;
     }
-    function partnerEventDetailHtml(vendor) {
+    function partnerAdSummary(vendor) {
+        const lang = currentOpsLang();
+        const serviceLabel = partnerServiceLabel(vendor?.type);
+        const title = vendor?.campaignTitle || vendor?.benefit || vendor?.name || t('partnerDetailTitle');
+        const benefit = vendor?.benefit || (lang === 'en' ? 'Special partner benefits for hotel guests.' : '호텔 투숙객 전용 제휴 혜택을 확인하세요.');
+        const period = vendor?.usagePeriod || '-';
+        const address = vendor?.address || '-';
+        return {
+            title,
+            eyebrow: lang === 'en' ? `Partner event · ${serviceLabel}` : `계약 검토용 광고 · ${serviceLabel}`,
+            line: lang === 'en'
+                ? `${benefit} · Period ${period} · ${address}`
+                : `${benefit} · 적용 기간 ${period} · ${address}`
+        };
+    }
+    function partnerAdVisualHtml(vendor) {
         if (!vendor || vendor.type === 'pos') return '';
         const lang = currentOpsLang();
         const serviceLabel = partnerServiceLabel(vendor.type);
         const name = vendor.name || serviceLabel;
         const items = Array.isArray(vendor.items) ? vendor.items : [];
-        const eventClass = vendor.type === 'golf' ? 'partner-event-poster--golf' : 'partner-event-poster--rentacar';
-        const kicker = lang === 'en' ? 'Hotel partner event' : '호텔 투숙객 제휴 이벤트';
         const title = vendor.campaignTitle || vendor.benefit || name;
         const benefit = vendor.benefit || (lang === 'en' ? 'Special partner terms for hotel guests' : '호텔 투숙객 전용 제휴 조건');
-        const phone = vendor.contactPhone || String(vendor.contact || '').split('/')[1]?.trim() || '-';
-        const email = vendor.contactEmail || vendor.email || '-';
-        const contactPerson = vendor.contactPerson || String(vendor.contact || '').split('/')[0]?.trim() || '-';
         const period = vendor.usagePeriod || '-';
+        const hours = vendor.operatingHours || '-';
         const address = vendor.address || '-';
         const policy = vendor.settlementPolicy || '-';
         const guide = vendor.bookingGuide || (lang === 'en'
-            ? 'Confirm availability, included items, and cancellation terms with the partner before booking.'
-            : '예약 전 업체 연락처로 가능 시간, 포함 항목, 취소 조건을 먼저 확인하세요.');
-        const memo = vendor.frontdeskMemo || (lang === 'en'
-            ? 'Register only confirmed partner terms as ancillary items.'
-            : '계약이 확정된 조건만 부가서비스 업체/항목으로 등록합니다.');
-        const chips = vendor.type === 'golf'
-            ? (lang === 'en' ? ['Green fee benefit', 'Tee-time check', 'Voucher ready'] : ['그린피 혜택', '티타임 확인', '바우처 출력'])
-            : (lang === 'en' ? ['Airport pickup', 'Long-stay rate', 'Vehicle terms'] : ['공항 픽업', '장기 투숙 요금', '차량 조건 확인']);
-        const firstItem = items[0]?.name || (vendor.type === 'golf' ? (lang === 'en' ? 'Green fee package' : '18홀 그린피') : (lang === 'en' ? 'Airport pickup' : '공항 픽업'));
+            ? 'Confirm tee time, included cart, cancellation rules, and voucher fields before booking.'
+            : '예약 전 티타임, 카트 포함 여부, 취소 기준, 바우처 출력 항목을 확인하세요.');
+        const itemOne = items[0];
+        const itemTwo = items[1];
+        const itemThree = items[2];
+        const offerOne = itemOne ? `${itemOne.name} ${partnerKit()?.money?.(itemOne.price) || money(itemOne.price)}` : (lang === 'en' ? '18-hole green fee' : '18홀 그린피');
+        const offerTwo = itemTwo ? `${itemTwo.name} ${partnerKit()?.money?.(itemTwo.price) || money(itemTwo.price)}` : (lang === 'en' ? 'Cart package' : '카트 패키지');
+        const offerThree = itemThree ? `${itemThree.name} ${partnerKit()?.money?.(itemThree.price) || money(itemThree.price)}` : (lang === 'en' ? 'Club rental' : '클럽 대여');
+        const isGolf = vendor.type === 'golf';
         return `
-            <div class="partner-event-poster ${eventClass}">
-                <div class="partner-event-poster__visual" aria-hidden="true">
-                    <span>${esc(serviceLabel)}</span>
-                    <strong>${esc(partnerShortText(name, 24))}</strong>
-                    <em>${esc(firstItem)}</em>
+            <article class="partner-ad-creative ${isGolf ? 'partner-ad-creative--golf' : 'partner-ad-creative--rentacar'}">
+                <div class="partner-ad-creative__photo">
+                    <div class="partner-ad-creative__sky"></div>
+                    <div class="partner-ad-creative__fairway"></div>
+                    <div class="partner-ad-creative__green"></div>
+                    <div class="partner-ad-creative__flag"></div>
+                    <div class="partner-ad-creative__photo-copy">
+                        <span>${esc(serviceLabel)}</span>
+                        <strong>${esc(name)}</strong>
+                        <em>${esc(isGolf ? (lang === 'en' ? 'Fairway partner benefit' : '필드 라운딩 제휴 혜택') : benefit)}</em>
+                    </div>
                 </div>
-                <div class="partner-event-poster__content">
-                    <small>${esc(kicker)}</small>
+                <div class="partner-ad-creative__panel">
+                    <span class="partner-ad-creative__badge">${esc(lang === 'en' ? 'Limited partner event' : '한정 제휴 이벤트')}</span>
                     <h3>${esc(title)}</h3>
                     <p>${esc(benefit)}</p>
-                    <div class="partner-event-poster__chips">
-                        ${chips.map(chip => `<span>${esc(chip)}</span>`).join('')}
+                    <div class="partner-ad-creative__offers">
+                        <strong>${esc(offerOne)}</strong>
+                        <strong>${esc(offerTwo)}</strong>
+                        <strong>${esc(offerThree)}</strong>
                     </div>
-                    <dl class="partner-event-poster__terms">
-                        <div><dt>${esc(t('partnerContactPerson'))}</dt><dd>${esc(contactPerson)}</dd></div>
-                        <div><dt>${esc(t('partnerPhone'))}</dt><dd>${esc(phone)}</dd></div>
-                        <div><dt>${esc(t('partnerEmail'))}</dt><dd>${esc(email)}</dd></div>
-                        <div><dt>${esc(t('partnerPeriod'))}</dt><dd>${esc(period)}</dd></div>
-                        <div><dt>${esc(t('partnerAddress'))}</dt><dd>${esc(address)}</dd></div>
-                        <div><dt>${esc(t('partnerSettlement'))}</dt><dd>${esc(policy)}</dd></div>
-                    </dl>
-                    <div class="partner-event-poster__note">
-                        <strong>${esc(lang === 'en' ? 'Front desk check' : '프런트 확인')}</strong>
-                        <span>${esc(guide)}</span>
-                        <span>${esc(memo)}</span>
+                    <div class="partner-ad-creative__details">
+                        <span><b>${esc(t('partnerHours'))}</b>${esc(hours)}</span>
+                        <span><b>${esc(t('partnerPeriod'))}</b>${esc(period)}</span>
+                        <span><b>${esc(t('partnerAddress'))}</b>${esc(address)}</span>
+                        <span><b>${esc(t('partnerSettlement'))}</b>${esc(policy)}</span>
                     </div>
+                    <div class="partner-ad-creative__guide">${esc(guide)}</div>
                 </div>
-            </div>
+            </article>
         `;
     }
     function renderPartnerDetail(vendor) {
@@ -842,27 +855,20 @@
         const contactEmail = vendor.contactEmail || vendor.email || '-';
         const rawDetailHtml = localized(vendor.detailContentHtml, '');
         const hasCustomDetail = vendor.type === 'pos' && String(rawDetailHtml || '').trim().length > 0;
-        const detailHtml = hasCustomDetail ? sanitizePartnerHtml(rawDetailHtml) : partnerEventDetailHtml(vendor);
-        const eventTitle = vendor.campaignTitle || vendor.benefit || vendor.name || t('partnerDetailTitle');
-        title.innerHTML = `<i class="fa-solid ${esc(icon)}" style="color:var(--primary)"></i> ${esc(eventTitle)}`;
+        const summary = partnerAdSummary(vendor);
+        const detailHtml = hasCustomDetail ? sanitizePartnerHtml(rawDetailHtml) : partnerAdVisualHtml(vendor);
+        title.innerHTML = `<i class="fa-solid ${esc(icon)}" style="color:var(--primary)"></i><span class="partner-title-stack"><strong>${esc(summary.title)}</strong><small>${esc(summary.eyebrow)}<br>${esc(summary.line)}</small></span>`;
         body.innerHTML = `
-            <section class="partner-hero">
-                <div class="partner-hero__logo">${vendor.logoDataUrl ? `<img src="${esc(vendor.logoDataUrl)}" alt="">` : '<i class="fa-solid fa-building"></i>'}</div>
-                <div class="partner-hero__copy">
-                    <h4>${esc(eventTitle)}</h4>
-                    <div class="partner-hero__meta">
-                        ${partnerHeroMeta('partnerService', partnerServiceLabel(vendor.type))}
-                        ${partnerHeroMeta('partnerAddress', vendor.address || '-')}
-                        ${partnerHeroMeta('partnerHours', vendor.operatingHours || '-')}
-                        ${partnerHeroMeta('partnerPeriod', vendor.usagePeriod || '-')}
-                        ${partnerHeroMeta('partnerSettlement', vendor.settlementPolicy || '-')}
-                    </div>
-                </div>
-            </section>
-            ${detailHtml ? `<section class="partner-section partner-editor-content partner-editor-content--image"><div class="partner-editor-body partner-editor-body--image">${detailHtml}</div></section>` : ''}
+            ${detailHtml ? `<section class="partner-ad-detail-body">${detailHtml}</section>` : ''}
         `;
         if (footer) {
             footer.innerHTML = `
+                <div class="partner-footer-contact">
+                    <span>${esc(t('partnerContact'))}</span>
+                    <strong>${esc(contactPerson)}</strong>
+                    <b>${esc(contactPhone)}</b>
+                    <small>${esc(contactEmail)}</small>
+                </div>
                 <div class="partner-detail-actions">
                     <button class="btn-outline" type="button" onclick="closePartnerDetailModal()">${esc(t('partnerClose'))}</button>
                 </div>
