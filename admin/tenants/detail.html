@@ -673,6 +673,16 @@ function saveAdminTenantOperationalPolicy() {
 	};
 	localStorage.setItem(getAdminTenantOperationalPolicyStorageKey(tenantId), JSON.stringify(payload));
 	localStorage.setItem(getAdminTenantOperationalPolicyApiStorageKey(tenantId), JSON.stringify(payload));
+	try {
+		const hotelSettings = JSON.parse(localStorage.getItem('pms_hotel_settings') || '{}') || {};
+		localStorage.setItem('pms_hotel_settings', JSON.stringify({
+			...hotelSettings,
+			tenantId,
+			operationalPolicy: payload.operationalPolicy
+		}));
+	} catch (error) {
+		console.warn('Failed to sync tenant operational policy to PMS settings', error);
+	}
 	const savedAt = document.getElementById('adminTenantOperationalPolicySavedAt');
 	if (savedAt) savedAt.textContent = '저장 완료';
 	alert('운영 정책이 저장되었습니다.');

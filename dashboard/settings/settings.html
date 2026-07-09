@@ -119,18 +119,18 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">기본 체크인 시간</label>
-                                <input type="time" class="form-control" value="15:00">
+                                <input type="time" class="form-control" id="hotelDefaultCheckinTime" value="15:00">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">기본 체크아웃 시간</label>
-                                <input type="time" class="form-control" value="11:00">
+                                <input type="time" class="form-control" id="hotelDefaultCheckoutTime" value="11:00">
                             </div>
                             <div class="form-group full">
                                 <label class="form-label">취소 정책</label>
-                                <select class="form-control">
-                                    <option data-i18n-key="Free cancellation until 24h before check-in">체크인 24시간 전까지 무료 취소 (이후 1박 요금 부과)</option>
-                                    <option selected data-i18n-key="Free cancellation until 48h before check-in">체크인 48시간 전까지 무료 취소 (이후 1박 요금 부과)</option>
-                                    <option data-i18n-key="Non-refundable">환불 불가</option>
+                                <select class="form-control" id="hotelCancellationPolicy">
+                                    <option value="free_24h" data-i18n-key="Free cancellation until 24h before check-in">체크인 24시간 전까지 무료 취소 (이후 1박 요금 부과)</option>
+                                    <option value="free_48h" selected data-i18n-key="Free cancellation until 48h before check-in">체크인 48시간 전까지 무료 취소 (이후 1박 요금 부과)</option>
+                                    <option value="non_refundable" data-i18n-key="Non-refundable">환불 불가</option>
                                 </select>
                             </div>
                         </div>
@@ -482,13 +482,27 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
         };
     }
 
+    function collectOperationalPolicy() {
+        return {
+            defaultCheckinTime: document.getElementById('hotelDefaultCheckinTime')?.value || '15:00',
+            defaultCheckoutTime: document.getElementById('hotelDefaultCheckoutTime')?.value || '11:00',
+            cancellationPolicy: document.getElementById('hotelCancellationPolicy')?.value || 'free_48h'
+        };
+    }
+
     async function loadHotelSettings() {
         currentHotelSettings = window.PmsAPI && window.PmsAPI.getHotelSettings
             ? await window.PmsAPI.getHotelSettings()
             : {};
         const policy = currentHotelSettings.stayoverCleaningPolicy || {};
         const admin = currentHotelSettings.adminContact || {};
+        const operationalPolicy = currentHotelSettings.operationalPolicy || {};
 
+        const checkinTime = document.getElementById('hotelDefaultCheckinTime');
+        if (checkinTime) checkinTime.value = operationalPolicy.defaultCheckinTime || '15:00';
+        const checkoutTime = document.getElementById('hotelDefaultCheckoutTime');
+        if (checkoutTime) checkoutTime.value = operationalPolicy.defaultCheckoutTime || '11:00';
+        setSelectValue('hotelCancellationPolicy', operationalPolicy.cancellationPolicy || 'free_48h');
         setSelectValue('stayoverCleaningMode', policy.mode || 'request_only');
         setNumberValue('longStayNights', policy.longStayNights, 2);
         setNumberValue('intervalDays', policy.intervalDays, 2);
@@ -527,6 +541,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
                 const next = {
                     ...(currentHotelSettings || {}),
                     adminContact: collectAdminContact(),
+                    operationalPolicy: collectOperationalPolicy(),
                     stayoverCleaningPolicy: collectStayoverPolicy()
                 };
                 currentHotelSettings = window.PmsAPI && window.PmsAPI.saveHotelSettings

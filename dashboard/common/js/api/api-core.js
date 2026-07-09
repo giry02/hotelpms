@@ -53,9 +53,24 @@ window.PmsDate = window.PmsDate || (function() {
 })();
 
 if (localStorage.getItem('pms_api_version') !== API_VERSION) {
-    Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('pms_') || key.startsWith('mockapi:v1:')) localStorage.removeItem(key);
+    const durableKeys = new Set([
+        'pms_lang',
+        'pms_admin_lang',
+        'pms_tenant_id',
+        'pms_hotel_settings',
+        'pms_currency',
+        'pms_default_currency',
+        'pms_default_currency_php_migrated_v1'
+    ]);
+    const preserved = {};
+    durableKeys.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value !== null) preserved[key] = value;
     });
+    Object.keys(localStorage).forEach(key => {
+        if ((key.startsWith('pms_') && !durableKeys.has(key)) || key.startsWith('mockapi:v1:')) localStorage.removeItem(key);
+    });
+    Object.entries(preserved).forEach(([key, value]) => localStorage.setItem(key, value));
     localStorage.setItem('pms_api_version', API_VERSION);
 }
 

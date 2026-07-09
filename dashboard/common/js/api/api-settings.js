@@ -40,6 +40,11 @@ const EMPTY_HOTEL_SETTINGS = {
         phone: '',
         recoveryEnabled: true
     },
+    operationalPolicy: {
+        defaultCheckinTime: '15:00',
+        defaultCheckoutTime: '11:00',
+        cancellationPolicy: 'free_48h'
+    },
     stayoverCleaningPolicy: {
         mode: 'request_only',
         longStayNights: 0,
@@ -76,6 +81,11 @@ function mergeHotelSettings(base, override) {
         ...cloneSettings(EMPTY_HOTEL_SETTINGS.adminContact),
         ...(base?.adminContact || {}),
         ...(override?.adminContact || {})
+    };
+    next.operationalPolicy = {
+        ...cloneSettings(EMPTY_HOTEL_SETTINGS.operationalPolicy),
+        ...(base?.operationalPolicy || {}),
+        ...(override?.operationalPolicy || {})
     };
     const featureFlags = {
         ...defaultHotelFeatureFlags(),

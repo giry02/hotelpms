@@ -8,7 +8,7 @@ const JSON_ROOTS = [
 ];
 
 const enumRules = {
-  reservationStatus: new Set(['confirmed', 'checked-in', 'checked-out', 'cancelled', 'blocked', 'pending', 'no-show']),
+  reservationStatus: new Set(['confirmed', 'checked-in', 'checked-out', 'completed', 'cancelled', 'blocked', 'pending', 'no-show', 'noshow']),
   groupStatus: new Set(['confirmed', 'in-house', 'pending', 'departed', 'cancelled']),
   roomStatus: new Set(['vacant-clean', 'vacant-dirty', 'in-house', 'out-of-service', 'occupied', 'checked-in']),
   docStatus: new Set(['pending', 'verified', 'expired', 'rejected']),
