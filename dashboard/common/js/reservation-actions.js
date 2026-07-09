@@ -1188,8 +1188,10 @@
 
     function getUnifiedSelectedGuestCandidate() {
         const widget = window._editGuestWidget;
+        const mode = widget?._mode || '';
         const selected = widget?.getSelectedGuest ? widget.getSelectedGuest() : null;
-        if (selected) return selected;
+        if (selected && (!widget || mode === 'selected')) return selected;
+        if (widget && mode !== 'newForm') return null;
         const newFields = widget?.getNewGuestFields ? widget.getNewGuestFields() : null;
         const firstName = compactValue(newFields?.firstName || document.getElementById('nrFirstNameEdit')?.value);
         const lastName = compactValue(newFields?.lastName || document.getElementById('nrLastNameEdit')?.value);

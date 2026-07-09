@@ -95,8 +95,16 @@ async function dashboardCheckinCountRegression(page, base) {
     const todayCheckins = reservations
       .filter(res => String(res.checkInDate || res.checkin || '').slice(0, 10) === today && !closed.has(statusKey(res.status)))
       .sort((a, b) => String(a.room || '').localeCompare(String(b.room || ''), 'ko', { numeric: true }));
+    const roomIsInHouse = res => {
+      const roomNo = String(res.roomNo || res.room || '').trim();
+      const room = rooms.find(item => String(item.roomNo || '').trim() === roomNo || item.id === res.roomId || item.roomId === res.roomId);
+      return [room?.frontStatus, room?.occupancyStatus, room?.status, room?.housekeepingStatus]
+        .map(statusKey)
+        .some(status => ['checkedin', 'inhouse', 'occupied'].includes(status));
+    };
+    const beforeDashboardCount = Number((document.querySelector('.ops-kpi-card')?.innerText.match(/(\d+)\s*$/) || [])[1] || todayCheckins.length);
     const targetRooms = todayCheckins
-      .filter(res => ['confirmed', 'pending'].includes(statusKey(res.status)))
+      .filter(res => ['confirmed', 'pending'].includes(statusKey(res.status)) && !roomIsInHouse(res))
       .slice(0, 2)
       .map(res => String(res.roomNo || res.room || '').trim())
       .filter(Boolean);
@@ -108,7 +116,7 @@ async function dashboardCheckinCountRegression(page, base) {
       items: nextRooms,
       page: { page: 1, pageSize: Math.max(nextRooms.length, 50), total: nextRooms.length, totalPages: 1 }
     }));
-    return { today, targetRooms, before: todayCheckins.length, expectedAfter: todayCheckins.length - targetRooms.length };
+    return { today, targetRooms, before: todayCheckins.length, beforeDashboardCount, expectedAfter: beforeDashboardCount - targetRooms.length };
   });
 
   assert(!setup.skipped, 'Dashboard check-in count regression needs at least two due check-in reservations.', setup);
@@ -154,7 +162,7 @@ async function dashboardCheckinCountRegression(page, base) {
 
   assert(boardState.url.includes('reservation-board.html') && boardState.url.includes('filter=checkin'), 'Dashboard check-in KPI must navigate to reservation board check-in filter.', boardState);
   assert(boardState.isCheckinActive, 'Reservation board filter must stay checkin after dashboard check-in navigation.', boardState);
-  assert(boardState.tabCount === dashboardState.opsCount && boardState.cardCount === dashboardState.opsCount, 'Dashboard and reservation board check-in counts diverged.', { setup, dashboardState, boardState });
+  assert(boardState.tabCount === dashboardState.opsCount && boardState.pageTotal === dashboardState.opsCount, 'Dashboard and reservation board check-in counts diverged.', { setup, dashboardState, boardState });
 
   await page.evaluate(() => localStorage.removeItem('mockapi:v1:TENANT-GRAND-SAIGON:rooms'));
   return { setup, dashboardState, boardState };

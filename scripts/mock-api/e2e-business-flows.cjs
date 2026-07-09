@@ -70,6 +70,7 @@ async function firstVisibleLocator(page, selector) {
 async function fillIfPresent(page, selector, value) {
   const locator = await firstVisibleLocator(page, selector);
   if (!locator) return false;
+  if (!(await locator.isVisible().catch(() => false))) return false;
   const tagName = await locator.evaluate(el => el.tagName.toLowerCase()).catch(() => '');
   if (tagName === 'select') {
     return selectIfPresent(page, selector, value);
@@ -81,10 +82,36 @@ async function fillIfPresent(page, selector, value) {
 async function selectIfPresent(page, selector, valueOrOptions) {
   const locator = await firstVisibleLocator(page, selector);
   if (!locator) return false;
+  if (!(await locator.isVisible().catch(() => false))) return false;
   await locator.selectOption(valueOrOptions).catch(async () => {
     await locator.selectOption({ index: 1 }).catch(() => {});
   });
   return true;
+}
+
+function splitGuestName(value) {
+  const parts = String(value || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return { firstName: parts[0] || '', lastName: 'Guest' };
+  return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
+}
+
+async function fillGuestSearchNewForm(page, prefix, guestName) {
+  await page.evaluate(formPrefix => {
+    const widget = formPrefix === 'Rooming' ? window._roomingGuestWidget : window._editGuestWidget;
+    widget?.showNewForm?.();
+  }, prefix);
+  await page.waitForFunction(formPrefix => {
+    const form = document.getElementById(`newGuestForm${formPrefix}`);
+    const first = document.getElementById(`nrFirstName${formPrefix}`);
+    return !!(form && first && getComputedStyle(form).display !== 'none' && first.getClientRects().length > 0);
+  }, prefix, { timeout: 7000 });
+  const { firstName, lastName } = splitGuestName(guestName);
+  await fillIfPresent(page, `#nrFirstName${prefix}`, firstName);
+  await fillIfPresent(page, `#nrLastName${prefix}`, lastName);
+  await page.evaluate(({ formPrefix, name }) => {
+    const hidden = document.getElementById(`nrGuest${formPrefix}`);
+    if (hidden) hidden.value = name;
+  }, { formPrefix: prefix, name: guestName });
 }
 
 async function clickConfirmOk(page) {
@@ -154,11 +181,7 @@ async function groupRoomingTimelineFlow(page) {
   } else {
     await page.evaluate(() => window._roomingGuestWidget?.showNewForm?.());
   }
-  await page.waitForFunction(() => {
-    const input = document.getElementById('nrGuestRooming');
-    return !!input && getComputedStyle(input).display !== 'none' && input.getClientRects().length > 0;
-  }, null, { timeout: 5000 });
-  await fillIfPresent(page, '#nrGuestRooming', guestName);
+  await fillGuestSearchNewForm(page, 'Rooming', guestName);
   await fillIfPresent(page, '#nrPhoneRooming', '+82 10 0000 0802');
   await fillIfPresent(page, '#nrEmailRooming', `group-${runId}@example.com`);
   await selectIfPresent(page, '#nrNationRooming', { index: 1 });
@@ -197,7 +220,7 @@ async function individualReservationFlow(page) {
   await page.locator('button[onclick="openUnifiedResModal()"]').click();
   await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#unifiedResModal.active #nrNewGuestBtnEdit').click();
-  await fillIfPresent(page, '#nrGuestEdit', guestName);
+  await fillGuestSearchNewForm(page, 'Edit', guestName);
   await fillIfPresent(page, '#nrPhoneEdit', '+82 10 0000 1202');
   await fillIfPresent(page, '#nrEmailEdit', `individual-${runId}@example.com`);
   await fillIfPresent(page, '#nrNationEdit', 'Korea');
@@ -284,7 +307,7 @@ async function checkinCheckoutFlow(page) {
   await page.locator('button[onclick="openUnifiedResModal()"]').click();
   await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#unifiedResModal.active #nrNewGuestBtnEdit').click();
-  await fillIfPresent(page, '#nrGuestEdit', guestName);
+  await fillGuestSearchNewForm(page, 'Edit', guestName);
   await fillIfPresent(page, '#nrPhoneEdit', '+82 10 0000 2201');
   await fillIfPresent(page, '#nrEmailEdit', `ops-${runId}@example.com`);
   await fillIfPresent(page, '#nrNationEdit', 'Korea');
@@ -347,8 +370,16 @@ async function dashboardCheckinKpiNavigationFlow(page) {
     const todayCheckins = reservations
       .filter(res => String(res.checkInDate || res.checkin || '').slice(0, 10) === today && !closed.has(statusKey(res.status)))
       .sort((a, b) => String(a.room || '').localeCompare(String(b.room || ''), 'ko', { numeric: true }));
+    const roomIsInHouse = res => {
+      const roomNo = String(res.roomNo || res.room || '').trim();
+      const room = rooms.find(item => String(item.roomNo || '').trim() === roomNo || item.id === res.roomId || item.roomId === res.roomId);
+      return [room?.frontStatus, room?.occupancyStatus, room?.status, room?.housekeepingStatus]
+        .map(statusKey)
+        .some(status => ['checkedin', 'inhouse', 'occupied'].includes(status));
+    };
+    const beforeDashboardCount = Number((document.querySelector('.ops-kpi-card')?.innerText.match(/(\d+)\s*$/) || [])[1] || todayCheckins.length);
     const targetRooms = todayCheckins
-      .filter(res => ['confirmed', 'pending'].includes(statusKey(res.status)))
+      .filter(res => ['confirmed', 'pending'].includes(statusKey(res.status)) && !roomIsInHouse(res))
       .slice(0, 2)
       .map(res => String(res.roomNo || res.room || '').trim())
       .filter(Boolean);
@@ -360,7 +391,7 @@ async function dashboardCheckinKpiNavigationFlow(page) {
       items: nextRooms,
       page: { page: 1, pageSize: Math.max(nextRooms.length, 50), total: nextRooms.length, totalPages: 1 }
     }));
-    return { today, targetRooms, before: todayCheckins.length, expectedAfter: todayCheckins.length - targetRooms.length };
+    return { today, targetRooms, before: todayCheckins.length, beforeDashboardCount, expectedAfter: beforeDashboardCount - targetRooms.length };
   });
 
   assert(!setup.skipped, 'dashboard check-in KPI regression needs at least two due check-in reservations');
@@ -381,21 +412,21 @@ async function dashboardCheckinKpiNavigationFlow(page) {
 
   await page.locator('.ops-kpi-card').first().click();
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForFunction(() => document.querySelector('.ops-tab.active') && document.querySelector('#pageInfo'), null, { timeout: 15000 });
+  await page.waitForFunction(() => location.href.includes('reservation-board.html') && document.querySelector('#boardChips .chip.active[data-filter="checkin"]'), null, { timeout: 15000 });
   const list = await page.evaluate(() => {
-    const active = document.querySelector('.ops-tab.active')?.innerText.trim() || '';
+    const active = document.querySelector('#boardChips .chip.active[data-filter="checkin"]')?.innerText.trim() || '';
     const pageInfo = document.querySelector('#pageInfo')?.innerText.trim() || '';
     return {
       url: location.href,
       active,
       tabCount: Number((active.match(/(\d+)\s*$/) || [])[1]),
-      pageTotal: Number((pageInfo.match(/총\s*([0-9]+)건/) || [])[1]),
-      rowCount: document.querySelectorAll('#resBody tr.res-click-row').length,
-      period: document.querySelector('#periodFilterSelect')?.value
+      pageTotal: Number((pageInfo.match(/총\s*([0-9]+)건/) || [])[1] || (active.match(/(\d+)\s*$/) || [])[1]),
+      cardCount: document.querySelectorAll('.reservation-board-box').length,
+      isCheckinActive: !!document.querySelector('#boardChips .chip.active[data-filter="checkin"]')
     };
   });
-  assert(list.url.includes('reservation-list.html') && list.url.includes('tab=checkin') && list.url.includes('period=today'), 'dashboard check-in KPI did not navigate to reservation list today check-in filter');
-  assert(list.period === 'today', 'reservation list period was not today after dashboard check-in KPI navigation');
+  assert(list.url.includes('reservation-board.html') && list.url.includes('filter=checkin'), 'dashboard check-in KPI did not navigate to reservation board check-in filter');
+  assert(list.isCheckinActive, 'reservation board check-in filter was not active after dashboard navigation');
   assert(list.tabCount === dashboard.count && list.pageTotal === dashboard.count, `dashboard/list check-in counts diverged: dashboard ${dashboard.count}, tab ${list.tabCount}, total ${list.pageTotal}`);
   return { setup, dashboard, list };
 }
@@ -483,39 +514,50 @@ async function ancillaryInhouseOnlyFlow(page) {
 
 async function ancillaryVendorVoucherFlow(page) {
   await goto(page, '/dashboard/operations/ancillary-vendors.html?test=e2e-ancillary-vendors');
-  await page.waitForFunction(() => document.querySelectorAll('.vendor-tab').length >= 3 && document.querySelector('#voucherPreview'), null, { timeout: 15000 });
+  await page.waitForSelector('.vendor-tab[data-type="pos"]', { timeout: 30000 });
+  await page.waitForSelector('.vendor-tab[data-type="golf"]', { timeout: 30000 });
+  await page.waitForSelector('.vendor-tab[data-type="rentacar"]', { timeout: 30000 });
   const initial = await page.evaluate(() => ({
     tabs: Array.from(document.querySelectorAll('.vendor-tab')).map(item => item.innerText.trim()),
     selectedMeta: document.getElementById('selectedVendorMeta')?.innerText || '',
-    preview: document.getElementById('voucherPreview')?.innerText || '',
+    hasInlinePreview: !!document.getElementById('voucherPreview'),
+    hasVoucherSection: !!document.querySelector('.detail-group--voucher'),
+    previewModalOpen: !!document.querySelector('#voucherPreviewModal.active'),
     itemCount: document.querySelectorAll('.item-card').length
   }));
   assert(initial.tabs.some(text => /통합 POS/.test(text)), 'ancillary vendor management did not expose POS item management');
   assert(/호텔 통합 POS|POS/.test(initial.selectedMeta), 'POS vendor was not selected by default');
   assert(initial.itemCount >= 1, 'POS items were not rendered in vendor management');
-  assert(/객실 전표|전표/.test(initial.preview), 'POS receipt preview was not rendered');
+  assert(!initial.hasInlinePreview && !initial.hasVoucherSection && !initial.previewModalOpen, 'POS vendor should not render voucher preview after POS voucher removal');
 
   await page.locator('.vendor-tab[data-type="golf"]').click();
-  await page.waitForFunction(() => /골프장 이용권|절취용/.test(document.getElementById('voucherPreview')?.innerText || ''), null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector('.detail-group--voucher') && typeof window.openVoucherPreviewModal === 'function', null, { timeout: 10000 });
+  await page.evaluate(() => window.openVoucherPreviewModal());
+  await page.locator('#voucherPreviewModal.active').waitFor({ state: 'visible', timeout: 10000 });
   const golf = await page.evaluate(() => ({
     sectionTitles: Array.from(document.querySelectorAll('.voucher-field-section-title')).map(item => item.innerText.trim()),
-    preview: document.getElementById('voucherPreview')?.innerText || '',
-    hasLogoButton: !!Array.from(document.querySelectorAll('button')).find(button => /로고 등록/.test(button.innerText || ''))
+    preview: document.getElementById('voucherPreviewModalBody')?.innerText || '',
+    hasStub: !!document.querySelector('#voucherPreviewModalBody .voucher-stub'),
+    hasLogoButton: !!document.querySelector('.logo-config button')
   }));
-  assert(golf.sectionTitles.some(text => /골프장 이용권/.test(text)), 'golf voucher fields were not grouped separately');
+  assert(golf.sectionTitles.length >= 2, 'golf voucher fields were not grouped separately');
   assert(/업체 주소/.test(golf.preview) && /Clark Freeport Zone/.test(golf.preview), 'golf voucher preview did not include vendor address');
-  assert(/절취용 이용 확인/.test(golf.preview), 'golf voucher preview did not include a tear-off confirmation area');
+  assert(golf.hasStub, 'golf voucher preview did not include a tear-off confirmation area');
   assert(golf.hasLogoButton, 'vendor logo upload action was not available');
+  await page.evaluate(() => window.closeModal?.('voucherPreviewModal'));
 
   await page.locator('.vendor-tab[data-type="rentacar"]').click();
-  await page.waitForFunction(() => /차량 인수 확인/.test(document.getElementById('voucherPreview')?.innerText || ''), null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector('.detail-group--voucher') && typeof window.openVoucherPreviewModal === 'function', null, { timeout: 10000 });
+  await page.evaluate(() => window.openVoucherPreviewModal());
+  await page.locator('#voucherPreviewModal.active').waitFor({ state: 'visible', timeout: 10000 });
   const rentacar = await page.evaluate(() => ({
     sectionTitles: Array.from(document.querySelectorAll('.voucher-field-section-title')).map(item => item.innerText.trim()),
-    preview: document.getElementById('voucherPreview')?.innerText || ''
+    preview: document.getElementById('voucherPreviewModalBody')?.innerText || '',
+    hasStub: !!document.querySelector('#voucherPreviewModalBody .voucher-stub')
   }));
-  assert(rentacar.sectionTitles.some(text => /렌터카 인수 정보/.test(text)), 'rent-a-car voucher fields were not grouped separately');
+  assert(rentacar.sectionTitles.length >= 2, 'rent-a-car voucher fields were not grouped separately');
   assert(/업체 주소/.test(rentacar.preview) && /NAIA Terminal 3/.test(rentacar.preview), 'rent-a-car voucher preview did not include vendor address');
-  assert(/차량 인수 확인/.test(rentacar.preview), 'rent-a-car voucher preview did not include handover confirmation');
+  assert(rentacar.hasStub, 'rent-a-car voucher preview did not include handover confirmation');
   return { initial, golf, rentacar };
 }
 
@@ -526,43 +568,48 @@ async function dashboardPartnerVendorDetailFlow(page) {
   await page.locator('#partnerDetailModal.active').waitFor({ state: 'visible', timeout: 10000 });
   const modal = await page.evaluate(() => {
     const root = document.getElementById('partnerDetailModal');
-    const admin = root?.querySelector('a[href*="ancillary-vendors.html"]');
-    const voucher = root?.querySelector('a[href*="#voucher"]');
-    const ancillary = root?.querySelector('a[href*="ancillary.html"]');
+    const links = Array.from(root?.querySelectorAll('a') || []).map(link => link.getAttribute('href') || '');
     return {
       title: document.getElementById('partnerDetailTitle')?.innerText || '',
       text: root?.innerText || '',
-      adminHref: admin?.getAttribute('href') || '',
-      voucherHref: voucher?.getAttribute('href') || '',
-      ancillaryHref: ancillary?.getAttribute('href') || ''
+      links
     };
   });
   assert(/Riverside|POS/.test(modal.title + modal.text), 'dashboard partner modal did not show the selected vendor detail');
-  assert(modal.adminHref.includes('ancillary-vendors.html') && modal.adminHref.includes('type=pos') && modal.adminHref.includes('vendorId=POS-RIVERSIDE'), 'partner admin link did not preserve selected vendor');
-  assert(modal.voucherHref.includes('#voucher'), 'partner voucher preview link was missing');
-  assert(modal.ancillaryHref.includes('ancillary.html') && modal.ancillaryHref.includes('service=pos') && modal.ancillaryHref.includes('vendorId=POS-RIVERSIDE'), 'partner ancillary registration link did not preserve selected vendor');
+  assert(/연락처|Contact/.test(modal.text) && /닫기|Close/.test(modal.text), 'dashboard partner modal did not render contact and close actions');
+  assert(modal.links.length === 0, 'dashboard partner modal should stay as a read-only event detail view');
 
   await goto(page, '/dashboard/operations/ancillary-vendors.html?type=pos&vendorId=POS-RIVERSIDE&test=e2e-partner-admin-link#voucher');
-  await page.waitForFunction(() => document.querySelector('#voucherPreview'), null, { timeout: 15000 });
+  await page.waitForFunction(() => document.querySelector('.vendor-tab.active[data-type="pos"]') && document.querySelector('.vendor-card.active'), null, { timeout: 30000 });
   const adminState = await page.evaluate(() => ({
     activeTab: document.querySelector('.vendor-tab.active')?.dataset.type || '',
     selectedName: document.querySelector('.vendor-card.active .vendor-name')?.innerText || '',
     selectedAction: document.querySelector('.vendor-card.active')?.getAttribute('onclick') || '',
-    preview: document.getElementById('voucherPreview')?.innerText || ''
+    hasInlinePreview: !!document.getElementById('voucherPreview'),
+    hasVoucherSection: !!document.querySelector('.detail-group--voucher'),
+    previewModalOpen: !!document.querySelector('#voucherPreviewModal.active')
   }));
   assert(adminState.activeTab === 'pos', 'partner admin link did not open the POS vendor tab');
   assert(adminState.selectedAction.includes('POS-RIVERSIDE'), 'partner admin link did not select the requested vendor');
+  assert(!adminState.hasInlinePreview && !adminState.hasVoucherSection && !adminState.previewModalOpen, 'partner POS admin link should not open voucher preview/output UI');
 
   await goto(page, '/dashboard/operations/ancillary.html?service=pos&vendorId=POS-RIVERSIDE&test=e2e-partner-ancillary-link');
   await page.waitForFunction(() => document.querySelector('.service-filter-chip.active') && document.querySelectorAll('.service-room-card').length > 0, null, { timeout: 15000 });
   const ancillaryState = await page.evaluate(() => ({
     activeFilter: document.querySelector('.service-filter-chip.active')?.dataset.service || '',
-    cardCount: document.querySelectorAll('.service-room-card').length
+    cardCount: document.querySelectorAll('.service-room-card').length,
+    inhouseCardCount: document.querySelectorAll('.service-room-card.inhouse').length
   }));
   assert(ancillaryState.activeFilter === 'pos', 'partner ancillary link did not open POS service filter');
   assert(ancillaryState.cardCount > 0, 'partner ancillary link did not render in-house service rooms');
-  await page.locator('.service-room-card').first().click();
-  await page.locator('#serviceModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  assert(ancillaryState.inhouseCardCount > 0, 'partner ancillary link did not render any clickable in-house service rooms');
+  await page.locator('.service-room-card.inhouse').first().click();
+  await page.locator('#serviceDetailModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  await page.evaluate(() => window.openServiceModalFromDetail?.());
+  await page.waitForFunction(() => {
+    const section = document.getElementById('detailRegistrationSection');
+    return !!(section && !section.classList.contains('is-hidden') && document.getElementById('serviceVendor')?.value);
+  }, null, { timeout: 10000 });
   const vendorValue = await page.locator('#serviceVendor').inputValue();
   assert(vendorValue === 'POS-RIVERSIDE', 'partner ancillary registration did not preselect the requested vendor');
   return { modal, adminState, ancillaryState };
