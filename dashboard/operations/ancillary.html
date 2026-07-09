@@ -1638,22 +1638,78 @@ function cleanupServiceVoucherPrint() {
     window.removeEventListener('afterprint', cleanupServiceVoucherPrint);
     document.body.classList.remove('printing-service-voucher');
 }
+function buildServiceVoucherPrintDocument(orders) {
+    const sheets = orders.map(renderVoucherSheet).join('');
+    const singleClass = orders.length === 1 ? ' is-single-print' : '';
+    return `<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>바우처 출력</title>
+<style>
+    @page{size:A4 portrait;margin:10mm}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#fff;color:#111827;font-family:Arial,'Noto Sans KR','Malgun Gothic',sans-serif}
+    body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+    .service-voucher-print-page{width:190mm;margin:0 auto;padding:0}
+    .voucher-print-sheets{display:grid;grid-template-columns:repeat(2,78mm);gap:5mm 6mm;align-items:start;justify-content:center}
+    .voucher-print-sheets.is-single-print{grid-template-columns:78mm;justify-content:center}
+    .voucher-sheet{width:78mm;max-width:78mm;margin:0;background:#fff;border:1px solid #cbd5e1;border-radius:3mm;overflow:hidden;break-inside:avoid;page-break-inside:avoid}
+    .voucher-brand{display:grid;grid-template-columns:18mm minmax(0,1fr);gap:3mm;align-items:center;padding:4mm;border-bottom:1px solid #e5e7eb}
+    .voucher-logo{width:18mm;height:11mm;border:1px solid #dbe3ef;border-radius:2mm;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .voucher-logo img{max-width:17mm;max-height:10mm;object-fit:contain}
+    .voucher-logo-mark{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:7px;font-weight:900}
+    .voucher-logo-mark i{display:none}
+    .voucher-logo-mark::after{content:"HOTEL PMS"}
+    .voucher-heading{margin:0;color:#111827;font-size:12px;line-height:1.18;font-weight:900;text-align:right;word-break:keep-all}
+    .voucher-sub{margin-top:1mm;color:#64748b;font-size:7.5px;line-height:1.25;font-weight:800;text-align:right;word-break:keep-all;overflow-wrap:anywhere}
+    .voucher-body{padding:3mm 4mm}
+    .voucher-row{display:grid;grid-template-columns:25mm minmax(0,1fr);gap:2mm;align-items:start;border-top:1px solid #e5e7eb;padding:1.6mm 0;font-size:8px;line-height:1.3}
+    .voucher-row:first-child{border-top:0}
+    .voucher-row strong{color:#64748b;font-weight:800;white-space:nowrap}
+    .voucher-row span{color:#111827;font-weight:900;text-align:right;word-break:keep-all;overflow-wrap:anywhere}
+    .voucher-stub{border-top:1px dashed #94a3b8;background:#f8fafc;padding:3mm 4mm}
+    .voucher-stub-title{margin:0 0 2mm;color:#111827;font-size:8px;font-weight:900}
+    .voucher-stub-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5mm 3mm;color:#374151;font-size:7.5px;line-height:1.35}
+    .voucher-stub-grid strong{font-weight:900;color:#111827}
+    @media screen{
+        body{background:#e5e7eb;padding:16px}
+        .service-voucher-print-page{background:#fff;min-height:277mm;padding:10mm;box-shadow:0 8px 24px rgba(15,23,42,.18)}
+    }
+    @media print{
+        html,body{width:210mm;min-height:297mm;background:#fff}
+        .service-voucher-print-page{width:190mm;padding:0;box-shadow:none}
+    }
+</style>
+</head>
+<body>
+    <main class="service-voucher-print-page">
+        <div class="voucher-print-sheets${singleClass}">${sheets}</div>
+    </main>
+<script>
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            window.focus();
+            window.print();
+        }, 120);
+    });
+<\/script>
+</body>
+</html>`;
+}
 function printServiceVoucher(orderId = '') {
     const ids = orderId ? [orderId] : (selectedVoucherOrderIds.length ? selectedVoucherOrderIds : [selectedVoucherOrderId]);
     const orders = ids.map(id => serviceOrders.find(item => item.id === id)).filter(order => order && order.service !== 'pos');
     if (!orders.length) return;
-    const printHost = document.querySelector('#serviceVoucherModal .voucher-print-sheets');
-    if (printHost) {
-        printHost.innerHTML = orders.map(renderVoucherSheet).join('');
-        printHost.classList.toggle('is-single-print', orders.length === 1);
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+        if (typeof showToast === 'function') showToast('브라우저 팝업 차단을 해제한 뒤 다시 출력해주세요.', 'error');
+        return;
     }
-    cleanupServiceVoucherPrint();
-    document.body.classList.add('printing-service-voucher');
-    window.addEventListener('afterprint', cleanupServiceVoucherPrint);
-    serviceVoucherPrintCleanupTimer = setTimeout(cleanupServiceVoucherPrint, 15000);
-    setTimeout(() => {
-        window.print();
-    }, 50);
+    printWindow.document.open();
+    printWindow.document.write(buildServiceVoucherPrintDocument(orders));
+    printWindow.document.close();
 }
 function printOrderVoucher(orderId) {
     openOrderVoucherModal(orderId);
