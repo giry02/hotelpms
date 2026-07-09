@@ -218,8 +218,8 @@
       ]
     };
     const seedVendors = [
-      { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:['guest','room','date','item','amount','memo'], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
-      { id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:['guest','room','date','item','amount','partnerContact','address','memo'], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
+      { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
+      { id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
       { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀 기준 단가', category:'golf', holes:'18홀', basePeople:4 }, { name:'카트 이용권', price:70, desc:'팀 단위 카트 기준 단가', category:'golf', holes:'18홀', basePeople:4 }, { name:'클럽 대여', price:60, desc:'1인 기준 단가', category:'golf', holes:'18홀', basePeople:1 }] },
       { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'9홀 라운딩', price:180, desc:'9홀 기준 단가', category:'golf', holes:'9홀', basePeople:2 }, { name:'18홀 패키지', price:520, desc:'그린피+카트 기준 단가', category:'golf', holes:'18홀', basePeople:4 }] },
       { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 기본 대여', price:160, desc:'1시간 기준 단가', category:'rentacar', vehicleClass:'세단', pickupBase:'호텔 로비' }, { name:'공항 픽업 기본료', price:90, desc:'편도 기본료', category:'rentacar', vehicleClass:'세단', pickupBase:'NAIA Terminal 3' }, { name:'전기차 기본 대여', price:230, desc:'1시간 기준 단가', category:'rentacar', vehicleClass:'전기차', pickupBase:'호텔 로비' }] },
@@ -400,6 +400,7 @@
       </div>`;
     }
     function defaultVoucherFields(type) {
+      if (type === 'pos') return [];
       return (voucherFieldGroups[type] || voucherFieldGroups.pos).flatMap(group => group.fields);
     }
     function sampleVoucherData(vendor) {
@@ -432,7 +433,7 @@
       vendors = vendors.map(vendor => {
         const seed = seedVendors.find(item => item.id === vendor.id || (item.type === vendor.type && item.name === vendor.name));
         const type = vendor.type || seed?.type || 'pos';
-        const fields = Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type);
+        const fields = type === 'pos' ? [] : (Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type));
         if (['golf', 'rentacar'].includes(type) && !fields.includes('address')) fields.push('address');
         if (['golf', 'rentacar'].includes(type) && !fields.includes('partnerContact')) fields.push('partnerContact');
         return {
@@ -461,7 +462,7 @@
       document.getElementById('vendorCount').textContent = `${list.length}개`;
       document.getElementById('vendorList').innerHTML = list.map(v => `<button class="vendor-card ${v.id === selectedVendorId ? 'active' : ''}" onclick="selectVendor('${escapeHtml(v.id)}')"><div class="vendor-name">${escapeHtml(v.name)}</div><div class="vendor-meta"><span>담당 ${escapeHtml(v.contact || '-')}</span><span>수수료 ${Number(v.commission || 0)}%</span><span>항목 ${(v.items || []).length}개</span>${v.address ? `<span>${escapeHtml(v.address)}</span>` : ''}</div></button>`).join('') || '<div class="empty-note">등록된 업체가 없습니다.</div>';
       const selected = selectedVendor();
-      document.getElementById('selectedVendorMeta').textContent = selected ? `${selected.name} · 항목 ${(selected.items || []).length}개 · 출력 ${(selected.voucherFields || []).length}개 필드` : '업체를 선택하세요.';
+      document.getElementById('selectedVendorMeta').textContent = selected ? `${selected.name} · 항목 ${(selected.items || []).length}개${selected.type === 'pos' ? '' : ` · 출력 ${(selected.voucherFields || []).length}개 필드`}` : '업체를 선택하세요.';
       renderDetail(selected);
     }
     function renderDetail(vendor) {
@@ -469,24 +470,11 @@
         document.getElementById('vendorDetail').innerHTML = '<div class="empty-note">업체를 선택하면 항목과 바우처 양식을 관리할 수 있습니다.</div>';
         return;
       }
-      document.getElementById('vendorDetail').innerHTML = `
-        <div class="detail-summary">
-          <div class="summary-box"><span>업체명</span><strong>${escapeHtml(vendor.name)}</strong></div>
-          <div class="summary-box"><span>담당/연락처</span><strong>${escapeHtml(vendor.contact || '-')}</strong></div>
-          <div class="summary-box"><span>수수료율</span><strong>${Number(vendor.commission || 0)}%</strong></div>
-          <div class="summary-box"><span>항목 수</span><strong>${(vendor.items || []).length}개</strong></div>
-          <div class="summary-box address"><span>업체 주소</span><strong>${escapeHtml(vendor.address || '주소 미등록')}</strong></div>
-        </div>
-        <section class="detail-group">
-          <div class="detail-group-head"><div class="section-title"><i class="fa-solid fa-tags"></i> 이용 항목</div></div>
-          <div class="detail-group-body">
-            <div class="item-grid">${(vendor.items || []).map(item => renderVendorItemCard(vendor, item)).join('') || '<div class="empty-note">등록된 항목이 없습니다.</div>'}</div>
-          </div>
-        </section>
+      const voucherSection = vendor.type === 'pos' ? '' : `
         <section class="detail-group detail-group--voucher">
           <div class="detail-group-head">
             <div>
-              <div class="section-title"><i class="fa-solid fa-ticket"></i> ${vendor.type === 'pos' ? '전표 출력 양식' : '바우처 출력 양식'}</div>
+              <div class="section-title"><i class="fa-solid fa-ticket"></i> 바우처 출력 양식</div>
               <div class="voucher-help">체크한 항목은 부가서비스 상세 화면의 출력 버튼과 미리보기 팝업에 그대로 반영됩니다.</div>
             </div>
             <div class="vendor-actions">
@@ -513,9 +501,25 @@
           </div>
           </div>
         </section>`;
-      renderVoucherPreview();
+      document.getElementById('vendorDetail').innerHTML = `
+        <div class="detail-summary">
+          <div class="summary-box"><span>업체명</span><strong>${escapeHtml(vendor.name)}</strong></div>
+          <div class="summary-box"><span>담당/연락처</span><strong>${escapeHtml(vendor.contact || '-')}</strong></div>
+          <div class="summary-box"><span>수수료율</span><strong>${Number(vendor.commission || 0)}%</strong></div>
+          <div class="summary-box"><span>항목 수</span><strong>${(vendor.items || []).length}개</strong></div>
+          <div class="summary-box address"><span>업체 주소</span><strong>${escapeHtml(vendor.address || '주소 미등록')}</strong></div>
+        </div>
+        <section class="detail-group">
+          <div class="detail-group-head"><div class="section-title"><i class="fa-solid fa-tags"></i> 이용 항목</div></div>
+          <div class="detail-group-body">
+            <div class="item-grid">${(vendor.items || []).map(item => renderVendorItemCard(vendor, item)).join('') || '<div class="empty-note">등록된 항목이 없습니다.</div>'}</div>
+          </div>
+        </section>
+        ${voucherSection}`;
+      if (vendor.type !== 'pos') renderVoucherPreview();
     }
     function renderVoucherFieldGroups(vendor) {
+      if (vendor?.type === 'pos') return '';
       const groups = voucherFieldGroups[vendor.type] || voucherFieldGroups.pos;
       return groups.map(group => `
         <div class="voucher-field-section">
@@ -531,6 +535,7 @@
       return checked.length ? checked : (vendor?.voucherFields || []);
     }
     function buildVoucherPreviewHtml(vendor, fields = selectedVoucherFieldsFromDom(vendor)) {
+      if (vendor?.type === 'pos') return '';
       const sample = sampleVoucherData(vendor);
       const title = vendor.type === 'pos' ? '객실 전표' : `${serviceLabel(vendor.type)} 바우처`;
       const stubTitle = vendor.type === 'golf' ? '절취용 이용 확인' : vendor.type === 'rentacar' ? '차량 인수 확인' : '프런트 확인';
@@ -558,6 +563,7 @@
     function renderVoucherPreview() {
       const vendor = selectedVendor();
       if (!vendor) return;
+      if (vendor.type === 'pos') return;
       const html = buildVoucherPreviewHtml(vendor);
       const inlineTarget = document.getElementById('voucherPreview');
       if (inlineTarget) inlineTarget.innerHTML = html;
@@ -570,6 +576,7 @@
       const modalBody = document.getElementById('voucherPreviewModalBody');
       const modalType = document.getElementById('voucherPreviewModalType');
       if (!vendor || !modalBody) return window.showAlert('업체를 먼저 선택해 주세요.', { type: 'error' });
+      if (vendor.type === 'pos') return window.showAlert('통합 POS는 바우처 미리보기와 출력 양식을 사용하지 않습니다.', { type: 'warning' });
       modalBody.innerHTML = buildVoucherPreviewHtml(vendor);
       if (modalType) modalType.textContent = serviceLabel(vendor.type);
       openModal('voucherPreviewModal');
@@ -645,6 +652,7 @@
     function saveVoucherFields() {
       const vendor = selectedVendor();
       if (!vendor) return;
+      if (vendor.type === 'pos') return;
       vendor.voucherFields = Array.from(document.querySelectorAll('.voucher-field input:checked')).map(input => input.value);
       persistVendors();
       render();
@@ -663,7 +671,7 @@
       }
       document.querySelectorAll('.vendor-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.type === currentType));
       render();
-      if (location.hash === '#voucher') {
+      if (location.hash === '#voucher' && selectedVendor()?.type !== 'pos') {
         setTimeout(() => openVoucherPreviewModal(), 80);
       }
     }

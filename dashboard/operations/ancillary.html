@@ -516,8 +516,8 @@ const ORDER_STORAGE = 'pms_ancillary_room_orders';
 const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
 const ORDER_DATA_VERSION = '2026-07-06-today-demo-v1';
 const seedVendors = [
-    { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:['guest','room','date','item','amount','memo'], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
-    { id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:['guest','room','date','item','amount','partnerContact','address','memo'], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
+    { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
+    { id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
     { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀 기준 단가', holes:'18홀', basePeople:4 }, { name:'카트 이용권', price:70, desc:'팀 단위 카트 기준 단가', holes:'18홀', basePeople:4 }, { name:'클럽 대여', price:60, desc:'1인 기준 단가', holes:'18홀', basePeople:1 }] },
     { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], items:[{ name:'9홀 라운딩', price:180, desc:'9홀 기준 단가', holes:'9홀', basePeople:2 }, { name:'18홀 패키지', price:520, desc:'그린피+카트 기준 단가', holes:'18홀', basePeople:4 }] },
     { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 기본 대여', price:160, desc:'1시간 기준 단가', vehicleClass:'세단', pickupBase:'호텔 로비' }, { name:'공항 픽업 기본료', price:90, desc:'편도 기본료', vehicleClass:'세단', pickupBase:'NAIA Terminal 3' }, { name:'전기차 기본 대여', price:230, desc:'1시간 기준 단가', vehicleClass:'전기차', pickupBase:'호텔 로비' }] },
@@ -957,7 +957,7 @@ function loadVendors() {
     vendors = vendors.map(vendor => {
         const seed = seedVendors.find(item => item.id === vendor.id || (item.type === vendor.type && item.name === vendor.name));
         const type = vendor.type || seed?.type || 'pos';
-        const fields = Array.isArray(vendor.voucherFields) ? [...vendor.voucherFields] : [];
+        const fields = type === 'pos' ? [] : (Array.isArray(vendor.voucherFields) ? [...vendor.voucherFields] : []);
         if (['golf', 'rentacar'].includes(type) && !fields.includes('address')) fields.push('address');
         if (['golf', 'rentacar'].includes(type) && !fields.includes('partnerContact')) fields.push('partnerContact');
         return {

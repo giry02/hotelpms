@@ -20,7 +20,7 @@
   const seedVendors = [
     {
       id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', contactPerson:'F&B / Front Desk', contactPhone:'내선 700', contactEmail:'pos@grandsaigon.local', address:'The Grand Saigon 내부 POS', commission:0,
-      voucherFields:['guest','room','date','item','amount','memo'], logoDataUrl:'',
+      voucherFields:[], logoDataUrl:'',
       campaignTitle:'객실 정산 연결 POS',
       benefit:'객실별 식음/미니바/세탁 주문을 Folio에 바로 반영',
       operatingHours:'24시간 접수, F&B 제공 시간 06:00~23:00',
@@ -108,12 +108,13 @@
     return JSON.parse(JSON.stringify(value));
   }
   function defaultVoucherFields(type) {
+    if (type === 'pos') return [];
     return (voucherFieldGroups[type] || voucherFieldGroups.pos).flatMap(group => group.fields);
   }
   function normalizeVendor(vendor) {
     const seed = seedVendors.find(item => item.id === vendor?.id || (item.type === vendor?.type && item.name === vendor?.name));
     const type = vendor?.type || seed?.type || 'pos';
-    const fields = Array.isArray(vendor?.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type);
+    const fields = type === 'pos' ? [] : (Array.isArray(vendor?.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type));
     if (['golf', 'rentacar', 'pos'].includes(type) && !fields.includes('address') && seed?.voucherFields?.includes('address')) fields.push('address');
     if (['golf', 'rentacar', 'pos'].includes(type) && !fields.includes('partnerContact') && seed?.voucherFields?.includes('partnerContact')) fields.push('partnerContact');
     return {
