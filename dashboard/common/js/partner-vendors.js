@@ -36,6 +36,23 @@
       items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }]
     },
     {
+      id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', contactPerson:'Minh Nguyen', contactPhone:'+84 90 118 2233', contactEmail:'partners@riversidebistro.vn', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8,
+      voucherFields:[], logoDataUrl:'',
+      campaignTitle:'투숙객 전용 레스토랑 디너 혜택',
+      benefit:'디너 세트, 웰컴 디저트, 패밀리 메뉴 제휴 할인',
+      operatingHours:'11:30~22:30',
+      usagePeriod:'2026-07-01 ~ 2026-08-31',
+      settlementPolicy:'프런트 예약 확인 후 업체 후불 정산',
+      frontdeskMemo:'방문 시간, 인원, 좌석 가능 여부, 쿠폰 적용 메뉴를 업체 담당자에게 먼저 확인합니다.',
+      bookingGuide:'담당자에게 연락해 디너 세트와 디저트 쿠폰 적용 가능 여부를 확인한 뒤 계약이 확정되면 통합 POS 항목으로 등록합니다.',
+      internalNote:'외부 레스토랑 제휴 검토용 광고입니다.',
+      detailContentHtml:{
+        ko:'<h4>제휴 검토 요약</h4><p>호텔 투숙객에게 주변 레스토랑 디너 세트와 웰컴 디저트 혜택을 안내하기 위한 제휴 광고입니다.</p>',
+        en:'<h4>Partnership review summary</h4><p>This ad promotes dinner set and welcome dessert benefits for hotel guests at a nearby restaurant partner.</p>'
+      },
+      items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }]
+    },
+    {
       id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager / +63 917 230 4471', contactPerson:'Kim Manager', contactPhone:'+63 917 230 4471', contactEmail:'sales@sunvalleycc.ph', address:'Clark Freeport Zone, Pampanga', commission:15,
       voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], logoDataUrl:'',
       campaignTitle:'제휴 골프장 그린피 혜택',
