@@ -514,7 +514,7 @@ const nextRoomCache = new Map();
 const VENDOR_STORAGE = 'pms_ancillary_vendors';
 const ORDER_STORAGE = 'pms_ancillary_room_orders';
 const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
-const ORDER_DATA_VERSION = '2026-07-06-today-demo-v1';
+const ORDER_DATA_VERSION = '2026-07-10-demo-showcase-v1';
 const seedVendors = [
     { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
     { id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
@@ -930,6 +930,9 @@ function normalizeExternalOrder(order, service) {
         room: order.room || order.roomNo || String(order.roomId || '').split('-').pop(),
         roomId: order.roomId || '',
         guest: order.guest || order.guestName || '',
+        reservationId: order.reservationId || '',
+        groupId: order.groupId || order.groupEventId || order.eventId || '',
+        groupName: order.groupName || '',
         item,
         vendor: order.providerName || order.partnerName || order.vendorName || order.courseName || vendor?.name || meta.label,
         vendorId: order.vendorId || order.providerId || order.partnerId || vendor?.id || '',
@@ -937,6 +940,12 @@ function normalizeExternalOrder(order, service) {
         unitPrice: amountValue(order.unitPrice || order.price || order.total || order.amount),
         total: amountValue(order.total || order.amount),
         dateTime,
+        courseName: order.courseName || order.course || '',
+        teeTime: order.teeTime || order.time || '',
+        holes: order.holes || '',
+        vehicle: order.vehicle || order.vehicleClass || '',
+        pickup: order.pickup || order.pickupLocation || '',
+        rentalHours: order.rentalHours || order.hours,
         memo: order.memo || order.note || '',
         voucherFields: Array.isArray(vendor?.voucherFields) ? [...vendor.voucherFields] : [],
         status: order.status || 'new'
@@ -996,45 +1005,71 @@ function persistOrders() {
     localStorage.setItem(ORDER_STORAGE, JSON.stringify(serviceOrders.slice(0, 500)));
 }
 function seedDemoServiceOrdersIfNeeded() {
-    const visibleOrderCount = rooms.reduce((count, room) => count + roomOrders(room).length, 0);
-    if (visibleOrderCount > 0) return;
-    const activeRooms = rooms.filter(canRegisterServiceForRoom).slice(0, 5);
+    if (serviceOrders.some(order => String(order.id || '').startsWith('SVC-DEMO-SHOWCASE-'))) return;
+    const activeRooms = rooms.filter(canRegisterServiceForRoom);
     if (!activeRooms.length) return;
     serviceOrders = serviceOrders.filter(order => !String(order.id || '').startsWith('SVC-DEMO-'));
-    const plans = [
+    const showcasePlans = [
+        { roomNo:'1401', idSuffix:'GRP-GOLF-1401', service:'golf', vendorId:'GOLF-SUNVALLEY', itemIndex:0, qty:2, status:'accepted', groupId:'GRP-260527-01', groupName:'Samsung Tech Conference 2026', memo:'단체 VIP 라운딩 1팀, 프런트 선결제 후 후불 정산', courseName:'Sun Course', teeTime:'07:30', time:'07:30' },
+        { roomNo:'0801', idSuffix:'GRP-GOLF-0801', service:'golf', vendorId:'GOLF-SUNVALLEY', itemIndex:0, qty:2, status:'accepted', groupId:'GRP-260527-01', groupName:'Samsung Tech Conference 2026', memo:'단체 VIP 라운딩 2팀, 같은 코스 묶음 출력', courseName:'Sun Course', teeTime:'07:40', time:'07:40' },
+        { roomNo:'1401', idSuffix:'GRP-CAR-1401', service:'rentacar', vendorId:'RENT-SK', itemIndex:1, qty:1, status:'new', groupId:'GRP-260527-01', groupName:'Samsung Tech Conference 2026', memo:'컨퍼런스 연사 공항 픽업, 단체 바우처 일괄 출력 대상', rentalHours:3, pickup:'NAIA Terminal 3', time:'09:20' },
+        { roomNo:'0801', idSuffix:'GRP-CAR-0801', service:'rentacar', vendorId:'RENT-SK', itemIndex:1, qty:1, status:'accepted', groupId:'GRP-260527-01', groupName:'Samsung Tech Conference 2026', memo:'VIP 동선용 기사 포함 밴, 1401호와 같은 배차 묶음', rentalHours:3, pickup:'호텔 로비', time:'09:35' },
+        { roomNo:'V-01', idSuffix:'POS-FAMILY-DINING', service:'pos', vendorId:'POS-RIVERSIDE', itemIndex:2, qty:1, status:'accepted', memo:'가족 투숙객 디너 예약, 식음 매출 시연용', time:'18:20' },
+        { roomNo:'PH01', idSuffix:'POS-PENTHOUSE-ROOM', service:'pos', vendorId:'POS-HOTEL', itemIndex:0, qty:2, status:'completed', memo:'펜트하우스 룸서비스 제공 완료', time:'20:10' },
+        { roomNo:'1403', idSuffix:'GOLF-INDIVIDUAL-1403', service:'golf', vendorId:'GOLF-SKY72', itemIndex:1, qty:1, status:'new', memo:'개별 고객 오후 라운딩, 단건 바우처 확인', courseName:'West Course', teeTime:'13:10', time:'13:10' },
+        { roomNo:'1209', idSuffix:'CAR-LATE-1209', service:'rentacar', vendorId:'RENT-LOTTE', itemIndex:0, qty:1, status:'accepted', memo:'야간 도착 고객 시내 이동 예약', rentalHours:2, pickup:'호텔 로비', time:'21:00' }
+    ];
+    const fallbackPlans = [
         { service:'pos', vendorId:'POS-HOTEL', itemIndex:0, qty:1, status:'completed', memo:'룸서비스 제공 완료' },
         { service:'golf', vendorId:'GOLF-SUNVALLEY', itemIndex:0, qty:2, status:'accepted', memo:'프런트에서 티오프 확인', courseName:'Sun Course', teeTime:'07:30' },
         { service:'rentacar', vendorId:'RENT-LOTTE', itemIndex:1, qty:1, status:'new', memo:'공항 샌딩 요청', rentalHours:1, pickup:'NAIA Terminal 3' },
         { service:'golf', vendorId:'GOLF-SKY72', itemIndex:1, qty:1, status:'new', memo:'바우처 출력 필요', courseName:'West Course', teeTime:'12:30' },
         { service:'pos', vendorId:'POS-HOTEL', itemIndex:1, qty:2, status:'accepted', memo:'미니바 추가 요청' }
     ];
-    const now = new Date();
+    const roomByNo = value => findRoomById(value) || activeRooms.find(room => sameRoomValue(roomNo(room), value) || sameRoomValue(room.id, value) || sameRoomValue(room.roomId, value));
+    const hasEquivalentOrder = (room, plan) => serviceOrders.some(order => {
+        if (String(order.id || '').startsWith('SVC-DEMO-')) return false;
+        if (order.service !== plan.service) return false;
+        if (!sameRoomValue(order.room, roomNo(room)) && !sameRoomValue(order.roomId, room.id || room.roomId)) return false;
+        if (plan.vendorId && voucherVendorKey(order) !== plan.vendorId) return false;
+        if (plan.groupId && voucherGroupKey(order) !== plan.groupId) return false;
+        return true;
+    });
+    const usedRooms = new Set();
+    const entries = showcasePlans
+        .map(plan => ({ plan, room: roomByNo(plan.roomNo) }))
+        .filter(entry => entry.room && canRegisterServiceForRoom(entry.room) && !hasEquivalentOrder(entry.room, entry.plan));
+    entries.forEach(entry => usedRooms.add(roomNo(entry.room)));
+    activeRooms.filter(room => !usedRooms.has(roomNo(room))).slice(0, 4).forEach((room, index) => entries.push({ room, plan: fallbackPlans[index % fallbackPlans.length] }));
+    const now = todayDate();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const created = activeRooms.map((room, index) => {
-        const plan = plans[index % plans.length];
+    const datePart = now.toISOString().slice(0, 10);
+    const created = entries.map(({ room, plan }, index) => {
         const vendor = vendors.find(item => item.id === plan.vendorId) || vendors.find(item => item.type === plan.service) || seedVendors.find(item => item.id === plan.vendorId);
         const item = (vendor?.items || [])[plan.itemIndex] || (vendor?.items || [])[0] || { name: serviceMeta(plan.service).label, price:0 };
         const res = activeReservationForRoom(room);
-        const group = groupForReservation(res);
+        const group = plan.groupId ? groups.find(item => item.id === plan.groupId || item.groupId === plan.groupId) : groupForReservation(res);
+        const rentalHours = plan.service === 'rentacar' ? Number(plan.rentalHours || 1) : 1;
+        const qty = Number(plan.qty || 1);
         return {
-            id: `SVC-DEMO-${roomNo(room)}-${plan.service}`,
+            id: `SVC-DEMO-SHOWCASE-${plan.idSuffix || `${roomNo(room)}-${plan.service}-${index + 1}`}`,
             service: plan.service,
             serviceLabel: serviceMeta(plan.service).label,
             room: roomNo(room),
             roomId: room.id || room.roomId || '',
-            guest: reservationGuest(res),
-            reservationId: res?.id || '',
-            groupId: group?.id || group?.groupId || '',
-            groupName: group?.name || group?.groupName || '',
+            guest: plan.guest || reservationGuest(res),
+            reservationId: plan.reservationId || res?.id || '',
+            groupId: plan.groupId || group?.id || group?.groupId || '',
+            groupName: plan.groupName || group?.name || group?.groupName || '',
             vendor: vendor?.name || serviceMeta(plan.service).label,
             vendorId: vendor?.id || '',
             item: item.name || serviceMeta(plan.service).label,
-            qty: plan.qty,
+            qty,
             baseUnitPrice: Number(item.price || 0),
             unitPrice: Number(item.price || 0),
-            rentalHours: plan.service === 'rentacar' ? Number(plan.rentalHours || 1) : undefined,
-            total: Number(item.price || 0) * plan.qty * (plan.service === 'rentacar' ? Number(plan.rentalHours || 1) : 1),
-            dateTime: now.toISOString().slice(0, 16),
+            rentalHours: plan.service === 'rentacar' ? rentalHours : undefined,
+            total: Number(item.price || 0) * qty * rentalHours,
+            dateTime: plan.dateTime || `${datePart}T${plan.time || now.toISOString().slice(11, 16)}`,
             courseName: plan.courseName || '',
             teeTime: plan.teeTime || '',
             holes: item.holes || '',

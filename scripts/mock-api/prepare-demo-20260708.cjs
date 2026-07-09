@@ -265,11 +265,15 @@ function makeFolio(rooms, config) {
 }
 
 function makeOrder(config) {
-  return {
+  const order = {
     id: config.id,
     room: config.room,
     roomNo: config.room,
     guestName: config.guestName,
+    roomId: config.roomId || '',
+    reservationId: config.reservationId || '',
+    groupId: config.groupId || '',
+    groupName: config.groupName || '',
     date: config.date || DEMO_BASE_DATE,
     time: config.time,
     status: config.status,
@@ -285,6 +289,26 @@ function makeOrder(config) {
     operator: config.operator || 'Front Desk Kim',
     createdAt: `${config.date || DEMO_BASE_DATE}T${config.time || '10:00'}:00+09:00`
   };
+  [
+    'vendorId',
+    'providerId',
+    'providerName',
+    'partnerName',
+    'courseName',
+    'teeTime',
+    'holes',
+    'pickup',
+    'pickupLocation',
+    'vehicle',
+    'vehicleClass',
+    'rentalHours',
+    'memo',
+    'note',
+    'people'
+  ].forEach(key => {
+    if (config[key] !== undefined) order[key] = config[key];
+  });
+  return order;
 }
 
 function eventItem(config) {
@@ -587,17 +611,25 @@ folios.forEach(folio => {
   makeOrder({ id: 'ORD-DEMO-TODAY-1206-01', room: '1206', guestName: 'Robert Ford', time: '09:30', status: 'new', type: 'roomservice', source: 'pos', item: '아메리카노 2잔 / 조식 세트', amount: 72 }),
   makeOrder({ id: 'ORD-DEMO-TODAY-V02-01', room: 'V-02', guestName: 'Tanaka Yuki', time: '10:15', status: 'preparing', type: 'dining', source: 'pos', item: '프라이빗 다이닝 준비', amount: 380 }),
   makeOrder({ id: 'ORD-DEMO-TODAY-1218-01', room: '1218', guestName: 'Pham David', time: '11:45', status: 'done', type: 'laundry', source: 'pos', item: '셔츠 세탁 3벌', amount: 54 }),
-  makeOrder({ id: 'ORD-DEMO-TODAY-1226-01', room: '1226', guestName: 'Lee Hannah', time: '13:10', status: 'done', type: 'minibar', source: 'pos', item: '미니바 정산', amount: 86 })
+  makeOrder({ id: 'ORD-DEMO-TODAY-1226-01', room: '1226', guestName: 'Lee Hannah', time: '13:10', status: 'done', type: 'minibar', source: 'pos', item: '미니바 정산', amount: 86 }),
+  makeOrder({ id: 'ORD-DEMO-DINING-V01-01', room: 'V-01', roomId: 'LV-V01', guestName: 'Wong Li', time: '18:20', status: 'preparing', type: 'dining', source: 'pos', item: '리버사이드 패밀리 디너 세트', amount: 420, providerName: '리버사이드 비스트로', memo: '가족 투숙객 식음 매출 시연용' }),
+  makeOrder({ id: 'ORD-DEMO-PH01-ROOM-01', room: 'PH01', roomId: 'OT-PH01', guestName: 'Nguyen Thi Lan', time: '20:10', status: 'done', type: 'roomservice', source: 'pos', item: '펜트하우스 룸서비스 세트 2건', amount: 17000, providerName: '호텔 통합 POS', memo: '객실 정산 합산 시연용' })
 ].forEach(order => upsert(posOrders, order));
 
 [
   makeOrder({ id: 'GLF-DEMO-TODAY-1218-01', room: '1218', guestName: 'Pham David', time: '07:20', status: 'new', type: 'club_a', source: 'golf', item: '18홀 그린피 / 2인', amount: 900 }),
-  makeOrder({ id: 'GLF-DEMO-TODAY-1228-01', room: '1228', guestName: 'Garcia Miguel', time: '08:10', status: 'done', type: 'club_b', source: 'golf', item: '카트 이용권 / 클럽 대여', amount: 210 })
+  makeOrder({ id: 'GLF-DEMO-TODAY-1228-01', room: '1228', guestName: 'Garcia Miguel', time: '08:10', status: 'done', type: 'club_b', source: 'golf', item: '카트 이용권 / 클럽 대여', amount: 210 }),
+  makeOrder({ id: 'GLF-DEMO-GROUP-1401-01', room: '1401', roomId: 'OT-1401', reservationId: 'RSV-GRP-260527-01-1401', guestName: 'Alexander Kim', time: '07:30', status: 'accepted', type: 'club_a', source: 'golf', item: '18홀 그린피 / VIP 2인', amount: 900, qty: 2, providerName: '썬밸리 CC', vendorId: 'GOLF-SUNVALLEY', groupId: 'GRP-260527-01', groupName: 'Samsung Tech Conference 2026', courseName: 'Sun Course', teeTime: '07:30', holes: '18홀', people: 2, memo: '단체 VIP 라운딩 1팀, 바우처 일괄 출력 대상' }),
+  makeOrder({ id: 'GLF-DEMO-GROUP-0801-01', room: '0801', roomId: 'FT-0801', reservationId: 'RSV-GRP-260527-01-0801', guestName: 'Lee Hannah', time: '07:40', status: 'accepted', type: 'club_a', source: 'golf', item: '18홀 그린피 / VIP 2인', amount: 900, qty: 2, providerName: '썬밸리 CC', vendorId: 'GOLF-SUNVALLEY', groupId: 'GRP-260527-01', groupName: 'Samsung Tech Conference 2026', courseName: 'Sun Course', teeTime: '07:40', holes: '18홀', people: 2, memo: '동일 단체 2팀, 1401호와 묶음 바우처 확인' }),
+  makeOrder({ id: 'GLF-DEMO-INDIV-1403-01', room: '1403', roomId: 'OT-1403', guestName: 'David Chen', time: '13:10', status: 'new', type: 'club_b', source: 'golf', item: '18홀 패키지', amount: 520, qty: 1, providerName: '스카이72', vendorId: 'GOLF-SKY72', courseName: 'West Course', teeTime: '13:10', holes: '18홀', memo: '개별 고객 단건 바우처 시연용' })
 ].forEach(order => upsert(golfOrders, order));
 
 [
   makeOrder({ id: 'RNT-DEMO-TODAY-1206-01', room: '1206', guestName: 'Robert Ford', time: '09:50', status: 'prep', type: 'lotte', source: 'rentacar', item: '공항 샌딩 / 밴', amount: 420 }),
-  makeOrder({ id: 'RNT-DEMO-TODAY-1228-01', room: '1228', guestName: 'Garcia Miguel', time: '14:00', status: 'done', type: 'sk', source: 'rentacar', item: '시내 투어 / 4시간', amount: 260 })
+  makeOrder({ id: 'RNT-DEMO-TODAY-1228-01', room: '1228', guestName: 'Garcia Miguel', time: '14:00', status: 'done', type: 'sk', source: 'rentacar', item: '시내 투어 / 4시간', amount: 260 }),
+  makeOrder({ id: 'RNT-DEMO-GROUP-1401-01', room: '1401', roomId: 'OT-1401', reservationId: 'RSV-GRP-260527-01-1401', guestName: 'Alexander Kim', time: '09:20', status: 'new', type: 'sk', source: 'rentacar', item: '기사 포함 밴 기본 대여', amount: 960, qty: 1, providerName: 'SK렌터카', vendorId: 'RENT-SK', groupId: 'GRP-260527-01', groupName: 'Samsung Tech Conference 2026', vehicleClass: '기사 포함 밴', pickup: 'NAIA Terminal 3', rentalHours: 3, memo: '컨퍼런스 연사 공항 픽업, 단체 묶음 바우처' }),
+  makeOrder({ id: 'RNT-DEMO-GROUP-0801-01', room: '0801', roomId: 'FT-0801', reservationId: 'RSV-GRP-260527-01-0801', guestName: 'Lee Hannah', time: '09:35', status: 'accepted', type: 'sk', source: 'rentacar', item: '기사 포함 밴 기본 대여', amount: 960, qty: 1, providerName: 'SK렌터카', vendorId: 'RENT-SK', groupId: 'GRP-260527-01', groupName: 'Samsung Tech Conference 2026', vehicleClass: '기사 포함 밴', pickup: '호텔 로비', rentalHours: 3, memo: 'VIP 동선용 배차, 1401호와 같은 묶음 출력' }),
+  makeOrder({ id: 'RNT-DEMO-LATE-1209-01', room: '1209', roomId: 'FT-1209', guestName: 'Tanaka Yuki', time: '21:00', status: 'accepted', type: 'lotte', source: 'rentacar', item: '세단 기본 대여 / 2시간', amount: 320, qty: 1, providerName: '롯데렌터카', vendorId: 'RENT-LOTTE', vehicleClass: '세단', pickup: '호텔 로비', rentalHours: 2, memo: '야간 도착 고객 시내 이동 예약' })
 ].forEach(order => upsert(carOrders, order));
 
 [
