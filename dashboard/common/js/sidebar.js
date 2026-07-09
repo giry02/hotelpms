@@ -74,7 +74,42 @@
             ]
         },
         {
-            group: 'Guest & CRM',
+            group: 'Operations',
+            items: [
+                {
+                    icon: 'fa-bed', label: 'Room Mgmt', id: 'rooms',
+                    mainHref: BASE + 'operations/room-setup.html',
+                    children: [
+                        { label: 'Room Types',  href: BASE + 'operations/room-setup.html' },
+                        { label: 'Rates Calendar', href: BASE + 'operations/rates.html' },
+                    ]
+                },
+                { icon: 'fa-broom', label: 'Housekeeping', href: BASE + 'operations/housekeeping.html', roles: ['sys_admin', 'sys_gm', 'sys_housekeeping'] },
+                { icon: 'fa-wrench', label: 'Maintenance', href: BASE + 'operations/maintenance.html', roles: ['sys_admin', 'sys_gm', 'sys_maintenance'] },
+                {
+                    icon: 'fa-concierge-bell', label: 'Ancillary Svcs', id: 'ancillary',
+                    roles: ['sys_admin', 'sys_gm', 'sys_desk'],
+                    mainHref: BASE + 'operations/ancillary.html',
+                    children: [
+                        { label: '부가서비스 등록', href: BASE + 'operations/ancillary.html' },
+                        { label: '업체/항목 관리', href: BASE + 'operations/ancillary-vendors.html' },
+                    ]
+                },
+                {
+                    icon: 'fa-file-invoice-dollar', label: 'Folio & Billing', id: 'folio',
+                    roles: ['sys_admin', 'sys_gm', 'sys_desk'],
+                    mainHref: BASE + 'operations/settlement-status.html',
+                    children: [
+                        { label: '정산 현황',         href: BASE + 'operations/settlement-status.html', key: 'folio.status' },
+                        { label: '정산 목록',         href: BASE + 'operations/folio.html' },
+                        { label: 'Night Audit',       href: BASE + 'operations/night-audit.html' },
+                        { label: 'Revenue Analytics', href: BASE + 'operations/reports.html' },
+                    ]
+                },
+            ]
+        },
+        {
+            group: 'Customer Management',
             roles: ['sys_admin', 'sys_gm', 'sys_desk'],
             items: [
                 { icon: 'fa-address-book', label: 'Guest CRM',   href: BASE + 'crm/guests.html' },
@@ -89,44 +124,20 @@
             ]
         },
         {
-            group: 'Operations',
-            items: [
-                {
-                    icon: 'fa-bed', label: 'Room Mgmt', id: 'rooms',
-                    mainHref: BASE + 'operations/room-setup.html',
-                    children: [
-                        { label: 'Room Types',  href: BASE + 'operations/room-setup.html' },
-                        { label: 'Rates Calendar', href: BASE + 'operations/rates.html' },
-                    ]
-                },
-                { icon: 'fa-broom', label: 'Housekeeping', href: BASE + 'operations/housekeeping.html', roles: ['sys_admin', 'sys_gm', 'sys_housekeeping'] },
-                { icon: 'fa-wrench', label: 'Maintenance', href: BASE + 'operations/maintenance.html', roles: ['sys_admin', 'sys_gm', 'sys_maintenance'] },
-                {
-                    icon: 'fa-file-invoice-dollar', label: 'Folio & Billing', id: 'folio',
-                    roles: ['sys_admin', 'sys_gm', 'sys_desk'],
-                    mainHref: BASE + 'operations/settlement-status.html',
-                    children: [
-                        { label: '정산 현황',         href: BASE + 'operations/settlement-status.html', key: 'folio.status' },
-                        { label: '정산 목록',         href: BASE + 'operations/folio.html' },
-                        { label: 'Night Audit',       href: BASE + 'operations/night-audit.html' },
-                        { label: 'Revenue Analytics', href: BASE + 'operations/reports.html' },
-                    ]
-                },
-                {
-                    icon: 'fa-concierge-bell', label: 'Ancillary Svcs', id: 'ancillary',
-                    roles: ['sys_admin', 'sys_gm', 'sys_desk'],
-                    mainHref: BASE + 'operations/ancillary.html',
-                    children: [
-                        { label: '부가서비스 등록', href: BASE + 'operations/ancillary.html' },
-                        { label: '업체/항목 관리', href: BASE + 'operations/ancillary-vendors.html' },
-                    ]
-                },
-            ]
-        },
-        {
-            group: 'Operation Logs',
+            group: 'Settings & Admin',
             roles: ['sys_admin', 'sys_gm', 'sys_desk'],
             items: [
+                { icon: 'fa-gear',        label: 'Hotel Settings', href: BASE + 'settings/settings.html', roles: ['sys_admin', 'sys_gm'] },
+                {
+                    icon: 'fa-user-shield', label: 'Staff Mgmt', id: 'staff',
+                    roles: ['sys_admin', 'sys_gm'],
+                    mainHref: BASE + 'settings/staff.html',
+                    children: [
+                        { label: 'Staff List',   href: BASE + 'settings/staff.html' },
+                        { label: 'Role & Perms', href: BASE + 'settings/roles.html' },
+                    ]
+                },
+                { icon: 'fa-credit-card', label: 'Payment Settings', href: BASE + 'settings/billing.html', roles: ['sys_admin', 'sys_gm'] },
                 {
                     icon: 'fa-clipboard-list', label: 'Operation Logs', id: 'operationLogs', key: 'operationLogs',
                     roles: ['sys_admin', 'sys_gm', 'sys_desk'],
@@ -136,24 +147,8 @@
                         { label: 'Close Log', href: BASE + 'operations/closing-log.html', key: 'operationLogs.close', roles: ['sys_admin', 'sys_gm', 'sys_desk'] },
                     ]
                 },
-            ]
-        },
-        {
-            group: 'Settings',
-            roles: ['sys_admin', 'sys_gm'],
-            items: [
-                { icon: 'fa-gear',        label: 'Hotel Settings', href: BASE + 'settings/settings.html' },
-                {
-                    icon: 'fa-user-shield', label: 'Staff Mgmt', id: 'staff',
-                    mainHref: BASE + 'settings/staff.html',
-                    children: [
-                        { label: 'Staff List',   href: BASE + 'settings/staff.html' },
-                        { label: 'Role & Perms', href: BASE + 'settings/roles.html' },
-                    ]
-                },
-                { icon: 'fa-credit-card', label: 'Billing & Payment', href: BASE + 'settings/billing.html' },
-                { icon: 'fa-bullhorn',    label: 'Notices',           href: BASE + 'settings/notices.html' },
-                { icon: 'fa-headset',     label: 'Support',           href: BASE + 'settings/support.html' },
+                { icon: 'fa-bullhorn',    label: 'Notices',           href: BASE + 'settings/notices.html', roles: ['sys_admin', 'sys_gm'] },
+                { icon: 'fa-headset',     label: 'Support',           href: BASE + 'settings/support.html', roles: ['sys_admin', 'sys_gm'] },
             ]
         },
     ];
