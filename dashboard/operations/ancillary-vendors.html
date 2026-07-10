@@ -221,9 +221,11 @@
       golf: ['guest','room','date','item','people','teeTime','course']
     };
     function isVoucherFieldsLocked(type) {
+      if (window.PmsPartnerVendors?.isVoucherFieldsLocked) return window.PmsPartnerVendors.isVoucherFieldsLocked(type);
       return Object.prototype.hasOwnProperty.call(lockedVoucherFieldsByType, type);
     }
     function fixedVoucherFields(type, fields = []) {
+      if (window.PmsPartnerVendors?.fixedVoucherFields) return window.PmsPartnerVendors.fixedVoucherFields(type, fields);
       return isVoucherFieldsLocked(type) ? [...lockedVoucherFieldsByType[type]] : [...fields];
     }
     const seedVendors = [
@@ -408,9 +410,20 @@
       </div>`;
     }
     function defaultVoucherFields(type) {
+      if (window.PmsPartnerVendors?.defaultVoucherFields) return window.PmsPartnerVendors.defaultVoucherFields(type);
       if (type === 'pos') return [];
       if (isVoucherFieldsLocked(type)) return fixedVoucherFields(type);
       return (voucherFieldGroups[type] || voucherFieldGroups.pos).flatMap(group => group.fields);
+    }
+    function normalizePageVendor(vendor) {
+      const normalized = window.PmsPartnerVendors?.normalizeVendor ? window.PmsPartnerVendors.normalizeVendor(vendor) : vendor;
+      const type = normalized.type || 'pos';
+      return {
+        ...normalized,
+        type,
+        items: Array.isArray(normalized.items) ? normalized.items.map(item => normalizeVendorItem(type, item)) : [],
+        voucherFields: fixedVoucherFields(type, normalized.voucherFields || defaultVoucherFields(type))
+      };
     }
     function sampleVoucherData(vendor) {
       const item = (vendor?.items || [])[0] || { name: serviceLabel(vendor?.type), price: 0 };
@@ -432,6 +445,12 @@
       };
     }
     function loadVendors() {
+      if (window.PmsPartnerVendors?.load) {
+        vendors = window.PmsPartnerVendors.load().map(normalizePageVendor);
+        selectedVendorId = vendors.find(v => v.type === currentType)?.id || '';
+        persistVendors();
+        return;
+      }
       try { vendors = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { vendors = []; }
       if (!Array.isArray(vendors) || !vendors.length) vendors = seedVendors.map(v => ({ ...v, items:[...(v.items || [])], voucherFields:[...(v.voucherFields || [])] }));
       seedVendors.forEach(seed => {
@@ -457,7 +476,13 @@
       selectedVendorId = vendors.find(v => v.type === currentType)?.id || '';
       persistVendors();
     }
-    function persistVendors() { localStorage.setItem(STORAGE_KEY, JSON.stringify(vendors)); }
+    function persistVendors() {
+      if (window.PmsPartnerVendors?.save) {
+        window.PmsPartnerVendors.save(vendors);
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(vendors));
+    }
     function selectedVendor() { return vendors.find(v => v.id === selectedVendorId); }
     function selectVendorType(type) {
       currentType = type;

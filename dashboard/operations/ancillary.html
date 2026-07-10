@@ -548,9 +548,11 @@ const lockedVoucherFieldsByType = {
     golf: ['guest','room','date','item','people','teeTime','course']
 };
 function isVoucherFieldsLocked(type) {
+    if (window.PmsPartnerVendors?.isVoucherFieldsLocked) return window.PmsPartnerVendors.isVoucherFieldsLocked(type);
     return Object.prototype.hasOwnProperty.call(lockedVoucherFieldsByType, type);
 }
 function fixedVoucherFields(type, fields = []) {
+    if (window.PmsPartnerVendors?.fixedVoucherFields) return window.PmsPartnerVendors.fixedVoucherFields(type, fields);
     return isVoucherFieldsLocked(type) ? [...lockedVoucherFieldsByType[type]] : [...fields];
 }
 
@@ -968,11 +970,20 @@ function roomOrders(room) {
         return sameRoom && sameGuest;
     });
 }
+function vendorSeedList() {
+    return Array.isArray(window.PmsPartnerVendors?.seedVendors) && window.PmsPartnerVendors.seedVendors.length
+        ? window.PmsPartnerVendors.seedVendors
+        : seedVendors;
+}
+function vendorLookupList() {
+    return vendors.length ? vendors : vendorSeedList();
+}
 function vendorForExternalOrder(order, service) {
     const type = String(order.type || '').toLowerCase();
-    if (service === 'pos') return seedVendors.find(vendor => vendor.id === 'POS-HOTEL');
-    if (service === 'golf') return seedVendors.find(vendor => vendor.id === (type.includes('club_b') || type.includes('sky') ? 'GOLF-SKY72' : 'GOLF-SUNVALLEY'));
-    if (service === 'rentacar') return seedVendors.find(vendor => vendor.id === (type.includes('sk') ? 'RENT-SK' : 'RENT-LOTTE'));
+    const source = vendorLookupList();
+    if (service === 'pos') return source.find(vendor => vendor.id === 'POS-HOTEL');
+    if (service === 'golf') return source.find(vendor => vendor.id === (type.includes('club_b') || type.includes('sky') ? 'GOLF-SKY72' : 'GOLF-SUNVALLEY'));
+    if (service === 'rentacar') return source.find(vendor => vendor.id === (type.includes('sk') ? 'RENT-SK' : 'RENT-LOTTE'));
     return null;
 }
 function normalizeExternalOrder(order, service) {
@@ -1009,9 +1020,23 @@ function normalizeExternalOrder(order, service) {
     };
 }
 function cloneSeedVendor(seed) {
-    return { ...seed, items:[...(seed.items || [])], voucherFields:[...(seed.voucherFields || [])] };
+    const normalized = window.PmsPartnerVendors?.normalizeVendor ? window.PmsPartnerVendors.normalizeVendor(seed) : seed;
+    return { ...normalized, items:[...(normalized.items || [])], voucherFields:[...(normalized.voucherFields || [])] };
 }
 function loadVendors() {
+    if (window.PmsPartnerVendors?.load) {
+        vendors = window.PmsPartnerVendors.load().map(vendor => {
+            const type = vendor.type || 'pos';
+            return {
+                ...vendor,
+                type,
+                items: Array.isArray(vendor.items) ? vendor.items.map(item => normalizeVendorItem(type, item)) : [],
+                voucherFields: fixedVoucherFields(type, vendor.voucherFields || [])
+            };
+        });
+        window.PmsPartnerVendors.save(vendors);
+        return;
+    }
     const storedVendorData = localStorage.getItem(VENDOR_STORAGE);
     try { vendors = storedVendorData === null ? [] : JSON.parse(storedVendorData); } catch(e) { vendors = []; }
     if (!Array.isArray(vendors)) vendors = [];

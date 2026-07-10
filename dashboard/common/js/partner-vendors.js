@@ -76,7 +76,7 @@
         ko:'<div class="partner-promo-visual partner-promo-visual--golf"><div class="partner-promo-visual__media"><span>Sunvalley CC</span><strong>VIP & 단체 골프 제휴</strong><p>클락 프리포트에서 즐기는 18홀 라운드</p></div><div class="partner-promo-visual__copy"><small>호텔 제휴 검토용 안내</small><h3>프런트에서 바로 연결 가능한 골프장 제휴 제안</h3><p>단체 고객과 VIP 투숙객의 골프 문의가 들어오면 담당자가 즉시 연락해 티타임, 카트 포함 여부, 취소 조건을 확인할 수 있도록 정리한 광고입니다.</p><div class="partner-promo-visual__chips"><span>주중/주말 그린피 확인</span><span>티타임 사전 협의</span><span>바우처 출력 가능</span></div><ul><li>계약 전 카트 포함 여부와 우천 취소 기준을 확인합니다.</li><li>바우처에는 업체 주소, 연락처, 코스명, 티오프 시간이 표시됩니다.</li><li>계약 확정 후 업체/항목 관리에서 실제 판매 항목으로 등록합니다.</li></ul></div></div>',
         en:'<div class="partner-promo-visual partner-promo-visual--golf"><div class="partner-promo-visual__media"><span>Sunvalley CC</span><strong>VIP & Group Golf Partnership</strong><p>18-hole rounds in Clark Freeport</p></div><div class="partner-promo-visual__copy"><small>Hotel partnership review</small><h3>Golf partner offer ready for front desk follow-up</h3><p>This ad gives hotel staff a clear contact point for group and VIP golf requests, including tee-time confirmation, cart inclusion, and cancellation terms.</p><div class="partner-promo-visual__chips"><span>Green fee check</span><span>Tee-time coordination</span><span>Voucher ready</span></div><ul><li>Confirm cart inclusion and rain cancellation rules before signing.</li><li>Voucher output includes vendor address, contact, course, and tee time.</li><li>After contract approval, register sellable items in vendor management.</li></ul></div></div>'
       },
-      items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀' }, { name:'카트 이용권', price:70, desc:'팀 단위 카트' }, { name:'클럽 대여', price:60, desc:'1인 기준' }]
+      items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀', holes:'18홀', basePeople:4 }, { name:'카트 이용권', price:70, desc:'팀 단위 카트', holes:'18홀', basePeople:4 }, { name:'클럽 대여', price:60, desc:'1인 기준', holes:'18홀', basePeople:1 }]
     },
     {
       id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager / +63 922 558 7811', contactPerson:'Lee Manager', contactPhone:'+63 922 558 7811', contactEmail:'partner@sky72golf.ph', address:'Andrews Ave, Pasay, Metro Manila', commission:12,
@@ -93,7 +93,7 @@
         ko:'<div class="partner-promo-visual partner-promo-visual--golf partner-promo-visual--early"><div class="partner-promo-visual__media"><span>Sky72 Golf</span><strong>조조 라운드 패키지</strong><p>이른 출발 고객을 위한 오전 티타임 제안</p></div><div class="partner-promo-visual__copy"><small>호텔 제휴 검토용 안내</small><h3>평일 오전 라운드 문의를 바로 계약 검토로 연결</h3><p>조조 라운드를 원하는 투숙객에게 제공 시간, 카트비 포함 여부, 취소 마감 시간을 확인한 뒤 호텔 조건에 맞는 상품으로 등록할 수 있습니다.</p><div class="partner-promo-visual__chips"><span>오전 티타임</span><span>카트비 확인</span><span>취소 기준 확인</span></div><ul><li>담당자에게 연락해 평일 오전 슬롯을 먼저 확인합니다.</li><li>확정된 조건만 부가서비스 항목으로 등록합니다.</li><li>실제 이용 시 현장 입력 정보와 바우처 출력 항목을 남깁니다.</li></ul></div></div>',
         en:'<div class="partner-promo-visual partner-promo-visual--golf partner-promo-visual--early"><div class="partner-promo-visual__media"><span>Sky72 Golf</span><strong>Early Round Package</strong><p>Morning tee-time offer for early guests</p></div><div class="partner-promo-visual__copy"><small>Hotel partnership review</small><h3>Turn weekday morning golf requests into a clear contract workflow</h3><p>Staff can verify early-round hours, cart fee inclusion, and cancellation deadlines before registering approved offers as sellable ancillary items.</p><div class="partner-promo-visual__chips"><span>Morning tee time</span><span>Cart fee check</span><span>Cancellation rules</span></div><ul><li>Contact the vendor first to confirm weekday morning slots.</li><li>Register only confirmed terms as ancillary items.</li><li>Capture field details and voucher fields when the service is used.</li></ul></div></div>'
       },
-      items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀' }, { name:'18홀 패키지', price:520, desc:'그린피+카트' }]
+      items:[{ name:'9홀 라운딩', price:180, desc:'오전 9홀', holes:'9홀', basePeople:2 }, { name:'18홀 패키지', price:520, desc:'그린피+카트', holes:'18홀', basePeople:4 }]
     },
     {
       id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager / +63 928 410 9930', contactPerson:'Park Manager', contactPhone:'+63 928 410 9930', contactEmail:'hotel.sales@lotterent.ph', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13,
@@ -110,7 +110,7 @@
         ko:'<h4>제휴 검토 요약</h4><p>공항 픽업과 장기 렌터카 문의가 많은 호텔에서 담당자가 차량 조건과 계약 요율을 검토하기 위한 광고입니다.</p><h4>계약 전 확인사항</h4><ul><li>차량 종류별 기본 요금과 시간 초과 요금</li><li>보험 포함 여부와 기사 포함 여부</li><li>공항 픽업 위치, 대기 시간, 긴급 연락처</li></ul>',
         en:'<h4>Partnership review summary</h4><p>This ad helps hotel staff review vehicle terms and contract rates for airport pickup and long-stay rental requests.</p><h4>Before signing</h4><ul><li>Base rate and overtime rate by vehicle type</li><li>Insurance and chauffeur inclusion</li><li>Airport pickup point, waiting time, and emergency contact</li></ul>'
       },
-      items:[{ name:'세단 8시간', price:160, desc:'기사 미포함' }, { name:'공항 픽업', price:90, desc:'편도 픽업' }, { name:'전기차 24시간', price:230, desc:'완충 인도' }]
+      items:[{ name:'세단 기본 대여', price:160, desc:'1시간 기준 단가', vehicleClass:'세단', pickupBase:'호텔 로비' }, { name:'공항 픽업 기본료', price:90, desc:'편도 기본료', vehicleClass:'세단', pickupBase:'NAIA Terminal 3' }, { name:'전기차 기본 대여', price:230, desc:'1시간 기준 단가', vehicleClass:'전기차', pickupBase:'호텔 로비' }]
     },
     {
       id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager / +63 917 772 9001', contactPerson:'Choi Manager', contactPhone:'+63 917 772 9001', contactEmail:'partners@skrent.ph', address:'BGC Transport Hub, Taguig', commission:14,
@@ -127,7 +127,7 @@
         ko:'<h4>광고 제안</h4><p>반나절 시내 투어와 기사 포함 차량 문의를 호텔 담당자가 빠르게 검토할 수 있도록 만든 제휴 광고입니다.</p><h4>호텔 확인사항</h4><p>차량별 가능 인원, 기사 포함 시간, 초과 요금, 취소 기준을 계약 전에 확인합니다.</p>',
         en:'<h4>Ad offer</h4><p>This partner ad helps hotel staff review half-day city tour and chauffeur-included vehicle requests.</p><h4>Hotel checklist</h4><p>Confirm vehicle capacity, included chauffeur hours, overtime fees, and cancellation rules before signing.</p>'
       },
-      items:[{ name:'SUV 24시간', price:260, desc:'보험 포함' }, { name:'기사 포함 밴', price:320, desc:'8시간 기준' }]
+      items:[{ name:'SUV 기본 대여', price:260, desc:'1시간 기준 단가', vehicleClass:'SUV', pickupBase:'BGC Transport Hub' }, { name:'기사 포함 밴 기본 대여', price:320, desc:'1시간 기준 단가', vehicleClass:'기사 포함 밴', pickupBase:'호텔 로비' }]
     }
   ];
   function clone(value) {
@@ -137,6 +137,26 @@
     if (type === 'pos') return [];
     if (isVoucherFieldsLocked(type)) return fixedVoucherFields(type);
     return (voucherFieldGroups[type] || voucherFieldGroups.pos).flatMap(group => group.fields);
+  }
+  function normalizeVendorItems(type, items = [], seedItems = []) {
+    const source = Array.isArray(items) && items.length ? items : seedItems;
+    const seeded = seedItems.map(seedItem => {
+      const item = source.find(candidate => candidate?.name === seedItem.name) || seedItem;
+      return {
+        ...clone(seedItem),
+        ...clone(item || {}),
+        category: item?.category || seedItem.category || type
+      };
+    });
+    const custom = source.filter(item => item?.name && !seedItems.some(seedItem => seedItem.name === item.name)).map(item => {
+      const seedItem = seedItems.find(candidate => candidate.name === item?.name) || {};
+      return {
+        ...clone(seedItem),
+        ...clone(item || {}),
+        category: item?.category || seedItem.category || type
+      };
+    });
+    return [...seeded, ...custom];
   }
   function normalizeVendor(vendor) {
     const seed = seedVendors.find(item => item.id === vendor?.id || (item.type === vendor?.type && item.name === vendor?.name));
@@ -148,7 +168,7 @@
       ...clone(seed || {}),
       ...clone(vendor || {}),
       type,
-      items: Array.isArray(vendor?.items) ? clone(vendor.items) : clone(seed?.items || []),
+      items: normalizeVendorItems(type, vendor?.items, seed?.items || []),
       voucherFields: fields,
       address: vendor?.address || seed?.address || '',
       logoDataUrl: vendor?.logoDataUrl || seed?.logoDataUrl || ''
@@ -203,6 +223,8 @@
     seedVendors: clone(seedVendors),
     voucherFieldLabels,
     voucherFieldGroups,
+    isVoucherFieldsLocked,
+    fixedVoucherFields,
     defaultVoucherFields,
     normalizeVendor,
     load,
