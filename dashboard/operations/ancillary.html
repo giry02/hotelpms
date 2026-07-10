@@ -206,6 +206,22 @@
         .voucher-list-money{font-weight:950;color:var(--txt);font-size:.9rem;white-space:nowrap}
         .voucher-print-one{height:34px;padding:0 10px;font-size:.75rem;white-space:nowrap}
         .voucher-print-sheets{display:none}
+        .voucher-print-sheets.is-direct-preview{display:grid;grid-template-columns:82mm;justify-content:center;gap:12px;width:100%;margin:0 auto}
+        .voucher-print-sheets.is-direct-preview .voucher-sheet{box-sizing:border-box;width:82mm;max-width:82mm;margin:0 auto;border:1px solid #cbd5e1;border-radius:3mm;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.12)}
+        .voucher-print-sheets.is-direct-preview .voucher-brand{display:grid;grid-template-columns:18mm minmax(0,1fr);gap:3mm;align-items:center;padding:4mm;border-bottom:1px solid #e5e7eb}
+        .voucher-print-sheets.is-direct-preview .voucher-logo{width:18mm;min-width:18mm;height:11mm;min-height:11mm;border-radius:2mm}
+        .voucher-print-sheets.is-direct-preview .voucher-logo img{max-width:17mm;max-height:10mm}
+        .voucher-print-sheets.is-direct-preview .voucher-logo-mark{width:100%;height:100%;border-radius:2mm;background:#f8fafc;color:#64748b;font-size:7px;font-weight:900}
+        .voucher-print-sheets.is-direct-preview .voucher-logo-mark i{display:none}
+        .voucher-print-sheets.is-direct-preview .voucher-logo-mark::after{content:"HOTEL PMS"}
+        .voucher-print-sheets.is-direct-preview .voucher-heading{font-size:12px;line-height:1.18;text-align:right}
+        .voucher-print-sheets.is-direct-preview .voucher-sub{font-size:7.5px;line-height:1.25;margin-top:1mm;text-align:right}
+        .voucher-print-sheets.is-direct-preview .voucher-body{padding:3mm 4mm}
+        .voucher-print-sheets.is-direct-preview .voucher-row{display:grid;grid-template-columns:25mm minmax(0,1fr);gap:2mm;padding:1.6mm 0;font-size:8px;line-height:1.3}
+        .voucher-print-sheets.is-direct-preview .voucher-row span{text-align:right}
+        .voucher-print-sheets.is-direct-preview .voucher-stub{padding:3mm 4mm}
+        .voucher-print-sheets.is-direct-preview .voucher-stub-title{font-size:8px;margin-bottom:2mm}
+        .voucher-print-sheets.is-direct-preview .voucher-stub-grid{grid-template-columns:1fr 1fr;gap:1.5mm 3mm;font-size:7.5px;line-height:1.35}
         body.printing-service-voucher *{visibility:hidden!important}
         body.printing-service-voucher #serviceVoucherModal,
         body.printing-service-voucher #serviceVoucherModal *{visibility:visible!important}
@@ -873,6 +889,9 @@ function renderVoucherOrderList(orders) {
 }
 function renderVoucherBatch(orders) {
     if (!orders.length) return '';
+    if (orders.length === 1) {
+        return `<div class="voucher-print-sheets is-single-print is-direct-preview">${orders.map(renderVoucherSheet).join('')}</div>`;
+    }
     const first = orders[0];
     const matchedGroup = groups.find(group => group.id === voucherGroupKey(first) || group.groupId === voucherGroupKey(first));
     const groupName = first.groupName || matchedGroup?.name || matchedGroup?.groupName || '단체';
