@@ -1197,7 +1197,9 @@ function renderAncillaryBoard() {
         const res = activeReservationForRoom(room);
         const group = groupForReservation(res);
         const allOrders = roomOrders(room);
-        const haystack = [roomNo(room), roomType(room), reservationGuest(res), group?.name, group?.groupName, ...allOrders.map(order => `${order.vendor} ${order.item}`)].join(' ').toLowerCase();
+        const visibleOrders = serviceFilter === 'all' ? allOrders : allOrders.filter(order => order.service === serviceFilter);
+        if (serviceFilter !== 'all' && !visibleOrders.length) return false;
+        const haystack = [roomNo(room), roomType(room), reservationGuest(res), group?.name, group?.groupName, ...visibleOrders.map(order => `${order.vendor} ${order.item}`)].join(' ').toLowerCase();
         return !query || haystack.includes(query);
     });
     if (!filtered.length) {
