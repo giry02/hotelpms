@@ -1048,43 +1048,15 @@ function buildTimeline() {
         let safeStatus = effectiveTimelineStatus(res);
         const clipStart = Math.max(0, renderStart);
         const clipEnd = Math.min(DAYS, renderEnd);
-        const todayOffset = Math.round((timelineTodayDate() - baseDate) / 86400000);
-        const splitCurrentStay = safeStatus === 'checkedin'
-            && todayOffset >= 0
-            && todayOffset < DAYS
-            && renderStart <= todayOffset
-            && renderEnd > todayOffset + 1;
-
-        if (splitCurrentStay) {
-            pushTimelineBlock({
-                rowState,
-                res,
-                renderIndex,
-                level,
-                clipStart,
-                clipEnd: Math.min(clipEnd, todayOffset + 1),
-                renderStatus: renderTimelineStatus(res, 'checkedin')
-            });
-            pushTimelineBlock({
-                rowState,
-                res,
-                renderIndex,
-                level,
-                clipStart: Math.max(clipStart, todayOffset + 1),
-                clipEnd,
-                renderStatus: renderTimelineStatus(res, 'checkedin')
-            });
-        } else {
-            pushTimelineBlock({
-                rowState,
-                res,
-                renderIndex,
-                level,
-                clipStart,
-                clipEnd,
-                renderStatus: renderTimelineStatus(res, safeStatus)
-            });
-        }
+        pushTimelineBlock({
+            rowState,
+            res,
+            renderIndex,
+            level,
+            clipStart,
+            clipEnd,
+            renderStatus: renderTimelineStatus(res, safeStatus)
+        });
     });
 
     const baseRowHeight = 66;
