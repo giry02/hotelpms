@@ -190,8 +190,8 @@
                     <input type="text" id="searchInput" placeholder="이름, 객실번호, 예약번호, 단체명 검색..." oninput="filterTable()">
                 </div>
                 <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
-                    <option value="week">1주일</option>
                     <option value="today">오늘</option>
+                    <option value="week">1주일</option>
                     <option value="tomorrow">내일</option>
                     <option value="month">이번 달</option>
                     <option value="all">전체 기간</option>
@@ -1096,10 +1096,16 @@ function reservationHasRoomChange(res) {
 
 function reservationRoomNeedsCleaning(res) {
     const room = roomForReservation(res);
+    return roomNeedsCleaningState(room) || reservationNeedsCleaningState(res);
+}
+
+function reservationRoomIsVacant(res) {
+    const room = roomForReservation(res);
+    return roomIsVacantState(room);
+}
+
+function reservationNeedsCleaningState(res) {
     const values = [
-        room?.housekeepingStatus,
-        room?.hkStatus,
-        room?.cleaningStatus,
         res?.housekeepingStatus,
         res?.housekeepingState,
         res?.cleaningStatus
@@ -1107,10 +1113,90 @@ function reservationRoomNeedsCleaning(res) {
     return values.some(status => ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'stayoverdirty', 'inspect', 'needsinspection'].includes(status));
 }
 
-function reservationRoomIsVacant(res) {
-    const room = roomForReservation(res);
-    const values = [room?.frontStatus, room?.status, room?.occupancyStatus].map(value => normalizedRoomOpsValue(value));
-    return values.some(status => ['vacant', 'vacantclean', 'vacantdirty'].includes(status));
+function roomNeedsCleaningState(room) {
+    const values = [
+        room?.housekeepingStatus,
+        room?.hkStatus,
+        room?.cleaningStatus
+    ].map(value => normalizedRoomOpsValue(value));
+    return values.some(status => ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'stayoverdirty', 'inspect', 'needsinspection'].includes(status));
+}
+
+function roomIsVacantState(room) {
+    return listRoomStatusFor(room).status === 'vacant';
+}
+
+function listRoomStatusFor(room) {
+    const today = todayDate();
+    const range = periodRange(currentPeriodFilter) || { start: today, end: today };
+    const isDayRange = range.start && range.end && sameDate(range.start, range.end);
+    const focusDate = isDayRange ? range.start : today;
+    const roomStatus = normalizedRoomOpsValue(room?.status || room?.frontStatus || room?.housekeepingStatus);
+    if (['oos', 'outofservice', 'outoforder', 'maintenance'].includes(roomStatus)) return { status: 'oos', res: null };
+    const related = reservations
+        .filter(res => roomMatchesReservation(room, res))
+        .map(res => ({
+            res,
+            status: normalizeListStatus(res.status),
+            effectiveStatus: effectiveRowStatus(res, focusDate),
+            start: parseListDate(res?.checkInDate || res?.checkin || res?.cin),
+            end: parseListDate(res?.checkOutDate || res?.checkout || res?.cout)
+        }))
+        .filter(item => item.start && item.end && item.status !== 'cancelled' && item.status !== 'completed' && stayOverlapsRange(item.res, range))
+        .sort((a, b) => a.start - b.start);
+
+    const checkoutDue = related.find(item => isCheckoutTargetStatus(item.effectiveStatus) && sameDate(item.end, focusDate));
+    if (checkoutDue) return { status: 'checkout', res: checkoutDue.res };
+
+    const active = related.find(item => item.start <= focusDate && focusDate < item.end);
+    if (active) {
+        if (active.status === 'blocked' || active.res.isGroupPlaceholder) return { status: 'blocked', res: active.res };
+        if (reservationLateCheckoutEnabled(active.res)) return { status: 'late', res: active.res };
+        if (sameDate(active.end, focusDate) && isCheckoutTargetStatus(active.effectiveStatus)) return { status: 'checkout', res: active.res };
+        if (isCheckoutTargetStatus(active.effectiveStatus) || ['inhouse', 'occupied', 'checkedin'].includes(roomStatus)) return { status: 'inhouse', res: active.res };
+        if (sameDate(active.start, focusDate)) return { status: 'arrival', res: active.res };
+        return { status: 'arrival', res: active.res };
+    }
+
+    const arrival = isDayRange
+        ? related.find(item => sameDate(item.start, focusDate))
+        : related.find(item => dateInRange(item.start, range));
+    if (arrival) return { status: 'arrival', res: arrival.res };
+    const next = related.find(item => item.start > focusDate && item.start <= range.end);
+    if (next) return { status: 'reserved', res: next.res };
+    return { status: 'vacant', res: null };
+}
+
+function representativeReservationForRoom(room) {
+    if (!room) return null;
+    return reservations
+        .filter(res => roomMatchesReservation(room, res) && rowMatchesPeriod(res))
+        .sort((a, b) => {
+            const rank = { inhouse: 0, checkout: 1, checkin: 2, confirmed: 3, pending: 4, completed: 5, cancelled: 6 };
+            const left = rank[periodOperationalBucket(a)] ?? 9;
+            const right = rank[periodOperationalBucket(b)] ?? 9;
+            const leftStart = parseListDate(a?.checkInDate || a?.checkin || a?.cin)?.getTime() || 0;
+            const rightStart = parseListDate(b?.checkInDate || b?.checkin || b?.cin)?.getTime() || 0;
+            return left - right || leftStart - rightStart || reservationNumericId(a) - reservationNumericId(b);
+        })[0] || null;
+}
+
+function roomScopedReservationIds(filter) {
+    const cacheKey = `${filter}|${currentPeriodFilter}`;
+    if (roomScopedReservationIdsCache[cacheKey]) return roomScopedReservationIdsCache[cacheKey];
+    const matcher = filter === 'all'
+        ? () => true
+        : filter === 'vacant'
+            ? roomIsVacantState
+            : roomNeedsCleaningState;
+    const ids = new Set(
+        rooms
+            .filter(room => matcher(room))
+            .map(room => representativeReservationForRoom(room)?.id)
+            .filter(Boolean)
+    );
+    roomScopedReservationIdsCache[cacheKey] = ids;
+    return ids;
 }
 
 function operationalBucket(res) {
@@ -1168,11 +1254,16 @@ function cancelActionButton(res, mobile = false) {
 }
 
 let currentFilter = 'all';
-let currentPeriodFilter = 'week';
+let currentPeriodFilter = 'today';
 let currentPage = 1;
 let currentSort = 'recent';
 let currentSortDirection = 'desc';
 const itemsPerPage = 10;
+let roomScopedReservationIdsCache = {};
+
+function clearRoomScopedReservationCache() {
+    roomScopedReservationIdsCache = {};
+}
 
 function reservationNumericId(res) {
     const text = String(res?.id || res?.reservationId || '');
@@ -1292,11 +1383,10 @@ function setPeriodFilter(filter) {
 }
 
 function rowMatchesFilter(res) {
-    if (currentFilter === 'all') return true;
+    if (currentFilter === 'all') return roomScopedReservationIds('all').has(res.id);
     if (currentFilter === 'group') return reservationIsGroup(res);
     if (currentFilter === 'lateCheckout') return reservationLateCheckoutEnabled(res);
-    if (currentFilter === 'dirty') return reservationRoomNeedsCleaning(res);
-    if (currentFilter === 'vacant') return reservationRoomIsVacant(res);
+    if (currentFilter === 'dirty' || currentFilter === 'vacant') return roomScopedReservationIds(currentFilter).has(res.id);
     if (currentFilter === 'roommove') return reservationHasRoomChange(res);
     if (['checkin', 'inhouse', 'checkout', 'completed', 'cancelled'].includes(currentFilter)) {
         return periodOperationalBucket(res) === currentFilter;
@@ -1415,6 +1505,7 @@ function reservationEmptyState() {
 }
 
 function renderTable() {
+    clearRoomScopedReservationCache();
     const tbody = document.getElementById('resBody');
     const mobileContainer = document.getElementById('resMobileCards');
     const search = document.getElementById('searchInput').value.toLowerCase();
@@ -1595,17 +1686,18 @@ function setFilter(btn, filter) {
 }
 
 function updateChipCounts() {
+    clearRoomScopedReservationCache();
     const periodReservations = reservations.filter(rowMatchesPeriod);
-    const counts = { all: periodReservations.length, checkin: 0, inhouse: 0, checkout: 0, completed: 0, group: 0, lateCheckout: 0, dirty: 0, vacant: 0, roommove: 0, cancelled: 0 };
+    const counts = { all: rooms.length, checkin: 0, inhouse: 0, checkout: 0, completed: 0, group: 0, lateCheckout: 0, dirty: 0, vacant: 0, roommove: 0, cancelled: 0 };
     periodReservations.forEach(r => {
         const bucket = periodOperationalBucket(r);
         if (counts[bucket] !== undefined) counts[bucket]++;
         if (reservationIsGroup(r)) counts.group++;
         if (reservationLateCheckoutEnabled(r)) counts.lateCheckout++;
-        if (reservationRoomNeedsCleaning(r)) counts.dirty++;
-        if (reservationRoomIsVacant(r)) counts.vacant++;
         if (reservationHasRoomChange(r)) counts.roommove++;
     });
+    counts.dirty = rooms.filter(roomNeedsCleaningState).length;
+    counts.vacant = rooms.filter(roomIsVacantState).length;
     
     document.querySelectorAll('.chip, .ops-tab').forEach(c => {
         const f = c.getAttribute('data-filter');
