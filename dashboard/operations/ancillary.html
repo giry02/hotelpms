@@ -686,7 +686,7 @@ function activeReservationForRoom(room) {
     return active;
 }
 function canRegisterServiceForRoom(room) {
-    return !!activeReservationForRoom(room || {});
+    return hasAssignedReservationGuest(activeReservationForRoom(room || {}));
 }
 function nextReservationForRoom(room) {
     const cacheKey = `${dateCacheKey(todayDate())}|${roomCacheKey(room)}`;
@@ -703,6 +703,26 @@ function nextReservationForRoom(room) {
 }
 function reservationGuest(res) {
     return res?.guestName || res?.guest || res?.roomingGuestName || res?.customerName || '';
+}
+function assignedReservationGuestName(res) {
+    if (!res || res.isGroupPlaceholder || normalizeStatus(res.status) === 'blocked') return '';
+    const candidates = [
+        res.roomingGuestName,
+        res.guestName,
+        res.guest,
+        res.customerName,
+        ...(Array.isArray(res.roomingGuests) ? res.roomingGuests.map(item => item?.name || item?.guestName) : []),
+        ...(Array.isArray(res.roomingGuestNames) ? res.roomingGuestNames : [])
+    ];
+    return candidates.map(value => String(value || '').trim()).find(name => {
+        const normalized = name.replace(/\s+/g, '').toLowerCase();
+        if (!normalized || ['-', 'none', 'null', 'undefined', 'tbd'].includes(normalized)) return false;
+        if (normalized.includes('미배정') || normalized.includes('unassigned')) return false;
+        return true;
+    }) || '';
+}
+function hasAssignedReservationGuest(res) {
+    return !!assignedReservationGuestName(res);
 }
 function displayDate(value) {
     const date = parseDate(value);
@@ -828,8 +848,13 @@ function voucherGroupKey(order) {
 function voucherVendorKey(order) {
     return order?.vendorId || order?.providerId || order?.partnerId || order?.vendor || '';
 }
+function orderHasAssignedGuest(order) {
+    const room = findRoomById(order?.roomId || order?.room);
+    return hasAssignedReservationGuest(activeReservationForRoom(room || {}));
+}
 function voucherBatchOrdersFor(order) {
     if (!order || order.service === 'pos') return [];
+    if (!orderHasAssignedGuest(order)) return [];
     const groupKey = voucherGroupKey(order);
     if (!groupKey) return [order];
     const vendorKey = voucherVendorKey(order);
@@ -839,6 +864,7 @@ function voucherBatchOrdersFor(order) {
         if (voucherGroupKey(candidate) !== groupKey) return false;
         if (candidate.service !== order.service) return false;
         if (voucherVendorKey(candidate) !== vendorKey) return false;
+        if (!orderHasAssignedGuest(candidate)) return false;
         return voucherFieldsForOrder(candidate).length > 0;
     });
     const unique = new Map(candidates.map(candidate => [candidate.id, candidate]));
@@ -921,12 +947,13 @@ function groupRooms(group) {
 }
 function roomOrders(room) {
     const active = activeReservationForRoom(room || {});
-    if (!active) return [];
+    if (!active || !hasAssignedReservationGuest(active)) return [];
     const key = roomNo(room);
-    const activeGuest = reservationGuest(active);
+    const activeGuest = assignedReservationGuestName(active);
     return serviceOrders.filter(order => {
         const sameRoom = sameRoomValue(order.room, key) || sameRoomValue(order.roomId, room?.id);
-        const sameGuest = !activeGuest || !order.guest || String(order.guest).trim() === String(activeGuest).trim();
+        const orderGuest = String(order.guest || '').trim();
+        const sameGuest = !orderGuest || orderGuest === activeGuest;
         return sameRoom && sameGuest;
     });
 }
@@ -1253,7 +1280,7 @@ function openServiceEntry(roomId) {
     const room = findRoomById(roomId);
     const active = activeReservationForRoom(room || {});
     const next = nextReservationForRoom(room || {});
-    if (!active) {
+    if (!active || !hasAssignedReservationGuest(active)) {
         const message = next ? '체크인 예정 객실은 체크인 처리 후 부가서비스를 등록할 수 있습니다.' : '부가서비스는 투숙 중 객실에만 등록할 수 있습니다.';
         if (window.showToast) window.showToast(message, 'warning');
         else window.showAlert?.(message, { type: 'warning' });
@@ -1364,7 +1391,7 @@ function prepareServiceRegistration(roomId) {
     const room = findRoomById(roomId);
     const active = activeReservationForRoom(room || {});
     const next = nextReservationForRoom(room || {});
-    if (!active) {
+    if (!active || !hasAssignedReservationGuest(active)) {
         const message = next ? '체크인 예정 객실은 체크인 처리 후 부가서비스를 등록할 수 있습니다.' : '부가서비스는 투숙 중 객실에만 등록할 수 있습니다.';
         if (window.showToast) window.showToast(message, 'warning');
         else window.showAlert?.(message, { type: 'warning' });
@@ -1694,6 +1721,7 @@ function saveServiceOrder() {
 function openOrderVoucherModal(orderId) {
     const order = serviceOrders.find(item => item.id === orderId);
     if (!order || order.service === 'pos') return;
+    if (!orderHasAssignedGuest(order)) return window.showAlert?.('투숙객이 배정된 객실의 부가서비스만 바우처를 출력할 수 있습니다.', { type: 'warning' });
     const fields = voucherFieldsForOrder(order);
     if (!fields.length) return window.showAlert?.('업체/항목 관리에서 바우처 출력 항목을 먼저 설정해 주세요.', { type: 'warning' });
     const orders = voucherBatchOrdersFor(order);
