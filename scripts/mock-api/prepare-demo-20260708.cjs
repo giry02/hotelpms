@@ -406,12 +406,12 @@ const groups = items(groupsEnv);
 });
 
 const checkinReservations = [
-  ['RSV-DEMO-TODAY-1208', 'FT-1208', 'Chen Wei', 'Gold', '2026-06-10', '2026-06-12', 140],
-  ['RSV-DEMO-TODAY-1211', 'FT-1211', 'Maria Santos', 'Gold', '2026-06-10', '2026-06-13', 140],
-  ['RSV-DEMO-TODAY-1212', 'FT-1212', 'Olivia Smith', 'General', '2026-06-10', '2026-06-11', 140],
-  ['RSV-DEMO-TODAY-1213', 'FT-1213', 'Park Minji', 'VIP', '2026-06-10', '2026-06-12', 140],
-  ['RSV-DEMO-TODAY-1220', 'FT-1220', 'Robert Ford', 'Diamond', '2026-06-10', '2026-06-13', 140],
-  ['RSV-DEMO-TODAY-1221', 'FT-1221', 'Grace Miller', 'Platinum', '2026-06-10', '2026-06-11', 140]
+  ['RSV-DEMO-TODAY-1208', 'FT-1208', 'Chen Wei', 'Gold', DEMO_BASE_DATE, TWO_DAYS_AFTER, 140],
+  ['RSV-DEMO-TODAY-1211', 'FT-1211', 'Maria Santos', 'Gold', DEMO_BASE_DATE, '2026-06-13', 140],
+  ['RSV-DEMO-TODAY-1212', 'FT-1212', 'Olivia Smith', 'General', DEMO_BASE_DATE, DAY_AFTER, 140],
+  ['RSV-DEMO-TODAY-1213', 'FT-1213', 'Park Minji', 'VIP', DEMO_BASE_DATE, TWO_DAYS_AFTER, 140],
+  ['RSV-DEMO-TODAY-1220', 'FT-1220', 'Robert Ford', 'Diamond', DEMO_BASE_DATE, '2026-06-13', 140],
+  ['RSV-DEMO-TODAY-1221', 'FT-1221', 'Grace Miller', 'Platinum', DEMO_BASE_DATE, DAY_AFTER, 140]
 ].map(([id, roomId, guestName, vip, checkInDate, checkOutDate, rate]) => makeReservation(rooms, {
   id,
   roomId,
@@ -766,14 +766,50 @@ function roomIsInHouse(res) {
 
 function effectiveResStatus(res, targetIso = DEMO_BASE_DATE) {
   let status = statusKey(res?.status);
-  if (['confirmed', 'pending'].includes(status) && roomIsInHouse(res) && stayIncludesDate(res, targetIso)) status = 'checkedin';
+  const start = dateValue(res?.checkInDate || res?.checkin || res?.cin);
+  const target = dateValue(targetIso);
+  if (['confirmed', 'pending'].includes(status) && start && target && start < target && roomIsInHouse(res) && stayIncludesDate(res, targetIso)) status = 'checkedin';
   if (status === 'checkedin') {
     const end = dateValue(res?.checkOutDate || res?.checkout || res?.cout);
-    const target = dateValue(targetIso);
     if (end && target && end <= target) return 'checkout';
   }
   return status;
 }
+
+function normalizeFutureCheckedInReservations() {
+  const target = dateValue(DEMO_BASE_DATE);
+  if (!target) return;
+  const roomsToRelease = new Set();
+
+  reservations.forEach(reservation => {
+    if (statusKey(reservation.status) !== 'checkedin') return;
+    const checkout = dateValue(reservation.checkOutDate || reservation.checkout || reservation.cout);
+    if (!checkout || checkout <= target) return;
+
+    reservation.status = 'confirmed';
+    reservation.color = '#3B82F6';
+    const room = roomForRes(reservation);
+    if (room?.id) roomsToRelease.add(room.id);
+  });
+
+  roomsToRelease.forEach(roomId => {
+    const stillOccupied = reservations.some(reservation => {
+      const room = roomForRes(reservation);
+      return room?.id === roomId && statusKey(reservation.status) === 'checkedin' && stayIncludesDate(reservation, DEMO_BASE_DATE);
+    });
+    if (stillOccupied) return;
+
+    const room = rooms.find(item => item.id === roomId || item.roomId === roomId);
+    if (!room) return;
+    room.status = 'vacant-clean';
+    room.frontStatus = 'vacant-clean';
+    room.housekeepingStatus = 'clean';
+    room.occupancyStatus = 'vacant';
+    syncHousekeeping(hkItems, room, 'vacant-clean');
+  });
+}
+
+normalizeFutureCheckedInReservations();
 
 function isTodayCheckinTarget(res) {
   if (!sameDateValue(res?.checkInDate || res?.checkin || res?.cin, DEMO_BASE_DATE)) return false;

@@ -615,9 +615,10 @@ function isTimelineRoomInHouse(res) {
 
 function effectiveTimelineStatus(res) {
     let safeStatus = normalizeReservationStatus(res);
-    if (['confirmed', 'pending'].includes(safeStatus) && isTimelineRoomInHouse(res) && isTimelineOperationalStayWindow(res)) safeStatus = 'checkedin';
-    const checkoutDate = parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
+    const startDate = timelineReservationStartDate(res);
     const today = timelineTodayDate();
+    if (['confirmed', 'pending'].includes(safeStatus) && startDate && startDate < today && isTimelineRoomInHouse(res) && isTimelineOperationalStayWindow(res)) safeStatus = 'checkedin';
+    const checkoutDate = parseTimelineDate(res?.checkOutDate || res?.checkout || res?.cout);
     if (checkoutDate && safeStatus === 'checkedin') {
         if (checkoutDate < today) return 'completed';
         if (checkoutDate.getTime() === today.getTime()) return 'checkout';

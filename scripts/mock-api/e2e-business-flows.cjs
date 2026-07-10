@@ -616,9 +616,10 @@ async function dashboardPartnerVendorDetailFlow(page) {
 }
 
 async function readonlyCheckedInReservationFlow(page) {
+  const lockedReservationId = 'RSV-DEMO-TODAY-1206-OUT';
   await goto(page, '/dashboard/frontdesk/reservation-timeline.html');
   await page.waitForFunction(() => Array.isArray(window.reservations) && window.reservations.length > 0, null, { timeout: 10000 });
-  await page.evaluate(() => window.openUnifiedResModal('RSV-0016'));
+  await page.evaluate(id => window.openUnifiedResModal(id), lockedReservationId);
   await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
 
   const state = await page.evaluate(() => {
@@ -649,23 +650,23 @@ async function readonlyCheckedInReservationFlow(page) {
   assert(['checkedin', 'checkout'].includes(state.statusValue), 'checked-in status was not normalized in the modal');
   assert(!state.flowHtml.includes("processUnifiedReservationFlow('checkin')"), 'checked-in reservation still showed check-in action');
   assert(state.flowHtml.includes("processUnifiedReservationFlow('checkout')"), 'checked-in reservation did not show checkout action');
-  const beforeCancelStatus = await page.evaluate(() => {
-    const res = window.reservations.find(item => item.id === 'RSV-0016');
+  const beforeCancelStatus = await page.evaluate(id => {
+    const res = window.reservations.find(item => item.id === id);
     return res?.status;
-  });
+  }, lockedReservationId);
   await page.evaluate(() => window.processUnifiedReservationFlow('checkin'));
   await page.waitForTimeout(300);
-  const afterDirectCheckinStatus = await page.evaluate(() => {
-    const res = window.reservations.find(item => item.id === 'RSV-0016');
+  const afterDirectCheckinStatus = await page.evaluate(id => {
+    const res = window.reservations.find(item => item.id === id);
     return res?.status;
-  });
+  }, lockedReservationId);
   assert(afterDirectCheckinStatus === beforeCancelStatus, 'checked-in reservation was re-checked-in through the shared flow action');
-  await page.evaluate(() => window.cancelResAction('RSV-0016'));
+  await page.evaluate(id => window.cancelResAction(id), lockedReservationId);
   await page.waitForTimeout(300);
-  const afterCancelStatus = await page.evaluate(() => {
-    const res = window.reservations.find(item => item.id === 'RSV-0016');
+  const afterCancelStatus = await page.evaluate(id => {
+    const res = window.reservations.find(item => item.id === id);
     return res?.status;
-  });
+  }, lockedReservationId);
   assert(afterCancelStatus === beforeCancelStatus, 'checked-in reservation was cancelled through the shared cancel action');
 
   await page.evaluate(() => window.closeUnifiedResModal());
@@ -700,7 +701,7 @@ async function readonlyCheckedInReservationFlow(page) {
   });
   assert(newState.readonly === 'false', 'new reservation modal kept readonly state after opening a locked reservation');
   assert(newState.guestSectionVisible && newState.saveVisible && !newState.roomDisabled, 'new reservation modal did not restore editable controls');
-  return { reservationId: 'RSV-0016', status: state.statusValue, newModalRestored: true };
+  return { reservationId: lockedReservationId, status: state.statusValue, newModalRestored: true };
 }
 
 async function housekeepingMaintenanceFlow(page) {
