@@ -1397,7 +1397,9 @@ function rowMatchesFilter(res) {
 function rowMatchesPeriod(res) {
     const range = periodRange(currentPeriodFilter);
     if (!range) return true;
-    if (stayOverlapsRange(res, range)) return true;
+    const start = parseListDate(res?.checkInDate || res?.checkin || res?.cin);
+    const end = parseListDate(res?.checkOutDate || res?.checkout || res?.cout);
+    if (start || end) return stayOverlapsRange(res, range);
     const fallback = reservationFallbackDate(res);
     return fallback ? dateInRange(fallback, range) : false;
 }
