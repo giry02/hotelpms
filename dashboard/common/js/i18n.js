@@ -591,6 +591,20 @@ const PAGE_TITLE_MAP = {
     'Tier Change History': { ko: '등급 변동 이력', en: 'Tier Change History' },
 };
 
+function applyKoEnDatasetI18n(lang) {
+    document.querySelectorAll('[data-ko][data-en]').forEach(element => {
+        const translated = element.getAttribute(lang === 'en' ? 'data-en' : 'data-ko');
+        if (translated == null) return;
+        if (element.matches('input, textarea')) {
+            element.setAttribute('placeholder', translated);
+        } else if (element.matches('option')) {
+            element.textContent = translated;
+        } else {
+            element.textContent = translated;
+        }
+    });
+}
+
 function changeLang(l) {
     window.currentLang = l;
     localStorage.setItem('pms_lang', l);
@@ -614,6 +628,8 @@ function changeLang(l) {
         const k = e.getAttribute('data-i18n-placeholder');
         if(catalogDict[k]) e.setAttribute('placeholder', catalogDict[k]);
     });
+
+    applyKoEnDatasetI18n(l);
 
     // 2. h1 태그 번역 (data-i18n-key 없는 것도 포함)
     document.querySelectorAll('h1').forEach(h1 => {
@@ -2402,6 +2418,7 @@ function applyKeyedI18nFallback(lang, catalog) {
         const translated = catalogDict[key] || legacy[key];
         if (translated && element.getAttribute('placeholder') !== translated) element.setAttribute('placeholder', translated);
     });
+    applyKoEnDatasetI18n(lang);
     const langSelects = document.querySelectorAll('#langSelect, .lang-select, select[onchange*="changeLang"]');
     langSelects.forEach(select => {
         if (select.value !== lang) select.value = lang;

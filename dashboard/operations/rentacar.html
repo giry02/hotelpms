@@ -45,8 +45,9 @@
 .filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.period-select, .provider-select { height: 36px; min-width: 150px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
-.provider-select { min-width: 190px; }
+.period-select, .provider-select { height: 36px; min-width: 180px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
+.provider-select { min-width: 230px; }
+.filter-chips .chip { white-space: nowrap; }
 .period-select:focus, .provider-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
 
 @media(max-width:768px){
@@ -109,40 +110,40 @@
                 <div class="search-container">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="searchInput" data-pms-no-search-button="true" placeholder="객실번호 검색..." oninput="renderOrders()" onkeydown="if(event.key==='Enter') renderOrders()">
+                        <input type="text" id="searchInput" data-pms-no-search-button="true" data-ko="객실번호 검색..." data-en="Search room number..." placeholder="객실번호 검색..." oninput="renderOrders()" onkeydown="if(event.key==='Enter') renderOrders()">
                     </div>
                     <button onclick="renderOrders()" class="btn-primary-sm"
                         style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap">
-                        <i class="fa-solid fa-magnifying-glass"></i> 검색
+                        <i class="fa-solid fa-magnifying-glass"></i> <span data-ko="검색" data-en="Search">검색</span>
                     </button>
                 </div>
                 <div class="filter-divider"></div>
                 <div class="filter-group">
                     <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
-                        <option value="week">최근 7일</option>
-                        <option value="today">오늘</option>
-                        <option value="month">이번 달</option>
-                        <option value="all">전체 기간</option>
+                        <option value="week" data-ko="최근 7일" data-en="Last 7 days">최근 7일</option>
+                        <option value="today" data-ko="오늘" data-en="Today">오늘</option>
+                        <option value="month" data-ko="이번 달" data-en="This month">이번 달</option>
+                        <option value="all" data-ko="전체 기간" data-en="All dates">전체 기간</option>
                     </select>
                 </div>
                 <div class="filter-divider"></div>
                 <div class="filter-group">
                     <div class="filter-chips" id="statusFilterChips">
-                        <button class="chip active" onclick="setStatusFilter(this,'all')">전체 <span class="chip-count" id="statusAllCount">0</span></button>
-                        <button class="chip" onclick="setStatusFilter(this,'open')">미완료 <span class="chip-count" id="statusOpenCount">0</span></button>
-                        <button class="chip" onclick="setStatusFilter(this,'done')">완료 <span class="chip-count" id="statusDoneCount">0</span></button>
+                        <button class="chip active" onclick="setStatusFilter(this,'all')"><span data-ko="전체" data-en="All">전체</span> <span class="chip-count" id="statusAllCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'open')"><span data-ko="미완료" data-en="Open">미완료</span> <span class="chip-count" id="statusOpenCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'done')"><span data-ko="완료" data-en="Done">완료</span> <span class="chip-count" id="statusDoneCount">0</span></button>
                     </div>
                 </div>
                 <div class="filter-divider"></div>
                 <div class="filter-group">
                     <select id="providerFilterSelect" class="provider-select" onchange="setProviderFilter(this.value)">
-                        <option value="all">전체 업체</option>
+                        <option value="all" data-ko="전체 업체" data-en="All providers">전체 업체</option>
                     </select>
                 </div>
             </div>
             <div class="filter-right">
-                <button class="btn-outline" onclick="location.href='ancillary-vendors.html'"><i class="fa-solid fa-building"></i> 업체 관리</button>
-                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> 신규 예약</button>
+                <button class="btn-outline" onclick="location.href='ancillary-vendors.html'"><i class="fa-solid fa-building"></i> <span data-ko="업체 관리" data-en="Vendor Management">업체 관리</span></button>
+                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> <span data-ko="신규 예약" data-en="New Reservation">신규 예약</span></button>
             </div>
         </div>
 
@@ -164,19 +165,27 @@ const tMap = {
 };
 
 const VEHICLE_CLASSES = [
-    { value: 'compact', label: '\uCEF4\uD329\uD2B8', icon: 'fa-car-side' },
-    { value: 'sedan', label: '\uC138\uB2E8', icon: 'fa-car' },
-    { value: 'suv', label: 'SUV', icon: 'fa-truck-monster' },
-    { value: 'van', label: '\uBC34/\uC2B9\uD569', icon: 'fa-van-shuttle' },
-    { value: 'electric', label: '\uC804\uAE30\uCC28', icon: 'fa-bolt' },
-    { value: 'hybrid', label: '\uD558\uC774\uBE0C\uB9AC\uB4DC', icon: 'fa-leaf' },
-    { value: 'luxury', label: '\uB7ED\uC154\uB9AC', icon: 'fa-gem' },
-    { value: 'chauffeur', label: '\uAE30\uC0AC \uD3EC\uD568', icon: 'fa-user-tie' }
+    { value: 'compact', label: '\uCEF4\uD329\uD2B8', labelEn: 'Compact', icon: 'fa-car-side' },
+    { value: 'sedan', label: '\uC138\uB2E8', labelEn: 'Sedan', icon: 'fa-car' },
+    { value: 'suv', label: 'SUV', labelEn: 'SUV', icon: 'fa-truck-monster' },
+    { value: 'van', label: '\uBC34/\uC2B9\uD569', labelEn: 'Van / MPV', icon: 'fa-van-shuttle' },
+    { value: 'electric', label: '\uC804\uAE30\uCC28', labelEn: 'Electric Vehicle', icon: 'fa-bolt' },
+    { value: 'hybrid', label: '\uD558\uC774\uBE0C\uB9AC\uB4DC', labelEn: 'Hybrid', icon: 'fa-leaf' },
+    { value: 'luxury', label: '\uB7ED\uC154\uB9AC', labelEn: 'Luxury', icon: 'fa-gem' },
+    { value: 'chauffeur', label: '\uAE30\uC0AC \uD3EC\uD568', labelEn: 'Chauffeur Included', icon: 'fa-user-tie' }
 ];
 
 let currentFilter = 'all';
 let currentPeriodFilter = 'week';
 let currentStatusFilter = 'all';
+
+function rentLang() {
+    return localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+}
+
+function rentText(ko, en) {
+    return rentLang() === 'en' ? en : ko;
+}
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -237,16 +246,17 @@ function vehicleClassMeta(value) {
 }
 
 function vehicleClassLabel(order) {
-    return vehicleClassMeta(vehicleClassOf(order)).label;
+    const meta = vehicleClassMeta(vehicleClassOf(order));
+    return rentLang() === 'en' ? (meta.labelEn || meta.label) : meta.label;
 }
 
 function refreshVehicleClassOptions() {
     const select = document.getElementById('rentCarType');
     if (!select) return;
     select.innerHTML = [
-        '<option value="">\uCC28\uC885 \uC120\uD0DD...</option>',
-        ...VEHICLE_CLASSES.map(item => `<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`),
-        '<option value="custom">\uC9C1\uC811 \uC785\uB825</option>'
+        `<option value="">${rentText('차종 선택...', 'Select vehicle class...')}</option>`,
+        ...VEHICLE_CLASSES.map(item => `<option value="${escapeHtml(item.value)}">${escapeHtml(rentLang() === 'en' ? (item.labelEn || item.label) : item.label)}</option>`),
+        `<option value="custom">${rentText('직접 입력', 'Custom Entry')}</option>`
     ].join('');
     toggleVehicleClassCustom();
 }
@@ -278,7 +288,7 @@ function refreshProviderFilterOptions() {
     if (currentFilter !== 'all' && !entries.some(entry => entry.key === currentFilter)) currentFilter = 'all';
     if (select) {
         select.innerHTML = [
-            `<option value="all">전체 업체 (${orders.length})</option>`,
+            `<option value="all">${rentText('전체 업체', 'All providers')} (${orders.length})</option>`,
             ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)} (${entry.count})</option>`)
         ].join('');
         select.value = currentFilter;
@@ -286,7 +296,7 @@ function refreshProviderFilterOptions() {
     document.querySelectorAll('.provider-order-select').forEach(orderSelect => {
         const selected = orderSelect.value;
         orderSelect.innerHTML = [
-            `<option value="">업체 선택...</option>`,
+            `<option value="">${rentText('업체 선택...', 'Select provider...')}</option>`,
             ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)}</option>`)
         ].join('');
         if (entries.some(entry => entry.key === selected)) orderSelect.value = selected;
@@ -562,12 +572,15 @@ const translations={ko: {
         "Support": "Support",
 "Ancillary Svcs":"Ancillary Svcs","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","New Requests":"New Requests","Preparing":"Preparing","Completed":"Completed","Est. Revenue":"Est. Revenue","All Services":"All Services","Room Service":"Room Service","Spa & Massage":"Spa & Massage","Concierge":"Concierge","Manual Order":"Manual Order"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
+function applyDataKoEn(l){document.querySelectorAll('[data-ko][data-en]').forEach(e=>{const v=e.getAttribute(l==='en'?'data-en':'data-ko');if(v==null)return;if(e.matches('input, textarea'))e.setAttribute('placeholder',v);else e.textContent=v;});}
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'Room번호 검색...';
+    applyDataKoEn(l);
     if(tMap['lotte']) tMap['lotte'].label = l==='en'?'Lotte Rent-a-Car':'롯데렌터카';
     if(tMap['sk']) tMap['sk'].label = l==='en'?'SK Rent-a-Car':'SK렌터카';
+    refreshVehicleClassOptions();
     refreshProviderFilterOptions();
     /* renderOrders(); */
 }
@@ -717,7 +730,7 @@ async function ensureAncillaryGroupBulk(prefix) {
     const wrap = document.createElement('div');
     wrap.id = prefix + 'GroupBulk';
     wrap.style.cssText = 'border:1px solid var(--border2);border-radius:10px;background:#f8fafc;padding:12px;display:flex;flex-direction:column;gap:10px';
-    wrap.innerHTML = `<label style="display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:900;color:var(--txt)"><input type="checkbox" id="${prefix}GroupMode" onchange="toggleAncillaryGroupBulk('${prefix}')" style="width:16px;height:16px;accent-color:var(--primary)"> 단체 고객 일괄 등록</label><div id="${prefix}GroupBulkBody" style="display:none;flex-direction:column;gap:8px"><select id="${prefix}GroupSelect" class="form-input" onchange="renderAncillaryGroupGuests('${prefix}')"><option value="">단체/행사 선택</option></select><div id="${prefix}GroupGuests" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px"></div></div>`;
+    wrap.innerHTML = `<label style="display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:900;color:var(--txt)"><input type="checkbox" id="${prefix}GroupMode" onchange="toggleAncillaryGroupBulk('${prefix}')" style="width:16px;height:16px;accent-color:var(--primary)"> ${rentText('단체 고객 일괄 등록', 'Bulk group guest registration')}</label><div id="${prefix}GroupBulkBody" style="display:none;flex-direction:column;gap:8px"><select id="${prefix}GroupSelect" class="form-input" onchange="renderAncillaryGroupGuests('${prefix}')"><option value="">${rentText('단체/행사 선택', 'Select group/event')}</option></select><div id="${prefix}GroupGuests" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px"></div></div>`;
     body.insertBefore(wrap, body.children[1] || null);
     await loadAncillaryGroups(prefix);
 }
@@ -729,7 +742,7 @@ async function loadAncillaryGroups(prefix) {
     }
     window[prefix + 'AncillaryGroups'] = Array.isArray(groups) ? groups : [];
     const select = document.getElementById(prefix + 'GroupSelect');
-    if (select) select.innerHTML = '<option value="">단체/행사 선택</option>' + window[prefix + 'AncillaryGroups'].map(g => `<option value="${g.id}">${g.name || g.groupName || g.id}</option>`).join('');
+    if (select) select.innerHTML = `<option value="">${rentText('단체/행사 선택', 'Select group/event')}</option>` + window[prefix + 'AncillaryGroups'].map(g => `<option value="${g.id}">${g.name || g.groupName || g.id}</option>`).join('');
 }
 
 function toggleAncillaryGroupBulk(prefix) {
@@ -748,7 +761,7 @@ function renderAncillaryGroupGuests(prefix) {
         ...(Array.isArray(group.guests) ? group.guests : [])
     ] : [];
     if (!box) return;
-    box.innerHTML = guests.length ? guests.map((guest, index) => `<label style="display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 8px;font-size:.75rem;font-weight:800"><input type="checkbox" checked data-bulk-guest="${index}" style="accent-color:var(--primary)"> ${guest.name || guest.guestName || guest.roomId || '투숙객'}</label>`).join('') : '<div style="font-size:.75rem;color:var(--txt3);font-weight:800">단체 명단이 없으면 객실 배정/투숙객 명단에서 먼저 등록하세요.</div>';
+    box.innerHTML = guests.length ? guests.map((guest, index) => `<label style="display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 8px;font-size:.75rem;font-weight:800"><input type="checkbox" checked data-bulk-guest="${index}" style="accent-color:var(--primary)"> ${guest.name || guest.guestName || guest.roomId || rentText('투숙객', 'Guest')}</label>`).join('') : `<div style="font-size:.75rem;color:var(--txt3);font-weight:800">${rentText('단체 명단이 없으면 객실 배정/투숙객 명단에서 먼저 등록하세요.', 'No group roster is available. Register room assignments or guest list first.')}</div>`;
 }
 
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
@@ -766,7 +779,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">호실 선택 <span style="color:var(--danger)">*</span></label>
                     <select id="rentRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="autoFillGuest('rent')">
-                        <option value="">선택...</option>
+                        <option value="" data-ko="선택..." data-en="Select...">선택...</option>
                         <option value="1401">1401</option>
                         <option value="0807">0807</option>
                         <option value="1205">1205</option>
@@ -785,9 +798,9 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">차량 등급 (차종) <span style="color:var(--danger)">*</span></label>
                     <select id="rentCarType" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff" onchange="toggleVehicleClassCustom()">
-                        <option>세단</option>
-                        <option>패밀리 SUV</option>
-                        <option>럭셔리 밴</option>
+                        <option data-ko="세단" data-en="Sedan">세단</option>
+                        <option data-ko="패밀리 SUV" data-en="Family SUV">패밀리 SUV</option>
+                        <option data-ko="럭셔리 밴" data-en="Luxury Van">럭셔리 밴</option>
                     </select>
                     <input type="text" id="rentCarTypeCustom" style="display:none;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="&#50696;: &#54589;&#50629;&#53944;&#47085;, &#47532;&#47924;&#51652;, &#51204;&#44592; SUV">
                 </div>
@@ -795,7 +808,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">렌터카 업체 <span style="color:var(--danger)">*</span></label>
                 <select class="provider-order-select" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                    <option value="">업체 선택...</option>
+                    <option value="" data-ko="업체 선택..." data-en="Select provider...">업체 선택...</option>
                 </select>
             </div>
             <hr style="border:none;border-top:1px solid var(--border2)">
@@ -807,10 +820,10 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">대여 기간 <span style="color:var(--danger)">*</span></label>
                     <select id="rentDuration" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>4시간</option>
-                        <option>8시간</option>
-                        <option>24시간 (1 Day)</option>
-                        <option>공항 샌딩</option>
+                        <option data-ko="4시간" data-en="4 hours">4시간</option>
+                        <option data-ko="8시간" data-en="8 hours">8시간</option>
+                        <option data-ko="24시간 (1 Day)" data-en="24 hours (1 day)">24시간 (1 Day)</option>
+                        <option data-ko="공항 샌딩" data-en="Airport drop-off">공항 샌딩</option>
                     </select>
                 </div>
             </div>
@@ -864,9 +877,9 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">상태</label>
                     <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option value="active">활성</option>
-                        <option value="pending">대기</option>
-                        <option value="inactive">비활성</option>
+                        <option value="active" data-ko="활성" data-en="Active">활성</option>
+                        <option value="pending" data-ko="대기" data-en="Pending">대기</option>
+                        <option value="inactive" data-ko="비활성" data-en="Inactive">비활성</option>
                     </select>
                 </div>
             </div>

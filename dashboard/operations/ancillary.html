@@ -1500,14 +1500,14 @@ function updateServiceQtyField() {
 function renderServiceVendors() {
     const list = serviceVendorList(selectedService);
     const vendorSelect = document.getElementById('serviceVendor');
-    vendorSelect.innerHTML = list.map(vendor => `<option value="${escapeHtml(vendor.id)}">${escapeHtml(vendor.name)}</option>`).join('') || '<option value="">등록된 업체 없음</option>';
+    vendorSelect.innerHTML = list.map(vendor => `<option value="${escapeHtml(vendor.id)}">${escapeHtml(vendor.name)}</option>`).join('') || `<option value="">${ancillaryText('등록된 업체 없음', 'No registered vendors')}</option>`;
     if (requestedVendorId && list.some(vendor => vendor.id === requestedVendorId)) vendorSelect.value = requestedVendorId;
     renderServiceItems();
 }
 function renderServiceItems() {
     const vendor = selectedVendor();
     const items = vendor?.items || [];
-    document.getElementById('serviceItem').innerHTML = items.map((item, index) => `<option value="${index}" data-price="${Number(item.price || 0)}">${escapeHtml(item.name)} · ${money(item.price)}</option>`).join('') || '<option value="0" data-price="0">기본 항목 · ₱0</option>';
+    document.getElementById('serviceItem').innerHTML = items.map((item, index) => `<option value="${index}" data-price="${Number(item.price || 0)}">${escapeHtml(item.name)} · ${money(item.price)}</option>`).join('') || `<option value="0" data-price="0">${ancillaryText('기본 항목', 'Default item')} · ₱0</option>`;
     handleServiceItemChange();
 }
 function selectedItemBasePrice() {
@@ -1593,7 +1593,7 @@ function selectedVendor() {
 function selectedItem() {
     const vendor = selectedVendor();
     const index = Number(document.getElementById('serviceItem')?.value || 0);
-    return (vendor?.items || [])[index] || { name:'기본 항목', price:0 };
+    return (vendor?.items || [])[index] || { name: ancillaryText('기본 항목', 'Default item'), price:0 };
 }
 function renderRegistrationPreview() {
     const totalPreview = document.getElementById('serviceTotalPreview');

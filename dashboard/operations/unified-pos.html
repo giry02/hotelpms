@@ -45,8 +45,9 @@
 .filter-divider { width: 1px; height: 24px; background: var(--border2); flex-shrink: 0; }
 .filter-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.period-select, .category-select { height: 36px; min-width: 150px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
-.category-select { min-width: 180px; }
+.period-select, .category-select { height: 36px; min-width: 180px; border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--txt); font-family: var(--font); font-size: .78rem; font-weight: 700; padding: 0 34px 0 12px; outline: none; }
+.category-select { min-width: 230px; }
+.filter-chips .chip { white-space: nowrap; }
 .period-select:focus, .category-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.08); }
 .pos-category-badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; background: var(--bg); color: var(--txt); border: 1px solid var(--border2); font-size: .76rem; font-weight: 800; white-space: nowrap; }
 .pos-completion-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: .7rem; font-weight: 800; white-space: nowrap; }
@@ -85,28 +86,28 @@
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-bell"></i></div></div>
                 <div class="kpi-body">
                     <div class="kpi-value" id="kpiNew">0</div>
-                    <div class="kpi-label">신규 접수</div>
+                    <div class="kpi-label" data-ko="신규 접수" data-en="New Orders">신규 접수</div>
                 </div>
             </div>
             <div class="kpi-card blue">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-fire-burner"></i></div></div>
                 <div class="kpi-body">
                     <div class="kpi-value" id="kpiPrep">0</div>
-                    <div class="kpi-label">처리 중</div>
+                    <div class="kpi-label" data-ko="처리 중" data-en="In Progress">처리 중</div>
                 </div>
             </div>
             <div class="kpi-card green">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-check"></i></div></div>
                 <div class="kpi-body">
                     <div class="kpi-value" id="kpiDone">0</div>
-                    <div class="kpi-label">완료</div>
+                    <div class="kpi-label" data-ko="완료" data-en="Completed">완료</div>
                 </div>
             </div>
             <div class="kpi-card purple">
                 <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-sack-dollar"></i></div></div>
                 <div class="kpi-body">
                     <div class="kpi-value" id="kpiRev">$0</div>
-                    <div class="kpi-label">누적 매출</div>
+                    <div class="kpi-label" data-ko="누적 매출" data-en="Total Sales">누적 매출</div>
                 </div>
             </div>
         </div>
@@ -117,40 +118,40 @@
                 <div class="search-container">
                     <div class="search-box-mt">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="searchInput" data-pms-no-search-button="true" placeholder="객실번호, 고객명, 오더번호 검색..." oninput="renderOrders()" onkeydown="if(event.key==='Enter') renderOrders()">
+                        <input type="text" id="searchInput" data-pms-no-search-button="true" data-ko="객실번호, 고객명, 오더번호 검색..." data-en="Search room, guest, or order no..." placeholder="객실번호, 고객명, 오더번호 검색..." oninput="renderOrders()" onkeydown="if(event.key==='Enter') renderOrders()">
                     </div>
                     <button onclick="renderOrders()" class="btn-primary-sm"
                         style="height:36px;padding:0 16px;border-radius:8px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap">
-                        <i class="fa-solid fa-magnifying-glass"></i> 검색
+                        <i class="fa-solid fa-magnifying-glass"></i> <span data-ko="검색" data-en="Search">검색</span>
                     </button>
                 </div>
                 <div class="filter-divider"></div>
                 <div class="filter-group">
                     <select id="periodFilterSelect" class="period-select" onchange="setPeriodFilter(this.value)">
-                        <option value="week">최근 7일</option>
-                        <option value="today">오늘</option>
-                        <option value="month">이번 달</option>
-                        <option value="all">전체 기간</option>
+                        <option value="week" data-ko="최근 7일" data-en="Last 7 days">최근 7일</option>
+                        <option value="today" data-ko="오늘" data-en="Today">오늘</option>
+                        <option value="month" data-ko="이번 달" data-en="This month">이번 달</option>
+                        <option value="all" data-ko="전체 기간" data-en="All dates">전체 기간</option>
                     </select>
                 </div>
                 <div class="filter-divider"></div>
                 <div class="filter-group">
                     <div class="filter-chips" id="statusFilterChips">
-                        <button class="chip active" onclick="setStatusFilter(this,'all')">전체 <span class="chip-count" id="statusAllCount">0</span></button>
-                        <button class="chip" onclick="setStatusFilter(this,'open')">미완료 <span class="chip-count" id="statusOpenCount">0</span></button>
-                        <button class="chip" onclick="setStatusFilter(this,'done')">완료 <span class="chip-count" id="statusDoneCount">0</span></button>
+                        <button class="chip active" onclick="setStatusFilter(this,'all')"><span data-ko="전체" data-en="All">전체</span> <span class="chip-count" id="statusAllCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'open')"><span data-ko="미완료" data-en="Open">미완료</span> <span class="chip-count" id="statusOpenCount">0</span></button>
+                        <button class="chip" onclick="setStatusFilter(this,'done')"><span data-ko="완료" data-en="Done">완료</span> <span class="chip-count" id="statusDoneCount">0</span></button>
                     </div>
                 </div>
                 <div class="filter-divider"></div>
                 <div class="filter-group">
                     <select id="categoryFilterSelect" class="category-select" onchange="setCategoryFilter(this.value)">
-                        <option value="all">전체 카테고리</option>
+                        <option value="all" data-ko="전체 카테고리" data-en="All categories">전체 카테고리</option>
                     </select>
                 </div>
             </div>
             <div class="filter-right">
-                <button class="btn-outline" onclick="openModal('catalogModal')"><i class="fa-solid fa-list-check"></i> 항목 관리</button>
-                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> 수동 오더 등록</button>
+                <button class="btn-outline" onclick="openModal('catalogModal')"><i class="fa-solid fa-list-check"></i> <span data-ko="항목 관리" data-en="Item Management">항목 관리</span></button>
+                <button class="btn-primary-sm" onclick="openModal('addOrderModal')"><i class="fa-solid fa-plus"></i> <span data-ko="수동 오더 등록" data-en="Manual Order">수동 오더 등록</span></button>
             </div>
         </div>
 
@@ -170,15 +171,51 @@
 let allOrders = [];
 
 const statusInfo = {
-    new: { label:'신규 접수', group:'미완료', cls:'new', icon:'fa-circle-exclamation', taskClass:'dirty' },
-    prep: { label:'처리 중', group:'미완료', cls:'prep', icon:'fa-fire-burner', taskClass:'inspect' },
-    done: { label:'완료', group:'완료', cls:'done', icon:'fa-check-circle', taskClass:'clean' }
+    new: { labelKey:'newStatus', groupKey:'openGroup', cls:'new', icon:'fa-circle-exclamation', taskClass:'dirty' },
+    prep: { labelKey:'prepStatus', groupKey:'openGroup', cls:'prep', icon:'fa-fire-burner', taskClass:'inspect' },
+    done: { labelKey:'doneStatus', groupKey:'doneGroup', cls:'done', icon:'fa-check-circle', taskClass:'clean' }
 };
 
 let currentFilter = 'all';
 let currentStatusFilter = 'all';
 let currentPeriodFilter = 'week';
 const CURRENT_POS_DATE = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : '2026-06-10';
+const POS_TEXT = {
+    newStatus: { ko: '신규 접수', en: 'New Order' },
+    prepStatus: { ko: '처리 중', en: 'In Progress' },
+    doneStatus: { ko: '완료', en: 'Completed' },
+    openGroup: { ko: '미완료', en: 'Open' },
+    doneGroup: { ko: '완료', en: 'Done' },
+    otherCost: { ko: '기타 비용', en: 'Other Charges' },
+    allCategories: { ko: '전체 카테고리', en: 'All categories' },
+    visibleOrders: { ko: '표시 오더', en: 'Visible orders' },
+    openOrders: { ko: '미완료', en: 'Open' },
+    visibleAmount: { ko: '표시 금액', en: 'Visible amount' },
+    countSuffix: { ko: '건', en: '' },
+    emptyOrders: { ko: '해당하는 오더가 없습니다.', en: 'No matching orders.' },
+    acceptOrder: { ko: '오더 수락', en: 'Accept order' },
+    completeOrder: { ko: '처리 완료', en: 'Mark complete' },
+    completed: { ko: '완료됨', en: 'Completed' },
+    freeInfo: { ko: '무료/안내', en: 'Free / Info' },
+    received: { ko: '접수', en: 'Received' },
+    billAmount: { ko: '청구액', en: 'Charge' },
+    dining: { ko: '식음료', en: 'F&B' },
+    roomservice: { ko: '룸서비스', en: 'Room Service' },
+    spa: { ko: '스파', en: 'Spa' },
+    laundry: { ko: '세탁', en: 'Laundry' },
+    retail: { ko: '판매', en: 'Retail' },
+    golf: { ko: '골프장', en: 'Golf' },
+    rentacar: { ko: '렌터카', en: 'Rent-a-car' }
+};
+
+function posLang() {
+    return localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+}
+
+function posText(key) {
+    const item = POS_TEXT[key];
+    return item ? (item[posLang() === 'en' ? 'en' : 'ko'] || item.ko) : key;
+}
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -218,7 +255,44 @@ function normalizeCategoryKey(category) {
 function categoryLabelFor(rawCategory, categoryKey, order) {
     return order.categoryLabel
         || order.categoryName
-        || String(rawCategory || categoryKey || '기타 비용');
+        || String(rawCategory || categoryKey || posText('otherCost'));
+}
+
+function categoryDisplayLabel(orderOrLabel, categoryKey) {
+    const raw = typeof orderOrLabel === 'object' ? orderOrLabel.categoryLabel : orderOrLabel;
+    const key = typeof orderOrLabel === 'object' ? orderOrLabel.categoryKey : categoryKey;
+    const compact = String(key || raw || '').replace(/[-_\s]/g, '').toLowerCase();
+    const normalized = {
+        fnb: 'dining',
+        food: 'dining',
+        dining: 'dining',
+        restaurant: 'dining',
+        roomservice: 'roomservice',
+        service: 'roomservice',
+        spa: 'spa',
+        massage: 'spa',
+        laundry: 'laundry',
+        drycleaning: 'laundry',
+        retail: 'retail',
+        shop: 'retail',
+        golf: 'golf',
+        rentacar: 'rentacar'
+    }[compact];
+    if (normalized && POS_TEXT[normalized]) return posText(normalized);
+    if (posLang() === 'en') {
+        const byLabel = {
+            '식음료': 'F&B',
+            '룸서비스': 'Room Service',
+            '스파': 'Spa',
+            '세탁': 'Laundry',
+            '판매': 'Retail',
+            '골프장': 'Golf',
+            '렌터카': 'Rent-a-car',
+            '기타 비용': 'Other Charges'
+        };
+        return byLabel[String(raw || '').trim()] || String(raw || key || posText('otherCost'));
+    }
+    return String(raw || key || posText('otherCost'));
 }
 
 function normalizeOrder(order) {
@@ -314,6 +388,7 @@ function orderMatchesSearch(order, query) {
         order.roomId,
         order.guest,
         order.categoryLabel,
+        categoryDisplayLabel(order),
         order.items
     ].filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(query);
@@ -323,11 +398,11 @@ function categoryEntries() {
     const map = new Map();
     allOrders.forEach(order => {
         if (!map.has(order.categoryKey)) {
-            map.set(order.categoryKey, { key: order.categoryKey, label: order.categoryLabel, count: 0 });
+            map.set(order.categoryKey, { key: order.categoryKey, label: categoryDisplayLabel(order), count: 0 });
         }
         map.get(order.categoryKey).count++;
     });
-    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'ko'));
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, posLang() === 'en' ? 'en' : 'ko'));
 }
 
 function refreshCategoryControls() {
@@ -337,7 +412,7 @@ function refreshCategoryControls() {
         const selectedExists = currentFilter === 'all' || entries.some(entry => entry.key === currentFilter);
         if (!selectedExists) currentFilter = 'all';
         filterSelect.innerHTML = [
-            `<option value="all">전체 카테고리 (${allOrders.length})</option>`,
+            `<option value="all">${posText('allCategories')} (${allOrders.length})</option>`,
             ...entries.map(entry => `<option value="${escapeHtml(entry.key)}">${escapeHtml(entry.label)} (${entry.count})</option>`)
         ].join('');
         filterSelect.value = currentFilter;
@@ -371,14 +446,15 @@ function renderOrders() {
     if (summary) {
         const openCount = filtered.filter(o => o.status !== 'done').length;
         const totalAmount = filtered.reduce((sum, o) => sum + Number(o.total || 0), 0);
+        const suffix = (localStorage.getItem('pms_lang') || window.currentLang || document.documentElement.lang || 'ko') === 'en' ? '' : '건';
         summary.innerHTML = `
-            <span>표시 오더 <strong>${filtered.length}</strong>건 / 미완료 <strong>${openCount}</strong>건</span>
-            <span>표시 금액 <strong>${formatAmount(totalAmount)}</strong></span>
+            <span>${posText('visibleOrders')} <strong>${filtered.length}</strong>${suffix} / ${posText('openOrders')} <strong>${openCount}</strong>${suffix}</span>
+            <span>${posText('visibleAmount')} <strong>${formatAmount(totalAmount)}</strong></span>
         `;
     }
 
     if (filtered.length === 0) {
-        container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3)">해당하는 오더가 없습니다.</div>';
+        container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--txt3)">${posText('emptyOrders')}</div>`;
         return;
     }
 
@@ -387,15 +463,17 @@ function renderOrders() {
         
         let actBtn;
         if (o.status === 'new') {
-            actBtn = `<button class="btn-primary-sm" onclick="acceptOrder('${o.id}')"><i class="fa-solid fa-check"></i> 오더 수락</button>`;
+            actBtn = `<button class="btn-primary-sm" onclick="acceptOrder('${o.id}')"><i class="fa-solid fa-check"></i> ${posText('acceptOrder')}</button>`;
         } else if (o.status === 'prep') {
-            actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)" onclick="completeOrder('${o.id}')"><i class="fa-solid fa-check-double"></i> 처리 완료</button>`;
+            actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)" onclick="completeOrder('${o.id}')"><i class="fa-solid fa-check-double"></i> ${posText('completeOrder')}</button>`;
         } else {
-            actBtn = `<button class="btn-outline-sm" disabled>완료됨</button>`;
+            actBtn = `<button class="btn-outline-sm" disabled>${posText('completed')}</button>`;
         }
 
-        const amtHtml = o.total > 0 ? `<span style="font-weight:700;color:var(--txt)">${formatAmount(o.total)}</span>` : `<span style="color:var(--txt3)">무료/안내</span>`;
+        const amtHtml = o.total > 0 ? `<span style="font-weight:700;color:var(--txt)">${formatAmount(o.total)}</span>` : `<span style="color:var(--txt3)">${posText('freeInfo')}</span>`;
         const safeId = escapeHtml(o.id);
+        const stateLabel = posText(state.labelKey);
+        const stateGroup = posText(state.groupKey);
 
         return `
         <div class="hk-task ${state.taskClass}">
@@ -403,19 +481,19 @@ function renderOrders() {
                 <div class="hk-task-room">${escapeHtml(o.room)}</div>
                 <div class="hk-task-info">
                     <div class="hk-task-title">
-                        <span class="pos-category-badge">${escapeHtml(o.categoryLabel)}</span>
+                        <span class="pos-category-badge">${escapeHtml(categoryDisplayLabel(o))}</span>
                         <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:6px">${safeId}</span>
-                        <span class="pos-completion-badge ${o.status === 'done' ? 'done' : 'open'}">${state.group}</span>
+                        <span class="pos-completion-badge ${o.status === 'done' ? 'done' : 'open'}">${stateGroup}</span>
                     </div>
                     <div class="hk-task-meta" style="color:var(--txt);font-weight:500">
                         ${o.guest ? escapeHtml(o.guest) + ' - ' : ''}${escapeHtml(o.items)}
                     </div>
                     <div class="hk-task-meta">
-                        <span class="pos-status-detail ${state.cls}"><i class="fa-solid ${state.icon}"></i> ${state.label}</span>
+                        <span class="pos-status-detail ${state.cls}"><i class="fa-solid ${state.icon}"></i> ${stateLabel}</span>
                         <span style="color:var(--border)">|</span>
-                        <span><i class="fa-regular fa-clock"></i> 접수: ${formatOrderTime(o)}</span>
+                        <span><i class="fa-regular fa-clock"></i> ${posText('received')}: ${formatOrderTime(o)}</span>
                         <span style="color:var(--border)">|</span>
-                        <span>청구액: ${amtHtml}</span>
+                        <span>${posText('billAmount')}: ${amtHtml}</span>
                     </div>
                 </div>
             </div>
@@ -483,6 +561,12 @@ function completeOrder(id) {
     if(o) { o.status = 'done'; allOrders.sort(orderSort); updateKPIs(); renderOrders(); }
 }
 
+window.addEventListener('languagechange', () => {
+    refreshCategoryControls();
+    updateKPIs();
+    renderOrders();
+});
+
 function openModal(id) {
     const modal = document.getElementById(id);
     if (modal) modal.classList.add('active');
@@ -502,6 +586,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateKPIs();
         renderOrders();
         setupI18n();
+        if (typeof changeLang === 'function') changeLang(posLang());
     } catch(e) { console.error(e); }
 });
 </script>
@@ -510,53 +595,53 @@ document.addEventListener('DOMContentLoaded', async () => {
 <div class="modal-overlay" id="addOrderModal" onclick="if(event.target===this) closeModal('addOrderModal')">
     <div class="modal-card" style="max-width:500px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title">통합 수기 오더 등록</h3>
+            <h3 class="modal-title" data-ko="통합 수기 오더 등록" data-en="Manual POS Order">통합 수기 오더 등록</h3>
             <button class="modal-close" onclick="closeModal('addOrderModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">객실 번호 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 1401">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)"><span data-ko="객실 번호" data-en="Room No.">객실 번호</span> <span style="color:var(--danger)">*</span></label>
+                    <input type="text" data-ko="예: 1401" data-en="Ex: 1401" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 1401">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">카테고리 분류 <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)"><span data-ko="카테고리 분류" data-en="Category">카테고리 분류</span> <span style="color:var(--danger)">*</span></label>
                     <select id="orderCategorySelect" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff"></select>
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
-                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">서비스 항목 <span style="color:var(--danger)">*</span></label>
+                <label style="font-size:.8rem;font-weight:600;color:var(--txt2)"><span data-ko="서비스 항목" data-en="Service Item">서비스 항목</span> <span style="color:var(--danger)">*</span></label>
                 <div style="display:flex;gap:10px">
                     <select id="itemSelect" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
-                        <option value="">항목을 선택하세요...</option>
-                        <option value="25.00">클럽 샌드위치 ($25.00)</option>
-                        <option value="15.00">아메리카노 ($15.00)</option>
-                        <option value="8.00">에비앙 생수 (미니바) ($8.00)</option>
-                        <option value="150.00">아로마 스파 60분 ($150.00)</option>
-                        <option value="15.00">드라이클리닝 (셔츠) ($15.00)</option>
-                        <option value="custom">직접 입력</option>
+                        <option value="" data-ko="항목을 선택하세요..." data-en="Select an item...">항목을 선택하세요...</option>
+                        <option value="25.00" data-ko="클럽 샌드위치 ($25.00)" data-en="Club Sandwich ($25.00)">클럽 샌드위치 ($25.00)</option>
+                        <option value="15.00" data-ko="아메리카노 ($15.00)" data-en="Americano ($15.00)">아메리카노 ($15.00)</option>
+                        <option value="8.00" data-ko="에비앙 생수 (미니바) ($8.00)" data-en="Evian Water (Minibar) ($8.00)">에비앙 생수 (미니바) ($8.00)</option>
+                        <option value="150.00" data-ko="아로마 스파 60분 ($150.00)" data-en="Aroma Spa 60 min ($150.00)">아로마 스파 60분 ($150.00)</option>
+                        <option value="15.00" data-ko="드라이클리닝 (셔츠) ($15.00)" data-en="Dry Cleaning (Shirt) ($15.00)">드라이클리닝 (셔츠) ($15.00)</option>
+                        <option value="custom" data-ko="직접 입력" data-en="Custom Entry">직접 입력</option>
                     </select>
                     <input type="number" id="itemQty" value="1" min="1" style="width:60px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;text-align:center">
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">청구 금액 ($) <span style="color:var(--danger)">*</span></label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)"><span data-ko="청구 금액 ($)" data-en="Charge Amount ($)">청구 금액 ($)</span> <span style="color:var(--danger)">*</span></label>
                     <input type="number" id="orderPrice" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" value="0.00">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">과금 방식</label>
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)" data-ko="과금 방식" data-en="Billing Method">과금 방식</label>
                     <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>객실 정산으로 합산 청구</option>
-                        <option>현장 현금 결제</option>
-                        <option>무료 서비스</option>
+                        <option data-ko="객실 정산으로 합산 청구" data-en="Post to room folio">객실 정산으로 합산 청구</option>
+                        <option data-ko="현장 현금 결제" data-en="On-site cash payment">현장 현금 결제</option>
+                        <option data-ko="무료 서비스" data-en="Complimentary service">무료 서비스</option>
                     </select>
                 </div>
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
-            <button class="btn-outline" onclick="closeModal('addOrderModal')">취소</button>
-            <button class="btn-primary-sm" onclick="closeModal('addOrderModal'); showToast('오더가 전송되었습니다.', 'success');"><i class="fa-solid fa-check"></i> 오더 전송</button>
+            <button class="btn-outline" onclick="closeModal('addOrderModal')" data-ko="취소" data-en="Cancel">취소</button>
+            <button class="btn-primary-sm" onclick="closeModal('addOrderModal'); showToast('오더가 전송되었습니다.', 'success');"><i class="fa-solid fa-check"></i> <span data-ko="오더 전송" data-en="Send Order">오더 전송</span></button>
         </div>
     </div>
 </div>
@@ -565,7 +650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 <div class="modal-overlay" id="catalogModal" onclick="if(event.target===this) closeModal('catalogModal')">
     <div class="modal-card" style="max-width:600px;width:95vw">
         <div class="modal-header">
-            <h3 class="modal-title">통합 카탈로그 관리</h3>
+            <h3 class="modal-title" data-ko="통합 카탈로그 관리" data-en="POS Catalog Management">통합 카탈로그 관리</h3>
             <button class="modal-close" onclick="closeModal('catalogModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px;max-height:60vh;overflow-y:auto">

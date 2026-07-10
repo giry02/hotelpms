@@ -502,6 +502,20 @@ function setupI18n() {
     });
 }
 
+function applyKoEnDatasetI18n(lang) {
+    document.querySelectorAll('[data-ko][data-en]').forEach(element => {
+        const translated = element.getAttribute(lang === 'en' ? 'data-en' : 'data-ko');
+        if (translated == null) return;
+        if (element.matches('input, textarea')) {
+            element.setAttribute('placeholder', translated);
+        } else if (element.matches('option')) {
+            element.textContent = translated;
+        } else {
+            element.textContent = translated;
+        }
+    });
+}
+
 function changeLang(l) {
     window.currentLang = l;
     localStorage.setItem('pms_lang', l);
@@ -523,6 +537,8 @@ function changeLang(l) {
         const k = e.getAttribute('data-i18n-placeholder');
         if(catalogDict[k]) e.setAttribute('placeholder', catalogDict[k]);
     });
+
+    applyKoEnDatasetI18n(l);
     
     const langSelects = document.querySelectorAll('#langSelect, .lang-select, select[onchange*="changeLang"]');
     langSelects.forEach(sel => {

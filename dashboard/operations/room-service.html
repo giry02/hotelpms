@@ -379,10 +379,12 @@ const translations={ko: {
         "Support": "Support",
 "Ancillary Svcs":"Ancillary Svcs","Dashboard":"Dashboard","Reservations":"Reservations","Booking List":"Booking List","Check-in/out":"Check-in/out","Guest CRM":"Guest CRM","VIP Members":"VIP Members","Room Mgmt":"Room Mgmt","Housekeeping":"Housekeeping","Folio & Billing":"Folio & Billing","Ancillary Svcs":"Ancillary Svcs","Hotel Settings":"Hotel Settings","Staff Mgmt":"Staff Mgmt","New Requests":"New Requests","Preparing":"Preparing","Completed":"Completed","Est. Revenue":"Est. Revenue","All Services":"All Services","Room Service":"Room Service","Spa & Massage":"Spa & Massage","Concierge":"Concierge","Manual Order":"Manual Order"}};
 function setupI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
+function applyDataKoEn(l){document.querySelectorAll('[data-ko][data-en]').forEach(e=>{const v=e.getAttribute(l==='en'?'data-en':'data-ko');if(v==null)return;if(e.matches('input, textarea'))e.setAttribute('placeholder',v);else e.textContent=v;});}
 function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
     document.querySelectorAll('[data-i18n-key]').forEach(e=>{const k=e.getAttribute('data-i18n-key');if(d[k])e.textContent=d[k]});
     document.getElementById('searchInput').placeholder=l==='en'?'Search room number...':'객실번호 검색...';
+    applyDataKoEn(l);
     if(tMap['breakfast']) tMap['breakfast'].label = l==='en'?'Breakfast':'조식';
     if(tMap['dining']) tMap['dining'].label = l==='en'?'Dining':'다이닝/야식';
     if(tMap['drink']) tMap['drink'].label = l==='en'?'Drinks':'주류/음료';
@@ -444,9 +446,9 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">메뉴 분류 <span style="color:var(--danger)">*</span></label>
                     <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>조식</option>
-                        <option>다이닝/야식</option>
-                        <option>주류/음료</option>
+                        <option data-ko="조식" data-en="Breakfast">조식</option>
+                        <option data-ko="다이닝/야식" data-en="Dining / Late-night">다이닝/야식</option>
+                        <option data-ko="주류/음료" data-en="Alcohol / Beverages">주류/음료</option>
                     </select>
                 </div>
             </div>
@@ -454,11 +456,11 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">서비스 항목 <span style="color:var(--danger)">*</span></label>
                 <div style="display:flex;gap:10px">
                     <select id="itemSelect" onchange="handleItemSelect()" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
-                        <option value="">항목을 선택하세요...</option>
-                        <option value="5.00">아메리카노 ($5.00)</option>
-                        <option value="15.00">클럽 샌드위치 ($15.00)</option>
-                        <option value="80.00">아로마 마사지 60분 ($80.00)</option>
-                        <option value="custom">직접 입력 (항목 및 가격 임의 설정)</option>
+                        <option value="" data-ko="항목을 선택하세요..." data-en="Select an item...">항목을 선택하세요...</option>
+                        <option value="5.00" data-ko="아메리카노 ($5.00)" data-en="Americano ($5.00)">아메리카노 ($5.00)</option>
+                        <option value="15.00" data-ko="클럽 샌드위치 ($15.00)" data-en="Club Sandwich ($15.00)">클럽 샌드위치 ($15.00)</option>
+                        <option value="80.00" data-ko="아로마 마사지 60분 ($80.00)" data-en="Aroma Massage 60 min ($80.00)">아로마 마사지 60분 ($80.00)</option>
+                        <option value="custom" data-ko="직접 입력 (항목 및 가격 임의 설정)" data-en="Custom entry (item and price)">직접 입력 (항목 및 가격 임의 설정)</option>
                     </select>
                     <input type="number" id="itemQty" value="1" min="1" onchange="calculateTotal()" style="width:60px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;text-align:center">
                 </div>
@@ -472,9 +474,9 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)">과금 방식</label>
                     <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option>객실 정산으로 합산 청구</option>
-                        <option>현장 현금 결제</option>
-                        <option>무료 서비스</option>
+                        <option data-ko="객실 정산으로 합산 청구" data-en="Post to room folio">객실 정산으로 합산 청구</option>
+                        <option data-ko="현장 현금 결제" data-en="On-site cash payment">현장 현금 결제</option>
+                        <option data-ko="무료 서비스" data-en="Complimentary service">무료 서비스</option>
                     </select>
                 </div>
             </div>
@@ -498,7 +500,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
             
             <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
                 <select style="flex:1;min-width:100px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
-                    <option>조식</option><option>다이닝</option><option>음료</option>
+                    <option data-ko="조식" data-en="Breakfast">조식</option><option data-ko="다이닝" data-en="Dining">다이닝</option><option data-ko="음료" data-en="Beverages">음료</option>
                 </select>
                 <input type="text" placeholder="새 메뉴명..." style="flex:2;min-width:150px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font)">
                 <input type="number" placeholder="단가 ($)" style="width:80px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px">
