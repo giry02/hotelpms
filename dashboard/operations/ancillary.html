@@ -544,16 +544,22 @@ const voucherFieldLabels = {
     pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', partnerContact:'업체 연락처', address:'업체 주소', memo:'메모'
 };
 
-const lockedVoucherFieldsByType = {
+const initialVoucherFieldsByType = {
     golf: ['guest','room','date','item','people','teeTime','course']
 };
-function isVoucherFieldsLocked(type) {
-    if (window.PmsPartnerVendors?.isVoucherFieldsLocked) return window.PmsPartnerVendors.isVoucherFieldsLocked(type);
-    return Object.prototype.hasOwnProperty.call(lockedVoucherFieldsByType, type);
+function hasInitialVoucherFields(type) {
+    if (window.PmsPartnerVendors?.hasInitialVoucherFields) return window.PmsPartnerVendors.hasInitialVoucherFields(type);
+    return Object.prototype.hasOwnProperty.call(initialVoucherFieldsByType, type);
 }
-function fixedVoucherFields(type, fields = []) {
-    if (window.PmsPartnerVendors?.fixedVoucherFields) return window.PmsPartnerVendors.fixedVoucherFields(type, fields);
-    return isVoucherFieldsLocked(type) ? [...lockedVoucherFieldsByType[type]] : [...fields];
+function initialVoucherFields(type) {
+    if (window.PmsPartnerVendors?.initialVoucherFields) return window.PmsPartnerVendors.initialVoucherFields(type);
+    return hasInitialVoucherFields(type) ? [...initialVoucherFieldsByType[type]] : [];
+}
+function defaultVoucherFields(type) {
+    if (window.PmsPartnerVendors?.defaultVoucherFields) return window.PmsPartnerVendors.defaultVoucherFields(type);
+    if (type === 'pos') return [];
+    if (hasInitialVoucherFields(type)) return initialVoucherFields(type);
+    return [];
 }
 
 function escapeHtml(value) {
@@ -793,10 +799,9 @@ function serviceOrderActionButtons(order) {
 }
 function voucherFieldsForOrder(order) {
     const vendor = vendorForOrder(order);
-    if (isVoucherFieldsLocked(order?.service || vendor?.type)) return fixedVoucherFields(order?.service || vendor?.type);
     if (Array.isArray(vendor?.voucherFields) && vendor.voucherFields.length) return vendor.voucherFields;
     if (Array.isArray(order?.voucherFields) && order.voucherFields.length) return order.voucherFields;
-    return [];
+    return defaultVoucherFields(order?.service || vendor?.type);
 }
 function vendorForOrder(order) {
     return vendors.find(item => item.id === order?.vendorId) || vendors.find(item => item.name === order?.vendor) || null;
@@ -1031,7 +1036,7 @@ function loadVendors() {
                 ...vendor,
                 type,
                 items: Array.isArray(vendor.items) ? vendor.items.map(item => normalizeVendorItem(type, item)) : [],
-                voucherFields: fixedVoucherFields(type, vendor.voucherFields || [])
+                voucherFields: Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type)
             };
         });
         window.PmsPartnerVendors.save(vendors);
@@ -1048,7 +1053,7 @@ function loadVendors() {
     vendors = vendors.map(vendor => {
         const seed = seedVendors.find(item => item.id === vendor.id || (item.type === vendor.type && item.name === vendor.name));
         const type = vendor.type || seed?.type || 'pos';
-        const fields = fixedVoucherFields(type, type === 'pos' ? [] : (Array.isArray(vendor.voucherFields) ? [...vendor.voucherFields] : []));
+        const fields = type === 'pos' ? [] : (Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type));
         if (type === 'rentacar' && !fields.includes('address')) fields.push('address');
         if (type === 'rentacar' && !fields.includes('partnerContact')) fields.push('partnerContact');
         return {

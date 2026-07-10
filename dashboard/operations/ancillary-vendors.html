@@ -217,16 +217,16 @@
         { title:'렌터카 인수 정보', icon:'fa-car', fields:['pickup','vehicle'] }
       ]
     };
-    const lockedVoucherFieldsByType = {
+    const initialVoucherFieldsByType = {
       golf: ['guest','room','date','item','people','teeTime','course']
     };
-    function isVoucherFieldsLocked(type) {
-      if (window.PmsPartnerVendors?.isVoucherFieldsLocked) return window.PmsPartnerVendors.isVoucherFieldsLocked(type);
-      return Object.prototype.hasOwnProperty.call(lockedVoucherFieldsByType, type);
+    function hasInitialVoucherFields(type) {
+      if (window.PmsPartnerVendors?.hasInitialVoucherFields) return window.PmsPartnerVendors.hasInitialVoucherFields(type);
+      return Object.prototype.hasOwnProperty.call(initialVoucherFieldsByType, type);
     }
-    function fixedVoucherFields(type, fields = []) {
-      if (window.PmsPartnerVendors?.fixedVoucherFields) return window.PmsPartnerVendors.fixedVoucherFields(type, fields);
-      return isVoucherFieldsLocked(type) ? [...lockedVoucherFieldsByType[type]] : [...fields];
+    function initialVoucherFields(type) {
+      if (window.PmsPartnerVendors?.initialVoucherFields) return window.PmsPartnerVendors.initialVoucherFields(type);
+      return hasInitialVoucherFields(type) ? [...initialVoucherFieldsByType[type]] : [];
     }
     const seedVendors = [
       { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
@@ -412,7 +412,7 @@
     function defaultVoucherFields(type) {
       if (window.PmsPartnerVendors?.defaultVoucherFields) return window.PmsPartnerVendors.defaultVoucherFields(type);
       if (type === 'pos') return [];
-      if (isVoucherFieldsLocked(type)) return fixedVoucherFields(type);
+      if (hasInitialVoucherFields(type)) return initialVoucherFields(type);
       return (voucherFieldGroups[type] || voucherFieldGroups.pos).flatMap(group => group.fields);
     }
     function normalizePageVendor(vendor) {
@@ -422,7 +422,7 @@
         ...normalized,
         type,
         items: Array.isArray(normalized.items) ? normalized.items.map(item => normalizeVendorItem(type, item)) : [],
-        voucherFields: fixedVoucherFields(type, normalized.voucherFields || defaultVoucherFields(type))
+        voucherFields: Array.isArray(normalized.voucherFields) && normalized.voucherFields.length ? [...normalized.voucherFields] : defaultVoucherFields(type)
       };
     }
     function sampleVoucherData(vendor) {
@@ -461,7 +461,7 @@
       vendors = vendors.map(vendor => {
         const seed = seedVendors.find(item => item.id === vendor.id || (item.type === vendor.type && item.name === vendor.name));
         const type = vendor.type || seed?.type || 'pos';
-        const fields = fixedVoucherFields(type, type === 'pos' ? [] : (Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type)));
+        const fields = type === 'pos' ? [] : (Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type));
         if (type === 'rentacar' && !fields.includes('address')) fields.push('address');
         if (type === 'rentacar' && !fields.includes('partnerContact')) fields.push('partnerContact');
         return {
@@ -555,19 +555,17 @@
     function renderVoucherFieldGroups(vendor) {
       if (vendor?.type === 'pos') return '';
       const groups = voucherFieldGroups[vendor.type] || voucherFieldGroups.pos;
-      const selectedFields = fixedVoucherFields(vendor.type, vendor.voucherFields || []);
-      const locked = isVoucherFieldsLocked(vendor.type);
+      const selectedFields = Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? vendor.voucherFields : defaultVoucherFields(vendor.type);
       return groups.map(group => `
         <div class="voucher-field-section">
           <div class="voucher-field-section-title"><i class="fa-solid ${group.icon}"></i>${escapeHtml(group.title)}</div>
           <div class="voucher-field-grid">
-            ${group.fields.map(key => `<label class="voucher-field"><input type="checkbox" value="${key}" ${selectedFields.includes(key) ? 'checked' : ''} ${locked ? 'disabled' : ''} onchange="renderVoucherPreview()"> ${escapeHtml(voucherFieldLabels[key] || key)}</label>`).join('')}
+            ${group.fields.map(key => `<label class="voucher-field"><input type="checkbox" value="${key}" ${selectedFields.includes(key) ? 'checked' : ''} onchange="renderVoucherPreview()"> ${escapeHtml(voucherFieldLabels[key] || key)}</label>`).join('')}
           </div>
         </div>
       `).join('');
     }
     function selectedVoucherFieldsFromDom(vendor) {
-      if (isVoucherFieldsLocked(vendor?.type)) return fixedVoucherFields(vendor.type);
       const checked = Array.from(document.querySelectorAll('.voucher-field input:checked')).map(input => input.value);
       return checked.length ? checked : (vendor?.voucherFields || []);
     }
@@ -690,13 +688,6 @@
       const vendor = selectedVendor();
       if (!vendor) return;
       if (vendor.type === 'pos') return;
-      if (isVoucherFieldsLocked(vendor.type)) {
-        vendor.voucherFields = fixedVoucherFields(vendor.type);
-        persistVendors();
-        render();
-        if (window.showToast) window.showToast('골프장 바우처 양식이 고정 저장되었습니다.', 'success');
-        return;
-      }
       vendor.voucherFields = Array.from(document.querySelectorAll('.voucher-field input:checked')).map(input => input.value);
       persistVendors();
       render();

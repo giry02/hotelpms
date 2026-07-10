@@ -6,8 +6,8 @@ const { chromium } = require('playwright');
 const ROOT = path.resolve(__dirname, '..', '..');
 const DEFAULT_BASE = process.env.PMS_BASE_URL || 'http://127.0.0.1:8765';
 const PORT = Number(new URL(DEFAULT_BASE).port || 8765);
-const EXPECTED_GOLF_FIELDS = ['guest', 'room', 'date', 'item', 'people', 'teeTime', 'course'];
-const OLD_GOLF_FIELDS = ['guest', 'room', 'date', 'people', 'teeTime', 'course', 'item', 'amount', 'partnerContact', 'address'];
+const INITIAL_GOLF_FIELDS = ['guest', 'room', 'date', 'item', 'people', 'teeTime', 'course'];
+const CUSTOM_GOLF_FIELDS = ['guest', 'room', 'date', 'item', 'amount', 'partnerContact'];
 
 function contentType(file) {
   const ext = path.extname(file).toLowerCase();
@@ -74,48 +74,55 @@ function assert(condition, message, details = null) {
   }
 }
 
-function sameFields(fields) {
-  return JSON.stringify(fields || []) === JSON.stringify(EXPECTED_GOLF_FIELDS);
+function sameFields(left, right) {
+  return JSON.stringify(left || []) === JSON.stringify(right || []);
 }
 
-async function poisonGolfVendorStorage(page) {
-  await page.evaluate(oldFields => {
+async function resetStorage(page) {
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('pms_api_version', 'v2.19');
+  });
+}
+
+async function seedCustomGolfStorage(page) {
+  await page.evaluate(customFields => {
     localStorage.clear();
     localStorage.setItem('pms_api_version', 'v2.19');
     localStorage.setItem('pms_ancillary_vendors', JSON.stringify([
       {
         id: 'GOLF-SUNVALLEY',
         type: 'golf',
-        name: '썬밸리 CC',
+        name: 'Sunvalley CC',
         contact: 'Kim Manager',
         address: 'Clark Freeport Zone, Pampanga',
         commission: 15,
-        voucherFields: oldFields,
+        voucherFields: customFields,
         logoDataUrl: '',
         items: [{ name: '18홀 그린피', price: 450, desc: 'old local value' }]
       },
       {
         id: 'GOLF-SKY72',
         type: 'golf',
-        name: '스카이72',
+        name: 'Sky72',
         contact: 'Lee Manager',
         address: 'Andrews Ave, Pasay, Metro Manila',
         commission: 12,
-        voucherFields: oldFields,
+        voucherFields: customFields,
         logoDataUrl: '',
         items: [{ name: '18홀 패키지', price: 520, desc: 'old local value' }]
       }
     ]));
-  }, OLD_GOLF_FIELDS);
+  }, CUSTOM_GOLF_FIELDS);
 }
 
 async function auditVendorManagementPage(page, baseUrl) {
   await page.goto(`${baseUrl}/dashboard/operations/ancillary-vendors.html?type=golf`, { waitUntil: 'domcontentloaded' });
-  await poisonGolfVendorStorage(page);
+  await resetStorage(page);
   await page.goto(`${baseUrl}/dashboard/operations/ancillary-vendors.html?type=golf`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.voucher-field input', { timeout: 10000 });
 
-  const state = await page.evaluate(() => {
+  const initialState = await page.evaluate(() => {
     const common = window.PmsPartnerVendors;
     const stored = JSON.parse(localStorage.getItem('pms_ancillary_vendors') || '[]')
       .filter(vendor => vendor.type === 'golf')
@@ -129,8 +136,8 @@ async function auditVendorManagementPage(page, baseUrl) {
       commonExports: {
         load: typeof common?.load,
         save: typeof common?.save,
-        fixedVoucherFields: typeof common?.fixedVoucherFields,
-        isVoucherFieldsLocked: typeof common?.isVoucherFieldsLocked
+        initialVoucherFields: typeof common?.initialVoucherFields,
+        hasInitialVoucherFields: typeof common?.hasInitialVoucherFields
       },
       commonGolfFields: common?.load?.().filter(vendor => vendor.type === 'golf').map(vendor => vendor.voucherFields) || [],
       commonGolfItems: common?.load?.().filter(vendor => vendor.type === 'golf').flatMap(vendor => vendor.items || []) || [],
@@ -138,28 +145,43 @@ async function auditVendorManagementPage(page, baseUrl) {
       stored,
       checked: inputs.filter(input => input.checked).map(input => input.value),
       unchecked: inputs.filter(input => !input.checked).map(input => input.value),
-      disabledCount: inputs.filter(input => input.disabled).length,
-      inputCount: inputs.length
+      disabledCount: inputs.filter(input => input.disabled).length
     };
   });
 
-  assert(state.commonExports.fixedVoucherFields === 'function', 'common vendor module does not export fixedVoucherFields', state.commonExports);
-  assert(state.commonExports.isVoucherFieldsLocked === 'function', 'common vendor module does not export isVoucherFieldsLocked', state.commonExports);
-  assert(state.commonGolfFields.every(sameFields), 'common module did not normalize golf voucher fields', state.commonGolfFields);
-  assert(state.commonGolfItems.length >= 5, 'common module did not restore all default golf items', state.commonGolfItems);
-  assert(state.commonGolfItems.every(item => item.holes && item.basePeople), 'common module did not restore golf item metadata', state.commonGolfItems);
-  assert(state.commonRentacarItems.length >= 5, 'common module did not restore all default rentacar items', state.commonRentacarItems);
-  assert(state.commonRentacarItems.every(item => item.vehicleClass && item.pickupBase), 'common module rentacar item metadata is incomplete', state.commonRentacarItems);
-  assert(state.stored.every(vendor => sameFields(vendor.fields)), 'vendor management page persisted stale golf fields', state.stored);
-  assert(sameFields(state.checked), 'vendor management checkbox state does not match fixed golf fields', state.checked);
-  assert(['amount', 'partnerContact', 'address', 'memo'].every(field => state.unchecked.includes(field)), 'excluded golf fields are checked', state.unchecked);
-  assert(state.disabledCount === state.inputCount, 'locked golf voucher inputs are editable', state);
-  return state;
+  assert(initialState.commonExports.initialVoucherFields === 'function', 'common module does not export initialVoucherFields', initialState.commonExports);
+  assert(initialState.commonExports.hasInitialVoucherFields === 'function', 'common module does not export hasInitialVoucherFields', initialState.commonExports);
+  assert(initialState.commonGolfFields.every(fields => sameFields(fields, INITIAL_GOLF_FIELDS)), 'common module did not apply initial golf fields', initialState.commonGolfFields);
+  assert(initialState.commonGolfItems.length >= 5, 'common module did not restore all default golf items', initialState.commonGolfItems);
+  assert(initialState.commonGolfItems.every(item => item.holes && item.basePeople), 'common module did not restore golf item metadata', initialState.commonGolfItems);
+  assert(initialState.commonRentacarItems.length >= 5, 'common module did not restore all default rentacar items', initialState.commonRentacarItems);
+  assert(initialState.commonRentacarItems.every(item => item.vehicleClass && item.pickupBase), 'common module rentacar item metadata is incomplete', initialState.commonRentacarItems);
+  assert(initialState.stored.every(vendor => sameFields(vendor.fields, INITIAL_GOLF_FIELDS)), 'vendor management did not initialize golf fields', initialState.stored);
+  assert(sameFields(initialState.checked, INITIAL_GOLF_FIELDS), 'checkbox state does not match initial golf fields', initialState.checked);
+  assert(['amount', 'partnerContact', 'address', 'memo'].every(field => initialState.unchecked.includes(field)), 'excluded fields should be unchecked initially', initialState.unchecked);
+  assert(initialState.disabledCount === 0, 'golf voucher inputs should be editable', initialState);
+
+  await page.locator('.voucher-field input[value="amount"]').check();
+  await page.locator('.voucher-field input[value="people"]').uncheck();
+  await page.evaluate(() => window.saveVoucherFields());
+
+  const editedState = await page.evaluate(() => {
+    const stored = JSON.parse(localStorage.getItem('pms_ancillary_vendors') || '[]')
+      .filter(vendor => vendor.type === 'golf')
+      .map(vendor => ({ id: vendor.id, fields: vendor.voucherFields }));
+    const checked = Array.from(document.querySelectorAll('.voucher-field input:checked')).map(input => input.value);
+    return { stored, checked };
+  });
+  const expectedEdited = ['guest', 'room', 'date', 'item', 'amount', 'teeTime', 'course'];
+  assert(sameFields(editedState.checked, expectedEdited), 'edited golf fields were not reflected in UI', editedState);
+  assert(editedState.stored.some(vendor => sameFields(vendor.fields, expectedEdited)), 'edited golf fields were not saved', editedState);
+
+  return { initialState, editedState };
 }
 
 async function auditAncillaryPage(page, baseUrl) {
   await page.goto(`${baseUrl}/dashboard/operations/ancillary.html?service=golf`, { waitUntil: 'domcontentloaded' });
-  await poisonGolfVendorStorage(page);
+  await seedCustomGolfStorage(page);
   await page.goto(`${baseUrl}/dashboard/operations/ancillary.html?service=golf`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.service-room-card', { timeout: 15000 });
 
@@ -179,10 +201,10 @@ async function auditAncillaryPage(page, baseUrl) {
     const sheets = document.querySelectorAll('.voucher-sheet').length;
     const rows = document.querySelectorAll('.voucher-sheet .voucher-row').length;
     return { stored, sheets, rows, expectedRows: sheets * expectedCount };
-  }, EXPECTED_GOLF_FIELDS.length);
+  }, CUSTOM_GOLF_FIELDS.length);
 
-  assert(state.stored.every(vendor => sameFields(vendor.fields)), 'ancillary page persisted stale golf fields', state.stored);
-  assert(state.rows === state.expectedRows, 'ancillary voucher rendered stale field count', state);
+  assert(state.stored.every(vendor => sameFields(vendor.fields, CUSTOM_GOLF_FIELDS)), 'ancillary page should preserve saved golf fields', state.stored);
+  assert(state.rows === state.expectedRows, 'ancillary voucher did not render saved custom field count', state);
   return { orderId, ...state };
 }
 

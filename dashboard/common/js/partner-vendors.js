@@ -17,14 +17,14 @@
       { title:'렌터카 인수 정보', icon:'fa-car', fields:['pickup','vehicle'] }
     ]
   };
-  const lockedVoucherFieldsByType = {
+  const initialVoucherFieldsByType = {
     golf: ['guest','room','date','item','people','teeTime','course']
   };
-  function isVoucherFieldsLocked(type) {
-    return Object.prototype.hasOwnProperty.call(lockedVoucherFieldsByType, type);
+  function hasInitialVoucherFields(type) {
+    return Object.prototype.hasOwnProperty.call(initialVoucherFieldsByType, type);
   }
-  function fixedVoucherFields(type, fields = []) {
-    return isVoucherFieldsLocked(type) ? [...lockedVoucherFieldsByType[type]] : [...fields];
+  function initialVoucherFields(type) {
+    return hasInitialVoucherFields(type) ? [...initialVoucherFieldsByType[type]] : [];
   }
   const seedVendors = [
     {
@@ -135,7 +135,7 @@
   }
   function defaultVoucherFields(type) {
     if (type === 'pos') return [];
-    if (isVoucherFieldsLocked(type)) return fixedVoucherFields(type);
+    if (hasInitialVoucherFields(type)) return initialVoucherFields(type);
     return (voucherFieldGroups[type] || voucherFieldGroups.pos).flatMap(group => group.fields);
   }
   function normalizeVendorItems(type, items = [], seedItems = []) {
@@ -161,7 +161,7 @@
   function normalizeVendor(vendor) {
     const seed = seedVendors.find(item => item.id === vendor?.id || (item.type === vendor?.type && item.name === vendor?.name));
     const type = vendor?.type || seed?.type || 'pos';
-    const fields = fixedVoucherFields(type, type === 'pos' ? [] : (Array.isArray(vendor?.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type)));
+    const fields = type === 'pos' ? [] : (Array.isArray(vendor?.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type));
     if (type !== 'golf' && ['rentacar', 'pos'].includes(type) && !fields.includes('address') && seed?.voucherFields?.includes('address')) fields.push('address');
     if (type !== 'golf' && ['rentacar', 'pos'].includes(type) && !fields.includes('partnerContact') && seed?.voucherFields?.includes('partnerContact')) fields.push('partnerContact');
     return {
@@ -223,8 +223,8 @@
     seedVendors: clone(seedVendors),
     voucherFieldLabels,
     voucherFieldGroups,
-    isVoucherFieldsLocked,
-    fixedVoucherFields,
+    hasInitialVoucherFields,
+    initialVoucherFields,
     defaultVoucherFields,
     normalizeVendor,
     load,
