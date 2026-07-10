@@ -191,6 +191,79 @@
     border-color: #E5E7EB;
 }
 .btn-card-delete:disabled:active { transform: none; }
+.company-performance-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+.company-performance-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    padding: 12px;
+}
+.company-performance-card .label {
+    font-size: .73rem;
+    font-weight: 800;
+    color: var(--txt3);
+    margin-bottom: 5px;
+}
+.company-performance-card .value {
+    font-size: 1.12rem;
+    font-weight: 900;
+    color: var(--txt);
+}
+.company-performance-toolbar {
+    display: grid;
+    grid-template-columns: 1.35fr .9fr .85fr .85fr auto;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 14px;
+}
+.company-performance-toolbar .form-label { margin-bottom: 5px; }
+.performance-table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: auto;
+    background: #fff;
+}
+.performance-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+}
+.performance-table th,
+.performance-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border2);
+    text-align: left;
+    font-size: .78rem;
+}
+.performance-table th {
+    background: #f8fafc;
+    color: var(--txt2);
+    font-weight: 900;
+    white-space: nowrap;
+}
+.performance-table td.amount {
+    text-align: right;
+    font-weight: 850;
+    color: var(--txt);
+}
+.performance-company-name { font-weight: 900; color: var(--txt); }
+.performance-empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--txt3);
+    font-weight: 800;
+}
+@media(max-width: 900px) {
+    .company-performance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .company-performance-toolbar { grid-template-columns: 1fr; }
+}
+@media(max-width: 560px) {
+    .company-performance-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -252,6 +325,9 @@
                     </div>
                 </div>
                 <div class="filter-right">
+                    <button class="btn-outline" onclick="openCompanyPerformanceModal()">
+                        <i class="fa-solid fa-chart-line"></i> <span data-ko="거래 실적" data-en="Usage Report">거래 실적</span>
+                    </button>
                     <button class="btn-primary-sm" onclick="openNewCompanyModal()">
                         <i class="fa-solid fa-plus"></i> 신규 단체 등록
                     </button>
@@ -333,6 +409,78 @@
         <div class="modal-footer">
             <button class="btn-outline" onclick="closeModal('companyModal')">취소</button>
             <button class="btn-primary-sm" onclick="saveCompany()"><i class="fa-solid fa-check"></i> 저장</button>
+        </div>
+    </div>
+</div>
+
+<!-- 단체 거래 실적 모달 -->
+<div class="modal-overlay" id="companyPerformanceModal" onclick="if(event.target===this)closeModal('companyPerformanceModal')">
+    <div class="modal-card" style="max-width:980px;width:96vw">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-chart-line" style="color:var(--primary);margin-right:8px"></i><span data-ko="단체 거래 실적" data-en="Group Usage Report">단체 거래 실적</span></h3>
+            <button class="modal-close" onclick="closeModal('companyPerformanceModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;max-height:72vh;overflow:auto">
+            <div class="company-performance-toolbar">
+                <div>
+                    <label class="form-label" for="performanceCompanySelect" data-ko="단체" data-en="Group">단체</label>
+                    <select id="performanceCompanySelect" class="form-input" style="width:100%" onchange="refreshCompanyPerformanceModal()"></select>
+                </div>
+                <div>
+                    <label class="form-label" for="performancePeriodSelect" data-ko="기간" data-en="Period">기간</label>
+                    <select id="performancePeriodSelect" class="form-input" style="width:100%" onchange="handlePerformancePeriodChange()">
+                        <option value="all" data-ko="전체" data-en="All">전체</option>
+                        <option value="year" data-ko="최근 1년" data-en="Last 1 year">최근 1년</option>
+                        <option value="custom" data-ko="기간 선택" data-en="Custom period">기간 선택</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="performanceStartDate" data-ko="시작일" data-en="Start date">시작일</label>
+                    <input id="performanceStartDate" type="date" class="form-input" style="width:100%" onchange="refreshCompanyPerformanceModal()">
+                </div>
+                <div>
+                    <label class="form-label" for="performanceEndDate" data-ko="종료일" data-en="End date">종료일</label>
+                    <input id="performanceEndDate" type="date" class="form-input" style="width:100%" onchange="refreshCompanyPerformanceModal()">
+                </div>
+                <button class="btn-outline" style="height:38px" onclick="refreshCompanyPerformanceModal()"><i class="fa-solid fa-rotate"></i> <span data-ko="조회" data-en="Refresh">조회</span></button>
+            </div>
+            <div class="company-performance-grid" id="performanceSummaryGrid"></div>
+            <div class="performance-table-wrap">
+                <table class="performance-table">
+                    <thead>
+                        <tr>
+                            <th data-ko="기간" data-en="Period">기간</th>
+                            <th data-ko="단체" data-en="Group">단체</th>
+                            <th data-ko="방문" data-en="Visits">방문</th>
+                            <th data-ko="객실" data-en="Rooms">객실</th>
+                            <th data-ko="부가서비스" data-en="Ancillary">부가서비스</th>
+                            <th data-ko="합계" data-en="Total">합계</th>
+                        </tr>
+                    </thead>
+                    <tbody id="performanceMonthlyBody"></tbody>
+                </table>
+            </div>
+            <div class="performance-table-wrap">
+                <table class="performance-table">
+                    <thead>
+                        <tr>
+                            <th data-ko="이용일" data-en="Date">이용일</th>
+                            <th data-ko="행사명" data-en="Event">행사명</th>
+                            <th data-ko="단체" data-en="Group">단체</th>
+                            <th data-ko="객실" data-en="Rooms">객실</th>
+                            <th>POS</th>
+                            <th data-ko="골프" data-en="Golf">골프</th>
+                            <th data-ko="렌터카" data-en="Rent-a-car">렌터카</th>
+                            <th data-ko="기타" data-en="Other">기타</th>
+                            <th data-ko="합계" data-en="Total">합계</th>
+                        </tr>
+                    </thead>
+                    <tbody id="performanceEventBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="closeModal('companyPerformanceModal')" data-ko="닫기" data-en="Close">닫기</button>
         </div>
     </div>
 </div>
@@ -790,6 +938,7 @@ function openBlockModal(compId) {
             const action = button.dataset.companyAction;
             if (action === 'create') openBlockModal(id);
             if (action === 'events') location.href = `groups_blocks.html?companyId=${encodeURIComponent(id)}`;
+            if (action === 'performance') openCompanyPerformanceModal(id);
             if (action === 'edit') editCompany(id);
             if (action === 'delete') deleteCompany(id);
         });
@@ -850,6 +999,7 @@ function openBlockModal(compId) {
                 </div>
                 <div class="card-footer-btns">
                     <button type="button" class="btn-room-assign" data-company-action="create" data-company-id="${c.id}"><i class="fa-solid fa-calendar-plus"></i> 행사 생성</button>
+                    <button type="button" class="btn-card-edit" data-company-action="performance" data-company-id="${c.id}" title="거래 실적"><i class="fa-solid fa-chart-line"></i></button>
                     <button type="button" class="btn-card-edit" data-company-action="events" data-company-id="${c.id}" title="행사 보기"><i class="fa-solid fa-list"></i></button>
                     <button type="button" class="btn-card-edit" data-company-action="edit" data-company-id="${c.id}" title="단체 수정"><i class="fa-solid fa-pen"></i></button>
                     <button type="button" class="btn-card-delete" data-company-action="delete" data-company-id="${c.id}" title="${deleteTitle}" ${deleteDisabled}><i class="fa-solid fa-trash"></i></button>
@@ -860,6 +1010,299 @@ function openBlockModal(compId) {
             grid.innerHTML = companyCardHtml;
             grid.dataset.renderKey = companyCardHtml;
         }
+    };
+
+    const performanceDetailCache = new Map();
+
+    function amountValue(value) {
+        if (value == null) return 0;
+        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+        if (typeof value === 'object') return amountValue(value.amount ?? value.value ?? value.total);
+        const parsed = Number(String(value).replace(/[^\d.-]/g, ''));
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function perfEscape(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[ch]));
+    }
+
+    function daysBetween(start, end) {
+        const s = parseDate(start);
+        const e = parseDate(end);
+        if (!s || !e) return 1;
+        return Math.max(1, Math.round((e - s) / 86400000));
+    }
+
+    function companyMoney(value, currency = 'PHP') {
+        const amount = Number(value || 0);
+        if (typeof window.pmsFormatCurrency === 'function') return window.pmsFormatCurrency(amount, currency);
+        return new Intl.NumberFormat('en-PH', {
+            style: 'currency',
+            currency,
+            minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    }
+
+    function performanceToday() {
+        const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+        today.setHours(0, 0, 0, 0);
+        return today;
+    }
+
+    function isoDate(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function monthKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function companyNameById(id) {
+        if (!id) return perfText('전체 단체', 'All groups');
+        return companies.find(company => company.id === id)?.name || id;
+    }
+
+    function perfText(ko, en) {
+        return companyLang() === 'en' ? en : ko;
+    }
+
+    async function fetchGroupDetail(group) {
+        const id = group?.id;
+        if (!id) return group || {};
+        if (performanceDetailCache.has(id)) return performanceDetailCache.get(id);
+        let detail = group;
+        try {
+            if (window.PmsMockApi) {
+                const env = await window.PmsMockApi.request('GET', `/groups/events/${encodeURIComponent(id)}`);
+                detail = env?.data?.item || env?.item || detail;
+            } else {
+                const response = await fetch(`../data/api/v1/groups/events/detail/${encodeURIComponent(id)}.json`);
+                if (response.ok) {
+                    const env = await response.json();
+                    detail = env?.data?.item || env?.item || detail;
+                }
+            }
+        } catch(e) {
+            detail = group;
+        }
+        const merged = { ...group, ...detail };
+        performanceDetailCache.set(id, merged);
+        return merged;
+    }
+
+    function isGroupInPeriod(group, range) {
+        const date = parseDate(group.checkInDate || group.checkin || group.cin || group.createdAt);
+        if (!date) return true;
+        if (range.start && date < range.start) return false;
+        if (range.end && date > range.end) return false;
+        return true;
+    }
+
+    function performanceRange() {
+        const mode = document.getElementById('performancePeriodSelect')?.value || 'all';
+        if (mode === 'all') return { mode, start: null, end: null };
+        const startInput = document.getElementById('performanceStartDate');
+        const endInput = document.getElementById('performanceEndDate');
+        if (mode === 'year') {
+            const end = performanceToday();
+            const start = new Date(end);
+            start.setFullYear(start.getFullYear() - 1);
+            return { mode, start, end };
+        }
+        return {
+            mode,
+            start: startInput?.value ? parseDate(startInput.value) : null,
+            end: endInput?.value ? parseDate(endInput.value) : null
+        };
+    }
+
+    function inferRoomRevenue(group) {
+        const allocations = Array.isArray(group.roomAllocations) && group.roomAllocations.length
+            ? group.roomAllocations
+            : (Array.isArray(group.allocations) ? group.allocations : []);
+        const nights = daysBetween(group.checkInDate || group.checkin || group.cin, group.checkOutDate || group.checkout || group.cout);
+        return allocations.reduce((sum, allocation) => {
+            const rate = amountValue(allocation.finalRate || allocation.rate || allocation.baseRate);
+            return sum + (rate * nights);
+        }, 0);
+    }
+
+    function typeBucket(type) {
+        const value = String(type || '').replace(/[-_\s]/g, '').toLowerCase();
+        if (['room', 'rooms', 'accommodation', 'lodging'].includes(value)) return 'room';
+        if (['pos', 'fnb', 'restaurant', 'dining', 'minibar', 'roomservice'].includes(value)) return 'pos';
+        if (['golf', 'golfcourse', 'greenfee'].includes(value)) return 'golf';
+        if (['rentacar', 'rentalcar', 'car', 'transport', 'transfer'].includes(value)) return 'rentacar';
+        return 'other';
+    }
+
+    function groupPerformanceRow(group) {
+        const buckets = { room: 0, pos: 0, golf: 0, rentacar: 0, other: 0 };
+        const items = Array.isArray(group.settlementItems) ? group.settlementItems : [];
+        if (items.length) {
+            items.forEach(item => {
+                const bucket = typeBucket(item.type || item.category || item.serviceType);
+                buckets[bucket] += amountValue(item.amount ?? item.total ?? item.price);
+            });
+        } else {
+            buckets.room = inferRoomRevenue(group);
+        }
+        const ancillary = buckets.pos + buckets.golf + buckets.rentacar + buckets.other;
+        const total = buckets.room + ancillary;
+        const checkIn = parseDate(group.checkInDate || group.checkin || group.cin || group.createdAt);
+        return {
+            id: group.id || '',
+            date: checkIn,
+            dateLabel: checkIn ? isoDate(checkIn) : '-',
+            month: checkIn ? monthKey(checkIn) : '미지정',
+            name: group.name || '-',
+            companyId: group.companyId || group.agencyId || '',
+            companyName: group.companyName || group.agency || companyNameById(group.companyId || group.agencyId),
+            rooms: Number(group.blockedRooms || group.block || group.roomAllocations?.length || group.allocations?.length || 0),
+            pax: Number(group.pax || 0),
+            currency: group.currency || 'PHP',
+            ...buckets,
+            ancillary,
+            total
+        };
+    }
+
+    async function companyPerformanceRows(companyId, range) {
+        const sourceGroups = companyId
+            ? companyGroups(companies.find(company => company.id === companyId))
+            : allGroupEvents();
+        const detailed = await Promise.all(sourceGroups.map(fetchGroupDetail));
+        return detailed
+            .filter(group => !companyId || companyGroups(companies.find(company => company.id === companyId)).some(source => source.id === group.id))
+            .filter(group => isGroupInPeriod(group, range))
+            .map(groupPerformanceRow)
+            .sort((a, b) => (b.date?.getTime?.() || 0) - (a.date?.getTime?.() || 0));
+    }
+
+    function renderPerformanceSummary(rows) {
+        const summary = rows.reduce((acc, row) => {
+            acc.visits += 1;
+            acc.rooms += row.rooms;
+            acc.room += row.room;
+            acc.ancillary += row.ancillary;
+            acc.total += row.total;
+            return acc;
+        }, { visits: 0, rooms: 0, room: 0, ancillary: 0, total: 0 });
+        const currency = rows[0]?.currency || 'PHP';
+        document.getElementById('performanceSummaryGrid').innerHTML = [
+            [perfText('방문 횟수', 'Visits'), `${summary.visits}${perfText('회', '')}`],
+            [perfText('객실 수', 'Rooms'), `${summary.rooms}${perfText('실', '')}`],
+            [perfText('객실 금액', 'Room Amount'), companyMoney(summary.room, currency)],
+            [perfText('부가서비스', 'Ancillary'), companyMoney(summary.ancillary, currency)],
+            [perfText('총 이용금액', 'Total Spend'), companyMoney(summary.total, currency)]
+        ].map(([label, value]) => `
+            <div class="company-performance-card">
+                <div class="label">${label}</div>
+                <div class="value">${value}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderPerformanceMonthly(rows) {
+        const body = document.getElementById('performanceMonthlyBody');
+        if (!rows.length) {
+            body.innerHTML = `<tr><td colspan="6"><div class="performance-empty">${perfText('선택한 기간의 거래 실적이 없습니다.', 'No usage records for the selected period.')}</div></td></tr>`;
+            return;
+        }
+        const grouped = new Map();
+        rows.forEach(row => {
+            if (!grouped.has(row.month)) grouped.set(row.month, { month: row.month, visits: 0, room: 0, ancillary: 0, total: 0 });
+            const item = grouped.get(row.month);
+            item.visits += 1;
+            item.room += row.room;
+            item.ancillary += row.ancillary;
+            item.total += row.total;
+        });
+        const currency = rows[0]?.currency || 'PHP';
+        body.innerHTML = [...grouped.values()].sort((a, b) => b.month.localeCompare(a.month)).map(item => `
+            <tr>
+                <td>${item.month}</td>
+                <td class="performance-company-name">${companyNameById(document.getElementById('performanceCompanySelect')?.value)}</td>
+                <td>${item.visits}${perfText('회', '')}</td>
+                <td class="amount">${companyMoney(item.room, currency)}</td>
+                <td class="amount">${companyMoney(item.ancillary, currency)}</td>
+                <td class="amount">${companyMoney(item.total, currency)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderPerformanceEvents(rows) {
+        const body = document.getElementById('performanceEventBody');
+        if (!rows.length) {
+            body.innerHTML = `<tr><td colspan="9"><div class="performance-empty">${perfText('선택한 조건의 행사 내역이 없습니다.', 'No event records for the selected conditions.')}</div></td></tr>`;
+            return;
+        }
+        body.innerHTML = rows.map(row => {
+            const currency = row.currency || 'PHP';
+            return `
+                <tr>
+                    <td>${row.dateLabel}</td>
+                    <td><div class="performance-company-name">${perfEscape(row.name)}</div><small style="color:var(--txt3);font-weight:800">${perfEscape(row.id)}</small></td>
+                    <td>${perfEscape(row.companyName)}</td>
+                    <td class="amount">${companyMoney(row.room, currency)}</td>
+                    <td class="amount">${companyMoney(row.pos, currency)}</td>
+                    <td class="amount">${companyMoney(row.golf, currency)}</td>
+                    <td class="amount">${companyMoney(row.rentacar, currency)}</td>
+                    <td class="amount">${companyMoney(row.other, currency)}</td>
+                    <td class="amount">${companyMoney(row.total, currency)}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function populatePerformanceCompanies(selectedId = '') {
+        const select = document.getElementById('performanceCompanySelect');
+        if (!select) return;
+        select.innerHTML = `<option value="">${perfText('전체 단체', 'All groups')}</option>` + companies.map(company => `<option value="${perfEscape(company.id)}">${perfEscape(company.name)} · ${perfEscape(company.id)}</option>`).join('');
+        select.value = selectedId && companies.some(company => company.id === selectedId) ? selectedId : '';
+    }
+
+    window.handlePerformancePeriodChange = function() {
+        const mode = document.getElementById('performancePeriodSelect')?.value || 'all';
+        const start = document.getElementById('performanceStartDate');
+        const end = document.getElementById('performanceEndDate');
+        const custom = mode === 'custom';
+        if (start) start.disabled = !custom;
+        if (end) end.disabled = !custom;
+        refreshCompanyPerformanceModal();
+    };
+
+    window.openCompanyPerformanceModal = async function(companyId = '') {
+        populatePerformanceCompanies(companyId);
+        const period = document.getElementById('performancePeriodSelect');
+        if (period) period.value = 'all';
+        const start = document.getElementById('performanceStartDate');
+        const end = document.getElementById('performanceEndDate');
+        if (start) { start.value = ''; start.disabled = true; }
+        if (end) { end.value = ''; end.disabled = true; }
+        openModal('companyPerformanceModal');
+        await refreshCompanyPerformanceModal();
+    };
+
+    window.refreshCompanyPerformanceModal = async function() {
+        const summary = document.getElementById('performanceSummaryGrid');
+        const monthly = document.getElementById('performanceMonthlyBody');
+        const events = document.getElementById('performanceEventBody');
+        if (summary) summary.innerHTML = `<div class="performance-empty" style="grid-column:1/-1">${perfText('거래 실적을 불러오는 중입니다.', 'Loading usage report...')}</div>`;
+        if (monthly) monthly.innerHTML = '';
+        if (events) events.innerHTML = '';
+        const companyId = document.getElementById('performanceCompanySelect')?.value || '';
+        const rows = await companyPerformanceRows(companyId, performanceRange());
+        renderPerformanceSummary(rows);
+        renderPerformanceMonthly(rows);
+        renderPerformanceEvents(rows);
     };
     try { renderCompanies = window.renderCompanies; } catch(e) {}
 })();
