@@ -312,14 +312,10 @@
           <div class="item-type-fields">
             <div>
               <label class="form-label">홀</label>
-              <select id="itemHoles" class="form-input">
-                <option>9홀</option>
-                <option selected>18홀</option>
-                <option>27홀</option>
-              </select>
+              <input id="itemHoles" class="form-input" type="number" min="1" max="72" step="1" inputmode="numeric" placeholder="예: 18">
             </div>
             <div><label class="form-label">기준 인원</label><input id="itemBasePeople" class="form-input" type="number" min="1" placeholder="예: 4"></div>
-            <div class="item-type-help">골프 항목은 홀, 기준 인원, 기준 단가처럼 가격 기준만 저장합니다. 코스, 티오프, 실제 적용 금액은 부가서비스 등록 화면에서 입력합니다.</div>
+            <div class="item-type-help">골프 항목은 홀 수를 숫자로 입력합니다. 기준 인원, 기준 단가처럼 가격 기준만 저장하고 코스, 티오프, 실제 적용 금액은 부가서비스 등록 화면에서 입력합니다.</div>
           </div>
         `;
         return;
@@ -350,12 +346,15 @@
         };
       }
       if (type === 'golf') {
-        const holes = document.getElementById('itemHoles')?.value || '';
+        const holesValue = (document.getElementById('itemHoles')?.value || '').trim();
         const basePeople = Number(document.getElementById('itemBasePeople')?.value || 0);
-        if (!holes) return { error:'홀 수를 선택해 주세요.' };
+        if (!holesValue) return { error:'홀 수를 입력해 주세요.' };
+        if (!/^\d+$/.test(holesValue)) return { error:'홀 수는 숫자만 입력해 주세요.' };
+        const holesNumber = Number(holesValue);
+        if (holesNumber < 1 || holesNumber > 72) return { error:'홀 수는 1~72 사이로 입력해 주세요.' };
         if (!basePeople) return { error:'기준 인원을 입력해 주세요.' };
         return {
-          holes,
+          holes: `${holesNumber}홀`,
           basePeople
         };
       }
@@ -372,7 +371,7 @@
       if (type === 'golf') {
         const text = `${item.name || ''} ${item.desc || ''}`;
         return {
-          holes: item.holes || (text.match(/9홀|18홀|27홀/) || [])[0] || '',
+          holes: item.holes || (text.match(/\d{1,2}홀/) || [])[0] || '',
           basePeople: item.basePeople || item.people || ''
         };
       }
