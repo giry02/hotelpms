@@ -17,6 +17,15 @@
       { title:'렌터카 인수 정보', icon:'fa-car', fields:['pickup','vehicle'] }
     ]
   };
+  const lockedVoucherFieldsByType = {
+    golf: ['guest','room','date','item','people','teeTime','course']
+  };
+  function isVoucherFieldsLocked(type) {
+    return Object.prototype.hasOwnProperty.call(lockedVoucherFieldsByType, type);
+  }
+  function fixedVoucherFields(type, fields = []) {
+    return isVoucherFieldsLocked(type) ? [...lockedVoucherFieldsByType[type]] : [...fields];
+  }
   const seedVendors = [
     {
       id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', contactPerson:'F&B / Front Desk', contactPhone:'내선 700', contactEmail:'pos@grandsaigon.local', address:'The Grand Saigon 내부 POS', commission:0,
@@ -54,7 +63,7 @@
     },
     {
       id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager / +63 917 230 4471', contactPerson:'Kim Manager', contactPhone:'+63 917 230 4471', contactEmail:'sales@sunvalleycc.ph', address:'Clark Freeport Zone, Pampanga', commission:15,
-      voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], logoDataUrl:'',
+      voucherFields:['guest','room','date','item','people','teeTime','course'], logoDataUrl:'',
       campaignTitle:'제휴 골프장 그린피 혜택',
       benefit:'주중 18홀 그린피 및 카트 패키지 할인',
       operatingHours:'06:00~18:00',
@@ -71,7 +80,7 @@
     },
     {
       id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager / +63 922 558 7811', contactPerson:'Lee Manager', contactPhone:'+63 922 558 7811', contactEmail:'partner@sky72golf.ph', address:'Andrews Ave, Pasay, Metro Manila', commission:12,
-      voucherFields:['guest','room','date','people','teeTime','course','item','amount','partnerContact','address'], logoDataUrl:'',
+      voucherFields:['guest','room','date','item','people','teeTime','course'], logoDataUrl:'',
       campaignTitle:'조조 라운드 패키지',
       benefit:'평일 오전 라운드 카트비 할인',
       operatingHours:'05:30~17:30',
@@ -126,14 +135,15 @@
   }
   function defaultVoucherFields(type) {
     if (type === 'pos') return [];
+    if (isVoucherFieldsLocked(type)) return fixedVoucherFields(type);
     return (voucherFieldGroups[type] || voucherFieldGroups.pos).flatMap(group => group.fields);
   }
   function normalizeVendor(vendor) {
     const seed = seedVendors.find(item => item.id === vendor?.id || (item.type === vendor?.type && item.name === vendor?.name));
     const type = vendor?.type || seed?.type || 'pos';
-    const fields = type === 'pos' ? [] : (Array.isArray(vendor?.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type));
-    if (['golf', 'rentacar', 'pos'].includes(type) && !fields.includes('address') && seed?.voucherFields?.includes('address')) fields.push('address');
-    if (['golf', 'rentacar', 'pos'].includes(type) && !fields.includes('partnerContact') && seed?.voucherFields?.includes('partnerContact')) fields.push('partnerContact');
+    const fields = fixedVoucherFields(type, type === 'pos' ? [] : (Array.isArray(vendor?.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type)));
+    if (type !== 'golf' && ['rentacar', 'pos'].includes(type) && !fields.includes('address') && seed?.voucherFields?.includes('address')) fields.push('address');
+    if (type !== 'golf' && ['rentacar', 'pos'].includes(type) && !fields.includes('partnerContact') && seed?.voucherFields?.includes('partnerContact')) fields.push('partnerContact');
     return {
       ...clone(seed || {}),
       ...clone(vendor || {}),
