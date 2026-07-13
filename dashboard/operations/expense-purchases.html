@@ -64,7 +64,7 @@
                 <div class="expense-body">
                     <div class="expense-row">
                         <div class="expense-field"><label for="expenseDate" data-i18n-key="expense.date">구매일</label><input id="expenseDate" type="date"></div>
-                        <div class="expense-field"><label for="expenseBuyer" data-i18n-key="expense.buyer">구매자</label><input id="expenseBuyer" placeholder="예: Nguyen Kim" data-i18n-placeholder="expense.buyer.placeholder"></div>
+                        <div class="expense-field"><label for="expenseBuyer" data-i18n-key="expense.buyer">구매자</label><select id="expenseBuyer"></select></div>
                     </div>
                     <div class="expense-row">
                         <div class="expense-field"><label for="expenseCategory" data-i18n-key="expense.category">구분</label><select id="expenseCategory"><option value="supplies">비품</option><option value="fuel">기름값</option><option value="driver">드라이버</option><option value="repair">수리/정비</option><option value="other">기타</option></select></div>
@@ -174,6 +174,37 @@ function nowIso() {
 function operatorName() {
     return localStorage.getItem('pms_current_user_name') || localStorage.getItem('pms_staff_name') || 'Nguyen Kim';
 }
+function registeredExpenseBuyers() {
+    const staffRows = readJson('pms_staff', []);
+    const current = operatorName();
+    const unique = new Map();
+    if (Array.isArray(staffRows)) {
+        staffRows.forEach(staff => {
+            const name = String(staff?.name || '').trim();
+            if (!name || staff?.terminationDate) return;
+            if (!unique.has(name)) unique.set(name, { name, email: String(staff?.email || '').trim() });
+        });
+    }
+    if (!unique.size && current) unique.set(current, { name: current, email: '' });
+    return Array.from(unique.values()).sort((a, b) => {
+        if (a.name === current) return -1;
+        if (b.name === current) return 1;
+        return a.name.localeCompare(b.name);
+    });
+}
+function renderBuyerOptions(preferredName = '') {
+    const select = document.getElementById('expenseBuyer');
+    if (!select) return;
+    const currentValue = preferredName || select.value || operatorName();
+    const buyers = registeredExpenseBuyers();
+    select.innerHTML = buyers.map(buyer => {
+        const detail = buyer.email ? ` · ${buyer.email}` : '';
+        return `<option value="${escapeHtml(buyer.name)}">${escapeHtml(buyer.name + detail)}</option>`;
+    }).join('');
+    const nextValue = buyers.some(buyer => buyer.name === currentValue) ? currentValue : (buyers[0]?.name || '');
+    select.value = nextValue;
+    select.disabled = buyers.length === 0;
+}
 function expenseLang() {
     return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
 }
@@ -239,7 +270,7 @@ function syncCashWithdrawal(expense) {
 }
 function resetExpenseForm() {
     document.getElementById('expenseDate').value = todayIso();
-    document.getElementById('expenseBuyer').value = operatorName();
+    renderBuyerOptions(operatorName());
     document.getElementById('expenseCategory').value = 'supplies';
     document.getElementById('expenseMethod').value = 'cash';
     document.getElementById('expenseCurrency').value = DEFAULT_EXPENSE_CURRENCY;
@@ -248,10 +279,11 @@ function resetExpenseForm() {
 }
 function saveExpensePurchase() {
     const date = document.getElementById('expenseDate').value || todayIso();
-    const buyer = document.getElementById('expenseBuyer').value.trim() || operatorName();
+    const buyer = document.getElementById('expenseBuyer').value.trim();
     const item = document.getElementById('expenseItem').value.trim();
     const amount = Number(document.getElementById('expenseAmount').value || 0);
     const currency = normalizeExpenseCurrency(document.getElementById('expenseCurrency').value);
+    if (!buyer) return showToast(expenseText('구매자를 선택해 주세요.', 'Please select a buyer.'), 'error');
     if (!item) return showToast(expenseText('항목을 입력해 주세요.', 'Please enter an item.'), 'error');
     if (!amount || amount <= 0) return showToast(expenseText('금액을 입력해 주세요.', 'Please enter an amount.'), 'error');
     const row = {
