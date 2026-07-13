@@ -21,7 +21,11 @@
     <script src="../common/js/partner-vendors.js"></script>
     <style>
         .ancillary-page .content{padding-bottom:56px}
-        .ancillary-kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:18px}
+        .ancillary-kpis{grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;margin-bottom:14px}
+        .ancillary-kpis .kpi-card{min-width:0;min-height:64px;padding:12px 14px;border-radius:12px;gap:10px}
+        .ancillary-kpis .kpi-icon{width:34px;height:34px;border-radius:9px;font-size:.9rem;flex:0 0 34px}
+        .ancillary-kpis .kpi-value{font-size:1.12rem;line-height:1.05;white-space:nowrap}
+        .ancillary-kpis .kpi-label{font-size:.72rem;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .ancillary-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding:12px 18px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm);flex-wrap:wrap}
         .ancillary-search-group{display:flex;align-items:center;gap:8px;flex:0 1 430px;min-width:320px}
         .ancillary-search{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0;height:38px;padding:0 12px;border:1.5px solid var(--border);border-radius:9px;background:#fff}
@@ -376,7 +380,8 @@
         .service-room-card:not(.inhouse){cursor:not-allowed}
         .service-room-card:not(.inhouse):hover{transform:none;box-shadow:var(--shadow-sm)}
         .service-unavailable{margin-top:12px;padding:9px;border:1px dashed #cbd5e1;border-radius:8px;color:var(--txt3);font-size:.72rem;font-weight:850;text-align:center;background:#fff}
-        @media(max-width:1100px){.ancillary-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.group-room-checks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:1280px){.ancillary-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+        @media(max-width:1100px){.group-room-checks{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:900px){.voucher-brand{align-items:flex-start;flex-direction:column}.voucher-heading,.voucher-sub{text-align:left}.voucher-row{align-items:flex-start;flex-direction:column;gap:4px}.voucher-row span{text-align:left}.voucher-stub-grid{grid-template-columns:1fr}}
         @media(max-width:768px){.ancillary-toolbar{flex-direction:column;align-items:stretch}.ancillary-search-group{flex:1 1 auto;min-width:0;width:100%}.ancillary-search{flex:1 1 auto;min-width:0}.ancillary-toolbar-actions{margin-left:0}.modal-room-box,.modal-field-grid{grid-template-columns:1fr}.voucher-fields,.group-room-checks{grid-template-columns:1fr}#serviceVoucherModal{align-items:center;padding:12px}#serviceVoucherModal .service-voucher-modal{width:calc(100vw - 24px);max-height:calc(100vh - 24px);border-radius:14px;transform:scale(.96)}#serviceVoucherModal.active .service-voucher-modal{transform:scale(1)}}
         @media(max-width:768px){.voucher-list-card{grid-template-columns:auto minmax(0,1fr);align-items:start}.voucher-list-money,.voucher-print-one{grid-column:2}.voucher-print-one{width:max-content}}
@@ -537,7 +542,7 @@ const ANCILLARY_SERVICE_TYPES = ['pos', 'restaurant', 'golf', 'rentacar', 'other
 const VENDOR_STORAGE = 'pms_ancillary_vendors';
 const ORDER_STORAGE = 'pms_ancillary_room_orders';
 const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
-const ORDER_DATA_VERSION = '2026-07-10-demo-showcase-v2';
+const ORDER_DATA_VERSION = '2026-07-10-demo-showcase-v3';
 const seedVendors = [
     { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
     { id:'REST-RIVERSIDE', type:'restaurant', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', location:'호텔에서 차량 8분', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
@@ -669,6 +674,9 @@ function roomForReservation(res) {
 }
 function isReservationRoomInHouse(res) {
     const room = roomForReservation(res);
+    return roomHasInHouseStatus(room);
+}
+function roomHasInHouseStatus(room) {
     return [room?.frontStatus, room?.status, room?.housekeepingStatus, room?.occupancyStatus]
         .map(normalizeStatus)
         .some(status => ['checkedin', 'inhouse', 'occupied'].includes(status));
@@ -708,8 +716,14 @@ function activeReservationForRoom(room) {
         const end = parseDate(res.checkOutDate || res.checkout || res.cout);
         return roomMatchesReservation(room, res) && start && end && start <= today && today < end;
     }).sort((a, b) => (parseDate(a.checkOutDate || a.checkout || a.cout)?.getTime() || 0) - (parseDate(b.checkOutDate || b.checkout || b.cout)?.getTime() || 0))[0] || null;
-    activeRoomCache.set(cacheKey, active);
-    return active;
+    const fallback = active || (roomHasInHouseStatus(room) ? reservations.filter(res => {
+        const status = effectiveReservationStatus(res, today);
+        if (['cancelled', 'completed'].includes(status)) return false;
+        if (!roomMatchesReservation(room, res)) return false;
+        return hasAssignedReservationGuest(res);
+    }).sort((a, b) => (parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0) - (parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0))[0] || null : null);
+    activeRoomCache.set(cacheKey, fallback);
+    return fallback;
 }
 function canRegisterServiceForRoom(room) {
     return hasAssignedReservationGuest(activeReservationForRoom(room || {}));
@@ -767,6 +781,15 @@ function serviceMeta(service) {
         other: { label: en ? 'Other' : '기타', icon:'fa-box-open', cls:'pos' }
     }[service] || { label: en ? 'Ancillary' : '부가서비스', icon:'fa-bell', cls:'pos' };
 }
+function normalizeServiceType(service) {
+    const key = normalizeStatus(service);
+    if (['pos', 'fnb', 'foodbeverage', 'roomservice', 'minibar'].includes(key)) return 'pos';
+    if (['restaurant', 'dining', 'coupon'].includes(key)) return 'restaurant';
+    if (['golf', 'golfcourse', 'golfvoucher'].includes(key)) return 'golf';
+    if (['rentacar', 'rentalcar', 'car', 'vehicle', 'transport'].includes(key)) return 'rentacar';
+    if (['other', 'etc', 'misc'].includes(key)) return 'other';
+    return ANCILLARY_SERVICE_TYPES.includes(service) ? service : key;
+}
 function normalizeVendorItem(type, item = {}) {
     const normalized = { ...item, category: item.category || type };
     if (type === 'golf') {
@@ -787,7 +810,7 @@ function normalizeVendorItem(type, item = {}) {
 function serviceSummary(orders = []) {
     return ANCILLARY_SERVICE_TYPES.map(service => {
         const meta = serviceMeta(service);
-        const total = orders.filter(order => order.service === service).reduce((sum, order) => sum + Number(order.total || 0), 0);
+        const total = orders.filter(order => normalizeServiceType(order.service) === service).reduce((sum, order) => sum + Number(order.total || 0), 0);
         return { service, ...meta, total };
     });
 }
@@ -989,10 +1012,12 @@ function roomOrders(room) {
     const key = roomNo(room);
     const activeGuest = assignedReservationGuestName(active);
     return serviceOrders.filter(order => {
-        const sameRoom = sameRoomValue(order.room, key) || sameRoomValue(order.roomId, room?.id);
+        const sameRoom = sameRoomValue(order.room, key) || sameRoomValue(order.roomId, room?.id) || sameRoomValue(order.roomId, room?.roomId);
+        if (!sameRoom) return false;
+        if (order.reservationId && active.id && order.reservationId === active.id) return true;
         const orderGuest = String(order.guest || '').trim();
-        const sameGuest = !orderGuest || orderGuest === activeGuest;
-        return sameRoom && sameGuest;
+        const sameGuest = !orderGuest || !activeGuest || orderGuest === activeGuest;
+        return sameGuest || !order.reservationId;
     });
 }
 function vendorSeedList() {
@@ -1014,13 +1039,14 @@ function vendorForExternalOrder(order, service) {
     return null;
 }
 function normalizeExternalOrder(order, service) {
-    const meta = serviceMeta(service);
+    const normalizedService = normalizeServiceType(service);
+    const meta = serviceMeta(normalizedService);
     const item = Array.isArray(order.items) ? order.items.map(entry => entry.name || entry.item || entry).join(', ') : (order.items || order.item || order.itemName || order.productName || meta.label);
-    const vendor = vendorForExternalOrder(order, service);
+    const vendor = vendorForExternalOrder(order, normalizedService);
     const dateTime = order.dateTime || order.serviceAt || order.createdAt || (order.date && order.time ? `${order.date}T${order.time}` : order.date || '');
     return {
         id: order.id || `${service}-${Date.now()}-${Math.random()}`,
-        service,
+        service: normalizedService,
         serviceLabel: meta.label,
         room: order.room || order.roomNo || String(order.roomId || '').split('-').pop(),
         roomId: order.roomId || '',
@@ -1234,11 +1260,11 @@ function updateKpis() {
     const visibleOrders = serviceRooms.flatMap(room => roomOrders(room));
     const total = visibleOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
     document.getElementById('kpiInhouse').textContent = serviceRooms.length;
-    document.getElementById('kpiPos').textContent = visibleOrders.filter(o => o.service === 'pos').length;
-    document.getElementById('kpiRestaurant').textContent = visibleOrders.filter(o => o.service === 'restaurant').length;
-    document.getElementById('kpiGolf').textContent = visibleOrders.filter(o => o.service === 'golf').length;
-    document.getElementById('kpiRent').textContent = visibleOrders.filter(o => o.service === 'rentacar').length;
-    document.getElementById('kpiOther').textContent = visibleOrders.filter(o => o.service === 'other').length;
+    document.getElementById('kpiPos').textContent = visibleOrders.filter(o => normalizeServiceType(o.service) === 'pos').length;
+    document.getElementById('kpiRestaurant').textContent = visibleOrders.filter(o => normalizeServiceType(o.service) === 'restaurant').length;
+    document.getElementById('kpiGolf').textContent = visibleOrders.filter(o => normalizeServiceType(o.service) === 'golf').length;
+    document.getElementById('kpiRent').textContent = visibleOrders.filter(o => normalizeServiceType(o.service) === 'rentacar').length;
+    document.getElementById('kpiOther').textContent = visibleOrders.filter(o => normalizeServiceType(o.service) === 'other').length;
     document.getElementById('kpiRevenue').textContent = money(total);
 }
 function renderAncillaryBoard() {
@@ -1272,7 +1298,7 @@ function renderAncillaryBoard() {
         const res = activeReservationForRoom(room);
         const group = groupForReservation(res);
         const allOrders = roomOrders(room);
-        const visibleOrders = serviceFilter === 'all' ? allOrders : allOrders.filter(order => order.service === serviceFilter);
+        const visibleOrders = serviceFilter === 'all' ? allOrders : allOrders.filter(order => normalizeServiceType(order.service) === serviceFilter);
         if (serviceFilter !== 'all' && !visibleOrders.length) return false;
         const haystack = [roomNo(room), roomType(room), reservationGuest(res), group?.name, group?.groupName, ...visibleOrders.map(order => `${order.vendor} ${order.item}`)].join(' ').toLowerCase();
         return !query || haystack.includes(query);
@@ -1323,7 +1349,7 @@ function renderRoomCard(room) {
     const res = active || next;
     const group = groupForReservation(res);
     const allOrders = roomOrders(room);
-    const orders = serviceFilter === 'all' ? allOrders : allOrders.filter(order => order.service === serviceFilter);
+    const orders = serviceFilter === 'all' ? allOrders : allOrders.filter(order => normalizeServiceType(order.service) === serviceFilter);
     const status = active ? 'inhouse' : next ? 'arrival' : 'empty';
     const statusLabel = active ? '투숙 중' : next ? '체크인 예정' : '공실';
     const availabilityNote = active
