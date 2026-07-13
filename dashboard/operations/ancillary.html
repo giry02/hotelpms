@@ -391,7 +391,7 @@
 <div class="main ancillary-page">
     <header class="topbar"><h1>부가서비스</h1></header>
     <main class="content">
-        <div class="kpi-grid ancillary-kpis">
+        <div class="kpi-grid ancillary-kpis" data-no-auto-i18n>
             <div class="kpi-card blue"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiInhouse">0</div><div class="kpi-label" data-ancillary-label="inhouse">투숙 객실</div></div></div>
             <div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-cash-register"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiPos">0</div><div class="kpi-label" data-ancillary-label="pos">통합 POS</div></div></div>
             <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRestaurant">0</div><div class="kpi-label" data-ancillary-label="restaurant">음식점</div></div></div>
@@ -401,7 +401,7 @@
             <div class="kpi-card teal"><div class="kpi-icon"><i class="fa-solid fa-coins"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRevenue">₱0</div><div class="kpi-label" data-ancillary-label="revenue">누적 이용금액</div></div></div>
         </div>
 
-        <div class="ancillary-toolbar">
+        <div class="ancillary-toolbar" data-no-auto-i18n>
             <div class="ancillary-search-group">
                 <div class="ancillary-search">
                     <i class="fa-solid fa-search"></i>
@@ -419,7 +419,7 @@
             </div>
         </div>
 
-        <div id="ancillaryBoardContainer"></div>
+        <div id="ancillaryBoardContainer" data-no-auto-i18n></div>
     </main>
 </div>
 
@@ -637,6 +637,15 @@ function applyAncillaryStaticI18n() {
     if (search) search.setAttribute('placeholder', ancillaryLabel('searchPlaceholder'));
     const searchLabel = document.querySelector('.ancillary-search-button span');
     if (searchLabel) searchLabel.textContent = ancillaryLabel('search');
+}
+function refreshAncillaryI18nAndBoard() {
+    applyAncillaryStaticI18n();
+    renderAncillaryBoard();
+}
+function scheduleAncillaryI18nRefresh() {
+    refreshAncillaryI18nAndBoard();
+    clearTimeout(window.__ancillaryI18nRefreshTimer);
+    window.__ancillaryI18nRefreshTimer = setTimeout(refreshAncillaryI18nAndBoard, 140);
 }
 function resetAncillaryReservationCaches() {
     reservationRoomCache = new WeakMap();
@@ -2019,13 +2028,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     serviceOrders = [...new Map(merged.map(order => [`${order.service}:${order.id}`, order])).values()];
     seedDemoServiceOrdersIfNeeded();
     applyAncillaryUrlParams();
-    applyAncillaryStaticI18n();
-    renderAncillaryBoard();
+    scheduleAncillaryI18nRefresh();
 });
-window.addEventListener('languagechange', () => {
-    applyAncillaryStaticI18n();
-    renderAncillaryBoard();
-});
+window.addEventListener('languagechange', scheduleAncillaryI18nRefresh);
 </script>
 </body>
 </html>
