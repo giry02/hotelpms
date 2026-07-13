@@ -147,6 +147,80 @@
         .perm-check-item .check-icon { color: var(--txt3); width: 16px; text-align: center; }
         .perm-check-item.checked .check-icon { color: var(--primary); }
 
+        .feature-permission-section {
+            position: relative;
+            z-index: 2;
+            flex: 0 0 auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: #f8fafc;
+            overflow: hidden;
+        }
+        .feature-permission-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border2);
+        }
+        .feature-permission-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .92rem;
+            font-weight: 800;
+            color: var(--txt);
+        }
+        .feature-permission-help {
+            margin-top: 4px;
+            color: var(--txt3);
+            font-size: .76rem;
+            font-weight: 600;
+            line-height: 1.45;
+        }
+        .feature-permission-checks {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 10px;
+            padding: 14px 16px;
+        }
+        .feature-permission-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+            user-select: none;
+        }
+        .feature-permission-item:hover:not(.disabled) { border-color: var(--primary); }
+        .feature-permission-item.disabled {
+            opacity: .65;
+            cursor: not-allowed;
+            background: var(--bg-body);
+        }
+        .feature-permission-item input {
+            margin-top: 3px;
+            accent-color: var(--primary);
+        }
+        .feature-permission-item strong {
+            display: block;
+            font-size: .84rem;
+            color: var(--txt);
+            font-weight: 800;
+        }
+        .feature-permission-item small {
+            display: block;
+            margin-top: 3px;
+            color: var(--txt3);
+            font-size: .72rem;
+            line-height: 1.4;
+            font-weight: 650;
+        }
+
         .editor-footer {
             padding: 16px 24px;
             border-top: 1px solid var(--border2);
@@ -338,6 +412,7 @@ function renderEditor() {
     editor.innerHTML = buildEditorHtml(role);
     renderColorPicker(role.color, role.isSystem);
     renderPermChecks(role.perms, role.isSystem);
+    renderFeaturePermissionChecks(role);
 }
 
 function buildEditorHtml(role) {
@@ -347,6 +422,19 @@ function buildEditorHtml(role) {
     
     const nameVal = role ? role.name : '';
     const descVal = role ? role.desc : '';
+    const featureSection = !isCreating ? `
+            <div class="feature-permission-section">
+                <div class="feature-permission-head">
+                    <div>
+                        <div class="feature-permission-title"><i class="fa-solid fa-key" style="color:var(--primary)"></i> 기능 권한</div>
+                        <div class="feature-permission-help">메뉴 권한과 별도로 정산/부가서비스 완료 상태를 되돌리는 민감 기능만 역할별로 허용합니다.</div>
+                    </div>
+                    <button type="button" class="btn-primary-sm" onclick="saveFeaturePermissionsForCurrentRole()" ${role?.id === 'sys_admin' ? 'disabled' : ''}>
+                        <i class="fa-solid fa-floppy-disk"></i> 저장
+                    </button>
+                </div>
+                <div class="feature-permission-checks" id="featurePermissionChecks"></div>
+            </div>` : '';
     
     let footer = '';
     if (isSys) {
@@ -381,6 +469,8 @@ function buildEditorHtml(role) {
                 <label class="form-label">역할 색상 지정</label>
                 <div class="color-picker" id="colorPicker"></div>
             </div>
+
+            ${featureSection}
             
             <div class="form-col">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -466,6 +556,61 @@ function selectAll(state) {
 
 function getSelectedPerms() {
     return [...document.querySelectorAll('.perm-check-item.checked')].map(el => el.getAttribute('data-key'));
+}
+
+function featurePermissionApi() {
+    return window.PMS_FeaturePermissions || {
+        list: () => ({
+            'settlement.reopen': { label:'정산취소', desc:'정산 완료 건을 정산 미완료로 되돌립니다.' },
+            'ancillary.reopen': { label:'부가서비스 취소', desc:'완료된 부가서비스를 미완료/수락 상태로 되돌립니다.' }
+        }),
+        read: () => {
+            try { return JSON.parse(localStorage.getItem('pms_role_feature_permissions') || '{}'); } catch(e) { return {}; }
+        },
+        save: value => localStorage.setItem('pms_role_feature_permissions', JSON.stringify(value || {})),
+        can: (permission, role) => role === 'sys_admin' || !!featurePermissionApi().read()?.[role]?.[permission]
+    };
+}
+
+function renderFeaturePermissionChecks(role) {
+    const box = document.getElementById('featurePermissionChecks');
+    if (!box || !role) return;
+
+    const api = featurePermissionApi();
+    const permissions = api.list();
+    box.innerHTML = Object.entries(permissions).map(([key, meta]) => {
+        const disabled = role.id === 'sys_admin';
+        const checked = api.can(key, role.id);
+        return `
+        <div class="feature-permission-item${disabled ? ' disabled' : ''}" onclick="toggleFeaturePermissionItem(event, this)">
+            <input type="checkbox" value="${key}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} onclick="event.stopPropagation()">
+            <span><strong>${meta.label}</strong><small>${meta.desc}</small></span>
+        </div>`;
+    }).join('');
+}
+
+function toggleFeaturePermissionItem(event, item) {
+    if (event.target?.matches('input')) return;
+    const input = item?.querySelector('input[type="checkbox"]');
+    if (!input || input.disabled) return;
+    input.checked = !input.checked;
+}
+
+function saveFeaturePermissionsForCurrentRole() {
+    if (!currentRoleId) return;
+    if (currentRoleId === 'sys_admin') {
+        showToast('슈퍼 관리자는 기본 기능 권한을 항상 보유합니다.', 'info');
+        return;
+    }
+
+    const api = featurePermissionApi();
+    const map = api.read();
+    map[currentRoleId] = {};
+    document.querySelectorAll('#featurePermissionChecks input:checked').forEach(input => {
+        map[currentRoleId][input.value] = true;
+    });
+    api.save(map);
+    showToast('기능 권한이 저장되었습니다.');
 }
 
 // ─── 저장 & 삭제 로직 ─────────────────────────────────────────
