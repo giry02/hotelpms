@@ -35,6 +35,23 @@
             'booking.newTitle': '신규 예약 등록',
             'booking.created': '신규 예약을 성공적으로 등록했습니다.',
             'booking.updated': '예약이 성공적으로 수정되었습니다.',
+            'guest.roster.title': '예약 투숙객 명단',
+            'guest.count': '{count}명',
+            'guest.emptyRoster': '상단에서 투숙객을 검색한 뒤 대표 또는 동반으로 추가하세요.',
+            'guest.id': '고객ID {id}',
+            'guest.newInline': '신규 입력 고객',
+            'guest.primary': '대표',
+            'guest.companion': '동반',
+            'guest.setPrimary': '대표',
+            'guest.delete': '삭제',
+            'guest.addPrimary': '대표로 설정',
+            'guest.addCompanion': '동반으로 추가',
+            'guest.detailTitle': '고객 상세 정보',
+            'guest.auditLog': '열람 로그 기록',
+            'modal.editTitle': '예약 상세 및 수정',
+            'button.cancelBooking': '예약 취소',
+            'button.close': '닫기',
+            'button.save': '저장',
             'cancel.notAllowed': '체크인 이후 예약은 취소할 수 없습니다. 체크아웃, 조기퇴실, 환불/정산 정정으로 처리해주세요.',
             'cancel.confirm': '[{name}] 고객의 예약을 취소하시겠습니까?',
             'cancel.done': '예약이 취소되었습니다.'
@@ -71,6 +88,23 @@
             'booking.newTitle': 'New Booking',
             'booking.created': 'New booking has been registered successfully.',
             'booking.updated': 'Reservation has been updated successfully.',
+            'guest.roster.title': 'Reservation Guest List',
+            'guest.count': '{count} people',
+            'guest.emptyRoster': 'Search for a guest above, then add them as primary or companion.',
+            'guest.id': 'Guest ID {id}',
+            'guest.newInline': 'New guest entry',
+            'guest.primary': 'Primary',
+            'guest.companion': 'Companion',
+            'guest.setPrimary': 'Primary',
+            'guest.delete': 'Remove',
+            'guest.addPrimary': 'Set as Primary',
+            'guest.addCompanion': 'Add Companion',
+            'guest.detailTitle': 'Guest Details',
+            'guest.auditLog': 'View access log',
+            'modal.editTitle': 'Reservation Details',
+            'button.cancelBooking': 'Cancel Reservation',
+            'button.close': 'Close',
+            'button.save': 'Save',
             'cancel.notAllowed': 'Reservations after check-in cannot be cancelled. Please handle it through check-out, early departure, refund, or settlement correction.',
             'cancel.confirm': 'Cancel the reservation for {name}?',
             'cancel.done': 'Reservation has been cancelled.'
@@ -1136,34 +1170,35 @@
         if (!list) return;
         syncUnifiedCompanionField();
         const roster = orderedUnifiedRoster();
-        if (count) count.textContent = `${roster.length}명`;
+        if (count) count.textContent = actionText('guest.count', { count: roster.length });
         if (!roster.length) {
             refreshUnifiedRateQuote();
-            list.innerHTML = `<div style="padding:14px;border:1px dashed var(--border);border-radius:8px;background:#fff;color:var(--txt3);font-size:.78rem;font-weight:700;text-align:center">상단에서 투숙객을 검색한 뒤 대표 또는 동반으로 추가하세요.</div>`;
+            list.innerHTML = `<div style="padding:14px;border:1px dashed var(--border);border-radius:8px;background:#fff;color:var(--txt3);font-size:.78rem;font-weight:700;text-align:center">${actionEscapeHtml(actionText('guest.emptyRoster'))}</div>`;
             return;
         }
         list.innerHTML = roster.map(item => {
             const isPrimary = item.role === 'primary';
             const key = encodeURIComponent(rosterGuestKey(item)).replace(/'/g, '%27');
-            const meta = [item.phone, item.email].filter(Boolean).join(' · ') || (item.guestId ? `고객ID ${item.guestId}` : '신규 입력 고객');
+            const meta = [item.phone, item.email].filter(Boolean).join(' · ') || (item.guestId ? actionText('guest.id', { id: item.guestId }) : actionText('guest.newInline'));
             const badgeStyle = isPrimary
                 ? 'background:#111827;color:#fff'
                 : 'background:#EEF2FF;color:#4338CA';
             const icon = isPrimary ? 'fa-user-check' : 'fa-user-group';
+            const roleLabel = isPrimary ? actionText('guest.primary') : actionText('guest.companion');
             return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;background:#fff;border:1px solid var(--border2);border-radius:9px;margin-top:8px">
                 <div style="display:flex;align-items:center;gap:10px;min-width:0">
                     <div style="width:36px;height:36px;border-radius:50%;background:${isPrimary ? '#111827' : '#EEF2FF'};color:${isPrimary ? '#fff' : '#4338CA'};display:flex;align-items:center;justify-content:center;flex:0 0 auto"><i class="fa-solid ${icon}" style="font-size:.8rem"></i></div>
                     <div style="min-width:0">
                         <div style="display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap">
                             <span style="font-size:.86rem;font-weight:900;color:var(--txt);word-break:break-word">${actionEscapeHtml(item.name)}</span>
-                            <span style="font-size:.65rem;font-weight:900;border-radius:999px;padding:3px 8px;${badgeStyle}">${isPrimary ? '대표' : '동반'}</span>
+                            <span style="font-size:.65rem;font-weight:900;border-radius:999px;padding:3px 8px;${badgeStyle}">${actionEscapeHtml(roleLabel)}</span>
                         </div>
                         <div style="font-size:.7rem;color:var(--txt3);font-weight:700;margin-top:2px;word-break:break-all">${actionEscapeHtml(meta)}</div>
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;flex:0 0 auto">
-                    ${isPrimary ? '' : `<button type="button" onclick="setUnifiedPrimaryGuest('${key}')" style="height:30px;border:1px solid var(--border);background:#fff;border-radius:6px;padding:0 9px;font-family:var(--font);font-size:.7rem;font-weight:800;color:var(--txt2);cursor:pointer"><i class="fa-solid fa-star"></i> 대표</button>`}
-                    <button type="button" onclick="removeUnifiedStayGuest('${key}')" style="width:30px;height:30px;border:1px solid var(--border);background:#fff;border-radius:6px;color:var(--txt3);cursor:pointer" title="삭제"><i class="fa-solid fa-xmark"></i></button>
+                    ${isPrimary ? '' : `<button type="button" onclick="setUnifiedPrimaryGuest('${key}')" style="height:30px;border:1px solid var(--border);background:#fff;border-radius:6px;padding:0 9px;font-family:var(--font);font-size:.7rem;font-weight:800;color:var(--txt2);cursor:pointer"><i class="fa-solid fa-star"></i> ${actionEscapeHtml(actionText('guest.setPrimary'))}</button>`}
+                    <button type="button" onclick="removeUnifiedStayGuest('${key}')" style="width:30px;height:30px;border:1px solid var(--border);background:#fff;border-radius:6px;color:var(--txt3);cursor:pointer" title="${actionEscapeHtml(actionText('guest.delete'))}" aria-label="${actionEscapeHtml(actionText('guest.delete'))}"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>`;
         }).join('');
@@ -1548,7 +1583,7 @@
         <div class="modal-card" style="width: 550px; max-width: 95vw;">
             <div class="modal-header">
                 <div class="modal-title" id="unifiedModalTitle" style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
-                    <span id="unifiedModalTitleText" style="min-width:0;">예약 상세 및 수정</span>
+                    <span id="unifiedModalTitleText" style="min-width:0;">${actionEscapeHtml(actionText('modal.editTitle'))}</span>
                     <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none;height:32px;min-height:32px;padding:0 10px;font-size:.74rem;border-radius:8px;gap:5px;" onclick="openReservationPlacardPreview()"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n-key="Placard Print">플랫카드 인쇄</span></button>
                 </div>
                 <button class="modal-close" onclick="closeUnifiedResModal()"><i class="fa-solid fa-xmark"></i></button>
@@ -1562,13 +1597,13 @@
                 <div id="unifiedGuestSection" style="margin-bottom:20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid var(--border2);">
                     ${typeof renderGuestSearchHTML === 'function' ? renderGuestSearchHTML('Edit') : '<div style="color:red">guest-search.js missing</div>'}
                     <div id="unifiedGuestCandidateActions" style="display:none;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:12px">
-                        <button type="button" onclick="addUnifiedSelectedGuest('primary')" style="height:34px;border:none;border-radius:7px;background:#111827;color:#fff;padding:0 13px;font-family:var(--font);font-size:.76rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="fa-solid fa-user-check"></i> 대표로 설정</button>
-                        <button type="button" onclick="addUnifiedSelectedGuest('companion')" style="height:34px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--txt);padding:0 13px;font-family:var(--font);font-size:.76rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="fa-solid fa-user-plus"></i> 동반으로 추가</button>
+                        <button type="button" onclick="addUnifiedSelectedGuest('primary')" style="height:34px;border:none;border-radius:7px;background:#111827;color:#fff;padding:0 13px;font-family:var(--font);font-size:.76rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="fa-solid fa-user-check"></i> ${actionEscapeHtml(actionText('guest.addPrimary'))}</button>
+                        <button type="button" onclick="addUnifiedSelectedGuest('companion')" style="height:34px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--txt);padding:0 13px;font-family:var(--font);font-size:.76rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:6px"><i class="fa-solid fa-user-plus"></i> ${actionEscapeHtml(actionText('guest.addCompanion'))}</button>
                     </div>
                     <div id="unifiedStayGuestPanel" style="margin-top:14px;background:#fff;border:1px solid var(--border2);border-radius:10px;padding:12px">
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">
-                            <div style="font-size:.86rem;font-weight:900;color:var(--txt);display:flex;align-items:center;gap:7px"><i class="fa-solid fa-address-book" style="color:var(--primary)"></i> 예약 투숙객 명단</div>
-                            <div id="unifiedStayGuestCount" style="font-size:.68rem;font-weight:900;color:var(--txt3);background:#f1f5f9;border-radius:999px;padding:4px 8px">0명</div>
+                            <div style="font-size:.86rem;font-weight:900;color:var(--txt);display:flex;align-items:center;gap:7px"><i class="fa-solid fa-address-book" style="color:var(--primary)"></i> ${actionEscapeHtml(actionText('guest.roster.title'))}</div>
+                            <div id="unifiedStayGuestCount" style="font-size:.68rem;font-weight:900;color:var(--txt3);background:#f1f5f9;border-radius:999px;padding:4px 8px">${actionEscapeHtml(actionText('guest.count', { count: 0 }))}</div>
                         </div>
                         <div id="unifiedStayGuestList"></div>
                     </div>
@@ -1576,8 +1611,8 @@
                 <input type="hidden" id="unifiedCompanions">
                 <div id="unifiedGuestPrivacyPanel" style="display:none;margin-bottom:20px;background:#fff;border:1px solid var(--border2);border-radius:10px;overflow:hidden;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--border2);">
-                        <div style="font-size:.9rem;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:8px"><i class="fa-solid fa-id-card-clip" style="color:var(--primary)"></i> 고객 상세 정보</div>
-                        <div style="font-size:.68rem;color:var(--txt3);font-weight:700"><i class="fa-solid fa-shield-halved"></i> 열람 로그 기록</div>
+                        <div style="font-size:.9rem;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:8px"><i class="fa-solid fa-id-card-clip" style="color:var(--primary)"></i> ${actionEscapeHtml(actionText('guest.detailTitle'))}</div>
+                        <div style="font-size:.68rem;color:var(--txt3);font-weight:700"><i class="fa-solid fa-shield-halved"></i> ${actionEscapeHtml(actionText('guest.auditLog'))}</div>
                     </div>
                     <div id="unifiedGuestPrivacyBody" style="padding:14px;"></div>
                 </div>
@@ -1675,12 +1710,12 @@
             </div>
             <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 0 0 var(--radius-sm) var(--radius-sm);">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                    <button id="unifiedBtnCancel" class="btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelUnifiedRes()" data-i18n-key="Cancel Booking"><i class="fa-solid fa-trash"></i> 예약 취소</button>
+                    <button id="unifiedBtnCancel" class="btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelUnifiedRes()"><i class="fa-solid fa-trash"></i> ${actionEscapeHtml(actionText('button.cancelBooking'))}</button>
                     <span id="unifiedFlowActions" style="display:inline-flex;gap:8px;flex-wrap:wrap"></span>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn-outline" onclick="closeUnifiedResModal()" data-i18n-key="Close">닫기</button>
-                    <button class="btn-primary-sm" onclick="saveUnifiedRes()" data-i18n-key="Save">저장</button>
+                    <button class="btn-outline" onclick="closeUnifiedResModal()" data-i18n-key="Close">${actionEscapeHtml(actionText('button.close'))}</button>
+                    <button class="btn-primary-sm" onclick="saveUnifiedRes()" data-i18n-key="Save">${actionEscapeHtml(actionText('button.save'))}</button>
                 </div>
             </div>
         </div>

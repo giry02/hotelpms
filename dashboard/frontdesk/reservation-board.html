@@ -269,6 +269,14 @@ const BOARD_TEXT = {
         'status.oos': '점검 중',
         'status.completed': '체크아웃 완료',
         'status.cancelled': '취소/노쇼',
+        'stay.none': '재실',
+        'stay.dnd': '방해금지',
+        'stay.away': '외출',
+        'stay.mur': '청소필요',
+        'stay.clean': '청소완료',
+        'stay.aria.empty': '빈방 청소 상태 변경',
+        'stay.aria.occupied': '청소 상태 변경',
+        'stay.toast': '{room} 상태: {state}',
         'search.placeholder': '객실번호, 이름, 단체명 검색...',
         'search.button': '검색'
     },
@@ -305,6 +313,14 @@ const BOARD_TEXT = {
         'status.oos': 'Out of Service',
         'status.completed': 'Checked-out',
         'status.cancelled': 'Cancelled / No-show',
+        'stay.none': 'In-house',
+        'stay.dnd': 'Do Not Disturb',
+        'stay.away': 'Away',
+        'stay.mur': 'Needs Cleaning',
+        'stay.clean': 'Clean',
+        'stay.aria.empty': 'Change vacant-room cleaning status',
+        'stay.aria.occupied': 'Change cleaning status',
+        'stay.toast': '{room} status: {state}',
         'search.placeholder': 'Search room, name, or group...',
         'search.button': 'Search'
     }
@@ -316,6 +332,14 @@ function boardLang() {
 
 function boardText(key) {
     return BOARD_TEXT[boardLang()]?.[key] || BOARD_TEXT.ko[key] || key;
+}
+
+function boardTextFormat(key, params = {}) {
+    let text = boardText(key);
+    Object.keys(params).forEach(name => {
+        text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+    });
+    return text;
 }
 
 function escapeHtml(value) {
@@ -985,18 +1009,18 @@ function boardStayActions(room, res) {
     const roomKey = room.roomId || room.fullRoom || room.id || res?.room || '';
     const cleanState = boardCleaningSummary(room, res).key;
     if (!res) {
-        return `<select class="board-clean-select ${escapeHtml(cleanState)}" data-room-key="${escapeHtml(roomKey)}" aria-label="빈방 청소 상태 변경" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardCleanState(event,this)">
-            <option value="dirty"${cleanState === 'dirty' ? ' selected' : ''}>청소필요</option>
-            <option value="clean"${cleanState === 'clean' ? ' selected' : ''}>청소완료</option>
+        return `<select class="board-clean-select ${escapeHtml(cleanState)}" data-room-key="${escapeHtml(roomKey)}" aria-label="${escapeHtml(boardText('stay.aria.empty'))}" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardCleanState(event,this)">
+            <option value="dirty"${cleanState === 'dirty' ? ' selected' : ''}>${escapeHtml(boardText('stay.mur'))}</option>
+            <option value="clean"${cleanState === 'clean' ? ' selected' : ''}>${escapeHtml(boardText('stay.clean'))}</option>
         </select>`;
     }
     const active = boardStayState(room, res);
     const options = [
-        { key: 'mur', label: '청소필요' },
-        { key: 'clean', label: '청소완료' },
-        { key: 'dnd', label: '방해금지' }
+        { key: 'mur', label: boardText('stay.mur') },
+        { key: 'clean', label: boardText('stay.clean') },
+        { key: 'dnd', label: boardText('stay.dnd') }
     ];
-    return `<select class="board-clean-select ${escapeHtml(active)}" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" aria-label="청소 상태 변경" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardStayState(event,this)">
+    return `<select class="board-clean-select ${escapeHtml(active)}" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" aria-label="${escapeHtml(boardText('stay.aria.occupied'))}" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardStayState(event,this)">
         ${options.map(opt => `<option value="${opt.key}"${active === opt.key ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
     </select>`;
 }
@@ -1126,7 +1150,7 @@ function boardCard(room) {
     const hasRoomChange = !!(res && reservationHasRoomChange(res));
     const roomChangeText = hasRoomChange ? reservationRoomChangeText(res) : '';
     const stayState = res ? boardStayState(room, res) : '';
-    const stayStateLabels = { none: '재실', dnd: '방해금지', away: '외출', mur: '청소필요', clean: '청소완료' };
+    const stayStateLabels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), clean: boardText('stay.clean') };
     const settlementInfo = boardSettlementSummary(res, state);
     const searchText = [
         room.id,
@@ -1369,8 +1393,8 @@ window.setBoardStayState = async function(event, button) {
         await syncBoardStayStateToHousekeeping(room, res, state);
         renderReservationBoard();
         if (window.showToast) {
-            const labels = { none: '재실', dnd: '방해금지', away: '외출', mur: '청소필요', clean: '청소완료' };
-            window.showToast(`${room.id || room.roomNo || roomKey} 상태: ${labels[state] || state}`, 'success');
+            const labels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), clean: boardText('stay.clean') };
+            window.showToast(boardTextFormat('stay.toast', { room: room.id || room.roomNo || roomKey, state: labels[state] || state }), 'success');
         }
     } finally {
         controls.forEach(item => { item.disabled = false; });
