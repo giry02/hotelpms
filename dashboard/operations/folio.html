@@ -656,6 +656,10 @@ function settlementCompletionForFolio(folio) {
         .sort((a, b) => String(b.completedAt || '').localeCompare(String(a.completedAt || '')))
         .find(item => item.signature === signature);
     if (completion) return completion;
+    const latestCompletion = settlementCompletionRecords()
+        .filter(item => item.folioId === folio.id)
+        .sort((a, b) => String(b.completedAt || '').localeCompare(String(a.completedAt || '')))[0];
+    if (latestCompletion) return latestCompletion;
     if (legacySettlementCompletion(folio)) {
         return { folioId: folio.id, completedAt: folio.settlementPaymentRecords?.find(item => item.completeSettlement)?.createdAt || '', completedBy: 'Legacy' };
     }
@@ -3193,6 +3197,10 @@ function completeSettlementFolio(folioId) {
     };
     records.push(completion);
     saveSettlementCompletionRecords(records);
+    folio.settlementCompleted = true;
+    folio.settlementCompletedAt = completion.completedAt;
+    folio.settlementCompletedBy = completion.completedBy;
+    folio.status = 'paid';
     if (window.PmsPrivacyAudit?.log) {
         window.PmsPrivacyAudit.log('folio.settlement.complete', {
             folioId: folio.id,
