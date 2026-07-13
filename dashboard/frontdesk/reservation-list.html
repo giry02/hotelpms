@@ -1960,14 +1960,10 @@ window.processReservationRowFlow = async function(resId, action) {
 };
 
 function exportReservationsToCSV() {
-    if (!reservations || reservations.length === 0) {
-        if(window.showToast) window.showToast(resText('toast.noData'));
-        return;
-    }
     if (window.PmsPrivacyAudit) {
         window.PmsPrivacyAudit.log('reservation.export.download', {
             screen: 'reservation-list',
-            exportType: 'csv',
+            exportType: 'xlsx',
             filters: {
                 status: currentFilter,
                 sort: currentSort,
@@ -1976,30 +1972,7 @@ function exportReservationsToCSV() {
             fields: ['reservationId', 'guestName', 'room', 'stayDates', 'operationalNotes']
         });
     }
-    const headers = ['예약번호', '고객', '객실', '유형', '체크인', '체크아웃', '숙박', '구분', '금액', '상태', '메모'];
-    const rows = reservations.map(r => [
-        r.id, 
-        '"' + displayGuestName(r) + '"', 
-        r.room, 
-        roomTypeDisplay(r.type),
-        r.cin, 
-        r.cout, 
-        r.nights, 
-        reservationKindMeta(r).label,
-        formatMoney(r), 
-        statusMeta(effectiveRowStatus(r)).label,
-        '"' + operationalNotes(r).join(' / ') + '"'
-    ]);
-    const csvContent = [headers.join(',')].concat(rows.map(e => e.join(','))).join('\n');
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'reservations.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    window.location.href = '../common/downloads/reservation_list_report.xlsx';
 }
 
 // ===== MOBILE MENU =====
