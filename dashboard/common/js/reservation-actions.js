@@ -1547,7 +1547,10 @@
     <div class="modal-overlay" id="unifiedResModal" style="z-index: 9999;">
         <div class="modal-card" style="width: 550px; max-width: 95vw;">
             <div class="modal-header">
-                <div class="modal-title" id="unifiedModalTitle">예약 상세 및 수정</div>
+                <div class="modal-title" id="unifiedModalTitle" style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
+                    <span id="unifiedModalTitleText" style="min-width:0;">예약 상세 및 수정</span>
+                    <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none;height:32px;min-height:32px;padding:0 10px;font-size:.74rem;border-radius:8px;gap:5px;" onclick="openReservationPlacardPreview()"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n-key="Placard Print">플랫카드 인쇄</span></button>
+                </div>
                 <button class="modal-close" onclick="closeUnifiedResModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
                 <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
@@ -1674,7 +1677,6 @@
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <button id="unifiedBtnCancel" class="btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelUnifiedRes()" data-i18n-key="Cancel Booking"><i class="fa-solid fa-trash"></i> 예약 취소</button>
                     <span id="unifiedFlowActions" style="display:inline-flex;gap:8px;flex-wrap:wrap"></span>
-                    <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none" onclick="openReservationPlacardPreview()"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n-key="Placard Print">플랫카드 인쇄</span></button>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-outline" onclick="closeUnifiedResModal()" data-i18n-key="Close">닫기</button>
@@ -2926,7 +2928,7 @@
             const cancelBtn = document.getElementById('unifiedBtnCancel');
             if (cancelBtn) cancelBtn.style.display = 'none';
             await renderUnifiedGuestPrivacy(null);
-            document.getElementById('unifiedModalTitle').textContent = actionText('booking.newTitle');
+            document.getElementById('unifiedModalTitleText').textContent = actionText('booking.newTitle');
             document.getElementById('unifiedResId').value = '';
             document.getElementById('unifiedStatus').value = 'confirmed';
             const channelEl = document.getElementById('unifiedChannel');
@@ -2975,7 +2977,7 @@
             const vipText = actionLang() === 'en' ? 'VIP' : '우수 고객';
             const vipBadge = isVip ? `<span style="background:rgba(245,158,11,.15);color:#D97706;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:700;vertical-align:middle;"><i class="fa-solid fa-crown"></i> ${vipText}</span>` : '';
             
-            document.getElementById('unifiedModalTitle').innerHTML = `${reservationModalRoomTitle(res)} ${b2bBadge} ${vipBadge}`;
+            document.getElementById('unifiedModalTitleText').innerHTML = `${reservationModalRoomTitle(res)} ${b2bBadge} ${vipBadge}`;
             document.getElementById('unifiedResId').value = res.id;
             
             if (window.rooms && window.rooms.length === 0) {
