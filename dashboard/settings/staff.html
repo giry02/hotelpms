@@ -193,8 +193,12 @@
             </div>
 
             <div style="display:flex;flex-direction:column;gap:6px">
-                <label class="form-label">임시 비밀번호 <span style="color:var(--danger)">*</span></label>
-                <input type="password" class="form-control" id="newPw" placeholder="초기 비밀번호를 입력하세요">
+                <label class="form-label"><span data-ko="비밀번호" data-en="Password">비밀번호</span> <span style="color:var(--danger)">*</span></label>
+                <div class="password-change-grid">
+                    <input type="password" class="form-control" id="newPw" placeholder="비밀번호" data-ko="비밀번호" data-en="Password">
+                    <input type="password" class="form-control" id="newPwConfirm" placeholder="비밀번호 확인" data-ko="비밀번호 확인" data-en="Confirm password">
+                </div>
+                <div class="password-helper" data-ko="직원은 좌측 하단의 내 정보 수정에서 이메일과 비밀번호를 직접 변경할 수 있습니다." data-en="Staff can update their email and password from My Profile at the bottom of the sidebar.">직원은 좌측 하단의 내 정보 수정에서 이메일과 비밀번호를 직접 변경할 수 있습니다.</div>
             </div>
 
         </div>
@@ -225,7 +229,7 @@
             </div>
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label class="form-label">ID (이메일)</label>
-                <input type="email" class="form-control" id="editEmail" readonly style="background:#f1f5f9">
+                <input type="email" class="form-control" id="editEmail">
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -265,14 +269,13 @@
             </div>
 
             <div class="password-change-box">
-                <label class="form-label">비밀번호 변경</label>
+                <label class="form-label" data-ko="비밀번호 변경" data-en="Change Password">비밀번호 변경</label>
                 <div class="password-change-grid">
-                    <input type="password" class="form-control" id="editNewPw" placeholder="새 비밀번호">
-                    <input type="password" class="form-control" id="editNewPwConfirm" placeholder="새 비밀번호 확인">
+                    <input type="password" class="form-control" id="editNewPw" placeholder="새 비밀번호" data-ko="새 비밀번호" data-en="New password">
+                    <input type="password" class="form-control" id="editNewPwConfirm" placeholder="새 비밀번호 확인" data-ko="새 비밀번호 확인" data-en="Confirm new password">
                 </div>
                 <div class="password-action-row">
-                    <div class="password-helper">직접 변경은 새 비밀번호를 입력하고 저장하세요. 분실 대응은 임시 비밀번호 이메일 발송으로 처리합니다.</div>
-                    <button class="btn-outline" style="white-space:nowrap;" onclick="sendTempPw()"><i class="fa-solid fa-envelope"></i> 임시 비밀번호 이메일 발송</button>
+                    <div class="password-helper" data-ko="비밀번호를 변경하려면 새 비밀번호와 확인값을 모두 입력하고 저장하세요." data-en="To change the password, enter both the new password and confirmation before saving.">비밀번호를 변경하려면 새 비밀번호와 확인값을 모두 입력하고 저장하세요.</div>
                 </div>
             </div>
         </div>
@@ -510,12 +513,16 @@ function saveStaff() {
     const name  = document.getElementById('newName').value.trim();
     const email = document.getElementById('newEmail').value.trim();
     const pw    = document.getElementById('newPw').value.trim();
+    const pwConfirm = document.getElementById('newPwConfirm').value.trim();
 
     if (!name)           { showToast('이름을 입력해 주세요.', 'error'); return; }
     if (!email)          { showToast('이메일을 입력해 주세요.', 'error'); return; }
+    if (staffData.some(s => String(s.email || '').toLowerCase() === email.toLowerCase())) { showToast('이미 등록된 이메일입니다.', 'error'); return; }
     if (!selectedRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
     if (selectedRoleId === 'sys_admin') { showToast('관리자 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error'); return; }
-    if (!pw)             { showToast('임시 비밀번호를 입력해 주세요.', 'error'); return; }
+    if (!pw || !pwConfirm) { showToast('비밀번호와 확인값을 모두 입력해 주세요.', 'error'); return; }
+    if (pw !== pwConfirm) { showToast('비밀번호가 서로 일치하지 않습니다.', 'error'); return; }
+    if (pw.length < 8) { showToast('비밀번호는 8자 이상으로 입력해 주세요.', 'error'); return; }
 
     staffData.push({
         id: 'staff_' + Date.now(),
@@ -543,6 +550,7 @@ function resetAddForm() {
     document.getElementById('newEmail').value = '';
     document.getElementById('newEmpId').value = '';
     document.getElementById('newPw').value    = '';
+    document.getElementById('newPwConfirm').value = '';
     ['newPhone','newAddress','newHireDate','newTerminationDate'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -584,6 +592,13 @@ function saveEdit() {
     }
     s.name   = document.getElementById('editName').value.trim();
     s.empId  = document.getElementById('editEmpId').value.trim();
+    const nextEmail = document.getElementById('editEmail').value.trim();
+    if (!nextEmail) { showToast('이메일을 입력해 주세요.', 'error'); return; }
+    if (staffData.some(item => item.id !== s.id && String(item.email || '').toLowerCase() === nextEmail.toLowerCase())) {
+        showToast('이미 등록된 이메일입니다.', 'error');
+        return;
+    }
+    s.email = nextEmail;
     s.phone = document.getElementById('editPhone').value.trim();
     s.address = document.getElementById('editAddress').value.trim();
     s.hireDate = document.getElementById('editHireDate').value;
@@ -611,22 +626,6 @@ function saveEdit() {
     renderStaff();
     closeModal('editStaffModal');
     showToast(newPw ? '직원 정보와 비밀번호가 수정되었습니다.' : '직원 정보가 수정되었습니다.', 'success');
-}
-
-function sendTempPw() {
-    const s = staffData.find(x => x.id === editingId);
-    if (!s) return;
-    if (isSettingsManagedAdmin(s)) {
-        showToast('관리자 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error');
-        return;
-    }
-    s.passwordUpdatedAt = new Date().toISOString();
-    s.passwordChangeRequired = true;
-    s.passwordMethod = 'temporary_email';
-    staffData = saveStaffData(staffData);
-    document.getElementById('editNewPw').value = '';
-    document.getElementById('editNewPwConfirm').value = '';
-    showToast(`${s.email}로 임시 비밀번호 이메일을 발송 처리했습니다.`, 'success');
 }
 
 async function deleteStaff() {

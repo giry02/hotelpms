@@ -403,6 +403,126 @@
         return `<a class="nav-item" href="${item.href}"><i class="fa-solid ${item.icon}"></i> <span data-i18n-key="${item.label}">${item.label}</span>${badge}</a>`;
     }
 
+    const SIDEBAR_USER_PROFILES = {
+        'sys_admin': { id:'s1', name: 'Nguyen Kim' },
+        'sys_gm': { id:'s2', name: 'Robert Ford' },
+        'sys_desk': { id:'s4', name: 'Sarah Connor' },
+        'sys_housekeeping': { id:'s5', name: 'Maria Garcia' },
+        'sys_maintenance': { id:'s7', name: '김철수' }
+    };
+
+    function sidebarEscape(value) {
+        return String(value ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]));
+    }
+
+    function readSidebarStaffList() {
+        try {
+            const data = JSON.parse(localStorage.getItem('pms_staff') || '[]');
+            return Array.isArray(data) ? data : [];
+        } catch(e) {
+            return [];
+        }
+    }
+
+    function saveSidebarStaffList(list) {
+        localStorage.setItem('pms_staff', JSON.stringify(Array.isArray(list) ? list : []));
+    }
+
+    function currentSidebarProfile() {
+        const fallback = SIDEBAR_USER_PROFILES[window.currentUserRole] || SIDEBAR_USER_PROFILES.sys_admin;
+        const id = localStorage.getItem('mock_user_id') || fallback.id;
+        const staff = readSidebarStaffList();
+        const matched = staff.find(item => item.id === id)
+            || staff.find(item => item.roleId === window.currentUserRole)
+            || null;
+        return {
+            ...fallback,
+            ...(matched || {}),
+            id,
+            roleId: matched?.roleId || window.currentUserRole
+        };
+    }
+
+    function buildProfileModal(roleText) {
+        const profile = currentSidebarProfile();
+        const isSuperAdmin = profile.roleId === 'sys_admin';
+        const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+        const text = {
+            title: lang === 'en' ? 'My Profile' : '내 정보 수정',
+            superAdmin: lang === 'en'
+                ? 'Super admin account details are managed in hotel settings.'
+                : '슈퍼관리자 계정 정보는 호텔 설정의 관리자 정보에서 관리합니다.',
+            name: lang === 'en' ? 'Name' : '이름',
+            role: lang === 'en' ? 'Role' : '권한',
+            email: lang === 'en' ? 'Email' : '이메일',
+            phone: lang === 'en' ? 'Phone' : '전화번호',
+            address: lang === 'en' ? 'Address' : '주소',
+            newPw: lang === 'en' ? 'New Password' : '새 비밀번호',
+            newPwConfirm: lang === 'en' ? 'Confirm New Password' : '새 비밀번호 확인',
+            pwPlaceholder: lang === 'en' ? 'Enter only to change' : '변경 시 입력',
+            pwConfirmPlaceholder: lang === 'en' ? 'Confirm new password' : '새 비밀번호 확인',
+            phonePlaceholder: lang === 'en' ? 'Ex: +84 90 123 4567' : '예: +84 90 123 4567',
+            addressPlaceholder: lang === 'en' ? 'Ex: Ho Chi Minh City' : '예: Ho Chi Minh City',
+            helper: lang === 'en'
+                ? 'Leave password fields blank if you do not want to change the password.'
+                : '비밀번호를 변경하지 않으려면 비밀번호 입력칸은 비워두세요.',
+            cancel: lang === 'en' ? 'Cancel' : '취소',
+            save: lang === 'en' ? 'Save' : '저장'
+        };
+        return `
+<div class="modal-overlay" id="sidebarProfileModal" onclick="if(event.target===this) window.closeSidebarProfileModal()">
+    <div class="modal-card" style="max-width:560px;width:95vw">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-user-gear" style="color:var(--primary);margin-right:8px"></i>${text.title}</h3>
+            <button class="modal-close" onclick="window.closeSidebarProfileModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
+            ${isSuperAdmin ? `<div class="empty-state" style="display:block;padding:18px;text-align:left">${text.superAdmin}</div>` : `
+            <div class="profile-modal-grid">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">${text.name}</label>
+                    <input type="text" class="form-control" id="profileName" value="${sidebarEscape(profile.name || '')}">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">${text.role}</label>
+                    <input type="text" class="form-control" value="${sidebarEscape(roleText(profile.roleId))}" readonly style="background:#f1f5f9">
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+                <label class="form-label">${text.email}</label>
+                <input type="email" class="form-control" id="profileEmail" value="${sidebarEscape(profile.email || '')}">
+            </div>
+            <div class="profile-modal-grid">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">${text.phone}</label>
+                    <input type="tel" class="form-control" id="profilePhone" value="${sidebarEscape(profile.phone || '')}" placeholder="${text.phonePlaceholder}">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">${text.address}</label>
+                    <input type="text" class="form-control" id="profileAddress" value="${sidebarEscape(profile.address || '')}" placeholder="${text.addressPlaceholder}">
+                </div>
+            </div>
+            <div class="profile-modal-grid">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">${text.newPw}</label>
+                    <input type="password" class="form-control" id="profileNewPw" placeholder="${text.pwPlaceholder}">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">${text.newPwConfirm}</label>
+                    <input type="password" class="form-control" id="profileNewPwConfirm" placeholder="${text.pwConfirmPlaceholder}">
+                </div>
+            </div>
+            <div class="profile-password-help">${text.helper}</div>
+            `}
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="window.closeSidebarProfileModal()">${text.cancel}</button>
+            ${isSuperAdmin ? '' : `<button class="btn-primary-sm" onclick="window.saveSidebarProfile()"><i class="fa-solid fa-floppy-disk"></i> ${text.save}</button>`}
+        </div>
+    </div>
+</div>`;
+    }
+
     function buildSidebar() {
         const groups = MENU.map(g => {
             if (g.roles && !g.roles.includes(window.currentUserRole)) return null;
@@ -415,14 +535,7 @@
         </div>`;
         }).filter(Boolean).join('');
 
-        const userProfiles = {
-            'sys_admin': { name: 'Nguyen Kim' },
-            'sys_gm': { name: 'Robert Ford' },
-            'sys_desk': { name: 'Sarah Connor' },
-            'sys_housekeeping': { name: 'Maria Garcia' },
-            'sys_maintenance': { name: 'James Bond' }
-        };
-        const activeProfile = userProfiles[window.currentUserRole] || userProfiles['sys_admin'];
+        const activeProfile = currentSidebarProfile();
         const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
         const roleLabels = {
             ko: {
@@ -441,6 +554,12 @@
             }
         };
         const roleText = (role) => (roleLabels[lang] || roleLabels.ko)[role] || role;
+        const isSuperAdmin = activeProfile.roleId === 'sys_admin';
+        const profileButton = isSuperAdmin ? '' : `
+                <button type="button" class="sidebar-profile-btn" onclick="window.openSidebarProfileModal()">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span>${lang === 'en' ? 'My Profile' : '내 정보 수정'}</span>
+                </button>`;
 
         return `
 <div class="sidebar-overlay" onclick="PMS_Sidebar.toggleMenu()"></div>
@@ -455,19 +574,17 @@
     <nav class="sidebar-nav">${groups}</nav>
     <div class="sidebar-bottom">
         <div class="sidebar-user">
-            <div class="user-info">
-                <div class="user-name">${activeProfile.name}</div>
-                <select class="user-role-select" onchange="window.switchRole(this.value)">
-                    <option value="sys_admin" ${window.currentUserRole==='sys_admin'?'selected':''}>${roleText('sys_admin')}</option>
-                    <option value="sys_gm" ${window.currentUserRole==='sys_gm'?'selected':''}>${roleText('sys_gm')}</option>
-                    <option value="sys_desk" ${window.currentUserRole==='sys_desk'?'selected':''}>${roleText('sys_desk')}</option>
-                    <option value="sys_housekeeping" ${window.currentUserRole==='sys_housekeeping'?'selected':''}>${roleText('sys_housekeeping')}</option>
-                    <option value="sys_maintenance" ${window.currentUserRole==='sys_maintenance'?'selected':''}>${roleText('sys_maintenance')}</option>
-                </select>
+            <div class="sidebar-user-card">
+                <div class="user-info">
+                    <div class="user-name">${sidebarEscape(activeProfile.name)}</div>
+                    <div class="sidebar-user-role">${sidebarEscape(roleText(activeProfile.roleId))}</div>
+                </div>
+                ${profileButton}
             </div>
         </div>
     </div>
-</aside>`;
+</aside>
+${buildProfileModal(roleText)}`;
     }
 
     function inject() {
@@ -481,6 +598,70 @@
             root.outerHTML = buildSidebar();
         }
     }
+
+    window.openSidebarProfileModal = function() {
+        const modal = document.getElementById('sidebarProfileModal');
+        if (!modal) return;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeSidebarProfileModal = function() {
+        const modal = document.getElementById('sidebarProfileModal');
+        if (!modal) return;
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
+    window.saveSidebarProfile = function() {
+        const profile = currentSidebarProfile();
+        if (profile.roleId === 'sys_admin') {
+            alert('슈퍼관리자 계정 정보는 호텔 설정에서 관리합니다.');
+            return;
+        }
+        const name = document.getElementById('profileName')?.value.trim() || '';
+        const email = document.getElementById('profileEmail')?.value.trim() || '';
+        const phone = document.getElementById('profilePhone')?.value.trim() || '';
+        const address = document.getElementById('profileAddress')?.value.trim() || '';
+        const newPw = document.getElementById('profileNewPw')?.value.trim() || '';
+        const newPwConfirm = document.getElementById('profileNewPwConfirm')?.value.trim() || '';
+        if (!name) { alert('이름을 입력해 주세요.'); return; }
+        if (!email) { alert('이메일을 입력해 주세요.'); return; }
+        if (newPw || newPwConfirm) {
+            if (!newPw || !newPwConfirm) { alert('새 비밀번호와 확인값을 모두 입력해 주세요.'); return; }
+            if (newPw !== newPwConfirm) { alert('새 비밀번호가 서로 일치하지 않습니다.'); return; }
+            if (newPw.length < 8) { alert('비밀번호는 8자 이상으로 입력해 주세요.'); return; }
+        }
+
+        const staff = readSidebarStaffList();
+        const duplicate = staff.some(item => item.id !== profile.id && String(item.email || '').toLowerCase() === email.toLowerCase());
+        if (duplicate) { alert('이미 등록된 이메일입니다.'); return; }
+
+        const index = staff.findIndex(item => item.id === profile.id);
+        const next = {
+            ...(index >= 0 ? staff[index] : profile),
+            id: profile.id,
+            roleId: profile.roleId,
+            name,
+            email,
+            phone,
+            address,
+            last: '방금 전'
+        };
+        if (newPw) {
+            next.passwordUpdatedAt = new Date().toISOString();
+            next.passwordChangeRequired = false;
+            next.passwordMethod = 'self';
+        }
+        if (index >= 0) staff[index] = next;
+        else staff.push(next);
+        saveSidebarStaffList(staff);
+        localStorage.setItem('mock_user_id', next.id);
+        window.closeSidebarProfileModal();
+        inject();
+        updateActiveSidebarLinks();
+        window.dispatchEvent(new CustomEvent('pms:profile-updated', { detail: next }));
+    };
 
     function updateActiveSidebarLinks() {
         const currentPath = window.location.pathname.split('/').pop() || 'dashboard.html';
@@ -532,11 +713,6 @@
             if (div.getAttribute('onclick').includes(activePath)) div.classList.add('active');
         });
     }
-
-    window.switchRole = function(role) {
-        localStorage.setItem('currentUserRole', role);
-        window.location.reload();
-    };
 
     const TABLET_MENU_BREAKPOINT = 1180;
 
