@@ -193,7 +193,7 @@
 .btn-card-delete:disabled:active { transform: none; }
 .company-performance-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 10px;
 }
 .company-performance-card {
@@ -230,7 +230,7 @@
 .performance-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 760px;
+    min-width: 920px;
 }
 .performance-table th,
 .performance-table td {
@@ -326,7 +326,7 @@
                 </div>
                 <div class="filter-right">
                     <button class="btn-outline" onclick="openCompanyPerformanceModal()">
-                        <i class="fa-solid fa-chart-line"></i> <span data-ko="거래 실적" data-en="Usage Report">거래 실적</span>
+                        <i class="fa-solid fa-chart-line"></i> <span data-ko="거래 통계" data-en="Usage Stats">거래 통계</span>
                     </button>
                     <button class="btn-primary-sm" onclick="openNewCompanyModal()">
                         <i class="fa-solid fa-plus"></i> 신규 단체 등록
@@ -413,11 +413,11 @@
     </div>
 </div>
 
-<!-- 단체 거래 실적 모달 -->
+<!-- 단체 거래 통계 모달 -->
 <div class="modal-overlay" id="companyPerformanceModal" onclick="if(event.target===this)closeModal('companyPerformanceModal')">
     <div class="modal-card" style="max-width:980px;width:96vw">
         <div class="modal-header">
-            <h3 class="modal-title"><i class="fa-solid fa-chart-line" style="color:var(--primary);margin-right:8px"></i><span data-ko="단체 거래 실적" data-en="Group Usage Report">단체 거래 실적</span></h3>
+            <h3 class="modal-title"><i class="fa-solid fa-chart-line" style="color:var(--primary);margin-right:8px"></i><span data-ko="단체 거래 통계" data-en="Group Usage Stats">단체 거래 통계</span></h3>
             <button class="modal-close" onclick="closeModal('companyPerformanceModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;max-height:72vh;overflow:auto">
@@ -453,6 +453,8 @@
                             <th data-ko="단체" data-en="Group">단체</th>
                             <th data-ko="방문" data-en="Visits">방문</th>
                             <th data-ko="객실" data-en="Rooms">객실</th>
+                            <th data-ko="숙박 기간" data-en="Stay Nights">숙박 기간</th>
+                            <th data-ko="객실 금액" data-en="Room Amount">객실 금액</th>
                             <th data-ko="부가서비스" data-en="Ancillary">부가서비스</th>
                             <th data-ko="합계" data-en="Total">합계</th>
                         </tr>
@@ -467,8 +469,10 @@
                             <th data-ko="이용일" data-en="Date">이용일</th>
                             <th data-ko="행사명" data-en="Event">행사명</th>
                             <th data-ko="단체" data-en="Group">단체</th>
+                            <th data-ko="숙박 기간" data-en="Stay Nights">숙박 기간</th>
                             <th data-ko="객실" data-en="Rooms">객실</th>
                             <th>POS</th>
+                            <th data-ko="음식점" data-en="Restaurant">음식점</th>
                             <th data-ko="골프" data-en="Golf">골프</th>
                             <th data-ko="렌터카" data-en="Rent-a-car">렌터카</th>
                             <th data-ko="기타" data-en="Other">기타</th>
@@ -999,7 +1003,7 @@ function openBlockModal(compId) {
                 </div>
                 <div class="card-footer-btns">
                     <button type="button" class="btn-room-assign" data-company-action="create" data-company-id="${c.id}"><i class="fa-solid fa-calendar-plus"></i> 행사 생성</button>
-                    <button type="button" class="btn-card-edit" data-company-action="performance" data-company-id="${c.id}" title="거래 실적"><i class="fa-solid fa-chart-line"></i></button>
+                    <button type="button" class="btn-card-edit" data-company-action="performance" data-company-id="${c.id}" title="거래 통계"><i class="fa-solid fa-chart-line"></i></button>
                     <button type="button" class="btn-card-edit" data-company-action="events" data-company-id="${c.id}" title="행사 보기"><i class="fa-solid fa-list"></i></button>
                     <button type="button" class="btn-card-edit" data-company-action="edit" data-company-id="${c.id}" title="단체 수정"><i class="fa-solid fa-pen"></i></button>
                     <button type="button" class="btn-card-delete" data-company-action="delete" data-company-id="${c.id}" title="${deleteTitle}" ${deleteDisabled}><i class="fa-solid fa-trash"></i></button>
@@ -1127,24 +1131,29 @@ function openBlockModal(compId) {
         const allocations = Array.isArray(group.roomAllocations) && group.roomAllocations.length
             ? group.roomAllocations
             : (Array.isArray(group.allocations) ? group.allocations : []);
-        const nights = daysBetween(group.checkInDate || group.checkin || group.cin, group.checkOutDate || group.checkout || group.cout);
+        const nights = stayNightsForGroup(group);
         return allocations.reduce((sum, allocation) => {
             const rate = amountValue(allocation.finalRate || allocation.rate || allocation.baseRate);
             return sum + (rate * nights);
         }, 0);
     }
 
+    function stayNightsForGroup(group) {
+        return daysBetween(group.checkInDate || group.checkin || group.cin, group.checkOutDate || group.checkout || group.cout);
+    }
+
     function typeBucket(type) {
         const value = String(type || '').replace(/[-_\s]/g, '').toLowerCase();
         if (['room', 'rooms', 'accommodation', 'lodging'].includes(value)) return 'room';
-        if (['pos', 'fnb', 'restaurant', 'dining', 'minibar', 'roomservice'].includes(value)) return 'pos';
+        if (['restaurant', 'dining', 'foodbeverage', 'fnb'].includes(value)) return 'restaurant';
+        if (['pos', 'minibar', 'roomservice', 'retail'].includes(value)) return 'pos';
         if (['golf', 'golfcourse', 'greenfee'].includes(value)) return 'golf';
         if (['rentacar', 'rentalcar', 'car', 'transport', 'transfer'].includes(value)) return 'rentacar';
         return 'other';
     }
 
     function groupPerformanceRow(group) {
-        const buckets = { room: 0, pos: 0, golf: 0, rentacar: 0, other: 0 };
+        const buckets = { room: 0, pos: 0, restaurant: 0, golf: 0, rentacar: 0, other: 0 };
         const items = Array.isArray(group.settlementItems) ? group.settlementItems : [];
         if (items.length) {
             items.forEach(item => {
@@ -1154,9 +1163,10 @@ function openBlockModal(compId) {
         } else {
             buckets.room = inferRoomRevenue(group);
         }
-        const ancillary = buckets.pos + buckets.golf + buckets.rentacar + buckets.other;
+        const ancillary = buckets.pos + buckets.restaurant + buckets.golf + buckets.rentacar + buckets.other;
         const total = buckets.room + ancillary;
         const checkIn = parseDate(group.checkInDate || group.checkin || group.cin || group.createdAt);
+        const stayNights = stayNightsForGroup(group);
         return {
             id: group.id || '',
             date: checkIn,
@@ -1166,6 +1176,8 @@ function openBlockModal(compId) {
             companyId: group.companyId || group.agencyId || '',
             companyName: group.companyName || group.agency || companyNameById(group.companyId || group.agencyId),
             rooms: Number(group.blockedRooms || group.block || group.roomAllocations?.length || group.allocations?.length || 0),
+            stayNights,
+            roomNights: stayNights * Number(group.blockedRooms || group.block || group.roomAllocations?.length || group.allocations?.length || 0),
             pax: Number(group.pax || 0),
             currency: group.currency || 'PHP',
             ...buckets,
@@ -1190,15 +1202,19 @@ function openBlockModal(compId) {
         const summary = rows.reduce((acc, row) => {
             acc.visits += 1;
             acc.rooms += row.rooms;
+            acc.stayNights += row.stayNights;
+            acc.roomNights += row.roomNights;
             acc.room += row.room;
             acc.ancillary += row.ancillary;
             acc.total += row.total;
             return acc;
-        }, { visits: 0, rooms: 0, room: 0, ancillary: 0, total: 0 });
+        }, { visits: 0, rooms: 0, stayNights: 0, roomNights: 0, room: 0, ancillary: 0, total: 0 });
         const currency = rows[0]?.currency || 'PHP';
         document.getElementById('performanceSummaryGrid').innerHTML = [
             [perfText('방문 횟수', 'Visits'), `${summary.visits}${perfText('회', '')}`],
             [perfText('객실 수', 'Rooms'), `${summary.rooms}${perfText('실', '')}`],
+            [perfText('총 숙박 기간', 'Stay Nights'), `${summary.stayNights}${perfText('박', ' nights')}`],
+            [perfText('객실 박수', 'Room Nights'), `${summary.roomNights}${perfText('박', ' nights')}`],
             [perfText('객실 금액', 'Room Amount'), companyMoney(summary.room, currency)],
             [perfText('부가서비스', 'Ancillary'), companyMoney(summary.ancillary, currency)],
             [perfText('총 이용금액', 'Total Spend'), companyMoney(summary.total, currency)]
@@ -1213,14 +1229,16 @@ function openBlockModal(compId) {
     function renderPerformanceMonthly(rows) {
         const body = document.getElementById('performanceMonthlyBody');
         if (!rows.length) {
-            body.innerHTML = `<tr><td colspan="6"><div class="performance-empty">${perfText('선택한 기간의 거래 실적이 없습니다.', 'No usage records for the selected period.')}</div></td></tr>`;
+            body.innerHTML = `<tr><td colspan="8"><div class="performance-empty">${perfText('선택한 기간의 거래 통계가 없습니다.', 'No usage stats for the selected period.')}</div></td></tr>`;
             return;
         }
         const grouped = new Map();
         rows.forEach(row => {
-            if (!grouped.has(row.month)) grouped.set(row.month, { month: row.month, visits: 0, room: 0, ancillary: 0, total: 0 });
+            if (!grouped.has(row.month)) grouped.set(row.month, { month: row.month, visits: 0, rooms: 0, stayNights: 0, room: 0, ancillary: 0, total: 0 });
             const item = grouped.get(row.month);
             item.visits += 1;
+            item.rooms += row.rooms;
+            item.stayNights += row.stayNights;
             item.room += row.room;
             item.ancillary += row.ancillary;
             item.total += row.total;
@@ -1231,6 +1249,8 @@ function openBlockModal(compId) {
                 <td>${item.month}</td>
                 <td class="performance-company-name">${companyNameById(document.getElementById('performanceCompanySelect')?.value)}</td>
                 <td>${item.visits}${perfText('회', '')}</td>
+                <td>${item.rooms}${perfText('실', '')}</td>
+                <td>${item.stayNights}${perfText('박', ' nights')}</td>
                 <td class="amount">${companyMoney(item.room, currency)}</td>
                 <td class="amount">${companyMoney(item.ancillary, currency)}</td>
                 <td class="amount">${companyMoney(item.total, currency)}</td>
@@ -1241,7 +1261,7 @@ function openBlockModal(compId) {
     function renderPerformanceEvents(rows) {
         const body = document.getElementById('performanceEventBody');
         if (!rows.length) {
-            body.innerHTML = `<tr><td colspan="9"><div class="performance-empty">${perfText('선택한 조건의 행사 내역이 없습니다.', 'No event records for the selected conditions.')}</div></td></tr>`;
+            body.innerHTML = `<tr><td colspan="11"><div class="performance-empty">${perfText('선택한 조건의 행사 내역이 없습니다.', 'No event records for the selected conditions.')}</div></td></tr>`;
             return;
         }
         body.innerHTML = rows.map(row => {
@@ -1251,8 +1271,10 @@ function openBlockModal(compId) {
                     <td>${row.dateLabel}</td>
                     <td><div class="performance-company-name">${perfEscape(row.name)}</div><small style="color:var(--txt3);font-weight:800">${perfEscape(row.id)}</small></td>
                     <td>${perfEscape(row.companyName)}</td>
+                    <td>${row.stayNights}${perfText('박', ' nights')}</td>
                     <td class="amount">${companyMoney(row.room, currency)}</td>
                     <td class="amount">${companyMoney(row.pos, currency)}</td>
+                    <td class="amount">${companyMoney(row.restaurant, currency)}</td>
                     <td class="amount">${companyMoney(row.golf, currency)}</td>
                     <td class="amount">${companyMoney(row.rentacar, currency)}</td>
                     <td class="amount">${companyMoney(row.other, currency)}</td>
@@ -1295,7 +1317,7 @@ function openBlockModal(compId) {
         const summary = document.getElementById('performanceSummaryGrid');
         const monthly = document.getElementById('performanceMonthlyBody');
         const events = document.getElementById('performanceEventBody');
-        if (summary) summary.innerHTML = `<div class="performance-empty" style="grid-column:1/-1">${perfText('거래 실적을 불러오는 중입니다.', 'Loading usage report...')}</div>`;
+        if (summary) summary.innerHTML = `<div class="performance-empty" style="grid-column:1/-1">${perfText('거래 통계를 불러오는 중입니다.', 'Loading usage stats...')}</div>`;
         if (monthly) monthly.innerHTML = '';
         if (events) events.innerHTML = '';
         const companyId = document.getElementById('performanceCompanySelect')?.value || '';

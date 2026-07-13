@@ -116,7 +116,7 @@
         .detail-summary-grid .info-tile span i.total{background:#dbeafe;color:#2563eb}
         .info-tile span{display:block;font-size:.68rem;font-weight:900;color:var(--txt3);margin-bottom:4px}
         .info-tile strong{font-size:.9rem;line-height:1.25;word-break:keep-all}
-        .service-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+        .service-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
         .service-tab{height:40px;border:1px solid var(--border);border-radius:10px;background:#fff;font-weight:950;color:var(--txt2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;line-height:1}
         .service-tab i{width:15px;font-size:.82rem;line-height:1;display:inline-flex;align-items:center;justify-content:center}
         .service-tab.active{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -389,8 +389,10 @@
         <div class="kpi-grid ancillary-kpis">
             <div class="kpi-card blue"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiInhouse">0</div><div class="kpi-label">투숙 객실</div></div></div>
             <div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-cash-register"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiPos">0</div><div class="kpi-label">통합 POS</div></div></div>
+            <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRestaurant">0</div><div class="kpi-label" data-i18n-key="service.restaurant">음식점</div></div></div>
             <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-golf-ball-tee"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiGolf">0</div><div class="kpi-label">골프장</div></div></div>
             <div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-car"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRent">0</div><div class="kpi-label">렌터카</div></div></div>
+            <div class="kpi-card blue"><div class="kpi-icon"><i class="fa-solid fa-box-open"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiOther">0</div><div class="kpi-label">기타</div></div></div>
             <div class="kpi-card teal"><div class="kpi-icon"><i class="fa-solid fa-coins"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRevenue">₱0</div><div class="kpi-label">누적 이용금액</div></div></div>
         </div>
 
@@ -405,8 +407,10 @@
             <div class="ancillary-toolbar-actions">
                 <button class="service-filter-chip active" data-service="all" onclick="setServiceFilter('all')">전체</button>
                 <button class="service-filter-chip" data-service="pos" onclick="setServiceFilter('pos')"><i class="fa-solid fa-cash-register"></i> 통합 POS</button>
+                <button class="service-filter-chip" data-service="restaurant" onclick="setServiceFilter('restaurant')"><i class="fa-solid fa-utensils"></i> <span data-i18n-key="service.restaurant">음식점</span></button>
                 <button class="service-filter-chip" data-service="golf" onclick="setServiceFilter('golf')"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</button>
                 <button class="service-filter-chip" data-service="rentacar" onclick="setServiceFilter('rentacar')"><i class="fa-solid fa-car"></i> 렌터카</button>
+                <button class="service-filter-chip" data-service="other" onclick="setServiceFilter('other')"><i class="fa-solid fa-box-open"></i> 기타</button>
             </div>
         </div>
 
@@ -441,8 +445,10 @@
                         <section>
                             <div class="service-tabs">
                                 <button class="service-tab active" data-service="pos" onclick="selectServiceType('pos')"><i class="fa-solid fa-cash-register"></i> 통합 POS</button>
+                                <button class="service-tab" data-service="restaurant" onclick="selectServiceType('restaurant')"><i class="fa-solid fa-utensils"></i> <span data-i18n-key="service.restaurant">음식점</span></button>
                                 <button class="service-tab" data-service="golf" onclick="selectServiceType('golf')"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</button>
                                 <button class="service-tab" data-service="rentacar" onclick="selectServiceType('rentacar')"><i class="fa-solid fa-car"></i> 렌터카</button>
+                                <button class="service-tab" data-service="other" onclick="selectServiceType('other')"><i class="fa-solid fa-box-open"></i> 기타</button>
                             </div>
                             <div class="modal-field-grid">
                                 <div><label class="form-label" id="vendorLabel">처리 부서/업체</label><select id="serviceVendor" class="form-input" onchange="renderServiceItems()"></select></div>
@@ -526,18 +532,20 @@ let reservationRoomCache = new WeakMap();
 let effectiveStatusCache = new WeakMap();
 const activeRoomCache = new Map();
 const nextRoomCache = new Map();
+const ANCILLARY_SERVICE_TYPES = ['pos', 'restaurant', 'golf', 'rentacar', 'other'];
 
 const VENDOR_STORAGE = 'pms_ancillary_vendors';
 const ORDER_STORAGE = 'pms_ancillary_room_orders';
 const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
-const ORDER_DATA_VERSION = '2026-07-10-demo-showcase-v1';
+const ORDER_DATA_VERSION = '2026-07-10-demo-showcase-v2';
 const seedVendors = [
     { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
-    { id:'POS-RIVERSIDE', type:'pos', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
+    { id:'REST-RIVERSIDE', type:'restaurant', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', location:'호텔에서 차량 8분', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
     { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','item','people','teeTime','course'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀 기준 단가', holes:'18홀', basePeople:4 }, { name:'카트 이용권', price:70, desc:'팀 단위 카트 기준 단가', holes:'18홀', basePeople:4 }, { name:'클럽 대여', price:60, desc:'1인 기준 단가', holes:'18홀', basePeople:1 }] },
     { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','item','people','teeTime','course'], items:[{ name:'9홀 라운딩', price:180, desc:'9홀 기준 단가', holes:'9홀', basePeople:2 }, { name:'18홀 패키지', price:520, desc:'그린피+카트 기준 단가', holes:'18홀', basePeople:4 }] },
     { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 기본 대여', price:160, desc:'1시간 기준 단가', vehicleClass:'세단', pickupBase:'호텔 로비' }, { name:'공항 픽업 기본료', price:90, desc:'편도 기본료', vehicleClass:'세단', pickupBase:'NAIA Terminal 3' }, { name:'전기차 기본 대여', price:230, desc:'1시간 기준 단가', vehicleClass:'전기차', pickupBase:'호텔 로비' }] },
-    { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', address:'BGC Transport Hub, Taguig', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'SUV 기본 대여', price:260, desc:'1시간 기준 단가', vehicleClass:'SUV', pickupBase:'BGC Transport Hub' }, { name:'기사 포함 밴 기본 대여', price:320, desc:'1시간 기준 단가', vehicleClass:'기사 포함 밴', pickupBase:'호텔 로비' }] }
+    { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', address:'BGC Transport Hub, Taguig', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'SUV 기본 대여', price:260, desc:'1시간 기준 단가', vehicleClass:'SUV', pickupBase:'BGC Transport Hub' }, { name:'기사 포함 밴 기본 대여', price:320, desc:'1시간 기준 단가', vehicleClass:'기사 포함 밴', pickupBase:'호텔 로비' }] },
+    { id:'OTHER-CONCIERGE', type:'other', name:'컨시어지 기타 서비스', contact:'Front Desk / 내선 0', location:'프런트 데스크', address:'The Grand Saigon Lobby', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'현장 지원 요청', price:120, desc:'특별 요청 처리 기본료' }, { name:'티켓 대행', price:180, desc:'공연/전시 티켓 대행' }] }
 ];
 const voucherFieldLabels = {
     guest:'투숙객명', room:'객실번호', date:'이용일시', people:'인원', teeTime:'티오프', course:'골프장/업체명',
@@ -748,13 +756,16 @@ function displayDate(value) {
     return `${date.getMonth() + 1}.${String(date.getDate()).padStart(2, '0')}`;
 }
 function serviceMeta(service) {
+    const en = serviceLang() === 'en';
     return {
-        pos: { label:'통합 POS', icon:'fa-cash-register', cls:'pos' },
-        fnb: { label:'통합 POS', icon:'fa-cash-register', cls:'pos' },
-        golf: { label:'골프장', icon:'fa-golf-ball-tee', cls:'golf' },
-        rentacar: { label:'렌터카', icon:'fa-car', cls:'rentacar' },
-        car: { label:'렌터카', icon:'fa-car', cls:'rentacar' }
-    }[service] || { label:'부가서비스', icon:'fa-bell', cls:'pos' };
+        pos: { label: en ? 'Integrated POS' : '통합 POS', icon:'fa-cash-register', cls:'pos' },
+        fnb: { label: en ? 'Integrated POS' : '통합 POS', icon:'fa-cash-register', cls:'pos' },
+        restaurant: { label: en ? 'Restaurant' : '음식점', icon:'fa-utensils', cls:'pos' },
+        golf: { label: en ? 'Golf Course' : '골프장', icon:'fa-golf-ball-tee', cls:'golf' },
+        rentacar: { label: en ? 'Rent-a-car' : '렌터카', icon:'fa-car', cls:'rentacar' },
+        car: { label: en ? 'Rent-a-car' : '렌터카', icon:'fa-car', cls:'rentacar' },
+        other: { label: en ? 'Other' : '기타', icon:'fa-box-open', cls:'pos' }
+    }[service] || { label: en ? 'Ancillary' : '부가서비스', icon:'fa-bell', cls:'pos' };
 }
 function normalizeVendorItem(type, item = {}) {
     const normalized = { ...item, category: item.category || type };
@@ -774,7 +785,7 @@ function normalizeVendorItem(type, item = {}) {
     return normalized;
 }
 function serviceSummary(orders = []) {
-    return ['pos', 'golf', 'rentacar'].map(service => {
+    return ANCILLARY_SERVICE_TYPES.map(service => {
         const meta = serviceMeta(service);
         const total = orders.filter(order => order.service === service).reduce((sum, order) => sum + Number(order.total || 0), 0);
         return { service, ...meta, total };
@@ -787,13 +798,22 @@ function serviceOrderStatusMeta(status) {
     if (['cancelled', 'canceled'].includes(key)) return { key:'cancelled', label:'취소', icon:'fa-ban' };
     return { key:'new', label:'등록', icon:'fa-clock' };
 }
+function canReopenAncillaryOrder() {
+    if (window.PMS_FeaturePermissions?.can) return window.PMS_FeaturePermissions.can('ancillary.reopen');
+    return (window.currentUserRole || localStorage.getItem('currentUserRole')) === 'sys_admin';
+}
 function serviceOrderActionButtons(order) {
     const status = serviceOrderStatusMeta(order.status);
-    const voucherButton = order.service === 'pos' ? '' : `<button type="button" class="service-action-btn voucher" onclick="openOrderVoucherModal('${escapeHtml(order.id)}')"><i class="fa-solid fa-receipt"></i><span>바우처 출력</span></button>`;
+    const printableServices = ['restaurant', 'golf', 'rentacar'];
+    const printLabel = order.service === 'restaurant' ? '쿠폰 출력' : '바우처 출력';
+    const printIcon = order.service === 'restaurant' ? 'fa-ticket' : 'fa-receipt';
+    const voucherButton = printableServices.includes(order.service) ? `<button type="button" class="service-action-btn voucher" onclick="openOrderVoucherModal('${escapeHtml(order.id)}')"><i class="fa-solid ${printIcon}"></i><span>${printLabel}</span></button>` : '';
     const nextButton = status.key === 'new'
         ? `<button type="button" class="service-action-btn accept" onclick="updateServiceOrderStatus('${escapeHtml(order.id)}','accepted')"><i class="fa-solid fa-check"></i><span>수락</span></button>`
         : status.key === 'accepted'
             ? `<button type="button" class="service-action-btn complete" onclick="updateServiceOrderStatus('${escapeHtml(order.id)}','completed')"><i class="fa-solid fa-check-double"></i><span>완료</span></button>`
+            : status.key === 'completed' && canReopenAncillaryOrder()
+                ? `<button type="button" class="service-action-btn accept" onclick="updateServiceOrderStatus('${escapeHtml(order.id)}','accepted')"><i class="fa-solid fa-rotate-left"></i><span>미완료 전환</span></button>`
             : '';
     return `${voucherButton}${nextButton}`;
 }
@@ -855,7 +875,7 @@ function renderVoucherSheet(order) {
             ${fields.map(field => `<div class="voucher-row"><strong>${escapeHtml(voucherFieldLabels[field] || field)}</strong><span>${escapeHtml(data[field] || '-')}</span></div>`).join('')}
         </div>
         ${stubRows.length ? `<div class="voucher-stub">
-            <div class="voucher-stub-title">${order.service === 'golf' ? '절취용 이용 확인' : '차량 인수 확인'}</div>
+            <div class="voucher-stub-title">${order.service === 'golf' ? '절취용 이용 확인' : order.service === 'restaurant' ? '쿠폰 사용 확인' : '차량 인수 확인'}</div>
             <div class="voucher-stub-grid">${stubRows.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong> ${escapeHtml(value || '____________')}</div>`).join('')}</div>
         </div>` : ''}
     </section>`;
@@ -987,8 +1007,10 @@ function vendorForExternalOrder(order, service) {
     const type = String(order.type || '').toLowerCase();
     const source = vendorLookupList();
     if (service === 'pos') return source.find(vendor => vendor.id === 'POS-HOTEL');
+    if (service === 'restaurant') return source.find(vendor => vendor.type === 'restaurant') || source.find(vendor => vendor.id === 'REST-RIVERSIDE');
     if (service === 'golf') return source.find(vendor => vendor.id === (type.includes('club_b') || type.includes('sky') ? 'GOLF-SKY72' : 'GOLF-SUNVALLEY'));
     if (service === 'rentacar') return source.find(vendor => vendor.id === (type.includes('sk') ? 'RENT-SK' : 'RENT-LOTTE'));
+    if (service === 'other') return source.find(vendor => vendor.type === 'other') || source.find(vendor => vendor.id === 'OTHER-CONCIERGE');
     return null;
 }
 function normalizeExternalOrder(order, service) {
@@ -1047,13 +1069,17 @@ function loadVendors() {
     if (!Array.isArray(vendors)) vendors = [];
     if (storedVendorData === null) {
         vendors = seedVendors.map(cloneSeedVendor);
-    } else if (!vendors.some(v => v.type === 'pos')) {
-        vendors.push(...seedVendors.filter(v => v.type === 'pos').map(cloneSeedVendor));
+    } else {
+        seedVendors.forEach(seed => {
+            if (!vendors.some(vendor => vendor.id === seed.id || (vendor.type === seed.type && vendor.name === seed.name))) {
+                vendors.push(cloneSeedVendor(seed));
+            }
+        });
     }
     vendors = vendors.map(vendor => {
         const seed = seedVendors.find(item => item.id === vendor.id || (item.type === vendor.type && item.name === vendor.name));
         const type = vendor.type || seed?.type || 'pos';
-        const fields = type === 'pos' ? [] : (Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type));
+        const fields = ['golf', 'rentacar'].includes(type) ? (Array.isArray(vendor.voucherFields) && vendor.voucherFields.length ? [...vendor.voucherFields] : defaultVoucherFields(type)) : [];
         if (type === 'rentacar' && !fields.includes('address')) fields.push('address');
         if (type === 'rentacar' && !fields.includes('partnerContact')) fields.push('partnerContact');
         return {
@@ -1074,7 +1100,7 @@ function isRegisterServiceAvailable(type) {
     return serviceVendorList(type).length > 0;
 }
 function firstAvailableRegisterService(preferred = 'pos') {
-    const serviceTypes = ['pos', 'golf', 'rentacar'];
+    const serviceTypes = ANCILLARY_SERVICE_TYPES;
     const available = serviceTypes.filter(isRegisterServiceAvailable);
     if (available.includes(preferred)) return preferred;
     return available[0] || 'pos';
@@ -1086,6 +1112,12 @@ function loadStoredOrders() {
     }
     try { serviceOrders = JSON.parse(localStorage.getItem(ORDER_STORAGE) || '[]'); } catch(e) { serviceOrders = []; }
     if (!Array.isArray(serviceOrders)) serviceOrders = [];
+    serviceOrders = serviceOrders.map(order => {
+        if (order?.vendorId === 'POS-RIVERSIDE' || order?.vendor === '리버사이드 비스트로') {
+            return { ...order, service:'restaurant', vendorId:'REST-RIVERSIDE' };
+        }
+        return order;
+    });
 }
 function persistOrders() {
     localStorage.setItem(ORDER_STORAGE_VERSION, ORDER_DATA_VERSION);
@@ -1101,7 +1133,7 @@ function seedDemoServiceOrdersIfNeeded() {
         { roomNo:'0801', idSuffix:'GRP-GOLF-0801', service:'golf', vendorId:'GOLF-SUNVALLEY', itemIndex:0, qty:2, status:'accepted', groupId:'GRP-260527-01', groupName:'Samsung Tech Conference 2026', memo:'단체 VIP 라운딩 2팀, 같은 코스 묶음 출력', courseName:'Sun Course', teeTime:'07:40', time:'07:40' },
         { roomNo:'1401', idSuffix:'GRP-CAR-1401', service:'rentacar', vendorId:'RENT-SK', itemIndex:1, qty:1, status:'new', groupId:'GRP-260527-01', groupName:'Samsung Tech Conference 2026', memo:'컨퍼런스 연사 공항 픽업, 단체 바우처 일괄 출력 대상', rentalHours:3, pickup:'NAIA Terminal 3', time:'09:20' },
         { roomNo:'0801', idSuffix:'GRP-CAR-0801', service:'rentacar', vendorId:'RENT-SK', itemIndex:1, qty:1, status:'accepted', groupId:'GRP-260527-01', groupName:'Samsung Tech Conference 2026', memo:'VIP 동선용 기사 포함 밴, 1401호와 같은 배차 묶음', rentalHours:3, pickup:'호텔 로비', time:'09:35' },
-        { roomNo:'V-01', idSuffix:'POS-FAMILY-DINING', service:'pos', vendorId:'POS-RIVERSIDE', itemIndex:2, qty:1, status:'accepted', memo:'가족 투숙객 디너 예약, 식음 매출 시연용', time:'18:20' },
+        { roomNo:'V-01', idSuffix:'REST-FAMILY-DINING', service:'restaurant', vendorId:'REST-RIVERSIDE', itemIndex:2, qty:1, status:'accepted', memo:'가족 투숙객 디너 예약, 식음 매출 시연용', time:'18:20' },
         { roomNo:'PH01', idSuffix:'POS-PENTHOUSE-ROOM', service:'pos', vendorId:'POS-HOTEL', itemIndex:0, qty:2, status:'completed', memo:'펜트하우스 룸서비스 제공 완료', time:'20:10' },
         { roomNo:'1403', idSuffix:'GOLF-INDIVIDUAL-1403', service:'golf', vendorId:'GOLF-SKY72', itemIndex:1, qty:1, status:'new', memo:'개별 고객 오후 라운딩, 단건 바우처 확인', courseName:'West Course', teeTime:'13:10', time:'13:10' },
         { roomNo:'1209', idSuffix:'CAR-LATE-1209', service:'rentacar', vendorId:'RENT-LOTTE', itemIndex:0, qty:1, status:'accepted', memo:'야간 도착 고객 시내 이동 예약', rentalHours:2, pickup:'호텔 로비', time:'21:00' }
@@ -1183,10 +1215,10 @@ function applyAncillaryUrlParams() {
     const requestedService = params.get('service') || params.get('filter') || params.get('type') || '';
     requestedVendorId = params.get('vendorId') || '';
     const requestedVendor = requestedVendorId ? vendors.find(vendor => vendor.id === requestedVendorId) : null;
-    if (requestedVendor?.type && ['pos', 'golf', 'rentacar'].includes(requestedVendor.type)) {
+    if (requestedVendor?.type && ANCILLARY_SERVICE_TYPES.includes(requestedVendor.type)) {
         serviceFilter = requestedVendor.type;
     }
-    if (['all', 'pos', 'golf', 'rentacar'].includes(requestedService)) {
+    if (['all', ...ANCILLARY_SERVICE_TYPES].includes(requestedService)) {
         serviceFilter = requestedService;
         document.querySelectorAll('.service-filter-chip').forEach(btn => btn.classList.toggle('active', btn.dataset.service === serviceFilter));
     }
@@ -1203,8 +1235,10 @@ function updateKpis() {
     const total = visibleOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
     document.getElementById('kpiInhouse').textContent = serviceRooms.length;
     document.getElementById('kpiPos').textContent = visibleOrders.filter(o => o.service === 'pos').length;
+    document.getElementById('kpiRestaurant').textContent = visibleOrders.filter(o => o.service === 'restaurant').length;
     document.getElementById('kpiGolf').textContent = visibleOrders.filter(o => o.service === 'golf').length;
     document.getElementById('kpiRent').textContent = visibleOrders.filter(o => o.service === 'rentacar').length;
+    document.getElementById('kpiOther').textContent = visibleOrders.filter(o => o.service === 'other').length;
     document.getElementById('kpiRevenue').textContent = money(total);
 }
 function renderAncillaryBoard() {
@@ -1387,7 +1421,7 @@ function openServiceDetailModal(roomId, options = {}) {
         </div>`;
     }).join('') : '<div class="detail-empty">등록된 부가서비스 내역이 없습니다.</div>';
     prepareServiceRegistration(roomId);
-    if (['pos', 'golf', 'rentacar'].includes(options.serviceType)) selectServiceType(options.serviceType);
+    if (ANCILLARY_SERVICE_TYPES.includes(options.serviceType)) selectServiceType(options.serviceType);
     toggleServiceRegistration(!!options.showRegistration);
     const modal = document.getElementById('serviceDetailModal');
     modal.style.display = 'flex';
@@ -1424,6 +1458,12 @@ function scrollServiceRegistrationIntoView(behavior = 'smooth') {
 function updateServiceOrderStatus(orderId, status) {
     const order = serviceOrders.find(item => item.id === orderId);
     if (!order) return;
+    const current = serviceOrderStatusMeta(order.status);
+    if (current.key === 'completed' && status !== 'completed' && !canReopenAncillaryOrder()) {
+        if (window.showToast) window.showToast('부가서비스 취소 권한이 필요합니다.', 'error');
+        else window.showAlert?.('부가서비스 취소 권한이 필요합니다.', { type:'error' });
+        return;
+    }
     order.status = status;
     persistOrders();
     renderAncillaryBoard();
@@ -1450,7 +1490,7 @@ function prepareServiceRegistration(roomId) {
     document.getElementById('serviceQty').value = 1;
     document.getElementById('serviceMemo').value = '';
     renderGroupSelect(group?.id || group?.groupId || '');
-    selectServiceType(['pos', 'golf', 'rentacar'].includes(serviceFilter) ? serviceFilter : 'pos');
+    selectServiceType(ANCILLARY_SERVICE_TYPES.includes(serviceFilter) ? serviceFilter : 'pos');
 }
 function openServiceModal(roomId) {
     openServiceDetailModal(roomId, { showRegistration: true });
@@ -1466,7 +1506,7 @@ function toggleServiceRegistration(show) {
     if (show) renderRegistrationPreview();
 }
 function refreshServiceTypeTabs() {
-    const serviceTypes = ['pos', 'golf', 'rentacar'];
+    const serviceTypes = ANCILLARY_SERVICE_TYPES;
     const available = serviceTypes.filter(isRegisterServiceAvailable);
     document.querySelectorAll('.service-tab').forEach(btn => {
         const enabled = available.includes(btn.dataset.service);
@@ -1763,7 +1803,7 @@ function saveServiceOrder() {
 }
 function openOrderVoucherModal(orderId) {
     const order = serviceOrders.find(item => item.id === orderId);
-    if (!order || order.service === 'pos') return;
+    if (!order || !['restaurant', 'golf', 'rentacar'].includes(order.service)) return;
     if (!orderHasAssignedGuest(order)) return window.showAlert?.('투숙객이 배정된 객실의 부가서비스만 바우처를 출력할 수 있습니다.', { type: 'warning' });
     const fields = voucherFieldsForOrder(order);
     if (!fields.length) return window.showAlert?.('업체/항목 관리에서 바우처 출력 항목을 먼저 설정해 주세요.', { type: 'warning' });
@@ -1867,7 +1907,7 @@ function buildServiceVoucherPrintDocument(orders) {
 }
 function printServiceVoucher(orderId = '') {
     const ids = orderId ? [orderId] : (selectedVoucherOrderIds.length ? selectedVoucherOrderIds : [selectedVoucherOrderId]);
-    const orders = ids.map(id => serviceOrders.find(item => item.id === id)).filter(order => order && order.service !== 'pos');
+    const orders = ids.map(id => serviceOrders.find(item => item.id === id)).filter(order => order && ['restaurant', 'golf', 'rentacar'].includes(order.service));
     if (!orders.length) return;
     const printWindow = window.open('', '_blank', 'width=900,height=700');
     if (!printWindow) {
@@ -1881,6 +1921,18 @@ function printServiceVoucher(orderId = '') {
 function printOrderVoucher(orderId) {
     openOrderVoucherModal(orderId);
 }
+voucherTitleForOrder = function(order) {
+    if (order?.service === 'restaurant') return '제휴 음식점 쿠폰';
+    if (order?.service === 'golf') return '골프장 바우처';
+    if (order?.service === 'rentacar') return '렌터카 바우처';
+    return '부가서비스 바우처';
+};
+voucherStubRowsForOrder = function(order, data) {
+    if (order?.service === 'restaurant') return [['음식점', data.course], ['혜택', data.item], ['투숙객', data.guest], ['확인', '']];
+    if (order?.service === 'golf') return [['티오프', data.teeTime], ['코스', data.course], ['투숙객', data.guest], ['서명', '']];
+    if (order?.service === 'rentacar') return [['픽업', data.pickup], ['차량', data.vehicle], ['투숙객', data.guest], ['서명', '']];
+    return [['객실', data.room], ['담당', data.partnerContact]];
+};
 document.addEventListener('DOMContentLoaded', async () => {
     loadVendors();
     loadStoredOrders();

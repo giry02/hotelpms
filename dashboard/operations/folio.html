@@ -522,6 +522,7 @@ let folioUrlPaymentOpened = false;
 
 const SETTLEMENT_PAYMENTS_KEY = 'pms_settlement_payments';
 const SETTLEMENT_COMPLETIONS_KEY = 'pms_settlement_completions';
+const SETTLEMENT_REOPENS_KEY = 'pms_settlement_reopens';
 const PAYMENT_CURRENCIES = ['PHP', 'USD', 'KRW'];
 const PAYMENT_CURRENCY_LABELS = { PHP: '페소', USD: '달러', KRW: '원화' };
 
@@ -592,6 +593,11 @@ function settlementCompletionRecords() {
     return Array.isArray(records) ? records : [];
 }
 
+function settlementReopenRecords() {
+    const records = storageJson(SETTLEMENT_REOPENS_KEY, []);
+    return Array.isArray(records) ? records : [];
+}
+
 function saveSettlementCompletionRecords(records) {
     setStorageJson(SETTLEMENT_COMPLETIONS_KEY, records);
     window.dispatchEvent(new CustomEvent('pms:settlement-completions-updated'));
@@ -624,8 +630,18 @@ function legacySettlementCompletion(folio) {
     return Number(folio.bal || 0) <= 0 && records.some(item => item.completeSettlement);
 }
 
+function settlementReopenForFolio(folio) {
+    if (!folio?.id) return null;
+    const signature = folioSettlementSignature(folio);
+    return settlementReopenRecords()
+        .filter(item => item.folioId === folio.id)
+        .sort((a, b) => String(b.reopenedAt || '').localeCompare(String(a.reopenedAt || '')))
+        .find(item => !item.signature || item.signature === signature) || null;
+}
+
 function settlementCompletionForFolio(folio) {
     if (!folio || Number(folio.bal || 0) > 0) return null;
+    if (settlementReopenForFolio(folio)) return null;
     if (folio.apiSettlementCompleted) {
         return {
             folioId: folio.id,
@@ -683,18 +699,29 @@ function currentOperatorName() {
 }
 
 function normalizeDept(type) {
-    if (type === 'fnb' || type === 'retail') return 'pos';
-    if (type === 'rentacar') return 'car';
-    return type || 'pos';
+    const normalized = String(type || '').toLowerCase().replace(/[-_\s]/g, '');
+    if (['restaurant', 'dining', 'foodbeverage', 'fnb'].includes(normalized)) return 'restaurant';
+    if (['pos', 'retail', 'roomservice', 'minibar'].includes(normalized)) return 'pos';
+    if (['rentacar', 'rentalcar', 'car', 'vehicle'].includes(normalized)) return 'car';
+    if (normalized === 'golf') return 'golf';
+    if (['other', 'etc'].includes(normalized)) return 'other';
+    return normalized || 'pos';
 }
 
 const DEPT_META = {
     room: { label: '객실', icon: 'fa-bed', order: 1 },
     pos: { label: '통합 POS', icon: 'fa-cash-register', order: 2 },
-    golf: { label: '골프장', icon: 'fa-golf-ball-tee', order: 3 },
-    car: { label: '렌터카', icon: 'fa-car', order: 4 },
+    restaurant: { label: '음식점', icon: 'fa-utensils', order: 3 },
+    golf: { label: '골프장', icon: 'fa-golf-ball-tee', order: 4 },
+    car: { label: '렌터카', icon: 'fa-car', order: 5 },
+    other: { label: '기타', icon: 'fa-tag', order: 99 },
     mixed: { label: '호실 통합', icon: 'fa-layer-group', order: 0 }
 };
+
+function canReopenSettlementDetail() {
+    if (window.PMS_FeaturePermissions?.can) return window.PMS_FeaturePermissions.can('settlement.reopen');
+    return (window.currentUserRole || localStorage.getItem('currentUserRole')) === 'sys_admin';
+}
 
 function isGroupFolio(folio) {
     return !!(folio?.groupId || folio?.folioType === 'group' || folio?.isGroupSettlement);
@@ -790,7 +817,18 @@ function folioGroupMetaHtml(folio) {
 }
 
 function deptLabel(type) {
-    return DEPT_META[normalizeDept(type)]?.label || '기타';
+    const key = normalizeDept(type);
+    const en = (window.currentLang || localStorage.getItem('pms_lang') || 'ko') === 'en';
+    const labels = {
+        room: en ? 'Room' : '객실',
+        pos: en ? 'Integrated POS' : '통합 POS',
+        restaurant: en ? 'Restaurant' : '음식점',
+        golf: en ? 'Golf Course' : '골프장',
+        car: en ? 'Rent-a-car' : '렌터카',
+        other: en ? 'Other' : '기타',
+        mixed: en ? 'Merged Room' : '호실 통합'
+    };
+    return labels[key] || labels.other;
 }
 
 function deptIcon(type) {
@@ -2905,7 +2943,7 @@ function renderSettlementDetailModal() {
             ? '<button class="btn-primary-sm" onclick="openSettlementPaymentFromDetail()"><i class="fa-solid fa-credit-card"></i> 수납 등록</button>'
             : '';
         const completeButton = folio.settlementCompleted
-            ? '<span class="settlement-completed-status"><i class="fa-solid fa-circle-check"></i> 완료됨</span>'
+            ? `<span class="settlement-completed-status"><i class="fa-solid fa-circle-check"></i> 완료됨</span>${canReopenSettlementDetail() ? '<button class="btn-outline" onclick="reopenSettlementFromDetail()"><i class="fa-solid fa-rotate-left"></i> 정산 미완료로 변경</button>' : ''}`
             : '<button class="btn-settlement-complete" onclick="completeSettlementFromDetail()"><i class="fa-solid fa-door-open"></i> 정산 완료</button>';
         footer.innerHTML = `
             <div class="settlement-detail-footer-left">
@@ -2943,6 +2981,32 @@ function completeSettlementFromDetail() {
     const folio = visibleFolios[currentSettlementIndex];
     if (!folio) return;
     completeSettlementFolio(folio.id);
+}
+
+async function reopenSettlementFromDetail() {
+    const folio = visibleFolios[currentSettlementIndex];
+    if (!folio) return;
+    if (!await showConfirm(`[${folio.guest || folio.id}] 정산 완료 상태를 미완료로 변경할까요?`)) return;
+    const records = settlementCompletionRecords().filter(item => item.folioId !== folio.id);
+    saveSettlementCompletionRecords(records);
+    const reopens = settlementReopenRecords();
+    reopens.push({
+        id: `REOPEN-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        folioId: folio.id,
+        reservationId: folio.reservationId || '',
+        groupId: folio.groupId || '',
+        room: folio.room || '',
+        guest: folio.guest || '',
+        signature: folioSettlementSignature(folio),
+        businessDate: currentBusinessDate(),
+        reopenedAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
+        reopenedBy: currentOperatorName()
+    });
+    setStorageJson(SETTLEMENT_REOPENS_KEY, reopens);
+    window.dispatchEvent(new CustomEvent('pms:settlement-completions-updated'));
+    showToast('정산 상태를 미완료로 되돌렸습니다.', 'success');
+    renderFolios();
+    reopenSettlementDetailForFolio(folio.id);
 }
 
 function reopenSettlementDetailForFolio(folioId) {
@@ -3224,6 +3288,19 @@ document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(current
 (function(){
     var sel = document.getElementById('langSelect');
     if(sel) sel.value = localStorage.getItem('pms_lang') || 'ko';
+})();
+</script>
+<script>
+(function(){
+    const originalReopenSettlementFromDetail = window.reopenSettlementFromDetail || (typeof reopenSettlementFromDetail === 'function' ? reopenSettlementFromDetail : null);
+    if (!originalReopenSettlementFromDetail) return;
+    window.reopenSettlementFromDetail = async function() {
+        if (!canReopenSettlementDetail()) {
+            showToast('정산취소 권한이 필요합니다.', 'error');
+            return;
+        }
+        return originalReopenSettlementFromDetail();
+    };
 })();
 </script>
 </body>

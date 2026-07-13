@@ -40,6 +40,50 @@
     // ─── 사용자 역할 로드 (기본값 admin) ─────────
     window.currentUserRole = localStorage.getItem('currentUserRole') || 'sys_admin';
 
+    const FEATURE_PERMISSION_KEY = 'pms_role_feature_permissions';
+    const DEFAULT_FEATURE_PERMISSIONS = {
+        sys_admin: { 'settlement.reopen': true, 'ancillary.reopen': true }
+    };
+
+    function readFeaturePermissions() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(FEATURE_PERMISSION_KEY) || '{}');
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch(e) {
+            return {};
+        }
+    }
+
+    function writeFeaturePermissions(value) {
+        localStorage.setItem(FEATURE_PERMISSION_KEY, JSON.stringify(value || {}));
+        window.dispatchEvent(new CustomEvent('pms:feature-permissions-updated'));
+    }
+
+    window.PMS_FeaturePermissions = window.PMS_FeaturePermissions || {
+        key: FEATURE_PERMISSION_KEY,
+        defaults: DEFAULT_FEATURE_PERMISSIONS,
+        list() {
+            return {
+                'settlement.reopen': { label:'정산취소', desc:'정산 완료 건을 정산 미완료로 되돌립니다.' },
+                'ancillary.reopen': { label:'부가서비스 취소', desc:'완료된 부가서비스를 미완료/수락 상태로 되돌립니다.' }
+            };
+        },
+        read: readFeaturePermissions,
+        save: writeFeaturePermissions,
+        can(permission, role = window.currentUserRole) {
+            const map = readFeaturePermissions();
+            if (DEFAULT_FEATURE_PERMISSIONS[role]?.[permission]) return true;
+            return !!map?.[role]?.[permission];
+        },
+        set(role, permission, allowed) {
+            const map = readFeaturePermissions();
+            map[role] = { ...(map[role] || {}) };
+            if (allowed) map[role][permission] = true;
+            else delete map[role][permission];
+            writeFeaturePermissions(map);
+        }
+    };
+
     // DataReady 이벤트는 init() 완료 후 dispatch
 
     // ─── 메뉴 정의 ────────────────────────────────────────────
@@ -102,6 +146,7 @@
                     children: [
                         { label: '정산 현황',         href: BASE + 'operations/settlement-status.html', key: 'folio.status' },
                         { label: '정산 목록',         href: BASE + 'operations/folio.html' },
+                        { label: 'page.expensePurchases',          href: BASE + 'operations/expense-purchases.html', key: 'folio.expenses' },
                         { label: 'Night Audit',       href: BASE + 'operations/night-audit.html' },
                         { label: 'Revenue Analytics', href: BASE + 'operations/reports.html' },
                     ]
@@ -185,6 +230,7 @@
         'folio',
         'folio.status',
         'folio.list',
+        'folio.expenses',
         'folio.night-audit',
         'folio.reports',
         'ancillary',
@@ -223,6 +269,7 @@
         'reports.html': 'folio.reports',
         'settlement-status.html': 'folio.status',
         'folio.html': 'folio.list',
+        'expense-purchases.html': 'folio.expenses',
         'night-audit.html': 'folio.night-audit',
         'closing-log.html': 'operationLogs.close',
         'ancillary.html': 'ancillary.board',

@@ -2518,12 +2518,80 @@
         if (!res || res.isGroupPlaceholder || normalizedReservationStatus(res.status) === 'blocked') return;
         const status = effectiveReservationStatus(res);
         const locked = isReservationReadOnly(res);
+        const placardButton = `<button type="button" class="btn-outline" onclick="printReservationPlacard()"><i class="fa-solid fa-id-card-clip"></i> 플랫카드 인쇄</button>`;
         if (status === 'checkedin' || status === 'checkout') {
-            box.innerHTML = `<button type="button" class="btn-primary-sm" style="background:#EF4444" onclick="processUnifiedReservationFlow('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 처리</button>`;
+            box.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="btn-primary-sm" style="background:#EF4444" onclick="processUnifiedReservationFlow('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 처리</button>${placardButton}</div>`;
         } else if (!locked && canProcessReservationCheckin(res)) {
-            box.innerHTML = `<button type="button" class="btn-primary-sm" onclick="processUnifiedReservationFlow('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 체크인 처리</button>`;
+            box.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="btn-primary-sm" onclick="processUnifiedReservationFlow('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 체크인 처리</button>${placardButton}</div>`;
+        } else {
+            box.innerHTML = placardButton;
         }
     }
+
+    function reservationPlacardGuestLine(res = {}) {
+        const primary = guestNameForReservation(res) || res.guest || res.guestName || '-';
+        const companions = Array.isArray(res.roomingGuests) ? res.roomingGuests : (Array.isArray(res.companions) ? res.companions : []);
+        const rawPax = Number(res.pax || res.guests || res.guestCount || res.people || 0);
+        const total = Math.max(rawPax || 0, companions.length || 0, 1);
+        return total > 1 ? `${primary} 외 ${total - 1}명` : primary;
+    }
+
+    function reservationPlacardFlightLine(res = {}) {
+        const airline = res.airline || res.flightAirline || res.arrivalAirline || res.departureAirline || '';
+        const flight = res.flightNo || res.flightNumber || res.arrivalFlight || res.departureFlight || res.pickupFlight || '';
+        const combined = [airline, flight].filter(Boolean).join(' ');
+        return combined || res.flight || res.transport || '항공편 미입력';
+    }
+
+    function reservationPlacardHotelName() {
+        return localStorage.getItem('pms_hotel_name')
+            || document.querySelector('.topbar .hotel-name, .topbar-brand, [data-hotel-name]')?.textContent?.trim()
+            || 'The Grand Saigon';
+    }
+
+    window.printReservationPlacard = function(resId = '') {
+        const id = resId || document.getElementById('unifiedResId')?.value || '';
+        const source = window.reservations || (typeof reservations !== 'undefined' ? reservations : []);
+        const res = (Array.isArray(source) ? source : []).find(item => String(item.id || item.reservationId || '') === String(id));
+        if (!res) return;
+        const guest = actionEscapeHtml(reservationPlacardGuestLine(res));
+        const flight = actionEscapeHtml(reservationPlacardFlightLine(res));
+        const hotel = actionEscapeHtml(reservationPlacardHotelName());
+        const printWindow = window.open('', '_blank', 'width=900,height=620');
+        if (!printWindow) return window.print();
+        printWindow.document.write(`
+            <!doctype html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <title>플랫카드 - ${guest}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&family=Noto+Sans+KR:wght@500;700;800;900&display=swap" rel="stylesheet">
+                <style>
+                    @page{size:A4 landscape;margin:12mm}
+                    *{box-sizing:border-box}
+                    body{margin:0;font-family:'Inter','Noto Sans KR',sans-serif;color:#0f172a;background:#fff}
+                    .sheet{width:148mm;min-height:96mm;border:2px solid #0f172a;border-radius:6mm;padding:12mm 14mm;display:flex;flex-direction:column;justify-content:center;gap:9mm}
+                    .line{display:flex;align-items:center;gap:7mm}
+                    .icon{width:14mm;height:14mm;border-radius:999px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:7mm;font-weight:900}
+                    .text{font-weight:900;letter-spacing:0;font-size:13mm;line-height:1.1;word-break:keep-all}
+                    .sub{font-size:8mm;font-weight:800;color:#334155}
+                    .hotel{font-size:10mm;font-weight:900;color:#111827}
+                    @media print{body{padding:0}.sheet{break-inside:avoid}}
+                </style>
+            </head>
+            <body>
+                <section class="sheet">
+                    <div class="line"><div class="icon">1</div><div class="text">${guest}</div></div>
+                    <div class="line"><div class="icon">2</div><div class="sub">${flight}</div></div>
+                    <div class="line"><div class="icon">3</div><div class="hotel">${hotel}</div></div>
+                </section>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 250);
+    };
 
     async function persistUnifiedReservation(res) {
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
