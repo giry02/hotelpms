@@ -250,12 +250,24 @@
     line-height: 1.15;
 }
 .company-performance-toolbar {
-    display: grid;
-    grid-template-columns: 1.45fr .8fr .75fr .75fr auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 10px;
-    align-items: end;
 }
 .company-performance-toolbar .form-label { margin-bottom: 5px; }
+.company-performance-toolbar .form-input {
+    width: 128px;
+    min-width: 0;
+}
+.company-performance-toolbar .form-input[type="date"] {
+    width: 138px;
+}
+.company-performance-toolbar .performance-range-separator {
+    color: var(--txt3);
+    font-weight: 800;
+}
 .performance-section {
     padding-top: 2px;
 }
@@ -305,11 +317,23 @@
     font-weight: 700;
     white-space: nowrap;
 }
+.performance-table th.amount {
+    text-align: right;
+}
 .performance-table td.amount {
     text-align: right;
     font-weight: 850;
     color: var(--txt);
     white-space: nowrap;
+}
+.performance-table tfoot td {
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+    border-bottom: 0;
+    font-weight: 900;
+}
+.performance-table tfoot td.amount {
+    color: var(--primary);
 }
 .performance-table tr:last-child td { border-bottom: 0; }
 .performance-table--monthly col:nth-child(1) { width: 16%; }
@@ -319,15 +343,15 @@
 .performance-table--monthly col:nth-child(5),
 .performance-table--monthly col:nth-child(6),
 .performance-table--monthly col:nth-child(7) { width: 16%; }
-.performance-table--events col:nth-child(1) { width: 10%; }
-.performance-table--events col:nth-child(2) { width: 30%; }
-.performance-table--events col:nth-child(3) { width: 16%; }
-.performance-table--events col:nth-child(4) { width: 8%; }
+.performance-table--events col:nth-child(1) { width: 11%; }
+.performance-table--events col:nth-child(2) { width: 29%; }
+.performance-table--events col:nth-child(3) { width: 9%; }
+.performance-table--events col:nth-child(4),
 .performance-table--events col:nth-child(5),
 .performance-table--events col:nth-child(6),
 .performance-table--events col:nth-child(7),
 .performance-table--events col:nth-child(8),
-.performance-table--events col:nth-child(9) { width: 7.2%; }
+.performance-table--events col:nth-child(9) { width: 8.5%; }
 .performance-pos-head span::before { content: "POS"; }
 .performance-company-name {
     font-weight: 900;
@@ -532,36 +556,7 @@
             <button class="modal-close" onclick="closeModal('companyPerformanceModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;max-height:72vh;overflow:auto">
-            <div class="company-performance-toolbar">
-                <div>
-                    <label class="form-label" data-ko="단체" data-en="Group">단체</label>
-                    <input type="hidden" id="performanceCompanySelect" value="">
-                    <div class="company-performance-fixed-group">
-                        <span class="company-performance-fixed-icon"><i class="fa-solid fa-users"></i></span>
-                        <div>
-                            <div class="company-performance-fixed-name" id="performanceCompanyName">-</div>
-                            <div class="company-performance-fixed-id" id="performanceCompanyId">-</div>
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <label class="form-label" for="performancePeriodSelect" data-ko="기간" data-en="Period">기간</label>
-                    <select id="performancePeriodSelect" class="form-input" style="width:100%" onchange="handlePerformancePeriodChange()">
-                        <option value="all" data-ko="전체" data-en="All">전체</option>
-                        <option value="year" data-ko="최근 1년" data-en="Last 1 year">최근 1년</option>
-                        <option value="custom" data-ko="기간 선택" data-en="Custom period">기간 선택</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label" for="performanceStartDate" data-ko="시작일" data-en="Start date">시작일</label>
-                    <input id="performanceStartDate" type="date" class="form-input" style="width:100%" onchange="refreshCompanyPerformanceModal()">
-                </div>
-                <div>
-                    <label class="form-label" for="performanceEndDate" data-ko="종료일" data-en="End date">종료일</label>
-                    <input id="performanceEndDate" type="date" class="form-input" style="width:100%" onchange="refreshCompanyPerformanceModal()">
-                </div>
-                <button class="btn-outline" style="height:38px" onclick="refreshCompanyPerformanceModal()"><i class="fa-solid fa-rotate"></i> <span data-ko="조회" data-en="Refresh">조회</span></button>
-            </div>
+            <input type="hidden" id="performanceCompanySelect" value="">
             <div class="company-performance-grid" id="performanceSummaryGrid"></div>
             <div class="performance-section">
                 <div class="performance-section-head">
@@ -578,12 +573,13 @@
                                 <th data-ko="방문" data-en="Visits">방문</th>
                                 <th data-ko="객실" data-en="Rooms">객실</th>
                                 <th data-ko="숙박 기간" data-en="Stay Nights">숙박 기간</th>
-                                <th data-ko="객실 금액" data-en="Room Amount">객실 금액</th>
-                                <th data-ko="부가서비스" data-en="Ancillary">부가서비스</th>
-                                <th data-ko="합계" data-en="Total">합계</th>
+                                <th class="amount" data-ko="객실 금액" data-en="Room Amount">객실 금액</th>
+                                <th class="amount" data-ko="부가서비스" data-en="Ancillary">부가서비스</th>
+                                <th class="amount" data-ko="합계" data-en="Total">합계</th>
                             </tr>
                         </thead>
                         <tbody id="performanceMonthlyBody"></tbody>
+                        <tfoot id="performanceMonthlyFoot"></tfoot>
                     </table>
                 </div>
             </div>
@@ -592,6 +588,17 @@
                     <div>
                         <div class="performance-section-title"><i class="fa-solid fa-list"></i> <span data-ko="상세 거래 이력" data-en="Usage History">상세 거래 이력</span></div>
                         <div class="performance-section-sub" id="performanceEventCount"></div>
+                    </div>
+                    <div class="company-performance-toolbar">
+                        <select id="performancePeriodSelect" class="form-input" onchange="handlePerformancePeriodChange()" aria-label="기간">
+                            <option value="all" data-ko="전체" data-en="All">전체</option>
+                            <option value="year" data-ko="최근 1년" data-en="Last 1 year">최근 1년</option>
+                            <option value="custom" data-ko="기간 선택" data-en="Custom period">기간 선택</option>
+                        </select>
+                        <input id="performanceStartDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="시작일">
+                        <span class="performance-range-separator">~</span>
+                        <input id="performanceEndDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="종료일">
+                        <button class="btn-primary-sm" style="height:38px" onclick="refreshCompanyPerformanceModal()"><span data-ko="조회" data-en="Search">조회</span></button>
                     </div>
                 </div>
                 <div class="performance-table-wrap">
@@ -603,16 +610,17 @@
                             <tr>
                                 <th data-ko="이용일" data-en="Date">이용일</th>
                                 <th data-ko="행사명" data-en="Event">행사명</th>
-                                <th data-ko="단체" data-en="Group">단체</th>
                                 <th data-ko="숙박 기간" data-en="Stay Nights">숙박 기간</th>
-                                <th data-ko="객실" data-en="Rooms">객실</th>
-                                <th class="performance-pos-head" data-no-auto-i18n><span aria-label="POS"></span></th>
-                                <th data-ko="음식점" data-en="Restaurant">음식점</th>
-                                <th data-ko="골프" data-en="Golf">골프</th>
-                                <th data-ko="렌터카" data-en="Rent-a-car">렌터카</th>
+                                <th class="amount" data-ko="객실" data-en="Rooms">객실</th>
+                                <th class="amount performance-pos-head" data-no-auto-i18n><span aria-label="POS"></span></th>
+                                <th class="amount" data-ko="음식점" data-en="Restaurant">음식점</th>
+                                <th class="amount" data-ko="골프" data-en="Golf">골프</th>
+                                <th class="amount" data-ko="렌터카" data-en="Rent-a-car">렌터카</th>
+                                <th class="amount" data-ko="합계" data-en="Total">합계</th>
                             </tr>
                         </thead>
                         <tbody id="performanceEventBody"></tbody>
+                        <tfoot id="performanceEventFoot"></tfoot>
                     </table>
                 </div>
             </div>
@@ -1360,11 +1368,14 @@ function openBlockModal(compId) {
 
     function renderPerformanceMonthly(rows) {
         const body = document.getElementById('performanceMonthlyBody');
+        const foot = document.getElementById('performanceMonthlyFoot');
         if (!rows.length) {
             body.innerHTML = `<tr><td colspan="7"><div class="performance-empty">${perfText('선택한 기간의 거래 통계가 없습니다.', 'No usage stats for the selected period.')}</div></td></tr>`;
+            if (foot) foot.innerHTML = '';
             return;
         }
         const grouped = new Map();
+        const totals = { visits: 0, rooms: 0, stayNights: 0, room: 0, ancillary: 0, total: 0 };
         rows.forEach(row => {
             if (!grouped.has(row.month)) grouped.set(row.month, { month: row.month, visits: 0, rooms: 0, stayNights: 0, room: 0, ancillary: 0, total: 0 });
             const item = grouped.get(row.month);
@@ -1374,6 +1385,12 @@ function openBlockModal(compId) {
             item.room += row.room;
             item.ancillary += row.ancillary;
             item.total += row.total;
+            totals.visits += 1;
+            totals.rooms += row.rooms;
+            totals.stayNights += row.stayNights;
+            totals.room += row.room;
+            totals.ancillary += row.ancillary;
+            totals.total += row.total;
         });
         const currency = rows[0]?.currency || 'PHP';
         body.innerHTML = [...grouped.values()].sort((a, b) => b.month.localeCompare(a.month)).map(item => `
@@ -1387,16 +1404,41 @@ function openBlockModal(compId) {
                 <td class="amount">${companyMoney(item.total, currency)}</td>
             </tr>
         `).join('');
+        if (foot) {
+            foot.innerHTML = `
+                <tr>
+                    <td>${perfText('합계', 'Total')}</td>
+                    <td>${totals.visits}${perfText('회', '')}</td>
+                    <td>${totals.rooms}${perfText('실', '')}</td>
+                    <td>${totals.stayNights}${perfText('박', ' nights')}</td>
+                    <td class="amount">${companyMoney(totals.room, currency)}</td>
+                    <td class="amount">${companyMoney(totals.ancillary, currency)}</td>
+                    <td class="amount">${companyMoney(totals.total, currency)}</td>
+                </tr>
+            `;
+        }
     }
 
     function renderPerformanceEvents(rows) {
         const body = document.getElementById('performanceEventBody');
+        const foot = document.getElementById('performanceEventFoot');
         const count = document.getElementById('performanceEventCount');
         if (count) count.textContent = perfText(`전체 ${rows.length}건 중 ${rows.length}건 표시`, `Showing ${rows.length} of ${rows.length} records`);
         if (!rows.length) {
             body.innerHTML = `<tr><td colspan="9"><div class="performance-empty">${perfText('선택한 조건의 행사 내역이 없습니다.', 'No event records for the selected conditions.')}</div></td></tr>`;
+            if (foot) foot.innerHTML = '';
             return;
         }
+        const totals = rows.reduce((acc, row) => {
+            acc.stayNights += row.stayNights;
+            acc.room += row.room;
+            acc.pos += row.pos;
+            acc.restaurant += row.restaurant;
+            acc.golf += row.golf;
+            acc.rentacar += row.rentacar;
+            acc.total += row.total;
+            return acc;
+        }, { stayNights: 0, room: 0, pos: 0, restaurant: 0, golf: 0, rentacar: 0, total: 0 });
         body.innerHTML = rows.map(row => {
             const currency = row.currency || 'PHP';
             const otherMeta = row.other ? `<span class="performance-row-pill">${perfText('기타', 'Other')} ${companyMoney(row.other, currency)}</span>` : '';
@@ -1407,20 +1449,35 @@ function openBlockModal(compId) {
                         <div class="performance-company-name">${perfEscape(row.name)}</div>
                         <div class="performance-row-meta">
                             <span>${perfEscape(row.id)}</span>
-                            <span class="performance-row-pill">${perfText('합계', 'Total')} ${companyMoney(row.total, currency)}</span>
                             ${otherMeta}
                         </div>
                     </td>
-                    <td>${perfEscape(row.companyName)}</td>
                     <td>${row.stayNights}${perfText('박', ' nights')}</td>
                     <td class="amount">${companyMoney(row.room, currency)}</td>
                     <td class="amount">${companyMoney(row.pos, currency)}</td>
                     <td class="amount">${companyMoney(row.restaurant, currency)}</td>
                     <td class="amount">${companyMoney(row.golf, currency)}</td>
                     <td class="amount">${companyMoney(row.rentacar, currency)}</td>
+                    <td class="amount">${companyMoney(row.total, currency)}</td>
                 </tr>
             `;
         }).join('');
+        if (foot) {
+            const currency = rows[0]?.currency || 'PHP';
+            foot.innerHTML = `
+                <tr>
+                    <td>${perfText('합계', 'Total')}</td>
+                    <td>${rows.length}${perfText('건', ' records')}</td>
+                    <td>${totals.stayNights}${perfText('박', ' nights')}</td>
+                    <td class="amount">${companyMoney(totals.room, currency)}</td>
+                    <td class="amount">${companyMoney(totals.pos, currency)}</td>
+                    <td class="amount">${companyMoney(totals.restaurant, currency)}</td>
+                    <td class="amount">${companyMoney(totals.golf, currency)}</td>
+                    <td class="amount">${companyMoney(totals.rentacar, currency)}</td>
+                    <td class="amount">${companyMoney(totals.total, currency)}</td>
+                </tr>
+            `;
+        }
     }
 
     function populatePerformanceCompanies(selectedId = '') {
@@ -1429,10 +1486,6 @@ function openBlockModal(compId) {
         const company = selectedId ? companies.find(item => item.id === selectedId) : null;
         const fixedId = company ? company.id : '';
         input.value = fixedId;
-        const nameEl = document.getElementById('performanceCompanyName');
-        const idEl = document.getElementById('performanceCompanyId');
-        if (nameEl) nameEl.textContent = company ? company.name : perfText('전체 단체', 'All groups');
-        if (idEl) idEl.textContent = company ? company.id : perfText('모든 단체 거래 합산', 'Combined usage across all groups');
     }
 
     window.handlePerformancePeriodChange = function() {
@@ -1461,9 +1514,13 @@ function openBlockModal(compId) {
         const summary = document.getElementById('performanceSummaryGrid');
         const monthly = document.getElementById('performanceMonthlyBody');
         const events = document.getElementById('performanceEventBody');
+        const monthlyFoot = document.getElementById('performanceMonthlyFoot');
+        const eventFoot = document.getElementById('performanceEventFoot');
         if (summary) summary.innerHTML = `<div class="performance-empty" style="grid-column:1/-1">${perfText('거래 통계를 불러오는 중입니다.', 'Loading usage stats...')}</div>`;
         if (monthly) monthly.innerHTML = '';
         if (events) events.innerHTML = '';
+        if (monthlyFoot) monthlyFoot.innerHTML = '';
+        if (eventFoot) eventFoot.innerHTML = '';
         const companyId = document.getElementById('performanceCompanySelect')?.value || '';
         const rows = await companyPerformanceRows(companyId, performanceRange());
         renderPerformanceSummary(rows);
