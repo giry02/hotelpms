@@ -207,7 +207,7 @@
 
 <!-- ── 편집 모달 ── -->
 <div class="modal-overlay" id="editStaffModal" onclick="if(event.target===this) closeModal('editStaffModal')">
-    <div class="modal-card" style="max-width:480px;width:95vw">
+    <div class="modal-card" style="max-width:580px;width:95vw">
         <div class="modal-header">
             <h3 class="modal-title"><i class="fa-solid fa-pen" style="color:var(--primary);margin-right:8px"></i>직원 정보 편집</h3>
             <button class="modal-close" onclick="closeModal('editStaffModal')"><i class="fa-solid fa-xmark"></i></button>
@@ -226,6 +226,28 @@
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label class="form-label">ID (이메일)</label>
                 <input type="email" class="form-control" id="editEmail" readonly style="background:#f1f5f9">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">전화번호</label>
+                    <input type="tel" class="form-control" id="editPhone" placeholder="예: +84 90 123 4567">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">주소</label>
+                    <input type="text" class="form-control" id="editAddress" placeholder="예: Ho Chi Minh City">
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">입사일</label>
+                    <input type="date" class="form-control" id="editHireDate">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <label class="form-label">퇴사일</label>
+                    <input type="date" class="form-control" id="editTerminationDate">
+                </div>
             </div>
             
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -543,6 +565,10 @@ function openEdit(id) {
     document.getElementById('editName').value   = s.name;
     document.getElementById('editEmpId').value  = s.empId || '';
     document.getElementById('editEmail').value  = s.email;
+    document.getElementById('editPhone').value = s.phone || '';
+    document.getElementById('editAddress').value = s.address || '';
+    document.getElementById('editHireDate').value = s.hireDate || '';
+    document.getElementById('editTerminationDate').value = s.terminationDate || '';
     document.getElementById('editStatus').value = s.status;
     document.getElementById('editNewPw').value = '';
     document.getElementById('editNewPwConfirm').value = '';
@@ -558,6 +584,10 @@ function saveEdit() {
     }
     s.name   = document.getElementById('editName').value.trim();
     s.empId  = document.getElementById('editEmpId').value.trim();
+    s.phone = document.getElementById('editPhone').value.trim();
+    s.address = document.getElementById('editAddress').value.trim();
+    s.hireDate = document.getElementById('editHireDate').value;
+    s.terminationDate = document.getElementById('editTerminationDate').value;
     const nextRoleId = document.getElementById('editRole').value;
     if (!nextRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
     if (nextRoleId === 'sys_admin') { showToast('관리자 역할은 직원 관리에서 부여할 수 없습니다.', 'error'); return; }

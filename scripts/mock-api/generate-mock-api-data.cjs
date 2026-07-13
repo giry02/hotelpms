@@ -423,12 +423,12 @@ const maintenanceRequests = [
 ];
 
 const staff = [
-  { id: 's1', name: 'Nguyen Kim', init: 'NK', email: 'kim@hotel.example', roleId: 'sys_admin', status: 'online', last: '방금 전', color: '#6D28D9' },
-  { id: 's2', name: 'Robert Ford', init: 'RF', email: 'gm@hotel.example', roleId: 'sys_gm', status: 'online', last: '10분 전', color: '#111827' },
-  { id: 's3', name: '김지연', init: 'JK', email: 'sales@hotel.example', roleId: 'sys_desk', status: 'online', last: '방금 전', color: '#2563EB' },
-  { id: 's4', name: 'Sarah Connor', init: 'SC', email: 'desk@hotel.example', roleId: 'sys_desk', status: 'offline', last: '2시간 전', color: '#2563EB' },
-  { id: 's5', name: 'Maria Garcia', init: 'MG', email: 'housekeeping@hotel.example', roleId: 'sys_housekeeping', status: 'online', last: '30분 전', color: '#059669' },
-  { id: 's7', name: '김철수', init: 'CS', email: 'maintenance@hotel.example', roleId: 'sys_maintenance', status: 'online', last: '방금 전', color: '#D97706' }
+  { id: 's1', name: 'Nguyen Kim', init: 'NK', email: 'kim@hotel.example', phone: '+84 90 100 0001', address: 'District 1, Ho Chi Minh City', hireDate: '2024-01-15', terminationDate: '', roleId: 'sys_admin', status: 'online', last: '방금 전', color: '#6D28D9' },
+  { id: 's2', name: 'Robert Ford', init: 'RF', email: 'gm@hotel.example', phone: '+84 90 100 0002', address: 'Thao Dien, Ho Chi Minh City', hireDate: '2024-03-01', terminationDate: '', roleId: 'sys_gm', status: 'online', last: '10분 전', color: '#111827' },
+  { id: 's3', name: '김지연', init: 'JK', email: 'sales@hotel.example', phone: '+82 10 7200 1003', address: 'Seoul, Korea', hireDate: '2025-02-10', terminationDate: '', roleId: 'sys_desk', status: 'online', last: '방금 전', color: '#2563EB' },
+  { id: 's4', name: 'Sarah Connor', init: 'SC', email: 'desk@hotel.example', phone: '+84 90 100 0004', address: 'Binh Thanh, Ho Chi Minh City', hireDate: '2025-04-21', terminationDate: '', roleId: 'sys_desk', status: 'offline', last: '2시간 전', color: '#2563EB' },
+  { id: 's5', name: 'Maria Garcia', init: 'MG', email: 'housekeeping@hotel.example', phone: '+63 917 100 0005', address: 'Pasay, Metro Manila', hireDate: '2025-07-01', terminationDate: '', roleId: 'sys_housekeeping', status: 'online', last: '30분 전', color: '#059669' },
+  { id: 's7', name: '김철수', init: 'CS', email: 'maintenance@hotel.example', phone: '+82 10 7200 1007', address: 'Busan, Korea', hireDate: '2025-09-15', terminationDate: '', roleId: 'sys_maintenance', status: 'online', last: '방금 전', color: '#D97706' }
 ];
 
 const menus = [
