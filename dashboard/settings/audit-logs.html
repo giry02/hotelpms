@@ -441,16 +441,84 @@ function actionMeta(action) {
     return ACTION_META[action] || { label: action || '기타 동작', type: 'other', icon: 'fa-circle-info' };
 }
 
+const AUDIT_SCREEN_LABEL_BY_FILE = {
+    'dashboard.html': '대시보드',
+    'reservation-board.html': '예약 현황',
+    'reservation-timeline.html': '예약 타임라인',
+    'reservation-list.html': '예약 목록',
+    'groups_blocks.html': '단체/행사 목록',
+    'groups_companies.html': '단체 등록 관리',
+    'room-setup.html': '객실 타입',
+    'rates.html': '요금 캘린더',
+    'rooms.html': '객실 관리',
+    'housekeeping.html': '하우스키핑',
+    'maintenance.html': '시설 보수',
+    'ancillary.html': '부가서비스 등록',
+    'ancillary-vendors.html': '업체/항목 관리',
+    'unified-pos.html': '통합 POS',
+    'golf.html': '골프장',
+    'rentacar.html': '렌터카',
+    'settlement-status.html': '정산 현황',
+    'folio.html': '정산 목록',
+    'expense-purchases.html': '비품 구매',
+    'night-audit.html': '일일 마감',
+    'reports.html': '매출 분석',
+    'closing-log.html': '마감 로그',
+    'guests.html': '투숙객 관리',
+    'tier-history.html': '등급 변동 이력',
+    'membership.html': '등급 기준 관리',
+    'settings.html': '호텔 설정',
+    'staff.html': '직원 목록',
+    'roles.html': '권한 설정',
+    'billing.html': '결제 설정',
+    'audit-logs.html': '감사 로그',
+    'notices.html': '공지사항',
+    'support.html': '고객지원'
+};
+
+const AUDIT_SCREEN_LABEL_BY_KEY = {
+    dashboard: '대시보드',
+    'reservation-board': '예약 현황',
+    'reservation-timeline': '예약 타임라인',
+    'reservation-list': '예약 목록',
+    crm: '투숙객 관리',
+    'guest-crm': '투숙객 관리',
+    guests: '투숙객 관리',
+    rooms: '객실 관리',
+    'room-list': '객실 관리',
+    housekeeping: '하우스키핑',
+    maintenance: '시설 보수',
+    ancillary: '부가서비스 등록',
+    'ancillary-vendors': '업체/항목 관리',
+    'unified-pos': '통합 POS',
+    golf: '골프장',
+    rentacar: '렌터카',
+    folio: '정산 목록',
+    'settlement-status': '정산 현황',
+    'expense-purchases': '비품 구매',
+    'night-audit': '일일 마감',
+    reports: '매출 분석',
+    'closing-log': '마감 로그',
+    staff: '직원 목록',
+    roles: '권한 설정',
+    'audit-logs': '감사 로그'
+};
+
 function screenLabel(screen) {
-    const value = String(screen || '').replace(/^\/+/, '');
-    if (value.includes('reservation-timeline')) return '예약 타임라인';
-    if (value.includes('reservation-list')) return '예약 관리';
-    if (value.includes('reservation-board')) return '예약 현황';
-    if (value.includes('crm') || value === 'guest-crm') return '투숙객 관리';
-    if (value.includes('rooms')) return '객실 관리';
-    if (value.includes('folio')) return '통합 정산';
-    if (value.includes('night-audit')) return '마감 정산';
-    return value || '-';
+    const raw = String(screen || '').trim();
+    if (!raw) return '-';
+    const value = raw
+        .replace(/\\/g, '/')
+        .replace(/^https?:\/\/[^/]+/i, '')
+        .replace(/^\/+/, '')
+        .split(/[?#]/)[0];
+    const file = value.split('/').filter(Boolean).pop();
+    if (file && AUDIT_SCREEN_LABEL_BY_FILE[file]) return AUDIT_SCREEN_LABEL_BY_FILE[file];
+    const key = value.split('/').filter(Boolean).pop() || value;
+    if (AUDIT_SCREEN_LABEL_BY_KEY[key]) return AUDIT_SCREEN_LABEL_BY_KEY[key];
+    const dashedKey = key.replace(/\.html$/i, '');
+    if (AUDIT_SCREEN_LABEL_BY_KEY[dashedKey]) return AUDIT_SCREEN_LABEL_BY_KEY[dashedKey];
+    return raw || '-';
 }
 
 function formatDateTime(value) {
