@@ -130,7 +130,7 @@ window.PMS_I18N_CATALOG.dashboard = {
         "page.maintenance": "시설 보수",
         "page.folioBilling": "통합 정산",
         "page.folioList": "정산 목록",
-        "page.expensePurchases": "비품구매",
+        "page.expensePurchases": "비품 구매",
         "page.revenueAnalytics": "매출 분석",
         "page.nightAudit": "일일 마감",
         "page.ancillary": "부가서비스",
