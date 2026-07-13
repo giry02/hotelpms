@@ -205,7 +205,9 @@ const ACTION_META = {
     'guest.blacklist.change': { label: '블랙리스트 변경', type: 'other', icon: 'fa-user-slash' },
     'room.cleaning.status': { label: '객실 청소 상태 변경', type: 'other', icon: 'fa-broom' },
     'ancillary.order.create': { label: '부가서비스 등록', type: 'other', icon: 'fa-concierge-bell' },
+    'ancillary.order.reopen': { label: '부가서비스 미완료 전환', type: 'other', icon: 'fa-rotate-left' },
     'folio.payment.complete': { label: '정산 수납 완료', type: 'other', icon: 'fa-cash-register' },
+    'folio.settlement.reopen': { label: '정산 미완료 전환', type: 'other', icon: 'fa-rotate-left' },
     'approval.refund.request': { label: '환불 승인 요청', type: 'other', icon: 'fa-circle-exclamation' },
     'night.audit.cash.handover': { label: '시재 인수인계', type: 'other', icon: 'fa-money-bill-transfer' }
 };
@@ -236,7 +238,11 @@ const FIELD_LABELS = {
     blacklistHistory: '블랙리스트 이력',
     cleaningStatus: '청소 상태',
     payment: '수납',
-    cashCount: '시재'
+    cashCount: '시재',
+    folioId: 'Folio',
+    orderId: '주문번호',
+    service: '서비스',
+    item: '항목'
 };
 
 const AUDIT_DEMO_STORAGE_KEY = 'pms_audit_demo_seed_v3';
@@ -476,14 +482,18 @@ function targetText(entry) {
     const guest = d.guestName || d.afterGuest || d.beforeGuest || '';
     const reservationId = d.reservationId || '';
     if (guest && reservationId) return `${guest} · ${reservationId}`;
-    return guest || reservationId || d.guestId || d.exportType || d.room || '-';
+    return guest || reservationId || d.folioId || d.orderId || d.guestId || d.exportType || d.room || '-';
 }
 
 function detailText(entry) {
     const d = entry.details || {};
     const parts = [];
     if (d.reservationId) parts.push(`예약 ${d.reservationId}`);
+    if (d.folioId) parts.push(`Folio ${d.folioId}`);
+    if (d.orderId) parts.push(`주문 ${d.orderId}`);
     if (d.guestId) parts.push(`고객 ID ${d.guestId}`);
+    if (d.service) parts.push(`서비스 ${d.service}`);
+    if (d.item) parts.push(`항목 ${d.item}`);
     if (d.exportType) parts.push(String(d.exportType).toUpperCase());
     if (d.resultCount !== undefined) parts.push(`결과 ${d.resultCount}건`);
     if (d.status) parts.push(`상태 ${d.status}`);

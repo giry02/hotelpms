@@ -15,6 +15,7 @@
 <script src="../common/js/i18n.js"></script>
 <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/privacy-audit.js"></script>
     <script src="../common/js/topbar.js"></script>
 <style>
 /* Filter Bar Styling */
@@ -2987,10 +2988,11 @@ async function reopenSettlementFromDetail() {
     const folio = visibleFolios[currentSettlementIndex];
     if (!folio) return;
     if (!await showConfirm(`[${folio.guest || folio.id}] 정산 완료 상태를 미완료로 변경할까요?`)) return;
+    const beforeStatus = folio.settlementCompleted ? '완료됨' : (folio.status || '완료 대기');
     const records = settlementCompletionRecords().filter(item => item.folioId !== folio.id);
     saveSettlementCompletionRecords(records);
     const reopens = settlementReopenRecords();
-    reopens.push({
+    const reopenRecord = {
         id: `REOPEN-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         folioId: folio.id,
         reservationId: folio.reservationId || '',
@@ -3001,8 +3003,24 @@ async function reopenSettlementFromDetail() {
         businessDate: currentBusinessDate(),
         reopenedAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
         reopenedBy: currentOperatorName()
-    });
+    };
+    reopens.push(reopenRecord);
     setStorageJson(SETTLEMENT_REOPENS_KEY, reopens);
+    if (window.PmsPrivacyAudit?.log) {
+        window.PmsPrivacyAudit.log('folio.settlement.reopen', {
+            folioId: folio.id,
+            reservationId: folio.reservationId || '',
+            room: folio.room || '',
+            guestName: folio.guest || '',
+            beforeStatus,
+            afterStatus: '미완료',
+            fields: ['folioId', 'reservationId', 'room', 'status'],
+            totalAmount: Number(folio.total || 0),
+            paid: Number(folio.paid || 0),
+            balanceDue: Number(folio.bal || 0),
+            currency: folio.currency || 'PHP'
+        });
+    }
     window.dispatchEvent(new CustomEvent('pms:settlement-completions-updated'));
     showToast('정산 상태를 미완료로 되돌렸습니다.', 'success');
     renderFolios();

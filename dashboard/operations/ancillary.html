@@ -15,6 +15,7 @@
     <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
+    <script src="../common/js/privacy-audit.js"></script>
     <script src="../common/js/topbar.js"></script>
     <script src="../common/js/api/api-frontdesk.js"></script>
     <script src="../common/js/api/api-operations.js"></script>
@@ -1530,13 +1531,30 @@ function updateServiceOrderStatus(orderId, status) {
     const order = serviceOrders.find(item => item.id === orderId);
     if (!order) return;
     const current = serviceOrderStatusMeta(order.status);
+    const next = serviceOrderStatusMeta(status);
     if (current.key === 'completed' && status !== 'completed' && !canReopenAncillaryOrder()) {
         if (window.showToast) window.showToast('부가서비스 취소 권한이 필요합니다.', 'error');
         else window.showAlert?.('부가서비스 취소 권한이 필요합니다.', { type:'error' });
         return;
     }
+    const shouldAuditReopen = current.key === 'completed' && next.key !== 'completed';
     order.status = status;
     persistOrders();
+    if (shouldAuditReopen && window.PmsPrivacyAudit?.log) {
+        window.PmsPrivacyAudit.log('ancillary.order.reopen', {
+            orderId: order.id || '',
+            room: order.room || order.roomId || '',
+            guestName: order.guest || '',
+            service: serviceMeta(order.service).label,
+            item: order.item || '',
+            vendor: order.vendor || '',
+            beforeStatus: current.label,
+            afterStatus: next.label,
+            fields: ['orderId', 'room', 'service', 'item', 'status'],
+            amount: Number(order.total || 0),
+            currency: order.currency || 'PHP'
+        });
+    }
     renderAncillaryBoard();
     openServiceDetailModal(selectedDetailRoomId || order.roomId || order.room);
 }
