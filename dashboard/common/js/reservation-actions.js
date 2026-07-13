@@ -1674,11 +1674,35 @@
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <button id="unifiedBtnCancel" class="btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelUnifiedRes()" data-i18n-key="Cancel Booking"><i class="fa-solid fa-trash"></i> 예약 취소</button>
                     <span id="unifiedFlowActions" style="display:inline-flex;gap:8px;flex-wrap:wrap"></span>
-                    <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none" onclick="printReservationPlacard()"><i class="fa-solid fa-id-card-clip"></i> 플랫카드 인쇄</button>
+                    <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none" onclick="openReservationPlacardPreview()"><i class="fa-solid fa-id-card-clip"></i> 플랫카드 인쇄</button>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-outline" onclick="closeUnifiedResModal()" data-i18n-key="Close">닫기</button>
                     <button class="btn-primary-sm" onclick="saveUnifiedRes()" data-i18n-key="Save">저장</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-overlay" id="reservationPlacardModal" style="z-index:10010;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.48);">
+        <div class="modal-card" style="width:min(920px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fa-solid fa-id-card-clip" style="color:var(--primary);margin-right:8px"></i>플랫카드 미리보기</div>
+                <button class="modal-close" onclick="closeReservationPlacardPreview()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="padding:18px;background:#f8fafc;overflow:auto;">
+                <div id="placardPreviewCanvas" style="width:100%;background:#fff;aspect-ratio:1.48;display:flex;"></div>
+                <div style="margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;">
+                    <label for="placardFlightInput" style="font-size:.82rem;font-weight:900;color:var(--txt2);">항공편</label>
+                    <input id="placardFlightInput" class="form-input" type="text" placeholder="예: 대한항공 KE641" oninput="updateReservationPlacardPreview()" style="height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:var(--font);font-weight:800;">
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;">입력하는 즉시 위 미리보기에 반영됩니다. 적용을 누르면 예약 데이터에 저장됩니다.</div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;background:#fff;border-top:1px solid var(--border2);">
+                <div id="placardSaveState" style="font-size:.76rem;color:var(--txt3);font-weight:800;"></div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="btn-outline" onclick="closeReservationPlacardPreview()">닫기</button>
+                    <button class="btn-outline" onclick="applyReservationPlacardFlight()"><i class="fa-solid fa-check"></i> 적용</button>
+                    <button class="btn-primary-sm" onclick="printReservationPlacardFromPreview()"><i class="fa-solid fa-print"></i> 인쇄</button>
                 </div>
             </div>
         </div>
@@ -2521,11 +2545,11 @@
         if (!res || res.isGroupPlaceholder || normalizedReservationStatus(res.status) === 'blocked') return;
         const status = effectiveReservationStatus(res);
         const locked = isReservationReadOnly(res);
-        if (placardBtn) placardBtn.style.display = 'inline-flex';
         if (status === 'checkedin' || status === 'checkout') {
             box.innerHTML = `<button type="button" class="btn-primary-sm" style="background:#EF4444" onclick="processUnifiedReservationFlow('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 처리</button>`;
         } else if (!locked && canProcessReservationCheckin(res)) {
             box.innerHTML = `<button type="button" class="btn-primary-sm" onclick="processUnifiedReservationFlow('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 체크인 처리</button>`;
+            if (placardBtn) placardBtn.style.display = 'inline-flex';
         }
     }
 
@@ -2538,6 +2562,8 @@
     }
 
     function reservationPlacardFlightLine(res = {}) {
+        const savedPlacardFlight = res.placardFlight || res.flightLabel || '';
+        if (savedPlacardFlight) return savedPlacardFlight;
         const airline = res.airline || res.flightAirline || res.arrivalAirline || res.departureAirline || '';
         const flight = res.flightNo || res.flightNumber || res.arrivalFlight || res.departureFlight || res.pickupFlight || '';
         const combined = [airline, flight].filter(Boolean).join(' ');
@@ -2550,14 +2576,86 @@
             || 'The Grand Saigon';
     }
 
-    window.printReservationPlacard = function(resId = '') {
+    function currentReservationForPlacard(resId = '') {
         const id = resId || document.getElementById('unifiedResId')?.value || '';
         const source = window.reservations || (typeof reservations !== 'undefined' ? reservations : []);
-        const res = (Array.isArray(source) ? source : []).find(item => String(item.id || item.reservationId || '') === String(id));
+        return (Array.isArray(source) ? source : []).find(item => String(item.id || item.reservationId || '') === String(id));
+    }
+
+    function placardValuesFromInputs(res = {}) {
+        const flightInput = document.getElementById('placardFlightInput');
+        return {
+            guest: reservationPlacardGuestLine(res),
+            flight: (flightInput?.value || '').trim() || reservationPlacardFlightLine(res),
+            hotel: reservationPlacardHotelName()
+        };
+    }
+
+    function buildReservationPlacardHtml(values, mode = 'preview') {
+        const guest = actionEscapeHtml(values.guest || '-');
+        const flight = actionEscapeHtml(values.flight || '항공편 미입력');
+        const hotel = actionEscapeHtml(values.hotel || 'The Grand Saigon');
+        const printRoot = mode === 'print'
+            ? "width:148.5mm;height:105mm;padding:0;page-break-inside:avoid;"
+            : "width:100%;height:100%;padding:0;";
+        return `
+            <section class="placard-sheet" style="${printRoot}background:#fff;color:#0f172a;font-family:'Inter','Noto Sans KR','Malgun Gothic',sans-serif;display:flex;flex-direction:column;justify-content:stretch;overflow:hidden;">
+                <div style="height:50%;display:flex;align-items:center;padding:0 7%;font-weight:950;font-size:clamp(54px,9vw,122px);line-height:1.02;letter-spacing:0;word-break:keep-all;">${guest}</div>
+                <div style="height:25%;display:flex;align-items:center;padding:0 7%;font-weight:900;font-size:clamp(28px,4.5vw,58px);line-height:1.08;word-break:keep-all;">${flight}</div>
+                <div style="height:25%;display:flex;align-items:center;padding:0 7%;font-weight:950;font-size:clamp(28px,4.5vw,58px);line-height:1.08;word-break:keep-all;">${hotel}</div>
+            </section>
+        `;
+    }
+
+    window.updateReservationPlacardPreview = function() {
+        const res = currentReservationForPlacard();
+        const canvas = document.getElementById('placardPreviewCanvas');
+        if (!res || !canvas) return;
+        canvas.innerHTML = buildReservationPlacardHtml(placardValuesFromInputs(res), 'preview');
+        const state = document.getElementById('placardSaveState');
+        if (state) state.textContent = '미리보기 반영됨 · 적용 전';
+    };
+
+    window.openReservationPlacardPreview = function(resId = '') {
+        const res = currentReservationForPlacard(resId);
         if (!res) return;
-        const guest = actionEscapeHtml(reservationPlacardGuestLine(res));
-        const flight = actionEscapeHtml(reservationPlacardFlightLine(res));
-        const hotel = actionEscapeHtml(reservationPlacardHotelName());
+        const modal = document.getElementById('reservationPlacardModal');
+        const input = document.getElementById('placardFlightInput');
+        if (input) input.value = reservationPlacardFlightLine(res) === '항공편 미입력' ? '' : reservationPlacardFlightLine(res);
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+        }
+        window.updateReservationPlacardPreview();
+        setTimeout(() => input?.focus(), 80);
+    };
+
+    window.closeReservationPlacardPreview = function() {
+        const modal = document.getElementById('reservationPlacardModal');
+        if (!modal) return;
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    };
+
+    window.applyReservationPlacardFlight = async function(options = {}) {
+        const res = currentReservationForPlacard();
+        if (!res) return false;
+        const input = document.getElementById('placardFlightInput');
+        const flight = (input?.value || '').trim();
+        res.placardFlight = flight;
+        res.flightLabel = flight;
+        await persistUnifiedReservation(res);
+        const state = document.getElementById('placardSaveState');
+        if (state) state.textContent = '적용 완료 · 예약 데이터 저장됨';
+        if (!options.silent && window.showToast) window.showToast('플랫카드 항공편이 저장되었습니다.', 'success');
+        return true;
+    };
+
+    window.printReservationPlacardFromPreview = async function() {
+        const res = currentReservationForPlacard();
+        if (!res) return;
+        await window.applyReservationPlacardFlight({ silent: true });
+        const values = placardValuesFromInputs(res);
         const printWindow = window.open('', '_blank', 'width=900,height=620');
         if (!printWindow) return window.print();
         printWindow.document.write(`
@@ -2565,27 +2663,17 @@
             <html lang="ko">
             <head>
                 <meta charset="UTF-8">
-                <title>플랫카드 - ${guest}</title>
+                <title>플랫카드 - ${actionEscapeHtml(values.guest)}</title>
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&family=Noto+Sans+KR:wght@500;700;800;900&display=swap" rel="stylesheet">
                 <style>
-                    @page{size:A4 landscape;margin:12mm}
+                    @page{size:A4 landscape;margin:0}
                     *{box-sizing:border-box}
                     body{margin:0;font-family:'Inter','Noto Sans KR',sans-serif;color:#0f172a;background:#fff}
-                    .sheet{width:148mm;min-height:96mm;border:2px solid #0f172a;border-radius:6mm;padding:12mm 14mm;display:flex;flex-direction:column;justify-content:center;gap:9mm}
-                    .line{display:flex;align-items:center;gap:7mm}
-                    .icon{width:14mm;height:14mm;border-radius:999px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:7mm;font-weight:900}
-                    .text{font-weight:900;letter-spacing:0;font-size:13mm;line-height:1.1;word-break:keep-all}
-                    .sub{font-size:8mm;font-weight:800;color:#334155}
-                    .hotel{font-size:10mm;font-weight:900;color:#111827}
-                    @media print{body{padding:0}.sheet{break-inside:avoid}}
+                    @media print{body{padding:0}.placard-sheet{break-inside:avoid}}
                 </style>
             </head>
             <body>
-                <section class="sheet">
-                    <div class="line"><div class="icon">1</div><div class="text">${guest}</div></div>
-                    <div class="line"><div class="icon">2</div><div class="sub">${flight}</div></div>
-                    <div class="line"><div class="icon">3</div><div class="hotel">${hotel}</div></div>
-                </section>
+                ${buildReservationPlacardHtml(values, 'print')}
             </body>
             </html>
         `);
@@ -2593,6 +2681,8 @@
         printWindow.focus();
         setTimeout(() => printWindow.print(), 250);
     };
+
+    window.printReservationPlacard = window.openReservationPlacardPreview;
 
     async function persistUnifiedReservation(res) {
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
