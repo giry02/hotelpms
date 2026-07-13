@@ -2601,15 +2601,15 @@
             ? "width:297mm;height:210mm;padding:0;page-break-inside:avoid;"
             : "width:100%;height:100%;padding:0;";
         const guestFont = mode === 'print'
-            ? (guestLength > 24 ? '18mm' : guestLength > 16 ? '22mm' : guestLength > 10 ? '26mm' : '34mm')
-            : (guestLength > 24 ? '46px' : guestLength > 16 ? '58px' : guestLength > 10 ? '72px' : '88px');
-        const infoFont = mode === 'print' ? '15mm' : '38px';
+            ? (guestLength > 24 ? '22mm' : guestLength > 16 ? '27mm' : guestLength > 10 ? '32mm' : '40mm')
+            : (guestLength > 24 ? '56px' : guestLength > 16 ? '70px' : guestLength > 10 ? '88px' : '108px');
+        const infoFont = mode === 'print' ? '15mm' : '40px';
         const infoGap = mode === 'print' ? '10mm' : '28px';
         const lowerPadding = mode === 'print' ? '0 7% 22mm' : '0 7% 44px';
         return `
             <section class="placard-sheet" style="${printRoot}background:#fff;color:#0f172a;font-family:'Inter','Noto Sans KR','Malgun Gothic',sans-serif;display:flex;flex-direction:column;justify-content:stretch;overflow:hidden;">
-                <div style="height:50%;display:flex;align-items:center;padding:0 7%;font-weight:950;font-size:${guestFont};line-height:1;letter-spacing:0;word-break:keep-all;white-space:nowrap;">${guest}</div>
-                <div style="height:50%;display:flex;flex-direction:column;justify-content:flex-end;gap:${infoGap};padding:${lowerPadding};">
+                <div style="height:50%;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 5%;font-weight:950;font-size:${guestFont};line-height:1;letter-spacing:0;word-break:keep-all;white-space:nowrap;">${guest}</div>
+                <div style="height:50%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;gap:${infoGap};padding:${lowerPadding};">
                     <div style="font-weight:900;font-size:${infoFont};line-height:1.08;word-break:keep-all;">${flight}</div>
                     <div style="font-weight:950;font-size:${infoFont};line-height:1.08;word-break:keep-all;">${hotel}</div>
                 </div>
