@@ -13,28 +13,36 @@
     <script src="../common/js/topbar.js"></script>
     <style>
         .expense-page{font-family:var(--font)}
-        .expense-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start}
-        .expense-panel{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+        .expense-grid{display:grid;grid-template-columns:minmax(320px,360px) minmax(0,1fr);gap:16px;align-items:start}
+        .expense-panel{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
         .expense-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border2);background:#f8fafc}
         .expense-title{display:flex;align-items:center;gap:8px;font-weight:950;color:var(--txt)}
         .expense-body{padding:16px;display:grid;gap:12px}
         .expense-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         .expense-field{display:grid;gap:6px}
         .expense-field label{font-size:.76rem;font-weight:900;color:var(--txt2)}
-        .expense-field input,.expense-field select,.expense-field textarea{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:9px;padding:0 10px;min-height:38px;font-family:var(--font);font-weight:750}
+        .expense-field input,.expense-field select,.expense-field textarea{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);padding:0 10px;min-height:38px;font-family:var(--font);font-size:.82rem;font-weight:750;outline:none;transition:border-color .15s,box-shadow .15s}
+        .expense-field input:focus,.expense-field select:focus,.expense-field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
         .expense-field textarea{padding:10px;min-height:72px;resize:vertical}
         .expense-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
-        .expense-kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px}
+        .expense-kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow);min-width:0}
         .expense-kpi span{display:block;font-size:.72rem;font-weight:900;color:var(--txt3)}
-        .expense-kpi strong{display:block;margin-top:5px;font-size:1.1rem;font-weight:950;color:var(--txt)}
+        .expense-kpi strong{display:block;margin-top:5px;font-size:1.1rem;font-weight:950;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .expense-table{width:100%;border-collapse:collapse}
         .expense-table th,.expense-table td{padding:11px 12px;border-bottom:1px solid var(--border2);font-size:.78rem;text-align:left}
         .expense-table th{background:#f8fafc;color:var(--txt2);font-weight:950}
         .expense-table .amount{font-weight:950;color:#dc2626;text-align:right;white-space:nowrap}
         .expense-actions{display:flex;justify-content:flex-end;gap:8px}
         .expense-list-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-        .expense-list-toolbar .form-input{max-width:160px}
+        .expense-list-toolbar .form-input{width:180px;max-width:100%;height:38px;border-radius:9px;font-size:.78rem;font-weight:750}
         .expense-modal-body{max-height:70vh;overflow:auto;padding:16px}
+        .expense-page .btn-outline,.expense-page .btn-primary-sm{height:38px;min-height:38px;padding:0 14px;border-radius:9px;font-family:var(--font);font-size:.78rem;font-weight:900;text-decoration:none}
+        .expense-page .btn-outline{background:#fff;border:1px solid var(--border);color:var(--txt2)}
+        .expense-page .btn-outline:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff}
+        .expense-page .btn-primary-sm{background:var(--primary);border:1px solid var(--primary);color:#fff}
+        .expense-page .btn-primary-sm:hover{background:var(--primary-dk);border-color:var(--primary-dk)}
+        .expense-money-row{grid-template-columns:.72fr 1fr}
+        .expense-currency-suffix{margin-left:3px;color:var(--txt3);font-weight:900}
         @media(max-width:900px){.expense-grid,.expense-summary{grid-template-columns:1fr}.expense-row{grid-template-columns:1fr}}
     </style>
 </head>
@@ -63,9 +71,18 @@
                         <div class="expense-field"><label for="expenseMethod" data-i18n-key="expense.method">결제수단</label><select id="expenseMethod"><option value="cash">현금</option><option value="card">카드</option><option value="bank">계좌이체</option><option value="other">기타</option></select></div>
                     </div>
                     <div class="expense-field"><label for="expenseItem" data-i18n-key="expense.item">항목</label><input id="expenseItem" placeholder="예: 차량 주유, 객실 비품, 기사 비용"></div>
-                    <div class="expense-row">
+                    <div class="expense-row expense-money-row">
                         <div class="expense-field"><label for="expenseVendor" data-i18n-key="expense.vendor">구매처/대상</label><input id="expenseVendor" placeholder="예: Shell Station"></div>
-                        <div class="expense-field"><label for="expenseAmount" data-i18n-key="expense.amountPhp">금액(PHP)</label><input id="expenseAmount" type="number" min="0" step="1" placeholder="0"></div>
+                        <div class="expense-row" style="gap:8px">
+                            <div class="expense-field">
+                                <label for="expenseCurrency" data-i18n-key="expense.currency">통화</label>
+                                <select id="expenseCurrency" data-keep-currency onchange="updateExpenseCurrencyLabel()"></select>
+                            </div>
+                            <div class="expense-field">
+                                <label for="expenseAmount"><span data-i18n-key="expense.amount">금액</span><span id="expenseCurrencySuffix" class="expense-currency-suffix" data-keep-currency>(PHP)</span></label>
+                                <input id="expenseAmount" type="number" min="0" step="1" placeholder="0">
+                            </div>
+                        </div>
                     </div>
                     <div class="expense-field"><label for="expenseNote" data-i18n-key="expense.note">메모</label><textarea id="expenseNote" placeholder="영수증 번호, 차량번호, 정산 연결 메모 등"></textarea></div>
                     <div class="expense-actions">
@@ -112,9 +129,39 @@
 <script>
 const EXPENSE_KEY = 'pms_expense_purchases';
 const CASH_SESSION_KEY = 'pms_night_audit_cash_sessions';
+const DEFAULT_EXPENSE_CURRENCY = 'PHP';
+const EXPENSE_CURRENCIES = ['PHP', 'USD', 'KRW', 'VND'];
 
-function money(value) {
-    return new Intl.NumberFormat('en-PH', { style:'currency', currency:'PHP', maximumFractionDigits:0 }).format(Number(value || 0));
+function normalizeExpenseCurrency(currency) {
+    const code = String(currency || DEFAULT_EXPENSE_CURRENCY).toUpperCase();
+    return (window.PMS_CURRENCY_META?.[code] || EXPENSE_CURRENCIES.includes(code)) ? code : DEFAULT_EXPENSE_CURRENCY;
+}
+function money(value, currency = DEFAULT_EXPENSE_CURRENCY) {
+    const code = normalizeExpenseCurrency(currency);
+    if (typeof window.pmsFormatCurrency === 'function') return window.pmsFormatCurrency(value, { currency: code });
+    const meta = window.PMS_CURRENCY_META?.[code] || window.PMS_CURRENCY_META?.PHP || { locale:'en-PH' };
+    const amount = Number(value || 0);
+    return new Intl.NumberFormat(meta.locale, {
+        style:'currency',
+        currency: code,
+        minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+        maximumFractionDigits: 2
+    }).format(amount);
+}
+function currencySymbol(currency) {
+    const code = normalizeExpenseCurrency(currency);
+    return window.PMS_CURRENCY_META?.[code]?.symbol || code;
+}
+function moneySummary(rows) {
+    const totals = rows.reduce((map, row) => {
+        const currency = normalizeExpenseCurrency(row.currency);
+        map[currency] = (map[currency] || 0) + Number(row.amount || 0);
+        return map;
+    }, {});
+    const parts = EXPENSE_CURRENCIES
+        .filter(currency => Number(totals[currency] || 0) !== 0)
+        .map(currency => money(totals[currency], currency));
+    return parts.length ? parts.join(' / ') : money(0, DEFAULT_EXPENSE_CURRENCY);
 }
 function todayIso() {
     if (window.PmsDate?.todayIso) return window.PmsDate.todayIso();
@@ -146,13 +193,19 @@ function writeJson(key, value) {
 }
 function expenses() {
     const rows = readJson(EXPENSE_KEY, []);
-    return Array.isArray(rows) ? rows : [];
+    return Array.isArray(rows) ? rows.map(row => ({
+        ...row,
+        currency: normalizeExpenseCurrency(row.currency)
+    })) : [];
 }
 function sortedExpenses() {
     return expenses().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 }
 function syncCashWithdrawal(expense) {
     if (expense.method !== 'cash') return;
+    const currency = normalizeExpenseCurrency(expense.currency);
+    const breakdown = EXPENSE_CURRENCIES.reduce((map, code) => ({ ...map, [code]: 0 }), {});
+    breakdown[currency] = Number(expense.amount || 0);
     const sessions = readJson(CASH_SESSION_KEY, []);
     const list = Array.isArray(sessions) ? sessions : [];
     let session = list.find(item => item.businessDate === expense.date);
@@ -173,8 +226,8 @@ function syncCashWithdrawal(expense) {
             id: `WD-${expense.id}`,
             expenseId: expense.id,
             amount: Number(expense.amount || 0),
-            currency: 'PHP',
-            breakdown: { PHP: Number(expense.amount || 0), USD: 0, KRW: 0 },
+            currency,
+            breakdown,
             receiver: expense.buyer || operatorName(),
             note: `[비품구매] ${expense.category} · ${expense.item}${expense.vendor ? ` · ${expense.vendor}` : ''}`,
             createdAt: expense.createdAt,
@@ -189,15 +242,18 @@ function resetExpenseForm() {
     document.getElementById('expenseBuyer').value = operatorName();
     document.getElementById('expenseCategory').value = 'supplies';
     document.getElementById('expenseMethod').value = 'cash';
+    document.getElementById('expenseCurrency').value = DEFAULT_EXPENSE_CURRENCY;
     ['expenseItem','expenseVendor','expenseAmount','expenseNote'].forEach(id => document.getElementById(id).value = '');
+    updateExpenseCurrencyLabel();
 }
 function saveExpensePurchase() {
     const date = document.getElementById('expenseDate').value || todayIso();
     const buyer = document.getElementById('expenseBuyer').value.trim() || operatorName();
     const item = document.getElementById('expenseItem').value.trim();
     const amount = Number(document.getElementById('expenseAmount').value || 0);
-    if (!item) return showToast('항목을 입력해 주세요.', 'error');
-    if (!amount || amount <= 0) return showToast('금액을 입력해 주세요.', 'error');
+    const currency = normalizeExpenseCurrency(document.getElementById('expenseCurrency').value);
+    if (!item) return showToast(expenseText('항목을 입력해 주세요.', 'Please enter an item.'), 'error');
+    if (!amount || amount <= 0) return showToast(expenseText('금액을 입력해 주세요.', 'Please enter an amount.'), 'error');
     const row = {
         id: `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         date,
@@ -208,7 +264,8 @@ function saveExpensePurchase() {
         vendor: document.getElementById('expenseVendor').value.trim(),
         amount,
         settlementAmount: -amount,
-        currency: 'PHP',
+        currency,
+        settlementCurrency: currency,
         note: document.getElementById('expenseNote').value.trim(),
         createdAt: nowIso(),
         createdBy: operatorName()
@@ -219,7 +276,7 @@ function saveExpensePurchase() {
     syncCashWithdrawal(row);
     resetExpenseForm();
     renderExpenses();
-    showToast('비품구매 지출이 저장되었습니다.', 'success');
+    showToast(expenseText('비품구매 지출이 저장되었습니다.', 'Expense purchase has been saved.'), 'success');
 }
 function methodLabel(method) {
     const ko = { cash:'현금', card:'카드', bank:'계좌이체', other:'기타' };
@@ -233,13 +290,10 @@ function filteredExpenses() {
 function renderExpenses() {
     const rows = filteredExpenses();
     const totalRows = expenses();
-    const total = totalRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    const cash = totalRows.filter(row => row.method === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0);
     const month = todayIso().slice(0, 7);
-    const monthTotal = totalRows.filter(row => String(row.date || '').startsWith(month)).reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    document.getElementById('expenseTotal').textContent = money(total);
-    document.getElementById('expenseCash').textContent = money(cash);
-    document.getElementById('expenseMonth').textContent = money(monthTotal);
+    document.getElementById('expenseTotal').textContent = moneySummary(totalRows);
+    document.getElementById('expenseCash').textContent = moneySummary(totalRows.filter(row => row.method === 'cash'));
+    document.getElementById('expenseMonth').textContent = moneySummary(totalRows.filter(row => String(row.date || '').startsWith(month)));
     document.getElementById('expenseCount').textContent = totalRows.length;
     const body = document.getElementById('expenseBody');
     body.innerHTML = rows.slice(0, 12).map(row => `
@@ -248,7 +302,7 @@ function renderExpenses() {
             <td><strong>${escapeHtml(row.item)}</strong><br><span style="color:var(--txt3);font-size:.7rem">${escapeHtml(categoryLabel(row.category))}</span></td>
             <td>${escapeHtml(row.buyer || '-')}</td>
             <td>${escapeHtml(methodLabel(row.method))}</td>
-            <td class="amount">-${money(row.amount)}</td>
+            <td class="amount">-${money(row.amount, row.currency)}</td>
         </tr>
     `).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:20px">${expenseText('등록된 지출이 없습니다.', 'No registered expenses.')}</td></tr>`;
     renderExpenseModalRows();
@@ -265,7 +319,7 @@ function renderExpenseModalRows() {
             <td>${escapeHtml(row.vendor || '-')}</td>
             <td>${escapeHtml(row.buyer || '-')}</td>
             <td>${escapeHtml(methodLabel(row.method))}</td>
-            <td class="amount">-${money(row.amount)}</td>
+            <td class="amount">-${money(row.amount, row.currency)}</td>
         </tr>
     `).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:20px">${expenseText('등록된 지출이 없습니다.', 'No registered expenses.')}</td></tr>`;
 }
@@ -285,8 +339,30 @@ function applyExpenseLanguage() {
     ];
     const categorySelect = document.getElementById('expenseCategory');
     const methodSelect = document.getElementById('expenseMethod');
-    if (categorySelect) categorySelect.innerHTML = categories.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
-    if (methodSelect) methodSelect.innerHTML = methods.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+    if (categorySelect) {
+        const current = categorySelect.value || 'supplies';
+        categorySelect.innerHTML = categories.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+        categorySelect.value = current;
+    }
+    if (methodSelect) {
+        const current = methodSelect.value || 'cash';
+        methodSelect.innerHTML = methods.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+        methodSelect.value = current;
+    }
+    renderCurrencyOptions();
+}
+function renderCurrencyOptions() {
+    const select = document.getElementById('expenseCurrency');
+    if (!select) return;
+    const current = normalizeExpenseCurrency(select.value);
+    select.innerHTML = EXPENSE_CURRENCIES.map(currency => `<option value="${currency}">${currency} (${currencySymbol(currency)})</option>`).join('');
+    select.value = current;
+    updateExpenseCurrencyLabel();
+}
+function updateExpenseCurrencyLabel() {
+    const suffix = document.getElementById('expenseCurrencySuffix');
+    const select = document.getElementById('expenseCurrency');
+    if (suffix) suffix.textContent = `(${normalizeExpenseCurrency(select?.value)})`;
 }
 function openExpenseListModal() {
     renderExpenseModalRows();
