@@ -1674,6 +1674,7 @@
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <button id="unifiedBtnCancel" class="btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelUnifiedRes()" data-i18n-key="Cancel Booking"><i class="fa-solid fa-trash"></i> 예약 취소</button>
                     <span id="unifiedFlowActions" style="display:inline-flex;gap:8px;flex-wrap:wrap"></span>
+                    <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none" onclick="printReservationPlacard()"><i class="fa-solid fa-id-card-clip"></i> 플랫카드 인쇄</button>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-outline" onclick="closeUnifiedResModal()" data-i18n-key="Close">닫기</button>
@@ -2513,18 +2514,18 @@
 
     function renderUnifiedFlowActions(res = null) {
         const box = document.getElementById('unifiedFlowActions');
+        const placardBtn = document.getElementById('unifiedBtnPlacard');
         if (!box) return;
         box.innerHTML = '';
+        if (placardBtn) placardBtn.style.display = 'none';
         if (!res || res.isGroupPlaceholder || normalizedReservationStatus(res.status) === 'blocked') return;
         const status = effectiveReservationStatus(res);
         const locked = isReservationReadOnly(res);
-        const placardButton = `<button type="button" class="btn-outline" onclick="printReservationPlacard()"><i class="fa-solid fa-id-card-clip"></i> 플랫카드 인쇄</button>`;
+        if (placardBtn) placardBtn.style.display = 'inline-flex';
         if (status === 'checkedin' || status === 'checkout') {
-            box.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="btn-primary-sm" style="background:#EF4444" onclick="processUnifiedReservationFlow('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 처리</button>${placardButton}</div>`;
+            box.innerHTML = `<button type="button" class="btn-primary-sm" style="background:#EF4444" onclick="processUnifiedReservationFlow('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 처리</button>`;
         } else if (!locked && canProcessReservationCheckin(res)) {
-            box.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="btn-primary-sm" onclick="processUnifiedReservationFlow('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 체크인 처리</button>${placardButton}</div>`;
-        } else {
-            box.innerHTML = placardButton;
+            box.innerHTML = `<button type="button" class="btn-primary-sm" onclick="processUnifiedReservationFlow('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 체크인 처리</button>`;
         }
     }
 
