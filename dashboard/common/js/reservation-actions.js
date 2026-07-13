@@ -1690,7 +1690,7 @@
                 <button class="modal-close" onclick="closeReservationPlacardPreview()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" style="padding:18px;background:#f8fafc;overflow:auto;">
-                <div id="placardPreviewCanvas" style="width:100%;background:#fff;aspect-ratio:1.48;display:flex;"></div>
+                <div id="placardPreviewCanvas" style="width:100%;background:#fff;aspect-ratio:1.4142;display:flex;"></div>
                 <div style="margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;">
                     <label for="placardFlightInput" style="font-size:.82rem;font-weight:900;color:var(--txt2);">항공편</label>
                     <input id="placardFlightInput" class="form-input" type="text" placeholder="예: 대한항공 KE641" oninput="updateReservationPlacardPreview()" style="height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:var(--font);font-weight:800;">
@@ -2598,14 +2598,14 @@
         const hotel = actionEscapeHtml(values.hotel || 'The Grand Saigon');
         const guestLength = String(rawGuest).length;
         const printRoot = mode === 'print'
-            ? "width:148.5mm;height:105mm;padding:0;page-break-inside:avoid;"
+            ? "width:297mm;height:210mm;padding:0;page-break-inside:avoid;"
             : "width:100%;height:100%;padding:0;";
         const guestFont = mode === 'print'
-            ? (guestLength > 24 ? '10mm' : guestLength > 16 ? '13mm' : guestLength > 10 ? '16mm' : '20mm')
+            ? (guestLength > 24 ? '18mm' : guestLength > 16 ? '22mm' : guestLength > 10 ? '26mm' : '34mm')
             : (guestLength > 24 ? '46px' : guestLength > 16 ? '58px' : guestLength > 10 ? '72px' : '88px');
-        const infoFont = mode === 'print' ? '10.5mm' : '38px';
-        const infoGap = mode === 'print' ? '7mm' : '28px';
-        const lowerPadding = mode === 'print' ? '0 7% 10mm' : '0 7% 44px';
+        const infoFont = mode === 'print' ? '15mm' : '38px';
+        const infoGap = mode === 'print' ? '10mm' : '28px';
+        const lowerPadding = mode === 'print' ? '0 7% 22mm' : '0 7% 44px';
         return `
             <section class="placard-sheet" style="${printRoot}background:#fff;color:#0f172a;font-family:'Inter','Noto Sans KR','Malgun Gothic',sans-serif;display:flex;flex-direction:column;justify-content:stretch;overflow:hidden;">
                 <div style="height:50%;display:flex;align-items:center;padding:0 7%;font-weight:950;font-size:${guestFont};line-height:1;letter-spacing:0;word-break:keep-all;white-space:nowrap;">${guest}</div>
@@ -2678,8 +2678,9 @@
                 <style>
                     @page{size:A4 landscape;margin:0}
                     *{box-sizing:border-box}
-                    body{margin:0;font-family:'Inter','Noto Sans KR',sans-serif;color:#0f172a;background:#fff}
-                    @media print{body{padding:0}.placard-sheet{break-inside:avoid}}
+                    html,body{width:297mm;height:210mm}
+                    body{margin:0;font-family:'Inter','Noto Sans KR',sans-serif;color:#0f172a;background:#fff;overflow:hidden}
+                    @media print{html,body{width:297mm;height:210mm}body{padding:0}.placard-sheet{break-inside:avoid}}
                 </style>
             </head>
             <body>
