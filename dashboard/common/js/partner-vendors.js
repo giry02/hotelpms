@@ -1,6 +1,6 @@
 (function(){
   const STORAGE_KEY = 'pms_ancillary_vendors';
-  const SERVICE_TYPES = ['pos', 'restaurant', 'golf', 'rentacar', 'other'];
+  const SERVICE_TYPES = ['pos', 'golf', 'rentacar', 'restaurant', 'other'];
 
   const voucherFieldLabels = {
     guest:'투숙객명', room:'객실번호', date:'이용일시', people:'인원', teeTime:'티오프', course:'골프장/업체명',
@@ -9,10 +9,6 @@
 
   const voucherFieldGroups = {
     pos: [],
-    restaurant: [
-      { title:'쿠폰 기본 정보', icon:'fa-ticket', fields:['guest','room','date','item','amount','partnerContact','address','memo'] }
-    ],
-    other: [],
     golf: [
       { title:'공통 정보', icon:'fa-circle-info', fields:['guest','room','date','item','amount','partnerContact','address','memo'] },
       { title:'골프장 이용권', icon:'fa-golf-ball-tee', fields:['people','teeTime','course'] }
@@ -20,7 +16,11 @@
     rentacar: [
       { title:'공통 정보', icon:'fa-circle-info', fields:['guest','room','date','item','amount','partnerContact','address','memo'] },
       { title:'렌터카 인수 정보', icon:'fa-car', fields:['pickup','vehicle'] }
-    ]
+    ],
+    restaurant: [
+      { title:'쿠폰 기본 정보', icon:'fa-ticket', fields:['guest','room','date','item','amount','partnerContact','address','memo'] }
+    ],
+    other: []
   };
 
   const initialVoucherFieldsByType = {
@@ -48,28 +48,6 @@
         { name:'미니바 추가', price:1200, desc:'객실 미니바' },
         { name:'영상 서비스', price:1800, desc:'영상/스트리밍' },
         { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }
-      ]
-    },
-    {
-      id:'REST-RIVERSIDE', type:'restaurant', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233',
-      contactPerson:'Minh Nguyen', contactPhone:'+84 90 118 2233', contactEmail:'partners@riversidebistro.vn',
-      address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', location:'호텔 도보 6분 / Nguyen Hue St', commission:8,
-      voucherFields:[], logoDataUrl:'',
-      campaignTitle:'투숙객 전용 레스토랑 디너 혜택',
-      benefit:'디너 세트, 웰컴 디저트, 패밀리 메뉴 제휴 할인',
-      operatingHours:'11:30~22:30',
-      usagePeriod:'2026-07-01 ~ 2026-08-31',
-      settlementPolicy:'프런트 예약 확인 후 업체 후불 정산',
-      frontdeskMemo:'방문 시간, 인원, 좌석 가능 여부, 쿠폰 적용 메뉴를 업체 담당자에게 먼저 확인합니다.',
-      bookingGuide:'담당자에게 연락해 메뉴와 좌석 가능 여부를 확인한 뒤 음식점 업체/항목으로 등록합니다.',
-      detailContentHtml:{
-        ko:'<div class="partner-promo-visual partner-promo-visual--restaurant"><div class="partner-promo-visual__media"><span>Riverside Bistro</span><strong>호텔 투숙객 디너 혜택</strong><p>도심 야경과 함께하는 제휴 메뉴</p></div><div class="partner-promo-visual__copy"><small>호텔 제휴 검토용 안내</small><h3>프런트에서 바로 안내 가능한 주변 음식점 혜택</h3><p>투숙객에게 위치, 운영 시간, 메뉴별 가격을 한 번에 안내하고 예약 또는 쿠폰 적용 여부를 확인할 수 있습니다.</p><div class="partner-promo-visual__chips"><span>위치 안내</span><span>메뉴 금액 표시</span><span>제휴 할인</span></div><ul><li>대표 메뉴와 금액을 항목별로 관리합니다.</li><li>방문 전 좌석 가능 여부와 적용 조건을 확인합니다.</li><li>단체 식사 요청은 담당자 연락처와 함께 남깁니다.</li></ul></div></div>',
-        en:'<h4>Restaurant partner offer</h4><p>Shows guest-facing restaurant location, menu prices, and benefit details for front desk booking support.</p>'
-      },
-      items:[
-        { name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' },
-        { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' },
-        { name:'패밀리 세트', price:420, desc:'4인 기준' }
       ]
     },
     {
@@ -156,6 +134,28 @@
       items:[
         { name:'SUV 기본 대여', price:260, desc:'1시간 기준 단가', vehicleClass:'SUV', pickupBase:'BGC Transport Hub' },
         { name:'기사 포함 밴 기본 대여', price:320, desc:'1시간 기준 단가', vehicleClass:'기사 포함 밴', pickupBase:'호텔 로비' }
+      ]
+    },
+    {
+      id:'REST-RIVERSIDE', type:'restaurant', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233',
+      contactPerson:'Minh Nguyen', contactPhone:'+84 90 118 2233', contactEmail:'partners@riversidebistro.vn',
+      address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', location:'호텔 도보 6분 / Nguyen Hue St', commission:8,
+      voucherFields:[], logoDataUrl:'',
+      campaignTitle:'투숙객 전용 레스토랑 디너 혜택',
+      benefit:'디너 세트, 웰컴 디저트, 패밀리 메뉴 제휴 할인',
+      operatingHours:'11:30~22:30',
+      usagePeriod:'2026-07-01 ~ 2026-08-31',
+      settlementPolicy:'프런트 예약 확인 후 업체 후불 정산',
+      frontdeskMemo:'방문 시간, 인원, 좌석 가능 여부, 쿠폰 적용 메뉴를 업체 담당자에게 먼저 확인합니다.',
+      bookingGuide:'담당자에게 연락해 메뉴와 좌석 가능 여부를 확인한 뒤 음식점 업체/항목으로 등록합니다.',
+      detailContentHtml:{
+        ko:'<div class="partner-promo-visual partner-promo-visual--restaurant"><div class="partner-promo-visual__media"><span>Riverside Bistro</span><strong>호텔 투숙객 디너 혜택</strong><p>도심 야경과 함께하는 제휴 메뉴</p></div><div class="partner-promo-visual__copy"><small>호텔 제휴 검토용 안내</small><h3>프런트에서 바로 안내 가능한 주변 음식점 혜택</h3><p>투숙객에게 위치, 운영 시간, 메뉴별 가격을 한 번에 안내하고 예약 또는 쿠폰 적용 여부를 확인할 수 있습니다.</p><div class="partner-promo-visual__chips"><span>위치 안내</span><span>메뉴 금액 표시</span><span>제휴 할인</span></div><ul><li>대표 메뉴와 금액을 항목별로 관리합니다.</li><li>방문 전 좌석 가능 여부와 적용 조건을 확인합니다.</li><li>단체 식사 요청은 담당자 연락처와 함께 남깁니다.</li></ul></div></div>',
+        en:'<h4>Restaurant partner offer</h4><p>Shows guest-facing restaurant location, menu prices, and benefit details for front desk booking support.</p>'
+      },
+      items:[
+        { name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' },
+        { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' },
+        { name:'패밀리 세트', price:420, desc:'4인 기준' }
       ]
     },
     {

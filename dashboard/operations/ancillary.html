@@ -395,9 +395,9 @@
         <div class="kpi-grid ancillary-kpis" data-no-auto-i18n>
             <div class="kpi-card blue"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiInhouse">0</div><div class="kpi-label" data-ancillary-label="inhouse">투숙 객실</div></div></div>
             <div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-cash-register"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiPos">0</div><div class="kpi-label" data-ancillary-label="pos">통합 POS</div></div></div>
-            <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRestaurant">0</div><div class="kpi-label" data-ancillary-label="restaurant">음식점</div></div></div>
             <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-golf-ball-tee"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiGolf">0</div><div class="kpi-label" data-ancillary-label="golf">골프장</div></div></div>
             <div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-car"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRent">0</div><div class="kpi-label" data-ancillary-label="rentacar">렌터카</div></div></div>
+            <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-utensils"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRestaurant">0</div><div class="kpi-label" data-ancillary-label="restaurant">음식점</div></div></div>
             <div class="kpi-card blue"><div class="kpi-icon"><i class="fa-solid fa-box-open"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiOther">0</div><div class="kpi-label" data-ancillary-label="other">기타</div></div></div>
             <div class="kpi-card teal"><div class="kpi-icon"><i class="fa-solid fa-coins"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiRevenue">₱0</div><div class="kpi-label" data-ancillary-label="revenue">누적 이용금액</div></div></div>
         </div>
@@ -413,9 +413,9 @@
             <div class="ancillary-toolbar-actions">
                 <button class="service-filter-chip active" data-service="all" onclick="setServiceFilter('all')">전체</button>
                 <button class="service-filter-chip" data-service="pos" onclick="setServiceFilter('pos')"><i class="fa-solid fa-cash-register"></i> 통합 POS</button>
-                <button class="service-filter-chip" data-service="restaurant" onclick="setServiceFilter('restaurant')"><i class="fa-solid fa-utensils"></i> 음식점</button>
                 <button class="service-filter-chip" data-service="golf" onclick="setServiceFilter('golf')"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</button>
                 <button class="service-filter-chip" data-service="rentacar" onclick="setServiceFilter('rentacar')"><i class="fa-solid fa-car"></i> 렌터카</button>
+                <button class="service-filter-chip" data-service="restaurant" onclick="setServiceFilter('restaurant')"><i class="fa-solid fa-utensils"></i> 음식점</button>
                 <button class="service-filter-chip" data-service="other" onclick="setServiceFilter('other')"><i class="fa-solid fa-box-open"></i> 기타</button>
             </div>
         </div>
@@ -451,9 +451,9 @@
                         <section>
                             <div class="service-tabs">
                                 <button class="service-tab active" data-service="pos" onclick="selectServiceType('pos')"><i class="fa-solid fa-cash-register"></i> 통합 POS</button>
-                                <button class="service-tab" data-service="restaurant" onclick="selectServiceType('restaurant')"><i class="fa-solid fa-utensils"></i> <span data-i18n-key="service.restaurant">음식점</span></button>
                                 <button class="service-tab" data-service="golf" onclick="selectServiceType('golf')"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</button>
                                 <button class="service-tab" data-service="rentacar" onclick="selectServiceType('rentacar')"><i class="fa-solid fa-car"></i> 렌터카</button>
+                                <button class="service-tab" data-service="restaurant" onclick="selectServiceType('restaurant')"><i class="fa-solid fa-utensils"></i> <span data-i18n-key="service.restaurant">음식점</span></button>
                                 <button class="service-tab" data-service="other" onclick="selectServiceType('other')"><i class="fa-solid fa-box-open"></i> 기타</button>
                             </div>
                             <div class="modal-field-grid">
@@ -538,7 +538,7 @@ let reservationRoomCache = new WeakMap();
 let effectiveStatusCache = new WeakMap();
 const activeRoomCache = new Map();
 const nextRoomCache = new Map();
-const ANCILLARY_SERVICE_TYPES = ['pos', 'restaurant', 'golf', 'rentacar', 'other'];
+const ANCILLARY_SERVICE_TYPES = ['pos', 'golf', 'rentacar', 'restaurant', 'other'];
 
 const VENDOR_STORAGE = 'pms_ancillary_vendors';
 const ORDER_STORAGE = 'pms_ancillary_room_orders';
@@ -546,11 +546,11 @@ const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
 const ORDER_DATA_VERSION = '2026-07-10-demo-showcase-v3';
 const seedVendors = [
     { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
-    { id:'REST-RIVERSIDE', type:'restaurant', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', location:'호텔에서 차량 8분', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
     { id:'GOLF-SUNVALLEY', type:'golf', name:'썬밸리 CC', contact:'Kim Manager', address:'Clark Freeport Zone, Pampanga', commission:15, voucherFields:['guest','room','date','item','people','teeTime','course'], items:[{ name:'18홀 그린피', price:450, desc:'주중 18홀 기준 단가', holes:'18홀', basePeople:4 }, { name:'카트 이용권', price:70, desc:'팀 단위 카트 기준 단가', holes:'18홀', basePeople:4 }, { name:'클럽 대여', price:60, desc:'1인 기준 단가', holes:'18홀', basePeople:1 }] },
     { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','item','people','teeTime','course'], items:[{ name:'9홀 라운딩', price:180, desc:'9홀 기준 단가', holes:'9홀', basePeople:2 }, { name:'18홀 패키지', price:520, desc:'그린피+카트 기준 단가', holes:'18홀', basePeople:4 }] },
     { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 기본 대여', price:160, desc:'1시간 기준 단가', vehicleClass:'세단', pickupBase:'호텔 로비' }, { name:'공항 픽업 기본료', price:90, desc:'편도 기본료', vehicleClass:'세단', pickupBase:'NAIA Terminal 3' }, { name:'전기차 기본 대여', price:230, desc:'1시간 기준 단가', vehicleClass:'전기차', pickupBase:'호텔 로비' }] },
     { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', address:'BGC Transport Hub, Taguig', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'SUV 기본 대여', price:260, desc:'1시간 기준 단가', vehicleClass:'SUV', pickupBase:'BGC Transport Hub' }, { name:'기사 포함 밴 기본 대여', price:320, desc:'1시간 기준 단가', vehicleClass:'기사 포함 밴', pickupBase:'호텔 로비' }] },
+    { id:'REST-RIVERSIDE', type:'restaurant', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', location:'호텔에서 차량 8분', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
     { id:'OTHER-CONCIERGE', type:'other', name:'컨시어지 기타 서비스', contact:'Front Desk / 내선 0', location:'프런트 데스크', address:'The Grand Saigon Lobby', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'현장 지원 요청', price:120, desc:'특별 요청 처리 기본료' }, { name:'티켓 대행', price:180, desc:'공연/전시 티켓 대행' }] }
 ];
 const voucherFieldLabels = {
