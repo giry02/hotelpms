@@ -2592,17 +2592,27 @@
     }
 
     function buildReservationPlacardHtml(values, mode = 'preview') {
-        const guest = actionEscapeHtml(values.guest || '-');
+        const rawGuest = values.guest || '-';
+        const guest = actionEscapeHtml(rawGuest);
         const flight = actionEscapeHtml(values.flight || '항공편 미입력');
         const hotel = actionEscapeHtml(values.hotel || 'The Grand Saigon');
+        const guestLength = String(rawGuest).length;
         const printRoot = mode === 'print'
             ? "width:148.5mm;height:105mm;padding:0;page-break-inside:avoid;"
             : "width:100%;height:100%;padding:0;";
+        const guestFont = mode === 'print'
+            ? (guestLength > 24 ? '10mm' : guestLength > 16 ? '13mm' : guestLength > 10 ? '16mm' : '20mm')
+            : (guestLength > 24 ? '46px' : guestLength > 16 ? '58px' : guestLength > 10 ? '72px' : '88px');
+        const infoFont = mode === 'print' ? '10.5mm' : '38px';
+        const infoGap = mode === 'print' ? '7mm' : '28px';
+        const lowerPadding = mode === 'print' ? '0 7% 10mm' : '0 7% 44px';
         return `
             <section class="placard-sheet" style="${printRoot}background:#fff;color:#0f172a;font-family:'Inter','Noto Sans KR','Malgun Gothic',sans-serif;display:flex;flex-direction:column;justify-content:stretch;overflow:hidden;">
-                <div style="height:50%;display:flex;align-items:center;padding:0 7%;font-weight:950;font-size:clamp(54px,9vw,122px);line-height:1.02;letter-spacing:0;word-break:keep-all;">${guest}</div>
-                <div style="height:25%;display:flex;align-items:center;padding:0 7%;font-weight:900;font-size:clamp(28px,4.5vw,58px);line-height:1.08;word-break:keep-all;">${flight}</div>
-                <div style="height:25%;display:flex;align-items:center;padding:0 7%;font-weight:950;font-size:clamp(28px,4.5vw,58px);line-height:1.08;word-break:keep-all;">${hotel}</div>
+                <div style="height:50%;display:flex;align-items:center;padding:0 7%;font-weight:950;font-size:${guestFont};line-height:1;letter-spacing:0;word-break:keep-all;white-space:nowrap;">${guest}</div>
+                <div style="height:50%;display:flex;flex-direction:column;justify-content:flex-end;gap:${infoGap};padding:${lowerPadding};">
+                    <div style="font-weight:900;font-size:${infoFont};line-height:1.08;word-break:keep-all;">${flight}</div>
+                    <div style="font-weight:950;font-size:${infoFont};line-height:1.08;word-break:keep-all;">${hotel}</div>
+                </div>
             </section>
         `;
     }
