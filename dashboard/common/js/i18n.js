@@ -627,6 +627,7 @@ function changeLang(l) {
     document.querySelectorAll('[data-i18n-placeholder]').forEach(e => {
         const k = e.getAttribute('data-i18n-placeholder');
         if(catalogDict[k]) e.setAttribute('placeholder', catalogDict[k]);
+        else if(d[k]) e.setAttribute('placeholder', d[k]);
     });
 
     applyKoEnDatasetI18n(l);
@@ -3144,4 +3145,34 @@ Object.assign(window.translations.en, {
     "투숙객 정보가 수정되었습니다.": "Guest information was updated.",
     "투숙객이 등록되었습니다.": "Guest was registered.",
     "객실 배정 수정은 변경 이력에 남습니다.": "Room assignment changes are recorded in change history."
+});
+
+Object.assign(window.translations.ko, {
+    "Placard": "플랫카드",
+    "Placard Print": "플랫카드 인쇄",
+    "Placard Preview": "플랫카드 미리보기",
+    "Flight": "항공편",
+    "Print": "인쇄",
+    "placard.flight.placeholder": "예: 대한항공 KE641",
+    "placard.flight.help": "입력하는 즉시 위 미리보기에 반영됩니다. 저장을 누르면 예약 데이터에 저장됩니다.",
+    "placard.preview.unsaved": "미리보기 반영됨 · 저장 전",
+    "placard.saved.state": "저장 완료 · 예약 데이터 저장됨",
+    "placard.flight.saved.toast": "플랫카드 항공편이 저장되었습니다.",
+    "placard.flight.empty": "항공편 미입력",
+    "placard.guest.extra": "{name} 외 {count}명"
+});
+
+Object.assign(window.translations.en, {
+    "Placard": "Placard",
+    "Placard Print": "Print Placard",
+    "Placard Preview": "Placard Preview",
+    "Flight": "Flight",
+    "Print": "Print",
+    "placard.flight.placeholder": "e.g. Korean Air KE641",
+    "placard.flight.help": "Typing updates the preview immediately. Click Save to store it in the booking data.",
+    "placard.preview.unsaved": "Preview updated · not saved",
+    "placard.saved.state": "Saved · booking data updated",
+    "placard.flight.saved.toast": "Placard flight information has been saved.",
+    "placard.flight.empty": "Flight not entered",
+    "placard.guest.extra": "{name} + {count} guest(s)"
 });

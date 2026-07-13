@@ -1674,7 +1674,7 @@
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <button id="unifiedBtnCancel" class="btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelUnifiedRes()" data-i18n-key="Cancel Booking"><i class="fa-solid fa-trash"></i> 예약 취소</button>
                     <span id="unifiedFlowActions" style="display:inline-flex;gap:8px;flex-wrap:wrap"></span>
-                    <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none" onclick="openReservationPlacardPreview()"><i class="fa-solid fa-id-card-clip"></i> 플랫카드 인쇄</button>
+                    <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none" onclick="openReservationPlacardPreview()"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n-key="Placard Print">플랫카드 인쇄</span></button>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-outline" onclick="closeUnifiedResModal()" data-i18n-key="Close">닫기</button>
@@ -1686,23 +1686,23 @@
     <div class="modal-overlay" id="reservationPlacardModal" style="z-index:10010;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.48);">
         <div class="modal-card" style="width:min(920px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
             <div class="modal-header">
-                <div class="modal-title"><i class="fa-solid fa-id-card-clip" style="color:var(--primary);margin-right:8px"></i>플랫카드 미리보기</div>
+                <div class="modal-title"><i class="fa-solid fa-id-card-clip" style="color:var(--primary);margin-right:8px"></i><span data-i18n-key="Placard Preview">플랫카드 미리보기</span></div>
                 <button class="modal-close" onclick="closeReservationPlacardPreview()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" style="padding:18px;background:#f8fafc;overflow:auto;">
                 <div id="placardPreviewCanvas" style="width:100%;background:#fff;aspect-ratio:1.4142;display:flex;"></div>
                 <div style="margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;">
-                    <label for="placardFlightInput" style="font-size:.82rem;font-weight:900;color:var(--txt2);">항공편</label>
-                    <input id="placardFlightInput" class="form-input" type="text" placeholder="예: 대한항공 KE641" oninput="updateReservationPlacardPreview()" style="height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:var(--font);font-weight:800;">
-                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;">입력하는 즉시 위 미리보기에 반영됩니다. 적용을 누르면 예약 데이터에 저장됩니다.</div>
+                    <label for="placardFlightInput" style="font-size:.82rem;font-weight:900;color:var(--txt2);" data-i18n-key="Flight">항공편</label>
+                    <input id="placardFlightInput" class="form-input" type="text" placeholder="예: 대한항공 KE641" data-i18n-placeholder="placard.flight.placeholder" oninput="updateReservationPlacardPreview()" style="height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:var(--font);font-weight:800;">
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;" data-i18n-key="placard.flight.help">입력하는 즉시 위 미리보기에 반영됩니다. 저장을 누르면 예약 데이터에 저장됩니다.</div>
                 </div>
             </div>
             <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;background:#fff;border-top:1px solid var(--border2);">
                 <div id="placardSaveState" style="font-size:.76rem;color:var(--txt3);font-weight:800;"></div>
                 <div style="display:flex;gap:8px;align-items:center;">
-                    <button class="btn-outline" onclick="closeReservationPlacardPreview()">닫기</button>
-                    <button class="btn-outline" onclick="applyReservationPlacardFlight()"><i class="fa-solid fa-check"></i> 적용</button>
-                    <button class="btn-primary-sm" onclick="printReservationPlacardFromPreview()"><i class="fa-solid fa-print"></i> 인쇄</button>
+                    <button class="btn-outline" onclick="closeReservationPlacardPreview()" data-i18n-key="Close">닫기</button>
+                    <button class="btn-outline" onclick="applyReservationPlacardFlight()"><i class="fa-solid fa-check"></i> <span data-i18n-key="Save">저장</span></button>
+                    <button class="btn-primary-sm" onclick="printReservationPlacardFromPreview()"><i class="fa-solid fa-print"></i> <span data-i18n-key="Print">인쇄</span></button>
                 </div>
             </div>
         </div>
@@ -1728,6 +1728,7 @@
             });
             const lateToggle = document.getElementById('unifiedLateCheckout');
             if (lateToggle) lateToggle.addEventListener('change', syncUnifiedLateCheckoutControls);
+            applyReservationPlacardI18n();
             ['unifiedNightlyRate', 'unifiedPrepaid'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) {
@@ -2558,7 +2559,7 @@
         const companions = Array.isArray(res.roomingGuests) ? res.roomingGuests : (Array.isArray(res.companions) ? res.companions : []);
         const rawPax = Number(res.pax || res.guests || res.guestCount || res.people || 0);
         const total = Math.max(rawPax || 0, companions.length || 0, 1);
-        return total > 1 ? `${primary} 외 ${total - 1}명` : primary;
+        return total > 1 ? reservationPlacardText('placard.guest.extra', `${primary} 외 ${total - 1}명`, { name: primary, count: total - 1 }) : primary;
     }
 
     function reservationPlacardFlightLine(res = {}) {
@@ -2567,7 +2568,7 @@
         const airline = res.airline || res.flightAirline || res.arrivalAirline || res.departureAirline || '';
         const flight = res.flightNo || res.flightNumber || res.arrivalFlight || res.departureFlight || res.pickupFlight || '';
         const combined = [airline, flight].filter(Boolean).join(' ');
-        return combined || res.flight || res.transport || '항공편 미입력';
+        return combined || res.flight || res.transport || reservationPlacardText('placard.flight.empty', '항공편 미입력');
     }
 
     function reservationPlacardHotelName() {
@@ -2594,7 +2595,7 @@
     function buildReservationPlacardHtml(values, mode = 'preview') {
         const rawGuest = values.guest || '-';
         const guest = actionEscapeHtml(rawGuest);
-        const flight = actionEscapeHtml(values.flight || '항공편 미입력');
+        const flight = actionEscapeHtml(values.flight || reservationPlacardText('placard.flight.empty', '항공편 미입력'));
         const hotel = actionEscapeHtml(values.hotel || 'The Grand Saigon');
         const guestLength = String(rawGuest).length;
         const printRoot = mode === 'print'
@@ -2617,13 +2618,34 @@
         `;
     }
 
+    function reservationPlacardText(key, fallback, params) {
+        if (typeof window.t === 'function') {
+            const translated = window.t(key, params);
+            if (translated && translated !== key) return translated;
+        }
+        return fallback;
+    }
+
+    function applyReservationPlacardI18n() {
+        const root = document.getElementById('reservationPlacardModal');
+        if (!root) return;
+        root.querySelectorAll('[data-i18n-key]').forEach(element => {
+            const key = element.getAttribute('data-i18n-key');
+            element.textContent = reservationPlacardText(key, element.textContent || key);
+        });
+        root.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+            const key = element.getAttribute('data-i18n-placeholder');
+            element.setAttribute('placeholder', reservationPlacardText(key, element.getAttribute('placeholder') || key));
+        });
+    }
+
     window.updateReservationPlacardPreview = function() {
         const res = currentReservationForPlacard();
         const canvas = document.getElementById('placardPreviewCanvas');
         if (!res || !canvas) return;
         canvas.innerHTML = buildReservationPlacardHtml(placardValuesFromInputs(res), 'preview');
         const state = document.getElementById('placardSaveState');
-        if (state) state.textContent = '미리보기 반영됨 · 적용 전';
+        if (state) state.textContent = reservationPlacardText('placard.preview.unsaved', '미리보기 반영됨 · 저장 전');
     };
 
     window.openReservationPlacardPreview = function(resId = '') {
@@ -2631,7 +2653,9 @@
         if (!res) return;
         const modal = document.getElementById('reservationPlacardModal');
         const input = document.getElementById('placardFlightInput');
-        if (input) input.value = reservationPlacardFlightLine(res) === '항공편 미입력' ? '' : reservationPlacardFlightLine(res);
+        const currentFlight = reservationPlacardFlightLine(res);
+        if (input) input.value = currentFlight === reservationPlacardText('placard.flight.empty', '항공편 미입력') ? '' : currentFlight;
+        applyReservationPlacardI18n();
         if (modal) {
             modal.style.display = 'flex';
             modal.classList.add('active');
@@ -2656,8 +2680,8 @@
         res.flightLabel = flight;
         await persistUnifiedReservation(res);
         const state = document.getElementById('placardSaveState');
-        if (state) state.textContent = '적용 완료 · 예약 데이터 저장됨';
-        if (!options.silent && window.showToast) window.showToast('플랫카드 항공편이 저장되었습니다.', 'success');
+        if (state) state.textContent = reservationPlacardText('placard.saved.state', '저장 완료 · 예약 데이터 저장됨');
+        if (!options.silent && window.showToast) window.showToast(reservationPlacardText('placard.flight.saved.toast', '플랫카드 항공편이 저장되었습니다.'), 'success');
         return true;
     };
 
@@ -2673,7 +2697,7 @@
             <html lang="ko">
             <head>
                 <meta charset="UTF-8">
-                <title>플랫카드 - ${actionEscapeHtml(values.guest)}</title>
+                <title>${actionEscapeHtml(reservationPlacardText('Placard', '플랫카드'))} - ${actionEscapeHtml(values.guest)}</title>
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&family=Noto+Sans+KR:wght@500;700;800;900&display=swap" rel="stylesheet">
                 <style>
                     @page{size:A4 landscape;margin:0}
