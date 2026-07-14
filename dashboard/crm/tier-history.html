@@ -141,7 +141,8 @@
             <div class="filter-right">
                 <select class="hotel-select" id="monthFilter" onchange="currentPage=1;renderHistory()" style="width:140px">
                     <option value="all">전체 기간</option>
-                    <option value="2026-06" selected>2026년 6월</option>
+                    <option value="2026-07" selected>2026년 7월</option>
+                    <option value="2026-06">2026년 6월</option>
                     <option value="2026-05">2026년 5월</option>
                     <option value="2026-04">2026년 4월</option>
                     <option value="2026-03">2026년 3월</option>
@@ -630,6 +631,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         ]);
         history = tierHistory;
         guests = guestList;
+        const monthFilter = document.getElementById('monthFilter');
+        const currentMonth = (window.PmsDate?.todayIso?.() || new Date().toISOString()).slice(0, 7);
+        if (monthFilter && currentMonth) {
+            if (!monthFilter.querySelector(`option[value="${currentMonth}"]`)) {
+                const option = document.createElement('option');
+                option.value = currentMonth;
+                option.textContent = currentMonth.replace('-', '년 ') + '월';
+                monthFilter.insertBefore(option, monthFilter.firstChild);
+            }
+            monthFilter.value = currentMonth;
+        }
         renderHistory();
     } catch(e) { console.error(e); }
 });
