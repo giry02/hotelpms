@@ -1,6 +1,35 @@
 // i18n.js - Global Translation Dictionary (English Base)
 
 window.currentLang = localStorage.getItem('pms_lang') || 'ko';
+document.documentElement.lang = window.currentLang === 'en' ? 'en' : 'ko';
+
+window.pmsRevealI18nBoot = window.pmsRevealI18nBoot || function pmsRevealI18nBoot() {
+    document.documentElement.classList.remove('pms-i18n-pending');
+    const bootStyle = document.getElementById('pms-i18n-boot-style');
+    if (bootStyle) bootStyle.remove();
+    window.__pmsI18nBootRevealed = true;
+};
+
+(function installI18nBootGuard(){
+    try {
+        const bootLang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+        window.currentLang = bootLang;
+        document.documentElement.lang = bootLang === 'en' ? 'en' : 'ko';
+        if (bootLang !== 'en' || window.__pmsI18nBootGuardInstalled) return;
+        window.__pmsI18nBootGuardInstalled = true;
+        document.documentElement.classList.add('pms-i18n-pending');
+        const style = document.createElement('style');
+        style.id = 'pms-i18n-boot-style';
+        style.textContent = 'html.pms-i18n-pending body{visibility:hidden!important;}';
+        (document.head || document.documentElement).appendChild(style);
+        window.addEventListener('load', () => {
+            if (!window.__pmsI18nBootRevealed) setTimeout(window.pmsRevealI18nBoot, 500);
+        });
+        setTimeout(() => {
+            if (!window.__pmsI18nBootRevealed) window.pmsRevealI18nBoot();
+        }, 2200);
+    } catch(e) {}
+})();
 window.PMS_I18N_NAMESPACE = window.PMS_I18N_NAMESPACE || 'dashboard';
 window.PMS_CURRENCY_META = window.PMS_CURRENCY_META || {
     PHP: { symbol: '₱', locale: 'en-PH' },
@@ -619,6 +648,7 @@ function applyKoEnDatasetI18n(lang) {
 function changeLang(l) {
     window.currentLang = l;
     localStorage.setItem('pms_lang', l);
+    document.documentElement.lang = l === 'en' ? 'en' : 'ko';
     const d = window.translations[l] || window.translations.en;
     const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
     const catalogDict = catalog[l] || catalog.en || {};
@@ -681,6 +711,9 @@ function changeLang(l) {
     if(typeof window.applyLocalI18n === 'function') window.applyLocalI18n(l);
     applyVisibleTextI18nFallback(l, catalog);
     window.dispatchEvent(new Event('languagechange'));
+    if (typeof window.pmsRevealI18nBoot === 'function') {
+        requestAnimationFrame(() => window.pmsRevealI18nBoot());
+    }
 }
 
 function buildReverseI18nMap(catalog) {
