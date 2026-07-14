@@ -30,10 +30,65 @@ const _tierIcons = {
 
 let _guestDbPromise = null;
 
+const _guestSearchTextFallbacks = {
+    ko: {
+        'guest.search.title': '고객 검색',
+        'guest.search.label': '이름 / 연락처 / 이메일',
+        'guest.search.placeholder': '기존 고객 검색...',
+        'Search': '검색',
+        'guest.new': '신규 고객 등록',
+        'guest.new.short': '신규 등록',
+        'guest.new.title': '신규 고객 등록',
+        'guest.firstName': '이름',
+        'guest.firstName.placeholder': '이름 입력',
+        'guest.lastName': '성',
+        'guest.lastName.placeholder': '성 입력',
+        'guest.phone': '연락처',
+        'guest.phone.placeholder': '연락처 입력',
+        'guest.email': '이메일',
+        'guest.email.placeholder': '이메일 입력',
+        'guest.nationality': '국적',
+        'guest.notes': '특이사항 / 선호도',
+        'guest.notes.placeholder': '예: 금연 객실 선호, 고층 선호, 알레르기 주의',
+        'guest.visits': '방문',
+        'guest.noResults': '검색 결과 없음',
+        'guest.noExisting': '일치하는 기존 고객이 없습니다.'
+    },
+    en: {
+        'guest.search.title': 'Guest Search',
+        'guest.search.label': 'Name / Phone / Email',
+        'guest.search.placeholder': 'Search existing guests...',
+        'Search': 'Search',
+        'guest.new': 'Add New Guest',
+        'guest.new.short': 'New Guest',
+        'guest.new.title': 'Add New Guest',
+        'guest.firstName': 'First Name',
+        'guest.firstName.placeholder': 'Enter first name',
+        'guest.lastName': 'Last Name',
+        'guest.lastName.placeholder': 'Enter last name',
+        'guest.phone': 'Phone',
+        'guest.phone.placeholder': 'Enter phone number',
+        'guest.email': 'Email',
+        'guest.email.placeholder': 'Enter email',
+        'guest.nationality': 'Nationality',
+        'guest.notes': 'Notes / Preferences',
+        'guest.notes.placeholder': 'E.g. non-smoking room, high floor, allergy note',
+        'guest.visits': 'visits',
+        'guest.noResults': 'No results',
+        'guest.noExisting': 'No matching existing guest was found.'
+    }
+};
+
 function _guestText(key, fallback) {
-    if (typeof window.t !== 'function') return fallback;
-    const translated = window.t(key);
-    return translated && translated !== key ? translated : fallback;
+    const lang = _guestSearchLang();
+    if (typeof window.t === 'function') {
+        const translated = window.t(key);
+        if (translated && translated !== key) return translated;
+    }
+    return _guestSearchTextFallbacks[lang]?.[key]
+        || _guestSearchTextFallbacks.en[key]
+        || fallback
+        || key;
 }
 
 function _guestSplitName(value) {
@@ -70,7 +125,7 @@ window.refreshGuestSearchI18n = _refreshGuestSearchI18n;
 window.addEventListener('languagechange', () => _refreshGuestSearchI18n());
 
 function _guestSearchLang() {
-    return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+    return (localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || window.currentLang || 'ko') === 'en' ? 'en' : 'ko';
 }
 
 const _guestNationalities = [

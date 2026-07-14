@@ -112,20 +112,200 @@
     };
 
     function actionLang() {
-        return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en'
+        return (localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || window.currentLang || 'ko') === 'en'
             ? 'en'
             : 'ko';
     }
 
     function actionText(key, params = {}) {
+        const lang = actionLang();
+        let text = ACTION_MESSAGES[lang]?.[key] || '';
+        if (text) {
+            Object.keys(params).forEach(name => {
+                text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+            });
+            return text;
+        }
         const catalogKey = `reservation.${key}`;
-        let text = '';
         if (typeof window.t === 'function') {
             text = window.t(catalogKey, params);
             if (text && text !== catalogKey) return text;
         }
-        const lang = actionLang();
         text = ACTION_MESSAGES[lang]?.[key] || ACTION_MESSAGES.ko[key] || key;
+        Object.keys(params).forEach(name => {
+            text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
+        });
+        return text;
+    }
+
+    const UNIFIED_MODAL_TEXT = {
+        ko: {
+            checkInDate: '체크인',
+            checkOutDate: '체크아웃',
+            checkInTime: '체크인 시간',
+            checkOutTime: '체크아웃 시간',
+            lateCheckout: '레이트 체크아웃',
+            lateCheckoutTime: '레이트 체크아웃 시간',
+            stay: '숙박',
+            room: '객실',
+            financeTitle: '객실 요금 / 예치금',
+            nightlyRate: '1박 객실 단가',
+            roomAmount: '총 객실 금액',
+            depositTotal: '예치금 페소 기준 합계',
+            balanceDue: '추후 정산 잔액',
+            depositRows: '예치금 수납 현황',
+            addRow: '행 추가',
+            currency: '통화',
+            receivedAmount: '실제 받은 금액',
+            phpEquivalent: '페소 반영액',
+            noDepositRows: '예치금 통화를 행으로 추가해주세요.',
+            rowHelp: '달러/원화는 실제 받은 금액과 별도로 페소 반영액을 입력합니다. 페소 수납은 받은 금액이 그대로 페소 기준 합계에 반영됩니다.',
+            summary: '총 금액 {total} · 예치금 {deposit} · 추후 정산 {balance} · 예치금 수납 통화 {rows}',
+            noPrepaid: '미입력',
+            phpPrefix: '페소',
+            rateCalendar: '요금 캘린더',
+            rateMixed: '요금 캘린더+기본요금',
+            rateBase: '객실 기본요금',
+            discountApplied: '고객 할인 {percent}% 적용',
+            noDiscount: '고객 할인 없음',
+            rateQuote: '{source} 기준 {base} / {nights}박 · {discount} = {total}',
+            timeSummary: '입실 {checkInTime} / 퇴실 {checkOutTime}',
+            timeSummaryLate: '입실 {checkInTime} / 퇴실 {checkOutTime} / 레이트 {lateCheckoutTime}',
+            roomMoveAllowed: '객실 이동 가능',
+            roomAvailable: '객실 예약 가능',
+            roomBlocked: '단체 블록',
+            roomOccupied: '투숙 중',
+            groupLinked: '단체 연결',
+            vip: '우수 고객',
+            groupNoticeLabel: '단체 연결',
+            groupNoticeText: '단체관리에서 연결된 예약: {group}',
+            roomHistory: '객실 변경 이력',
+            historyCount: '{count}건',
+            historyEmpty: '객실 변경 이력이 없습니다.',
+            settlementApplied: '정산 반영',
+            historyTotal: '총액',
+            historyDeposit: '예치금',
+            historyBalance: '잔액',
+            historySettled: '정산 완료',
+            historyPending: '정산 확인',
+            depositPhpRequired: '달러/원화 예치금 행에는 페소 반영액을 입력해주세요.',
+            depositExceedsTotal: '예치금 페소 반영액이 총 객실 금액을 초과할 수 없습니다.',
+            placardPrint: '플랫카드 인쇄',
+            placardPreview: '플랫카드 미리보기',
+            flight: '항공편',
+            placardPlaceholder: '예: 대한항공 KE641',
+            placardHelp: '입력하는 즉시 위 미리보기에 반영됩니다. 저장을 누르면 예약 데이터에 저장됩니다.',
+            processCheckin: '체크인 처리',
+            processCheckout: '체크아웃 처리',
+            placardGuestExtra: '{name} 외 {count}명',
+            placardFlightEmpty: '항공편 미입력',
+            placardUnsaved: '미리보기 반영됨 · 저장 전',
+            placardSaved: '저장 완료 · 예약 데이터 저장됨',
+            placardToast: '플랫카드 항공편이 저장되었습니다.'
+            ,
+            readonlyTitle: '체크인 이후 예약은 운영 정정만 가능합니다.',
+            readonlyBody: '대표투숙객과 숙박 날짜는 잠기며, 객실 이동·동반 투숙객·요금·예치금 정정은 저장 시 감사 로그에 기록됩니다.',
+            readonlyGuestRoom: '투숙객: {guest} · 객실: {room}',
+            baseTimesLockedTitle: '체크인 이후 입실/기본 퇴실시간은 변경할 수 없습니다.',
+            blockEditableNotice: '단체 연결 객실입니다. 업체 연결은 유지되며, 여기에서 객실 변경과 대표·동반 투숙객 등록을 함께 처리할 수 있습니다.',
+            blockLockedNotice: '단체 블록 상태입니다. 아직 개별 투숙객이 배정되지 않았으며, 투숙객은 단체 상세의 Rooming List에서 등록하거나 상태를 예약 확정으로 전환해야 연결됩니다.',
+            guestRosterTitle: '예약 투숙객 명단',
+            guestPrimary: '대표',
+            guestCompanion: '동반',
+            guestDetails: '고객 상세 정보',
+            guestAccessLog: '열람 로그 기록',
+            guestNameLabel: '고객명',
+            guestPhoneLabel: '휴대폰',
+            guestEmailLabel: '이메일',
+            guestIdCheckLabel: '신분증 확인',
+            guestNotesLabel: '특이사항'
+        },
+        en: {
+            checkInDate: 'Check-in',
+            checkOutDate: 'Check-out',
+            checkInTime: 'Check-in Time',
+            checkOutTime: 'Check-out Time',
+            lateCheckout: 'Late Check-out',
+            lateCheckoutTime: 'Late Check-out Time',
+            stay: 'Stay',
+            room: 'Room',
+            financeTitle: 'Room Rate / Deposit',
+            nightlyRate: 'Room Rate per Night',
+            roomAmount: 'Room Amount',
+            depositTotal: 'Deposit Total in PHP',
+            balanceDue: 'Settlement Balance',
+            depositRows: 'Deposit Payment Status',
+            addRow: 'Add Row',
+            currency: 'Currency',
+            receivedAmount: 'Received Amount',
+            phpEquivalent: 'PHP Equivalent',
+            noDepositRows: 'Add deposit currency rows.',
+            rowHelp: 'For USD/KRW, enter the received amount and the PHP equivalent separately. PHP deposits are reflected directly in the PHP total.',
+            summary: 'Total {total} · Deposit {deposit} · Settlement {balance} · Deposit currencies {rows}',
+            noPrepaid: 'Not entered',
+            phpPrefix: 'PHP',
+            rateCalendar: 'Rate Calendar',
+            rateMixed: 'Rate Calendar + Base Rate',
+            rateBase: 'Room Base Rate',
+            discountApplied: 'Guest discount {percent}% applied',
+            noDiscount: 'No guest discount',
+            rateQuote: '{source} {base} / {nights} nights · {discount} = {total}',
+            timeSummary: 'Check-in {checkInTime} / Check-out {checkOutTime}',
+            timeSummaryLate: 'Check-in {checkInTime} / Check-out {checkOutTime} / Late {lateCheckoutTime}',
+            roomMoveAllowed: 'rooms available for move',
+            roomAvailable: 'available rooms',
+            roomBlocked: 'Group Block',
+            roomOccupied: 'In-house',
+            groupLinked: 'Group linked',
+            vip: 'VIP',
+            groupNoticeLabel: 'Group Link',
+            groupNoticeText: 'Linked from group management: {group}',
+            roomHistory: 'Room Change History',
+            historyCount: '{count} records',
+            historyEmpty: 'No room change history.',
+            settlementApplied: 'Settlement Applied',
+            historyTotal: 'Total',
+            historyDeposit: 'Deposit',
+            historyBalance: 'Balance',
+            historySettled: 'Settled',
+            historyPending: 'Settlement Check',
+            depositPhpRequired: 'Enter the PHP equivalent for USD/KRW deposit rows.',
+            depositExceedsTotal: 'Deposit PHP equivalent cannot exceed the total room amount.',
+            placardPrint: 'Print Placard',
+            placardPreview: 'Placard Preview',
+            flight: 'Flight',
+            placardPlaceholder: 'E.g. Korean Air KE641',
+            placardHelp: 'Typing updates the preview immediately. Save stores it on the reservation.',
+            processCheckin: 'Process Check-in',
+            processCheckout: 'Process Check-out',
+            placardGuestExtra: '{name} + {count}',
+            placardFlightEmpty: 'Flight not entered',
+            placardUnsaved: 'Preview updated · Not saved',
+            placardSaved: 'Saved · Reservation data updated',
+            placardToast: 'Placard flight has been saved.'
+            ,
+            readonlyTitle: 'After check-in, only operational corrections are allowed.',
+            readonlyBody: 'The primary guest and stay dates are locked. Room moves, companion guests, rate, and deposit corrections are recorded in the audit log when saved.',
+            readonlyGuestRoom: 'Guest: {guest} · Room: {room}',
+            baseTimesLockedTitle: 'Check-in/default check-out times cannot be changed after check-in.',
+            blockEditableNotice: 'This is a group-linked room. The company link remains, and room changes plus primary/companion guest assignment can be handled here.',
+            blockLockedNotice: 'This is a group block. No individual guest has been assigned yet. Register guests in the group detail Rooming List or convert the status to confirmed.',
+            guestRosterTitle: 'Reservation Guest List',
+            guestPrimary: 'Primary',
+            guestCompanion: 'Companion',
+            guestDetails: 'Guest Details',
+            guestAccessLog: 'View access log',
+            guestNameLabel: 'Guest Name',
+            guestPhoneLabel: 'Mobile Phone',
+            guestEmailLabel: 'Email',
+            guestIdCheckLabel: 'ID Check',
+            guestNotesLabel: 'Notes'
+        }
+    };
+
+    function unifiedModalText(key, params = {}) {
+        const lang = actionLang();
+        let text = UNIFIED_MODAL_TEXT[lang]?.[key] || UNIFIED_MODAL_TEXT.en[key] || key;
         Object.keys(params).forEach(name => {
             text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
         });
@@ -365,13 +545,13 @@
 
     function prepaidRowsText(rows = []) {
         const normalized = rows.map(normalizePrepaidRow).filter(Boolean);
-        if (!normalized.length) return '미입력';
+        if (!normalized.length) return unifiedModalText('noPrepaid');
         return normalized.map(row => {
             const label = PREPAYMENT_CURRENCY_LABELS[row.currency] || row.currency;
             const amountText = `${label} ${Number(row.amount || 0).toLocaleString()}`;
             return row.currency === 'PHP'
                 ? amountText
-                : `${amountText} → 페소 ${Number(row.phpEquivalent || 0).toLocaleString()}`;
+                : `${amountText} · ${unifiedModalText('phpPrefix')} ${Number(row.phpEquivalent || 0).toLocaleString()}`;
         }).join(' · ');
     }
 
@@ -388,7 +568,7 @@
         const list = document.getElementById('unifiedPrepaidRows');
         if (!list) return;
         if (list.querySelector('.prepaid-row')) return;
-        list.innerHTML = '<div class="prepaid-empty" style="border:1px dashed var(--border);border-radius:8px;padding:10px;color:var(--txt3);font-size:.72rem;font-weight:800;text-align:center">예치금 통화를 행으로 추가해주세요.</div>';
+        list.innerHTML = `<div class="prepaid-empty" style="border:1px dashed var(--border);border-radius:8px;padding:10px;color:var(--txt3);font-size:.72rem;font-weight:800;text-align:center">${actionEscapeHtml(unifiedModalText('noDepositRows'))}</div>`;
     }
 
     function addUnifiedPrepaidRow(row = {}) {
@@ -401,19 +581,19 @@
         div.style.cssText = 'display:grid;grid-template-columns:minmax(100px,.7fr) minmax(130px,1fr) minmax(130px,1fr) auto;gap:8px;align-items:end;margin-top:8px';
         div.innerHTML = `
             <div class="md-item">
-                <div class="md-label" style="color:var(--txt2);font-size:0.72rem;margin-bottom:6px">통화</div>
+                <div class="md-label" data-action-i18n="currency" style="color:var(--txt2);font-size:0.72rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('currency'))}</div>
                 <select class="prepaid-row-currency" onchange="syncUnifiedPrepaidRows()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
-                    <option value="PHP">페소</option>
-                    <option value="USD">달러</option>
-                    <option value="KRW">원화</option>
+                    <option value="PHP">PHP</option>
+                    <option value="USD">USD</option>
+                    <option value="KRW">KRW</option>
                 </select>
             </div>
             <div class="md-item">
-                <div class="md-label" style="color:var(--txt2);font-size:0.72rem;margin-bottom:6px">실제 받은 금액</div>
+                <div class="md-label" data-action-i18n="receivedAmount" style="color:var(--txt2);font-size:0.72rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('receivedAmount'))}</div>
                 <input class="prepaid-row-amount" type="number" min="0" step="0.01" oninput="syncUnifiedPrepaidRows()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
             </div>
             <div class="md-item prepaid-row-php-wrap">
-                <div class="md-label" style="color:var(--txt2);font-size:0.72rem;margin-bottom:6px">페소 반영액</div>
+                <div class="md-label" data-action-i18n="phpEquivalent" style="color:var(--txt2);font-size:0.72rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('phpEquivalent'))}</div>
                 <input class="prepaid-row-php" type="number" min="0" step="1" oninput="syncUnifiedPrepaidRows()" data-no-currency-normalize="true" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;" placeholder="0">
             </div>
             <button type="button" class="btn-outline" onclick="removeUnifiedPrepaidRow(this)" style="height:38px;padding:0 10px;color:var(--danger);border-color:rgba(239,68,68,.45)"><i class="fa-solid fa-trash"></i></button>
@@ -638,12 +818,18 @@
     function unifiedRateQuoteText(quote) {
         if (!quote) return '';
         const sourceText = quote.source === 'calendar'
-            ? '요금 캘린더'
-            : (quote.source === 'mixed' ? '요금 캘린더+기본요금' : '객실 기본요금');
+            ? unifiedModalText('rateCalendar')
+            : (quote.source === 'mixed' ? unifiedModalText('rateMixed') : unifiedModalText('rateBase'));
         const discountText = quote.discountPercent
-            ? ` · 고객 할인 ${quote.discountPercent}% 적용`
-            : ' · 고객 할인 없음';
-        return `${sourceText} 기준 ${formatSettlementMoney(quote.baseTotal, quote.currency)} / ${quote.nights}박${discountText} = ${formatSettlementMoney(quote.total, quote.currency)}`;
+            ? unifiedModalText('discountApplied', { percent: quote.discountPercent })
+            : unifiedModalText('noDiscount');
+        return unifiedModalText('rateQuote', {
+            source: sourceText,
+            base: formatSettlementMoney(quote.baseTotal, quote.currency),
+            nights: quote.nights,
+            discount: discountText,
+            total: formatSettlementMoney(quote.total, quote.currency)
+        });
     }
 
     function shouldApplyUnifiedRateQuote(input, quote, force = false) {
@@ -777,14 +963,14 @@
         if (!res) {
             panel.style.display = 'none';
             body.innerHTML = '';
-            if (count) count.textContent = '0';
+            if (count) count.textContent = unifiedModalText('historyCount', { count: 0 });
             return;
         }
         const history = reservationRoomChangeHistory(res);
         panel.style.display = 'block';
-        if (count) count.textContent = String(history.length);
+        if (count) count.textContent = unifiedModalText('historyCount', { count: history.length });
         if (!history.length) {
-            body.innerHTML = `<div style="font-size:.78rem;color:var(--txt3);font-weight:700;background:#f8fafc;border:1px dashed var(--border);border-radius:8px;padding:12px">객실 변경 이력이 없습니다.</div>`;
+            body.innerHTML = `<div style="font-size:.78rem;color:var(--txt3);font-weight:700;background:#f8fafc;border:1px dashed var(--border);border-radius:8px;padding:12px">${actionEscapeHtml(unifiedModalText('historyEmpty'))}</div>`;
             return;
         }
         body.innerHTML = history.map(item => `
@@ -792,12 +978,12 @@
                 <div style="min-width:0">
                     <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
                         <span style="font-size:.82rem;font-weight:900;color:var(--txt)"><i class="fa-solid fa-right-left" style="color:var(--primary);margin-right:5px"></i>${actionEscapeHtml(roomChangeRouteText(item))}</span>
-                        ${item.affectsSettlement ? '<span style="font-size:.66rem;font-weight:900;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:999px;padding:2px 7px">정산 반영</span>' : ''}
+                        ${item.affectsSettlement ? `<span style="font-size:.66rem;font-weight:900;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:999px;padding:2px 7px">${actionEscapeHtml(unifiedModalText('settlementApplied'))}</span>` : ''}
                     </div>
                     <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-top:4px">${actionEscapeHtml(formatReservationDateTime(item.changedAt))} · ${actionEscapeHtml(item.changedBy.name || '-')}</div>
-                    <div style="font-size:.72rem;color:var(--txt2);font-weight:700;margin-top:4px">총액 ${formatSettlementMoney(item.beforeAmount || reservationAmountValue(res), item.currency)} -> ${formatSettlementMoney(item.afterAmount || reservationAmountValue(res), item.currency)} · 예치금 ${formatSettlementMoney(item.afterDeposit || reservationDepositValue(res), item.currency)} · 잔액 ${formatSettlementMoney(item.balanceDue || 0, item.currency)}</div>
+                    <div style="font-size:.72rem;color:var(--txt2);font-weight:700;margin-top:4px">${actionEscapeHtml(unifiedModalText('historyTotal'))} ${formatSettlementMoney(item.beforeAmount || reservationAmountValue(res), item.currency)} -> ${formatSettlementMoney(item.afterAmount || reservationAmountValue(res), item.currency)} · ${actionEscapeHtml(unifiedModalText('historyDeposit'))} ${formatSettlementMoney(item.afterDeposit || reservationDepositValue(res), item.currency)} · ${actionEscapeHtml(unifiedModalText('historyBalance'))} ${formatSettlementMoney(item.balanceDue || 0, item.currency)}</div>
                 </div>
-                <div style="font-size:.68rem;font-weight:900;color:${item.settlementStatus === 'settled' ? 'var(--success)' : '#b45309'};background:${item.settlementStatus === 'settled' ? 'var(--success-lt)' : '#fff7ed'};border-radius:999px;padding:4px 8px;white-space:nowrap">${item.settlementStatus === 'settled' ? '정산 완료' : '정산 확인'}</div>
+                <div style="font-size:.68rem;font-weight:900;color:${item.settlementStatus === 'settled' ? 'var(--success)' : '#b45309'};background:${item.settlementStatus === 'settled' ? 'var(--success-lt)' : '#fff7ed'};border-radius:999px;padding:4px 8px;white-space:nowrap">${actionEscapeHtml(item.settlementStatus === 'settled' ? unifiedModalText('historySettled') : unifiedModalText('historyPending'))}</div>
             </div>
         `).join('');
     }
@@ -1184,7 +1370,7 @@
                 ? 'background:#111827;color:#fff'
                 : 'background:#EEF2FF;color:#4338CA';
             const icon = isPrimary ? 'fa-user-check' : 'fa-user-group';
-            const roleLabel = isPrimary ? actionText('guest.primary') : actionText('guest.companion');
+            const roleLabel = isPrimary ? unifiedModalText('guestPrimary') : unifiedModalText('guestCompanion');
             return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;background:#fff;border:1px solid var(--border2);border-radius:9px;margin-top:8px">
                 <div style="display:flex;align-items:center;gap:10px;min-width:0">
                     <div style="width:36px;height:36px;border-radius:50%;background:${isPrimary ? '#111827' : '#EEF2FF'};color:${isPrimary ? '#fff' : '#4338CA'};display:flex;align-items:center;justify-content:center;flex:0 0 auto"><i class="fa-solid ${icon}" style="font-size:.8rem"></i></div>
@@ -1438,7 +1624,12 @@
         if (prepaidDisplay) prepaidDisplay.textContent = formatSettlementMoney(prepaid, currency);
         if (balanceDisplay) balanceDisplay.textContent = formatSettlementMoney(balance, currency);
         if (help) {
-            help.textContent = `총 금액 ${formatSettlementMoney(total, currency)} · 예치금 ${formatSettlementMoney(prepaid, currency)} · 추후 정산 ${formatSettlementMoney(balance, currency)} · 예치금 수납 통화 ${prepaidRowsText(prepaidRows)}`;
+            help.textContent = unifiedModalText('summary', {
+                total: formatSettlementMoney(total, currency),
+                deposit: formatSettlementMoney(prepaid, currency),
+                balance: formatSettlementMoney(balance, currency),
+                rows: prepaidRowsText(prepaidRows)
+            });
         }
     }
 
@@ -1490,10 +1681,10 @@
                 const key = unifiedPrivacyGuestKey(entry);
                 const encoded = encodeURIComponent(key).replace(/'/g, '%27');
                 const active = key === selectedKey;
-                const roleLabel = entry.role === 'primary' ? '대표' : '동반';
+                const roleLabel = entry.role === 'primary' ? unifiedModalText('guestPrimary') : unifiedModalText('guestCompanion');
                 return `<button type="button" onclick="selectUnifiedPrivacyGuest('${encoded}')" style="height:30px;border:1px solid ${active ? 'var(--primary)' : 'var(--border)'};background:${active ? 'var(--primary)' : '#fff'};color:${active ? '#fff' : 'var(--txt2)'};border-radius:999px;padding:0 10px;font-family:var(--font);font-size:.7rem;font-weight:900;cursor:pointer;display:inline-flex;align-items:center;gap:5px;max-width:100%">
                     <i class="fa-solid ${entry.role === 'primary' ? 'fa-user-check' : 'fa-user-group'}" style="font-size:.66rem"></i>
-                    <span>${roleLabel}</span>
+                    <span data-action-i18n="${entry.role === 'primary' ? 'guestPrimary' : 'guestCompanion'}">${roleLabel}</span>
                     <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${actionEscapeHtml(entry.name)}</span>
                 </button>`;
             }).join('')}
@@ -1541,23 +1732,23 @@
             ${tabs}
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div style="min-width:0">
-                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">고객명</div>
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px"><span data-action-i18n="guestNameLabel">${actionEscapeHtml(unifiedModalText('guestNameLabel'))}</span></div>
                     <div style="font-size:.88rem;color:var(--txt);font-weight:800;word-break:break-word">${actionEscapeHtml(info.guestName)}</div>
                 </div>
                 <div style="min-width:0">
-                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">휴대폰</div>
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px"><span data-action-i18n="guestPhoneLabel">${actionEscapeHtml(unifiedModalText('guestPhoneLabel'))}</span></div>
                     <div style="font-size:.88rem;color:var(--txt);font-weight:800;word-break:break-word">${actionEscapeHtml(info.phone)}</div>
                 </div>
                 <div style="min-width:0">
-                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">이메일</div>
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px"><span data-action-i18n="guestEmailLabel">${actionEscapeHtml(unifiedModalText('guestEmailLabel'))}</span></div>
                     <div style="font-size:.86rem;color:var(--txt2);font-weight:700;word-break:break-word">${actionEscapeHtml(info.email)}</div>
                 </div>
                 <div style="min-width:0">
-                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">신분증 확인</div>
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px"><span data-action-i18n="guestIdCheckLabel">${actionEscapeHtml(unifiedModalText('guestIdCheckLabel'))}</span></div>
                     <div style="font-size:.86rem;color:var(--txt2);font-weight:700">${actionEscapeHtml(info.documentStatus)}</div>
                 </div>
                 <div style="grid-column:1 / -1;min-width:0">
-                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px">특이사항</div>
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;margin-bottom:4px"><span data-action-i18n="guestNotesLabel">${actionEscapeHtml(unifiedModalText('guestNotesLabel'))}</span></div>
                     <div style="font-size:.86rem;color:var(--txt);font-weight:700;line-height:1.45;word-break:break-word;background:#f8fafc;border:1px solid var(--border2);border-radius:8px;padding:10px">${actionEscapeHtml(info.notes)}</div>
                 </div>
             </div>`;
@@ -1579,12 +1770,12 @@
 
     const modalHtml = `
     <!-- Unified Reservation Modal (View & Edit) -->
-    <div class="modal-overlay" id="unifiedResModal" style="z-index: 9999;">
+    <div class="modal-overlay" id="unifiedResModal" data-no-auto-i18n="true" style="z-index: 9999;">
         <div class="modal-card" style="width: 550px; max-width: 95vw;">
             <div class="modal-header">
                 <div class="modal-title" id="unifiedModalTitle" style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
                     <span id="unifiedModalTitleText" style="min-width:0;">${actionEscapeHtml(actionText('modal.editTitle'))}</span>
-                    <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none;height:32px;min-height:32px;padding:0 10px;font-size:.74rem;border-radius:8px;gap:5px;" onclick="openReservationPlacardPreview()"><i class="fa-solid fa-id-card-clip"></i> <span data-i18n-key="Placard Print">플랫카드 인쇄</span></button>
+                    <button id="unifiedBtnPlacard" type="button" class="btn-outline" style="display:none;height:32px;min-height:32px;padding:0 10px;font-size:.74rem;border-radius:8px;gap:5px;" onclick="openReservationPlacardPreview()"><i class="fa-solid fa-id-card-clip"></i> <span data-action-i18n="placardPrint">${actionEscapeHtml(unifiedModalText('placardPrint'))}</span></button>
                 </div>
                 <button class="modal-close" onclick="closeUnifiedResModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -1602,7 +1793,7 @@
                     </div>
                     <div id="unifiedStayGuestPanel" style="margin-top:14px;background:#fff;border:1px solid var(--border2);border-radius:10px;padding:12px">
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px">
-                            <div style="font-size:.86rem;font-weight:900;color:var(--txt);display:flex;align-items:center;gap:7px"><i class="fa-solid fa-address-book" style="color:var(--primary)"></i> ${actionEscapeHtml(actionText('guest.roster.title'))}</div>
+                            <div style="font-size:.86rem;font-weight:900;color:var(--txt);display:flex;align-items:center;gap:7px"><i class="fa-solid fa-address-book" style="color:var(--primary)"></i> <span data-action-i18n="guestRosterTitle">${actionEscapeHtml(unifiedModalText('guestRosterTitle'))}</span></div>
                             <div id="unifiedStayGuestCount" style="font-size:.68rem;font-weight:900;color:var(--txt3);background:#f1f5f9;border-radius:999px;padding:4px 8px">${actionEscapeHtml(actionText('guest.count', { count: 0 }))}</div>
                         </div>
                         <div id="unifiedStayGuestList"></div>
@@ -1611,51 +1802,51 @@
                 <input type="hidden" id="unifiedCompanions">
                 <div id="unifiedGuestPrivacyPanel" style="display:none;margin-bottom:20px;background:#fff;border:1px solid var(--border2);border-radius:10px;overflow:hidden;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--border2);">
-                        <div style="font-size:.9rem;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:8px"><i class="fa-solid fa-id-card-clip" style="color:var(--primary)"></i> ${actionEscapeHtml(actionText('guest.detailTitle'))}</div>
-                        <div style="font-size:.68rem;color:var(--txt3);font-weight:700"><i class="fa-solid fa-shield-halved"></i> ${actionEscapeHtml(actionText('guest.auditLog'))}</div>
+                        <div style="font-size:.9rem;font-weight:800;color:var(--txt);display:flex;align-items:center;gap:8px"><i class="fa-solid fa-id-card-clip" style="color:var(--primary)"></i> <span data-action-i18n="guestDetails">${actionEscapeHtml(unifiedModalText('guestDetails'))}</span></div>
+                        <div style="font-size:.68rem;color:var(--txt3);font-weight:700"><i class="fa-solid fa-shield-halved"></i> <span data-action-i18n="guestAccessLog">${actionEscapeHtml(unifiedModalText('guestAccessLog'))}</span></div>
                     </div>
                     <div id="unifiedGuestPrivacyBody" style="padding:14px;"></div>
                 </div>
                 
                 <div id="unifiedStayRoomSection" style="display:grid;grid-template-columns:1fr 1fr;gap:18px 20px;margin-bottom:20px;padding:16px;border:1px solid #d5dde8;border-left:4px solid var(--primary);border-radius:12px;background:#fbfdff;box-shadow:0 8px 18px rgba(15,23,42,.04);">
                     <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Check-in">체크인 일자</div>
+                        <div class="md-label" data-action-i18n="checkInDate" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkInDate'))}</div>
                         <input type="date" id="unifiedCin" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
                     </div>
                     <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Check-out">체크아웃 일자</div>
+                        <div class="md-label" data-action-i18n="checkOutDate" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkOutDate'))}</div>
                         <input type="date" id="unifiedCout" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
                     </div>
                     <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">입실시간</div>
+                        <div class="md-label" data-action-i18n="checkInTime" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkInTime'))}</div>
                         <input type="time" id="unifiedCheckInTime" value="14:00" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                     </div>
                     <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">퇴실시간</div>
+                        <div class="md-label" data-action-i18n="checkOutTime" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkOutTime'))}</div>
                         <input type="time" id="unifiedCheckOutTime" value="12:00" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                     </div>
                     <div class="md-item">
                         <label style="display:flex;align-items:center;gap:8px;height:38px;margin-top:20px;border:1px solid var(--border);border-radius:8px;padding:0 10px;background:#fff;font-size:.8rem;font-weight:900;color:var(--txt);cursor:pointer">
                             <input type="checkbox" id="unifiedLateCheckout" style="width:16px;height:16px;accent-color:var(--primary);">
-                            레이트 체크아웃
+                            <span data-action-i18n="lateCheckout">${actionEscapeHtml(unifiedModalText('lateCheckout'))}</span>
                         </label>
                     </div>
                     <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">레이트 퇴실시간</div>
+                        <div class="md-label" data-action-i18n="lateCheckoutTime" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('lateCheckoutTime'))}</div>
                         <input type="time" id="unifiedLateCheckoutTime" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#f8fafc;">
                     </div>
                     <div id="unifiedStayTimeHelp" style="grid-column:1 / -1;margin-top:-10px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
                     <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Stay">숙박 일수</div>
+                        <div class="md-label" data-action-i18n="stay" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('stay'))}</div>
                         <div class="md-value" id="unifiedNights" style="font-size:0.9rem;font-weight:700;"></div>
                     </div>
                     <div class="md-item">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px" data-i18n-key="Room">객실 배정</div>
+                        <div class="md-label" data-action-i18n="room" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('room'))}</div>
                         <select id="unifiedRoom" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;"></select>
                         <div id="unifiedRoomHelp" style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;"></div>
                     </div>
                     <div id="unifiedGroupLinkNotice" style="grid-column:1 / -1;display:none;background:#f8fafc;padding:12px;border:1px solid var(--border2);border-radius:8px;margin:0;">
-                        <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin:0 0 4px 0">단체 연결</div>
+                        <div class="md-label" data-action-i18n="groupNoticeLabel" style="color:var(--txt2);font-size:0.75rem;margin:0 0 4px 0">${actionEscapeHtml(unifiedModalText('groupNoticeLabel'))}</div>
                         <div id="unifiedGroupLinkText" style="font-size:0.82rem;font-weight:700;color:var(--txt)"></div>
                     </div>
                     <div class="md-item" style="grid-column:1 / -1;display:none">
@@ -1664,24 +1855,24 @@
                         <div style="margin-top:6px;font-size:0.72rem;color:var(--txt3);font-weight:600;">대표투숙객은 위 고객 정보, 동반 투숙객은 목록과 타임라인 아래줄에 표시됩니다.</div>
                     </div>
                     <div style="grid-column:1 / -1;background:#fff;border:1px solid var(--border2);border-radius:10px;padding:14px;">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem;font-weight:900;color:var(--txt);"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--primary)"></i> 객실 요금 / 예치금</div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.9rem;font-weight:900;color:var(--txt);"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--primary)"></i> <span data-action-i18n="financeTitle">${actionEscapeHtml(unifiedModalText('financeTitle'))}</span></div>
                         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
                             <div class="md-item">
-                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">1박 객실 단가</div>
+                                <div class="md-label" data-action-i18n="nightlyRate" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('nightlyRate'))}</div>
                                 <input type="number" min="0" step="1" id="unifiedNightlyRate" oninput="syncUnifiedBalance()" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                             </div>
                             <div class="md-item">
-                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">총 객실 금액</div>
+                                <div class="md-label" data-action-i18n="roomAmount" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('roomAmount'))}</div>
                                 <input type="hidden" id="unifiedAmount">
                                 <div id="unifiedAmountDisplay" style="min-height:38px;display:flex;align-items:center;font-size:0.92rem;font-weight:900;color:var(--txt);">₱0</div>
                             </div>
                             <div class="md-item">
-                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">예치금 페소 기준 합계</div>
+                                <div class="md-label" data-action-i18n="depositTotal" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('depositTotal'))}</div>
                                 <input type="hidden" id="unifiedPrepaid">
                                 <div id="unifiedPrepaidDisplay" style="min-height:38px;display:flex;align-items:center;font-size:0.92rem;font-weight:950;color:var(--primary);">₱0</div>
                             </div>
                             <div class="md-item">
-                                <div class="md-label" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">추후 정산 잔액</div>
+                                <div class="md-label" data-action-i18n="balanceDue" style="color:var(--txt2);font-size:0.75rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('balanceDue'))}</div>
                                 <input type="hidden" id="unifiedBalance">
                                 <div id="unifiedBalanceDisplay" style="min-height:38px;display:flex;align-items:center;font-size:0.92rem;font-weight:950;color:var(--primary);">₱0</div>
                             </div>
@@ -1689,12 +1880,12 @@
                         <div style="margin-top:12px;">
                             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
                                 <div style="display:flex;align-items:center;gap:7px;font-size:0.78rem;color:var(--txt);font-weight:900;">
-                                    <i class="fa-solid fa-wallet" style="color:var(--primary)"></i> 예치금 수납 행
+                                    <i class="fa-solid fa-wallet" style="color:var(--primary)"></i> <span data-action-i18n="depositRows">${actionEscapeHtml(unifiedModalText('depositRows'))}</span>
                                 </div>
-                                <button type="button" class="btn-outline" onclick="addUnifiedPrepaidRow()" style="height:32px;padding:0 10px;font-size:.72rem"><i class="fa-solid fa-plus"></i> 행 추가</button>
+                                <button type="button" class="btn-outline" onclick="addUnifiedPrepaidRow()" style="height:32px;padding:0 10px;font-size:.72rem"><i class="fa-solid fa-plus"></i> <span data-action-i18n="addRow">${actionEscapeHtml(unifiedModalText('addRow'))}</span></button>
                             </div>
                             <div id="unifiedPrepaidRows"></div>
-                            <div style="margin-top:6px;font-size:0.7rem;color:var(--txt3);font-weight:700;line-height:1.45">달러/원화는 실제 받은 금액과 별도로 페소 반영액을 입력합니다. 페소 수납은 받은 금액이 그대로 페소 기준 합계에 반영됩니다.</div>
+                            <div data-action-i18n="rowHelp" style="margin-top:6px;font-size:0.7rem;color:var(--txt3);font-weight:700;line-height:1.45">${actionEscapeHtml(unifiedModalText('rowHelp'))}</div>
                         </div>
                         <div id="unifiedRateQuoteHint" style="margin-top:8px;font-size:0.72rem;color:var(--primary);font-weight:800;line-height:1.45"></div>
                         <div id="unifiedFinanceHelp" style="margin-top:4px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
@@ -1702,8 +1893,8 @@
                 </div>
                 <div id="unifiedRoomHistoryPanel" style="display:none;margin-bottom:20px;background:#fff;border:1px solid var(--border2);border-radius:10px;overflow:hidden;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--border2);">
-                        <div style="font-size:.9rem;font-weight:900;color:var(--txt);display:flex;align-items:center;gap:8px"><i class="fa-solid fa-right-left" style="color:var(--primary)"></i> 객실 변경 이력</div>
-                        <div style="font-size:.68rem;color:var(--txt3);font-weight:900;background:#fff;border:1px solid var(--border);border-radius:999px;padding:3px 8px"><span id="unifiedRoomHistoryCount">0</span>건</div>
+                        <div style="font-size:.9rem;font-weight:900;color:var(--txt);display:flex;align-items:center;gap:8px"><i class="fa-solid fa-right-left" style="color:var(--primary)"></i> <span data-action-i18n="roomHistory">${actionEscapeHtml(unifiedModalText('roomHistory'))}</span></div>
+                        <div id="unifiedRoomHistoryCount" style="font-size:.68rem;color:var(--txt3);font-weight:900;background:#fff;border:1px solid var(--border);border-radius:999px;padding:3px 8px">${actionEscapeHtml(unifiedModalText('historyCount', { count: 0 }))}</div>
                     </div>
                     <div id="unifiedRoomHistoryBody" style="padding:0 14px 12px;"></div>
                 </div>
@@ -1720,18 +1911,18 @@
             </div>
         </div>
     </div>
-    <div class="modal-overlay" id="reservationPlacardModal" style="z-index:10010;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.48);">
+    <div class="modal-overlay" id="reservationPlacardModal" data-no-auto-i18n="true" style="z-index:10010;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.48);">
         <div class="modal-card" style="width:min(920px,96vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
             <div class="modal-header">
-                <div class="modal-title"><i class="fa-solid fa-id-card-clip" style="color:var(--primary);margin-right:8px"></i><span data-i18n-key="Placard Preview">플랫카드 미리보기</span></div>
+                <div class="modal-title"><i class="fa-solid fa-id-card-clip" style="color:var(--primary);margin-right:8px"></i><span data-action-i18n="placardPreview">${actionEscapeHtml(unifiedModalText('placardPreview'))}</span></div>
                 <button class="modal-close" onclick="closeReservationPlacardPreview()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" style="padding:18px;background:#f8fafc;overflow:auto;">
                 <div id="placardPreviewCanvas" style="width:100%;background:#fff;aspect-ratio:1.4142;display:flex;"></div>
                 <div style="margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;">
-                    <label for="placardFlightInput" style="font-size:.82rem;font-weight:900;color:var(--txt2);" data-i18n-key="Flight">항공편</label>
-                    <input id="placardFlightInput" class="form-input" type="text" placeholder="예: 대한항공 KE641" data-i18n-placeholder="placard.flight.placeholder" oninput="updateReservationPlacardPreview()" style="height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:var(--font);font-weight:800;">
-                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;" data-i18n-key="placard.flight.help">입력하는 즉시 위 미리보기에 반영됩니다. 저장을 누르면 예약 데이터에 저장됩니다.</div>
+                    <label for="placardFlightInput" style="font-size:.82rem;font-weight:900;color:var(--txt2);" data-action-i18n="flight">${actionEscapeHtml(unifiedModalText('flight'))}</label>
+                    <input id="placardFlightInput" class="form-input" type="text" placeholder="${actionEscapeHtml(unifiedModalText('placardPlaceholder'))}" data-action-placeholder="placardPlaceholder" oninput="updateReservationPlacardPreview()" style="height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-family:var(--font);font-weight:800;">
+                    <div style="font-size:.72rem;color:var(--txt3);font-weight:700;" data-action-i18n="placardHelp">${actionEscapeHtml(unifiedModalText('placardHelp'))}</div>
                 </div>
             </div>
             <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;background:#fff;border-top:1px solid var(--border2);">
@@ -1745,6 +1936,51 @@
         </div>
     </div>
     `;
+
+    function refreshUnifiedModalTitleI18n() {
+        const title = document.getElementById('unifiedModalTitleText');
+        if (!title) return;
+        const id = document.getElementById('unifiedResId')?.value || '';
+        if (!id) {
+            title.textContent = actionText('booking.newTitle');
+            return;
+        }
+        const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
+        const res = Array.isArray(allRes) ? allRes.find(item => item.id === id) : null;
+        if (!res) return;
+        const isB2B = !!(res.groupId || '');
+        const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
+        const b2bBadge = isB2B ? `<span style="background:#111827;color:#fff;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:600;vertical-align:middle;letter-spacing:0.5px"><i class="fa-solid fa-building"></i> ${actionEscapeHtml(unifiedModalText('groupLinked'))}</span>` : '';
+        const vipBadge = isVip ? `<span style="background:rgba(245,158,11,.15);color:#D97706;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:700;vertical-align:middle;"><i class="fa-solid fa-crown"></i> ${actionEscapeHtml(unifiedModalText('vip'))}</span>` : '';
+        title.innerHTML = `${reservationModalRoomTitle(res)} ${b2bBadge} ${vipBadge}`;
+    }
+
+    function applyUnifiedReservationI18n() {
+        const roots = [document.getElementById('unifiedResModal'), document.getElementById('reservationPlacardModal')].filter(Boolean);
+        if (!roots.length) return;
+        roots.forEach(root => {
+            root.querySelectorAll('[data-action-i18n]').forEach(el => {
+                const key = el.getAttribute('data-action-i18n');
+                el.textContent = unifiedModalText(key);
+            });
+            root.querySelectorAll('[data-action-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-action-placeholder');
+                el.setAttribute('placeholder', unifiedModalText(key));
+            });
+        });
+        refreshUnifiedModalTitleI18n();
+        if (typeof window.refreshGuestSearchI18n === 'function') window.refreshGuestSearchI18n(document);
+        if (typeof applyReservationPlacardI18n === 'function') applyReservationPlacardI18n();
+        renderUnifiedGuestRoster();
+        renderPrepaidRowsEmpty();
+        syncUnifiedLateCheckoutControls();
+        syncUnifiedBalance();
+        const id = document.getElementById('unifiedResId')?.value || '';
+        const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
+        const res = id && Array.isArray(allRes) ? allRes.find(item => item.id === id) : null;
+        renderUnifiedRoomHistory(res || null);
+        renderUnifiedFlowActions(res || null);
+    }
 
     function ensureModal() {
         if (!document.getElementById('unifiedResModal')) {
@@ -1766,6 +2002,7 @@
             const lateToggle = document.getElementById('unifiedLateCheckout');
             if (lateToggle) lateToggle.addEventListener('change', syncUnifiedLateCheckoutControls);
             applyReservationPlacardI18n();
+            applyUnifiedReservationI18n();
             ['unifiedNightlyRate', 'unifiedPrepaid'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) {
@@ -1790,6 +2027,8 @@
     window.addUnifiedPrepaidRow = addUnifiedPrepaidRow;
     window.removeUnifiedPrepaidRow = removeUnifiedPrepaidRow;
     window.syncUnifiedPrepaidRows = syncUnifiedPrepaidRows;
+    window.applyUnifiedReservationI18n = applyUnifiedReservationI18n;
+    window.addEventListener('languagechange', () => setTimeout(applyUnifiedReservationI18n, 0));
 
     async function unifiedGroups() {
         const merged = new Map();
@@ -1833,9 +2072,7 @@
         }
         const label = await unifiedGroupName(groupId);
         notice.style.display = 'block';
-        text.textContent = actionLang() === 'en'
-            ? `Linked from group management: ${label}`
-            : `단체관리에서 연결된 예약: ${label}`;
+        text.textContent = unifiedModalText('groupNoticeText', { group: label });
     }
 
     function normalizedReservationStatus(value) {
@@ -2267,8 +2504,12 @@
     }
 
     function stayTimeSummaryFromValues(checkInTime, checkOutTime, lateCheckout = false, lateCheckoutTime = '') {
-        const base = `입실 ${checkInTime || '-'} / 퇴실 ${checkOutTime || '-'}`;
-        return lateCheckout ? `${base} / 레이트 ${lateCheckoutTime || checkOutTime || '-'}` : base;
+        const params = {
+            checkInTime: checkInTime || '-',
+            checkOutTime: checkOutTime || '-',
+            lateCheckoutTime: lateCheckoutTime || checkOutTime || '-'
+        };
+        return lateCheckout ? unifiedModalText('timeSummaryLate', params) : unifiedModalText('timeSummary', params);
     }
 
     function setUnifiedStayTimeValues(res = null, prefill = {}) {
@@ -2400,7 +2641,7 @@
             const opt = document.createElement('option');
             opt.value = value;
             opt.disabled = blocked;
-            const moveSuffix = actionLang() === 'en' ? 'move allowed' : '이동 가능';
+            const moveSuffix = unifiedModalText('roomMoveAllowed');
             const suffix = conflict ? ` - ${currentRes ? moveSuffix : actionText('booking.conflictSuffix')}` : '';
             opt.textContent = `${value} (${roomTypeDisplay(room.type)})${suffix}`;
             roomSelect.appendChild(opt);
@@ -2413,9 +2654,7 @@
         roomSelect.value = preferred || enabledValues[0] || '';
         if (!enabledValues.length) roomSelect.disabled = true;
         if (help) {
-            const countText = actionLang() === 'en'
-                ? `${enabledValues.length}${currentRes ? ' rooms available for move' : ' available rooms'}`
-                : `${enabledValues.length}${currentRes ? '개 객실 이동 가능' : '개 객실 예약 가능'}`;
+            const countText = `${enabledValues.length} ${currentRes ? unifiedModalText('roomMoveAllowed') : unifiedModalText('roomAvailable')}`;
             help.textContent = enabledValues.length
                 ? countText
                 : actionText('booking.noRooms');
@@ -2526,9 +2765,9 @@
                             <div style="display:flex;gap:8px;align-items:flex-start">
                         <i class="fa-solid fa-lock" style="color:var(--primary);margin-top:3px"></i>
                         <div>
-                            <div style="color:var(--txt);font-size:.9rem;margin-bottom:4px">체크인 이후 예약은 운영 정정만 가능합니다.</div>
-                            <div>대표투숙객과 투숙 날짜는 잠기며, 객실 이동·동반 투숙객·요금·예치금 정정은 저장 시 감사 로그에 기록됩니다.</div>
-                            <div style="margin-top:8px;color:var(--txt)">투숙객: ${guestNameForReservation(res)} · 객실: ${roomLabel}</div>
+                            <div style="color:var(--txt);font-size:.9rem;margin-bottom:4px">${actionEscapeHtml(unifiedModalText('readonlyTitle'))}</div>
+                            <div>${actionEscapeHtml(unifiedModalText('readonlyBody'))}</div>
+                            <div style="margin-top:8px;color:var(--txt)">${actionEscapeHtml(unifiedModalText('readonlyGuestRoom', { guest: guestNameForReservation(res), room: roomLabel }))}</div>
                         </div>
                     </div>`;
             }
@@ -2549,7 +2788,7 @@
             const el = document.getElementById(id);
             if (!el) return;
             el.disabled = baseStayTimesLocked;
-            el.title = baseStayTimesLocked ? '체크인 이후 입실/기본 퇴실시간은 변경할 수 없습니다.' : '';
+            el.title = baseStayTimesLocked ? unifiedModalText('baseTimesLockedTitle') : '';
             el.style.background = baseStayTimesLocked ? '#f1f5f9' : '#fff';
             el.style.color = baseStayTimesLocked ? 'var(--txt2)' : 'var(--txt)';
         });
@@ -2584,9 +2823,9 @@
         const status = effectiveReservationStatus(res);
         const locked = isReservationReadOnly(res);
         if (status === 'checkedin' || status === 'checkout') {
-            box.innerHTML = `<button type="button" class="btn-primary-sm" style="background:#EF4444" onclick="processUnifiedReservationFlow('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 처리</button>`;
+            box.innerHTML = `<button type="button" class="btn-primary-sm" style="background:#EF4444" onclick="processUnifiedReservationFlow('checkout')"><i class="fa-solid fa-right-from-bracket"></i> ${actionEscapeHtml(unifiedModalText('processCheckout'))}</button>`;
         } else if (!locked && canProcessReservationCheckin(res)) {
-            box.innerHTML = `<button type="button" class="btn-primary-sm" onclick="processUnifiedReservationFlow('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 체크인 처리</button>`;
+            box.innerHTML = `<button type="button" class="btn-primary-sm" onclick="processUnifiedReservationFlow('checkin')"><i class="fa-solid fa-right-to-bracket"></i> ${actionEscapeHtml(unifiedModalText('processCheckin'))}</button>`;
             if (placardBtn) placardBtn.style.display = 'inline-flex';
         }
     }
@@ -2656,6 +2895,14 @@
     }
 
     function reservationPlacardText(key, fallback, params) {
+        const localMap = {
+            'placard.guest.extra': 'placardGuestExtra',
+            'placard.flight.empty': 'placardFlightEmpty',
+            'placard.preview.unsaved': 'placardUnsaved',
+            'placard.saved.state': 'placardSaved',
+            'placard.flight.saved.toast': 'placardToast'
+        };
+        if (localMap[key]) return unifiedModalText(localMap[key], params || {});
         if (typeof window.t === 'function') {
             const translated = window.t(key, params);
             if (translated && translated !== key) return translated;
@@ -2666,6 +2913,14 @@
     function applyReservationPlacardI18n() {
         const root = document.getElementById('reservationPlacardModal');
         if (!root) return;
+        root.querySelectorAll('[data-action-i18n]').forEach(element => {
+            const key = element.getAttribute('data-action-i18n');
+            element.textContent = unifiedModalText(key);
+        });
+        root.querySelectorAll('[data-action-placeholder]').forEach(element => {
+            const key = element.getAttribute('data-action-placeholder');
+            element.setAttribute('placeholder', unifiedModalText(key));
+        });
         root.querySelectorAll('[data-i18n-key]').forEach(element => {
             const key = element.getAttribute('data-i18n-key');
             element.textContent = reservationPlacardText(key, element.textContent || key);
@@ -2941,7 +3196,7 @@
                         const blocked = !prefillGroupId && allRes.some(res => (res.room === r.id || res.fullRoom === r.id) && res.status === 'blocked' && (!currentRes || res.id !== currentRes.id));
                         const occupied = !currentRes && roomOpsStatuses(r).some(status => ['occupied', 'inhouse', 'checkedin'].includes(status));
                         opt.disabled = blocked || occupied;
-                        opt.textContent = `${r.id} (${roomTypeDisplay(r.type)})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
+                        opt.textContent = `${r.id} (${roomTypeDisplay(r.type)})${blocked ? ` · ${unifiedModalText('roomBlocked')}` : occupied ? ` · ${unifiedModalText('roomOccupied')}` : ''}`;
                         group.appendChild(opt);
                     });
                     roomSelect.appendChild(group);
@@ -2953,7 +3208,7 @@
                     const blocked = !prefillGroupId && allRes.some(res => (res.room === r.id || res.fullRoom === r.id) && res.status === 'blocked' && (!currentRes || res.id !== currentRes.id));
                     const occupied = !currentRes && roomOpsStatuses(r).some(status => ['occupied', 'inhouse', 'checkedin'].includes(status));
                     opt.disabled = blocked || occupied;
-                    opt.textContent = `${r.id} (${roomTypeDisplay(r.type)})${blocked ? ' · 단체 블록' : occupied ? ' · 투숙 중' : ''}`;
+                    opt.textContent = `${r.id} (${roomTypeDisplay(r.type)})${blocked ? ` · ${unifiedModalText('roomBlocked')}` : occupied ? ` · ${unifiedModalText('roomOccupied')}` : ''}`;
                     roomSelect.appendChild(opt);
                 });
             }
@@ -3007,9 +3262,9 @@
             const linkedGroupId = res.groupId || '';
             const isB2B = !!linkedGroupId;
             const isVip = res.isVip || (res.vip && res.vip.toLowerCase().includes('vip'));
-            const groupBadgeText = actionLang() === 'en' ? 'Group linked' : '단체 연결';
+            const groupBadgeText = unifiedModalText('groupLinked');
             const b2bBadge = isB2B ? `<span style="background:#111827;color:#fff;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:600;vertical-align:middle;letter-spacing:0.5px"><i class="fa-solid fa-building"></i> ${groupBadgeText}</span>` : '';
-            const vipText = actionLang() === 'en' ? 'VIP' : '우수 고객';
+            const vipText = unifiedModalText('vip');
             const vipBadge = isVip ? `<span style="background:rgba(245,158,11,.15);color:#D97706;font-size:0.65rem;padding:2px 6px;border-radius:4px;margin-left:8px;font-weight:700;vertical-align:middle;"><i class="fa-solid fa-crown"></i> ${vipText}</span>` : '';
             
             document.getElementById('unifiedModalTitleText').innerHTML = `${reservationModalRoomTitle(res)} ${b2bBadge} ${vipBadge}`;
@@ -3043,8 +3298,8 @@
                 }
                 blockNotice.style.display = (isEditingBlock && !isReadonlyReservation) ? 'block' : 'none';
                 blockNotice.innerHTML = isEditableGroupBlock
-                    ? `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> 단체 연결 객실입니다. 업체 연결은 유지되며, 여기에서 객실 변경과 대표/동반 투숙객 등록을 함께 처리할 수 있습니다.`
-                    : `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> 단체 블록 상태입니다. 아직 개별 투숙객이 배정되지 않았으며, 투숙객은 단체 상세의 Rooming List에서 등록하거나 상태를 예약 확정으로 전환할 때 연결합니다.`;
+                    ? `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> ${actionEscapeHtml(unifiedModalText('blockEditableNotice'))}`
+                    : `<i class="fa-solid fa-building" style="color:var(--primary);margin-right:6px"></i> ${actionEscapeHtml(unifiedModalText('blockLockedNotice'))}`;
             }
 
             if ((!isEditingBlock || isEditableGroupBlock) && window._editGuestWidget) {
@@ -3174,12 +3429,12 @@
         const prepaidReceivedRows = prepaidRowsFromInputs();
         const invalidPrepaidRows = prepaidReceivedRows.filter(row => row.currency !== 'PHP' && Number(row.amount || 0) > 0 && Number(row.phpEquivalent || 0) <= 0);
         if (invalidPrepaidRows.length) {
-            showReservationAlert('달러/원화 예치금 행에는 페소 반영액을 입력해주세요.', 'error');
+            showReservationAlert(unifiedModalText('depositPhpRequired'), 'error');
             return;
         }
         const prepaidRowsTotal = prepaidPhpTotalFromRows(prepaidReceivedRows);
         if (prepaidReceivedRows.length && prepaidRowsTotal > totalAmount) {
-            showReservationAlert('예치금 페소 반영액이 총 객실 금액을 초과할 수 없습니다.', 'error');
+            showReservationAlert(unifiedModalText('depositExceedsTotal'), 'error');
             return;
         }
         const prepaidAmount = Math.min(prepaidRowsTotal, totalAmount);
