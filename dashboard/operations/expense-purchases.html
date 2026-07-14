@@ -13,116 +13,155 @@
     <script src="../common/js/topbar.js"></script>
     <style>
         .expense-page{font-family:var(--font)}
-        .expense-grid{display:grid;grid-template-columns:minmax(320px,360px) minmax(0,1fr);gap:16px;align-items:start}
-        .expense-panel{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
-        .expense-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border2);background:#f8fafc}
-        .expense-title{display:flex;align-items:center;gap:8px;font-weight:950;color:var(--txt)}
-        .expense-body{padding:16px;display:grid;gap:12px}
-        .expense-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .expense-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+        .expense-search{display:flex;align-items:center;gap:8px;flex:1;min-width:260px;max-width:520px}
+        .expense-search .form-input{height:40px;border-radius:10px;font-size:.82rem;font-weight:750}
+        .expense-panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+        .expense-panel .card-header{background:#fff}
+        .expense-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+        .expense-table{width:100%;min-width:1080px;border-collapse:collapse;white-space:normal}
+        .expense-table th{white-space:nowrap;background:#f8fafc}
+        .expense-table td{vertical-align:top}
+        .expense-table .num{text-align:right;white-space:nowrap;font-weight:900;color:#dc2626}
+        .expense-table .muted{display:block;margin-top:3px;font-size:.72rem;color:var(--txt3);font-weight:700;line-height:1.3}
+        .expense-note-cell{max-width:230px;white-space:normal;line-height:1.35;color:var(--txt2)}
+        .expense-action-cell{display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
+        .expense-mobile-list{display:none;padding:12px;gap:10px}
+        .expense-mobile-card{border:1px solid var(--border);border-radius:12px;background:#fff;padding:12px;display:grid;gap:10px}
+        .expense-mobile-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+        .expense-mobile-title{font-weight:950;color:var(--txt);line-height:1.25}
+        .expense-mobile-amount{font-weight:950;color:#dc2626;white-space:nowrap}
+        .expense-mobile-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .expense-mobile-field{background:#f8fafc;border-radius:9px;padding:8px}
+        .expense-mobile-field span{display:block;font-size:.68rem;font-weight:850;color:var(--txt3);margin-bottom:3px}
+        .expense-mobile-field strong{font-size:.78rem;color:var(--txt);line-height:1.3}
+        .expense-modal-card{max-width:720px;width:95vw}
+        .expense-modal-body{padding:18px;display:grid;gap:12px;max-height:72vh;overflow:auto}
+        .expense-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
         .expense-field{display:grid;gap:6px}
         .expense-field label{font-size:.76rem;font-weight:900;color:var(--txt2)}
-        .expense-field input,.expense-field select,.expense-field textarea{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--txt);padding:0 10px;min-height:38px;font-family:var(--font);font-size:.82rem;font-weight:750;outline:none;transition:border-color .15s,box-shadow .15s}
+        .expense-field input,.expense-field select,.expense-field textarea{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--txt);padding:0 11px;min-height:40px;font-family:var(--font);font-size:.84rem;font-weight:750;outline:none;transition:border-color .15s,box-shadow .15s}
         .expense-field input:focus,.expense-field select:focus,.expense-field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
-        .expense-field textarea{padding:10px;min-height:72px;resize:vertical}
-        .expense-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
-        .expense-kpi{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow);min-width:0}
-        .expense-kpi span{display:block;font-size:.72rem;font-weight:900;color:var(--txt3)}
-        .expense-kpi strong{display:block;margin-top:5px;font-size:1.1rem;font-weight:950;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .expense-table{width:100%;border-collapse:collapse}
-        .expense-table th,.expense-table td{padding:11px 12px;border-bottom:1px solid var(--border2);font-size:.78rem;text-align:left}
-        .expense-table th{background:#f8fafc;color:var(--txt2);font-weight:950}
-        .expense-table .amount{font-weight:950;color:#dc2626;text-align:right;white-space:nowrap}
-        .expense-actions{display:flex;justify-content:flex-end;gap:8px}
-        .expense-list-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-        .expense-list-toolbar .form-input{width:180px;max-width:100%;height:38px;border-radius:9px;font-size:.78rem;font-weight:750}
-        .expense-modal-body{max-height:70vh;overflow:auto;padding:16px}
-        .expense-page .btn-outline,.expense-page .btn-primary-sm{height:38px;min-height:38px;padding:0 14px;border-radius:9px;font-family:var(--font);font-size:.78rem;font-weight:900;text-decoration:none}
-        .expense-page .btn-outline{background:#fff;border:1px solid var(--border);color:var(--txt2)}
-        .expense-page .btn-outline:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff}
-        .expense-page .btn-primary-sm{background:var(--primary);border:1px solid var(--primary);color:#fff}
-        .expense-page .btn-primary-sm:hover{background:var(--primary-dk);border-color:var(--primary-dk)}
-        .expense-money-row{grid-template-columns:.72fr 1fr}
-        .expense-currency-suffix{margin-left:3px;color:var(--txt3);font-weight:900}
-        @media(max-width:900px){.expense-grid,.expense-summary{grid-template-columns:1fr}.expense-row{grid-template-columns:1fr}}
+        .expense-field textarea{padding:10px 11px;min-height:82px;resize:vertical}
+        .expense-currency-suffix{margin-left:4px;color:var(--txt3);font-weight:900}
+        .expense-empty{padding:34px 16px;text-align:center;color:var(--txt3);font-weight:800}
+        .expense-page .btn-outline,.expense-page .btn-primary-sm,.expense-page .btn-danger-sm,.expense-page .btn-icon-sm,
+        #expenseFormModal .btn-outline,#expenseFormModal .btn-primary-sm,#expenseFormModal .btn-danger-sm,#expenseFormModal .btn-icon-sm{height:40px;min-height:40px;border-radius:10px;font-family:var(--font);font-size:.78rem;font-weight:900;text-decoration:none}
+        .expense-page .btn-primary-sm,#expenseFormModal .btn-primary-sm{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;background:var(--primary);border:1px solid var(--primary);color:#fff}
+        .expense-page .btn-primary-sm:hover,#expenseFormModal .btn-primary-sm:hover{background:var(--primary-dk);border-color:var(--primary-dk)}
+        .expense-page .btn-outline,#expenseFormModal .btn-outline{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;background:#fff;border:1px solid var(--border);color:var(--txt2)}
+        .expense-page .btn-outline:hover,#expenseFormModal .btn-outline:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff}
+        .expense-page .btn-icon-sm,#expenseFormModal .btn-icon-sm{width:36px;padding:0}
+        .expense-action-cell .btn-icon-sm{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:#fff;color:var(--txt2);box-shadow:none}
+        .expense-action-cell .btn-icon-sm:hover{border-color:var(--primary);color:var(--primary);background:#eff6ff}
+        .expense-action-cell .btn-danger-sm{border-color:var(--border);color:#dc2626;background:#fff}
+        .expense-action-cell .btn-danger-sm:hover{border-color:#fecaca;background:#fef2f2;color:#dc2626}
+        @media(max-width:900px){
+            .expense-search{max-width:none}
+            .expense-row{grid-template-columns:1fr}
+            .expense-table-wrap{display:none}
+            .expense-mobile-list{display:grid}
+            .expense-mobile-grid{grid-template-columns:1fr}
+            .expense-toolbar{align-items:stretch}
+            .expense-toolbar>.btn-primary-sm{width:100%}
+        }
     </style>
 </head>
 <body>
 <div class="main expense-page">
-    <header class="topbar"><h1 data-i18n-key="page.expensePurchases">비품구매</h1></header>
+    <header class="topbar"><h1 data-i18n-key="page.expensePurchases">비품 구매</h1></header>
     <main class="content">
-        <section class="expense-summary">
-            <div class="expense-kpi"><span data-i18n-key="expense.total">총 지출</span><strong id="expenseTotal">₱0</strong></div>
-            <div class="expense-kpi"><span data-i18n-key="expense.cash">현금 지출</span><strong id="expenseCash">₱0</strong></div>
-            <div class="expense-kpi"><span data-i18n-key="expense.thisMonth">이번 달</span><strong id="expenseMonth">₱0</strong></div>
-            <div class="expense-kpi"><span data-i18n-key="expense.count">등록 건수</span><strong id="expenseCount">0</strong></div>
+        <section class="kpi-grid">
+            <div class="kpi-card blue">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-coins"></i></div></div>
+                <div class="kpi-body"><div class="kpi-value" id="expenseTotal" data-keep-currency>₱0</div><div class="kpi-label" data-i18n-key="expense.total">총 지출</div></div>
+            </div>
+            <div class="kpi-card green">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-money-bill-wave"></i></div></div>
+                <div class="kpi-body"><div class="kpi-value" id="expenseCash" data-keep-currency>₱0</div><div class="kpi-label" data-i18n-key="expense.cash">현금 지출</div></div>
+            </div>
+            <div class="kpi-card purple">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-calendar-days"></i></div></div>
+                <div class="kpi-body"><div class="kpi-value" id="expenseMonth" data-keep-currency>₱0</div><div class="kpi-label" data-i18n-key="expense.thisMonth">이번 달</div></div>
+            </div>
+            <div class="kpi-card orange">
+                <div class="kpi-top"><div class="kpi-icon"><i class="fa-solid fa-receipt"></i></div></div>
+                <div class="kpi-body"><div class="kpi-value" id="expenseCount">0</div><div class="kpi-label" data-i18n-key="expense.count">등록 건수</div></div>
+            </div>
         </section>
-        <section class="expense-grid">
-            <div class="expense-panel">
-                <div class="expense-head">
-                    <div class="expense-title"><i class="fa-solid fa-cart-shopping" style="color:var(--primary)"></i> <span data-i18n-key="expense.input">지출 입력</span></div>
-                </div>
-                <div class="expense-body">
-                    <div class="expense-row">
-                        <div class="expense-field"><label for="expenseDate" data-i18n-key="expense.date">구매일</label><input id="expenseDate" type="date"></div>
-                        <div class="expense-field"><label for="expenseBuyer" data-i18n-key="expense.buyer">구매자</label><select id="expenseBuyer"></select></div>
+
+        <section class="expense-panel">
+            <div class="card-header expense-toolbar">
+                <div class="card-title"><i class="fa-solid fa-list-ul"></i><span data-i18n-key="expense.listTitle">비품 구매 목록</span></div>
+                <div class="expense-toolbar">
+                    <div class="expense-search">
+                        <input id="expenseSearch" class="form-input" placeholder="항목, 구매처, 구매자 검색" data-i18n-placeholder="expense.search.placeholder" oninput="renderExpenses()">
+                        <button class="btn-primary-sm" onclick="renderExpenses()"><i class="fa-solid fa-magnifying-glass"></i><span data-i18n-key="common.search">검색</span></button>
                     </div>
-                    <div class="expense-row">
-                        <div class="expense-field"><label for="expenseCategory" data-i18n-key="expense.category">구분</label><select id="expenseCategory"><option value="supplies">비품</option><option value="fuel">기름값</option><option value="driver">드라이버</option><option value="repair">수리/정비</option><option value="other">기타</option></select></div>
-                        <div class="expense-field"><label for="expenseMethod" data-i18n-key="expense.method">결제수단</label><select id="expenseMethod"><option value="cash">현금</option><option value="card">카드</option><option value="bank">계좌이체</option><option value="other">기타</option></select></div>
-                    </div>
-                    <div class="expense-field"><label for="expenseItem" data-i18n-key="expense.item">항목</label><input id="expenseItem" placeholder="예: 차량 주유, 객실 비품, 기사 비용" data-i18n-placeholder="expense.item.placeholder"></div>
-                    <div class="expense-row expense-money-row">
-                        <div class="expense-field"><label for="expenseVendor" data-i18n-key="expense.vendor">구매처/대상</label><input id="expenseVendor" placeholder="예: Shell Station" data-i18n-placeholder="expense.vendor.placeholder"></div>
-                        <div class="expense-row" style="gap:8px">
-                            <div class="expense-field">
-                                <label for="expenseCurrency" data-i18n-key="expense.currency">통화</label>
-                                <select id="expenseCurrency" data-keep-currency onchange="updateExpenseCurrencyLabel()"></select>
-                            </div>
-                            <div class="expense-field">
-                                <label for="expenseAmount"><span data-i18n-key="expense.amount">금액</span><span id="expenseCurrencySuffix" class="expense-currency-suffix" data-keep-currency>(PHP)</span></label>
-                                <input id="expenseAmount" type="number" min="0" step="1" placeholder="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="expense-field"><label for="expenseNote" data-i18n-key="expense.note">메모</label><textarea id="expenseNote" placeholder="영수증 번호, 차량번호, 정산 연결 메모 등" data-i18n-placeholder="expense.note.placeholder"></textarea></div>
-                    <div class="expense-actions">
-                        <button class="btn-outline" onclick="resetExpenseForm()" data-i18n-key="expense.reset">초기화</button>
-                        <button class="btn-primary-sm" onclick="saveExpensePurchase()"><i class="fa-solid fa-check"></i> <span data-i18n-key="expense.save">저장</span></button>
-                    </div>
+                    <button class="btn-primary-sm" onclick="openExpenseFormModal()"><i class="fa-solid fa-plus"></i><span data-i18n-key="expense.new">신규 등록</span></button>
                 </div>
             </div>
-            <div class="expense-panel">
-                <div class="expense-head">
-                    <div class="expense-title"><i class="fa-solid fa-list-ul" style="color:var(--primary)"></i> <span data-i18n-key="expense.recent">최근 지출</span></div>
-                    <div class="expense-list-toolbar">
-                        <input id="expenseSearch" class="form-input" placeholder="항목/구매자 검색" data-i18n-placeholder="expense.search.placeholder" oninput="renderExpenses()">
-                        <button class="btn-outline" onclick="openExpenseListModal()"><i class="fa-solid fa-up-right-from-square"></i> <span data-i18n-key="expense.list">목록</span></button>
-                    </div>
-                </div>
-                <div class="expense-body" style="padding:0">
-                    <table class="expense-table">
-                        <thead><tr><th data-i18n-key="expense.dateShort">일자</th><th data-i18n-key="expense.item">항목</th><th data-i18n-key="expense.buyer">구매자</th><th data-i18n-key="expense.payment">결제</th><th class="amount" data-i18n-key="expense.amount">금액</th></tr></thead>
-                        <tbody id="expenseBody"></tbody>
-                    </table>
-                </div>
+            <div class="expense-table-wrap">
+                <table class="expense-table">
+                    <thead>
+                    <tr>
+                        <th data-i18n-key="expense.dateShort">일자</th>
+                        <th data-i18n-key="expense.category">구분</th>
+                        <th data-i18n-key="expense.item">항목</th>
+                        <th data-i18n-key="expense.vendorShort">구매처</th>
+                        <th data-i18n-key="expense.buyer">구매자</th>
+                        <th data-i18n-key="expense.payment">결제</th>
+                        <th data-i18n-key="expense.currency">통화</th>
+                        <th class="num" data-i18n-key="expense.amount">금액</th>
+                        <th data-i18n-key="expense.note">메모</th>
+                        <th style="text-align:right" data-i18n-key="expense.actions">관리</th>
+                    </tr>
+                    </thead>
+                    <tbody id="expenseBody" data-keep-currency></tbody>
+                </table>
             </div>
+            <div class="expense-mobile-list" id="expenseMobileBody" data-keep-currency></div>
         </section>
     </main>
 </div>
 
-<div class="modal-overlay" id="expenseListModal" onclick="if(event.target===this)closeExpenseListModal()">
-    <div class="modal-card" style="max-width:900px;width:95vw">
+<div class="modal-overlay" id="expenseFormModal" onclick="if(event.target===this)closeExpenseFormModal()">
+    <div class="modal-card expense-modal-card">
         <div class="modal-header">
-            <h3 class="modal-title"><i class="fa-solid fa-receipt" style="color:var(--primary)"></i> <span data-i18n-key="expense.modalTitle">비품구매/지출 목록</span></h3>
-            <button class="modal-close" onclick="closeExpenseListModal()"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="modal-title"><i class="fa-solid fa-cart-shopping" style="color:var(--primary)"></i> <span id="expenseModalTitle" data-i18n-key="expense.input">지출 입력</span></h3>
+            <button class="modal-close" onclick="closeExpenseFormModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="expense-modal-body">
-            <table class="expense-table">
-                <thead><tr><th data-i18n-key="expense.dateShort">일자</th><th data-i18n-key="expense.category">구분</th><th data-i18n-key="expense.item">항목</th><th data-i18n-key="expense.vendorShort">구매처</th><th data-i18n-key="expense.buyer">구매자</th><th data-i18n-key="expense.payment">결제</th><th class="amount" data-i18n-key="expense.settlementImpact">정산 반영</th></tr></thead>
-                <tbody id="expenseModalBody"></tbody>
-            </table>
+            <input id="expenseEditId" type="hidden">
+            <div class="expense-row">
+                <div class="expense-field"><label for="expenseDate" data-i18n-key="expense.date">구매일</label><input id="expenseDate" type="date"></div>
+                <div class="expense-field"><label for="expenseBuyer" data-i18n-key="expense.buyer">구매자</label><select id="expenseBuyer"></select></div>
+            </div>
+            <div class="expense-row">
+                <div class="expense-field"><label for="expenseCategory" data-i18n-key="expense.category">구분</label><select id="expenseCategory"></select></div>
+                <div class="expense-field"><label for="expenseMethod" data-i18n-key="expense.method">결제수단</label><select id="expenseMethod"></select></div>
+            </div>
+            <div class="expense-field"><label for="expenseItem" data-i18n-key="expense.item">항목</label><input id="expenseItem" placeholder="예: 차량 주유, 객실 비품, 기사 비용" data-i18n-placeholder="expense.item.placeholder"></div>
+            <div class="expense-row">
+                <div class="expense-field"><label for="expenseVendor" data-i18n-key="expense.vendor">구매처/대상</label><input id="expenseVendor" placeholder="예: Shell Station" data-i18n-placeholder="expense.vendor.placeholder"></div>
+                <div class="expense-row" style="gap:8px">
+                    <div class="expense-field">
+                        <label for="expenseCurrency" data-i18n-key="expense.currency">통화</label>
+                        <select id="expenseCurrency" data-keep-currency onchange="updateExpenseCurrencyLabel()"></select>
+                    </div>
+                    <div class="expense-field">
+                        <label for="expenseAmount"><span data-i18n-key="expense.amount">금액</span><span id="expenseCurrencySuffix" class="expense-currency-suffix" data-keep-currency>(PHP)</span></label>
+                        <input id="expenseAmount" type="number" min="0" step="1" placeholder="0">
+                    </div>
+                </div>
+            </div>
+            <div class="expense-field"><label for="expenseNote" data-i18n-key="expense.note">메모</label><textarea id="expenseNote" placeholder="영수증 번호, 차량번호, 정산 연결 메모 등" data-i18n-placeholder="expense.note.placeholder"></textarea></div>
         </div>
-        <div class="modal-footer"><button class="btn-outline" onclick="closeExpenseListModal()" data-i18n-key="expense.close">닫기</button></div>
+        <div class="modal-footer">
+            <button class="btn-outline" onclick="closeExpenseFormModal()" data-i18n-key="expense.close">닫기</button>
+            <button class="btn-outline" onclick="resetExpenseForm()" data-i18n-key="expense.reset">초기화</button>
+            <button class="btn-primary-sm" onclick="saveExpensePurchase()"><i class="fa-solid fa-check"></i><span data-i18n-key="expense.save">저장</span></button>
+        </div>
     </div>
 </div>
 
@@ -174,6 +213,49 @@ function nowIso() {
 function operatorName() {
     return localStorage.getItem('pms_current_user_name') || localStorage.getItem('pms_staff_name') || 'Nguyen Kim';
 }
+function readJson(key, fallback) {
+    try { const parsed = JSON.parse(localStorage.getItem(key) || ''); return parsed ?? fallback; } catch(e) { return fallback; }
+}
+function writeJson(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+}
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+}
+function expenseLang() {
+    return (localStorage.getItem('pms_lang') || window.currentLang || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+}
+function expenseText(ko, en) {
+    return expenseLang() === 'en' ? en : ko;
+}
+function categoryLabel(category) {
+    const ko = { supplies:'비품', fuel:'기름값', driver:'드라이버', repair:'수리/정비', other:'기타' };
+    const en = { supplies:'Supplies', fuel:'Fuel', driver:'Driver', repair:'Repair', other:'Other' };
+    return (expenseLang() === 'en' ? en : ko)[category] || category || '-';
+}
+function methodLabel(method) {
+    const ko = { cash:'현금', card:'카드', bank:'계좌이체', other:'기타' };
+    const en = { cash:'Cash', card:'Card', bank:'Bank transfer', other:'Other' };
+    return (expenseLang() === 'en' ? en : ko)[method] || method || '-';
+}
+function expenses() {
+    const rows = readJson(EXPENSE_KEY, []);
+    return Array.isArray(rows) ? rows.map(row => ({
+        ...row,
+        currency: normalizeExpenseCurrency(row.currency),
+        settlementCurrency: normalizeExpenseCurrency(row.settlementCurrency || row.currency)
+    })) : [];
+}
+function saveExpenses(rows) {
+    writeJson(EXPENSE_KEY, rows);
+}
+function sortedExpenses() {
+    return expenses().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+}
+function filteredExpenses() {
+    const q = String(document.getElementById('expenseSearch')?.value || '').toLowerCase();
+    return sortedExpenses().filter(row => !q || [row.item, row.buyer, row.vendor, row.category, row.method, row.note].join(' ').toLowerCase().includes(q));
+}
 function registeredExpenseBuyers() {
     const staffRows = readJson('pms_staff', []);
     const current = operatorName();
@@ -198,41 +280,63 @@ function renderBuyerOptions(preferredName = '') {
     const currentValue = preferredName || select.value || operatorName();
     const buyers = registeredExpenseBuyers();
     select.innerHTML = buyers.map(buyer => {
-        const detail = buyer.email ? ` · ${buyer.email}` : '';
+        const detail = buyer.email ? ` - ${buyer.email}` : '';
         return `<option value="${escapeHtml(buyer.name)}">${escapeHtml(buyer.name + detail)}</option>`;
     }).join('');
     const nextValue = buyers.some(buyer => buyer.name === currentValue) ? currentValue : (buyers[0]?.name || '');
     select.value = nextValue;
     select.disabled = buyers.length === 0;
 }
-function expenseLang() {
-    return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+function renderExpenseSelects() {
+    const categories = ['supplies', 'fuel', 'driver', 'repair', 'other'];
+    const methods = ['cash', 'card', 'bank', 'other'];
+    const categorySelect = document.getElementById('expenseCategory');
+    const methodSelect = document.getElementById('expenseMethod');
+    const categoryValue = categorySelect?.value || 'supplies';
+    const methodValue = methodSelect?.value || 'cash';
+    if (categorySelect) {
+        categorySelect.innerHTML = categories.map(value => `<option value="${value}">${categoryLabel(value)}</option>`).join('');
+        categorySelect.value = categories.includes(categoryValue) ? categoryValue : 'supplies';
+    }
+    if (methodSelect) {
+        methodSelect.innerHTML = methods.map(value => `<option value="${value}">${methodLabel(value)}</option>`).join('');
+        methodSelect.value = methods.includes(methodValue) ? methodValue : 'cash';
+    }
+    renderCurrencyOptions();
 }
-function expenseText(ko, en) {
-    return expenseLang() === 'en' ? en : ko;
+function renderCurrencyOptions() {
+    const select = document.getElementById('expenseCurrency');
+    if (!select) return;
+    const current = normalizeExpenseCurrency(select.value);
+    select.innerHTML = EXPENSE_CURRENCIES.map(currency => `<option value="${currency}">${currency} (${currencySymbol(currency)})</option>`).join('');
+    select.value = current;
+    updateExpenseCurrencyLabel();
 }
-function categoryLabel(category) {
-    const ko = { supplies:'비품', fuel:'기름값', driver:'드라이버', repair:'수리/정비', other:'기타' };
-    const en = { supplies:'Supplies', fuel:'Fuel', driver:'Driver', repair:'Repair', other:'Other' };
-    return (expenseLang() === 'en' ? en : ko)[category] || category || '-';
+function updateExpenseCurrencyLabel() {
+    const suffix = document.getElementById('expenseCurrencySuffix');
+    const select = document.getElementById('expenseCurrency');
+    if (suffix) suffix.textContent = `(${normalizeExpenseCurrency(select?.value)})`;
 }
-function readJson(key, fallback) {
-    try { const parsed = JSON.parse(localStorage.getItem(key) || ''); return parsed ?? fallback; } catch(e) { return fallback; }
-}
-function writeJson(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-}
-function expenses() {
-    const rows = readJson(EXPENSE_KEY, []);
-    return Array.isArray(rows) ? rows.map(row => ({
-        ...row,
-        currency: normalizeExpenseCurrency(row.currency)
-    })) : [];
-}
-function sortedExpenses() {
-    return expenses().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+function removeCashWithdrawal(expenseId) {
+    if (!expenseId) return;
+    const sessions = readJson(CASH_SESSION_KEY, []);
+    const list = Array.isArray(sessions) ? sessions : [];
+    let changed = false;
+    list.forEach(session => {
+        const before = Array.isArray(session.withdrawals) ? session.withdrawals : [];
+        const after = before.filter(item => item.expenseId !== expenseId);
+        if (after.length !== before.length) {
+            session.withdrawals = after;
+            changed = true;
+        }
+    });
+    if (changed) {
+        writeJson(CASH_SESSION_KEY, list);
+        window.dispatchEvent(new CustomEvent('pms:cash-sessions-updated'));
+    }
 }
 function syncCashWithdrawal(expense) {
+    removeCashWithdrawal(expense.id);
     if (expense.method !== 'cash') return;
     const currency = normalizeExpenseCurrency(expense.currency);
     const breakdown = EXPENSE_CURRENCIES.reduce((map, code) => ({ ...map, [code]: 0 }), {});
@@ -252,23 +356,22 @@ function syncCashWithdrawal(expense) {
         list.push(session);
     }
     session.withdrawals = Array.isArray(session.withdrawals) ? session.withdrawals : [];
-    if (!session.withdrawals.some(item => item.expenseId === expense.id)) {
-        session.withdrawals.push({
-            id: `WD-${expense.id}`,
-            expenseId: expense.id,
-            amount: Number(expense.amount || 0),
-            currency,
-            breakdown,
-            receiver: expense.buyer || operatorName(),
-            note: `[비품구매] ${expense.category} · ${expense.item}${expense.vendor ? ` · ${expense.vendor}` : ''}`,
-            createdAt: expense.createdAt,
-            createdBy: expense.createdBy
-        });
-    }
+    session.withdrawals.push({
+        id: `WD-${expense.id}`,
+        expenseId: expense.id,
+        amount: Number(expense.amount || 0),
+        currency,
+        breakdown,
+        receiver: expense.buyer || operatorName(),
+        note: `[비품 구매] ${categoryLabel(expense.category)} - ${expense.item}${expense.vendor ? ` - ${expense.vendor}` : ''}`,
+        createdAt: expense.updatedAt || expense.createdAt,
+        createdBy: expense.updatedBy || expense.createdBy
+    });
     writeJson(CASH_SESSION_KEY, list);
     window.dispatchEvent(new CustomEvent('pms:cash-sessions-updated'));
 }
 function resetExpenseForm() {
+    document.getElementById('expenseEditId').value = '';
     document.getElementById('expenseDate').value = todayIso();
     renderBuyerOptions(operatorName());
     document.getElementById('expenseCategory').value = 'supplies';
@@ -276,8 +379,44 @@ function resetExpenseForm() {
     document.getElementById('expenseCurrency').value = DEFAULT_EXPENSE_CURRENCY;
     ['expenseItem','expenseVendor','expenseAmount','expenseNote'].forEach(id => document.getElementById(id).value = '');
     updateExpenseCurrencyLabel();
+    setExpenseModalMode('create');
+}
+function fillExpenseForm(row) {
+    document.getElementById('expenseEditId').value = row.id || '';
+    document.getElementById('expenseDate').value = row.date || todayIso();
+    renderBuyerOptions(row.buyer || operatorName());
+    document.getElementById('expenseCategory').value = row.category || 'supplies';
+    document.getElementById('expenseMethod').value = row.method || 'cash';
+    document.getElementById('expenseCurrency').value = normalizeExpenseCurrency(row.currency);
+    document.getElementById('expenseItem').value = row.item || '';
+    document.getElementById('expenseVendor').value = row.vendor || '';
+    document.getElementById('expenseAmount').value = Number(row.amount || 0);
+    document.getElementById('expenseNote').value = row.note || '';
+    updateExpenseCurrencyLabel();
+    setExpenseModalMode('edit');
+}
+function setExpenseModalMode(mode) {
+    const title = document.getElementById('expenseModalTitle');
+    if (!title) return;
+    title.setAttribute('data-i18n-key', mode === 'edit' ? 'expense.editTitle' : 'expense.input');
+    title.textContent = mode === 'edit' ? expenseText('비품 구매 수정', 'Edit Expense') : expenseText('지출 입력', 'Expense Entry');
+}
+function openExpenseFormModal(id = '') {
+    renderExpenseSelects();
+    if (id) {
+        const row = expenses().find(item => item.id === id);
+        if (row) fillExpenseForm(row);
+        else resetExpenseForm();
+    } else {
+        resetExpenseForm();
+    }
+    document.getElementById('expenseFormModal').classList.add('active');
+}
+function closeExpenseFormModal() {
+    document.getElementById('expenseFormModal').classList.remove('active');
 }
 function saveExpensePurchase() {
+    const editId = document.getElementById('expenseEditId').value;
     const date = document.getElementById('expenseDate').value || todayIso();
     const buyer = document.getElementById('expenseBuyer').value.trim();
     const item = document.getElementById('expenseItem').value.trim();
@@ -286,8 +425,12 @@ function saveExpensePurchase() {
     if (!buyer) return showToast(expenseText('구매자를 선택해 주세요.', 'Please select a buyer.'), 'error');
     if (!item) return showToast(expenseText('항목을 입력해 주세요.', 'Please enter an item.'), 'error');
     if (!amount || amount <= 0) return showToast(expenseText('금액을 입력해 주세요.', 'Please enter an amount.'), 'error');
+    const rows = expenses();
+    const existingIndex = rows.findIndex(row => row.id === editId);
+    const previous = existingIndex >= 0 ? rows[existingIndex] : null;
     const row = {
-        id: `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        ...(previous || {}),
+        id: editId || `EXP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         date,
         buyer,
         category: document.getElementById('expenseCategory').value,
@@ -299,25 +442,29 @@ function saveExpensePurchase() {
         currency,
         settlementCurrency: currency,
         note: document.getElementById('expenseNote').value.trim(),
-        createdAt: nowIso(),
-        createdBy: operatorName()
+        createdAt: previous?.createdAt || nowIso(),
+        createdBy: previous?.createdBy || operatorName(),
+        updatedAt: previous ? nowIso() : undefined,
+        updatedBy: previous ? operatorName() : undefined
     };
-    const rows = expenses();
-    rows.unshift(row);
-    writeJson(EXPENSE_KEY, rows);
+    if (existingIndex >= 0) rows[existingIndex] = row;
+    else rows.unshift(row);
+    saveExpenses(rows);
     syncCashWithdrawal(row);
-    resetExpenseForm();
     renderExpenses();
-    showToast(expenseText('비품구매 지출이 저장되었습니다.', 'Expense purchase has been saved.'), 'success');
+    closeExpenseFormModal();
+    showToast(existingIndex >= 0 ? expenseText('비품 구매 내역이 수정되었습니다.', 'Expense purchase has been updated.') : expenseText('비품 구매 지출이 저장되었습니다.', 'Expense purchase has been saved.'), 'success');
 }
-function methodLabel(method) {
-    const ko = { cash:'현금', card:'카드', bank:'계좌이체', other:'기타' };
-    const en = { cash:'Cash', card:'Card', bank:'Bank transfer', other:'Other' };
-    return (expenseLang() === 'en' ? en : ko)[method] || method || '-';
-}
-function filteredExpenses() {
-    const q = String(document.getElementById('expenseSearch')?.value || '').toLowerCase();
-    return sortedExpenses().filter(row => !q || [row.item, row.buyer, row.vendor, row.category].join(' ').toLowerCase().includes(q));
+async function deleteExpensePurchase(id) {
+    const row = expenses().find(item => item.id === id);
+    if (!row) return;
+    const message = expenseText('이 비품 구매 내역을 삭제할까요?', 'Delete this expense purchase?');
+    const ok = typeof window.showConfirm === 'function' ? await window.showConfirm(message) : true;
+    if (!ok) return;
+    saveExpenses(expenses().filter(item => item.id !== id));
+    removeCashWithdrawal(id);
+    renderExpenses();
+    showToast(expenseText('비품 구매 내역이 삭제되었습니다.', 'Expense purchase has been deleted.'), 'success');
 }
 function renderExpenses() {
     const rows = filteredExpenses();
@@ -327,105 +474,66 @@ function renderExpenses() {
     document.getElementById('expenseCash').textContent = moneySummary(totalRows.filter(row => row.method === 'cash'));
     document.getElementById('expenseMonth').textContent = moneySummary(totalRows.filter(row => String(row.date || '').startsWith(month)));
     document.getElementById('expenseCount').textContent = totalRows.length;
-    const body = document.getElementById('expenseBody');
-    body.innerHTML = rows.slice(0, 12).map(row => `
-        <tr>
-            <td>${row.date || '-'}</td>
-            <td><strong>${escapeHtml(row.item)}</strong><br><span style="color:var(--txt3);font-size:.7rem">${escapeHtml(categoryLabel(row.category))}</span></td>
-            <td>${escapeHtml(row.buyer || '-')}</td>
-            <td>${escapeHtml(methodLabel(row.method))}</td>
-            <td class="amount">-${money(row.amount, row.currency)}</td>
-        </tr>
-    `).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:20px">${expenseText('등록된 지출이 없습니다.', 'No registered expenses.')}</td></tr>`;
-    renderExpenseModalRows();
+
+    const emptyRow = `<tr><td colspan="10" class="expense-empty">${expenseText('등록된 지출이 없습니다.', 'No registered expenses.')}</td></tr>`;
+    document.getElementById('expenseBody').innerHTML = rows.map(renderExpenseTableRow).join('') || emptyRow;
+    document.getElementById('expenseMobileBody').innerHTML = rows.map(renderExpenseMobileCard).join('') || `<div class="expense-empty">${expenseText('등록된 지출이 없습니다.', 'No registered expenses.')}</div>`;
 }
-function renderExpenseModalRows() {
-    const body = document.getElementById('expenseModalBody');
-    if (!body) return;
-    const rows = filteredExpenses();
-    body.innerHTML = rows.map(row => `
+function renderExpenseTableRow(row) {
+    return `
         <tr>
             <td>${row.date || '-'}</td>
             <td>${escapeHtml(categoryLabel(row.category))}</td>
-            <td><strong>${escapeHtml(row.item)}</strong>${row.note ? `<br><span style="color:var(--txt3);font-size:.7rem">${escapeHtml(row.note)}</span>` : ''}</td>
+            <td><strong>${escapeHtml(row.item)}</strong></td>
             <td>${escapeHtml(row.vendor || '-')}</td>
             <td>${escapeHtml(row.buyer || '-')}</td>
             <td>${escapeHtml(methodLabel(row.method))}</td>
-            <td class="amount">-${money(row.amount, row.currency)}</td>
+            <td>${escapeHtml(normalizeExpenseCurrency(row.currency))}</td>
+            <td class="num">-${money(row.amount, row.currency)}</td>
+            <td class="expense-note-cell">${escapeHtml(row.note || '-')}</td>
+            <td><div class="expense-action-cell">
+                <button class="btn-icon-sm" title="${expenseText('수정', 'Edit')}" onclick="openExpenseFormModal('${escapeHtml(row.id)}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn-danger-sm btn-icon-sm" title="${expenseText('삭제', 'Delete')}" onclick="deleteExpensePurchase('${escapeHtml(row.id)}')"><i class="fa-solid fa-trash"></i></button>
+            </div></td>
         </tr>
-    `).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:20px">${expenseText('등록된 지출이 없습니다.', 'No registered expenses.')}</td></tr>`;
+    `;
+}
+function renderExpenseMobileCard(row) {
+    return `
+        <article class="expense-mobile-card">
+            <div class="expense-mobile-head">
+                <div><div class="expense-mobile-title">${escapeHtml(row.item)}</div><span class="muted">${row.date || '-'} · ${escapeHtml(categoryLabel(row.category))}</span></div>
+                <div class="expense-mobile-amount">-${money(row.amount, row.currency)}</div>
+            </div>
+            <div class="expense-mobile-grid">
+                <div class="expense-mobile-field"><span>${expenseText('구매처', 'Vendor')}</span><strong>${escapeHtml(row.vendor || '-')}</strong></div>
+                <div class="expense-mobile-field"><span>${expenseText('구매자', 'Buyer')}</span><strong>${escapeHtml(row.buyer || '-')}</strong></div>
+                <div class="expense-mobile-field"><span>${expenseText('결제', 'Payment')}</span><strong>${escapeHtml(methodLabel(row.method))}</strong></div>
+                <div class="expense-mobile-field"><span>${expenseText('통화', 'Currency')}</span><strong>${escapeHtml(normalizeExpenseCurrency(row.currency))}</strong></div>
+                <div class="expense-mobile-field" style="grid-column:1/-1"><span>${expenseText('메모', 'Memo')}</span><strong>${escapeHtml(row.note || '-')}</strong></div>
+            </div>
+            <div class="expense-action-cell">
+                <button class="btn-outline" onclick="openExpenseFormModal('${escapeHtml(row.id)}')"><i class="fa-solid fa-pen"></i><span>${expenseText('수정', 'Edit')}</span></button>
+                <button class="btn-danger-sm" onclick="deleteExpensePurchase('${escapeHtml(row.id)}')"><i class="fa-solid fa-trash"></i><span>${expenseText('삭제', 'Delete')}</span></button>
+            </div>
+        </article>
+    `;
 }
 function applyExpenseLanguage() {
-    const categories = [
-        ['supplies', categoryLabel('supplies')],
-        ['fuel', categoryLabel('fuel')],
-        ['driver', categoryLabel('driver')],
-        ['repair', categoryLabel('repair')],
-        ['other', categoryLabel('other')]
-    ];
-    const methods = [
-        ['cash', methodLabel('cash')],
-        ['card', methodLabel('card')],
-        ['bank', methodLabel('bank')],
-        ['other', methodLabel('other')]
-    ];
-    const categorySelect = document.getElementById('expenseCategory');
-    const methodSelect = document.getElementById('expenseMethod');
-    if (categorySelect) {
-        const current = categorySelect.value || 'supplies';
-        categorySelect.innerHTML = categories.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
-        categorySelect.value = current;
-    }
-    if (methodSelect) {
-        const current = methodSelect.value || 'cash';
-        methodSelect.innerHTML = methods.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
-        methodSelect.value = current;
-    }
-    renderCurrencyOptions();
-}
-function renderCurrencyOptions() {
-    const select = document.getElementById('expenseCurrency');
-    if (!select) return;
-    const current = normalizeExpenseCurrency(select.value);
-    select.innerHTML = EXPENSE_CURRENCIES.map(currency => `<option value="${currency}">${currency} (${currencySymbol(currency)})</option>`).join('');
-    select.value = current;
-    updateExpenseCurrencyLabel();
-}
-function updateExpenseCurrencyLabel() {
-    const suffix = document.getElementById('expenseCurrencySuffix');
-    const select = document.getElementById('expenseCurrency');
-    if (suffix) suffix.textContent = `(${normalizeExpenseCurrency(select?.value)})`;
-}
-function openExpenseListModal() {
-    renderExpenseModalRows();
-    document.getElementById('expenseListModal').classList.add('active');
-}
-function closeExpenseListModal() {
-    document.getElementById('expenseListModal').classList.remove('active');
-}
-function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+    renderExpenseSelects();
+    const mode = document.getElementById('expenseEditId')?.value ? 'edit' : 'create';
+    setExpenseModalMode(mode);
 }
 window.applyLocalI18n = function applyExpensePurchasesLocalI18n() {
     applyExpenseLanguage();
     renderExpenses();
-    if (document.getElementById('expenseListModal')?.classList.contains('active')) {
-        renderExpenseModalRows();
-    }
 };
-window.addEventListener('languagechange', () => {
-    window.applyLocalI18n();
-});
+window.addEventListener('languagechange', () => window.applyLocalI18n());
 document.addEventListener('DOMContentLoaded', () => {
     applyExpenseLanguage();
     resetExpenseForm();
     renderExpenses();
-    document.getElementById('langSelect')?.addEventListener('change', () => {
-        setTimeout(() => {
-            applyExpenseLanguage();
-            renderExpenses();
-        }, 0);
-    });
+    document.getElementById('langSelect')?.addEventListener('change', () => setTimeout(window.applyLocalI18n, 0));
 });
 </script>
 </body>
