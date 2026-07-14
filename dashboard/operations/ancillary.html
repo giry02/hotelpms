@@ -95,8 +95,6 @@
         .service-action-btn.accept:hover{background:var(--primary-dk);border-color:var(--primary-dk);box-shadow:0 3px 10px rgba(59,130,246,.18)}
         .service-action-btn.complete{background:var(--success);border-color:var(--success);color:#fff}
         .service-action-btn.complete:hover{filter:brightness(.96);box-shadow:0 3px 10px rgba(16,185,129,.18)}
-        .service-action-btn.cancel{border-color:#fecaca;background:#fff;color:#dc2626}
-        .service-action-btn.cancel:hover{background:#fef2f2;border-color:#fca5a5;box-shadow:0 3px 10px rgba(220,38,38,.12)}
         .service-status-pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;font-size:.7rem;font-weight:950;white-space:nowrap}
         .service-status-pill.new{background:#fef3c7;color:#b45309}
         .service-status-pill.accepted{background:#dbeafe;color:#2563eb}
@@ -885,10 +883,7 @@ function serviceOrderActionButtons(order) {
             : status.key === 'completed' && canReopenAncillaryOrder()
                 ? `<button type="button" class="service-action-btn accept" onclick="updateServiceOrderStatus('${escapeHtml(order.id)}','accepted')"><i class="fa-solid fa-rotate-left"></i><span>미완료 전환</span></button>`
             : '';
-    const cancelButton = ['new', 'accepted'].includes(status.key)
-        ? `<button type="button" class="service-action-btn cancel" onclick="updateServiceOrderStatus('${escapeHtml(order.id)}','cancelled')"><i class="fa-solid fa-ban"></i><span>취소</span></button>`
-        : '';
-    return `${voucherButton}${nextButton}${cancelButton}`;
+    return `${voucherButton}${nextButton}`;
 }
 function voucherFieldsForOrder(order) {
     const vendor = vendorForOrder(order);
@@ -1532,20 +1527,7 @@ function scrollServiceRegistrationIntoView(behavior = 'smooth') {
         section.scrollIntoView({ behavior, block: 'start' });
     });
 }
-async function confirmServiceOrderCancel(order) {
-    const target = [order.room, order.guest, order.item].filter(Boolean).join(' · ') || order.id || '부가서비스';
-    if (typeof window.showConfirm === 'function') {
-        return await window.showConfirm(`[${target}] 부가서비스를 취소할까요?`, {
-            title: '부가서비스 취소',
-            okText: '취소 처리',
-            cancelText: '닫기'
-        });
-    }
-    return window.confirm ? window.confirm(`[${target}] 부가서비스를 취소할까요?`) : true;
-}
-
 function logServiceOrderStatusAudit(order, current, next) {
-    const action = next.key === 'cancelled' ? 'ancillary.order.cancel' : 'ancillary.order.reopen';
     const details = {
         orderId: order.id || '',
         room: order.room || order.roomId || '',
@@ -1560,7 +1542,7 @@ function logServiceOrderStatusAudit(order, current, next) {
         currency: order.currency || 'PHP'
     };
     if (window.PmsPrivacyAudit?.log) {
-        window.PmsPrivacyAudit.log(action, details);
+        window.PmsPrivacyAudit.log('ancillary.order.reopen', details);
         return;
     }
     try {
@@ -1570,7 +1552,7 @@ function logServiceOrderStatusAudit(order, current, next) {
         if (!Array.isArray(logs)) return;
         logs.push({
             id: `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            action,
+            action: 'ancillary.order.reopen',
             createdAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
             actor: {
                 id: localStorage.getItem('mock_user_id') || role,
@@ -1588,7 +1570,7 @@ function logServiceOrderStatusAudit(order, current, next) {
     }
 }
 
-async function updateServiceOrderStatus(orderId, status) {
+function updateServiceOrderStatus(orderId, status) {
     const order = serviceOrders.find(item => item.id === orderId);
     if (!order) return;
     const current = serviceOrderStatusMeta(order.status);
@@ -1599,12 +1581,10 @@ async function updateServiceOrderStatus(orderId, status) {
         else window.showAlert?.('부가서비스 취소 권한이 필요합니다.', { type:'error' });
         return;
     }
-    if (next.key === 'cancelled' && !await confirmServiceOrderCancel(order)) return;
     const shouldAuditReopen = current.key === 'completed' && next.key !== 'completed';
-    const shouldAuditCancel = next.key === 'cancelled';
     order.status = status;
     persistOrders();
-    if (shouldAuditReopen || shouldAuditCancel) logServiceOrderStatusAudit(order, current, next);
+    if (shouldAuditReopen) logServiceOrderStatusAudit(order, current, next);
     renderAncillaryBoard();
     openServiceDetailModal(selectedDetailRoomId || order.roomId || order.room);
 }
