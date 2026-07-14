@@ -85,14 +85,16 @@
         .settlement-tags{display:flex;flex-wrap:nowrap;align-items:center;gap:3px;min-width:0;margin-top:1px;overflow:hidden}
         .settlement-tag{display:inline-flex;align-items:center;gap:3px;flex:0 1 auto;min-width:0;padding:2px 5px;border:1px solid var(--border2);border-radius:999px;background:#fff;font-size:.58rem;font-weight:900;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .settlement-tag i{font-size:.54rem;flex:0 0 auto}
-        .settlement-actions{display:flex;gap:7px;margin-top:auto}
-        .settlement-actions button{height:34px;display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:1;min-width:0;border:1px solid transparent;border-radius:8px;font-family:var(--font);font-size:.73rem;font-weight:850;text-decoration:none;white-space:nowrap;cursor:pointer;transition:filter .15s,background .15s,border-color .15s}
+        .settlement-actions{display:flex;gap:6px;margin-top:auto;min-width:0}
+        .settlement-actions button{height:36px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:5px;flex:1 1 0;min-width:0;padding:0 7px;border:1px solid transparent;border-radius:8px;font-family:var(--font);font-size:.71rem;font-weight:850;line-height:1.05;text-align:center;text-decoration:none;white-space:normal;overflow:hidden;cursor:pointer;transition:filter .15s,background .15s,border-color .15s}
         .settlement-actions button:hover{filter:brightness(.97)}
         .settlement-actions .payment{background:var(--primary);border-color:var(--primary);color:#fff}
         .settlement-actions .complete{background:#059669;border-color:#059669;color:#fff}
         .settlement-actions .refund{background:#fff7ed;border-color:#fed7aa;color:#c2410c}
         .settlement-actions .done{background:#ecfdf5;border-color:#bbf7d0;color:#047857}
         .settlement-actions .detail,.settlement-actions .outline{border-color:var(--border);background:#fff;color:var(--txt2)}
+        .settlement-actions .detail{flex:0 0 86px}
+        .settlement-actions .payment,.settlement-actions .complete{flex:1 1 auto}
         .settlement-actions .done:hover{filter:none;background:#d1fae5}
         .settlement-actions .detail:hover{filter:none;background:#f8fafc}
         .settlement-legend{display:flex;align-items:center;gap:10px;flex:1 1 auto;min-width:360px;flex-wrap:nowrap;margin:0 0 0 4px;padding:0;border:0;background:transparent;color:var(--txt2);font-size:.72rem;font-weight:850;overflow-x:auto;scrollbar-width:none}
@@ -585,6 +587,8 @@ const SETTLEMENT_TEXT = {
         noHistory: 'No payment or settlement completion history has been registered.',
         paymentRegister: 'Register Payment',
         settlementComplete: 'Complete Settlement',
+        cardPaymentRegister: 'Pay',
+        cardSettlementComplete: 'Complete',
         close: 'Close',
         print: 'Print',
         receipt: 'Statement',
@@ -658,6 +662,12 @@ function settlementLang() {
 function settlementText(key, vars = {}) {
     const text = (SETTLEMENT_TEXT[settlementLang()] && SETTLEMENT_TEXT[settlementLang()][key]) || SETTLEMENT_TEXT.ko[key] || key;
     return Object.entries(vars).reduce((result, [name, value]) => result.replaceAll(`{${name}}`, String(value)), text);
+}
+
+function settlementCardText(key) {
+    if (settlementLang() === 'en' && key === 'paymentRegister') return settlementText('cardPaymentRegister');
+    if (settlementLang() === 'en' && key === 'settlementComplete') return settlementText('cardSettlementComplete');
+    return settlementText(key);
 }
 
 function settlementCompletionTargetLabel(folio = {}) {
@@ -1557,8 +1567,8 @@ function settlementCard(folio) {
         : folio.status === 'refund'
             ? `<button type="button" class="refund" onclick="openSettlementStatusDetail('${folioKey}')"><i class="fa-solid fa-rotate-left"></i> ${settlementText('refundConfirm')}</button>`
             : folio.balance > 0
-                ? `<button type="button" class="payment" onclick="openSettlementStatusPayment('${folioKey}')"><i class="fa-solid fa-credit-card"></i> ${settlementText('paymentRegister')}</button>`
-                : `<button type="button" class="complete" onclick="completeSettlementStatusFolio('${folioKey}')"><i class="fa-solid fa-door-open"></i> ${settlementText('settlementComplete')}</button>`;
+                ? `<button type="button" class="payment" onclick="openSettlementStatusPayment('${folioKey}')"><i class="fa-solid fa-credit-card"></i> ${settlementCardText('paymentRegister')}</button>`
+                : `<button type="button" class="complete" onclick="completeSettlementStatusFolio('${folioKey}')"><i class="fa-solid fa-door-open"></i> ${settlementCardText('settlementComplete')}</button>`;
     const tags = [
         folio.deposit > 0 ? `<span class="settlement-tag"><i class="fa-solid fa-wallet"></i>${settlementText('depositExists')}</span>` : '',
         ...folio.tags.map(tag => `<span class="settlement-tag"><i class="fa-solid fa-tag"></i>${settlementEscape(tag)}</span>`)
