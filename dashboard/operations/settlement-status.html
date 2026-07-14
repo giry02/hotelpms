@@ -60,7 +60,8 @@
         .settlement-floor-head strong i{color:var(--primary);font-size:.82rem}
         .settlement-floor-head span{font-size:.74rem;font-weight:850;color:var(--txt3);white-space:nowrap}
         .settlement-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
-        .settlement-card{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:246px;padding:15px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 2px 10px rgba(15,23,42,.04)}
+        .settlement-card{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:246px;padding:15px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:0 2px 10px rgba(15,23,42,.04);cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .15s}
+        .settlement-card:hover,.settlement-card:focus-visible{border-color:#93c5fd;box-shadow:0 6px 18px rgba(15,23,42,.08);transform:translateY(-1px);outline:none}
         .settlement-card.unpaid{border-color:#fecdd3;box-shadow:inset 4px 0 0 #ef4444,0 2px 10px rgba(15,23,42,.04)}
         .settlement-card.ready{border-color:#bfdbfe;box-shadow:inset 4px 0 0 #3b82f6,0 2px 10px rgba(15,23,42,.04)}
         .settlement-card.paid{border-color:#bbf7d0;box-shadow:inset 4px 0 0 #10b981,0 2px 10px rgba(15,23,42,.04)}
@@ -1565,15 +1566,15 @@ function settlementCard(folio) {
     const actionButton = folio.settlementCompleted || folio.status === 'paid'
         ? `<span class="settlement-action-status done"><i class="fa-solid fa-circle-check"></i> ${settlementText('completed')}</span>`
         : folio.status === 'refund'
-            ? `<button type="button" class="refund" onclick="openSettlementStatusDetail('${folioKey}')"><i class="fa-solid fa-rotate-left"></i> ${settlementText('refundConfirm')}</button>`
+            ? `<button type="button" class="refund" onclick="event.stopPropagation(); openSettlementStatusDetail('${folioKey}')"><i class="fa-solid fa-rotate-left"></i> ${settlementText('refundConfirm')}</button>`
             : folio.balance > 0
-                ? `<button type="button" class="payment" onclick="openSettlementStatusPayment('${folioKey}')"><i class="fa-solid fa-credit-card"></i> ${settlementCardText('paymentRegister')}</button>`
-                : `<button type="button" class="complete" onclick="completeSettlementStatusFolio('${folioKey}')"><i class="fa-solid fa-door-open"></i> ${settlementCardText('settlementComplete')}</button>`;
+                ? `<button type="button" class="payment" onclick="event.stopPropagation(); openSettlementStatusPayment('${folioKey}')"><i class="fa-solid fa-credit-card"></i> ${settlementCardText('paymentRegister')}</button>`
+                : `<button type="button" class="complete" onclick="event.stopPropagation(); completeSettlementStatusFolio('${folioKey}')"><i class="fa-solid fa-door-open"></i> ${settlementCardText('settlementComplete')}</button>`;
     const tags = [
         folio.deposit > 0 ? `<span class="settlement-tag"><i class="fa-solid fa-wallet"></i>${settlementText('depositExists')}</span>` : '',
         ...folio.tags.map(tag => `<span class="settlement-tag"><i class="fa-solid fa-tag"></i>${settlementEscape(tag)}</span>`)
     ].filter(Boolean).join('');
-    return `<article class="settlement-card ${folio.status}">
+    return `<article class="settlement-card ${folio.status}" role="button" tabindex="0" onclick="openSettlementStatusDetail('${folioKey}')" onkeydown="handleSettlementCardKey(event,'${folioKey}')">
         <div class="settlement-card-top">
             <div class="settlement-room">
                 <strong>${settlementEscape(folio.roomText || folio.room || '-')}</strong>
@@ -1595,9 +1596,16 @@ function settlementCard(folio) {
         ${tags ? `<div class="settlement-tags">${tags}</div>` : ''}
         <div class="settlement-actions">
             ${actionButton}
-            <button type="button" class="detail" onclick="openSettlementStatusDetail('${folioKey}')"><i class="fa-solid fa-file-lines"></i> ${settlementText('detail')}</button>
+            <button type="button" class="detail" onclick="event.stopPropagation(); openSettlementStatusDetail('${folioKey}')"><i class="fa-solid fa-file-lines"></i> ${settlementText('detail')}</button>
         </div>
     </article>`;
+}
+
+function handleSettlementCardKey(event, folioKey) {
+    if (event.defaultPrevented || ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'].includes(event.target?.tagName)) return;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    openSettlementStatusDetail(folioKey);
 }
 
 function settlementFolioById(folioId) {

@@ -95,6 +95,8 @@
         .service-action-btn.accept:hover{background:var(--primary-dk);border-color:var(--primary-dk);box-shadow:0 3px 10px rgba(59,130,246,.18)}
         .service-action-btn.complete{background:var(--success);border-color:var(--success);color:#fff}
         .service-action-btn.complete:hover{filter:brightness(.96);box-shadow:0 3px 10px rgba(16,185,129,.18)}
+        .service-action-btn.cancel{border-color:#fecaca;background:#fff;color:#dc2626}
+        .service-action-btn.cancel:hover{background:#fef2f2;border-color:#fca5a5;box-shadow:0 3px 10px rgba(220,38,38,.12)}
         .service-status-pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:999px;font-size:.7rem;font-weight:950;white-space:nowrap}
         .service-status-pill.new{background:#fef3c7;color:#b45309}
         .service-status-pill.accepted{background:#dbeafe;color:#2563eb}
@@ -883,7 +885,10 @@ function serviceOrderActionButtons(order) {
             : status.key === 'completed' && canReopenAncillaryOrder()
                 ? `<button type="button" class="service-action-btn accept" onclick="updateServiceOrderStatus('${escapeHtml(order.id)}','accepted')"><i class="fa-solid fa-rotate-left"></i><span>미완료 전환</span></button>`
             : '';
-    return `${voucherButton}${nextButton}`;
+    const cancelButton = ['new', 'accepted'].includes(status.key)
+        ? `<button type="button" class="service-action-btn cancel" onclick="updateServiceOrderStatus('${escapeHtml(order.id)}','cancelled')"><i class="fa-solid fa-ban"></i><span>취소</span></button>`
+        : '';
+    return `${voucherButton}${nextButton}${cancelButton}`;
 }
 function voucherFieldsForOrder(order) {
     const vendor = vendorForOrder(order);
@@ -1527,34 +1532,79 @@ function scrollServiceRegistrationIntoView(behavior = 'smooth') {
         section.scrollIntoView({ behavior, block: 'start' });
     });
 }
-function updateServiceOrderStatus(orderId, status) {
+async function confirmServiceOrderCancel(order) {
+    const target = [order.room, order.guest, order.item].filter(Boolean).join(' · ') || order.id || '부가서비스';
+    if (typeof window.showConfirm === 'function') {
+        return await window.showConfirm(`[${target}] 부가서비스를 취소할까요?`, {
+            title: '부가서비스 취소',
+            okText: '취소 처리',
+            cancelText: '닫기'
+        });
+    }
+    return window.confirm ? window.confirm(`[${target}] 부가서비스를 취소할까요?`) : true;
+}
+
+function logServiceOrderStatusAudit(order, current, next) {
+    const action = next.key === 'cancelled' ? 'ancillary.order.cancel' : 'ancillary.order.reopen';
+    const details = {
+        orderId: order.id || '',
+        room: order.room || order.roomId || '',
+        guestName: order.guest || '',
+        service: serviceMeta(order.service).label,
+        item: order.item || '',
+        vendor: order.vendor || '',
+        beforeStatus: current.label,
+        afterStatus: next.label,
+        fields: ['orderId', 'room', 'service', 'item', 'status'],
+        amount: Number(order.total || 0),
+        currency: order.currency || 'PHP'
+    };
+    if (window.PmsPrivacyAudit?.log) {
+        window.PmsPrivacyAudit.log(action, details);
+        return;
+    }
+    try {
+        const storageKey = 'pms_privacy_audit_logs';
+        const role = localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
+        const logs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        if (!Array.isArray(logs)) return;
+        logs.push({
+            id: `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            action,
+            createdAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
+            actor: {
+                id: localStorage.getItem('mock_user_id') || role,
+                name: localStorage.getItem('mock_user_name') || 'Nguyen Kim',
+                role,
+                roleLabel: role === 'sys_admin' ? '관리자' : role
+            },
+            page: window.location.pathname,
+            details
+        });
+        localStorage.setItem(storageKey, JSON.stringify(logs.slice(-500)));
+        window.dispatchEvent(new CustomEvent('pms:privacy-audit', { detail: logs[logs.length - 1] }));
+    } catch(e) {
+        console.warn('Ancillary audit log fallback failed', e);
+    }
+}
+
+async function updateServiceOrderStatus(orderId, status) {
     const order = serviceOrders.find(item => item.id === orderId);
     if (!order) return;
     const current = serviceOrderStatusMeta(order.status);
     const next = serviceOrderStatusMeta(status);
+    if (current.key === next.key) return;
     if (current.key === 'completed' && status !== 'completed' && !canReopenAncillaryOrder()) {
         if (window.showToast) window.showToast('부가서비스 취소 권한이 필요합니다.', 'error');
         else window.showAlert?.('부가서비스 취소 권한이 필요합니다.', { type:'error' });
         return;
     }
+    if (next.key === 'cancelled' && !await confirmServiceOrderCancel(order)) return;
     const shouldAuditReopen = current.key === 'completed' && next.key !== 'completed';
+    const shouldAuditCancel = next.key === 'cancelled';
     order.status = status;
     persistOrders();
-    if (shouldAuditReopen && window.PmsPrivacyAudit?.log) {
-        window.PmsPrivacyAudit.log('ancillary.order.reopen', {
-            orderId: order.id || '',
-            room: order.room || order.roomId || '',
-            guestName: order.guest || '',
-            service: serviceMeta(order.service).label,
-            item: order.item || '',
-            vendor: order.vendor || '',
-            beforeStatus: current.label,
-            afterStatus: next.label,
-            fields: ['orderId', 'room', 'service', 'item', 'status'],
-            amount: Number(order.total || 0),
-            currency: order.currency || 'PHP'
-        });
-    }
+    if (shouldAuditReopen || shouldAuditCancel) logServiceOrderStatusAudit(order, current, next);
     renderAncillaryBoard();
     openServiceDetailModal(selectedDetailRoomId || order.roomId || order.room);
 }
