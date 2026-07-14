@@ -1660,6 +1660,15 @@ function changePage(page) {
 
 function refreshReservationLabels() {
     updateSortButtons();
+    const periodSelect = document.getElementById('periodFilterSelect');
+    if (periodSelect) {
+        const periodLabels = currentLang === 'en'
+            ? { today: 'Today', week: '1 week', tomorrow: 'Tomorrow', month: 'This month', all: 'All dates' }
+            : { today: '오늘', week: '1주일', tomorrow: '내일', month: '이번 달', all: '전체 기간' };
+        Array.from(periodSelect.options).forEach(option => {
+            option.textContent = periodLabels[option.value] || option.textContent;
+        });
+    }
     document.querySelectorAll('.ops-tab').forEach(tab => {
         const filter = tab.getAttribute('data-filter');
         const label = tab.querySelector('.ops-label');

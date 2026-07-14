@@ -436,7 +436,7 @@
             <section class="modal-section">
                 <div class="modal-section-head">
                     <span>이용 내역</span>
-                    <button class="btn-primary-sm" id="detailAddButton" onclick="openServiceModalFromDetail()"><i class="fa-solid fa-plus"></i> 추가 등록</button>
+                    <button class="btn-primary-sm" id="detailAddButton" onclick="openServiceModalFromDetail()"><i class="fa-solid fa-plus"></i> <span data-ko="추가 등록" data-en="Add Registration">추가 등록</span></button>
                 </div>
                 <div class="modal-section-body">
                     <div id="detailOrderList" class="service-detail-list"></div>
@@ -474,7 +474,7 @@
                                 </div>
                                 <div class="service-price-note">기준 단가와 적용 단가가 다르면 등록 시 금액 조정 로그가 남습니다.</div>
                             </div>
-                            <div style="margin-top:10px"><label class="form-label">메모</label><textarea id="serviceMemo" class="form-input" placeholder="요청사항, 픽업 위치, 티타임 특이사항 등" oninput="renderRegistrationPreview()"></textarea></div>
+                            <div style="margin-top:10px"><label class="form-label">메모</label><textarea id="serviceMemo" class="form-input" placeholder="요청사항, 픽업 위치, 티타임 특이사항 등" data-ko="요청사항, 픽업 위치, 티타임 특이사항 등" data-en="Requests, pickup location, tee-time notes, etc." oninput="renderRegistrationPreview()"></textarea></div>
                             <div class="group-bulk-box is-hidden" id="groupBulkBox">
                                 <input id="groupSelect" type="hidden">
                                 <label class="group-bulk-title">
@@ -515,7 +515,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn-outline" onclick="closeOrderVoucherModal()">닫기</button>
-            <button class="btn-primary-sm" onclick="printServiceVoucher()"><i class="fa-solid fa-print"></i> <span id="serviceVoucherPrintLabel">인쇄하기</span></button>
+            <button class="btn-primary-sm" onclick="printServiceVoucher()"><i class="fa-solid fa-print"></i> <span id="serviceVoucherPrintLabel" data-ko="인쇄하기" data-en="Print">인쇄하기</span></button>
         </div>
     </div>
 </div>
@@ -1902,7 +1902,12 @@ function openOrderVoucherModal(orderId) {
     const body = document.getElementById('serviceVoucherPrintBody');
     if (body) body.innerHTML = renderVoucherBatch(orders);
     const printLabel = document.getElementById('serviceVoucherPrintLabel');
-    if (printLabel) printLabel.textContent = orders.length > 1 ? `전체 ${orders.length}건 출력` : '인쇄하기';
+    if (printLabel) {
+        const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+        printLabel.textContent = orders.length > 1
+            ? (lang === 'en' ? `Print All ${orders.length}` : `전체 ${orders.length}건 출력`)
+            : (lang === 'en' ? 'Print' : '인쇄하기');
+    }
     const modal = document.getElementById('serviceVoucherModal');
     modal.style.display = 'flex';
     modal.classList.add('active');

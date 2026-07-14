@@ -406,6 +406,16 @@ function closeExpenseListModal() {
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
 }
+window.applyLocalI18n = function applyExpensePurchasesLocalI18n() {
+    applyExpenseLanguage();
+    renderExpenses();
+    if (document.getElementById('expenseListModal')?.classList.contains('active')) {
+        renderExpenseModalRows();
+    }
+};
+window.addEventListener('languagechange', () => {
+    window.applyLocalI18n();
+});
 document.addEventListener('DOMContentLoaded', () => {
     applyExpenseLanguage();
     resetExpenseForm();

@@ -135,7 +135,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">이름 <span style="color:var(--danger)">*</span></label>
-                    <input type="text" class="form-control" id="newName" placeholder="예: 홍길동">
+                    <input type="text" class="form-control" id="newName" placeholder="예: 홍길동" data-ko="예: 홍길동" data-en="E.g. Hong Gil-dong">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">사번 / ID</label>
@@ -151,11 +151,11 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">전화번호</label>
-                    <input type="tel" class="form-control" id="newPhone" placeholder="예: +84 90 123 4567">
+                    <input type="tel" class="form-control" id="newPhone" placeholder="예: +84 90 123 4567" data-ko="예: +84 90 123 4567" data-en="E.g. +84 90 123 4567">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">주소</label>
-                    <input type="text" class="form-control" id="newAddress" placeholder="예: Ho Chi Minh City">
+                    <input type="text" class="form-control" id="newAddress" placeholder="예: Ho Chi Minh City" data-ko="예: Ho Chi Minh City" data-en="E.g. Ho Chi Minh City">
                 </div>
             </div>
 
@@ -204,7 +204,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn-outline" onclick="closeModal('addStaffModal')">취소</button>
-            <button class="btn-primary-sm" onclick="saveStaff()"><i class="fa-solid fa-check"></i> 계정 생성</button>
+            <button class="btn-primary-sm" onclick="saveStaff()"><i class="fa-solid fa-check"></i> <span data-ko="계정 생성" data-en="Create Account">계정 생성</span></button>
         </div>
     </div>
 </div>
@@ -235,11 +235,11 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">전화번호</label>
-                    <input type="tel" class="form-control" id="editPhone" placeholder="예: +84 90 123 4567">
+                    <input type="tel" class="form-control" id="editPhone" placeholder="예: +84 90 123 4567" data-ko="예: +84 90 123 4567" data-en="E.g. +84 90 123 4567">
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">주소</label>
-                    <input type="text" class="form-control" id="editAddress" placeholder="예: Ho Chi Minh City">
+                    <input type="text" class="form-control" id="editAddress" placeholder="예: Ho Chi Minh City" data-ko="예: Ho Chi Minh City" data-en="E.g. Ho Chi Minh City">
                 </div>
             </div>
 
@@ -382,11 +382,40 @@ let staffData = loadStaff();
 let editingId = null;
 let selectedRoleId = null;
 
+function staffLang() {
+    return localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+}
+
+function staffText(ko, en) {
+    return staffLang() === 'en' ? en : ko;
+}
+
+const STAFF_ROLE_LABELS = {
+    sys_admin: { ko: '관리자', en: 'Admin' },
+    sys_gm: { ko: '총괄 매니저', en: 'General Manager' },
+    sys_front: { ko: '프론트 데스크', en: 'Front Desk' },
+    sys_housekeeping: { ko: '하우스키핑', en: 'Housekeeping' },
+    sys_maintenance: { ko: '시설 보수', en: 'Maintenance' }
+};
+
+function roleDisplayName(role) {
+    if (!role) return staffText('역할 없음', 'No Role');
+    const labels = STAFF_ROLE_LABELS[role.id];
+    return labels ? labels[staffLang()] : role.name;
+}
+
+function roleDescription(role) {
+    if (!role) return '';
+    return role.desc || staffText(`${role.perms.length}개 권한`, `${role.perms.length} permissions`);
+}
+
 // ─── 역할 필터 드롭다운 ────────────────────────────────────────
 function buildRoleFilter() {
     const sel = document.getElementById('roleFilter');
-    sel.innerHTML = '<option value="all">전체 역할</option>' +
-        getAllRoles().map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+    const current = sel.value || 'all';
+    sel.innerHTML = `<option value="all">${staffText('전체 역할', 'All Roles')}</option>` +
+        getAllRoles().map(r => `<option value="${r.id}">${roleDisplayName(r)}</option>`).join('');
+    if (Array.from(sel.options).some(option => option.value === current)) sel.value = current;
 }
 
 function populateEditRoleOptions(selectedRoleId = '') {
@@ -394,11 +423,41 @@ function populateEditRoleOptions(selectedRoleId = '') {
     if (!editSel) return;
     const roles = getAssignableRoles();
     editSel.innerHTML = roles.length
-        ? roles.map(r => `<option value="${r.id}">${r.name}</option>`).join('')
-        : '<option value="">등록된 역할 없음</option>';
+        ? roles.map(r => `<option value="${r.id}">${roleDisplayName(r)}</option>`).join('')
+        : `<option value="">${staffText('등록된 역할 없음', 'No roles registered')}</option>`;
     editSel.disabled = roles.length === 0;
     if (selectedRoleId && roles.some(r => r.id === selectedRoleId)) editSel.value = selectedRoleId;
     else if (roles.length) editSel.value = roles[0].id;
+}
+
+function refreshStaffStatusOptions() {
+    const statusLabels = {
+        all: staffText('전체 상태', 'All Statuses'),
+        online: staffText('근무 중', 'Online'),
+        offline: staffText('오프라인', 'Offline')
+    };
+    const statusFilter = document.getElementById('statusFilter');
+    if (statusFilter) {
+        const current = statusFilter.value || 'all';
+        statusFilter.innerHTML = Object.entries(statusLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+        statusFilter.value = current;
+    }
+    const editStatus = document.getElementById('editStatus');
+    if (editStatus) {
+        const current = editStatus.value || 'online';
+        editStatus.innerHTML = ['online', 'offline'].map(value => `<option value="${value}">${statusLabels[value]}</option>`).join('');
+        editStatus.value = current;
+    }
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.placeholder = staffText('이름, 이메일 검색...', 'Search name or email...');
+}
+
+function applyStaffLanguage() {
+    refreshStaffStatusOptions();
+    buildRoleFilter();
+    populateEditRoleOptions(document.getElementById('editRole')?.value || '');
+    renderRolePickGrid();
+    renderStaff();
 }
 
 // ─── 직원 목록 렌더링 ──────────────────────────────────────────
@@ -426,22 +485,22 @@ function renderStaff() {
 
     tbody.innerHTML = filtered.map(s => {
         const role = getRoleById(s.roleId);
-        const roleName  = role ? role.name  : '역할 없음';
+        const roleName  = roleDisplayName(role);
         const roleColor = role ? role.color : '#9CA3AF';
         const permCount = role ? role.perms.length : 0;
         const managedAdmin = isSettingsManagedAdmin(s);
         const manageAction = managedAdmin
             ? `<div>
                     <a class="btn-outline-sm settings-managed-link" href="settings.html">
-                        <i class="fa-solid fa-gear"></i> 설정에서 관리
+                        <i class="fa-solid fa-gear"></i> ${staffText('설정에서 관리', 'Manage in Settings')}
                     </a>
                </div>`
             : `<button class="btn-outline-sm" onclick="openEdit('${s.id}')">
-                    <i class="fa-solid fa-pen"></i> 편집
+                    <i class="fa-solid fa-pen"></i> ${staffText('편집', 'Edit')}
                </button>`;
         const dot = s.status === 'online'
-            ? `<span class="status-dot" style="background:var(--success)"></span> 근무 중`
-            : `<span class="status-dot" style="background:var(--txt3)"></span> 오프라인`;
+            ? `<span class="status-dot" style="background:var(--success)"></span> ${staffText('근무 중', 'Online')}`
+            : `<span class="status-dot" style="background:var(--txt3)"></span> ${staffText('오프라인', 'Offline')}`;
         return `<tr>
             <td>
                 <div class="guest-cell">
@@ -458,7 +517,7 @@ function renderStaff() {
             </td>
             <td>
                 <span style="font-size:.82rem;font-weight:600;color:var(--txt)">${permCount}</span>
-                <span style="font-size:.72rem;color:var(--txt3)"> 개</span>
+                <span style="font-size:.72rem;color:var(--txt3)"> ${staffText('개', '')}</span>
             </td>
             <td>${dot}</td>
             <td style="font-size:.82rem;color:var(--txt2)">${s.last}</td>
@@ -476,8 +535,8 @@ function renderRolePickGrid() {
              onclick="selectRole('${r.id}', this)"
              style="${selectedRoleId === r.id ? `border-color:${r.color};background:${r.color}11` : ''}">
             <div class="rpc-icon" style="color:${r.color}"><i class="fa-solid fa-user-shield"></i></div>
-            <div class="rpc-name">${r.name}</div>
-            <div class="rpc-desc">${r.desc || r.perms.length + '개 권한'}</div>
+            <div class="rpc-name">${roleDisplayName(r)}</div>
+            <div class="rpc-desc">${roleDescription(r)}</div>
         </div>
     `).join('');
 
@@ -692,9 +751,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         buildRoleFilter();
+        refreshStaffStatusOptions();
         populateEditRoleOptions();
         renderStaff();
     } catch(e) { console.error(e); }
+});
+window.applyLocalI18n = function applyStaffLocalI18n() {
+    applyStaffLanguage();
+};
+window.addEventListener('languagechange', () => {
+    applyStaffLanguage();
 });
 </script>
 <script>

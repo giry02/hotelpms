@@ -1928,10 +1928,52 @@ function applyEnglishUiTextFallback() {
 }
 
 const KO_PLACEHOLDER_FALLBACKS = {
-    'Room번호 검색...': '객실번호 검색...'
+    'Room번호 검색...': '객실번호 검색...',
+    '이름, Room No., Reservation번호, Group명 검색...': '이름, 객실번호, 예약번호, 단체명 검색...',
+    'Reservation번호, 고객명, 직원, Room, 변경내용 검색...': '예약번호, 고객명, 직원, 객실, 변경내용 검색...'
 };
 
 const EN_TO_KO_UI_FALLBACKS = {
+    'Reservation Mgmt': '예약 관리',
+    'Reservation Board': '예약 현황',
+    'Reservation Timeline': '예약 타임라인',
+    'Reservation List': '예약 목록',
+    'Booking List': '예약 목록',
+    'Groups': '단체 관리',
+    'Group/Event List': '단체/행사 목록',
+    'Group Company Management': '단체업체 관리',
+    'Room Mgmt': '객실 관리',
+    'Ancillary Svcs': '부가서비스',
+    'Ancillary Registration': '부가서비스 등록',
+    'Vendor / Item Management': '업체/항목 관리',
+    'Folio & Billing': '통합 정산',
+    'Settlement Status': '정산 현황',
+    'Settlement List': '정산 목록',
+    'Expense Purchases': '비품 구매',
+    'Night Audit': '일일 마감',
+    'Sales Analytics': '매출 분석',
+    'Guest CRM': '투숙객 관리',
+    'Staff Mgmt': '직원 관리',
+    'Staff List': '직원 목록',
+    'Role & Permissions': '권한 설정',
+    'Operation Logs': '운영 로그',
+    'Audit Logs': '감사 로그',
+    'Notices': '공지사항',
+    'Cancelled': '취소/노쇼',
+    'Scheduled': '예정',
+    'Past Events': '지난 행사',
+    'Settlement Needed': '정산 필요',
+    'New Event': '신규 행사',
+    'Download Excel': '엑셀 다운로드',
+    'Golf Course': '골프장',
+    'Ancillary Page': '부가서비스 화면',
+    'Register Vendor': '업체 등록',
+    'Add Item': '항목 추가',
+    'Select Period': '기간 선택',
+    'Download Details': '상세 다운로드',
+    'Payment Register': '결제 등록',
+    'Payment Mark Complete': '결제 완료 처리',
+    'Refresh': '새로고침',
     'Total Guests': '총 고객 수',
     'Return Rate': '재방문율',
     'Avg. Spend/Guest': '고객당 평균 지출',
@@ -2150,6 +2192,11 @@ function isSearchInput(input) {
 
 const searchPlaceholderTranslations = {
     en: {
+        '이름, 객실번호, 예약번호, 단체명 검색...': 'Search by name, room, booking #, group...',
+        '이름, Room No., Reservation번호, Group명 검색...': 'Search by name, room, booking #, group...',
+        '예약번호, 고객명, 직원, 객실, 변경내용 검색...': 'Search reservation no., guest, staff, room, or changes...',
+        'Reservation번호, 고객명, 직원, Room, 변경내용 검색...': 'Search reservation no., guest, staff, room, or changes...',
+        '항목/구매자 검색': 'Search item or buyer',
         '이름, 이메일 검색...': 'Search name or email...',
         '이름, Contact, 이메일 검색...': 'Search name, contact, or email...',
         '고객명 검색...': 'Search guest name...',
@@ -2168,6 +2215,9 @@ const searchPlaceholderTranslations = {
         '객실 번호, 타입 검색...': 'Search room number or type...'
     },
     ko: {
+        'Search by name, room, booking #, group...': '이름, 객실번호, 예약번호, 단체명 검색...',
+        'Search reservation no., guest, staff, room, or changes...': '예약번호, 고객명, 직원, 객실, 변경내용 검색...',
+        'Search item or buyer': '항목/구매자 검색',
         'Search name or email...': '이름, 이메일 검색...',
         'Search name, contact, or email...': '이름, 연락처, 이메일 검색...',
         'Search guest name...': '고객명 검색...',
@@ -2176,6 +2226,7 @@ const searchPlaceholderTranslations = {
         'Search group/block name...': '행사/블록명 검색...',
         'Search group name...': '단체명 검색...',
         'Search room, guest, or folio...': '객실번호, 고객명, 정산번호 검색...',
+        'Search room, guest, folio...': '객실번호, 고객명, 정산번호 검색...',
         'Search room number...': '객실번호 검색...',
         'Search room number or type...': '객실번호, 타입 검색...',
         '이름, Contact, 이메일 검색...': '이름, 연락처, 이메일 검색...',

@@ -154,15 +154,15 @@
       <div class="modal-header"><h3 class="modal-title"><i class="fa-solid fa-building" style="color:var(--primary)"></i> 업체 등록</h3><button class="modal-close" onclick="closeModal('vendorModal')"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px">
         <div class="form-row">
-          <div><label class="form-label">서비스 구분</label><select id="vendorType" class="form-input"><option value="pos">통합 POS</option><option value="golf">골프장</option><option value="rentacar">렌터카</option><option value="restaurant">음식점</option><option value="other">기타</option></select></div>
-          <div><label class="form-label">업체명</label><input id="vendorName" class="form-input" placeholder="예: 썬밸리 CC"></div>
+          <div><label class="form-label">서비스 구분</label><select id="vendorType" class="form-input"><option value="pos" data-ko="통합 POS" data-en="Unified POS">통합 POS</option><option value="golf" data-ko="골프장" data-en="Golf Course">골프장</option><option value="rentacar" data-ko="렌터카" data-en="Rent-a-car">렌터카</option><option value="restaurant" data-ko="음식점" data-en="Restaurant">음식점</option><option value="other" data-ko="기타" data-en="Other">기타</option></select></div>
+          <div><label class="form-label">업체명</label><input id="vendorName" class="form-input" placeholder="예: 썬밸리 CC" data-ko="예: 썬밸리 CC" data-en="E.g. Sun Valley CC"></div>
         </div>
         <div class="form-row">
-          <div><label class="form-label">담당자/연락처</label><input id="vendorContact" class="form-input" placeholder="예: 박지훈 / +82 10..."></div>
-          <div><label class="form-label">수수료율(%)</label><input id="vendorCommission" type="number" class="form-input" min="0" max="100" placeholder="예: 15"></div>
+          <div><label class="form-label">담당자/연락처</label><input id="vendorContact" class="form-input" placeholder="예: 박지훈 / +82 10..." data-ko="예: 박지훈 / +82 10..." data-en="E.g. Park Jihoon / +82 10..."></div>
+          <div><label class="form-label">수수료율(%)</label><input id="vendorCommission" type="number" class="form-input" min="0" max="100" placeholder="예: 15" data-ko="예: 15" data-en="E.g. 15"></div>
         </div>
-        <div><label class="form-label">업체 주소</label><input id="vendorAddress" class="form-input" placeholder="예: Clark Freeport Zone, Pampanga"></div>
-        <div><label class="form-label">위치</label><input id="vendorLocation" class="form-input" placeholder="예: 호텔 도보 6분, 로비 픽업"></div>
+        <div><label class="form-label">업체 주소</label><input id="vendorAddress" class="form-input" placeholder="예: Clark Freeport Zone, Pampanga" data-ko="예: Clark Freeport Zone, Pampanga" data-en="E.g. Clark Freeport Zone, Pampanga"></div>
+        <div><label class="form-label">위치</label><input id="vendorLocation" class="form-input" placeholder="예: 호텔 도보 6분, 로비 픽업" data-ko="예: 호텔 도보 6분, 로비 픽업" data-en="E.g. 6-minute walk from hotel, lobby pickup"></div>
       </div>
       <div class="modal-footer"><button class="btn-outline" onclick="closeModal('vendorModal')">취소</button><button class="btn-primary-sm" onclick="saveVendor()">저장</button></div>
     </div>
@@ -173,11 +173,11 @@
       <div class="modal-header"><h3 class="modal-title"><i class="fa-solid fa-tag" style="color:var(--primary)"></i> 이용 항목 등록</h3><button class="modal-close" onclick="closeModal('itemModal')"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px">
         <div class="form-row">
-          <div><label class="form-label">항목명</label><input id="itemName" class="form-input" placeholder="예: 18홀 그린피"></div>
-          <div><label class="form-label">기준 금액</label><input id="itemPrice" type="number" class="form-input" min="0" placeholder="예: 450"></div>
+          <div><label class="form-label">항목명</label><input id="itemName" class="form-input" placeholder="예: 18홀 그린피" data-ko="예: 18홀 그린피" data-en="E.g. 18-hole green fee"></div>
+          <div><label class="form-label">기준 금액</label><input id="itemPrice" type="number" class="form-input" min="0" placeholder="예: 450" data-ko="예: 450" data-en="E.g. 450"></div>
         </div>
         <div id="itemTypeFields"></div>
-        <div><label class="form-label">설명</label><input id="itemDesc" class="form-input" placeholder="예: 주중 18홀, 카트 별도"></div>
+        <div><label class="form-label">설명</label><input id="itemDesc" class="form-input" placeholder="예: 주중 18홀, 카트 별도" data-ko="예: 주중 18홀, 카트 별도" data-en="E.g. Weekday 18 holes, cart separate"></div>
       </div>
       <div class="modal-footer"><button class="btn-outline" onclick="closeModal('itemModal')">취소</button><button class="btn-primary-sm" onclick="saveItem()">저장</button></div>
     </div>
@@ -286,7 +286,34 @@
       return normalized;
     }
     function itemExamples(type) {
-      return {
+      const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+      const examples = lang === 'en' ? {
+        pos: {
+          name: 'E.g. Room service set',
+          price: 'E.g. 8500',
+          desc: 'E.g. breakfast for 2, room laundry, minibar add-on'
+        },
+        restaurant: {
+          name: 'E.g. Dinner set for 2',
+          price: 'E.g. 260',
+          desc: 'E.g. guest-only menu, reservation required'
+        },
+        golf: {
+          name: 'E.g. 18-hole green fee',
+          price: 'E.g. 450',
+          desc: 'E.g. weekday 18 holes, cart separate'
+        },
+        rentacar: {
+          name: 'E.g. sedan basic rental',
+          price: 'E.g. 90',
+          desc: 'E.g. hourly base rate, one-way base fee, car with driver'
+        },
+        other: {
+          name: 'E.g. ticket booking fee',
+          price: 'E.g. 120',
+          desc: 'E.g. show/tour ticket booking service'
+        }
+      } : {
         pos: {
           name: '예: 룸서비스 세트',
           price: '예: 8500',
@@ -312,11 +339,10 @@
           price: '예: 120',
           desc: '예: 공연/투어 티켓 예약 대행'
         }
-      }[type] || {
-        name: '예: 이용 항목',
-        price: '예: 0',
-        desc: '예: 제공 조건 또는 이용 기준'
       };
+      return examples[type] || (lang === 'en'
+        ? { name: 'E.g. service item', price: 'E.g. 0', desc: 'E.g. service conditions or usage standard' }
+        : { name: '예: 이용 항목', price: '예: 0', desc: '예: 제공 조건 또는 이용 기준' });
     }
     function applyItemModalExamples(type) {
       const examples = itemExamples(type);
@@ -336,13 +362,13 @@
             <div>
               <label class="form-label">차량 등급</label>
               <select id="itemVehicleClass" class="form-input" onchange="toggleItemCustomField('itemVehicleClass','itemVehicleCustom')">
-                <option value="">차량 선택</option>
-                <option>세단</option>
-                <option>프리미엄 세단</option>
-                <option>SUV</option>
-                <option>밴</option>
-                <option>기사 포함 밴</option>
-                <option value="custom">직접 입력</option>
+                <option value="" data-ko="차량 선택" data-en="Select Vehicle">차량 선택</option>
+                <option data-ko="세단" data-en="Sedan">세단</option>
+                <option data-ko="프리미엄 세단" data-en="Premium Sedan">프리미엄 세단</option>
+                <option data-ko="SUV" data-en="SUV">SUV</option>
+                <option data-ko="밴" data-en="Van">밴</option>
+                <option data-ko="기사 포함 밴" data-en="Van with Driver">기사 포함 밴</option>
+                <option value="custom" data-ko="직접 입력" data-en="Manual Entry">직접 입력</option>
               </select>
             </div>
             <div><label class="form-label">차량 직접 입력</label><input id="itemVehicleCustom" class="form-input" style="display:none" placeholder="예: 리무진, 전기 SUV"></div>
@@ -750,6 +776,10 @@
         setTimeout(() => openVoucherPreviewModal(), 80);
       }
     }
+    window.addEventListener('languagechange', () => {
+      applyItemModalExamples(document.getElementById('vendorType')?.value || currentType);
+      renderItemTypeFields(document.getElementById('vendorType')?.value || currentType);
+    });
     document.addEventListener('DOMContentLoaded', initFromQuery);
   </script>
 </body>

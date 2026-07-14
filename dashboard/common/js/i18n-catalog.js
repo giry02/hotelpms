@@ -193,6 +193,7 @@ window.PMS_I18N_CATALOG.dashboard = {
         "expense.note.placeholder": "영수증 번호, 차량번호, 정산 연결 메모 등",
         "expense.payment": "결제",
         "expense.search.placeholder": "항목/구매자 검색",
+        "audit.search.placeholder": "예약번호, 고객명, 직원, 객실, 변경내용 검색...",
         "expense.modalTitle": "비품구매/지출 목록",
         "expense.settlementImpact": "정산 반영",
         "expense.close": "닫기"
@@ -388,6 +389,7 @@ window.PMS_I18N_CATALOG.dashboard = {
         "expense.note.placeholder": "Receipt number, vehicle number, settlement memo, etc.",
         "expense.payment": "Payment",
         "expense.search.placeholder": "Search item/buyer",
+        "audit.search.placeholder": "Search reservation no., guest, staff, room, or changes...",
         "expense.modalTitle": "Expense Purchase List",
         "expense.settlementImpact": "Settlement Impact",
         "expense.close": "Close"
