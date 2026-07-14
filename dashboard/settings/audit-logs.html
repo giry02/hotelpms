@@ -248,6 +248,8 @@ const FIELD_LABELS = {
 const AUDIT_DEMO_STORAGE_KEY = 'pms_audit_demo_seed_v3';
 const AUDIT_PAGE_SIZE = 12;
 let auditCurrentPage = 1;
+let auditRenderTimer = null;
+const AUDIT_SELECT_RENDER_DELAY = 120;
 const AUDIT_DEMO_ACTORS = {
     admin: { id: 's1', name: 'Nguyen Kim', role: 'sys_admin', roleLabel: '관리자' },
     desk: { id: 's3', name: 'Sarah Connor', role: 'sys_desk', roleLabel: '프론트 데스크' },
@@ -631,14 +633,22 @@ function updateAuditPeriodUi() {
     if (period === 'custom') auditPeriodRange();
 }
 
-function resetAuditPageAndRender() {
-    auditCurrentPage = 1;
-    renderAuditLogs();
+function scheduleAuditRender({ resetPage = false, defer = 0 } = {}) {
+    if (resetPage) auditCurrentPage = 1;
+    clearTimeout(auditRenderTimer);
+    auditRenderTimer = setTimeout(() => {
+        auditRenderTimer = null;
+        renderAuditLogs();
+    }, defer);
+}
+
+function resetAuditPageAndRender(options = {}) {
+    scheduleAuditRender({ resetPage: true, defer: options.defer || 0 });
 }
 
 function setAuditPage(page) {
     auditCurrentPage = Math.max(1, Number(page) || 1);
-    renderAuditLogs();
+    scheduleAuditRender();
 }
 
 function filteredLogs(logs) {
@@ -763,10 +773,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('auditSearch')?.addEventListener('keydown', event => {
         if (event.key === 'Enter') resetAuditPageAndRender();
     });
-    document.getElementById('auditActionFilter')?.addEventListener('change', resetAuditPageAndRender);
-    document.getElementById('auditPeriodFilter')?.addEventListener('change', () => {
-        updateAuditPeriodUi();
-        resetAuditPageAndRender();
+    document.getElementById('auditActionFilter')?.addEventListener('change', event => {
+        event.target.blur();
+        resetAuditPageAndRender({ defer: AUDIT_SELECT_RENDER_DELAY });
+    });
+    document.getElementById('auditPeriodFilter')?.addEventListener('change', event => {
+        event.target.blur();
+        setTimeout(() => {
+            updateAuditPeriodUi();
+            resetAuditPageAndRender();
+        }, AUDIT_SELECT_RENDER_DELAY);
     });
     document.getElementById('auditStartDate')?.addEventListener('change', resetAuditPageAndRender);
     document.getElementById('auditEndDate')?.addEventListener('change', resetAuditPageAndRender);
