@@ -759,6 +759,16 @@ function companyText(key, params = {}) {
     return text;
 }
 
+function companyDataText(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+
 function displayGroupBilling(value) {
     return String(value || '').replace(/업체 후불/g, '단체 후불');
 }
@@ -885,14 +895,14 @@ function renderCompanies(search = '') {
         <div class="company-card">
             <div class="company-header">
                 <div>
-                    <div class="company-name">${c.name}</div>
-                    <div class="company-type">${typeName} · ${c.id}</div>
+                    <div class="company-name" data-no-auto-i18n data-no-i18n>${companyDataText(c.name)}</div>
+                    <div class="company-type"><span>${typeName}</span> · <span data-no-auto-i18n data-no-i18n>${companyDataText(c.id)}</span></div>
                 </div>
                 <span class="status-badge ${badgeCls}">${badgeTxt}</span>
             </div>
             <div class="company-meta">
-                <div><i class="fa-solid fa-user"></i> 담당: ${c.contactName || '-'}</div>
-                <div><i class="fa-solid fa-phone"></i> ${c.phone || '-'}</div>
+                <div><i class="fa-solid fa-user"></i> <span data-ko="담당:" data-en="Manager:">담당:</span> <span data-no-auto-i18n data-no-i18n>${companyDataText(c.contactName || '-')}</span></div>
+                <div><i class="fa-solid fa-phone"></i> <span data-no-auto-i18n data-no-i18n>${companyDataText(c.phone || '-')}</span></div>
                 <div><i class="fa-solid fa-percent"></i> ${c.rate || '-'}</div>
                 <div><i class="fa-solid fa-credit-card"></i> ${displayGroupBilling(c.billing) || '-'}</div>
             </div>
@@ -911,7 +921,8 @@ function renderCompanies(search = '') {
 
 function openNewCompanyModal() {
     bindCompanyPhoneInput();
-    document.getElementById('compModalTitle').textContent = '신규 단체 등록';
+    const title = document.getElementById('compModalTitle');
+    title.textContent = companyLang() === 'en' ? 'Register Group' : '신규 단체 등록';
     document.getElementById('compId').value = '';
     document.getElementById('compName').value = '';
     document.getElementById('compContactName').value = '';
@@ -925,7 +936,8 @@ function editCompany(id) {
     bindCompanyPhoneInput();
     const c = companies.find(x => x.id === id);
     if(!c) return;
-    document.getElementById('compModalTitle').textContent = '단체 정보 수정';
+    const title = document.getElementById('compModalTitle');
+    title.textContent = companyLang() === 'en' ? 'Edit Group' : '단체 정보 수정';
     document.getElementById('compId').value = c.id;
     document.getElementById('compName').value = c.name;
     document.getElementById('compType').value = c.type;
@@ -1146,14 +1158,14 @@ function openBlockModal(compId) {
             <div class="company-card">
                 <div class="company-header">
                     <div>
-                        <div class="company-name">${c.name}</div>
-                        <div class="company-type">${typeName} · ${c.id}</div>
+                        <div class="company-name" data-no-auto-i18n data-no-i18n>${companyDataText(c.name)}</div>
+                        <div class="company-type"><span>${typeName}</span> · <span data-no-auto-i18n data-no-i18n>${companyDataText(c.id)}</span></div>
                     </div>
                     <span class="status-badge ${badgeCls}">${badgeTxt}</span>
                 </div>
                 <div class="company-meta">
-                    <div><i class="fa-solid fa-user"></i> 담당: ${c.contactName || '-'}</div>
-                    <div><i class="fa-solid fa-phone"></i> ${c.phone || '-'}</div>
+                    <div><i class="fa-solid fa-user"></i> <span data-ko="담당:" data-en="Manager:">담당:</span> <span data-no-auto-i18n data-no-i18n>${companyDataText(c.contactName || '-')}</span></div>
+                    <div><i class="fa-solid fa-phone"></i> <span data-no-auto-i18n data-no-i18n>${companyDataText(c.phone || '-')}</span></div>
                     <div><i class="fa-solid fa-percent"></i> ${c.rate || (c.groupDiscount ? `객실 ${c.groupDiscount}% 할인` : '-')}</div>
                     <div><i class="fa-solid fa-credit-card"></i> ${displayGroupBilling(c.billing) || '-'}</div>
                     <div><i class="fa-solid fa-calendar-check"></i> ${companyText('active')} ${cnt.active} · ${companyText('upcoming')} ${cnt.upcoming}</div>

@@ -39,6 +39,17 @@ window.PMS_CURRENCY_META = window.PMS_CURRENCY_META || {
     THB: { symbol: '฿', locale: 'th-TH' },
     JPY: { symbol: '¥', locale: 'ja-JP' }
 };
+
+function pmsShouldSkipAutoI18n(node) {
+    const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'CODE', 'PRE', 'TEXTAREA', 'INPUT', 'OPTION']);
+    let el = node && node.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+    while (el) {
+        if (skipTags.has(el.tagName)) return true;
+        if (el.matches && el.matches('[data-no-auto-i18n], [data-no-i18n], [data-i18n-skip], .user-input, .guest-name, .timeline-user-data')) return true;
+        el = el.parentElement;
+    }
+    return false;
+}
 window.pmsDefaultCurrency = window.pmsDefaultCurrency || function pmsDefaultCurrency() {
     return localStorage.getItem('pms_default_currency') || localStorage.getItem('pms_currency') || 'PHP';
 };
@@ -572,7 +583,11 @@ window.translations = {
 };
 
 function setupI18n() {
-    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+            return pmsShouldSkipAutoI18n(node) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+        }
+    }, false);
     let n;
     const t = [];
     while(n = w.nextNode()) {
@@ -1875,8 +1890,7 @@ function applyVisibleTextI18nFallback(lang, catalog) {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
             const parent = node.parentElement;
-            if (!parent || skipTags.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
-            if (parent.closest('[data-no-auto-i18n], .user-input, .guest-name, .timeline-user-data')) return NodeFilter.FILTER_REJECT;
+            if (!parent || skipTags.has(parent.tagName) || pmsShouldSkipAutoI18n(node)) return NodeFilter.FILTER_REJECT;
             const trimmed = node.nodeValue.replace(/\s+/g, ' ').trim();
             return (reverse[trimmed] || /[가-힣]/.test(trimmed)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
         }
@@ -1933,8 +1947,7 @@ function applyEnglishUiTextFallback() {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
             const parent = node.parentElement;
-            if (!parent || skipTags.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
-            if (parent.closest('[data-no-auto-i18n], .user-input, .guest-name, .timeline-user-data')) return NodeFilter.FILTER_REJECT;
+            if (!parent || skipTags.has(parent.tagName) || pmsShouldSkipAutoI18n(node)) return NodeFilter.FILTER_REJECT;
             const trimmed = node.nodeValue.replace(/\s+/g, ' ').trim();
             return (forward[trimmed] || translateEnglishUiPattern(trimmed)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
         }
