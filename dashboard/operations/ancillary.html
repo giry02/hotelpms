@@ -695,6 +695,13 @@ function floorValue(room) {
     const match = String(roomNo(room)).match(/\d+/);
     return match ? Number(String(match[0]).slice(0, -2) || 1) : 1;
 }
+function formatFloorLabel(floor) {
+    return ancillaryLang() === 'en' ? `Floor ${floor}` : `${floor}층`;
+}
+function formatRoomCountLabel(count) {
+    if (ancillaryLang() === 'en') return `${count} ${count === 1 ? 'room' : 'rooms'}`;
+    return `${count}개 객실`;
+}
 function roomMatchesReservation(room, res) {
     const roomValues = [room?.id, room?.fullRoom, room?.roomId, room?.number, room?.roomNo, roomNo(room)];
     const resValues = [res?.room, res?.fullRoom, res?.roomId, res?.roomNo, res?.roomNumber, res?.roomLabel];
@@ -1394,18 +1401,18 @@ function renderAncillaryBoard() {
     }
     const byBuilding = new Map();
     filtered.forEach(room => {
-        const building = room.building || room.tower || '객실';
+        const building = room.building || room.tower || ancillaryText('객실', 'Rooms');
         if (!byBuilding.has(building)) byBuilding.set(building, new Map());
-        const floor = `${floorValue(room)}층`;
+        const floor = floorValue(room);
         if (!byBuilding.get(building).has(floor)) byBuilding.get(building).set(floor, []);
         byBuilding.get(building).get(floor).push(room);
     });
     container.innerHTML = [...byBuilding.entries()].map(([building, floors]) => `
         <section class="service-building">
-            <div class="service-building-head"><i class="fa-solid fa-building" style="color:var(--primary)"></i>${escapeHtml(building)} <span style="color:var(--txt3);font-size:.8rem">(${[...floors.values()].flat().length}개 객실)</span></div>
-            ${[...floors.entries()].sort((a,b) => Number(b[0].replace(/\D/g,'')) - Number(a[0].replace(/\D/g,''))).map(([floor, floorRooms]) => `
+            <div class="service-building-head"><i class="fa-solid fa-building" style="color:var(--primary)"></i>${escapeHtml(building)} <span style="color:var(--txt3);font-size:.8rem">(${formatRoomCountLabel([...floors.values()].flat().length)})</span></div>
+            ${[...floors.entries()].sort((a,b) => Number(b[0]) - Number(a[0])).map(([floor, floorRooms]) => `
                 <div class="service-floor">
-                    <div class="service-floor-head"><i class="fa-solid fa-layer-group" style="color:var(--txt3)"></i>${escapeHtml(floor)}</div>
+                    <div class="service-floor-head"><i class="fa-solid fa-layer-group" style="color:var(--txt3)"></i>${escapeHtml(formatFloorLabel(floor))}</div>
                     <div class="service-room-grid">${floorRooms.map(renderRoomCard).join('')}</div>
                 </div>
             `).join('')}
