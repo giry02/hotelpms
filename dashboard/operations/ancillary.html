@@ -544,6 +544,8 @@ const ANCILLARY_SERVICE_TYPES = ['pos', 'golf', 'rentacar', 'restaurant', 'other
 const VENDOR_STORAGE = 'pms_ancillary_vendors';
 const ORDER_STORAGE = 'pms_ancillary_room_orders';
 const ORDER_STORAGE_VERSION = 'pms_ancillary_room_orders_version';
+const ORDER_STATUS_OVERRIDE_STORAGE = 'pms_ancillary_order_status_overrides';
+const ORDER_REOPEN_AUDIT_REPAIR_STORAGE = 'pms_ancillary_reopen_audit_repairs';
 const ORDER_DATA_VERSION = '2026-07-10-demo-showcase-v3';
 const seedVendors = [
     { id:'POS-HOTEL', type:'pos', name:'호텔 통합 POS', contact:'F&B / Front Desk', address:'The Grand Saigon 내부 POS', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'룸서비스 세트', price:8500, desc:'객실 주문' }, { name:'미니바 추가', price:1200, desc:'객실 미니바' }, { name:'영상 서비스', price:1800, desc:'영상/스트리밍' }, { name:'세탁 서비스', price:950, desc:'객실 세탁 접수' }] },
@@ -1191,6 +1193,33 @@ function loadStoredOrders() {
         return order;
     });
 }
+function orderStorageKey(order) {
+    return `${order?.service || ''}:${order?.id || ''}`;
+}
+function loadOrderStatusOverrides() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(ORDER_STATUS_OVERRIDE_STORAGE) || '{}');
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+}
+function persistOrderStatusOverride(order, status) {
+    if (!order?.id) return;
+    const overrides = loadOrderStatusOverrides();
+    overrides[orderStorageKey(order)] = {
+        status,
+        updatedAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString()
+    };
+    localStorage.setItem(ORDER_STATUS_OVERRIDE_STORAGE, JSON.stringify(overrides));
+}
+function applyOrderStatusOverrides() {
+    const overrides = loadOrderStatusOverrides();
+    serviceOrders = serviceOrders.map(order => {
+        const override = overrides[orderStorageKey(order)];
+        return override?.status ? { ...order, status: override.status } : order;
+    });
+}
 function persistOrders() {
     localStorage.setItem(ORDER_STORAGE_VERSION, ORDER_DATA_VERSION);
     localStorage.setItem(ORDER_STORAGE, JSON.stringify(serviceOrders.slice(0, 500)));
@@ -1528,30 +1557,43 @@ function scrollServiceRegistrationIntoView(behavior = 'smooth') {
         section.scrollIntoView({ behavior, block: 'start' });
     });
 }
+function auditGuestNameForOrder(order) {
+    const room = findRoomById(order?.roomId || order?.room);
+    const active = activeReservationForRoom(room || {});
+    return assignedReservationGuestName(active) || reservationGuest(active) || order?.guest || '';
+}
 function logServiceOrderStatusAudit(order, current, next) {
+    const room = findRoomById(order?.roomId || order?.room);
+    const active = activeReservationForRoom(room || {});
     const details = {
+        screen: 'ancillary',
         orderId: order.id || '',
+        reservationId: active?.id || order.reservationId || '',
         room: order.room || order.roomId || '',
-        guestName: order.guest || '',
+        guestName: auditGuestNameForOrder(order),
         service: serviceMeta(order.service).label,
         item: order.item || '',
         vendor: order.vendor || '',
         beforeStatus: current.label,
         afterStatus: next.label,
-        fields: ['orderId', 'room', 'service', 'item', 'status'],
+        fields: ['orderId', 'reservationId', 'room', 'service', 'item', 'status'],
         amount: Number(order.total || 0),
         currency: order.currency || 'PHP'
     };
-    if (window.PmsPrivacyAudit?.log) {
-        window.PmsPrivacyAudit.log('ancillary.order.reopen', details);
-        return;
+    try {
+        if (window.PmsPrivacyAudit?.log) {
+            window.PmsPrivacyAudit.log('ancillary.order.reopen', details);
+            return;
+        }
+    } catch (error) {
+        console.warn('Ancillary audit logger failed, using fallback', error);
     }
     try {
         const storageKey = 'pms_privacy_audit_logs';
         const role = localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
-        const logs = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        if (!Array.isArray(logs)) return;
-        logs.push({
+        const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const logs = Array.isArray(parsed) ? parsed : [];
+        const entry = {
             id: `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             action: 'ancillary.order.reopen',
             createdAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
@@ -1563,12 +1605,39 @@ function logServiceOrderStatusAudit(order, current, next) {
             },
             page: window.location.pathname,
             details
-        });
+        };
+        logs.push(entry);
         localStorage.setItem(storageKey, JSON.stringify(logs.slice(-500)));
-        window.dispatchEvent(new CustomEvent('pms:privacy-audit', { detail: logs[logs.length - 1] }));
+        window.dispatchEvent(new CustomEvent('pms:privacy-audit', { detail: entry }));
+        return;
     } catch(e) {
         console.warn('Ancillary audit log fallback failed', e);
     }
+}
+
+function repairMissingReopenAudits(storedOrders, externalOrders) {
+    const storedByKey = new Map((storedOrders || []).map(order => [orderStorageKey(order), order]));
+    const repaired = (() => {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(ORDER_REOPEN_AUDIT_REPAIR_STORAGE) || '{}');
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch (error) {
+            return {};
+        }
+    })();
+    let changed = false;
+    (externalOrders || []).forEach(externalOrder => {
+        const key = orderStorageKey(externalOrder);
+        const storedOrder = storedByKey.get(key);
+        if (!storedOrder || repaired[key]) return;
+        const externalStatus = serviceOrderStatusMeta(externalOrder.status);
+        const storedStatus = serviceOrderStatusMeta(storedOrder.status);
+        if (externalStatus.key !== 'completed' || storedStatus.key === 'completed') return;
+        logServiceOrderStatusAudit(storedOrder, externalStatus, storedStatus);
+        repaired[key] = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+        changed = true;
+    });
+    if (changed) localStorage.setItem(ORDER_REOPEN_AUDIT_REPAIR_STORAGE, JSON.stringify(repaired));
 }
 
 function updateServiceOrderStatus(orderId, status) {
@@ -1584,6 +1653,7 @@ function updateServiceOrderStatus(orderId, status) {
     }
     const shouldAuditReopen = current.key === 'completed' && next.key !== 'completed';
     order.status = status;
+    persistOrderStatusOverride(order, status);
     persistOrders();
     if (shouldAuditReopen) logServiceOrderStatusAudit(order, current, next);
     renderAncillaryBoard();
@@ -2073,14 +2143,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     reservations = reservationData || [];
     groups = groupData || [];
     resetAncillaryReservationCaches();
+    const storedOrders = [...serviceOrders];
     const externalOrders = [
         ...(posOrders || []).map(order => normalizeExternalOrder(order, 'pos')),
         ...(golfOrders || []).map(order => normalizeExternalOrder(order, 'golf')),
         ...(rentOrders || []).map(order => normalizeExternalOrder(order, 'rentacar'))
     ];
-    const merged = [...serviceOrders, ...externalOrders];
-    serviceOrders = [...new Map(merged.map(order => [`${order.service}:${order.id}`, order])).values()];
+    repairMissingReopenAudits(storedOrders, externalOrders);
+    const merged = [...externalOrders, ...serviceOrders];
+    serviceOrders = [...new Map(merged.map(order => [orderStorageKey(order), order])).values()];
+    applyOrderStatusOverrides();
     seedDemoServiceOrdersIfNeeded();
+    applyOrderStatusOverrides();
     applyAncillaryUrlParams();
     scheduleAncillaryI18nRefresh();
 });
