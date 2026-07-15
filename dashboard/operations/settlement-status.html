@@ -822,6 +822,16 @@ function settlementReopenForFolio(folio) {
         .find(item => !item.signature || item.signature === signature) || null;
 }
 
+function settlementCompletionTime(record) {
+    const parsed = Date.parse(record?.completedAt || record?.createdAt || '');
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function settlementReopenTime(record) {
+    const parsed = Date.parse(record?.reopenedAt || record?.createdAt || '');
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function settlementCurrentOperator() {
     return localStorage.getItem('pms_current_user_name') || localStorage.getItem('pms_staff_name') || 'Nguyen Kim';
 }
@@ -1095,7 +1105,18 @@ function settlementFolioSignature(folio) {
 function settlementCompletionForFolio(folio) {
     if (!folio || Number(folio.balance || 0) > 0) return null;
     if (Number(folio.paid || 0) > Number(folio.total || 0) && Number(folio.total || 0) > 0) return null;
-    if (settlementReopenForFolio(folio)) return null;
+    const signature = settlementFolioSignature(folio);
+    const latestReopen = settlementReopenForFolio(folio);
+    const localCompletion = settlementCompletionRecords()
+        .filter(item => String(item.folioId || '') === String(folio.folioId || folio.id || ''))
+        .sort((a, b) => String(b.completedAt || '').localeCompare(String(a.completedAt || '')))
+        .find(item => !item.signature || item.signature === signature) || null;
+    if (localCompletion) {
+        const completedAt = settlementCompletionTime(localCompletion);
+        const reopenedAt = settlementReopenTime(latestReopen);
+        if (!latestReopen || completedAt >= reopenedAt) return localCompletion;
+    }
+    if (latestReopen) return null;
     const rawStatus = String(folio.raw?.status || '').replace(/[-_\s]/g, '').toLowerCase();
     if (folio.raw?.settlementCompleted || ['closed', 'paid', 'settled', 'completed', 'checkedout'].includes(rawStatus)) {
         return {
@@ -1103,11 +1124,7 @@ function settlementCompletionForFolio(folio) {
             completedBy: folio.raw.settlementCompletedBy || '시스템'
         };
     }
-    const signature = settlementFolioSignature(folio);
-    return settlementCompletionRecords()
-        .filter(item => String(item.folioId || '') === String(folio.folioId || folio.id || ''))
-        .sort((a, b) => String(b.completedAt || '').localeCompare(String(a.completedAt || '')))
-        .find(item => !item.signature || item.signature === signature) || null;
+    return null;
 }
 
 function settlementReservationCheckoutTime(reservation) {
