@@ -1877,14 +1877,14 @@ window.addEventListener('DataReady', () => {
         return groupReservations().find(r => r.room === roomIdValue || r.fullRoom === roomIdValue);
     }
     function guestStatusCell(guest) {
-        if (!guest) return '<span class="stage-pill stage-past">미등록</span>';
-        return '<span class="stage-pill stage-live">등록됨</span>';
+        if (!guest) return `<span class="stage-pill stage-past">${gt('미등록')}</span>`;
+        return `<span class="stage-pill stage-live">${gt('등록됨')}</span>`;
     }
     function docStatusCell(guest) {
         if (!guest) return '<span style="color:var(--txt3);font-weight:800">-</span>';
         return guest.docStatus === 'verified'
-            ? '<span class="stage-pill stage-live">확인 완료</span>'
-            : '<span class="stage-pill stage-upcoming">미확인</span>';
+            ? `<span class="stage-pill stage-live">${gt('확인 완료')}</span>`
+            : `<span class="stage-pill stage-upcoming">${gt('미확인')}</span>`;
     }
     window.renderRooms = function() {
         if (isDraftGroup()) {
@@ -2086,15 +2086,15 @@ window.addEventListener('DataReady', () => {
 
     function guestStatusCell(guest) {
         return guest
-            ? '<span class="stage-pill stage-live">등록</span>'
-            : '<span class="stage-pill stage-past">미등록</span>';
+            ? `<span class="stage-pill stage-live">${gt('등록')}</span>`
+            : `<span class="stage-pill stage-past">${gt('미등록')}</span>`;
     }
 
     function docStatusCell(guest) {
         if (!guest) return '<span style="color:var(--txt3);font-weight:800">-</span>';
         return guest.docStatus === 'verified'
-            ? '<span class="stage-pill stage-live">확인 완료</span>'
-            : '<span class="stage-pill stage-upcoming">미확인</span>';
+            ? `<span class="stage-pill stage-live">${gt('확인 완료')}</span>`
+            : `<span class="stage-pill stage-upcoming">${gt('미확인')}</span>`;
     }
 
     window.saveGroup = function() {
@@ -2955,22 +2955,43 @@ window.addEventListener('DataReady', () => {
     function guestDocCell(guest) {
         if (!guest) return '<span style="color:var(--txt3);font-weight:800">-</span>';
         return guest.docStatus === 'verified'
-            ? '<span class="stage-pill stage-live">확인 완료</span>'
-            : '<span class="stage-pill stage-upcoming">미확인</span>';
+            ? `<span class="stage-pill stage-live">${gt('확인 완료')}</span>`
+            : `<span class="stage-pill stage-upcoming">${gt('미확인')}</span>`;
+    }
+
+    function guestCountLabel(count) {
+        const n = Number(count || 0);
+        return (localStorage.getItem('pms_lang') || window.currentLang || 'ko') === 'en'
+            ? `${n} ${n === 1 ? 'guest' : 'guests'}`
+            : `${n}${gt('명')}`;
+    }
+
+    function roomCountLabel(count) {
+        const n = Number(count || 0);
+        return (localStorage.getItem('pms_lang') || window.currentLang || 'ko') === 'en'
+            ? `${n} ${n === 1 ? 'room' : 'rooms'}`
+            : `${n}${gt('실')}`;
+    }
+
+    function itemCountLabel(count) {
+        const n = Number(count || 0);
+        return (localStorage.getItem('pms_lang') || window.currentLang || 'ko') === 'en'
+            ? `${n} ${n === 1 ? 'item' : 'items'}`
+            : `${n}${gt('건')}`;
     }
 
     function guestListHtml(roomIdValue) {
         const guests = roomGuests(roomIdValue);
-        if (!guests.length) return '<div class="room-guest-empty">등록된 투숙객 없음</div>';
+        if (!guests.length) return `<div class="room-guest-empty">${gt('등록된 투숙객 없음')}</div>`;
         return `<div class="group-room-guests">${guests.map(guest => {
             const isStored = !guest.sourceReservation;
             return `<div class="group-room-guest">
-                <span class="role-pill ${guest.role === 'primary' ? 'primary' : 'companion'}">${guest.role === 'primary' ? '대표' : '동반'}</span>
+                <span class="role-pill ${guest.role === 'primary' ? 'primary' : 'companion'}">${guest.role === 'primary' ? gt('대표') : gt('동반')}</span>
                 <span class="name" title="${html(guest.name)}">${html(guest.name)}</span>
                 <span class="inline-guest-actions">
-                    <button class="icon-mini" title="투숙객 편집" onclick="openRoomingModal('${html(roomIdValue)}','${html(guest.id || '')}','${html(guest.role || 'primary')}')"><i class="fa-solid fa-pen"></i></button>
-                    ${guest.role !== 'primary' ? `<button class="icon-mini" title="대표로 설정" onclick="setGroupRoomPrimary('${html(roomIdValue)}','${html(guest.id || '')}')"><i class="fa-solid fa-star"></i></button>` : ''}
-                    ${isStored ? `<button class="icon-mini danger" title="삭제" onclick="removeRoomingGuest('${html(guest.id || '')}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    <button class="icon-mini" title="${gt('투숙객 편집')}" onclick="openRoomingModal('${html(roomIdValue)}','${html(guest.id || '')}','${html(guest.role || 'primary')}')"><i class="fa-solid fa-pen"></i></button>
+                    ${guest.role !== 'primary' ? `<button class="icon-mini" title="${gt('대표로 설정')}" onclick="setGroupRoomPrimary('${html(roomIdValue)}','${html(guest.id || '')}')"><i class="fa-solid fa-star"></i></button>` : ''}
+                    ${isStored ? `<button class="icon-mini danger" title="${gt('삭제')}" onclick="removeRoomingGuest('${html(guest.id || '')}')"><i class="fa-solid fa-trash"></i></button>` : ''}
                 </span>
             </div>`;
         }).join('')}</div>`;
@@ -3347,7 +3368,7 @@ window.addEventListener('DataReady', () => {
                     </div>
                 </td>
                 <td>${guestListHtml(roomId)}</td>
-                <td><div class="rooming-room-status"><strong>${list.length}${gt('명')}</strong><span>${primary ? gt('대표 등록') : gt('대표 미등록')}</span></div></td>
+                <td><div class="rooming-room-status"><strong>${guestCountLabel(list.length)}</strong><span>${primary ? gt('대표 등록') : gt('대표 미등록')}</span></div></td>
                 <td>${docText}</td>
                 <td class="room-actions-cell">
                     <div class="room-action-buttons">
@@ -3373,9 +3394,9 @@ window.addEventListener('DataReady', () => {
                 </div>
             </div>
             <div class="rooming-summary-grid">
-                <div class="rooming-summary-item"><div class="k">${gt('배정 객실')}</div><div class="v">${assigned.length}${gt('실')}</div></div>
-                <div class="rooming-summary-item"><div class="k">${gt('등록 투숙객')}</div><div class="v">${guests.length}${gt('명')}</div></div>
-                <div class="rooming-summary-item"><div class="k">${gt('신분증 미확인')}</div><div class="v">${missingDoc}${gt('건')}</div></div>
+                <div class="rooming-summary-item"><div class="k">${gt('배정 객실')}</div><div class="v">${roomCountLabel(assigned.length)}</div></div>
+                <div class="rooming-summary-item"><div class="k">${gt('등록 투숙객')}</div><div class="v">${guestCountLabel(guests.length)}</div></div>
+                <div class="rooming-summary-item"><div class="k">${gt('신분증 미확인')}</div><div class="v">${itemCountLabel(missingDoc)}</div></div>
             </div>
             <table class="data-table room-assignment-table rooming-room-table">
                 <thead><tr><th>${gt('객실')}</th><th>${gt('투숙객')}</th><th>${gt('등록')}</th><th>${gt('신분증')}</th><th>${gt('관리')}</th></tr></thead>
