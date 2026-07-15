@@ -168,6 +168,8 @@
 <script>
 const EXPENSE_KEY = 'pms_expense_purchases';
 const CASH_SESSION_KEY = 'pms_night_audit_cash_sessions';
+const EXPENSE_DEMO_VERSION_KEY = 'pms_expense_purchases_demo_version';
+const EXPENSE_DEMO_VERSION = '2026-07-demo-v1';
 const DEFAULT_EXPENSE_CURRENCY = 'PHP';
 const EXPENSE_CURRENCIES = ['PHP', 'USD', 'KRW', 'VND'];
 
@@ -248,6 +250,132 @@ function expenses() {
 }
 function saveExpenses(rows) {
     writeJson(EXPENSE_KEY, rows);
+}
+function expenseDateOffset(days = 0) {
+    const base = new Date(`${todayIso()}T00:00:00`);
+    base.setDate(base.getDate() + Number(days || 0));
+    return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}-${String(base.getDate()).padStart(2, '0')}`;
+}
+function demoExpensePurchases() {
+    const stamp = nowIso();
+    const createdBy = 'Nguyen Kim';
+    return [
+        {
+            id:'EXP-DEMO-FUEL-VAN-001',
+            date: expenseDateOffset(0),
+            buyer:'Nguyen Kim',
+            category:'fuel',
+            method:'cash',
+            item:'VIP 밴 주유',
+            vendor:'Shell Station BGC',
+            amount:3200,
+            settlementAmount:-3200,
+            currency:'PHP',
+            settlementCurrency:'PHP',
+            note:'공항 픽업/골프장 이동 차량 주유 · 차량 V-1206 · 영수증 OR-260710-001'
+        },
+        {
+            id:'EXP-DEMO-SUPPLY-AMENITY-001',
+            date: expenseDateOffset(0),
+            buyer:'Sarah Connor',
+            category:'supplies',
+            method:'card',
+            item:'객실 어메니티 리필 세트',
+            vendor:'Hotel Supply Mart',
+            amount:6850,
+            settlementAmount:-6850,
+            currency:'PHP',
+            settlementCurrency:'PHP',
+            note:'샴푸/컨디셔너/칫솔 세트 50실분 · 객실 소모품 보충'
+        },
+        {
+            id:'EXP-DEMO-DRIVER-FEE-001',
+            date: expenseDateOffset(-1),
+            buyer:'Robert Ford',
+            category:'driver',
+            method:'cash',
+            item:'단체 행사 드라이버 추가 수당',
+            vendor:'Driver Miguel Santos',
+            amount:2500,
+            settlementAmount:-2500,
+            currency:'PHP',
+            settlementCurrency:'PHP',
+            note:'Samsung Tech Conference 2026 심야 복귀 지원 · 현금 지급'
+        },
+        {
+            id:'EXP-DEMO-REPAIR-AC-001',
+            date: expenseDateOffset(-1),
+            buyer:'김철수',
+            category:'repair',
+            method:'bank',
+            item:'1403호 에어컨 배수 점검',
+            vendor:'Saigon Cool Air Service',
+            amount:4200,
+            settlementAmount:-4200,
+            currency:'PHP',
+            settlementCurrency:'PHP',
+            note:'배수 호스 교체 및 필터 청소 · 정비 확인서 AC-1403'
+        },
+        {
+            id:'EXP-DEMO-PARKING-001',
+            date: expenseDateOffset(-2),
+            buyer:'Nguyen Kim',
+            category:'other',
+            method:'cash',
+            item:'공항 주차 및 톨게이트',
+            vendor:'NAIA Parking / Skyway Toll',
+            amount:980,
+            settlementAmount:-980,
+            currency:'PHP',
+            settlementCurrency:'PHP',
+            note:'렌터카 바우처 고객 픽업 대기 비용 · OR-PARK-0710'
+        },
+        {
+            id:'EXP-DEMO-GUEST-SNACK-USD',
+            date: expenseDateOffset(-2),
+            buyer:'Sarah Connor',
+            category:'supplies',
+            method:'card',
+            item:'VIP 웰컴 스낵 구매',
+            vendor:'K-Mart Korean Grocery',
+            amount:84,
+            settlementAmount:-84,
+            currency:'USD',
+            settlementCurrency:'USD',
+            note:'VIP 고객 웰컴 바스켓용 한국 과자/음료 구매'
+        },
+        {
+            id:'EXP-DEMO-LINEN-VND',
+            date: expenseDateOffset(-3),
+            buyer:'Maria Garcia',
+            category:'supplies',
+            method:'cash',
+            item:'수건 긴급 세탁비',
+            vendor:'District 1 Express Laundry',
+            amount:1450000,
+            settlementAmount:-1450000,
+            currency:'VND',
+            settlementCurrency:'VND',
+            note:'단체 투숙 대비 수건 긴급 세탁 · 현장 현금 지출'
+        }
+    ].map(row => ({
+        ...row,
+        createdAt: stamp,
+        createdBy,
+        updatedAt: undefined,
+        updatedBy: undefined
+    }));
+}
+function seedDemoExpensesIfNeeded() {
+    const demoRows = demoExpensePurchases();
+    const rows = expenses();
+    const existingIds = new Set(rows.map(row => String(row.id || '')));
+    const missingRows = demoRows.filter(row => !existingIds.has(row.id));
+    if (!missingRows.length && localStorage.getItem(EXPENSE_DEMO_VERSION_KEY) === EXPENSE_DEMO_VERSION) return;
+    const merged = [...missingRows, ...rows];
+    saveExpenses(merged);
+    missingRows.filter(row => row.method === 'cash').forEach(syncCashWithdrawal);
+    localStorage.setItem(EXPENSE_DEMO_VERSION_KEY, EXPENSE_DEMO_VERSION);
 }
 function sortedExpenses() {
     return expenses().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
@@ -532,6 +660,7 @@ window.addEventListener('languagechange', () => window.applyLocalI18n());
 document.addEventListener('DOMContentLoaded', () => {
     applyExpenseLanguage();
     resetExpenseForm();
+    seedDemoExpensesIfNeeded();
     renderExpenses();
     document.getElementById('langSelect')?.addEventListener('change', () => setTimeout(window.applyLocalI18n, 0));
 });
