@@ -709,15 +709,25 @@ function openEdit(id) {
     openModal('editStaffModal');
 }
 
-document.getElementById('staffBody')?.addEventListener('click', event => {
+let lastStaffEditActivation = 0;
+
+function handleStaffEditActivation(event) {
     const button = event.target.closest('[data-staff-edit]');
     const row = event.target.closest('tr[data-staff-edit-row]');
     if (!button && !row) return;
     if (!button && event.target.closest('a, button, input, select, textarea')) return;
+    const now = Date.now();
+    if (now - lastStaffEditActivation < 350) return;
+    lastStaffEditActivation = now;
     event.preventDefault();
     event.stopPropagation();
     openEdit(button?.dataset.staffEdit || row?.dataset.staffEditRow);
-});
+}
+
+const staffBodyEl = document.getElementById('staffBody');
+staffBodyEl?.addEventListener('click', handleStaffEditActivation);
+staffBodyEl?.addEventListener('pointerup', handleStaffEditActivation);
+staffBodyEl?.addEventListener('touchend', handleStaffEditActivation, { passive: false });
 
 function saveEdit() {
     const s = staffData.find(x => x.id === editingId);
