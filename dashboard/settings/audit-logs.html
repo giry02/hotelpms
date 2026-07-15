@@ -678,7 +678,12 @@ function filteredLogs(logs) {
 
 function sortAuditLogs(logs) {
     const dateValue = entry => new Date(entry.createdAt || 0).getTime() || 0;
-    return [...logs].sort((a, b) => dateValue(b) - dateValue(a));
+    const isDemoLog = entry => String(entry?.id || '').startsWith('AUD-DEMO-');
+    return [...logs].sort((a, b) => {
+        const demoWeight = Number(isDemoLog(a)) - Number(isDemoLog(b));
+        if (demoWeight) return demoWeight;
+        return dateValue(b) - dateValue(a);
+    });
 }
 
 function auditPageNumbers(current, totalPages) {
