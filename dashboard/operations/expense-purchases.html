@@ -26,6 +26,14 @@
         .expense-table .muted{display:block;margin-top:3px;font-size:.72rem;color:var(--txt3);font-weight:700;line-height:1.3}
         .expense-note-cell{max-width:230px;white-space:normal;line-height:1.35;color:var(--txt2)}
         .expense-action-cell{display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap}
+        .expense-page .kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch}
+        .expense-page .kpi-card{min-height:96px}
+        .expense-page .kpi-body{min-width:0}
+        .expense-page .kpi-value{font-size:1.08rem;line-height:1.2;white-space:normal}
+        .expense-money-stack{display:flex;flex-direction:column;gap:3px;min-width:0}
+        .expense-money-line{display:flex;align-items:baseline;gap:8px;min-width:0}
+        .expense-money-code{flex:0 0 36px;color:var(--txt3);font-size:.68rem;font-weight:950;letter-spacing:.02em}
+        .expense-money-amount{min-width:0;color:var(--txt);font-size:1.02rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .expense-mobile-list{display:none;padding:12px;gap:10px}
         .expense-mobile-card{border:1px solid var(--border);border-radius:12px;background:#fff;padding:12px;display:grid;gap:10px}
         .expense-mobile-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
@@ -57,6 +65,7 @@
         .expense-action-cell .btn-danger-sm{border-color:var(--border);color:#dc2626;background:#fff}
         .expense-action-cell .btn-danger-sm:hover{border-color:#fecaca;background:#fef2f2;color:#dc2626}
         @media(max-width:900px){
+            .expense-page .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
             .expense-search{max-width:none}
             .expense-row{grid-template-columns:1fr}
             .expense-table-wrap{display:none}
@@ -64,6 +73,9 @@
             .expense-mobile-grid{grid-template-columns:1fr}
             .expense-toolbar{align-items:stretch}
             .expense-toolbar>.btn-primary-sm{width:100%}
+        }
+        @media(max-width:520px){
+            .expense-page .kpi-grid{grid-template-columns:1fr}
         }
     </style>
 </head>
@@ -203,6 +215,21 @@ function moneySummary(rows) {
         .filter(currency => Number(totals[currency] || 0) !== 0)
         .map(currency => money(totals[currency], currency));
     return parts.length ? parts.join(' / ') : money(0, DEFAULT_EXPENSE_CURRENCY);
+}
+function moneySummaryHtml(rows) {
+    const totals = rows.reduce((map, row) => {
+        const currency = normalizeExpenseCurrency(row.currency);
+        map[currency] = (map[currency] || 0) + Number(row.amount || 0);
+        return map;
+    }, {});
+    const currencies = EXPENSE_CURRENCIES.filter(currency => Number(totals[currency] || 0) !== 0);
+    const visibleCurrencies = currencies.length ? currencies : [DEFAULT_EXPENSE_CURRENCY];
+    return `<div class="expense-money-stack">${visibleCurrencies.map(currency => `
+        <div class="expense-money-line">
+            <span class="expense-money-code">${currency}</span>
+            <span class="expense-money-amount">${money(totals[currency] || 0, currency)}</span>
+        </div>
+    `).join('')}</div>`;
 }
 function todayIso() {
     if (window.PmsDate?.todayIso) return window.PmsDate.todayIso();
@@ -598,9 +625,9 @@ function renderExpenses() {
     const rows = filteredExpenses();
     const totalRows = expenses();
     const month = todayIso().slice(0, 7);
-    document.getElementById('expenseTotal').textContent = moneySummary(totalRows);
-    document.getElementById('expenseCash').textContent = moneySummary(totalRows.filter(row => row.method === 'cash'));
-    document.getElementById('expenseMonth').textContent = moneySummary(totalRows.filter(row => String(row.date || '').startsWith(month)));
+    document.getElementById('expenseTotal').innerHTML = moneySummaryHtml(totalRows);
+    document.getElementById('expenseCash').innerHTML = moneySummaryHtml(totalRows.filter(row => row.method === 'cash'));
+    document.getElementById('expenseMonth').innerHTML = moneySummaryHtml(totalRows.filter(row => String(row.date || '').startsWith(month)));
     document.getElementById('expenseCount').textContent = totalRows.length;
 
     const emptyRow = `<tr><td colspan="10" class="expense-empty">${expenseText('등록된 지출이 없습니다.', 'No registered expenses.')}</td></tr>`;
@@ -620,8 +647,8 @@ function renderExpenseTableRow(row) {
             <td class="num">-${money(row.amount, row.currency)}</td>
             <td class="expense-note-cell">${escapeHtml(row.note || '-')}</td>
             <td><div class="expense-action-cell">
-                <button class="btn-icon-sm" title="${expenseText('수정', 'Edit')}" onclick="openExpenseFormModal('${escapeHtml(row.id)}')"><i class="fa-solid fa-pen"></i></button>
-                <button class="btn-danger-sm btn-icon-sm" title="${expenseText('삭제', 'Delete')}" onclick="deleteExpensePurchase('${escapeHtml(row.id)}')"><i class="fa-solid fa-trash"></i></button>
+                <button type="button" class="btn-icon-sm" title="${expenseText('수정', 'Edit')}" data-expense-action="edit" data-expense-id="${escapeHtml(row.id)}"><i class="fa-solid fa-pen"></i></button>
+                <button type="button" class="btn-danger-sm btn-icon-sm" title="${expenseText('삭제', 'Delete')}" data-expense-action="delete" data-expense-id="${escapeHtml(row.id)}"><i class="fa-solid fa-trash"></i></button>
             </div></td>
         </tr>
     `;
@@ -641,11 +668,27 @@ function renderExpenseMobileCard(row) {
                 <div class="expense-mobile-field" style="grid-column:1/-1"><span>${expenseText('메모', 'Memo')}</span><strong>${escapeHtml(row.note || '-')}</strong></div>
             </div>
             <div class="expense-action-cell">
-                <button class="btn-outline" onclick="openExpenseFormModal('${escapeHtml(row.id)}')"><i class="fa-solid fa-pen"></i><span>${expenseText('수정', 'Edit')}</span></button>
-                <button class="btn-danger-sm" onclick="deleteExpensePurchase('${escapeHtml(row.id)}')"><i class="fa-solid fa-trash"></i><span>${expenseText('삭제', 'Delete')}</span></button>
+                <button type="button" class="btn-outline" data-expense-action="edit" data-expense-id="${escapeHtml(row.id)}"><i class="fa-solid fa-pen"></i><span>${expenseText('수정', 'Edit')}</span></button>
+                <button type="button" class="btn-danger-sm" data-expense-action="delete" data-expense-id="${escapeHtml(row.id)}"><i class="fa-solid fa-trash"></i><span>${expenseText('삭제', 'Delete')}</span></button>
             </div>
         </article>
     `;
+}
+function bindExpenseActionButtons() {
+    document.addEventListener('click', event => {
+        const button = event.target.closest('[data-expense-action]');
+        if (!button) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const id = button.dataset.expenseId || '';
+        if (button.dataset.expenseAction === 'edit') {
+            openExpenseFormModal(id);
+            return;
+        }
+        if (button.dataset.expenseAction === 'delete') {
+            deleteExpensePurchase(id);
+        }
+    });
 }
 function applyExpenseLanguage() {
     renderExpenseSelects();
@@ -658,6 +701,7 @@ window.applyLocalI18n = function applyExpensePurchasesLocalI18n() {
 };
 window.addEventListener('languagechange', () => window.applyLocalI18n());
 document.addEventListener('DOMContentLoaded', () => {
+    bindExpenseActionButtons();
     applyExpenseLanguage();
     resetExpenseForm();
     seedDemoExpensesIfNeeded();
