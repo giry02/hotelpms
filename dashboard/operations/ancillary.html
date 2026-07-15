@@ -874,7 +874,7 @@ function canReopenAncillaryOrder() {
     return (window.currentUserRole || localStorage.getItem('currentUserRole')) === 'sys_admin';
 }
 function serviceOrderActionButtons(order) {
-    const status = serviceOrderStatusMeta(order.status);
+    const status = serviceOrderStatusMeta(effectiveOrderStatus(order));
     const printableServices = ['restaurant', 'golf', 'rentacar'];
     const printLabel = order.service === 'restaurant' ? '쿠폰 출력' : '바우처 출력';
     const printIcon = order.service === 'restaurant' ? 'fa-ticket' : 'fa-receipt';
@@ -1213,6 +1213,10 @@ function persistOrderStatusOverride(order, status) {
     };
     localStorage.setItem(ORDER_STATUS_OVERRIDE_STORAGE, JSON.stringify(overrides));
 }
+function effectiveOrderStatus(order) {
+    const override = loadOrderStatusOverrides()[orderStorageKey(order)];
+    return override?.status || order?.status || 'new';
+}
 function applyOrderStatusOverrides() {
     const overrides = loadOrderStatusOverrides();
     serviceOrders = serviceOrders.map(order => {
@@ -1505,7 +1509,7 @@ function openServiceDetailModal(roomId, options = {}) {
     ].join('');
     document.getElementById('detailOrderList').innerHTML = orders.length ? orders.map(order => {
         const meta = serviceMeta(order.service);
-        const status = serviceOrderStatusMeta(order.status);
+        const status = serviceOrderStatusMeta(effectiveOrderStatus(order));
         return `<div class="service-detail-row">
             <div class="service-detail-main">
                 <span class="service-detail-icon ${meta.cls}"><i class="fa-solid ${meta.icon}"></i></span>
@@ -1656,7 +1660,7 @@ function repairMissingReopenAudits(storedOrders, externalOrders) {
 function updateServiceOrderStatus(orderId, status) {
     const order = serviceOrders.find(item => item.id === orderId);
     if (!order) return;
-    const current = serviceOrderStatusMeta(order.status);
+    const current = serviceOrderStatusMeta(effectiveOrderStatus(order));
     const next = serviceOrderStatusMeta(status);
     if (current.key === next.key) return;
     if (current.key === 'completed' && status !== 'completed' && !canReopenAncillaryOrder()) {
@@ -1851,7 +1855,7 @@ function renderRegistrationPreview() {
     document.getElementById('registrationExistingCount').textContent = `${orders.length}건`;
     existingList.innerHTML = orders.length ? orders.slice(0, 7).map(order => {
         const orderMeta = serviceMeta(order.service);
-        const status = serviceOrderStatusMeta(order.status);
+        const status = serviceOrderStatusMeta(effectiveOrderStatus(order));
         return `
             <div class="register-existing-row">
                 <span class="register-existing-icon ${orderMeta.cls}"><i class="fa-solid ${orderMeta.icon}"></i></span>
@@ -2171,6 +2175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyOrderStatusOverrides();
     seedDemoServiceOrdersIfNeeded();
     applyOrderStatusOverrides();
+    persistOrders();
     applyAncillaryUrlParams();
     scheduleAncillaryI18nRefresh();
 });
