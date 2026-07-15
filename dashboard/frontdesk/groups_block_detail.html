@@ -857,13 +857,139 @@ function renderFolio() {
         </div>`;
 }
 
+function groupHistoryDateText(value) {
+    const text = String(value || '-');
+    if (groupCurrentLang() !== 'en') return text;
+    return text
+        .replace(/\s*오전\s*/g, ' AM ')
+        .replace(/\s*오후\s*/g, ' PM ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function groupHistoryRoomSummary(rooms) {
+    const list = Array.isArray(rooms) ? rooms.filter(Boolean) : [];
+    return list.length ? list.join(', ') : '-';
+}
+
+function groupHistoryLegacyText(value) {
+    let text = String(value || '-');
+    if (groupCurrentLang() !== 'en') return text;
+    const exact = {
+        '정산 조건 확인': 'Settlement Check',
+        '투숙객 명단 업데이트': 'Guest List Updated',
+        '객실 배정 수정': 'Edit Room Assignment',
+        '투숙객 등록': 'Register Guest',
+        '객실 블록 생성': 'Room Block Created',
+        '업체 연결': 'Vendor Linked',
+        '행사 기본 정보 등록': 'Event Basic Info Registered',
+        '대표 투숙객 등록': 'Register Primary Guest',
+        '대표 투숙객 수정': 'Edit Primary Guest',
+        '동반 투숙객 등록': 'Register Companion Guest',
+        '동반 투숙객 수정': 'Edit Companion Guest',
+        '대표 투숙객 변경': 'Change Primary Guest',
+        '투숙객 삭제': 'Delete Guest'
+    };
+    if (exact[text]) return exact[text];
+    const replacements = [
+        [/변경 전:/g, 'Before:'],
+        [/변경 후:/g, 'After:'],
+        [/추가:/g, 'Added:'],
+        [/제외:/g, 'Removed:'],
+        [/단체 일괄 정산/g, 'Group Batch Settlement'],
+        [/단체 정산에 반영/g, 'applied to Group Settlement'],
+        [/Group Settlement에 반영/g, 'applied to Group Settlement'],
+        [/정산 조건 확인/g, 'Settlement Check'],
+        [/투숙객 명단 업데이트/g, 'Guest List Updated'],
+        [/객실 배정 수정/g, 'Edit Room Assignment'],
+        [/투숙객 등록/g, 'Register Guest'],
+        [/객실 블록 생성/g, 'Room Block Created'],
+        [/업체 연결/g, 'Vendor Linked'],
+        [/행사 기본 정보 등록/g, 'Event Basic Info Registered'],
+        [/정산/g, 'Settlement'],
+        [/객실/g, 'Room'],
+        [/호실/g, 'Room'],
+        [/투숙객/g, 'Guest'],
+        [/동반/g, 'Companion'],
+        [/대표/g, 'Primary'],
+        [/신분증/g, 'ID'],
+        [/확인 완료/g, 'Verified'],
+        [/미확인/g, 'Unverified'],
+        [/상태/g, 'Status'],
+        [/총 인원/g, 'total guests'],
+        [/총 /g, 'total '],
+        [/행사 일정/g, 'Event period'],
+        [/행사 담당/g, 'event contact'],
+        [/행사 생성/g, 'event created'],
+        [/계약 업체/g, 'contracted company'],
+        [/기준 유지/g, 'kept'],
+        [/기준/g, 'based on'],
+        [/선배정/g, 'pre-assigned'],
+        [/배정 확정/g, 'assignment confirmed'],
+        [/배정/g, 'assigned'],
+        [/명단/g, 'roster'],
+        [/등록/g, 'registered'],
+        [/조식 쿠폰 패키지와/g, 'breakfast coupon package and'],
+        [/차량 이용료를/g, 'vehicle fee'],
+        [/이용료/g, 'fee'],
+        [/에 반영/g, ' applied to'],
+        [/반영/g, 'applied'],
+        [/표시/g, 'shown'],
+        [/연결/g, 'linked'],
+        [/은 /g, ' is '],
+        [/는 /g, ' is '],
+        [/와 /g, ' and '],
+        [/로 /g, ' as '],
+        [/로/g, ' as'],
+        [/을 /g, ' '],
+        [/를 /g, ' '],
+        [/에 /g, ' in '],
+        [/(\d+)실/g, '$1 rooms'],
+        [/(\d+)명/g, '$1 guests'],
+        [/(\d+)박/g, '$1 nights']
+    ];
+    replacements.forEach(([pattern, replacement]) => {
+        text = text.replace(pattern, replacement);
+    });
+    return text
+        .replace(/Group Settlement\s+in\s+applied/g, 'applied to Group Settlement')
+        .replace(/Group Settlement\s+applied to/g, 'applied to Group Settlement')
+        .replace(/total guests (\d+) guests/g, 'total $1 guests')
+        .replace(/total (\d+) rooms assignment confirmed/g, 'total $1 rooms assignment confirmed')
+        .replace(/Unverified Status as shown/g, 'shown as Unverified')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function groupHistoryMemoText(entry = {}) {
+    const lang = groupCurrentLang();
+    if (entry.type === 'room-allocation-update') {
+        const before = groupHistoryRoomSummary(entry.beforeRooms);
+        const after = groupHistoryRoomSummary(entry.afterRooms);
+        const added = groupHistoryRoomSummary(entry.addedRooms);
+        const removed = groupHistoryRoomSummary(entry.removedRooms);
+        const parts = lang === 'en'
+            ? [`Before: ${before}`, `After: ${after}`]
+            : [`변경 전: ${before}`, `변경 후: ${after}`];
+        if (added !== '-') parts.push(lang === 'en' ? `Added: ${added}` : `추가: ${added}`);
+        if (removed !== '-') parts.push(lang === 'en' ? `Removed: ${removed}` : `제외: ${removed}`);
+        return parts.join(' / ');
+    }
+    return groupHistoryLegacyText(entry.note || '-');
+}
+
+function groupHistoryActionText(action) {
+    const translated = gt(action || '-');
+    return groupCurrentLang() === 'en' ? groupHistoryLegacyText(translated) : translated;
+}
+
 function renderHistory() {
     const history = Array.isArray(group.history) ? group.history : [];
     document.getElementById('history').innerHTML = `
         <div class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> ${gt('변경 이력')}</div>
         <table class="data-table">
             <thead><tr><th>${gt('일시')}</th><th>${gt('작업')}</th><th>${gt('메모')}</th></tr></thead>
-            <tbody>${history.map(h => `<tr><td>${h.at}</td><td>${gt(h.action)}</td><td>${h.note || '-'}</td></tr>`).join('') || `<tr><td colspan="3">${gt('아직 기록된 변경 이력이 없습니다.')}</td></tr>`}</tbody>
+            <tbody>${history.map(h => `<tr><td>${escapeText(groupHistoryDateText(h.at))}</td><td>${escapeText(groupHistoryActionText(h.action))}</td><td>${escapeText(groupHistoryMemoText(h))}</td></tr>`).join('') || `<tr><td colspan="3">${gt('아직 기록된 변경 이력이 없습니다.')}</td></tr>`}</tbody>
         </table>`;
 }
 
@@ -3532,7 +3658,7 @@ window.addEventListener('DataReady', () => {
             });
         }
         const reservationSave = persistRoomReservation(roomIdValue);
-        recordHistory(role === 'primary' ? (editId ? gt('대표 투숙객 수정') : gt('대표 투숙객 등록')) : (editId ? gt('동반 투숙객 수정') : gt('동반 투숙객 등록')), `${roomLabel(roomIdValue)} · ${data.name}`);
+        recordHistory(role === 'primary' ? (editId ? '대표 투숙객 수정' : '대표 투숙객 등록') : (editId ? '동반 투숙객 수정' : '동반 투숙객 등록'), `${roomLabel(roomIdValue)} · ${data.name}`);
         const groupSave = saveGroup();
         try {
             await Promise.all([Promise.resolve(reservationSave), Promise.resolve(groupSave)]);

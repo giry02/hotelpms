@@ -3053,6 +3053,9 @@ Object.assign(window.translations.ko, {
     "대표 투숙객 등록": "대표 투숙객 등록",
     "동반 투숙객 수정": "동반 투숙객 수정",
     "동반 투숙객 등록": "동반 투숙객 등록",
+    "객실 배정 수정": "객실 배정 수정",
+    "대표 투숙객 변경": "대표 투숙객 변경",
+    "투숙객 삭제": "투숙객 삭제",
     "투숙객 정보가 수정되었습니다.": "투숙객 정보가 수정되었습니다.",
     "투숙객이 등록되었습니다.": "투숙객이 등록되었습니다.",
     "객실 배정 수정은 변경 이력에 남습니다.": "객실 배정 수정은 변경 이력에 남습니다."
@@ -3260,6 +3263,9 @@ Object.assign(window.translations.en, {
     "대표 투숙객 등록": "Register Primary Guest",
     "동반 투숙객 수정": "Edit Companion Guest",
     "동반 투숙객 등록": "Register Companion Guest",
+    "객실 배정 수정": "Edit Room Assignment",
+    "대표 투숙객 변경": "Change Primary Guest",
+    "투숙객 삭제": "Delete Guest",
     "투숙객 정보가 수정되었습니다.": "Guest information was updated.",
     "투숙객이 등록되었습니다.": "Guest was registered.",
     "객실 배정 수정은 변경 이력에 남습니다.": "Room assignment changes are recorded in change history."
