@@ -256,6 +256,9 @@
     flex-wrap: wrap;
     gap: 10px;
 }
+.performance-section-head .company-performance-toolbar {
+    margin-left: auto;
+}
 .company-performance-toolbar .form-label { margin-bottom: 5px; }
 .company-performance-toolbar .form-input {
     width: 128px;
@@ -336,13 +339,12 @@
     color: var(--primary);
 }
 .performance-table tr:last-child td { border-bottom: 0; }
-.performance-table--monthly col:nth-child(1) { width: 16%; }
+.performance-table--monthly col:nth-child(1),
 .performance-table--monthly col:nth-child(2),
-.performance-table--monthly col:nth-child(3),
-.performance-table--monthly col:nth-child(4) { width: 12%; }
+.performance-table--monthly col:nth-child(3) { width: 13%; }
+.performance-table--monthly col:nth-child(4),
 .performance-table--monthly col:nth-child(5),
-.performance-table--monthly col:nth-child(6),
-.performance-table--monthly col:nth-child(7) { width: 16%; }
+.performance-table--monthly col:nth-child(6) { width: 20%; }
 .performance-table--events col:nth-child(1) { width: 11%; }
 .performance-table--events col:nth-child(2) { width: 29%; }
 .performance-table--events col:nth-child(3) { width: 9%; }
@@ -392,9 +394,15 @@
 }
 @media(max-width: 900px) {
     .company-performance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .company-performance-toolbar { grid-template-columns: 1fr; }
+    .performance-section-head { align-items: flex-start; flex-direction: column; }
+    .performance-section-head .company-performance-toolbar {
+        width: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
     .performance-table-wrap { overflow-x: auto; }
     .performance-table { min-width: 760px; }
+    .performance-table--monthly { min-width: 640px; }
 }
 @media(max-width: 560px) {
     .company-performance-grid { grid-template-columns: 1fr; }
@@ -560,16 +568,29 @@
             <div class="company-performance-grid" id="performanceSummaryGrid"></div>
             <div class="performance-section">
                 <div class="performance-section-head">
-                    <div class="performance-section-title"><i class="fa-solid fa-chart-column"></i> <span data-ko="기간별 거래 요약" data-en="Period Summary">기간별 거래 요약</span></div>
+                    <div>
+                        <div class="performance-section-title"><i class="fa-solid fa-chart-column"></i> <span data-ko="기간별 거래 요약" data-en="Period Summary">기간별 거래 요약</span></div>
+                        <div class="performance-section-sub" id="performanceRangeLabel"></div>
+                    </div>
+                    <div class="company-performance-toolbar">
+                        <select id="performancePeriodSelect" class="form-input" onchange="handlePerformancePeriodChange()" aria-label="&#44592;&#44036;">
+                            <option value="all" data-ko="&#51204;&#52404;" data-en="All">&#51204;&#52404;</option>
+                            <option value="year" data-ko="&#52572;&#44540; 1&#45380;" data-en="Last 1 year">&#52572;&#44540; 1&#45380;</option>
+                            <option value="custom" data-ko="&#44592;&#44036; &#49440;&#53469;" data-en="Custom period">&#44592;&#44036; &#49440;&#53469;</option>
+                        </select>
+                        <input id="performanceStartDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="&#49884;&#51089;&#51068;">
+                        <span class="performance-range-separator">~</span>
+                        <input id="performanceEndDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="&#51333;&#47308;&#51068;">
+                        <button class="btn-primary-sm" style="height:38px" onclick="refreshCompanyPerformanceModal()"><span data-ko="&#51312;&#54924;" data-en="Search">&#51312;&#54924;</span></button>
+                    </div>
                 </div>
                 <div class="performance-table-wrap">
                     <table class="performance-table performance-table--monthly">
                         <colgroup>
-                            <col><col><col><col><col><col><col>
+                            <col><col><col><col><col><col>
                         </colgroup>
                         <thead>
                             <tr>
-                                <th data-ko="기간" data-en="Period">기간</th>
                                 <th data-ko="방문" data-en="Visits">방문</th>
                                 <th data-ko="객실" data-en="Rooms">객실</th>
                                 <th data-ko="숙박 기간" data-en="Stay Nights">숙박 기간</th>
@@ -588,17 +609,6 @@
                     <div>
                         <div class="performance-section-title"><i class="fa-solid fa-list"></i> <span data-ko="상세 거래 이력" data-en="Usage History">상세 거래 이력</span></div>
                         <div class="performance-section-sub" id="performanceEventCount"></div>
-                    </div>
-                    <div class="company-performance-toolbar">
-                        <select id="performancePeriodSelect" class="form-input" onchange="handlePerformancePeriodChange()" aria-label="기간">
-                            <option value="all" data-ko="전체" data-en="All">전체</option>
-                            <option value="year" data-ko="최근 1년" data-en="Last 1 year">최근 1년</option>
-                            <option value="custom" data-ko="기간 선택" data-en="Custom period">기간 선택</option>
-                        </select>
-                        <input id="performanceStartDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="시작일">
-                        <span class="performance-range-separator">~</span>
-                        <input id="performanceEndDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="종료일">
-                        <button class="btn-primary-sm" style="height:38px" onclick="refreshCompanyPerformanceModal()"><span data-ko="조회" data-en="Search">조회</span></button>
                     </div>
                 </div>
                 <div class="performance-table-wrap">
@@ -1366,57 +1376,45 @@ function openBlockModal(compId) {
         `).join('');
     }
 
+    function performanceRangeLabel(range = performanceRange()) {
+        if (range.mode === 'all') return perfText('\uC804\uCCB4 \uAE30\uAC04', 'All periods');
+        if (range.mode === 'year') return perfText('\uCD5C\uADFC 1\uB144', 'Last 1 year');
+        const start = range.start ? isoDate(range.start) : perfText('\uC2DC\uC791\uC77C \uBBF8\uC9C0\uC815', 'No start date');
+        const end = range.end ? isoDate(range.end) : perfText('\uC885\uB8CC\uC77C \uBBF8\uC9C0\uC815', 'No end date');
+        return `${start} ~ ${end}`;
+    }
+
     function renderPerformanceMonthly(rows) {
         const body = document.getElementById('performanceMonthlyBody');
         const foot = document.getElementById('performanceMonthlyFoot');
+        const rangeLabel = document.getElementById('performanceRangeLabel');
+        if (rangeLabel) rangeLabel.textContent = performanceRangeLabel();
         if (!rows.length) {
-            body.innerHTML = `<tr><td colspan="7"><div class="performance-empty">${perfText('선택한 기간의 거래 통계가 없습니다.', 'No usage stats for the selected period.')}</div></td></tr>`;
+            body.innerHTML = `<tr><td colspan="6"><div class="performance-empty">${perfText('\uC120\uD0DD\uD55C \uAE30\uAC04\uC758 \uAC70\uB798 \uD1B5\uACC4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.', 'No usage stats for the selected period.')}</div></td></tr>`;
             if (foot) foot.innerHTML = '';
             return;
         }
-        const grouped = new Map();
-        const totals = { visits: 0, rooms: 0, stayNights: 0, room: 0, ancillary: 0, total: 0 };
-        rows.forEach(row => {
-            if (!grouped.has(row.month)) grouped.set(row.month, { month: row.month, visits: 0, rooms: 0, stayNights: 0, room: 0, ancillary: 0, total: 0 });
-            const item = grouped.get(row.month);
-            item.visits += 1;
-            item.rooms += row.rooms;
-            item.stayNights += row.stayNights;
-            item.room += row.room;
-            item.ancillary += row.ancillary;
-            item.total += row.total;
-            totals.visits += 1;
-            totals.rooms += row.rooms;
-            totals.stayNights += row.stayNights;
-            totals.room += row.room;
-            totals.ancillary += row.ancillary;
-            totals.total += row.total;
-        });
+        const totals = rows.reduce((acc, row) => {
+            acc.visits += 1;
+            acc.rooms += row.rooms;
+            acc.stayNights += row.stayNights;
+            acc.room += row.room;
+            acc.ancillary += row.ancillary;
+            acc.total += row.total;
+            return acc;
+        }, { visits: 0, rooms: 0, stayNights: 0, room: 0, ancillary: 0, total: 0 });
         const currency = rows[0]?.currency || 'PHP';
-        body.innerHTML = [...grouped.values()].sort((a, b) => b.month.localeCompare(a.month)).map(item => `
+        body.innerHTML = `
             <tr>
-                <td>${item.month}</td>
-                <td>${item.visits}${perfText('회', '')}</td>
-                <td>${item.rooms}${perfText('실', '')}</td>
-                <td>${item.stayNights}${perfText('박', ' nights')}</td>
-                <td class="amount">${companyMoney(item.room, currency)}</td>
-                <td class="amount">${companyMoney(item.ancillary, currency)}</td>
-                <td class="amount">${companyMoney(item.total, currency)}</td>
+                <td>${totals.visits}${perfText('\uD68C', '')}</td>
+                <td>${totals.rooms}${perfText('\uC2E4', '')}</td>
+                <td>${totals.stayNights}${perfText('\uBC15', ' nights')}</td>
+                <td class="amount">${companyMoney(totals.room, currency)}</td>
+                <td class="amount">${companyMoney(totals.ancillary, currency)}</td>
+                <td class="amount">${companyMoney(totals.total, currency)}</td>
             </tr>
-        `).join('');
-        if (foot) {
-            foot.innerHTML = `
-                <tr>
-                    <td>${perfText('합계', 'Total')}</td>
-                    <td>${totals.visits}${perfText('회', '')}</td>
-                    <td>${totals.rooms}${perfText('실', '')}</td>
-                    <td>${totals.stayNights}${perfText('박', ' nights')}</td>
-                    <td class="amount">${companyMoney(totals.room, currency)}</td>
-                    <td class="amount">${companyMoney(totals.ancillary, currency)}</td>
-                    <td class="amount">${companyMoney(totals.total, currency)}</td>
-                </tr>
-            `;
-        }
+        `;
+        if (foot) foot.innerHTML = '';
     }
 
     function renderPerformanceEvents(rows) {
