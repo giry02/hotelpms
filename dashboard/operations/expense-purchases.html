@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Purchases - Hotel PMS</title>
+    <title>비품 구매 — Hotel PMS</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <script src="../common/js/i18n-catalog.js"></script>
@@ -312,6 +312,11 @@ function expenseLang() {
 }
 function expenseText(ko, en) {
     return expenseLang() === 'en' ? en : ko;
+}
+function updateExpenseDocumentTitle() {
+    const lang = expenseLang();
+    document.documentElement.lang = lang;
+    document.title = `${expenseText('비품 구매', 'Expense Purchases')} — Hotel PMS`;
 }
 function categoryLabel(category) {
     const ko = { supplies:'비품', fuel:'기름값', driver:'드라이버', repair:'수리/정비', other:'기타' };
@@ -747,6 +752,7 @@ function bindExpenseActionButtons() {
     });
 }
 function applyExpenseLanguage() {
+    updateExpenseDocumentTitle();
     renderExpenseSelects();
     const mode = document.getElementById('expenseEditId')?.value ? 'edit' : 'create';
     setExpenseModalMode(mode);
