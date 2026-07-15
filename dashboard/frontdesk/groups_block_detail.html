@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>행사 등록/관리 - Hotel PMS</title>
+    <title data-i18n-title="행사 등록/관리">Group Event Management - Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -861,7 +861,7 @@ function renderAll() {
 
 function populateGuestRooms() {
     const sel = document.getElementById('guestRoomInput');
-    sel.innerHTML = '<option value="">호실 선택</option>' + getAssignedRooms(group).map(a => `<option value="${a.roomId}">${roomDisplayName(a)} · ${a.type}</option>`).join('');
+    sel.innerHTML = `<option value="">${gt('호실 선택')}</option>` + getAssignedRooms(group).map(a => `<option value="${a.roomId}">${roomDisplayName(a)} · ${a.type}</option>`).join('');
 }
 
 window.openRoomingModal = function() {
@@ -1002,7 +1002,7 @@ window.saveBasicInfo = function() {
 };
 
 function allocationOptions(selected = '', unavailable = new Set()) {
-    return ['<option value="">호실 선택</option>'].concat((rooms || []).map(r => {
+    return [`<option value="">${gt('호실 선택')}</option>`].concat((rooms || []).map(r => {
         const id = roomId(r);
         if (id !== selected && unavailable.has(id)) return '';
         const label = `${r.bldgCode || r.building || ''} ${r.display || r.number || id}`.trim();
@@ -1017,8 +1017,8 @@ window.addDetailAllocationRow = function(allocation = {}) {
     row.className = 'allocation-editor-row';
     row.innerHTML = `
         <select class="form-input detail-room" style="width:100%">${allocationOptions(allocation.roomId)}</select>
-        <input type="number" class="form-input detail-rate" placeholder="단가" value="${allocation.rate || ''}">
-        <input type="number" class="form-input detail-discount" placeholder="할인율" value="${allocation.discountPercent || 0}">
+        <input type="number" class="form-input detail-rate" placeholder="${gt('단가')}" value="${allocation.rate || ''}">
+        <input type="number" class="form-input detail-discount" placeholder="${gt('할인율')}" value="${allocation.discountPercent || 0}">
         <button class="mini-btn danger" type="button" onclick="this.closest('.allocation-editor-row').remove()"><i class="fa-solid fa-trash"></i></button>`;
     wrap.prepend(row);
 };
@@ -2123,7 +2123,7 @@ window.addEventListener('DataReady', () => {
         const select = document.getElementById('guestRoomInput');
         if (!select) return;
         const assigned = getAssignedRooms(group);
-        select.innerHTML = '<option value="">호실 선택</option>' + assigned.map(room =>
+        select.innerHTML = `<option value="">${gt('호실 선택')}</option>` + assigned.map(room =>
             `<option value="${safe(room.roomId)}">${safe(roomDisplayName(room))} · ${safe(room.type)}</option>`
         ).join('');
     };
@@ -2466,7 +2466,7 @@ window.addEventListener('DataReady', () => {
             const label = [roomDisplayName(room), room.type].filter(Boolean).join(' · ');
             return `<option value="${escapeText(room.roomId)}" ${room.roomId === selectedRoomId ? 'selected' : ''}>${escapeText(label)}</option>`;
         }).join('');
-        return `<option value="">호실 선택</option>${options}`;
+        return `<option value="">${gt('호실 선택')}</option>${options}`;
     }
 
     const ROOMING_NATIONALITIES = [
