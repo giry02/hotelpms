@@ -762,13 +762,31 @@ function groupStoredSettlementItems() {
     }).filter(item => item.amount > 0);
 }
 
+function groupCurrentLang() {
+    return localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+}
+
+function groupRoomChargeDesc(room) {
+    const roomName = roomDisplayName(room);
+    return groupCurrentLang() === 'en' ? `${roomName} Room Charge` : `${roomName} 객실료`;
+}
+
+function groupNightsRef(room, nightsCount) {
+    const roomType = room.type || '-';
+    if (groupCurrentLang() === 'en') {
+        const n = Number(nightsCount || 0);
+        return `${roomType} · ${n} ${n === 1 ? 'night' : 'nights'}`;
+    }
+    return `${roomType} · ${nightsCount}박`;
+}
+
 function groupSettlementLines() {
     const n = nights();
     const roomLines = getAssignedRooms(group).map(room => ({
         id: `ROOM-${room.roomId}`,
         type: 'room',
-        desc: `${roomDisplayName(room)} 객실료`,
-        ref: `${room.type || '-'} · ${n}박`,
+        desc: groupRoomChargeDesc(room),
+        ref: groupNightsRef(room, n),
         qty: n,
         amount: amountNumber(room.rate) * n,
         status: 'pending'
