@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>단체/행사 목록 - Hotel PMS</title>
+    <title data-i18n-title="Group Events">Group Events - Hotel PMS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -987,28 +987,62 @@ async function deleteGroup(id) {
 </script>
 <script>
 (function(){
-    const labels = {
-        modalNew: '신규 객실 배정',
-        modalEdit: '객실 배정 수정',
-        roomSection: '배정 호실',
-        addRoom: '호실 추가',
-        roomRequired: '최소 1개 이상의 호실을 배정해야 합니다.',
-        nameRequired: '행사(블록)명을 입력하세요.',
-        dateRequired: '체크인/체크아웃 날짜를 입력하세요.',
-        duplicateRoom: '같은 호실이 중복 배정되었습니다.',
-        saved: '객실 배정이 저장되었습니다.',
-        updated: '객실 배정이 수정되었습니다.',
-        noRooms: '배정 가능한 객실 정보가 없습니다.',
-        rooms: '호실',
-        roomsAssigned: '배정 호실',
-        pickup: '예약 진행',
-        reserve: '예약',
-        view: '상세',
-        edit: '수정',
-        folio: '정산',
-        blocked: '블록',
-        noAssignment: '배정된 호실이 없습니다.'
+    const labelTexts = {
+        ko: {
+            modalNew: '신규 객실 배정',
+            modalEdit: '객실 배정 수정',
+            roomSection: '배정 호실',
+            addRoom: '호실 추가',
+            roomRequired: '최소 1개 이상의 호실을 배정해야 합니다.',
+            nameRequired: '행사(블록)명을 입력하세요.',
+            dateRequired: '체크인/체크아웃 날짜를 입력하세요.',
+            duplicateRoom: '같은 호실이 중복 배정되었습니다.',
+            saved: '객실 배정이 저장되었습니다.',
+            updated: '객실 배정이 수정되었습니다.',
+            noRooms: '배정 가능한 객실 정보가 없습니다.',
+            rooms: '호실',
+            roomsAssigned: '배정 호실',
+            pickup: '예약 진행',
+            reserve: '예약',
+            view: '상세',
+            edit: '수정',
+            folio: '정산',
+            blocked: '블록',
+            noAssignment: '배정된 호실이 없습니다.',
+            selectCompany: '주관 업체를 선택하세요',
+            discount: '할인'
+        },
+        en: {
+            modalNew: 'New Room Block',
+            modalEdit: 'Edit Room Block',
+            roomSection: 'Assigned Rooms',
+            addRoom: 'Add Room',
+            roomRequired: 'Assign at least one room.',
+            nameRequired: 'Enter an event/block name.',
+            dateRequired: 'Enter check-in/check-out dates.',
+            duplicateRoom: 'The same room is assigned more than once.',
+            saved: 'Room block saved.',
+            updated: 'Room block updated.',
+            noRooms: 'No rooms are available for assignment.',
+            rooms: 'Rooms',
+            roomsAssigned: 'Assigned Rooms',
+            pickup: 'Start Booking',
+            reserve: 'Book',
+            view: 'Details',
+            edit: 'Edit',
+            folio: 'Folio',
+            blocked: 'Blocked',
+            noAssignment: 'No rooms assigned.',
+            selectCompany: 'Select company or agency',
+            discount: 'Discount'
+        }
     };
+    const labels = new Proxy({}, {
+        get(_, key) {
+            const lang = (localStorage.getItem('pms_lang') || window.currentLang || 'ko') === 'en' ? 'en' : 'ko';
+            return labelTexts[lang][key] || labelTexts.ko[key] || String(key);
+        }
+    });
 
     let blockRooms = [];
     let blockReservations = [];
@@ -1128,11 +1162,11 @@ async function deleteGroup(id) {
     window.loadCompaniesForDropdown = function() {
         const sel = document.getElementById('ngAgency');
         if (!sel) return;
-        sel.innerHTML = '<option value="">주관 업체를 선택하세요</option>';
+        sel.innerHTML = `<option value="">${labels.selectCompany}</option>`;
         getCompanies().forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
-            const discountLabel = groupCompanyLang() === 'en' ? 'Discount' : '할인';
+            const discountLabel = labels.discount;
             opt.textContent = `${c.name} (${groupCompanyTypeLabel(c.type)}) · ${discountLabel} ${parseDiscount(c)}%`;
             sel.appendChild(opt);
         });
@@ -1802,31 +1836,78 @@ async function deleteGroup(id) {
 <script>
 (function(){
     let eventStatus = 'all';
-    const T = {
-        title: '\uB2E8\uCCB4/\uD589\uC0AC \uBAA9\uB85D',
-        all: '\uC804\uCCB4',
-        today: '\uC624\uB298 \uCCB4\uD06C\uC778',
-        active: '\uD22C\uC219 \uC911',
-        upcoming: '\uC608\uC815',
-        past: '\uC9C0\uB09C \uD589\uC0AC',
-        settlement: '\uC815\uC0B0 \uD544\uC694',
-        companyManage: '\uB2E8\uCCB4 \uAD00\uB9AC',
-        newEvent: '\uC2E0\uADDC \uD589\uC0AC \uC0DD\uC131',
-        state: '\uC6B4\uC601 \uC0C1\uD0DC',
-        eventCompany: '\uD589\uC0AC / \uB2E8\uCCB4',
-        period: '\uAE30\uAC04',
-        rooms: '\uAC1D\uC2E4',
-        guests: '\uD22C\uC219\uAC1D',
-        billing: '\uC815\uC0B0',
-        noCompany: '\uB4F1\uB85D \uB2E8\uCCB4 \uD544\uC694',
-        bookedAssigned: '\uC608\uC57D/\uBC30\uC815',
-        registeredPax: '\uB4F1\uB85D/\uCD1D \uC778\uC6D0',
-        paid: '\uC644\uB8CC',
-        needCheck: '\uD655\uC778 \uD544\uC694',
-        inProgress: '\uC9C4\uD589 \uC911',
-        manage: '\uAD00\uB9AC',
-        noEvents: '\uD574\uB2F9 \uC870\uAC74\uC758 \uD589\uC0AC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.'
+    const TEXT = {
+        ko: {
+            browserTitle: '단체/행사 목록 - Hotel PMS',
+            title: '단체/행사 목록',
+            all: '전체',
+            today: '오늘 체크인',
+            active: '투숙 중',
+            upcoming: '예정',
+            past: '지난 행사',
+            settlement: '정산 필요',
+            companyManage: '단체 관리',
+            newEvent: '신규 행사 생성',
+            state: '운영 상태',
+            eventCompany: '행사 / 단체',
+            period: '기간',
+            rooms: '객실',
+            guests: '투숙객',
+            billing: '정산',
+            noCompany: '등록 단체 필요',
+            bookedAssigned: '예약/배정',
+            registeredPax: '등록/총 인원',
+            paid: '완료',
+            needCheck: '확인 필요',
+            inProgress: '진행 중',
+            manage: '관리',
+            noEvents: '해당 조건의 행사가 없습니다.',
+            globalSearch: '예약번호, 고객명 검색...',
+            eventSearch: '행사(블록)명 검색...',
+            totalEvents: '전체 행사',
+            currentInhouse: '현재 투숙 중',
+            blockRooms: '블록 배정 객실',
+            unpaidGroups: '미정산 단체'
+        },
+        en: {
+            browserTitle: 'Group Events - Hotel PMS',
+            title: 'Group Events',
+            all: 'All',
+            today: 'Due In',
+            active: 'In-house',
+            upcoming: 'Upcoming',
+            past: 'Past',
+            settlement: 'Settle',
+            companyManage: 'Companies',
+            newEvent: 'New Event',
+            state: 'Status',
+            eventCompany: 'Event / Company',
+            period: 'Period',
+            rooms: 'Rooms',
+            guests: 'Guests',
+            billing: 'Billing',
+            noCompany: 'Company needed',
+            bookedAssigned: 'Booked/Assigned',
+            registeredPax: 'Guests/Pax',
+            paid: 'Paid',
+            needCheck: 'Check',
+            inProgress: 'Open',
+            manage: 'Manage',
+            noEvents: 'No group events match the current filters.',
+            globalSearch: 'Search reservation or guest...',
+            eventSearch: 'Search event or block...',
+            totalEvents: 'Total Events',
+            currentInhouse: 'In-house',
+            blockRooms: 'Blocked Rooms',
+            unpaidGroups: 'Unsettled Groups'
+        }
     };
+    const T = new Proxy({}, {
+        get(_, key) {
+            const lang = (localStorage.getItem('pms_lang') || window.currentLang || 'ko') === 'en' ? 'en' : 'ko';
+            return TEXT[lang][key] || TEXT.ko[key] || String(key);
+        }
+    });
 
     function html(value) {
         return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -2005,7 +2086,29 @@ async function deleteGroup(id) {
         return counts;
     }
 
+    function setKpiLabel(id, label) {
+        const value = document.getElementById(id);
+        const labelEl = value?.previousElementSibling;
+        if (labelEl) labelEl.textContent = label;
+    }
+
+    function applyStaticI18n() {
+        document.documentElement.lang = (localStorage.getItem('pms_lang') || window.currentLang || 'ko') === 'en' ? 'en' : 'ko';
+        document.title = T.browserTitle;
+        const title = document.querySelector('.topbar-left h1');
+        if (title) title.textContent = T.title;
+        const globalSearch = document.getElementById('global-search-input');
+        if (globalSearch) globalSearch.placeholder = T.globalSearch;
+        const eventSearch = document.querySelector('.search-box-mt input');
+        if (eventSearch) eventSearch.placeholder = T.eventSearch;
+        setKpiLabel('kpiTotalGroups', T.totalEvents);
+        setKpiLabel('kpiInhouse', T.currentInhouse);
+        setKpiLabel('kpiBlocks', T.blockRooms);
+        setKpiLabel('kpiUnpaid', T.unpaidGroups);
+    }
+
     function ensureToolbar(list = eventData(), search = '') {
+        applyStaticI18n();
         const title = document.querySelector('.topbar-left h1');
         if (title) title.textContent = T.title;
 
@@ -2136,6 +2239,17 @@ async function deleteGroup(id) {
 
     document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => window.renderGroups(document.querySelector('.search-box-mt input')?.value || ''), 40);
+    });
+
+    window.applyLocalI18n = function() {
+        applyStaticI18n();
+        if (typeof window.renderGroups === 'function') {
+            window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
+        }
+    };
+
+    window.addEventListener('languagechange', () => {
+        window.applyLocalI18n();
     });
 })();
 </script>
