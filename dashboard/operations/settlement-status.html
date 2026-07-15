@@ -18,6 +18,7 @@
     <script src="../common/js/sidebar.js"></script>
     <script src="../common/js/ui-components.js"></script>
     <script src="../common/js/topbar.js"></script>
+    <script src="../common/js/privacy-audit.js"></script>
     <style>
         .settlement-page{font-family:var(--font)}
         .settlement-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
@@ -838,6 +839,60 @@ function settlementCurrentOperator() {
 
 function settlementNowIso() {
     return window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+}
+
+function settlementAuditActor() {
+    const role = localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
+    return {
+        id: localStorage.getItem('mock_user_id') || role,
+        name: settlementCurrentOperator(),
+        role,
+        roleLabel: ['sys_admin', 'admin', 'administrator'].includes(String(role).toLowerCase()) ? '관리자' : role
+    };
+}
+
+function logSettlementStatusReopenAudit(folio, beforeStatus = '완료됨') {
+    const details = {
+        screen: 'settlement-status',
+        folioId: folio.folioId || folio.id || '',
+        reservationId: folio.reservationId || '',
+        groupId: folio.groupId || '',
+        room: folio.room || '',
+        guestName: folio.guest || '',
+        beforeStatus,
+        afterStatus: '미완료',
+        fields: ['folioId', 'reservationId', 'room', 'status'],
+        totalAmount: Number(folio.total || 0),
+        paid: Number(folio.paid || 0),
+        balanceDue: Number(folio.balance || 0),
+        currency: folio.currency || 'PHP'
+    };
+    try {
+        if (window.PmsPrivacyAudit?.log) {
+            window.PmsPrivacyAudit.log('folio.settlement.reopen', details);
+            return;
+        }
+    } catch (error) {
+        console.warn('Settlement status reopen audit logger failed, using fallback', error);
+    }
+    try {
+        const storageKey = 'pms_privacy_audit_logs';
+        const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const logs = Array.isArray(parsed) ? parsed : [];
+        const entry = {
+            id: `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            action: 'folio.settlement.reopen',
+            createdAt: settlementNowIso(),
+            actor: settlementAuditActor(),
+            page: window.location.pathname,
+            details
+        };
+        logs.push(entry);
+        localStorage.setItem(storageKey, JSON.stringify(logs.slice(-500)));
+        window.dispatchEvent(new CustomEvent('pms:privacy-audit', { detail: entry }));
+    } catch (error) {
+        console.warn('Settlement status reopen audit fallback failed', error);
+    }
 }
 
 function settlementFormatDateTime(value) {
@@ -2188,6 +2243,7 @@ async function reopenSettlementStatusFolio(folioId) {
         reopenedBy: settlementCurrentOperator()
     });
     settlementSetStorageJson(SETTLEMENT_REOPENS_KEY, reopens);
+    logSettlementStatusReopenAudit(folio, folio.settlementCompleted ? settlementText('completed') : (folio.statusLabel || '완료됨'));
     try {
         if (window.PmsMockApi && folio.raw?.id) {
             await window.PmsMockApi.request('PATCH', `/folios/${encodeURIComponent(folio.raw.id)}`, {

@@ -439,6 +439,62 @@ function ensureAuditDemoLogs() {
     localStorage.setItem(AUDIT_DEMO_STORAGE_KEY, today);
 }
 
+function ensureSettlementReopenAuditLogs() {
+    if (!window.PmsPrivacyAudit) return;
+    const storageKey = window.PmsPrivacyAudit.storageKey || 'pms_privacy_audit_logs';
+    let logs = readAuditLogs();
+    let reopens = [];
+    try {
+        const parsed = JSON.parse(localStorage.getItem('pms_settlement_reopens') || '[]');
+        reopens = Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        reopens = [];
+    }
+    if (!reopens.length) return;
+    const existingKeys = new Set(logs
+        .filter(entry => entry.action === 'folio.settlement.reopen')
+        .map(entry => `${entry.details?.folioId || ''}|${entry.details?.reservationId || ''}|${entry.createdAt || ''}`));
+    const additions = [];
+    reopens.forEach(record => {
+        const folioId = record.folioId || '';
+        const reservationId = record.reservationId || '';
+        const createdAt = record.reopenedAt || record.createdAt || new Date().toISOString();
+        const key = `${folioId}|${reservationId}|${createdAt}`;
+        if (!folioId || existingKeys.has(key)) return;
+        existingKeys.add(key);
+        const role = localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
+        additions.push({
+            id: `AUD-SETTLEMENT-REOPEN-${String(record.id || `${folioId}-${createdAt}`).replace(/[^A-Za-z0-9_-]/g, '-')}`,
+            action: 'folio.settlement.reopen',
+            createdAt,
+            actor: {
+                id: localStorage.getItem('mock_user_id') || role,
+                name: record.reopenedBy || localStorage.getItem('pms_current_user_name') || localStorage.getItem('pms_staff_name') || 'Nguyen Kim',
+                role,
+                roleLabel: ['sys_admin', 'admin', 'administrator'].includes(String(role).toLowerCase()) ? '관리자' : role
+            },
+            page: '/dashboard/operations/settlement-status.html',
+            details: {
+                screen: 'settlement-status',
+                folioId,
+                reservationId,
+                groupId: record.groupId || '',
+                room: record.room || '',
+                guestName: record.guest || '',
+                beforeStatus: '완료됨',
+                afterStatus: '미완료',
+                fields: ['folioId', 'reservationId', 'room', 'status'],
+                totalAmount: Number(record.total || 0),
+                paid: Number(record.paid || 0),
+                balanceDue: Number(record.bal || record.balance || 0),
+                currency: record.currency || 'PHP'
+            }
+        });
+    });
+    if (!additions.length) return;
+    localStorage.setItem(storageKey, JSON.stringify([...logs, ...additions].slice(-500)));
+}
+
 function actionMeta(action) {
     return ACTION_META[action] || { label: action || '기타 동작', type: 'other', icon: 'fa-circle-info' };
 }
@@ -728,6 +784,7 @@ function renderAuditPagination(total, pageSize) {
 function renderAuditLogs() {
     if (!ensureAdminAccess()) return;
     updateAuditPeriodUi();
+    ensureSettlementReopenAuditLogs();
     ensureAuditDemoLogs();
     const logs = readAuditLogs();
     const rows = sortAuditLogs(filteredLogs(logs));
