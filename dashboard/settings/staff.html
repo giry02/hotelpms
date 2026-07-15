@@ -169,8 +169,9 @@
                     </select>
                     <select class="hotel-select" id="statusFilter" onchange="renderStaff()" style="min-width:120px">
                         <option value="all">전체 상태</option>
-                        <option value="online">근무 중</option>
-                        <option value="offline">오프라인</option>
+                        <option value="active">근무 중</option>
+                        <option value="leave">휴직</option>
+                        <option value="retired">퇴직</option>
                     </select>
                 </div>
             </div>
@@ -335,15 +336,20 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">역할 변경</label>
-                    <select class="form-control" id="editRole"></select>
+                    <select class="form-control" id="editRole" onchange="renderEditPermPreview()"></select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label class="form-label">상태</label>
-                    <select class="form-control" id="editStatus">
-                        <option value="online">근무 중</option>
-                        <option value="offline">오프라인</option>
-                    </select>
+                    <select class="form-control" id="editStatus"></select>
                 </div>
+            </div>
+
+            <div class="perm-preview-wrap" id="editPermPreview" style="display:none">
+                <div style="font-size:.78rem;font-weight:700;color:var(--txt);margin-bottom:8px">
+                    <i class="fa-solid fa-key" style="color:var(--primary);margin-right:4px"></i>
+                    <span data-ko="선택 역할 권한" data-en="Selected role permissions">선택 역할 권한</span>
+                </div>
+                <div id="editPermPreviewTags"></div>
             </div>
 
             <div class="password-change-box">
@@ -412,22 +418,34 @@ function adminFallbackRoleId() {
     return roles[0]?.id || 'sys_gm';
 }
 
+function normalizeStaffStatus(status) {
+    const value = String(status || '').toLowerCase();
+    if (value === 'leave' || value === 'on_leave' || value === 'on-leave' || value === 'suspended') return 'leave';
+    if (value === 'retired' || value === 'terminated' || value === 'resigned') return 'retired';
+    return 'active';
+}
+
 function normalizeSingleAdminStaff(data) {
     const fallbackRoleId = adminFallbackRoleId();
     let adminSeen = false;
     let changed = false;
     const items = (Array.isArray(data) ? data : []).map(staff => {
-        if (staff?.roleId !== 'sys_admin') return staff;
+        const normalizedStaff = {
+            ...staff,
+            status: normalizeStaffStatus(staff?.status)
+        };
+        if (normalizedStaff.status !== staff?.status) changed = true;
+        if (normalizedStaff?.roleId !== 'sys_admin') return normalizedStaff;
         if (!adminSeen) {
             adminSeen = true;
-            return staff;
+            return normalizedStaff;
         }
         changed = true;
         const fallbackRole = getRoleById(fallbackRoleId);
         return {
-            ...staff,
+            ...normalizedStaff,
             roleId: fallbackRoleId,
-            color: fallbackRole?.color || staff.color,
+            color: fallbackRole?.color || normalizedStaff.color,
             adminConflictResolvedAt: new Date().toISOString()
         };
     });
@@ -498,6 +516,16 @@ function roleDescription(role) {
 }
 
 // ─── 역할 필터 드롭다운 ────────────────────────────────────────
+function staffStatusMeta(status) {
+    const value = normalizeStaffStatus(status);
+    const meta = {
+        active: { label: staffText('근무 중', 'Active'), color: 'var(--success)' },
+        leave: { label: staffText('휴직', 'On Leave'), color: 'var(--warning)' },
+        retired: { label: staffText('퇴직', 'Retired'), color: 'var(--txt3)' }
+    };
+    return meta[value] || meta.active;
+}
+
 function buildRoleFilter() {
     const sel = document.getElementById('roleFilter');
     const current = sel.value || 'all';
@@ -518,22 +546,24 @@ function populateEditRoleOptions(selectedRoleId = '') {
     else if (roles.length) editSel.value = roles[0].id;
 }
 
+
 function refreshStaffStatusOptions() {
     const statusLabels = {
         all: staffText('전체 상태', 'All Statuses'),
-        online: staffText('근무 중', 'Online'),
-        offline: staffText('오프라인', 'Offline')
+        active: staffText('근무 중', 'Active'),
+        leave: staffText('휴직', 'On Leave'),
+        retired: staffText('퇴직', 'Retired')
     };
     const statusFilter = document.getElementById('statusFilter');
     if (statusFilter) {
         const current = statusFilter.value || 'all';
         statusFilter.innerHTML = Object.entries(statusLabels).map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
-        statusFilter.value = current;
+        statusFilter.value = statusLabels[current] ? current : 'all';
     }
     const editStatus = document.getElementById('editStatus');
     if (editStatus) {
-        const current = editStatus.value || 'online';
-        editStatus.innerHTML = ['online', 'offline'].map(value => `<option value="${value}">${statusLabels[value]}</option>`).join('');
+        const current = normalizeStaffStatus(editStatus.value || 'active');
+        editStatus.innerHTML = ['active', 'leave', 'retired'].map(value => `<option value="${value}">${statusLabels[value]}</option>`).join('');
         editStatus.value = current;
     }
     const searchInput = document.getElementById('searchInput');
@@ -544,6 +574,7 @@ function applyStaffLanguage() {
     refreshStaffStatusOptions();
     buildRoleFilter();
     populateEditRoleOptions(document.getElementById('editRole')?.value || '');
+    renderEditPermPreview();
     renderRolePickGrid();
     renderStaff();
 }
@@ -589,9 +620,8 @@ function renderStaff() {
             : `<button type="button" class="btn-outline-sm staff-edit-action" data-staff-edit="${staffAttr(s.id)}">
                     <i class="fa-solid fa-pen"></i> ${staffText('편집', 'Edit')}
                </button>`;
-        const dot = s.status === 'online'
-            ? `<span class="status-dot" style="background:var(--success)"></span> ${staffText('근무 중', 'Online')}`
-            : `<span class="status-dot" style="background:var(--txt3)"></span> ${staffText('오프라인', 'Offline')}`;
+        const status = staffStatusMeta(s.status);
+        const dot = `<span class="status-dot" style="background:${status.color}"></span> ${status.label}`;
         return `<tr${managedAdmin ? '' : ` data-staff-edit-row="${staffAttr(s.id)}"`}>
             <td data-label="${staffAttr(staffText('직원', 'Staff'))}">
                 <div class="guest-cell">
@@ -635,9 +665,6 @@ function renderRolePickGrid() {
             <div class="rpc-desc">${roleDescription(r)}</div>
         </div>
     `).join('');
-
-    // edit modal role options
-    populateEditRoleOptions();
 }
 
 function selectRole(id, el) {
@@ -661,6 +688,18 @@ function showPermPreview(role) {
     document.getElementById('permPreviewTags').innerHTML = role.perms.map(k => `
         <span class="perm-tag">${MENU_LABEL[k] || k}</span>
     `).join('');
+}
+
+function renderEditPermPreview() {
+    const wrap = document.getElementById('editPermPreview');
+    const tags = document.getElementById('editPermPreviewTags');
+    const role = getRoleById(document.getElementById('editRole')?.value);
+    if (!wrap || !tags || !role) {
+        if (wrap) wrap.style.display = 'none';
+        return;
+    }
+    wrap.style.display = 'block';
+    tags.innerHTML = role.perms.map(k => `<span class="perm-tag">${MENU_LABEL[k] || k}</span>`).join('');
 }
 
 // ─── 직원 등록 ────────────────────────────────────────────────
@@ -688,7 +727,7 @@ function saveStaff() {
         address: document.getElementById('newAddress').value.trim(),
         hireDate: document.getElementById('newHireDate').value,
         terminationDate: document.getElementById('newTerminationDate').value,
-        roleId: selectedRoleId, status: 'offline', last: '방금 등록',
+        roleId: selectedRoleId, status: 'active', last: '방금 등록',
         passwordUpdatedAt: new Date().toISOString(),
         passwordChangeRequired: false
     });
@@ -732,7 +771,8 @@ function openEdit(id) {
     document.getElementById('editAddress').value = s.address || '';
     document.getElementById('editHireDate').value = s.hireDate || '';
     document.getElementById('editTerminationDate').value = s.terminationDate || '';
-    document.getElementById('editStatus').value = s.status;
+    document.getElementById('editStatus').value = normalizeStaffStatus(s.status);
+    renderEditPermPreview();
     document.getElementById('editNewPw').value = '';
     document.getElementById('editNewPwConfirm').value = '';
     openModal('editStaffModal');
@@ -783,7 +823,7 @@ function saveEdit() {
     if (!nextRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
     if (nextRoleId === 'sys_admin') { showToast('관리자 역할은 직원 관리에서 부여할 수 없습니다.', 'error'); return; }
     s.roleId = nextRoleId;
-    s.status = document.getElementById('editStatus').value;
+    s.status = normalizeStaffStatus(document.getElementById('editStatus').value);
     
     const newPw = document.getElementById('editNewPw').value.trim();
     const newPwConfirm = document.getElementById('editNewPwConfirm').value.trim();
@@ -824,7 +864,10 @@ async function deleteStaff() {
 // ─── 모달 ─────────────────────────────────────────────────────
 function openModal(id) {
     if (id === 'addStaffModal') renderRolePickGrid();
-    if (id === 'editStaffModal') populateEditRoleOptions(document.getElementById('editRole')?.value);
+    if (id === 'editStaffModal') {
+        populateEditRoleOptions(document.getElementById('editRole')?.value);
+        renderEditPermPreview();
+    }
     document.getElementById(id).classList.add('active');
 }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }

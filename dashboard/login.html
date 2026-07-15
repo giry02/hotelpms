@@ -227,10 +227,33 @@ function showLogin(e){
 }
 
 // Login handler
+function normalizeLoginStaffStatus(status) {
+    const value = String(status || '').toLowerCase();
+    if (value === 'leave' || value === 'on_leave' || value === 'on-leave' || value === 'suspended') return 'leave';
+    if (value === 'retired' || value === 'terminated' || value === 'resigned') return 'retired';
+    return 'active';
+}
+
+function readLoginStaffList() {
+    try {
+        const data = JSON.parse(localStorage.getItem('pms_staff') || '[]');
+        return Array.isArray(data) ? data : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function setLoginError(message) {
+    const err = document.getElementById('loginError');
+    const span = err?.querySelector('span');
+    if (span && message) span.textContent = message;
+    err?.classList.add('show');
+}
+
 function handleLogin(){
     const btn=document.getElementById('btnLogin');
     const err=document.getElementById('loginError');
-    const email=document.getElementById('email').value;
+    const email=document.getElementById('email').value.trim();
     const pw=document.getElementById('password').value;
 
     err.classList.remove('show');
@@ -240,10 +263,25 @@ function handleLogin(){
         // Demo: any input works, empty fails
         if(!email || !pw){
             btn.classList.remove('loading');
-            err.classList.add('show');
+            setLoginError(currentLang === 'en' ? 'Enter email and password.' : '이메일과 비밀번호를 입력하세요.');
             return;
         }
         // 로그인 Status Save
+        const matchedStaff = readLoginStaffList().find(staff => String(staff.email || '').toLowerCase() === email.toLowerCase());
+        if (matchedStaff) {
+            const status = normalizeLoginStaffStatus(matchedStaff.status);
+            if (status !== 'active') {
+                btn.classList.remove('loading');
+                setLoginError(status === 'retired'
+                    ? (currentLang === 'en' ? 'Retired staff cannot log in.' : '퇴직 직원은 로그인할 수 없습니다.')
+                    : (currentLang === 'en' ? 'Staff on leave cannot log in.' : '휴직 직원은 로그인할 수 없습니다.'));
+                return;
+            }
+            localStorage.setItem('mock_user_id', matchedStaff.id);
+            localStorage.setItem('currentUserRole', matchedStaff.roleId || 'sys_desk');
+            localStorage.setItem('pms_staff_name', matchedStaff.name || '');
+            localStorage.setItem('pms_staff_email', matchedStaff.email || '');
+        }
         sessionStorage.setItem('pms_logged_in', 'true');
         // Redirect to dashboard
         window.location.href='dashboard.html';
