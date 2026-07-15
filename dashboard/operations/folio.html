@@ -728,8 +728,10 @@ const DEPT_META = {
 };
 
 function canReopenSettlementDetail() {
-    if (window.PMS_FeaturePermissions?.can) return window.PMS_FeaturePermissions.can('settlement.reopen');
-    return (window.currentUserRole || localStorage.getItem('currentUserRole')) === 'sys_admin';
+    const role = String(window.currentUserRole || localStorage.getItem('currentUserRole') || '').toLowerCase();
+    const adminFallback = ['sys_admin', 'admin', 'administrator'].includes(role) || currentOperatorName() === 'Nguyen Kim';
+    if (window.PMS_FeaturePermissions?.can) return window.PMS_FeaturePermissions.can('settlement.reopen') || adminFallback;
+    return adminFallback;
 }
 
 function isGroupFolio(folio) {
@@ -2201,7 +2203,7 @@ function folioActionsHtml(folio, index, mode = 'table') {
     } else if (due > 0) {
         buttons.push(`<button class="${receiveClass}"${receiveStyle} onclick='event.stopPropagation(); openPaymentModal(${folioIdArg}, ${due})'>${receiveIcon}수납</button>`);
     } else {
-        buttons.push(`<button class="${completeClass}"${completeStyle} onclick='event.stopPropagation(); completeSettlementFolio(${folioIdArg})'>${completeIcon}정산 완료</button>`);
+        buttons.push(`<button class="${completeClass}"${completeStyle} onclick='event.stopPropagation(); completeSettlementFolio(${folioIdArg}, { openDetail: false })'>${completeIcon}정산 완료</button>`);
     }
     return buttons.join('');
 }
@@ -2952,7 +2954,7 @@ function renderSettlementDetailModal() {
             ? '<button class="btn-primary-sm" onclick="openSettlementPaymentFromDetail()"><i class="fa-solid fa-credit-card"></i> 수납 등록</button>'
             : '';
         const completeButton = folio.settlementCompleted
-            ? '<span class="settlement-completed-status"><i class="fa-solid fa-circle-check"></i> 완료됨</span>'
+            ? `<span class="settlement-completed-status"><i class="fa-solid fa-circle-check"></i> 완료됨</span>${canReopenSettlementDetail() ? '<button class="btn-outline" onclick="reopenSettlementFromDetail()"><i class="fa-solid fa-rotate-left"></i> 정산 미완료로 변경</button>' : ''}`
             : '<button class="btn-settlement-complete" onclick="completeSettlementFromDetail()"><i class="fa-solid fa-door-open"></i> 정산 완료</button>';
         footer.innerHTML = `
             <div class="settlement-detail-footer-left">
@@ -2989,7 +2991,7 @@ function openSettlementPaymentFromDetail() {
 function completeSettlementFromDetail() {
     const folio = visibleFolios[currentSettlementIndex];
     if (!folio) return;
-    completeSettlementFolio(folio.id);
+    completeSettlementFolio(folio.id, { openDetail: true });
 }
 
 async function reopenSettlementFromDetail() {
@@ -3139,7 +3141,7 @@ function processPayment(options = {}) {
     if (options.completeAfter) {
         const updated = visibleFolios.find(item => item.id === folio.id);
         if (updated && Number(updated.bal || 0) <= 0) {
-            completeSettlementFolio(updated.id);
+            completeSettlementFolio(updated.id, { openDetail: true });
             return;
         }
         showToast('미수금이 남아 있어 정산 완료 처리할 수 없습니다.', 'error');
@@ -3165,10 +3167,10 @@ function completePaymentModalSettlement() {
         return;
     }
     closeModal('paymentModal');
-    completeSettlementFolio(folio.id);
+    completeSettlementFolio(folio.id, { openDetail: true });
 }
 
-function completeSettlementFolio(folioId) {
+function completeSettlementFolio(folioId, options = {}) {
     const folio = visibleFolios.find(item => item.id === folioId);
     if (!folio) {
         showToast('정산 대상을 찾지 못했습니다.', 'error');
@@ -3216,7 +3218,7 @@ function completeSettlementFolio(folioId) {
     }
     showToast('정산/체크아웃 완료 처리되었습니다. 객실은 청소 필요 상태로 전환됩니다.', 'success');
     renderFolios();
-    reopenSettlementDetailForFolio(folio.id);
+    if (options.openDetail !== false) reopenSettlementDetailForFolio(folio.id);
 }
 
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});
