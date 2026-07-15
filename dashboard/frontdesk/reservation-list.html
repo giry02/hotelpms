@@ -460,16 +460,16 @@ const reservationLabels = {
         'status.completed': 'Checked-out',
         'status.cancelled': 'Cancelled',
         'filter.all': 'All',
-        'filter.checkin': 'Today Check-in',
-        'filter.inhouse': 'In-house',
-        'filter.checkout': 'Check-out',
+        'filter.checkin': 'Arrivals',
+        'filter.inhouse': 'Stays',
+        'filter.checkout': 'Departures',
         'filter.lateCheckout': 'Late',
-        'filter.completed': 'Checked-out',
+        'filter.completed': 'Done',
         'filter.group': 'Groups',
-        'filter.dirty': 'Needs cleaning',
+        'filter.dirty': 'To Clean',
         'filter.vacant': 'Vacant',
-        'filter.roommove': 'Room changed',
-        'filter.cancelled': 'Cancelled / No-show',
+        'filter.roommove': 'Moved',
+        'filter.cancelled': 'CXL/No-show',
         'filter.title': 'Reservation Status Filter',
         'kind.individual': 'Individual',
         'kind.group': 'Group',
@@ -1674,6 +1674,11 @@ function refreshReservationLabels() {
         const label = tab.querySelector('.ops-label');
         if (label) label.textContent = filterLabel(filter);
     });
+    document.querySelectorAll('.filter-chips .chip').forEach(chip => {
+        const filter = chip.getAttribute('data-filter');
+        const count = chip.querySelector('.chip-count')?.textContent || '0';
+        if (filter) chip.innerHTML = `${filterLabel(filter)} <span class="chip-count">${count}</span>`;
+    });
     document.querySelectorAll('.bs-option').forEach(option => {
         const click = option.getAttribute('onclick') || '';
         const filter = ['all', 'checkin', 'checkout', 'completed', 'inhouse', 'group', 'lateCheckout', 'dirty', 'vacant', 'roommove', 'cancelled'].find(key => click.includes(`'${key}'`));
@@ -1716,6 +1721,9 @@ function updateChipCounts() {
         if (label && f) label.textContent = filterLabel(f);
         const span = c.querySelector('.chip-count, .ops-count');
         if(span && counts[f] !== undefined) span.textContent = counts[f];
+        if (c.classList.contains('chip') && f && counts[f] !== undefined) {
+            c.innerHTML = `${filterLabel(f)} <span class="chip-count">${counts[f]}</span>`;
+        }
     });
     
     document.querySelectorAll('.bs-option').forEach(btn => {
