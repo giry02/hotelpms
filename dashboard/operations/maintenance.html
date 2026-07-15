@@ -289,29 +289,29 @@
             }
             
             /* Reorder items for mobile cards */
-            .mt-table-wrap td[data-label="요청 번호"] { order: 1; }
-            .mt-table-wrap td[data-label="객실"] { order: 2; }
-            .mt-table-wrap td[data-label="유형"] { order: 3; }
-            .mt-table-wrap td[data-label="우선순위"] { order: 4; }
-            .mt-table-wrap td[data-label="담당자"] { order: 5; }
-            .mt-table-wrap td[data-label="상태"] { order: 6; }
+            .mt-table-wrap td[data-label="요청 번호"], .mt-table-wrap td[data-label="Request ID"] { order: 1; }
+            .mt-table-wrap td[data-label="객실"], .mt-table-wrap td[data-label="Room"] { order: 2; }
+            .mt-table-wrap td[data-label="유형"], .mt-table-wrap td[data-label="Type"] { order: 3; }
+            .mt-table-wrap td[data-label="우선순위"], .mt-table-wrap td[data-label="Priority"] { order: 4; }
+            .mt-table-wrap td[data-label="담당자"], .mt-table-wrap td[data-label="Assignee"] { order: 5; }
+            .mt-table-wrap td[data-label="상태"], .mt-table-wrap td[data-label="Status"] { order: 6; }
             
-            .mt-table-wrap td[data-label="상세 내용"] { 
+            .mt-table-wrap td[data-label="상세 내용"], .mt-table-wrap td[data-label="Details"] {
                 order: 7; grid-column: span 2; 
                 background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border2); 
                 white-space: normal !important; word-break: break-all;
             }
-            .mt-table-wrap td[data-label="상세 내용"]::before { margin-bottom: 6px; }
+            .mt-table-wrap td[data-label="상세 내용"]::before, .mt-table-wrap td[data-label="Details"]::before { margin-bottom: 6px; }
             
-            .mt-table-wrap td[data-label="처리 일시"] {
+            .mt-table-wrap td[data-label="처리 일시"], .mt-table-wrap td[data-label="Timeline"] {
                 order: 8; justify-content: flex-end;
                 padding-top: 12px; border-top: 1px dashed var(--border) !important; margin-top: 4px;
             }
-            .mt-table-wrap td[data-label="액션"] {
+            .mt-table-wrap td[data-label="액션"], .mt-table-wrap td[data-label="Actions"] {
                 order: 9; align-items: flex-end; justify-content: flex-end;
                 padding-top: 12px; border-top: 1px dashed var(--border) !important; margin-top: 4px;
             }
-            .mt-table-wrap td[data-label="액션"]::before { display: none; }
+            .mt-table-wrap td[data-label="액션"]::before, .mt-table-wrap td[data-label="Actions"]::before { display: none; }
         }
     </style>
 </head>
@@ -625,9 +625,98 @@ const typeLabels = {
     other: '기타',
     maintenance: '기타'
 };
-const priorityLabel = { urgent:'긴급', high:'높음', normal:'일반', low:'낮음' };
+const priorityLabels = {
+    ko: { urgent:'긴급', high:'높음', normal:'일반', low:'낮음' },
+    en: { urgent:'Urgent', high:'High', normal:'Normal', low:'Low' }
+};
 const priorityClass = { urgent:'priority-urgent', high:'priority-high', normal:'priority-normal', low:'priority-low' };
-const statusLabel   = { open:'신규 요청', 'in-progress':'진행 중', done:'완료' };
+const statusLabels = {
+    ko: { open:'신규 요청', 'in-progress':'진행 중', done:'완료' },
+    en: { open:'New Request', 'in-progress':'Active', done:'Completed' }
+};
+const typeDisplayLabels = {
+    ko: { '전기/조명':'전기/조명', '배관/수도':'배관/수도', '에어컨/냉난방':'에어컨/냉난방', '가구/비품':'가구/비품', '도어/잠금장치':'도어/잠금장치', '엘리베이터':'엘리베이터', '객실 점검':'객실 점검', '기타':'기타' },
+    en: { '전기/조명':'Electrical/Lighting', '배관/수도':'Plumbing/Water', '에어컨/냉난방':'HVAC', '가구/비품':'Furniture/Fixtures', '도어/잠금장치':'Door/Lock', '엘리베이터':'Elevator', '객실 점검':'Room Inspection', '기타':'Other' }
+};
+
+function maintenanceLang() {
+    return (localStorage.getItem('pms_lang') || window.currentLang || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+}
+function maintenanceText(ko, en) {
+    return maintenanceLang() === 'en' ? en : ko;
+}
+function priorityLabel(priority) {
+    const lang = maintenanceLang();
+    return priorityLabels[lang]?.[priority] || priorityLabels.ko[priority] || priority || '-';
+}
+function statusLabel(status) {
+    const lang = maintenanceLang();
+    return statusLabels[lang]?.[status] || statusLabels.ko[status] || status || '-';
+}
+function maintenanceTypeLabel(type) {
+    const lang = maintenanceLang();
+    return typeDisplayLabels[lang]?.[type] || type || '-';
+}
+function maintenanceRoomLabel(room) {
+    return maintenanceLang() === 'en' ? `Room ${room}` : `${room}호`;
+}
+function renderMaintenancePriorityOptions() {
+    const filter = document.getElementById('priorityFilter');
+    const selectedFilter = filter?.value || '';
+    const filterOptions = [
+        ['', maintenanceText('전체 우선순위', 'All priorities')],
+        ['urgent', `🔴 ${priorityLabel('urgent')}`],
+        ['high', `🟡 ${priorityLabel('high')}`],
+        ['normal', `🔵 ${priorityLabel('normal')}`],
+        ['low', `⚪ ${priorityLabel('low')}`]
+    ];
+    if (filter) {
+        filter.innerHTML = filterOptions.map(([value, label]) => `<option value="${value}" ${value === selectedFilter ? 'selected' : ''}>${label}</option>`).join('');
+    }
+    const modalPriority = document.getElementById('newPriority');
+    const selectedModalPriority = modalPriority?.value || 'normal';
+    const modalOptions = [
+        ['urgent', `🔴 ${maintenanceText('긴급 (즉시 처리)', 'Urgent (Immediate)')}`],
+        ['high', `🟡 ${priorityLabel('high')}`],
+        ['normal', `🔵 ${priorityLabel('normal')}`],
+        ['low', `⚪ ${priorityLabel('low')}`]
+    ];
+    if (modalPriority) {
+        modalPriority.innerHTML = modalOptions.map(([value, label]) => `<option value="${value}" ${value === selectedModalPriority ? 'selected' : ''}>${label}</option>`).join('');
+    }
+}
+function applyMaintenanceLocalI18n() {
+    document.documentElement.lang = maintenanceLang();
+    document.title = `${maintenanceText('시설 보수', 'Maintenance')} — Hotel PMS`;
+    renderMaintenancePriorityOptions();
+    const search = document.getElementById('searchMt');
+    if (search) search.placeholder = maintenanceText('객실 번호 검색...', 'Search room number...');
+    const viewButtons = document.querySelectorAll('.view-toggle button');
+    if (viewButtons[0]) viewButtons[0].innerHTML = `<i class="fa-solid fa-columns"></i> ${maintenanceText('칸반', 'Kanban')}`;
+    if (viewButtons[1]) viewButtons[1].innerHTML = `<i class="fa-solid fa-table-list"></i> ${maintenanceText('테이블', 'Table')}`;
+    const searchButton = document.querySelector('.filter-search-group .btn-search');
+    if (searchButton) searchButton.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> ${maintenanceText('검색', 'Search')}`;
+    const chipLabels = {
+        all: maintenanceText('전체', 'All'),
+        open: `<i class="fa-solid fa-circle" style="font-size:6px; color:#D97706;"></i> ${statusLabel('open')}`,
+        'in-progress': `<i class="fa-solid fa-circle" style="font-size:6px; color:#2563EB;"></i> ${statusLabel('in-progress')}`,
+        done: `<i class="fa-solid fa-circle" style="font-size:6px; color:#059669;"></i> ${statusLabel('done')}`
+    };
+    const chipIds = { all:'chipAll', open:'chipOpen', 'in-progress':'chipProgress', done:'chipDone' };
+    Object.entries(chipLabels).forEach(([filter, label]) => {
+        const chip = document.querySelector(`.chip[data-filter="${filter}"]`);
+        const countId = chipIds[filter];
+        const count = document.getElementById(countId)?.textContent || '0';
+        if (chip) chip.innerHTML = `${label} <span class="chip-count" id="${countId}">${count}</span>`;
+    });
+    const urgentButton = document.getElementById('btnUrgentOnly');
+    if (urgentButton) {
+        const urgentCount = document.getElementById('chipUrgentCount')?.textContent || '0';
+        urgentButton.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${maintenanceText('긴급 대기', 'Urgent Pending')} <span class="chip-count" id="chipUrgentCount">${urgentCount}</span>`;
+    }
+    const createButton = document.querySelector('.filter-actions-group .btn-primary-sm');
+    if (createButton) createButton.innerHTML = `<i class="fa-solid fa-plus"></i> ${maintenanceText('티켓 생성', 'Create Ticket')}`;
+}
 
 let requests = [];
 
@@ -742,7 +831,7 @@ function normalizeMaintenanceRequest(item) {
         room: String(item.roomNo || item.room || (item.roomId ? String(item.roomId).split('-').pop() : '') || '-'),
         type: normalizeMaintenanceType(item.type),
         desc: item.desc || item.description || item.title || '상세 내용 미입력',
-        priority: priorityLabel[item.priority] ? item.priority : 'normal',
+        priority: priorityLabels.ko[item.priority] ? item.priority : 'normal',
         assignee: item.assignee || item.assigneeName || '미배정',
         status: normalizeMaintenanceStatus(item.status),
         issuedAt,
@@ -868,6 +957,7 @@ async function loadMaintenanceRequests() {
         ...requests
     ];
     refreshNextMaintenanceId();
+    applyMaintenanceLocalI18n();
     updateKPI();
     render();
 }
@@ -909,6 +999,7 @@ function updateKPI() {
     document.getElementById('chipDone').textContent = doneCount;
     
     document.getElementById('chipUrgentCount').textContent = urgentCount;
+    renderMaintenancePriorityOptions();
 }
 
 function getFiltered() {
@@ -972,14 +1063,14 @@ function ticketCard(r) {
     return `<div class="mt-ticket" role="button" tabindex="0" onclick="showDetail('${r.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${r.id}')}">
         <div class="mt-ticket-top">
             <span class="mt-ticket-id">${r.id}</span>
-            <span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span>
+            <span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel(r.priority)}</span>
         </div>
         <div class="mt-ticket-title"><i class="fa-solid ${icon}" style="color:var(--txt3); margin-right:6px; font-size:.8rem;"></i>${r.desc}</div>
         <div class="mt-ticket-meta">
-            <span><i class="fa-solid fa-door-open"></i> ${r.room}호</span>
-            <span class="type-tag">${r.type}</span>
+            <span><i class="fa-solid fa-door-open"></i> ${maintenanceRoomLabel(r.room)}</span>
+            <span class="type-tag">${maintenanceTypeLabel(r.type)}</span>
             ${r.status === 'done' ? 
-              `<span style="margin-left:auto;color:var(--success);font-weight:600;font-size:0.75rem;"><i class="fa-solid fa-check-circle"></i> 처리완료: ${r.assignee}</span>` :
+              `<span style="margin-left:auto;color:var(--success);font-weight:600;font-size:0.75rem;"><i class="fa-solid fa-check-circle"></i> ${maintenanceText('처리완료', 'Completed')}: ${r.assignee}</span>` :
               `<span style="margin-left:auto;"><i class="fa-solid fa-user"></i> ${r.assignee}</span>`
             }
         </div>
@@ -990,9 +1081,9 @@ function renderKanban(data) {
     const open = data.filter(r => r.status === 'open');
     const prog = data.filter(r => r.status === 'in-progress');
     const done = data.filter(r => r.status === 'done');
-    document.getElementById('kanbanOpen').innerHTML = open.map(ticketCard).join('') || '<div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:40px 0;">요청 없음</div>';
-    document.getElementById('kanbanProgress').innerHTML = prog.map(ticketCard).join('') || '<div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:40px 0;">작업 없음</div>';
-    document.getElementById('kanbanDone').innerHTML = done.map(ticketCard).join('') || '<div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:40px 0;">완료 항목 없음</div>';
+    document.getElementById('kanbanOpen').innerHTML = open.map(ticketCard).join('') || `<div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:40px 0;">${maintenanceText('요청 없음', 'No requests')}</div>`;
+    document.getElementById('kanbanProgress').innerHTML = prog.map(ticketCard).join('') || `<div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:40px 0;">${maintenanceText('작업 없음', 'No active work')}</div>`;
+    document.getElementById('kanbanDone').innerHTML = done.map(ticketCard).join('') || `<div style="color:var(--txt3);font-size:.82rem;text-align:center;padding:40px 0;">${maintenanceText('완료 항목 없음', 'No completed items')}</div>`;
     document.getElementById('kanbanOpenCount').textContent = open.length;
     document.getElementById('kanbanProgressCount').textContent = prog.length;
     document.getElementById('kanbanDoneCount').textContent = done.length;
@@ -1004,24 +1095,24 @@ function renderTable(data) {
         const issuedAtText = formatMaintenanceTableDateTime(r.issuedAt || r.createdAt || r.requestedAt || r.date);
         const startedAtText = formatMaintenanceTableDateTime(r.startedAt);
         return `<tr role="button" tabindex="0" style="cursor:pointer" onclick="showDetail('${r.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${r.id}')}">
-            <td data-label="요청 번호"><strong class="maintenance-request-id" style="cursor:pointer;" onclick="event.stopPropagation(); showDetail('${r.id}')">${r.id}</strong></td>
-            <td data-label="객실"><span class="maintenance-room-cell">${r.room}호</span></td>
-            <td data-label="유형"><span class="type-tag"><i class="fa-solid ${typeIcons[r.type]||'fa-toolbox'}" style="font-size:.65rem;"></i> ${r.type}</span></td>
-            <td data-label="상세 내용" style="max-width:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.desc}</td>
-            <td data-label="우선순위"><span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel[r.priority]}</span></td>
-            <td data-label="담당자">${r.assignee}</td>
-            <td data-label="상태"><span class="priority-badge ${stClass}">${statusLabel[r.status]}</span></td>
-            <td data-label="처리 일시" class="maintenance-time-cell">
+            <td data-label="${maintenanceText('요청 번호', 'Request ID')}"><strong class="maintenance-request-id" style="cursor:pointer;" onclick="event.stopPropagation(); showDetail('${r.id}')">${r.id}</strong></td>
+            <td data-label="${maintenanceText('객실', 'Room')}"><span class="maintenance-room-cell">${maintenanceRoomLabel(r.room)}</span></td>
+            <td data-label="${maintenanceText('유형', 'Type')}"><span class="type-tag"><i class="fa-solid ${typeIcons[r.type]||'fa-toolbox'}" style="font-size:.65rem;"></i> ${maintenanceTypeLabel(r.type)}</span></td>
+            <td data-label="${maintenanceText('상세 내용', 'Details')}" style="max-width:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.desc}</td>
+            <td data-label="${maintenanceText('우선순위', 'Priority')}"><span class="priority-badge ${priorityClass[r.priority]}">${priorityLabel(r.priority)}</span></td>
+            <td data-label="${maintenanceText('담당자', 'Assignee')}">${r.assignee}</td>
+            <td data-label="${maintenanceText('상태', 'Status')}"><span class="priority-badge ${stClass}">${statusLabel(r.status)}</span></td>
+            <td data-label="${maintenanceText('처리 일시', 'Timeline')}" class="maintenance-time-cell">
                 <div class="maintenance-time-stack">
-                    <span class="maintenance-time-line"><strong class="maintenance-time-label">발행</strong>${issuedAtText}</span>
-                    <span class="maintenance-time-line"><strong class="maintenance-time-label">시작</strong>${startedAtText}</span>
+                    <span class="maintenance-time-line"><strong class="maintenance-time-label">${maintenanceText('발행', 'Issued')}</strong>${issuedAtText}</span>
+                    <span class="maintenance-time-line"><strong class="maintenance-time-label">${maintenanceText('시작', 'Started')}</strong>${startedAtText}</span>
                 </div>
             </td>
-            <td data-label="액션" class="maintenance-action-cell">
+            <td data-label="${maintenanceText('액션', 'Actions')}" class="maintenance-action-cell">
                 <div class="maintenance-actions">
-                    ${r.status === 'open' ? `<button class="action-btn action-start" onclick="event.stopPropagation(); changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> 착수</button>` : ''}
-                    ${r.status === 'in-progress' ? `<button class="action-btn action-complete" onclick="event.stopPropagation(); changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> 완료 확인</button>` : ''}
-                    <button class="action-btn icon-only" onclick="event.stopPropagation(); showDetail('${r.id}')" aria-label="상세 보기"><i class="fa-solid fa-eye"></i></button>
+                    ${r.status === 'open' ? `<button class="action-btn action-start" onclick="event.stopPropagation(); changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> ${maintenanceText('착수', 'Start')}</button>` : ''}
+                    ${r.status === 'in-progress' ? `<button class="action-btn action-complete" onclick="event.stopPropagation(); changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> ${maintenanceText('완료 확인', 'Complete')}</button>` : ''}
+                    <button class="action-btn icon-only" onclick="event.stopPropagation(); showDetail('${r.id}')" aria-label="${maintenanceText('상세 보기', 'View details')}"><i class="fa-solid fa-eye"></i></button>
                 </div>
             </td>
         </tr>`;
@@ -1054,7 +1145,7 @@ async function changeStatus(id, newStatus) {
             r.status = newStatus;
             updateKPI();
             render();
-            showToast(`${id} 상태가 '${statusLabel[newStatus]}'(으)로 변경되었습니다.`);
+            showToast(maintenanceText(`${id} 상태가 '${statusLabel(newStatus)}'(으)로 변경되었습니다.`, `${id} status changed to '${statusLabel(newStatus)}'.`));
             return;
         }
         if (newStatus === 'in-progress' && !r.startedAt) r.startedAt = now;
@@ -1066,7 +1157,7 @@ async function changeStatus(id, newStatus) {
         persistMaintenanceRequests();
         updateKPI();
         render();
-        showToast(`${id} 상태가 '${statusLabel[newStatus]}'(으)로 변경되었습니다.`);
+        showToast(maintenanceText(`${id} 상태가 '${statusLabel(newStatus)}'(으)로 변경되었습니다.`, `${id} status changed to '${statusLabel(newStatus)}'.`));
     }
 }
 
@@ -1076,7 +1167,7 @@ window.changeAssignee = function(id, newAssignee) {
         r.assignee = newAssignee;
         persistMaintenanceRequests();
         render();
-        showToast('담당자가 ' + newAssignee + '(으)로 변경되었습니다.');
+        showToast(maintenanceText(`담당자가 ${newAssignee}(으)로 변경되었습니다.`, `Assignee changed to ${newAssignee}.`));
     }
 }
 
@@ -1097,32 +1188,32 @@ async function showDetail(id) {
         if (currentUser.roleId === 'sys_maintenance' || currentUser.roleId === 'sys_admin') {
             const staff = await PmsAPI.getDEFAULT_STAFF();
             const maintStaff = staff.filter(s => s.roleId === 'sys_maintenance' || s.roleId === 'sys_admin');
-            const options = maintStaff.map(s => `<option value="${s.name}" ${r.assignee === s.name ? 'selected' : ''}>${s.name} (${s.roleId === 'sys_admin' ? '관리자' : '시설팀'})</option>`).join('') + `<option value="미배정" ${r.assignee === '미배정' ? 'selected' : ''}>미배정</option>`;
+            const options = maintStaff.map(s => `<option value="${s.name}" ${r.assignee === s.name ? 'selected' : ''}>${s.name} (${s.roleId === 'sys_admin' ? maintenanceText('관리자', 'Admin') : maintenanceText('시설팀', 'Maintenance')})</option>`).join('') + `<option value="미배정" ${r.assignee === '미배정' ? 'selected' : ''}>${maintenanceText('미배정', 'Unassigned')}</option>`;
             assigneeHtml = `<select class="form-input" style="padding:4px; font-size:.8rem; margin-top:4px;" onchange="changeAssignee('${r.id}', this.value)">${options}</select>`;
         }
     }
 
     document.getElementById('detailBody').innerHTML = `
         <div style="display:flex; gap:10px; align-items:center; margin-bottom:18px;">
-            <span class="priority-badge ${priorityClass[r.priority]}" style="font-size:.8rem; padding:5px 14px;">${priorityLabel[r.priority]}</span>
-            <span class="priority-badge ${r.status==='open'?'priority-high':r.status==='in-progress'?'priority-normal':'priority-low'}" style="font-size:.8rem; padding:5px 14px;">${statusLabel[r.status]}</span>
+            <span class="priority-badge ${priorityClass[r.priority]}" style="font-size:.8rem; padding:5px 14px;">${priorityLabel(r.priority)}</span>
+            <span class="priority-badge ${r.status==='open'?'priority-high':r.status==='in-progress'?'priority-normal':'priority-low'}" style="font-size:.8rem; padding:5px 14px;">${statusLabel(r.status)}</span>
         </div>
         <div style="background:#f8fafc; border-radius:10px; padding:16px; margin-bottom:16px;">
-            <div style="font-weight:700; font-size:.95rem; margin-bottom:8px;"><i class="fa-solid ${icon}" style="color:var(--primary); margin-right:6px;"></i>${r.type}</div>
+            <div style="font-weight:700; font-size:.95rem; margin-bottom:8px;"><i class="fa-solid ${icon}" style="color:var(--primary); margin-right:6px;"></i>${maintenanceTypeLabel(r.type)}</div>
             <div style="font-size:.88rem; color:var(--txt2); line-height:1.6;">${r.desc}</div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            <div style="font-size:.82rem;"><span style="color:var(--txt3);">객실</span><div style="font-weight:700; margin-top:4px;">${r.room}호</div></div>
-            <div style="font-size:.82rem;"><span style="color:var(--txt3);">담당자</span>${assigneeHtml}</div>
-            <div style="font-size:.82rem;"><span style="color:var(--txt3);">발행 일시</span><div style="font-weight:700; margin-top:4px;">${issuedText}</div></div>
-            <div style="font-size:.82rem;"><span style="color:var(--txt3);">작업 시작</span><div style="font-weight:700; margin-top:4px;">${startedText}</div></div>
-            <div style="font-size:.82rem;"><span style="color:var(--txt3);">완료 일시</span><div style="font-weight:700; margin-top:4px;">${completedText}</div></div>
-            <div style="font-size:.82rem;"><span style="color:var(--txt3);">경과 시간</span><div style="font-weight:700; margin-top:4px;">${maintenanceElapsedHours(elapsedBase)}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">${maintenanceText('객실', 'Room')}</span><div style="font-weight:700; margin-top:4px;">${maintenanceRoomLabel(r.room)}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">${maintenanceText('담당자', 'Assignee')}</span>${assigneeHtml}</div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">${maintenanceText('발행 일시', 'Issued At')}</span><div style="font-weight:700; margin-top:4px;">${issuedText}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">${maintenanceText('작업 시작', 'Started At')}</span><div style="font-weight:700; margin-top:4px;">${startedText}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">${maintenanceText('완료 일시', 'Completed At')}</span><div style="font-weight:700; margin-top:4px;">${completedText}</div></div>
+            <div style="font-size:.82rem;"><span style="color:var(--txt3);">${maintenanceText('경과 시간', 'Elapsed Time')}</span><div style="font-weight:700; margin-top:4px;">${maintenanceElapsedHours(elapsedBase)}</div></div>
         </div>
     `;
-    let footerHtml = '<button class="btn-outline" onclick="closeModal(\'detailModal\')">닫기</button>';
-    if (r.status === 'open') footerHtml += `<button class="btn-primary-sm btn-maintenance-start" onclick="changeStatus('${r.id}','in-progress'); closeModal('detailModal');"><i class="fa-solid fa-play"></i> 작업 착수</button>`;
-    if (r.status === 'in-progress') footerHtml += `<button class="btn-primary-sm btn-maintenance-complete" onclick="changeStatus('${r.id}','done'); closeModal('detailModal');"><i class="fa-solid fa-check"></i> 완료 확인</button>`;
+    let footerHtml = `<button class="btn-outline" onclick="closeModal('detailModal')">${maintenanceText('닫기', 'Close')}</button>`;
+    if (r.status === 'open') footerHtml += `<button class="btn-primary-sm btn-maintenance-start" onclick="changeStatus('${r.id}','in-progress'); closeModal('detailModal');"><i class="fa-solid fa-play"></i> ${maintenanceText('작업 착수', 'Start Work')}</button>`;
+    if (r.status === 'in-progress') footerHtml += `<button class="btn-primary-sm btn-maintenance-complete" onclick="changeStatus('${r.id}','done'); closeModal('detailModal');"><i class="fa-solid fa-check"></i> ${maintenanceText('완료 확인', 'Complete')}</button>`;
     document.getElementById('detailFooter').innerHTML = footerHtml;
     openModal('detailModal');
 }
@@ -1135,7 +1226,7 @@ function addTicket() {
     const desc = document.getElementById('newDesc').value.trim();
     const priority = document.getElementById('newPriority').value;
     const assignee = document.getElementById('newAssignee').value;
-    if (!room || !desc) { showToast('객실과 상세 내용을 선택/입력해주세요.'); return; }
+    if (!room || !desc) { showToast(maintenanceText('객실과 상세 내용을 선택/입력해주세요.', 'Please select a room and enter details.')); return; }
     const issuedAt = new Date().toISOString();
     const today = issuedAt.split('T')[0];
     requests.unshift({ id: 'MT-' + (nextId++), room, roomId, type, desc, priority, assignee, status: 'open', date: today, issuedAt, createdAt: issuedAt, requestedAt: issuedAt, startedAt: '', completedAt: '' });
@@ -1144,10 +1235,19 @@ function addTicket() {
     closeModal('newRequestModal');
     document.getElementById('newRoom').value = '';
     document.getElementById('newDesc').value = '';
-    showToast('시설 보수 요청이 등록되었습니다.');
+    showToast(maintenanceText('시설 보수 요청이 등록되었습니다.', 'Maintenance request has been registered.'));
 }
 
-document.addEventListener('DOMContentLoaded', loadMaintenanceRequests);
+window.applyLocalI18n = function applyMaintenancePageI18n() {
+    applyMaintenanceLocalI18n();
+    updateKPI();
+    render();
+};
+window.addEventListener('languagechange', window.applyLocalI18n);
+document.addEventListener('DOMContentLoaded', () => {
+    loadMaintenanceRequests();
+    document.getElementById('langSelect')?.addEventListener('change', () => setTimeout(window.applyLocalI18n, 0));
+});
 </script>
 <script>
 (function(){
