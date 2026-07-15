@@ -16,6 +16,11 @@
         .expense-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
         .expense-search{display:flex;align-items:center;gap:8px;flex:1;min-width:260px;max-width:520px}
         .expense-search .form-input{height:40px;border-radius:10px;font-size:.82rem;font-weight:750}
+        .expense-filterbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+        .expense-period-controls{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+        .expense-period-controls .form-input{height:40px;border-radius:10px;font-size:.78rem;font-weight:850;min-width:116px}
+        .expense-period-controls .expense-date-input{width:132px;min-width:132px}
+        .expense-period-separator{color:var(--txt3);font-weight:900}
         .expense-panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
         .expense-panel .card-header{background:#fff}
         .expense-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -89,6 +94,11 @@
             .expense-mobile-list{display:grid}
             .expense-mobile-grid{grid-template-columns:1fr}
             .expense-toolbar{align-items:stretch}
+            .expense-filterbar{width:100%;justify-content:stretch}
+            .expense-period-controls{width:100%}
+            .expense-period-controls .form-input{flex:1;min-width:0}
+            .expense-period-controls .expense-date-input{width:auto;min-width:0}
+            .expense-search{width:100%;min-width:0}
             .expense-toolbar>.btn-primary-sm{width:100%}
         }
         @media(max-width:520px){
@@ -149,7 +159,13 @@
         <section class="expense-panel">
             <div class="card-header expense-toolbar">
                 <div class="card-title"><i class="fa-solid fa-list-ul"></i><span data-i18n-key="expense.listTitle">비품 구매 목록</span></div>
-                <div class="expense-toolbar">
+                <div class="expense-filterbar">
+                    <div class="expense-period-controls">
+                        <select id="expensePeriodFilter" class="form-input" onchange="handleExpensePeriodChange()"></select>
+                        <input id="expenseStartDate" class="form-input expense-date-input" type="date" onchange="renderExpenses()" data-expense-date-sync>
+                        <span class="expense-period-separator">~</span>
+                        <input id="expenseEndDate" class="form-input expense-date-input" type="date" onchange="renderExpenses()" data-expense-date-sync>
+                    </div>
                     <div class="expense-search">
                         <input id="expenseSearch" class="form-input" placeholder="항목, 구매처, 구매자 검색" data-i18n-placeholder="expense.search.placeholder" oninput="renderExpenses()">
                         <button class="btn-primary-sm" onclick="renderExpenses()"><i class="fa-solid fa-magnifying-glass"></i><span data-i18n-key="common.search">검색</span></button>
@@ -225,13 +241,22 @@
 const EXPENSE_KEY = 'pms_expense_purchases';
 const CASH_SESSION_KEY = 'pms_night_audit_cash_sessions';
 const EXPENSE_DEMO_VERSION_KEY = 'pms_expense_purchases_demo_version';
-const EXPENSE_DEMO_VERSION = '2026-07-demo-v1';
+const EXPENSE_DEMO_VERSION = '2026-07-demo-v2';
 const DEFAULT_EXPENSE_CURRENCY = 'PHP';
-const EXPENSE_CURRENCIES = ['PHP', 'USD', 'KRW', 'VND'];
+const ALL_EXPENSE_CURRENCIES = ['PHP', 'USD', 'KRW', 'VND'];
+
+function expenseBaseCurrency() {
+    const code = String((typeof window.pmsDefaultCurrency === 'function' ? window.pmsDefaultCurrency() : '') || localStorage.getItem('pms_default_currency') || localStorage.getItem('pms_currency') || DEFAULT_EXPENSE_CURRENCY).toUpperCase();
+    return ALL_EXPENSE_CURRENCIES.includes(code) ? code : DEFAULT_EXPENSE_CURRENCY;
+}
+
+function expenseCurrencies() {
+    return expenseBaseCurrency() === 'VND' ? ['VND', 'USD', 'KRW'] : ['PHP', 'USD', 'KRW'];
+}
 
 function normalizeExpenseCurrency(currency) {
     const code = String(currency || DEFAULT_EXPENSE_CURRENCY).toUpperCase();
-    return (window.PMS_CURRENCY_META?.[code] || EXPENSE_CURRENCIES.includes(code)) ? code : DEFAULT_EXPENSE_CURRENCY;
+    return (window.PMS_CURRENCY_META?.[code] || ALL_EXPENSE_CURRENCIES.includes(code)) ? code : DEFAULT_EXPENSE_CURRENCY;
 }
 function money(value, currency = DEFAULT_EXPENSE_CURRENCY) {
     const code = normalizeExpenseCurrency(currency);
@@ -266,10 +291,10 @@ function moneySummary(rows) {
         map[currency] = (map[currency] || 0) + Number(row.amount || 0);
         return map;
     }, {});
-    const parts = EXPENSE_CURRENCIES
+    const parts = expenseCurrencies()
         .filter(currency => Number(totals[currency] || 0) !== 0)
         .map(currency => money(totals[currency], currency));
-    return parts.length ? parts.join(' / ') : money(0, DEFAULT_EXPENSE_CURRENCY);
+    return parts.length ? parts.join(' / ') : money(0, expenseCurrencies()[0] || DEFAULT_EXPENSE_CURRENCY);
 }
 function moneySummaryHtml(rows) {
     const totals = rows.reduce((map, row) => {
@@ -277,8 +302,9 @@ function moneySummaryHtml(rows) {
         map[currency] = (map[currency] || 0) + Number(row.amount || 0);
         return map;
     }, {});
-    const currencies = EXPENSE_CURRENCIES.filter(currency => Number(totals[currency] || 0) !== 0);
-    const visibleCurrencies = currencies.length ? currencies : [DEFAULT_EXPENSE_CURRENCY];
+    const allowed = expenseCurrencies();
+    const currencies = allowed.filter(currency => Number(totals[currency] || 0) !== 0);
+    const visibleCurrencies = currencies.length ? currencies : [allowed[0] || DEFAULT_EXPENSE_CURRENCY];
     return `<div class="expense-currency-lines">${visibleCurrencies.map(currency => `
         <div class="expense-currency-line">
             <span class="expense-currency-icon ${currency.toLowerCase()}">${escapeHtml(expenseCurrencyIcon(currency))}</span>
@@ -433,17 +459,17 @@ function demoExpensePurchases() {
             note:'Korean snacks and drinks for VIP welcome baskets.'
         },
         {
-            id:'EXP-DEMO-LINEN-VND',
+            id: expenseBaseCurrency() === 'VND' ? 'EXP-DEMO-LINEN-VND' : 'EXP-DEMO-LINEN-KRW',
             date: expenseDateOffset(-3),
             buyer:'Maria Garcia',
             category:'supplies',
             method:'cash',
             item:'Emergency Towel Laundry',
             vendor:'District 1 Express Laundry',
-            amount:1450000,
-            settlementAmount:-1450000,
-            currency:'VND',
-            settlementCurrency:'VND',
+            amount: expenseBaseCurrency() === 'VND' ? 1450000 : 85000,
+            settlementAmount: expenseBaseCurrency() === 'VND' ? -1450000 : -85000,
+            currency: expenseBaseCurrency() === 'VND' ? 'VND' : 'KRW',
+            settlementCurrency: expenseBaseCurrency() === 'VND' ? 'VND' : 'KRW',
             note:'Emergency towel laundry for group stay preparation. Cash paid on site.'
         }
     ].map(row => ({
@@ -453,6 +479,33 @@ function demoExpensePurchases() {
         updatedAt: undefined,
         updatedBy: undefined
     }));
+}
+function normalizeDemoExpenseCurrenciesForHotel() {
+    if (expenseBaseCurrency() === 'VND') return;
+    const rows = readJson(EXPENSE_KEY, []);
+    if (!Array.isArray(rows) || !rows.length) return;
+    let changed = false;
+    const normalized = rows.map(row => {
+        if (row?.id !== 'EXP-DEMO-LINEN-VND') return row;
+        changed = true;
+        const amount = 85000;
+        return {
+            ...row,
+            id: 'EXP-DEMO-LINEN-KRW',
+            amount,
+            settlementAmount: -amount,
+            currency: 'KRW',
+            settlementCurrency: 'KRW',
+            updatedAt: row.updatedAt || nowIso(),
+            updatedBy: row.updatedBy || 'system'
+        };
+    });
+    if (changed) {
+        saveExpenses(normalized);
+        removeCashWithdrawal('EXP-DEMO-LINEN-VND');
+        const migrated = normalized.find(row => row.id === 'EXP-DEMO-LINEN-KRW');
+        if (migrated?.method === 'cash') syncCashWithdrawal(migrated);
+    }
 }
 function seedDemoExpensesIfNeeded() {
     const demoRows = demoExpensePurchases();
@@ -468,9 +521,41 @@ function seedDemoExpensesIfNeeded() {
 function sortedExpenses() {
     return expenses().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 }
+function parseExpenseDate(value) {
+    const text = String(value || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+    const date = new Date(`${text}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+function expensePeriodRange() {
+    const mode = document.getElementById('expensePeriodFilter')?.value || 'month';
+    if (mode === 'all') return { mode, start: null, end: null };
+    if (mode === 'custom') {
+        return {
+            mode,
+            start: parseExpenseDate(document.getElementById('expenseStartDate')?.value),
+            end: parseExpenseDate(document.getElementById('expenseEndDate')?.value)
+        };
+    }
+    const today = parseExpenseDate(todayIso()) || new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return { mode: 'month', start, end };
+}
+function rowMatchesExpensePeriod(row, range = expensePeriodRange()) {
+    const date = parseExpenseDate(row.date);
+    if (!date) return false;
+    if (range.start && date < range.start) return false;
+    if (range.end && date > range.end) return false;
+    return true;
+}
+function periodExpenses() {
+    const range = expensePeriodRange();
+    return sortedExpenses().filter(row => rowMatchesExpensePeriod(row, range));
+}
 function filteredExpenses() {
     const q = String(document.getElementById('expenseSearch')?.value || '').toLowerCase();
-    return sortedExpenses().filter(row => !q || [row.item, row.buyer, row.vendor, row.category, row.method, row.note].join(' ').toLowerCase().includes(q));
+    return periodExpenses().filter(row => !q || [row.item, row.buyer, row.vendor, row.category, row.method, row.note].join(' ').toLowerCase().includes(q));
 }
 function registeredExpenseBuyers() {
     const staffRows = readJson('pms_staff', []);
@@ -524,9 +609,40 @@ function renderCurrencyOptions() {
     const select = document.getElementById('expenseCurrency');
     if (!select) return;
     const current = normalizeExpenseCurrency(select.value);
-    select.innerHTML = EXPENSE_CURRENCIES.map(currency => `<option value="${currency}">${currency} (${currencySymbol(currency)})</option>`).join('');
-    select.value = current;
+    const currencies = expenseCurrencies();
+    select.innerHTML = currencies.map(currency => `<option value="${currency}">${currency} (${currencySymbol(currency)})</option>`).join('');
+    select.value = currencies.includes(current) ? current : (currencies[0] || DEFAULT_EXPENSE_CURRENCY);
     updateExpenseCurrencyLabel();
+}
+function renderExpensePeriodOptions() {
+    const select = document.getElementById('expensePeriodFilter');
+    if (!select) return;
+    const current = select.value || 'month';
+    const options = [
+        ['month', expenseText('이번 달', 'This Month')],
+        ['all', expenseText('전체 기간', 'All Periods')],
+        ['custom', expenseText('기간 선택', 'Custom Period')]
+    ];
+    select.innerHTML = options.map(([value, label]) => `<option value="${value}">${escapeHtml(label)}</option>`).join('');
+    select.value = options.some(([value]) => value === current) ? current : 'month';
+}
+function syncExpensePeriodDateInputs() {
+    const isEnglish = expenseLang() === 'en';
+    const custom = (document.getElementById('expensePeriodFilter')?.value || 'month') === 'custom';
+    document.querySelectorAll('[data-expense-date-sync]').forEach(input => {
+        input.type = isEnglish ? 'text' : 'date';
+        input.lang = isEnglish ? 'en-CA' : 'ko-KR';
+        input.inputMode = isEnglish ? 'numeric' : '';
+        input.placeholder = isEnglish ? 'YYYY-MM-DD' : '';
+        input.disabled = !custom;
+        input.setAttribute('aria-label', input.id === 'expenseStartDate'
+            ? expenseText('시작일', 'Start date')
+            : expenseText('종료일', 'End date'));
+    });
+}
+function handleExpensePeriodChange() {
+    syncExpensePeriodDateInputs();
+    renderExpenses();
 }
 function updateExpenseCurrencyLabel() {
     const suffix = document.getElementById('expenseCurrencySuffix');
@@ -555,7 +671,7 @@ function syncCashWithdrawal(expense) {
     removeCashWithdrawal(expense.id);
     if (expense.method !== 'cash') return;
     const currency = normalizeExpenseCurrency(expense.currency);
-    const breakdown = EXPENSE_CURRENCIES.reduce((map, code) => ({ ...map, [code]: 0 }), {});
+    const breakdown = expenseCurrencies().reduce((map, code) => ({ ...map, [code]: 0 }), {});
     breakdown[currency] = Number(expense.amount || 0);
     const sessions = readJson(CASH_SESSION_KEY, []);
     const list = Array.isArray(sessions) ? sessions : [];
@@ -592,7 +708,7 @@ function resetExpenseForm() {
     renderBuyerOptions(operatorName());
     document.getElementById('expenseCategory').value = 'supplies';
     document.getElementById('expenseMethod').value = 'cash';
-    document.getElementById('expenseCurrency').value = DEFAULT_EXPENSE_CURRENCY;
+    document.getElementById('expenseCurrency').value = expenseCurrencies()[0] || DEFAULT_EXPENSE_CURRENCY;
     ['expenseItem','expenseVendor','expenseAmount','expenseNote'].forEach(id => document.getElementById(id).value = '');
     updateExpenseCurrencyLabel();
     setExpenseModalMode('create');
@@ -603,7 +719,9 @@ function fillExpenseForm(row) {
     renderBuyerOptions(row.buyer || operatorName());
     document.getElementById('expenseCategory').value = row.category || 'supplies';
     document.getElementById('expenseMethod').value = row.method || 'cash';
-    document.getElementById('expenseCurrency').value = normalizeExpenseCurrency(row.currency);
+    const allowedCurrencies = expenseCurrencies();
+    const rowCurrency = normalizeExpenseCurrency(row.currency);
+    document.getElementById('expenseCurrency').value = allowedCurrencies.includes(rowCurrency) ? rowCurrency : (allowedCurrencies[0] || DEFAULT_EXPENSE_CURRENCY);
     document.getElementById('expenseItem').value = row.item || '';
     document.getElementById('expenseVendor').value = row.vendor || '';
     document.getElementById('expenseAmount').value = Number(row.amount || 0);
@@ -684,11 +802,12 @@ async function deleteExpensePurchase(id) {
 }
 function renderExpenses() {
     const rows = filteredExpenses();
-    const totalRows = expenses();
+    const totalRows = periodExpenses();
+    const allRows = expenses();
     const month = todayIso().slice(0, 7);
     document.getElementById('expenseTotal').innerHTML = moneySummaryHtml(totalRows);
     document.getElementById('expenseCash').innerHTML = moneySummaryHtml(totalRows.filter(row => row.method === 'cash'));
-    document.getElementById('expenseMonth').innerHTML = moneySummaryHtml(totalRows.filter(row => String(row.date || '').startsWith(month)));
+    document.getElementById('expenseMonth').innerHTML = moneySummaryHtml(allRows.filter(row => String(row.date || '').startsWith(month)));
     document.getElementById('expenseCount').textContent = totalRows.length;
 
     const emptyRow = `<tr><td colspan="10" class="expense-empty">${expenseText('등록된 지출이 없습니다.', 'No registered expenses.')}</td></tr>`;
@@ -753,6 +872,8 @@ function bindExpenseActionButtons() {
 }
 function applyExpenseLanguage() {
     updateExpenseDocumentTitle();
+    renderExpensePeriodOptions();
+    syncExpensePeriodDateInputs();
     renderExpenseSelects();
     const mode = document.getElementById('expenseEditId')?.value ? 'edit' : 'create';
     setExpenseModalMode(mode);
@@ -766,7 +887,9 @@ document.addEventListener('DOMContentLoaded', () => {
     bindExpenseActionButtons();
     applyExpenseLanguage();
     resetExpenseForm();
+    normalizeDemoExpenseCurrenciesForHotel();
     seedDemoExpensesIfNeeded();
+    syncExpensePeriodDateInputs();
     renderExpenses();
     document.getElementById('langSelect')?.addEventListener('change', () => setTimeout(window.applyLocalI18n, 0));
 });
