@@ -1586,7 +1586,7 @@ function settlementCard(folio) {
             ? `<button type="button" class="refund" onclick="event.stopPropagation(); openSettlementStatusDetail('${folioKey}')"><i class="fa-solid fa-rotate-left"></i> ${settlementText('refundConfirm')}</button>`
             : folio.balance > 0
                 ? `<button type="button" class="payment" onclick="event.stopPropagation(); openSettlementStatusPayment('${folioKey}')"><i class="fa-solid fa-credit-card"></i> ${settlementCardText('paymentRegister')}</button>`
-                : `<button type="button" class="complete" onclick="event.stopPropagation(); completeSettlementStatusFolio('${folioKey}')"><i class="fa-solid fa-door-open"></i> ${settlementCardText('settlementComplete')}</button>`;
+                : `<button type="button" class="complete" onclick="event.stopPropagation(); completeSettlementStatusFolio('${folioKey}', { openDetail: false })"><i class="fa-solid fa-door-open"></i> ${settlementCardText('settlementComplete')}</button>`;
     const tags = [
         folio.deposit > 0 ? `<span class="settlement-tag"><i class="fa-solid fa-wallet"></i>${settlementText('depositExists')}</span>` : '',
         ...folio.tags.map(tag => `<span class="settlement-tag"><i class="fa-solid fa-tag"></i>${settlementEscape(tag)}</span>`)
@@ -2150,7 +2150,9 @@ async function completeSettlementStatusFolio(folioId, options = {}) {
     await applySettlementCheckoutCompletion(folio, completedAt);
     window.dispatchEvent(new CustomEvent('pms:settlement-completions-updated'));
     showToast(settlementText('completionToast'), 'success');
-    await refreshSettlementStatusAfterMutation(folio.folioId || folio.id);
+    await refreshSettlementStatusAfterMutation(folio.folioId || folio.id, {
+        openDetail: options.openDetail !== false
+    });
     return true;
 }
 
@@ -2201,15 +2203,19 @@ async function reopenSettlementStatusFolio(folioId) {
     return true;
 }
 
-async function refreshSettlementStatusAfterMutation(folioId) {
+async function refreshSettlementStatusAfterMutation(folioId, options = {}) {
     await loadSettlementData();
     renderSettlementSections();
     const updated = settlementFolioById(folioId);
     if (updated) {
         settlementState.currentFolioId = updated.folioId || updated.id;
         closeModal('settlementStatusPaymentModal');
-        renderSettlementStatusDetail(settlementState.currentFolioId);
-        openModal('settlementStatusDetailModal');
+        const detailModal = document.getElementById('settlementStatusDetailModal');
+        const detailOpen = detailModal?.classList.contains('active') || detailModal?.style.display === 'flex';
+        if (options.openDetail !== false || detailOpen) {
+            renderSettlementStatusDetail(settlementState.currentFolioId);
+            if (options.openDetail !== false) openModal('settlementStatusDetailModal');
+        }
     }
 }
 
