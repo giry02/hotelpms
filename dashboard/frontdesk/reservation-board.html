@@ -278,7 +278,16 @@ const BOARD_TEXT = {
         'stay.aria.occupied': '청소 상태 변경',
         'stay.toast': '{room} 상태: {state}',
         'search.placeholder': '객실번호, 이름, 단체명 검색...',
-        'search.button': '검색'
+        'search.button': '검색',
+        'page.title': '예약 현황',
+        'button.newBooking': '신규 예약',
+        'label.balance': '잔액',
+        'label.noReservation': '예약 없음',
+        'label.unassigned': '미지정',
+        'label.roomCount': '{count}개 객실',
+        'label.floor': '{floor}층',
+        'empty.noMatching': '조건에 맞는 예약 현황이 없습니다.',
+        'toast.cleaningChanged': '{room} 청소 상태가 변경되었습니다.'
     },
     en: {
         'filter.all': 'All',
@@ -322,12 +331,21 @@ const BOARD_TEXT = {
         'stay.aria.occupied': 'Change cleaning status',
         'stay.toast': '{room} status: {state}',
         'search.placeholder': 'Search room, name, or group...',
-        'search.button': 'Search'
+        'search.button': 'Search',
+        'page.title': 'Reservation Board',
+        'button.newBooking': 'New Booking',
+        'label.balance': 'Balance',
+        'label.noReservation': 'No Reservation',
+        'label.unassigned': 'Unassigned',
+        'label.roomCount': '{count} {rooms}',
+        'label.floor': 'Floor {floor}',
+        'empty.noMatching': 'No reservation board items match the current filters.',
+        'toast.cleaningChanged': '{room} cleaning status changed.'
     }
 };
 
 function boardLang() {
-    return (window.currentLang || localStorage.getItem('pms_lang') || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
+    return (localStorage.getItem('pms_lang') || window.currentLang || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
 }
 
 function boardText(key) {
@@ -340,6 +358,14 @@ function boardTextFormat(key, params = {}) {
         text = text.replace(new RegExp(`\\{${name}\\}`, 'g'), params[name]);
     });
     return text;
+}
+
+function boardRoomCountLabel(count) {
+    return boardTextFormat('label.roomCount', { count, rooms: count === 1 ? 'room' : 'rooms' });
+}
+
+function boardFloorLabel(floor) {
+    return boardTextFormat('label.floor', { floor });
 }
 
 function escapeHtml(value) {
@@ -576,10 +602,26 @@ function updateBoardPeriodLabels() {
 }
 
 function updateBoardStaticLabels() {
+    document.documentElement.lang = boardLang();
+    document.title = `${boardText('page.title')} — Hotel PMS`;
+    const pageTitle = document.querySelector('.reservation-board-page .topbar h1');
+    if (pageTitle) pageTitle.textContent = boardText('page.title');
     const search = document.getElementById('boardSearch');
     if (search) search.setAttribute('placeholder', boardText('search.placeholder'));
     const searchButton = document.querySelector('.search-container .btn-search');
     if (searchButton) searchButton.innerHTML = `<i class="fa-solid fa-search"></i> ${boardText('search.button')}`;
+    const newBookingButton = document.querySelector('.reservation-board-toolbar > .btn-primary-sm');
+    if (newBookingButton) newBookingButton.innerHTML = `<i class="fa-solid fa-plus"></i> ${boardText('button.newBooking')}`;
+    const kpiLabels = [
+        ['kpiInhouse', boardText('filter.inhouse')],
+        ['kpiCheckout', boardText('filter.checkout')],
+        ['kpiReserved', boardText('filter.reserved')],
+        ['kpiVacant', boardText('status.vacant')]
+    ];
+    kpiLabels.forEach(([id, label]) => {
+        const element = document.getElementById(id)?.parentElement?.querySelector('.kpi-label');
+        if (element) element.textContent = label;
+    });
     const legend = document.querySelector('.board-status-legend');
     if (legend) {
         legend.innerHTML = `
@@ -1210,9 +1252,9 @@ function boardCard(room) {
         ${readinessHtml}
         ${settlementInfo.html}
         <div class="board-card-footer">
-            <div class="board-money">${formatMoney(amountValue(res))}${boardReservationBalance(res) ? ` · 잔액 ${formatMoney(boardReservationBalance(res))}` : ''}</div>
+            <div class="board-money">${formatMoney(amountValue(res))}${boardReservationBalance(res) ? ` · ${boardText('label.balance')} ${formatMoney(boardReservationBalance(res))}` : ''}</div>
             ${cleanAction ? `<div class="board-clean-summary">${cleanAction}</div>` : ''}
-        </div>` : `<div class="board-empty">예약 없음</div>
+        </div>` : `<div class="board-empty">${boardText('label.noReservation')}</div>
         <div class="board-card-footer">
             <div class="board-money"></div>
             ${cleanAction ? `<div class="board-clean-summary">${cleanAction}</div>` : ''}
@@ -1248,15 +1290,15 @@ function renderReservationBoard() {
     const hasBuildings = rooms.some(room => room.building);
     let rendered = 0;
     if (hasBuildings) {
-        [...new Set(rooms.map(room => room.building || '미지정'))].sort().forEach(building => {
-            const buildingRooms = rooms.filter(room => (room.building || '미지정') === building);
+        [...new Set(rooms.map(room => room.building || boardText('label.unassigned')))].sort().forEach(building => {
+            const buildingRooms = rooms.filter(room => (room.building || boardText('label.unassigned')) === building);
             const floors = [...new Set(buildingRooms.map(floorValue))].sort((a, b) => b - a);
-            let html = `<div class="building-section"><div class="building-header" onclick="toggleBuilding(this)"><i class="fa-solid fa-building bldg-icon"></i><span class="bldg-name">${escapeHtml(building)}</span><span class="bldg-count">(${buildingRooms.length}개 객실)</span><i class="fa-solid fa-chevron-down bldg-chevron"></i></div><div class="building-body">`;
+            let html = `<div class="building-section"><div class="building-header" onclick="toggleBuilding(this)"><i class="fa-solid fa-building bldg-icon"></i><span class="bldg-name">${escapeHtml(building)}</span><span class="bldg-count">(${boardRoomCountLabel(buildingRooms.length)})</span><i class="fa-solid fa-chevron-down bldg-chevron"></i></div><div class="building-body">`;
             floors.forEach(floor => {
                 const cards = buildingRooms.filter(room => floorValue(room) === floor).sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true })).map(boardCard).filter(Boolean);
                 rendered += cards.length;
                 if (!cards.length) return;
-                html += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${floor}층 <span class="floor-count">(${cards.length}개 객실)</span></div><div class="room-grid">${cards.join('')}</div></div>`;
+                html += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${boardFloorLabel(floor)} <span class="floor-count">(${boardRoomCountLabel(cards.length)})</span></div><div class="room-grid">${cards.join('')}</div></div>`;
             });
             html += '</div></div>';
             container.innerHTML += html;
@@ -1267,10 +1309,10 @@ function renderReservationBoard() {
             const cards = rooms.filter(room => floorValue(room) === floor).sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true })).map(boardCard).filter(Boolean);
             rendered += cards.length;
             if (!cards.length) return;
-            container.innerHTML += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${floor}층 <span class="floor-count">(${cards.length}개 객실)</span></div><div class="room-grid">${cards.join('')}</div></div>`;
+            container.innerHTML += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${boardFloorLabel(floor)} <span class="floor-count">(${boardRoomCountLabel(cards.length)})</span></div><div class="room-grid">${cards.join('')}</div></div>`;
         });
     }
-    if (!rendered) container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--txt3);font-weight:800">조건에 맞는 예약 현황이 없습니다.</div>';
+    if (!rendered) container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--txt3);font-weight:800">${boardText('empty.noMatching')}</div>`;
 }
 
 function boardRoomKeys(room, fallback = '') {
@@ -1442,7 +1484,7 @@ window.setBoardCleanState = async function(event, button) {
         }
         await persistBoardStayState(room, null);
         renderReservationBoard();
-        if (window.showToast) window.showToast(`${room.id || room.roomNo || roomKey} 청소 상태가 변경되었습니다.`, 'success');
+        if (window.showToast) window.showToast(boardTextFormat('toast.cleaningChanged', { room: room.id || room.roomNo || roomKey }), 'success');
     } finally {
         controls.forEach(item => { item.disabled = false; });
     }
@@ -1479,8 +1521,11 @@ function applyBoardUrlParams() {
 window.renderReservationBoard = renderReservationBoard;
 window.renderTable = renderReservationBoard;
 window.setBoardPeriod = setBoardPeriod;
+window.applyLocalI18n = function applyReservationBoardLocalI18n() {
+    renderReservationBoard();
+};
 
-window.addEventListener('languagechange', () => renderReservationBoard());
+window.addEventListener('languagechange', window.applyLocalI18n);
 
 document.addEventListener('DOMContentLoaded', async () => {
     const [roomData, resData, groupData] = await Promise.all([
@@ -1496,7 +1541,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.groups = groups;
     await refreshBoardDailyStayCleaning();
     applyBoardUrlParams();
-    document.getElementById('langSelect')?.addEventListener('change', () => setTimeout(renderReservationBoard, 0));
+    document.getElementById('langSelect')?.addEventListener('change', () => setTimeout(window.applyLocalI18n, 0));
     renderReservationBoard();
 });
 </script>
