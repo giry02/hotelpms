@@ -707,6 +707,60 @@ function currentOperatorName() {
     return localStorage.getItem('pms_current_user_name') || localStorage.getItem('pms_staff_name') || 'Nguyen Kim';
 }
 
+function currentAuditActor() {
+    const role = localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
+    return {
+        id: localStorage.getItem('mock_user_id') || role,
+        name: currentOperatorName(),
+        role,
+        roleLabel: ['sys_admin', 'admin', 'administrator'].includes(String(role).toLowerCase()) ? '관리자' : role
+    };
+}
+
+function logSettlementReopenAudit(folio, beforeStatus = '완료됨') {
+    const details = {
+        screen: 'folio',
+        folioId: folio.id || '',
+        reservationId: folio.reservationId || '',
+        groupId: folio.groupId || '',
+        room: folio.room || '',
+        guestName: folio.guest || '',
+        beforeStatus,
+        afterStatus: '미완료',
+        fields: ['folioId', 'reservationId', 'room', 'status'],
+        totalAmount: Number(folio.total || 0),
+        paid: Number(folio.paid || 0),
+        balanceDue: Number(folio.bal || 0),
+        currency: folio.currency || 'PHP'
+    };
+    try {
+        if (window.PmsPrivacyAudit?.log) {
+            window.PmsPrivacyAudit.log('folio.settlement.reopen', details);
+            return;
+        }
+    } catch (error) {
+        console.warn('Settlement reopen audit logger failed, using fallback', error);
+    }
+    try {
+        const storageKey = 'pms_privacy_audit_logs';
+        const logs = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const list = Array.isArray(logs) ? logs : [];
+        const entry = {
+            id: `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            action: 'folio.settlement.reopen',
+            createdAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
+            actor: currentAuditActor(),
+            page: window.location.pathname,
+            details
+        };
+        list.push(entry);
+        localStorage.setItem(storageKey, JSON.stringify(list.slice(-500)));
+        window.dispatchEvent(new CustomEvent('pms:privacy-audit', { detail: entry }));
+    } catch (error) {
+        console.warn('Settlement reopen audit fallback failed', error);
+    }
+}
+
 function normalizeDept(type) {
     const normalized = String(type || '').toLowerCase().replace(/[-_\s]/g, '');
     if (['restaurant', 'dining', 'foodbeverage', 'fnb'].includes(normalized)) return 'restaurant';
@@ -3016,21 +3070,7 @@ async function reopenSettlementFromDetail() {
     };
     reopens.push(reopenRecord);
     setStorageJson(SETTLEMENT_REOPENS_KEY, reopens);
-    if (window.PmsPrivacyAudit?.log) {
-        window.PmsPrivacyAudit.log('folio.settlement.reopen', {
-            folioId: folio.id,
-            reservationId: folio.reservationId || '',
-            room: folio.room || '',
-            guestName: folio.guest || '',
-            beforeStatus,
-            afterStatus: '미완료',
-            fields: ['folioId', 'reservationId', 'room', 'status'],
-            totalAmount: Number(folio.total || 0),
-            paid: Number(folio.paid || 0),
-            balanceDue: Number(folio.bal || 0),
-            currency: folio.currency || 'PHP'
-        });
-    }
+    logSettlementReopenAudit(folio, beforeStatus);
     window.dispatchEvent(new CustomEvent('pms:settlement-completions-updated'));
     showToast('정산 상태를 미완료로 되돌렸습니다.', 'success');
     renderFolios();
