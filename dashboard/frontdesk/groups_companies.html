@@ -585,9 +585,9 @@
                             <option value="year" data-ko="&#52572;&#44540; 1&#45380;" data-en="Last 1 year">&#52572;&#44540; 1&#45380;</option>
                             <option value="custom" data-ko="&#44592;&#44036; &#49440;&#53469;" data-en="Custom period">&#44592;&#44036; &#49440;&#53469;</option>
                         </select>
-                        <input id="performanceStartDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="&#49884;&#51089;&#51068;">
+                        <input id="performanceStartDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="&#49884;&#51089;&#51068;" data-date-format-sync>
                         <span class="performance-range-separator">~</span>
-                        <input id="performanceEndDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="&#51333;&#47308;&#51068;">
+                        <input id="performanceEndDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="&#51333;&#47308;&#51068;" data-date-format-sync>
                         <button class="btn-primary-sm" style="height:38px" onclick="refreshCompanyPerformanceModal()"><span data-ko="&#51312;&#54924;" data-en="Search">&#51312;&#54924;</span></button>
                     </div>
                 </div>
@@ -1505,7 +1505,21 @@ function openBlockModal(compId) {
         input.value = fixedId;
     }
 
+    function syncPerformanceDateInputs() {
+        const isEnglish = companyLang() === 'en';
+        document.querySelectorAll('[data-date-format-sync]').forEach(input => {
+            input.type = isEnglish ? 'text' : 'date';
+            input.lang = isEnglish ? 'en-CA' : 'ko-KR';
+            input.inputMode = isEnglish ? 'numeric' : '';
+            input.placeholder = isEnglish ? 'YYYY-MM-DD' : '';
+            input.setAttribute('aria-label', isEnglish
+                ? (input.id === 'performanceStartDate' ? 'Start date' : 'End date')
+                : (input.id === 'performanceStartDate' ? '시작일' : '종료일'));
+        });
+    }
+
     window.handlePerformancePeriodChange = function() {
+        syncPerformanceDateInputs();
         const mode = document.getElementById('performancePeriodSelect')?.value || 'all';
         const start = document.getElementById('performanceStartDate');
         const end = document.getElementById('performanceEndDate');
@@ -1516,6 +1530,7 @@ function openBlockModal(compId) {
     };
 
     window.openCompanyPerformanceModal = async function(companyId = '') {
+        syncPerformanceDateInputs();
         populatePerformanceCompanies(companyId);
         const period = document.getElementById('performancePeriodSelect');
         if (period) period.value = 'all';
@@ -1528,6 +1543,7 @@ function openBlockModal(compId) {
     };
 
     window.refreshCompanyPerformanceModal = async function() {
+        syncPerformanceDateInputs();
         const summary = document.getElementById('performanceSummaryGrid');
         const monthly = document.getElementById('performanceMonthlyBody');
         const events = document.getElementById('performanceEventBody');
@@ -1544,6 +1560,8 @@ function openBlockModal(compId) {
         renderPerformanceMonthly(rows);
         renderPerformanceEvents(rows);
     };
+    document.addEventListener('DOMContentLoaded', syncPerformanceDateInputs);
+    window.addEventListener('languagechange', syncPerformanceDateInputs);
     try { renderCompanies = window.renderCompanies; } catch(e) {}
 })();
 </script>
