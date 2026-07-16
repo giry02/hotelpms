@@ -461,7 +461,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       };
     });
 
-    assert(occupiedRoomFlowState.actionText.includes('체크아웃') && !occupiedRoomFlowState.actionText.includes('체크인'), 'Occupied room reservation detail must render checkout action, not check-in.', occupiedRoomFlowState);
+    assert(/체크아웃|check-?out/i.test(occupiedRoomFlowState.actionText) && !/체크인|check-?in/i.test(occupiedRoomFlowState.actionText.replace(/check-?out/ig, '')), 'Occupied room reservation detail must render checkout action, not check-in.', occupiedRoomFlowState);
     assert(occupiedRoomFlowState.readonly === 'true', 'Occupied room reservation detail must be treated as post-check-in readonly.', occupiedRoomFlowState);
 
     const blockResult = await page.evaluate(async () => {

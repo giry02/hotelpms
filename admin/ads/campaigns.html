@@ -7,6 +7,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
 <link href="../common/css/admin-base.css" rel="stylesheet"/><link href="../common/css/admin-pages.css" rel="stylesheet"/>
+<style>
+.ad-page-actions .btn-outline.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.ad-page-actions .btn-outline.active i {
+  color: #fff;
+}
+</style>
 <script src="../common/js/admin-sidebar.js"></script><script src="../common/js/admin-i18n-catalog.js"></script>
 <script src="../common/js/admin-i18n.js"></script>
 </head>
@@ -149,7 +159,36 @@ window.applyLocalI18n = function(lang) {
   while (walker.nextNode()) nodes.push(walker.currentNode);
   nodes.forEach(node => { node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), map[node.nodeValue.trim()]); });
 };
-document.addEventListener('DOMContentLoaded', () => window.applyLocalI18n(window.currentLang || localStorage.getItem('pms_lang') || 'ko'));
+function filterCampaigns(filter, activeButton) {
+  const wasActive = activeButton.classList.contains('active');
+  document.querySelectorAll('.ad-page-actions .btn-outline').forEach(button => button.classList.remove('active'));
+  const nextFilter = wasActive ? '' : filter;
+  if (nextFilter) activeButton.classList.add('active');
+  document.querySelectorAll('tbody tr').forEach(row => {
+    const html = row.innerHTML;
+    const text = row.innerText || '';
+    const isActive = !!row.querySelector('td:nth-child(10) .status-badge.active');
+    const isGolf = /ADS-GOLF|fa-golf-ball-tee|Golf/i.test(html) || /골프/.test(text);
+    const isRentacar = /ADS-RENT|fa-car|Rent-a-car/i.test(html) || /렌터카/.test(text);
+    row.hidden = !!nextFilter && !(
+      (nextFilter === 'active' && isActive) ||
+      (nextFilter === 'golf' && isGolf) ||
+      (nextFilter === 'rentacar' && isRentacar)
+    );
+  });
+}
+function setupCampaignFilters() {
+  const filters = ['active', 'golf', 'rentacar'];
+  document.querySelectorAll('.ad-page-actions .btn-outline').forEach((button, index) => {
+    const filter = filters[index];
+    if (!filter) return;
+    button.addEventListener('click', () => filterCampaigns(filter, button));
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  setupCampaignFilters();
+  window.applyLocalI18n(window.currentLang || localStorage.getItem('pms_lang') || 'ko');
+});
 </script>
 </body>
 </html>

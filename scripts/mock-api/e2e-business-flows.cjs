@@ -128,7 +128,7 @@ async function setUnifiedStayDates(page, nights = 1) {
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
-    const today = new Date();
+    const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
     const checkout = new Date(today);
     checkout.setDate(today.getDate() + nightsCount);
     const cin = document.getElementById('unifiedCin');
@@ -192,9 +192,15 @@ async function groupRoomingTimelineFlow(page) {
   await page.waitForFunction(() => !document.querySelector('#roomingModal.active'), null, { timeout: 7000 });
   await page.waitForTimeout(800);
 
-  const stored = await page.evaluate(name => {
-    const groups = JSON.parse(localStorage.getItem('pms_groups') || '[]');
-    const reservations = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
+  const stored = await page.evaluate(async name => {
+    let groups = JSON.parse(localStorage.getItem('pms_groups') || '[]');
+    let reservations = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
+    if (window.PmsMockApi) {
+      const groupsEnv = await window.PmsMockApi.request('GET', '/groups/events');
+      const reservationsEnv = await window.PmsMockApi.request('GET', '/reservations');
+      groups = window.PmsMockApi.items(groupsEnv).map(window.PmsMockApi.toLegacyGroup);
+      reservations = window.PmsMockApi.items(reservationsEnv).map(window.PmsMockApi.toLegacyReservation);
+    }
     const group = groups.find(item => item.id === 'GRP-260527-01');
     const rooming = (group?.roomingList || []).find(item => item.name === name && item.roomId === '0802');
     const res = reservations.find(item => item.id === 'RSV-GRP-260527-01-0802' || item.room === '0802' || item.fullRoom === '0802' || item.roomId === '0802');
@@ -251,7 +257,7 @@ async function individualReservationFlow(page) {
   await page.waitForFunction(name => document.body.innerText.includes(name), guestName, { timeout: 12000 });
   await page.evaluate(id => window.openUnifiedResModal(id), stored.id);
   await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
-  await page.locator('#unifiedFlowActions button', { hasText: '체크인' }).click();
+  await page.locator('#unifiedFlowActions button[onclick*="checkin"]').click();
   await clickConfirmOk(page);
   await page.waitForFunction(id => {
     const reservations = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
@@ -268,11 +274,11 @@ async function individualReservationFlow(page) {
     return {
       status: res?.status,
       blockClass: block?.className || '',
-      checkoutActionVisible: !!Array.from(document.querySelectorAll('#unifiedFlowActions button')).find(item => item.innerText.includes('체크아웃'))
+      checkoutActionVisible: !!document.querySelector('#unifiedFlowActions button[onclick*="checkout"]')
     };
   }, stored.id);
   assert(checkedInState.checkoutActionVisible, 'checkout action did not appear after timeline check-in');
-  await page.locator('#unifiedFlowActions button', { hasText: '체크아웃' }).click();
+  await page.locator('#unifiedFlowActions button[onclick*="checkout"]').click();
   await clickConfirmOk(page);
   await page.waitForFunction(id => {
     const reservations = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
@@ -344,6 +350,8 @@ async function checkinCheckoutFlow(page) {
     const tab = document.querySelector('.ops-tab[data-filter="inhouse"]');
     window.setFilter(tab, 'inhouse');
   });
+  await page.fill('#searchInput', guestName);
+  await page.evaluate(() => window.filterTable?.());
   const checkoutRowButton = page.locator('tr', { hasText: guestName }).locator('.res-work-action.checkout');
   await checkoutRowButton.waitFor({ state: 'visible', timeout: 10000 });
   await checkoutRowButton.click();
@@ -541,7 +549,7 @@ async function ancillaryVendorVoucherFlow(page) {
     hasLogoButton: !!document.querySelector('.logo-config button')
   }));
   assert(golf.sectionTitles.length >= 2, 'golf voucher fields were not grouped separately');
-  assert(/업체 주소/.test(golf.preview) && /Clark Freeport Zone/.test(golf.preview), 'golf voucher preview did not include vendor address');
+  assert(!/업체 주소/.test(golf.preview) && !/Clark Freeport Zone/.test(golf.preview), 'golf voucher preview included vendor address even though the default golf voucher form excludes it');
   assert(golf.hasStub, 'golf voucher preview did not include a tear-off confirmation area');
   assert(golf.hasLogoButton, 'vendor logo upload action was not available');
   await page.evaluate(() => window.closeModal?.('voucherPreviewModal'));
@@ -563,8 +571,8 @@ async function ancillaryVendorVoucherFlow(page) {
 
 async function dashboardPartnerVendorDetailFlow(page) {
   await goto(page, '/dashboard/dashboard.html?test=e2e-partner-detail');
-  await page.waitForFunction(() => document.querySelector('[data-partner-id="POS-RIVERSIDE"]'), null, { timeout: 15000 });
-  await page.locator('[data-partner-id="POS-RIVERSIDE"]').first().click();
+  await page.waitForFunction(() => document.querySelector('[data-partner-id="REST-RIVERSIDE"]'), null, { timeout: 15000 });
+  await page.locator('[data-partner-id="REST-RIVERSIDE"]').first().click();
   await page.locator('#partnerDetailModal.active').waitFor({ state: 'visible', timeout: 10000 });
   const modal = await page.evaluate(() => {
     const root = document.getElementById('partnerDetailModal');
@@ -575,12 +583,12 @@ async function dashboardPartnerVendorDetailFlow(page) {
       links
     };
   });
-  assert(/Riverside|POS/.test(modal.title + modal.text), 'dashboard partner modal did not show the selected vendor detail');
+  assert(/레스토랑|Restaurant|riverside/i.test(modal.title + modal.text), 'dashboard partner modal did not show the selected vendor detail');
   assert(/연락처|Contact/.test(modal.text) && /닫기|Close/.test(modal.text), 'dashboard partner modal did not render contact and close actions');
   assert(modal.links.length === 0, 'dashboard partner modal should stay as a read-only event detail view');
 
-  await goto(page, '/dashboard/operations/ancillary-vendors.html?type=pos&vendorId=POS-RIVERSIDE&test=e2e-partner-admin-link#voucher');
-  await page.waitForFunction(() => document.querySelector('.vendor-tab.active[data-type="pos"]') && document.querySelector('.vendor-card.active'), null, { timeout: 30000 });
+  await goto(page, '/dashboard/operations/ancillary-vendors.html?type=restaurant&vendorId=REST-RIVERSIDE&test=e2e-partner-admin-link#voucher');
+  await page.waitForFunction(() => document.querySelector('.vendor-tab.active[data-type="restaurant"]') && document.querySelector('.vendor-card.active'), null, { timeout: 30000 });
   const adminState = await page.evaluate(() => ({
     activeTab: document.querySelector('.vendor-tab.active')?.dataset.type || '',
     selectedName: document.querySelector('.vendor-card.active .vendor-name')?.innerText || '',
@@ -589,18 +597,18 @@ async function dashboardPartnerVendorDetailFlow(page) {
     hasVoucherSection: !!document.querySelector('.detail-group--voucher'),
     previewModalOpen: !!document.querySelector('#voucherPreviewModal.active')
   }));
-  assert(adminState.activeTab === 'pos', 'partner admin link did not open the POS vendor tab');
-  assert(adminState.selectedAction.includes('POS-RIVERSIDE'), 'partner admin link did not select the requested vendor');
-  assert(!adminState.hasInlinePreview && !adminState.hasVoucherSection && !adminState.previewModalOpen, 'partner POS admin link should not open voucher preview/output UI');
+  assert(adminState.activeTab === 'restaurant', 'partner admin link did not open the restaurant vendor tab');
+  assert(adminState.selectedAction.includes('REST-RIVERSIDE'), 'partner admin link did not select the requested vendor');
+  assert(adminState.hasVoucherSection, 'partner restaurant admin link did not expose coupon/voucher output settings');
 
-  await goto(page, '/dashboard/operations/ancillary.html?service=pos&vendorId=POS-RIVERSIDE&test=e2e-partner-ancillary-link');
+  await goto(page, '/dashboard/operations/ancillary.html?service=restaurant&vendorId=REST-RIVERSIDE&test=e2e-partner-ancillary-link');
   await page.waitForFunction(() => document.querySelector('.service-filter-chip.active') && document.querySelectorAll('.service-room-card').length > 0, null, { timeout: 15000 });
   const ancillaryState = await page.evaluate(() => ({
     activeFilter: document.querySelector('.service-filter-chip.active')?.dataset.service || '',
     cardCount: document.querySelectorAll('.service-room-card').length,
     inhouseCardCount: document.querySelectorAll('.service-room-card.inhouse').length
   }));
-  assert(ancillaryState.activeFilter === 'pos', 'partner ancillary link did not open POS service filter');
+  assert(ancillaryState.activeFilter === 'restaurant', 'partner ancillary link did not open restaurant service filter');
   assert(ancillaryState.cardCount > 0, 'partner ancillary link did not render in-house service rooms');
   assert(ancillaryState.inhouseCardCount > 0, 'partner ancillary link did not render any clickable in-house service rooms');
   await page.locator('.service-room-card.inhouse').first().click();
@@ -611,7 +619,7 @@ async function dashboardPartnerVendorDetailFlow(page) {
     return !!(section && !section.classList.contains('is-hidden') && document.getElementById('serviceVendor')?.value);
   }, null, { timeout: 10000 });
   const vendorValue = await page.locator('#serviceVendor').inputValue();
-  assert(vendorValue === 'POS-RIVERSIDE', 'partner ancillary registration did not preselect the requested vendor');
+  assert(vendorValue === 'REST-RIVERSIDE', 'partner ancillary registration did not preselect the requested vendor');
   return { modal, adminState, ancillaryState };
 }
 

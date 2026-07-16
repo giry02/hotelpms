@@ -250,6 +250,7 @@ window.translations = {
     "Hotel Settings": "호텔 설정",
     "Staff Mgmt": "직원 관리",
     "Export": "엑셀 다운",
+    "Download Excel": "엑셀 다운로드",
     "Add Guest": "고객 등록",
     "Visits": "방문 횟수",
     "Last Stay": "최근 투숙",

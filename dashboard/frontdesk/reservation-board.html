@@ -234,6 +234,7 @@ let reservations = [];
 let groups = [];
 let boardFilter = 'all';
 let boardPeriod = 'today';
+let boardCountsCache = { signature: '', counts: null };
 
 const BOARD_TEXT = {
     ko: {
@@ -565,6 +566,10 @@ function reservationBucket(res) {
 }
 
 function boardReservationCounts() {
+    const signature = `${boardPeriod}|${boardDataSignature()}`;
+    if (boardCountsCache.signature === signature && boardCountsCache.counts) {
+        return { ...boardCountsCache.counts };
+    }
     const counts = { all: 0, group: 0, vacant: 0, checkin: 0, checkinDirty: 0, dirty: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, completed: 0, cancelled: 0 };
     counts.all = rooms.length;
     reservations.forEach(res => {
@@ -581,6 +586,7 @@ function boardReservationCounts() {
         if (boardCleaningSummary(room, state.res).key === 'dirty') counts.dirty++;
         if (boardCheckinDirtyReservationForRoom(room)) counts.checkinDirty++;
     });
+    boardCountsCache = { signature, counts: { ...counts } };
     return counts;
 }
 
@@ -595,10 +601,7 @@ function updateBoardPeriodLabels() {
     const arrivalLabel = document.getElementById('kpiArrival')?.parentElement?.querySelector('.kpi-label');
     if (arrivalLabel) arrivalLabel.textContent = label;
     const chip = document.querySelector('#boardChips .chip[data-filter="checkin"]');
-    if (chip) {
-        const count = chip.querySelector('.chip-count')?.textContent || '0';
-        chip.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> ${label} <span class="chip-count">${escapeHtml(count)}</span>`;
-    }
+    if (chip) updateBoardChip(chip, 'checkin', chip.querySelector('.chip-count')?.textContent || '0');
 }
 
 function updateBoardStaticLabels() {
@@ -656,6 +659,27 @@ function boardFilterIcon(filter) {
         completed: 'fa-check-double',
         cancelled: 'fa-ban'
     }[filter] || 'fa-circle';
+}
+
+function updateBoardChip(chip, filter, count) {
+    if (!chip) return;
+    let icon = chip.querySelector('i');
+    let label = chip.querySelector('.chip-label');
+    let countEl = chip.querySelector('.chip-count');
+    if (!icon || !label || !countEl) {
+        const auditId = chip.dataset.auditClickId;
+        chip.textContent = '';
+        icon = document.createElement('i');
+        label = document.createElement('span');
+        countEl = document.createElement('span');
+        label.className = 'chip-label';
+        countEl.className = 'chip-count';
+        chip.append(icon, label, countEl);
+        if (auditId) chip.dataset.auditClickId = auditId;
+    }
+    icon.className = `fa-solid ${boardFilterIcon(filter)}`;
+    label.textContent = boardFilterLabel(filter);
+    countEl.textContent = count;
 }
 
 function primaryGuest(res) {
@@ -1274,7 +1298,7 @@ function updateBoardKpis() {
     document.querySelectorAll('#boardChips .chip').forEach(chip => {
         const filter = chip.dataset.filter;
         const count = reservationCounts[filter] || 0;
-        chip.innerHTML = `<i class="fa-solid ${boardFilterIcon(filter)}"></i> ${boardFilterLabel(filter)} <span class="chip-count">${count}</span>`;
+        updateBoardChip(chip, filter, count);
     });
 }
 
@@ -1283,12 +1307,28 @@ function toggleBuilding(el) {
     el.nextElementSibling.classList.toggle('collapsed');
 }
 
+function boardDataSignature() {
+    const roomSig = rooms.map(room => `${room.id || room.roomNo || ''}:${room.status || ''}`).join(',');
+    const resSig = reservations.map(res => [
+        res.id || res.reservationId || '',
+        res.roomId || res.room || '',
+        res.status || '',
+        res.guestName || res.guest || '',
+        res.checkIn || res.checkinDate || '',
+        res.checkOut || res.checkoutDate || '',
+        res.updatedAt || ''
+    ].join(':')).join(',');
+    return `${roomSig}|${resSig}`;
+}
+
 function renderReservationBoard() {
     updateBoardKpis();
     const container = document.getElementById('reservationBoardContainer');
-    container.innerHTML = '';
+    const signatureBase = `${boardLang()}|${boardPeriod}|${boardFilter}|${document.getElementById('boardSearch')?.value || ''}|${boardDataSignature()}`;
+    if (container.dataset.renderSignature === signatureBase) return;
     const hasBuildings = rooms.some(room => room.building);
     let rendered = 0;
+    const htmlParts = [];
     if (hasBuildings) {
         [...new Set(rooms.map(room => room.building || boardText('label.unassigned')))].sort().forEach(building => {
             const buildingRooms = rooms.filter(room => (room.building || boardText('label.unassigned')) === building);
@@ -1301,7 +1341,7 @@ function renderReservationBoard() {
                 html += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${boardFloorLabel(floor)} <span class="floor-count">(${boardRoomCountLabel(cards.length)})</span></div><div class="room-grid">${cards.join('')}</div></div>`;
             });
             html += '</div></div>';
-            container.innerHTML += html;
+            htmlParts.push(html);
         });
     } else {
         const floors = [...new Set(rooms.map(floorValue))].sort((a, b) => b - a);
@@ -1309,10 +1349,12 @@ function renderReservationBoard() {
             const cards = rooms.filter(room => floorValue(room) === floor).sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true })).map(boardCard).filter(Boolean);
             rendered += cards.length;
             if (!cards.length) return;
-            container.innerHTML += `<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${boardFloorLabel(floor)} <span class="floor-count">(${boardRoomCountLabel(cards.length)})</span></div><div class="room-grid">${cards.join('')}</div></div>`;
+            htmlParts.push(`<div class="floor-section"><div class="floor-title"><i class="fa-solid fa-layer-group"></i> ${boardFloorLabel(floor)} <span class="floor-count">(${boardRoomCountLabel(cards.length)})</span></div><div class="room-grid">${cards.join('')}</div></div>`);
         });
     }
-    if (!rendered) container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--txt3);font-weight:800">${boardText('empty.noMatching')}</div>`;
+    const html = rendered ? htmlParts.join('') : `<div style="padding:40px;text-align:center;color:var(--txt3);font-weight:800">${boardText('empty.noMatching')}</div>`;
+    container.innerHTML = html;
+    container.dataset.renderSignature = signatureBase;
 }
 
 function boardRoomKeys(room, fallback = '') {

@@ -59,7 +59,7 @@ async function collectButtons(page) {
       const x = Math.min(Math.max(rect.left + rect.width / 2, 1), innerWidth - 1);
       const y = Math.min(Math.max(rect.top + rect.height / 2, 1), innerHeight - 1);
       const topEl = document.elementFromPoint(x, y);
-      return !!topEl && (el === topEl || el.contains(topEl) || topEl.contains(el));
+      return !!topEl && (el === topEl || el.contains(topEl));
     };
     return Array.from(document.querySelectorAll(selector))
       .filter(el => {
@@ -91,7 +91,7 @@ async function collectModalButtons(page) {
       const x = Math.min(Math.max(rect.left + rect.width / 2, 1), innerWidth - 1);
       const y = Math.min(Math.max(rect.top + rect.height / 2, 1), innerHeight - 1);
       const topEl = document.elementFromPoint(x, y);
-      return !!topEl && (el === topEl || el.contains(topEl) || topEl.contains(el));
+      return !!topEl && (el === topEl || el.contains(topEl));
     };
     const roots = Array.from(document.querySelectorAll('.modal-overlay.active, .bottom-sheet.active, .guest-detail-panel.active, [role="dialog"]')).filter(visible);
     const buttons = roots.flatMap(root => Array.from(root.querySelectorAll('button,input[type="button"],input[type="submit"],[role="button"]')));
@@ -133,7 +133,7 @@ async function closeModalOrReload(page, pageUrl) {
   const state = await pageState(page).catch(() => ({ url: page.url(), activeModals: 0 }));
   if (state.url !== pageUrl || state.activeModals > 0) {
     await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    await page.waitForTimeout(220);
+    await page.waitForTimeout(650);
   }
 }
 
@@ -175,7 +175,7 @@ async function auditPage(browser, pagePath) {
 
   try {
     await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(650);
     await page.evaluate(() => Array.from(document.querySelectorAll('a[href]')).map(a => a.getAttribute('href'))).then(hrefs => {
       hrefs.filter(Boolean).forEach(href => {
         if (/^(#|javascript:|mailto:|tel:)/i.test(href)) return;
@@ -224,7 +224,7 @@ async function auditPage(browser, pagePath) {
       if (effect.modalOpened) {
         popupOpeners.push({ page: pagePath, label: button.label });
         const modalButtons = await collectModalButtons(page);
-        const closeLike = modalButtons.filter(item => /닫|취소|close|cancel|xmark|확인|ok/i.test(item.label));
+        const closeLike = modalButtons.filter(item => /닫|취소|close|cancel|xmark|no|아니오/i.test(item.label));
         const labelsToCheck = (closeLike.length ? closeLike : modalButtons).slice(0, 2).map(item => item.label);
         for (const modalLabel of labelsToCheck) {
           const currentModalButtons = await collectModalButtons(page);
@@ -233,7 +233,7 @@ async function auditPage(browser, pagePath) {
           loadIssues = [];
           try {
             await page.locator(`[data-audit-modal-click-id="${modalButton.id}"]`).click({ timeout: 2500 });
-            await page.waitForTimeout(120);
+            await page.waitForTimeout(220);
           } catch (error) {
             failures.push({ page: pagePath, label: `${button.label} > ${modalLabel}`, issues: [`click: ${error.message}`] });
           }
@@ -244,7 +244,7 @@ async function auditPage(browser, pagePath) {
           const reopen = reopenButtons[index];
           if (!reopen) break;
           await page.locator(`[data-audit-click-id="${reopen.id}"]`).click({ timeout: 2500 }).catch(() => {});
-          await page.waitForTimeout(120);
+          await page.waitForTimeout(220);
         }
       }
 

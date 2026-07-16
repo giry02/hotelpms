@@ -2120,25 +2120,37 @@ async function deleteGroup(id) {
 
         if (chips) {
             const counts = filterCounts(list, search);
-            const chip = (key, label) => `
-                <button class="chip ${eventStatus === key ? 'active' : ''}" data-filter="${key}" onclick="filterGroups('${key}', this)">
-                    ${label} <span class="chip-count">${counts[key] || 0}</span>
-                </button>`;
-            chips.innerHTML = [
-                chip('all', T.all),
-                chip('today', T.today),
-                chip('active', T.active),
-                chip('upcoming', T.upcoming),
-                chip('past', T.past),
-                chip('settlement', T.settlement)
-            ].join('');
+            const labels = { all: T.all, today: T.today, active: T.active, upcoming: T.upcoming, past: T.past, settlement: T.settlement };
+            const keys = Object.keys(labels);
+            const existingKeys = Array.from(chips.querySelectorAll('.chip[data-filter]')).map(button => button.dataset.filter);
+            if (keys.some(key => !existingKeys.includes(key))) {
+                chips.innerHTML = keys.map(key => `
+                    <button class="chip" data-filter="${key}" onclick="filterGroups('${key}', this)">
+                        <span class="chip-label"></span> <span class="chip-count"></span>
+                    </button>`).join('');
+            }
+            keys.forEach(key => {
+                const button = chips.querySelector(`.chip[data-filter="${key}"]`);
+                if (!button) return;
+                button.classList.toggle('active', eventStatus === key);
+                const label = button.querySelector('.chip-label');
+                const count = button.querySelector('.chip-count');
+                if (label) label.textContent = labels[key];
+                if (count) count.textContent = counts[key] || 0;
+            });
         }
 
         const filterRight = document.querySelector('.filter-right');
         if (filterRight) {
-            filterRight.innerHTML = `
-                <button class="btn-outline" style="height:38px" onclick="location.href='groups_companies.html'"><i class="fa-solid fa-building"></i> ${T.companyManage}</button>
-                <button class="btn-primary-sm" style="height:38px;padding:0 16px" onclick="createGroupEvent()"><i class="fa-solid fa-plus"></i> ${T.newEvent}</button>`;
+            if (!filterRight.querySelector('[data-group-action="companies"]')) {
+                filterRight.innerHTML = `
+                    <button class="btn-outline" data-group-action="companies" style="height:38px" onclick="location.href='groups_companies.html'"><i class="fa-solid fa-building"></i> <span></span></button>
+                    <button class="btn-primary-sm" data-group-action="new" style="height:38px;padding:0 16px" onclick="createGroupEvent()"><i class="fa-solid fa-plus"></i> <span></span></button>`;
+            }
+            const companiesButton = filterRight.querySelector('[data-group-action="companies"] span');
+            const newButton = filterRight.querySelector('[data-group-action="new"] span');
+            if (companiesButton) companiesButton.textContent = T.companyManage;
+            if (newButton) newButton.textContent = T.newEvent;
         }
     }
 
@@ -2202,6 +2214,14 @@ async function deleteGroup(id) {
         });
 
         if (!filtered.length) {
+            const emptySignature = [
+                eventStatus,
+                query,
+                'empty',
+                localStorage.getItem('pms_lang') || window.currentLang || 'ko'
+            ].join('::');
+            if (grid.dataset.groupsRenderSignature === emptySignature) return;
+            grid.dataset.groupsRenderSignature = emptySignature;
             grid.style.display = 'none';
             if (empty) {
                 empty.style.display = 'block';
@@ -2212,6 +2232,14 @@ async function deleteGroup(id) {
 
         if (empty) empty.style.display = 'none';
         grid.style.display = 'block';
+        const signature = [
+            eventStatus,
+            query,
+            filtered.map(group => group.id).join('|'),
+            localStorage.getItem('pms_lang') || window.currentLang || 'ko'
+        ].join('::');
+        if (grid.dataset.groupsRenderSignature === signature) return;
+        grid.dataset.groupsRenderSignature = signature;
         grid.innerHTML = `
             <div class="event-register">
                 <div class="event-head">
@@ -2240,7 +2268,9 @@ async function deleteGroup(id) {
     };
 
     document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => window.renderGroups(document.querySelector('.search-box-mt input')?.value || ''), 40);
+        if (!document.getElementById('groupGrid')?.children.length) {
+            window.renderGroups(document.querySelector('.search-box-mt input')?.value || '');
+        }
     });
 
     window.applyLocalI18n = function() {

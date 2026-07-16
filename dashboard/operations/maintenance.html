@@ -1057,6 +1057,21 @@ function render() {
     renderKanban(filtered);
     renderTable(filtered);
 }
+let maintenanceTableSignature = '';
+function maintenanceRowSignature(r) {
+    return [
+        r.id,
+        r.room,
+        r.type,
+        r.desc,
+        r.priority,
+        r.assignee,
+        r.status,
+        r.issuedAt || r.createdAt || r.requestedAt || r.date || '',
+        r.startedAt || '',
+        r.completedAt || ''
+    ];
+}
 
 function ticketCard(r) {
     const icon = typeIcons[r.type] || 'fa-toolbox';
@@ -1090,6 +1105,12 @@ function renderKanban(data) {
 }
 
 function renderTable(data) {
+    const nextSignature = JSON.stringify({
+        lang: maintenanceLang(),
+        rows: data.map(r => maintenanceRowSignature(r))
+    });
+    if (maintenanceTableSignature === nextSignature) return;
+    maintenanceTableSignature = nextSignature;
     document.getElementById('mtTableBody').innerHTML = data.map(r => {
         const stClass = r.status === 'open' ? 'priority-high' : r.status === 'in-progress' ? 'priority-normal' : 'priority-low';
         const issuedAtText = formatMaintenanceTableDateTime(r.issuedAt || r.createdAt || r.requestedAt || r.date);

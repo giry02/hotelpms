@@ -835,6 +835,7 @@ function handleExpenseActionButton(event, button) {
         deleteExpensePurchase(id);
     }
 }
+let expenseRenderSignature = '';
 function renderExpenses() {
     const rows = filteredExpenses();
     const totalRows = periodExpenses();
@@ -844,6 +845,24 @@ function renderExpenses() {
     document.getElementById('expenseCash').innerHTML = moneySummaryHtml(totalRows.filter(row => row.method === 'cash'));
     document.getElementById('expenseMonth').innerHTML = moneySummaryHtml(allRows.filter(row => String(row.date || '').startsWith(month)));
     document.getElementById('expenseCount').textContent = totalRows.length;
+    const nextSignature = JSON.stringify({
+        lang: expenseLang(),
+        rows: rows.map(row => [
+            row.id,
+            row.date,
+            row.category,
+            row.item,
+            row.vendor,
+            row.buyer,
+            row.method,
+            normalizeExpenseCurrency(row.currency),
+            Number(row.amount || 0),
+            row.note,
+            row.updatedAt || row.createdAt || ''
+        ])
+    });
+    if (expenseRenderSignature === nextSignature) return;
+    expenseRenderSignature = nextSignature;
 
     const emptyRow = `<tr><td colspan="10" class="expense-empty">${expenseText('등록된 지출이 없습니다.', 'No registered expenses.')}</td></tr>`;
     document.getElementById('expenseBody').innerHTML = rows.map(renderExpenseTableRow).join('') || emptyRow;

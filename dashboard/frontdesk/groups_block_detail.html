@@ -3057,12 +3057,19 @@ window.addEventListener('DataReady', () => {
         return `${roomIdValue}|id:${String(guest?.id || '').trim().toLowerCase()}`;
     }
 
+    function storedRoomGuests(roomIdValue) {
+        return roomingList().filter(guest => guest.roomId === roomIdValue && cleanGuestName(guest.name));
+    }
+
     function roomGuests(roomIdValue) {
+        const storedGuests = storedRoomGuests(roomIdValue);
+        const storedPrimary = storedGuests.find(guest => guest.role === 'primary') || null;
         const merged = new Map();
         reservationGuests(roomIdValue).forEach(guest => {
+            if (storedPrimary && guest.sourceReservation && guest.role === 'primary') return;
             merged.set(guestMergeKey(guest, roomIdValue), guest);
         });
-        roomingList().filter(guest => guest.roomId === roomIdValue && cleanGuestName(guest.name)).forEach(guest => {
+        storedGuests.forEach(guest => {
             merged.set(guestMergeKey(guest, roomIdValue), guest);
         });
         const list = [...merged.values()];
@@ -3085,7 +3092,17 @@ window.addEventListener('DataReady', () => {
     }
 
     function primaryForRoom(roomIdValue) {
-        const guests = roomGuests(roomIdValue);
+        const explicitGuests = storedRoomGuests(roomIdValue);
+        const explicitPrimary = explicitGuests.find(guest => guest.role === 'primary') || null;
+        const guests = explicitPrimary
+            ? [
+                explicitPrimary,
+                ...roomGuests(roomIdValue).filter(guest =>
+                    guest !== explicitPrimary &&
+                    !(guest.sourceReservation && guest.role === 'primary')
+                )
+            ]
+            : roomGuests(roomIdValue);
         return guests.find(guest => guest.role === 'primary') || guests[0] || null;
     }
 

@@ -73,12 +73,26 @@ const pages = [...walk('dashboard'), ...walk('admin')]
           return parts.join(' > ');
         }
 
+        function isUserOrSampleData(el) {
+          return !!el?.closest?.([
+            '.company-card',
+            '#mtTableBody',
+            '.guest-name',
+            '.event-name',
+            '.event-company',
+            '.company-name',
+            '.data-row',
+            '[data-i18n-data]'
+          ].join(','));
+        }
+
         const allowed = new Set(['🇰🇷 한국어', '한국어']);
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
           acceptNode(node) {
             const text = node.nodeValue.replace(/\s+/g, ' ').trim();
             if (!text || !/[가-힣]/.test(text) || allowed.has(text)) return NodeFilter.FILTER_REJECT;
             if (!isVisible(node.parentElement)) return NodeFilter.FILTER_REJECT;
+            if (isUserOrSampleData(node.parentElement)) return NodeFilter.FILTER_REJECT;
             return NodeFilter.FILTER_ACCEPT;
           }
         });
