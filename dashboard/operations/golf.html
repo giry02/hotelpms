@@ -372,10 +372,10 @@ function renderOrders() {
         let sHtml, actBtn;
         if (status === 'new') {
             sHtml = `<span style="color:var(--danger);font-weight:700"><i class="fa-solid fa-circle-exclamation"></i> 예약 대기</span>`;
-            actBtn = `<button class="btn-primary-sm"><i class="fa-solid fa-check"></i> 예약 확정</button>`;
+            actBtn = `<button class="btn-primary-sm" data-order-id="${escapeHtml(o.id)}"><i class="fa-solid fa-check"></i> 예약 확정</button>`;
         } else if (status === 'prep') {
             sHtml = `<span style="color:var(--primary);font-weight:700"><i class="fa-solid fa-car"></i> 진행 예정</span>`;
-            actBtn = `<button class="btn-primary-sm" style="background:var(--success);border-color:var(--success)"><i class="fa-solid fa-check-double"></i> 완료 처리</button>`;
+            actBtn = `<button class="btn-primary-sm" data-order-id="${escapeHtml(o.id)}" style="background:var(--success);border-color:var(--success)"><i class="fa-solid fa-check-double"></i> 완료 처리</button>`;
         } else {
             sHtml = `<span style="color:var(--success)"><i class="fa-solid fa-check-circle"></i> 라운딩 완료</span>`;
             actBtn = `<button class="btn-outline-sm" disabled>정산됨</button>`;
@@ -410,6 +410,16 @@ function renderOrders() {
         </div>
         `;
     }).join('');
+    Array.from(container.querySelectorAll('.hk-task-right .btn-primary-sm')).forEach(btn => {
+        const orderId = btn.dataset.orderId;
+        const order = filtered.find(item => item.id === orderId);
+        if (!order) return;
+        const status = orderStatusKey(order);
+        const nextStatus = status === 'new' ? 'prep' : (status === 'prep' ? 'done' : '');
+        if (!nextStatus) return;
+        btn.type = 'button';
+        btn.addEventListener('click', () => setOrderStatus(order.id, nextStatus));
+    });
 }
 
 function setFilter(btn, filter) {
@@ -546,6 +556,48 @@ function loadManualAncillaryOrders(type) {
 function saveManualAncillaryOrders(type, created) {
     const previous = loadManualAncillaryOrders(type);
     localStorage.setItem(manualAncillaryStorageKey(type), JSON.stringify([...created, ...previous].slice(0, 200)));
+}
+
+function orderStatusOverrideKey(type) {
+    return `hotelPms.manual.${type}.statusOverrides`;
+}
+
+function loadOrderStatusOverrides(type) {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(orderStatusOverrideKey(type)) || '{}');
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch(e) {
+        return {};
+    }
+}
+
+function applyOrderStatusOverrides(type, list) {
+    const overrides = loadOrderStatusOverrides(type);
+    return (list || []).map(order => overrides[order.id] ? { ...order, status: overrides[order.id] } : order);
+}
+
+function persistOrderStatus(type, id, status) {
+    if (!id) return;
+    const overrides = loadOrderStatusOverrides(type);
+    overrides[id] = status;
+    localStorage.setItem(orderStatusOverrideKey(type), JSON.stringify(overrides));
+    const manualOrders = loadManualAncillaryOrders(type);
+    const changed = manualOrders.map(order => order.id === id ? { ...order, status } : order);
+    if (changed.some((order, index) => order !== manualOrders[index])) {
+        localStorage.setItem(manualAncillaryStorageKey(type), JSON.stringify(changed));
+    }
+}
+
+function setOrderStatus(id, status) {
+    const order = orders.find(item => item.id === id);
+    if (!order) {
+        showToast('주문 정보를 찾을 수 없습니다.');
+        return;
+    }
+    order.status = status;
+    persistOrderStatus('golf', id, status);
+    renderOrders();
+    showToast(status === 'done' ? '골프 예약이 완료 처리되었습니다.' : '골프 예약이 확정되었습니다.');
 }
 
 function selectedAncillaryGuests(prefix) {
@@ -853,7 +905,7 @@ function updateFilterCounts() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        orders = [...loadManualAncillaryOrders('golf'), ...(await PmsAPI.getGolfOrders())];
+        orders = applyOrderStatusOverrides('golf', [...loadManualAncillaryOrders('golf'), ...(await PmsAPI.getGolfOrders())]);
         updateFilterCounts();
         renderOrders();
     } catch(e) { console.error(e); }

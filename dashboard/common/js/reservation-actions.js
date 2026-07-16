@@ -1770,7 +1770,7 @@
 
     const modalHtml = `
     <!-- Unified Reservation Modal (View & Edit) -->
-    <div class="modal-overlay" id="unifiedResModal" data-no-auto-i18n="true" style="z-index: 9999;">
+    <div class="modal-overlay" id="unifiedResModal" data-no-auto-i18n="true" style="z-index: 9999; display:none;">
         <div class="modal-card" style="width: 550px; max-width: 95vw;">
             <div class="modal-header">
                 <div class="modal-title" id="unifiedModalTitle" style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
@@ -3335,12 +3335,18 @@
         });
         
         const unifiedModal = document.getElementById('unifiedResModal');
-        if (unifiedModal) unifiedModal.classList.add('active');
+        if (unifiedModal) {
+            unifiedModal.style.display = 'flex';
+            unifiedModal.classList.add('active');
+        }
     };
 
     window.closeUnifiedResModal = function() {
         const unifiedModal = document.getElementById('unifiedResModal');
-        if (unifiedModal) unifiedModal.classList.remove('active');
+        if (unifiedModal) {
+            unifiedModal.classList.remove('active');
+            unifiedModal.style.display = 'none';
+        }
     };
 
     window.saveUnifiedRes = async function() {
@@ -3469,9 +3475,13 @@
         
         if (!id) {
             // NEW BOOKING MODE
-            const newId = 'RSV-' + (window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString()).replace(/\D/g,'').slice(0,14) + '-' + Math.floor(Math.random()*1000);
+            const nowIso = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+            const newId = 'RSV-' + nowIso.replace(/\D/g,'').slice(0,14) + '-' + Math.floor(Math.random()*1000);
             const newRes = {
                 id: newId,
+                createdAt: nowIso,
+                updatedAt: nowIso,
+                bookingDate: nowIso,
                 guest: guest,
                 guestName: guest,
                 roomingGuestName: guest,
@@ -3788,6 +3798,7 @@
                     if (oldRoom) await persistUnifiedRoom(oldRoom);
                     if (selectedRoom) await persistUnifiedRoom(selectedRoom);
                 }
+                res.updatedAt = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
                 savedRes = res;
             }
             if (window.showToast) window.showToast(actionText('booking.updated'), 'success');

@@ -355,7 +355,7 @@ function syncReservationListGlobals() {
     window.groups = groups;
 }
 
-window.syncUnifiedReservationPageState = function() {
+window.syncUnifiedReservationPageState = function(context = {}) {
     if (Array.isArray(window.reservations) && window.reservations !== reservations) {
         reservations = window.reservations;
     }
@@ -370,6 +370,24 @@ window.syncUnifiedReservationPageState = function() {
         groups = window.groups;
     }
     syncReservationListGlobals();
+    if (context?.action === 'reservation.create') {
+        currentFilter = 'all';
+        currentPeriodFilter = 'all';
+        currentPage = 1;
+        currentSort = 'recent';
+        currentSortDirection = 'desc';
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = '';
+        const statusSelect = document.getElementById('statusFilter');
+        if (statusSelect) statusSelect.value = 'all';
+        const periodSelect = document.getElementById('periodFilter');
+        if (periodSelect) periodSelect.value = 'all';
+        if (typeof window.selectResFilter === 'function') {
+            const allChip = document.querySelector('.filter-chip[onclick*="selectResFilter"][onclick*="all"]');
+            if (allChip) window.selectResFilter(allChip, 'all', reservationLang() === 'en' ? 'All' : '전체');
+        }
+        if (typeof updateSortButtons === 'function') updateSortButtons();
+    }
     updateChipCounts();
 };
 
@@ -1383,7 +1401,7 @@ function setPeriodFilter(filter) {
 }
 
 function rowMatchesFilter(res) {
-    if (currentFilter === 'all') return roomScopedReservationIds('all').has(res.id);
+    if (currentFilter === 'all') return true;
     if (currentFilter === 'group') return reservationIsGroup(res);
     if (currentFilter === 'lateCheckout') return reservationLateCheckoutEnabled(res);
     if (currentFilter === 'dirty' || currentFilter === 'vacant') return roomScopedReservationIds(currentFilter).has(res.id);
