@@ -162,9 +162,9 @@
                 <div class="expense-filterbar">
                     <div class="expense-period-controls">
                         <select id="expensePeriodFilter" class="form-input" onchange="handleExpensePeriodChange()"></select>
-                        <input id="expenseStartDate" class="form-input expense-date-input" type="date" onchange="renderExpenses()" data-expense-date-sync>
+                        <input id="expenseStartDate" class="form-input expense-date-input" type="date" onfocus="activateExpenseCustomPeriodFromDate(this)" onclick="activateExpenseCustomPeriodFromDate(this)" onchange="activateExpenseCustomPeriodFromDate(this);renderExpenses()" data-expense-date-sync>
                         <span class="expense-period-separator">~</span>
-                        <input id="expenseEndDate" class="form-input expense-date-input" type="date" onchange="renderExpenses()" data-expense-date-sync>
+                        <input id="expenseEndDate" class="form-input expense-date-input" type="date" onfocus="activateExpenseCustomPeriodFromDate(this)" onclick="activateExpenseCustomPeriodFromDate(this)" onchange="activateExpenseCustomPeriodFromDate(this);renderExpenses()" data-expense-date-sync>
                     </div>
                     <div class="expense-search">
                         <input id="expenseSearch" class="form-input" placeholder="항목, 구매처, 구매자 검색" data-i18n-placeholder="expense.search.placeholder" oninput="renderExpenses()">
@@ -527,6 +527,13 @@ function parseExpenseDate(value) {
     const date = new Date(`${text}T00:00:00`);
     return Number.isNaN(date.getTime()) ? null : date;
 }
+function expenseMonthBounds() {
+    const today = parseExpenseDate(todayIso()) || new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const toIso = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return { start: toIso(start), end: toIso(end) };
+}
 function expensePeriodRange() {
     const mode = document.getElementById('expensePeriodFilter')?.value || 'month';
     if (mode === 'all') return { mode, start: null, end: null };
@@ -537,10 +544,8 @@ function expensePeriodRange() {
             end: parseExpenseDate(document.getElementById('expenseEndDate')?.value)
         };
     }
-    const today = parseExpenseDate(todayIso()) || new Date();
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    return { mode: 'month', start, end };
+    const bounds = expenseMonthBounds();
+    return { mode: 'month', start: parseExpenseDate(bounds.start), end: parseExpenseDate(bounds.end) };
 }
 function rowMatchesExpensePeriod(row, range = expensePeriodRange()) {
     const date = parseExpenseDate(row.date);
@@ -628,17 +633,34 @@ function renderExpensePeriodOptions() {
 }
 function syncExpensePeriodDateInputs() {
     const isEnglish = expenseLang() === 'en';
-    const custom = (document.getElementById('expensePeriodFilter')?.value || 'month') === 'custom';
+    const mode = document.getElementById('expensePeriodFilter')?.value || 'month';
+    const bounds = expenseMonthBounds();
+    const startInput = document.getElementById('expenseStartDate');
+    const endInput = document.getElementById('expenseEndDate');
+    if (mode === 'month') {
+        if (startInput) startInput.value = bounds.start;
+        if (endInput) endInput.value = bounds.end;
+    }
+    if (mode === 'all') {
+        if (startInput) startInput.value = '';
+        if (endInput) endInput.value = '';
+    }
     document.querySelectorAll('[data-expense-date-sync]').forEach(input => {
         input.type = isEnglish ? 'text' : 'date';
         input.lang = isEnglish ? 'en-CA' : 'ko-KR';
         input.inputMode = isEnglish ? 'numeric' : '';
         input.placeholder = isEnglish ? 'YYYY-MM-DD' : '';
-        input.disabled = !custom;
+        input.disabled = false;
         input.setAttribute('aria-label', input.id === 'expenseStartDate'
             ? expenseText('시작일', 'Start date')
             : expenseText('종료일', 'End date'));
     });
+}
+function activateExpenseCustomPeriodFromDate(input) {
+    const select = document.getElementById('expensePeriodFilter');
+    if (!select || select.value === 'custom') return;
+    if (select.value === 'all' && input && !input.value) input.value = todayIso();
+    select.value = 'custom';
 }
 function handleExpensePeriodChange() {
     syncExpensePeriodDateInputs();
@@ -800,6 +822,19 @@ async function deleteExpensePurchase(id) {
     renderExpenses();
     showToast(expenseText('비품 구매 내역이 삭제되었습니다.', 'Expense purchase has been deleted.'), 'success');
 }
+function handleExpenseActionButton(event, button) {
+    if (!button) return;
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const id = button.dataset.expenseId || '';
+    if (button.dataset.expenseAction === 'edit') {
+        openExpenseFormModal(id);
+        return;
+    }
+    if (button.dataset.expenseAction === 'delete') {
+        deleteExpensePurchase(id);
+    }
+}
 function renderExpenses() {
     const rows = filteredExpenses();
     const totalRows = periodExpenses();
@@ -827,8 +862,8 @@ function renderExpenseTableRow(row) {
             <td class="num">-${money(row.amount, row.currency)}</td>
             <td class="expense-note-cell">${escapeHtml(row.note || '-')}</td>
             <td><div class="expense-action-cell">
-                <button type="button" class="btn-icon-sm" title="${expenseText('수정', 'Edit')}" data-expense-action="edit" data-expense-id="${escapeHtml(row.id)}"><i class="fa-solid fa-pen"></i></button>
-                <button type="button" class="btn-danger-sm btn-icon-sm" title="${expenseText('삭제', 'Delete')}" data-expense-action="delete" data-expense-id="${escapeHtml(row.id)}"><i class="fa-solid fa-trash"></i></button>
+                <button type="button" class="btn-icon-sm" title="${expenseText('수정', 'Edit')}" data-expense-action="edit" data-expense-id="${escapeHtml(row.id)}" onclick="handleExpenseActionButton(event,this)"><i class="fa-solid fa-pen"></i></button>
+                <button type="button" class="btn-danger-sm btn-icon-sm" title="${expenseText('삭제', 'Delete')}" data-expense-action="delete" data-expense-id="${escapeHtml(row.id)}" onclick="handleExpenseActionButton(event,this)"><i class="fa-solid fa-trash"></i></button>
             </div></td>
         </tr>
     `;
@@ -848,26 +883,19 @@ function renderExpenseMobileCard(row) {
                 <div class="expense-mobile-field" style="grid-column:1/-1"><span>${expenseText('메모', 'Memo')}</span><strong>${escapeHtml(row.note || '-')}</strong></div>
             </div>
             <div class="expense-action-cell">
-                <button type="button" class="btn-outline" data-expense-action="edit" data-expense-id="${escapeHtml(row.id)}"><i class="fa-solid fa-pen"></i><span>${expenseText('수정', 'Edit')}</span></button>
-                <button type="button" class="btn-danger-sm" data-expense-action="delete" data-expense-id="${escapeHtml(row.id)}"><i class="fa-solid fa-trash"></i><span>${expenseText('삭제', 'Delete')}</span></button>
+                <button type="button" class="btn-outline" data-expense-action="edit" data-expense-id="${escapeHtml(row.id)}" onclick="handleExpenseActionButton(event,this)"><i class="fa-solid fa-pen"></i><span>${expenseText('수정', 'Edit')}</span></button>
+                <button type="button" class="btn-danger-sm" data-expense-action="delete" data-expense-id="${escapeHtml(row.id)}" onclick="handleExpenseActionButton(event,this)"><i class="fa-solid fa-trash"></i><span>${expenseText('삭제', 'Delete')}</span></button>
             </div>
         </article>
     `;
 }
 function bindExpenseActionButtons() {
+    if (window.__expenseActionButtonsBound) return;
+    window.__expenseActionButtonsBound = true;
     document.addEventListener('click', event => {
         const button = event.target.closest('[data-expense-action]');
         if (!button) return;
-        event.preventDefault();
-        event.stopPropagation();
-        const id = button.dataset.expenseId || '';
-        if (button.dataset.expenseAction === 'edit') {
-            openExpenseFormModal(id);
-            return;
-        }
-        if (button.dataset.expenseAction === 'delete') {
-            deleteExpensePurchase(id);
-        }
+        handleExpenseActionButton(event, button);
     });
 }
 function applyExpenseLanguage() {
