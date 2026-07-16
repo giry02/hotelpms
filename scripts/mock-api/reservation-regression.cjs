@@ -247,6 +247,56 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
   return boardState;
 }
 
+async function todayCheckinRoomMasterRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?filter=checkin&test=today-checkin-room-master`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof processUnifiedReservationFlow === 'function', null, { timeout: 15000 });
+
+  const result = await page.evaluate(async () => {
+    const blockedStatuses = new Set(['oos', 'outofservice', 'outoforder', 'maintenance']);
+    const normalizedStatus = value => String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+    const roomBlocksCheckIn = room => [room?.frontStatus, room?.status, room?.housekeepingStatus]
+      .map(normalizedStatus)
+      .some(status => blockedStatuses.has(status));
+    const clone = value => JSON.parse(JSON.stringify(value || null));
+    const captured = { alerts: [], confirms: [] };
+    window.showAlert = async message => {
+      captured.alerts.push(String(message || ''));
+      return true;
+    };
+    window.showConfirm = async message => {
+      captured.confirms.push(String(message || ''));
+      return true;
+    };
+
+    const reservation = (window.reservations || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210');
+    if (!reservation) throw new Error('Room 1210 today check-in reservation was not found.');
+    const beforeRoom = clone((window.rooms || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210'));
+
+    await window.openUnifiedResModal(reservation.id || reservation.reservationId);
+    const actionText = document.getElementById('unifiedFlowActions')?.innerText || '';
+    await window.processUnifiedReservationFlow('checkin');
+
+    const afterReservation = (window.reservations || []).find(item => item.id === reservation.id || item.reservationId === reservation.reservationId);
+    const afterRoom = (window.rooms || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210');
+    return {
+      captured,
+      actionText,
+      beforeRoom,
+      beforeRoomBlocked: roomBlocksCheckIn(beforeRoom),
+      afterReservation: clone(afterReservation),
+      afterRoom: clone(afterRoom)
+    };
+  });
+
+  assert(result.beforeRoom && !result.beforeRoomBlocked, 'Room 1210 today check-in must not be assigned to a blocked room master status.', result);
+  assert(result.captured.alerts.length === 0, 'Room 1210 today check-in must not show a blocking alert.', result);
+  assert(result.captured.confirms.length > 0, 'Room 1210 today check-in must ask for confirmation before changing status.', result);
+  assert(['checkedin', 'checked-in', 'inhouse', 'in-house'].includes(String(result.afterReservation?.status || '').toLowerCase()), 'Room 1210 today check-in must complete to an in-house state.', result);
+
+  return result;
+}
+
 (async () => {
   let base = DEFAULT_BASE;
   let server = null;
@@ -278,6 +328,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
 
     const dashboardCountResult = await dashboardCheckinCountRegression(page, base);
     const boardCleaningVisibilityResult = await reservationBoardCleaningVisibilityRegression(page, base);
+    const todayCheckinRoomMasterResult = await todayCheckinRoomMasterRegression(page, base);
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -515,12 +566,14 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
         'edit detail keeps guest search idle until user searches',
         'occupied rooms render checkout action instead of check-in',
         'reservation board keeps cleaning status visible beside check-in readiness',
+        'today check-in rooms are not blocked by stale room master status',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
         'dashboard today check-in KPI matches reservation board after rooms become in-house'
       ],
       dashboardCountResult,
-      boardCleaningVisibilityResult
+      boardCleaningVisibilityResult,
+      todayCheckinRoomMasterResult
     }, null, 2));
   } catch (error) {
     console.error(JSON.stringify({ ok: false, error: error.message, details: error.details || null, consoleIssues }, null, 2));

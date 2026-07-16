@@ -113,6 +113,22 @@ function isTodayInStay(reservation) {
   return !!(today && checkIn && checkOut && checkIn <= today && today <= checkOut);
 }
 
+function isTodayCheckIn(reservation) {
+  const today = parseDate(AUDIT_DATE);
+  const checkIn = parseDate(reservation.checkInDate);
+  return !!(today && checkIn && checkIn.getTime() === today.getTime());
+}
+
+function normalizedStatus(value) {
+  return String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+}
+
+function roomBlocksCheckIn(room) {
+  return [room?.frontStatus, room?.status, room?.housekeepingStatus]
+    .map(normalizedStatus)
+    .some(status => ['oos', 'outofservice', 'outoforder', 'maintenance'].includes(status));
+}
+
 function hasAny(text, patterns) {
   return patterns.some(pattern => pattern.test(text));
 }
@@ -183,10 +199,14 @@ function auditCoreRelations() {
 
   reservations.forEach(reservation => {
     const id = reservation.reservationId || reservation.id;
+    const room = rooms.find(item => (item.roomId || item.id) === reservation.roomId);
     assert(roomIds.has(reservation.roomId), `reservations/${id}: unknown roomId ${reservation.roomId}`);
     assert(roomTypeIds.has(reservation.roomTypeId), `reservations/${id}: unknown roomTypeId ${reservation.roomTypeId}`);
     if (reservation.companyId) assert(companyIds.has(reservation.companyId), `reservations/${id}: unknown companyId ${reservation.companyId}`);
     if (reservation.groupId) assert(groupIds.has(reservation.groupId), `reservations/${id}: unknown groupId ${reservation.groupId}`);
+    if (reservation.status === 'confirmed' && isTodayCheckIn(reservation)) {
+      assert(!roomBlocksCheckIn(room), `reservations/${id}: today check-in is assigned to blocked room ${reservation.roomId}`);
+    }
     if (reservation.status === 'checked-in') {
       warn(isTodayInStay(reservation), `reservations/${id}: checked-in but ${AUDIT_DATE} is outside stay window`);
     }
