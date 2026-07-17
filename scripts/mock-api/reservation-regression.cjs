@@ -272,6 +272,13 @@ async function todayCheckinRoomMasterRegression(page, base) {
     const reservation = (window.reservations || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210');
     if (!reservation) throw new Error('Room 1210 today check-in reservation was not found.');
     const beforeRoom = clone((window.rooms || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210'));
+    const liveRoom = (window.rooms || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210');
+    if (liveRoom) {
+      liveRoom.status = 'out-of-service';
+      liveRoom.housekeepingStatus = 'maintenance';
+      liveRoom.frontStatus = 'out-of-service';
+    }
+    const staleRoom = clone(liveRoom);
 
     await window.openUnifiedResModal(reservation.id || reservation.reservationId);
     const actionText = document.getElementById('unifiedFlowActions')?.innerText || '';
@@ -284,12 +291,15 @@ async function todayCheckinRoomMasterRegression(page, base) {
       actionText,
       beforeRoom,
       beforeRoomBlocked: roomBlocksCheckIn(beforeRoom),
+      staleRoom,
+      staleRoomBlocked: roomBlocksCheckIn(staleRoom),
       afterReservation: clone(afterReservation),
       afterRoom: clone(afterRoom)
     };
   });
 
   assert(result.beforeRoom && !result.beforeRoomBlocked, 'Room 1210 today check-in must not be assigned to a blocked room master status.', result);
+  assert(result.staleRoom && result.staleRoomBlocked, 'Regression must simulate a stale blocked room master status.', result);
   assert(result.captured.alerts.length === 0, 'Room 1210 today check-in must not show a blocking alert.', result);
   assert(result.captured.confirms.length > 0, 'Room 1210 today check-in must ask for confirmation before changing status.', result);
   assert(['checkedin', 'checked-in', 'inhouse', 'in-house'].includes(String(result.afterReservation?.status || '').toLowerCase()), 'Room 1210 today check-in must complete to an in-house state.', result);
