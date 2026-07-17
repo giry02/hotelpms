@@ -307,6 +307,86 @@ async function todayCheckinRoomMasterRegression(page, base) {
   return result;
 }
 
+async function reservationBoardFilterColorRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=board-filter-color`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof setBoardFilter === 'function' && typeof renderReservationBoard === 'function' && Array.isArray(window.reservations), null, { timeout: 15000 });
+
+  const result = await page.evaluate(async () => {
+    const targetCheckout = (window.reservations || []).find(item => item.id === 'RSV-DEMO-0708-1203-CHECKOUT');
+    const activeLate = (window.reservations || []).find(item => item.id === 'RSV-0010');
+    const room = (window.rooms || []).find(item => item.roomNo === '1203' || item.id === '1203' || item.roomId === 'FT-1203');
+    if (!targetCheckout || !activeLate || !room) throw new Error('Room 1203 regression fixtures were not found.');
+
+    targetCheckout.status = 'completed';
+    targetCheckout.settlementStatus = 'settled';
+    room.housekeepingStatus = 'dirty';
+    room.cleaningStatus = 'dirty';
+    room.guestFlag = 'mur';
+
+    const capture1203 = filter => {
+      window.setBoardFilter(filter);
+      const card = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => (el.innerText || '').includes('1203'));
+      const style = card ? getComputedStyle(card) : null;
+      const status = card?.querySelector('.board-status');
+      return {
+        filter,
+        found: !!card,
+        className: card?.className || '',
+        text: (card?.innerText || '').replace(/\s+/g, ' ').trim(),
+        borderColor: style?.borderColor || '',
+        boxShadow: style?.boxShadow || '',
+        statusClass: status?.className || '',
+        statusText: (status?.innerText || '').trim()
+      };
+    };
+
+    const completed = capture1203('completed');
+    const dirty = capture1203('dirty');
+    const late = capture1203('late');
+    const inhouse = capture1203('inhouse');
+
+    window.setBoardFilter('completed');
+    const hoverCard = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => (el.innerText || '').includes('1203'));
+    const before = hoverCard ? getComputedStyle(hoverCard) : null;
+    return {
+      completed,
+      dirty,
+      late,
+      inhouse,
+      hoverTarget: hoverCard ? {
+        left: hoverCard.getBoundingClientRect().left + 10,
+        top: hoverCard.getBoundingClientRect().top + 10,
+        borderColor: before?.borderColor || '',
+        boxShadow: before?.boxShadow || ''
+      } : null
+    };
+  });
+
+  assert(result.completed.found && result.completed.className.includes('completed'), 'Room 1203 completed filter must render completed status color.', result);
+  assert(result.dirty.found && result.dirty.className.includes('completed'), 'Room 1203 dirty filter must keep the completed reservation color.', result);
+  assert(result.completed.borderColor === result.dirty.borderColor && result.completed.boxShadow === result.dirty.boxShadow, 'Room 1203 completed and dirty filters must keep identical status colors.', result);
+  assert(result.late.found && result.inhouse.found && result.late.className === result.inhouse.className, 'Room 1203 late and in-house filters must not apply different main card colors to the same stay.', result);
+
+  if (result.hoverTarget) {
+    await page.mouse.move(result.hoverTarget.left, result.hoverTarget.top);
+    await page.waitForTimeout(250);
+    const hoverAfter = await page.evaluate(() => {
+      const card = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => (el.innerText || '').includes('1203'));
+      const style = card ? getComputedStyle(card) : null;
+      return {
+        borderColor: style?.borderColor || '',
+        boxShadow: style?.boxShadow || '',
+        transform: style?.transform || ''
+      };
+    });
+    result.hoverAfter = hoverAfter;
+    assert(hoverAfter.borderColor === result.hoverTarget.borderColor && hoverAfter.boxShadow === result.hoverTarget.boxShadow && hoverAfter.transform === 'none', 'Room 1203 hover must not change status color or move the card.', result);
+  }
+
+  return result;
+}
+
 (async () => {
   let base = DEFAULT_BASE;
   let server = null;
@@ -339,6 +419,7 @@ async function todayCheckinRoomMasterRegression(page, base) {
     const dashboardCountResult = await dashboardCheckinCountRegression(page, base);
     const boardCleaningVisibilityResult = await reservationBoardCleaningVisibilityRegression(page, base);
     const todayCheckinRoomMasterResult = await todayCheckinRoomMasterRegression(page, base);
+    const boardFilterColorResult = await reservationBoardFilterColorRegression(page, base);
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -577,13 +658,15 @@ async function todayCheckinRoomMasterRegression(page, base) {
         'occupied rooms render checkout action instead of check-in',
         'reservation board keeps cleaning status visible beside check-in readiness',
         'today check-in rooms are not blocked by stale room master status',
+        'reservation board keeps card status colors stable across filters and hover',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
         'dashboard today check-in KPI matches reservation board after rooms become in-house'
       ],
       dashboardCountResult,
       boardCleaningVisibilityResult,
-      todayCheckinRoomMasterResult
+      todayCheckinRoomMasterResult,
+      boardFilterColorResult
     }, null, 2));
   } catch (error) {
     console.error(JSON.stringify({ ok: false, error: error.message, details: error.details || null, consoleIssues }, null, 2));
