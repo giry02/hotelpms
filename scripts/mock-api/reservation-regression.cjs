@@ -341,19 +341,23 @@ async function reservationBoardFilterColorRegression(page, base) {
       };
     };
 
+    const all = capture1203('all');
     const completed = capture1203('completed');
     const dirty = capture1203('dirty');
     const late = capture1203('late');
     const inhouse = capture1203('inhouse');
+    const lateLegendVisible = !!document.querySelector('.board-legend-swatch.late');
 
     window.setBoardFilter('completed');
     const hoverCard = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => (el.innerText || '').includes('1203'));
     const before = hoverCard ? getComputedStyle(hoverCard) : null;
     return {
+      all,
       completed,
       dirty,
       late,
       inhouse,
+      lateLegendVisible,
       hoverTarget: hoverCard ? {
         left: hoverCard.getBoundingClientRect().left + 10,
         top: hoverCard.getBoundingClientRect().top + 10,
@@ -363,10 +367,13 @@ async function reservationBoardFilterColorRegression(page, base) {
     };
   });
 
+  assert(result.all.found && result.all.className.includes('completed') && !result.all.className.includes('late') && !result.all.statusClass.includes('late'), 'Room 1203 all filter must prefer the completed checkout over stale late state.', result);
+  assert(result.all.borderColor === result.completed.borderColor && result.all.boxShadow === result.completed.boxShadow, 'Room 1203 all and completed filters must render the same completed status color.', result);
+  assert(!result.lateLegendVisible, 'Reservation board legend must not expose late as a main card color.', result);
   assert(result.completed.found && result.completed.className.includes('completed'), 'Room 1203 completed filter must render completed status color.', result);
   assert(result.dirty.found && result.dirty.className.includes('completed'), 'Room 1203 dirty filter must keep the completed reservation color.', result);
   assert(result.completed.borderColor === result.dirty.borderColor && result.completed.boxShadow === result.dirty.boxShadow, 'Room 1203 completed and dirty filters must keep identical status colors.', result);
-  assert(result.late.found && result.inhouse.found && result.late.className === result.inhouse.className, 'Room 1203 late and in-house filters must not apply different main card colors to the same stay.', result);
+  assert(!result.late.found && !result.inhouse.found, 'Room 1203 stale late/in-house stay must be hidden once the same room has a completed checkout today.', result);
 
   if (result.hoverTarget) {
     await page.mouse.move(result.hoverTarget.left, result.hoverTarget.top);
