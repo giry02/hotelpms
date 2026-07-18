@@ -32,6 +32,7 @@
             'booking.roomUnavailable': '선택한 기간에 이미 예약된 객실입니다.',
             'booking.noRooms': '선택한 기간에 예약 가능한 객실이 없습니다.',
             'booking.conflictSuffix': '예약 중',
+            'booking.dirtyRoomConfirm': '청소가 완료되지 않은 객실입니다. 그래도 신규 예약을 등록할까요?',
             'booking.newTitle': '신규 예약 등록',
             'booking.created': '신규 예약을 성공적으로 등록했습니다.',
             'booking.updated': '예약이 성공적으로 수정되었습니다.',
@@ -85,6 +86,7 @@
             'booking.roomUnavailable': 'This room is already booked for the selected dates.',
             'booking.noRooms': 'No rooms are available for the selected dates.',
             'booking.conflictSuffix': 'Booked',
+            'booking.dirtyRoomConfirm': 'This room has not been cleaned yet. Register the new booking anyway?',
             'booking.newTitle': 'New Booking',
             'booking.created': 'New booking has been registered successfully.',
             'booking.updated': 'Reservation has been updated successfully.',
@@ -2597,6 +2599,26 @@
         return room?.id || room?.fullRoom || room?.number || room?.display || room?.roomNo || '';
     }
 
+    function roomMatchesValue(room, value) {
+        if (!room || !compactValue(value)) return false;
+        return [
+            room?.id,
+            room?.fullRoom,
+            room?.roomId,
+            room?.number,
+            room?.roomNo,
+            room?.display,
+            room?.displayName,
+            room?.roomLabel,
+            roomLabel(room)
+        ].some(roomValue => sameRoomValue(roomValue, value));
+    }
+
+    function roomForValue(value) {
+        if (!compactValue(value)) return null;
+        return (Array.isArray(window.rooms) ? window.rooms : []).find(room => roomMatchesValue(room, value)) || null;
+    }
+
     function roomTypeDisplay(type) {
         const value = String(type || '').trim();
         return value || 'Standard';
@@ -2606,6 +2628,8 @@
         const roomSelect = document.getElementById('unifiedRoom');
         const help = document.getElementById('unifiedRoomHelp');
         if (!roomSelect) return;
+        const previousValue = roomSelect.value || '';
+        const requestedValue = preferredValue || previousValue;
         const id = document.getElementById('unifiedResId')?.value;
         const currentRes = id ? reservationList().find(res => res.id === id) : null;
         const { checkin, checkout, valid } = getUnifiedDateRange({ autoFix: true });
@@ -2650,8 +2674,10 @@
         unavailable.forEach(appendOption);
 
         const enabledValues = Array.from(roomSelect.options).filter(option => !option.disabled).map(option => option.value);
-        const preferred = preferredValue && enabledValues.includes(preferredValue) ? preferredValue : '';
-        roomSelect.value = preferred || enabledValues[0] || '';
+        const matchingEnabledValue = value => enabledValues.find(enabled => sameRoomValue(enabled, value)) || '';
+        const preferred = requestedValue ? matchingEnabledValue(requestedValue) : '';
+        const previous = previousValue ? matchingEnabledValue(previousValue) : '';
+        roomSelect.value = preferred || previous || enabledValues[0] || '';
         if (!enabledValues.length) roomSelect.disabled = true;
         if (help) {
             const countText = `${enabledValues.length} ${currentRes ? unifiedModalText('roomMoveAllowed') : unifiedModalText('roomAvailable')}`;
@@ -2677,7 +2703,13 @@
     }
 
     function roomOpsStatuses(room) {
-        return [room?.frontStatus, room?.status, room?.housekeepingStatus]
+        return [room?.frontStatus, room?.status, room?.occupancyStatus, room?.roomStatus]
+            .map(normalizedRoomOpsValue)
+            .filter(Boolean);
+    }
+
+    function roomCleaningStatuses(room) {
+        return [room?.housekeepingStatus, room?.hkStatus, room?.cleaningStatus, room?.frontStatus, room?.status]
             .map(normalizedRoomOpsValue)
             .filter(Boolean);
     }
@@ -2710,7 +2742,7 @@
     }
 
     function checkinWarningForRoom(room) {
-        const statuses = roomOpsStatuses(room);
+        const statuses = roomCleaningStatuses(room);
         return statuses.some(status => ['dirty', 'vacantdirty', 'needscleaning'].includes(status))
             ? actionText('flow.dirtyRoomWarning')
             : '';
@@ -3295,7 +3327,7 @@
                 opt.textContent = res.room;
                 roomSelect.appendChild(opt);
             }
-            const matchedRoom = (window.rooms || []).find(r => r.id === res.room || r.fullRoom === res.room || r.number === res.room || r.display === res.room || r.id === res.fullRoom);
+            const matchedRoom = roomForValue(res.room || res.fullRoom || res.roomId || res.roomNo || res.roomLabel);
             const targetRoomValue = matchedRoom ? matchedRoom.id : res.room;
             if (targetRoomValue && !Array.from(roomSelect.options).some(o => o.value === targetRoomValue)) {
                 const opt = document.createElement('option');
@@ -3418,19 +3450,30 @@
             return;
         }
         updateUnifiedNightsLabel();
-        refreshUnifiedRoomOptions(document.getElementById('unifiedRoom')?.value || '');
-        const room = document.getElementById('unifiedRoom').value;
         const roomSelect = document.getElementById('unifiedRoom');
+        const requestedRoom = roomSelect?.value || '';
+        refreshUnifiedRoomOptions(requestedRoom);
+        const room = roomSelect?.value || '';
         const selectedOption = roomSelect?.selectedOptions?.[0];
         if (!room || roomSelect?.disabled || selectedOption?.disabled) {
             showReservationAlert(actionText('booking.roomRequired'), 'error');
             return;
         }
-        const selectedRoom = (window.rooms || []).find(r => r.id === room || r.fullRoom === room || r.number === room || r.display === room || roomLabel(r) === room);
+        const selectedRoom = roomForValue(room);
         const selectedIsCurrentRoom = !!(currentRes && selectedRoom && roomMatchesReservation(selectedRoom, currentRes));
         if (!selectedIsCurrentRoom && !currentRes && roomConflictForDates(selectedRoom || { id: room }, dateRange.checkin, dateRange.checkout, currentRes)) {
             showReservationAlert(actionText('booking.roomUnavailable'), 'error');
             return;
+        }
+        if (!currentRes && selectedRoom) {
+            const cleaningWarning = checkinWarningForRoom(selectedRoom);
+            if (cleaningWarning) {
+                const confirmed = await confirmReservationDialog(
+                    `${cleaningWarning}\n\n${actionText('booking.dirtyRoomConfirm')}`,
+                    { title: actionText('flow.dirtyRoomTitle'), okText: actionText('button.save') }
+                );
+                if (!confirmed) return;
+            }
         }
         let status = id
             ? (operationalEdit ? normalizedReservationStatus(currentRes?.status) : (document.getElementById('unifiedStatus')?.value || normalizedReservationStatus(currentRes?.status)))
