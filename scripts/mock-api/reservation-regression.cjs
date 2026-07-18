@@ -270,7 +270,9 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       statusText: card?.querySelector('.board-status')?.innerText.trim() || '',
       dirtyText: dirtyCard?.innerText || '',
       dirtyValue: dirtySelect?.value || '',
-      dirtyClass: dirtySelect?.className || ''
+      dirtyClass: dirtySelect?.className || '',
+      dirtyTone: dirtySelect?.dataset?.cleanTone || '',
+      dirtyBackground: dirtySelect ? getComputedStyle(dirtySelect).backgroundColor : ''
     };
   });
 
@@ -279,7 +281,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
   assert(boardState.readinessText.includes('체크인 가능'), 'Reservation board must keep check-in readiness visible for a clean overdue arrival.', boardState);
   assert(boardState.cleanValue === 'clean' && boardState.cleanLabel === '청소완료' && boardState.cleanClass.includes('clean'), 'Reservation board must show cleaning status even when check-in readiness is visible.', boardState);
 
-  assert(boardState.dirtyText.includes('Board Dirty Arrival') && boardState.dirtyValue === 'mur' && boardState.dirtyClass.includes('mur'), 'Reservation board must render a dirty arrival cleaning select with the orange MUR tone.', boardState);
+  assert(boardState.dirtyText.includes('Board Dirty Arrival') && boardState.dirtyValue === 'mur' && boardState.dirtyClass.includes('mur') && boardState.dirtyTone === 'mur' && boardState.dirtyBackground !== 'rgb(255, 255, 255)', 'Reservation board must render a dirty arrival cleaning select with the orange MUR tone.', boardState);
 
   return boardState;
 }

@@ -101,9 +101,13 @@
         .board-clean-select option{font-family:var(--font);font-size:.78rem;font-weight:800;color:var(--txt)}
         .board-clean-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
         .board-clean-select.dirty,
-        .board-clean-select.mur{color:#b45309;border-color:#fed7aa;background:#fff7ed}
-        .board-clean-select.clean{color:#047857;border-color:#a7f3d0;background:#ecfdf5}
-        .board-clean-select.dnd{color:#be123c;border-color:#fecdd3;background:#fff1f2}
+        .board-clean-select.mur,
+        .board-clean-select[data-clean-tone="dirty"],
+        .board-clean-select[data-clean-tone="mur"]{color:#b45309!important;border-color:#fed7aa!important;background:#fff7ed!important}
+        .board-clean-select.clean,
+        .board-clean-select[data-clean-tone="clean"]{color:#047857!important;border-color:#a7f3d0!important;background:#ecfdf5!important}
+        .board-clean-select.dnd,
+        .board-clean-select[data-clean-tone="dnd"]{color:#be123c!important;border-color:#fecdd3!important;background:#fff1f2!important}
         .board-guest{width:100%;min-width:0;margin-top:3px;min-height:38px}
         .board-group-title{display:flex;align-items:flex-start;gap:5px;width:100%;min-width:0;margin-bottom:3px}
         .board-group-badge{display:inline-flex;align-items:center;gap:3px;background:#111827;color:#fff;border-radius:4px;padding:2px 5px;font-size:.56rem;font-weight:950;line-height:1;flex:0 0 auto}
@@ -1090,7 +1094,7 @@ function boardStayActions(room, res) {
     const roomKey = room.roomId || room.fullRoom || room.id || res?.room || '';
     const cleanState = boardCleaningSummary(room, res).key;
     if (!res) {
-        return `<select class="board-clean-select ${escapeHtml(cleanState)}" data-room-key="${escapeHtml(roomKey)}" aria-label="${escapeHtml(boardText('stay.aria.empty'))}" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardCleanState(event,this)">
+        return `<select class="board-clean-select ${escapeHtml(cleanState)}" data-clean-tone="${escapeHtml(cleanState)}" data-room-key="${escapeHtml(roomKey)}" aria-label="${escapeHtml(boardText('stay.aria.empty'))}" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardCleanState(event,this)">
             <option value="dirty"${cleanState === 'dirty' ? ' selected' : ''}>${escapeHtml(boardText('stay.mur'))}</option>
             <option value="clean"${cleanState === 'clean' ? ' selected' : ''}>${escapeHtml(boardText('stay.clean'))}</option>
         </select>`;
@@ -1104,7 +1108,7 @@ function boardStayActions(room, res) {
     const active = options.some(opt => opt.key === activeRaw)
         ? activeRaw
         : (cleanState === 'dirty' ? 'mur' : cleanState);
-    return `<select class="board-clean-select ${escapeHtml(active)}" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" aria-label="${escapeHtml(boardText('stay.aria.occupied'))}" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardStayState(event,this)">
+    return `<select class="board-clean-select ${escapeHtml(active)}" data-clean-tone="${escapeHtml(active)}" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" aria-label="${escapeHtml(boardText('stay.aria.occupied'))}" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardStayState(event,this)">
         ${options.map(opt => `<option value="${opt.key}"${active === opt.key ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
     </select>`;
 }
@@ -1113,6 +1117,7 @@ function updateBoardCleanSelectTone(select, state = '') {
     if (!select) return;
     select.classList.remove('dirty', 'mur', 'clean', 'dnd');
     const next = String(state || select.value || '').toLowerCase();
+    select.dataset.cleanTone = next;
     if (['dirty', 'mur', 'clean', 'dnd'].includes(next)) select.classList.add(next);
 }
 
@@ -1322,6 +1327,7 @@ function boardCard(room) {
 
 function updateBoardKpis() {
     updateBoardStaticLabels();
+    document.querySelectorAll('#boardChips .chip[data-filter="completed"]').forEach(chip => chip.remove());
     const reservationCounts = boardReservationCounts();
     document.getElementById('kpiArrival').textContent = reservationCounts.checkin;
     document.getElementById('kpiInhouse').textContent = reservationCounts.inhouse;
