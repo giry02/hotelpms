@@ -249,7 +249,6 @@ const BOARD_TEXT = {
         'filter.checkout': '체크아웃',
         'filter.late': '레이트',
         'filter.roommove': '객실 변경',
-        'filter.completed': '체크아웃 완료',
         'filter.cancelled': '취소/노쇼',
         'legend.arrival': '체크인 예정',
         'legend.inhouse': '투숙 중',
@@ -268,7 +267,6 @@ const BOARD_TEXT = {
         'status.vacant': '예약 없음',
         'status.blocked': '단체 배정',
         'status.oos': '점검 중',
-        'status.completed': '체크아웃 완료',
         'status.cancelled': '취소/노쇼',
         'stay.none': '재실',
         'stay.dnd': '방해금지',
@@ -303,7 +301,6 @@ const BOARD_TEXT = {
         'filter.checkout': 'Departures',
         'filter.late': 'Late',
         'filter.roommove': 'Moved',
-        'filter.completed': 'Done',
         'filter.cancelled': 'CXL/No-show',
         'legend.arrival': 'Check-in Due',
         'legend.inhouse': 'In-house',
@@ -322,7 +319,6 @@ const BOARD_TEXT = {
         'status.vacant': 'No Reservation',
         'status.blocked': 'Group Block',
         'status.oos': 'Out of Service',
-        'status.completed': 'Checked-out',
         'status.cancelled': 'Cancelled / No-show',
         'stay.none': 'In-house',
         'stay.dnd': 'Do Not Disturb',
@@ -345,6 +341,11 @@ const BOARD_TEXT = {
         'toast.cleaningChanged': '{room} cleaning status changed.'
     }
 };
+
+['ko', 'en'].forEach(lang => {
+    delete BOARD_TEXT[lang]['filter.completed'];
+    delete BOARD_TEXT[lang]['status.completed'];
+});
 
 function boardLang() {
     return (localStorage.getItem('pms_lang') || window.currentLang || document.getElementById('langSelect')?.value || 'ko') === 'en' ? 'en' : 'ko';
@@ -627,6 +628,7 @@ function updateBoardPeriodLabels() {
 
 function updateBoardStaticLabels() {
     document.documentElement.lang = boardLang();
+    purgeCompletedBoardFilterChip();
     document.title = `${boardText('page.title')} — Hotel PMS`;
     const pageTitle = document.querySelector('.reservation-board-page .topbar h1');
     if (pageTitle) pageTitle.textContent = boardText('page.title');
@@ -658,6 +660,11 @@ function updateBoardStaticLabels() {
             <span class="board-legend-item"><span class="board-legend-swatch oos"></span>${boardText('legend.oos')}</span>
         `;
     }
+}
+
+function purgeCompletedBoardFilterChip() {
+    document.querySelectorAll('#boardChips .chip[data-filter="completed"]').forEach(chip => chip.remove());
+    if (boardFilter === 'completed') boardFilter = 'vacant';
 }
 
 function boardFilterLabel(filter) {
@@ -1327,7 +1334,7 @@ function boardCard(room) {
 
 function updateBoardKpis() {
     updateBoardStaticLabels();
-    document.querySelectorAll('#boardChips .chip[data-filter="completed"]').forEach(chip => chip.remove());
+    purgeCompletedBoardFilterChip();
     const reservationCounts = boardReservationCounts();
     document.getElementById('kpiArrival').textContent = reservationCounts.checkin;
     document.getElementById('kpiInhouse').textContent = reservationCounts.inhouse;
@@ -1582,6 +1589,7 @@ function setBoardPeriod(period) {
 function setBoardFilter(filter) {
     if (filter === 'completed') filter = 'vacant';
     boardFilter = filter;
+    purgeCompletedBoardFilterChip();
     document.querySelectorAll('#boardChips .chip').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === filter));
     renderReservationBoard();
 }
@@ -1589,6 +1597,7 @@ function setBoardFilter(filter) {
 function applyBoardUrlParams() {
     const params = new URLSearchParams(location.search);
     const filterAliases = { cleaning: 'dirty', clean: 'dirty', vacancy: 'vacant', empty: 'vacant', completed: 'vacant' };
+    purgeCompletedBoardFilterChip();
     const rawFilter = params.get('filter');
     const filter = filterAliases[rawFilter] || rawFilter;
     const chips = Array.from(document.querySelectorAll('#boardChips .chip'));
