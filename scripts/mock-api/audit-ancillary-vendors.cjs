@@ -1,5 +1,6 @@
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const path = require('path');
 const { chromium } = require('playwright');
 
@@ -54,7 +55,8 @@ function serveStatic(port) {
 
 function httpOk(url) {
   return new Promise(resolve => {
-    const req = http.get(url, res => {
+    const client = new URL(url).protocol === 'https:' ? https : http;
+    const req = client.get(url, res => {
       res.resume();
       resolve(res.statusCode && res.statusCode < 400);
     });
@@ -76,6 +78,19 @@ function assert(condition, message, details = null) {
 
 function sameFields(left, right) {
   return JSON.stringify(left || []) === JSON.stringify(right || []);
+}
+
+async function gotoWithRetry(page, url, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await page.waitForTimeout(1000 * attempt);
+    }
+  }
+  throw lastError;
 }
 
 async function resetStorage(page) {
@@ -117,9 +132,10 @@ async function seedCustomGolfStorage(page) {
 }
 
 async function auditVendorManagementPage(page, baseUrl) {
-  await page.goto(`${baseUrl}/dashboard/operations/ancillary-vendors.html?type=golf`, { waitUntil: 'domcontentloaded' });
+  const url = `${baseUrl}/dashboard/operations/ancillary-vendors.html?type=golf`;
+  await gotoWithRetry(page, url);
   await resetStorage(page);
-  await page.goto(`${baseUrl}/dashboard/operations/ancillary-vendors.html?type=golf`, { waitUntil: 'networkidle' });
+  await gotoWithRetry(page, url);
   await page.waitForSelector('.voucher-field input', { timeout: 10000 });
 
   const initialState = await page.evaluate(() => {
@@ -180,9 +196,10 @@ async function auditVendorManagementPage(page, baseUrl) {
 }
 
 async function auditAncillaryPage(page, baseUrl) {
-  await page.goto(`${baseUrl}/dashboard/operations/ancillary.html?service=golf`, { waitUntil: 'domcontentloaded' });
+  const url = `${baseUrl}/dashboard/operations/ancillary.html?service=golf`;
+  await gotoWithRetry(page, url);
   await seedCustomGolfStorage(page);
-  await page.goto(`${baseUrl}/dashboard/operations/ancillary.html?service=golf`, { waitUntil: 'networkidle' });
+  await gotoWithRetry(page, url);
   await page.waitForSelector('.service-room-card', { timeout: 15000 });
 
   const orderId = await page.evaluate(() => {

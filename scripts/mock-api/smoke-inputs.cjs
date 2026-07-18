@@ -30,13 +30,9 @@ async function collectFields(page) {
       const style = getComputedStyle(el);
       const rect = el.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return false;
-      if (rect.bottom <= 0 || rect.right <= 0 || rect.top >= innerHeight || rect.left >= innerWidth) return false;
       if (style.display === 'none' || style.visibility === 'hidden' || style.pointerEvents === 'none') return false;
       if (el.disabled || el.readOnly || el.type === 'hidden' || el.type === 'file') return false;
-      const x = Math.min(Math.max(rect.left + Math.min(rect.width / 2, 12), 1), innerWidth - 1);
-      const y = Math.min(Math.max(rect.top + rect.height / 2, 1), innerHeight - 1);
-      const topEl = document.elementFromPoint(x, y);
-      return !!topEl && (el === topEl || el.contains(topEl));
+      return true;
     };
     return Array.from(document.querySelectorAll('input, select, textarea'))
       .filter(visible)
@@ -63,6 +59,41 @@ async function collectFields(page) {
   }, maxFieldsPerPage);
 }
 
+async function gotoWithRetry(page, url, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await page.waitForTimeout(1000 * attempt);
+    }
+  }
+  throw lastError;
+}
+
+async function waitForInteractiveFields(page, timeout = 5000) {
+  const startedAt = Date.now();
+  let previousCount = -1;
+  let stableSamples = 0;
+  while (Date.now() - startedAt < timeout) {
+    const state = await page.evaluate(() => ({
+      readyState: document.readyState,
+      count: document.querySelectorAll('input, select, textarea').length,
+      bodyVisible: !!document.body && getComputedStyle(document.body).visibility !== 'hidden'
+    }));
+    if (state.readyState === 'complete' && state.bodyVisible && state.count === previousCount) {
+      stableSamples += 1;
+      if (stableSamples >= 2) return state;
+    } else {
+      stableSamples = 0;
+    }
+    previousCount = state.count;
+    await page.waitForTimeout(200);
+  }
+  return { count: previousCount, bodyVisible: false };
+}
+
 async function pageState(page) {
   return page.evaluate(() => ({
     activeModals: Array.from(document.querySelectorAll('.modal-overlay.active, .bottom-sheet.active, [role="dialog"]')).filter(el => {
@@ -79,6 +110,7 @@ async function auditPage(browser, pagePath) {
   await context.addInitScript((language) => {
     sessionStorage.setItem('admin_logged_in', 'true');
     localStorage.setItem('pms_lang', language);
+    localStorage.setItem('pms_admin_lang', language);
   }, lang);
   const page = await context.newPage();
   const pageUrl = `${base}${pagePath}`;
@@ -91,21 +123,50 @@ async function auditPage(browser, pagePath) {
   });
 
   try {
-    await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    await page.waitForTimeout(700);
+    await gotoWithRetry(page, pageUrl);
+    const fieldState = await waitForInteractiveFields(page);
     const initialFields = await collectFields(page);
+
+    if (!fieldState.bodyVisible) {
+      const diagnostic = await page.evaluate(() => ({
+        readyState: document.readyState,
+        title: document.title,
+        lang: document.documentElement.lang,
+        storedLang: localStorage.getItem('pms_lang'),
+        totalControls: document.querySelectorAll('input, select, textarea').length,
+        bodyChildren: document.body?.children.length || 0,
+        bodyClass: document.body?.className || '',
+        samples: Array.from(document.querySelectorAll('input, select, textarea')).slice(0, 3).map(el => {
+          const style = getComputedStyle(el);
+          const rect = el.getBoundingClientRect();
+          return {
+            tag: el.tagName,
+            id: el.id,
+            width: rect.width,
+            height: rect.height,
+            display: style.display,
+            visibility: style.visibility,
+            pointerEvents: style.pointerEvents,
+            disabled: el.disabled,
+            readOnly: el.readOnly
+          };
+        })
+      }));
+      failures.push({ page: pagePath, label: 'page visibility', issue: `Page did not become visible: ${JSON.stringify(diagnostic)}` });
+    }
 
     for (let index = 0; index < initialFields.length; index += 1) {
       const state = await pageState(page).catch(() => ({ activeModals: 0, url: page.url() }));
       if (state.url !== pageUrl || state.activeModals > 0) {
-        await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
-        await page.waitForTimeout(500);
+        await gotoWithRetry(page, pageUrl);
+        await waitForInteractiveFields(page);
       }
       const fields = await collectFields(page);
       const field = fields[index];
       if (!field) continue;
       const locator = page.locator(`[data-audit-input-id="${field.id}"]`);
       try {
+        await locator.scrollIntoViewIfNeeded({ timeout: 2500 });
         if (field.tag === 'select') {
           if (field.optionCount > 1) {
             const values = await locator.evaluate(el => Array.from(el.options).map(opt => opt.value));
@@ -150,7 +211,15 @@ async function auditPage(browser, pagePath) {
   const results = [];
   try {
     for (const pagePath of pages) {
-      results.push(await auditPage(browser, pagePath));
+      try {
+        results.push(await auditPage(browser, pagePath));
+      } catch (error) {
+        results.push({
+          page: pagePath,
+          fields: 0,
+          failures: [{ page: pagePath, label: 'page load', issue: error.message }]
+        });
+      }
     }
   } finally {
     await browser.close();

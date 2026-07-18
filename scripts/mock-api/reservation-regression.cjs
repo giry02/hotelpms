@@ -1,5 +1,6 @@
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const path = require('path');
 const { chromium } = require('playwright');
 
@@ -52,7 +53,8 @@ function serveStatic(port) {
 
 function httpOk(url) {
   return new Promise(resolve => {
-    const req = http.get(url, res => {
+    const client = new URL(url).protocol === 'https:' ? https : http;
+    const req = client.get(url, res => {
       res.resume();
       resolve(res.statusCode && res.statusCode < 400);
     });

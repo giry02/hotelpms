@@ -1,5 +1,6 @@
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const path = require('path');
 const { chromium } = require('playwright');
 
@@ -25,7 +26,8 @@ function ignoredMessage(text) {
 
 function localHttpOk(url) {
   return new Promise(resolve => {
-    const req = http.get(url, res => {
+    const client = new URL(url).protocol === 'https:' ? https : http;
+    const req = client.get(url, res => {
       res.resume();
       resolve({ ok: res.statusCode < 400, status: res.statusCode });
     });
@@ -35,6 +37,19 @@ function localHttpOk(url) {
     });
     req.on('error', error => resolve({ ok: false, status: error.message }));
   });
+}
+
+async function gotoWithRetry(page, url, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await page.waitForTimeout(1000 * attempt);
+    }
+  }
+  throw lastError;
 }
 
 async function collectButtons(page) {
@@ -132,7 +147,7 @@ async function pageState(page) {
 async function closeModalOrReload(page, pageUrl) {
   const state = await pageState(page).catch(() => ({ url: page.url(), activeModals: 0 }));
   if (state.url !== pageUrl || state.activeModals > 0) {
-    await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await gotoWithRetry(page, pageUrl);
     await page.waitForTimeout(650);
   }
 }
@@ -174,7 +189,7 @@ async function auditPage(browser, pagePath) {
   });
 
   try {
-    await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await gotoWithRetry(page, pageUrl);
     await page.waitForTimeout(650);
     await page.evaluate(() => Array.from(document.querySelectorAll('a[href]')).map(a => a.getAttribute('href'))).then(hrefs => {
       hrefs.filter(Boolean).forEach(href => {

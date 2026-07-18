@@ -4,6 +4,7 @@ const { chromium } = require('playwright');
 
 const base = process.env.PMS_BASE_URL || 'http://127.0.0.1:8765';
 const outDir = path.join('outputs', 'i18n-audit');
+const pagePattern = process.env.PMS_PAGE_MATCH ? new RegExp(process.env.PMS_PAGE_MATCH, 'i') : null;
 const outFile = path.join(outDir, 'english-korean-visible.json');
 
 function walk(dir) {
@@ -16,7 +17,21 @@ function walk(dir) {
 
 const pages = [...walk('dashboard'), ...walk('admin')]
   .map(file => `/${file.replaceAll('\\', '/')}`)
+  .filter(page => !pagePattern || pagePattern.test(page))
   .sort();
+
+async function gotoWithRetry(page, url, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await page.waitForTimeout(1000 * attempt);
+    }
+  }
+  throw lastError;
+}
 
 (async () => {
   fs.mkdirSync(outDir, { recursive: true });
@@ -35,7 +50,11 @@ const pages = [...walk('dashboard'), ...walk('admin')]
     page.on('pageerror', error => issues.push(`pageerror: ${error.message}`));
 
     try {
-      await page.goto(`${base}${pagePath}`, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await gotoWithRetry(page, `${base}${pagePath}`);
+      if (pagePath === '/admin/index.html') {
+        await page.waitForURL(/\/admin\/(admin|login)\.html(?:[?#].*)?$/, { timeout: 30000 });
+        await page.waitForLoadState('domcontentloaded');
+      }
       await page.waitForTimeout(1200);
       await page.evaluate(() => {
         localStorage.setItem('pms_lang', 'en');
@@ -46,6 +65,7 @@ const pages = [...walk('dashboard'), ...walk('admin')]
       await page.waitForTimeout(350);
 
       const matches = await page.evaluate(() => {
+        if (!document.body) return [];
         function isVisible(el) {
           if (!el) return false;
           const style = getComputedStyle(el);

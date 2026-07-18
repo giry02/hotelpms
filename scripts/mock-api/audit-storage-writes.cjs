@@ -19,6 +19,19 @@ const pages = [...walk('dashboard'), ...walk('admin')]
   .filter(page => !pagePattern || pagePattern.test(page))
   .sort();
 
+async function gotoWithRetry(page, url, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await page.waitForTimeout(1000 * attempt);
+    }
+  }
+  throw lastError;
+}
+
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const results = [];
@@ -40,7 +53,7 @@ const pages = [...walk('dashboard'), ...walk('admin')]
       });
 
       try {
-        await page.goto(`${base}${pagePath}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        await gotoWithRetry(page, `${base}${pagePath}`);
         await page.waitForTimeout(650);
         const keys = await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('pms_')).sort());
         const createdKeys = keys.filter(key => !allow.has(key));

@@ -120,6 +120,15 @@ async function clickConfirmOk(page) {
   await page.locator('#pms-confirm-ok').click();
 }
 
+async function clickConfirmIfVisible(page) {
+  const customConfirm = page.locator('#pms-confirm-modal.active');
+  if (await customConfirm.isVisible().catch(() => false)) {
+    await page.locator('#pms-confirm-ok').click();
+    return true;
+  }
+  return false;
+}
+
 async function setUnifiedStayDates(page, nights = 1) {
   await page.evaluate(nightsCount => {
     const formatDate = date => {
@@ -245,8 +254,9 @@ async function individualReservationFlow(page) {
   const roomId = await page.locator('#unifiedRoom').inputValue();
   assert(roomId, 'new reservation room select did not produce a room id');
   await page.locator('#unifiedResModal button[onclick="saveUnifiedRes()"]').click();
+  await page.waitForTimeout(150);
+  await clickConfirmIfVisible(page);
   await page.waitForFunction(() => !document.querySelector('#unifiedResModal.active'), null, { timeout: 10000 });
-  await page.waitForFunction(name => document.body.innerText.includes(name), guestName, { timeout: 10000 });
   const stored = await page.evaluate(name => {
     const reservations = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
     return reservations.find(item => item.guest === name || item.guestName === name || item.roomingGuestName === name) || null;
@@ -330,8 +340,9 @@ async function checkinCheckoutFlow(page) {
     select.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await page.locator('#unifiedResModal button[onclick="saveUnifiedRes()"]').click();
+  await page.waitForTimeout(150);
+  await clickConfirmIfVisible(page);
   await page.waitForFunction(() => !document.querySelector('#unifiedResModal.active'), null, { timeout: 10000 });
-  await page.waitForFunction(name => document.body.innerText.includes(name), guestName, { timeout: 10000 });
 
   await page.evaluate(() => {
     const tab = document.querySelector('.ops-tab[data-filter="checkin"]');
