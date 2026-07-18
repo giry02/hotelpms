@@ -70,13 +70,12 @@
         .reservation-board-box{min-height:178px;align-items:flex-start;text-align:left;padding:12px 10px;gap:5px;display:flex;flex-direction:column;box-sizing:border-box;transition:border-color .18s,box-shadow .18s,background .18s}
         .reservation-board-box.is-bookable{cursor:pointer}
         .reservation-board-page .room-box.reservation-board-box:hover{transform:none}
-        .reservation-board-box.is-bookable:hover{border-color:var(--primary-lt);box-shadow:0 8px 22px rgba(59,130,246,.12);transform:none}
+        .reservation-board-box.is-bookable:hover{transform:none}
         .reservation-board-box.vacant{border-color:#cbd5e1;background:linear-gradient(0deg,rgba(248,250,252,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 #cbd5e1,0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.arrival{border-color:#bfdbfe;background:linear-gradient(0deg,rgba(239,246,255,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--primary),0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.inhouse{border-color:#bbf7d0;background:linear-gradient(0deg,rgba(240,253,244,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--success),0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.checkout{border-color:#fde68a;background:linear-gradient(0deg,rgba(255,251,235,.76),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 #f59e0b,0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.reserved{border-color:#ddd6fe;background:linear-gradient(0deg,rgba(245,243,255,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--purple),0 2px 10px rgba(15,23,42,.04)}
-        .reservation-board-box.completed{border-color:#cbd5e1;background:linear-gradient(0deg,rgba(248,250,252,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 #64748b,0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.cancelled{border-color:#fecaca;background:linear-gradient(0deg,rgba(254,242,242,.76),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--danger),0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.blocked{border-color:#cbd5e1;background:linear-gradient(0deg,rgba(248,250,252,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 #111827,0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.oos{border-color:#fecaca;background:linear-gradient(0deg,rgba(254,242,242,.76),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--danger),0 2px 10px rgba(15,23,42,.04);opacity:.82}
@@ -88,7 +87,6 @@
         .board-status.inhouse{background:var(--success-lt);color:var(--success)}
         .board-status.checkout{background:#fef3c7;color:#92400e}
         .board-status.reserved{background:var(--purple-lt);color:#6d28d9}
-        .board-status.completed{background:#f1f5f9;color:#475569}
         .board-status.cancelled{background:var(--danger-lt);color:var(--danger)}
         .board-status.blocked{background:#f1f5f9;color:#111827}
         .board-status.oos{background:var(--danger-lt);color:var(--danger)}
@@ -211,7 +209,6 @@
                 <button class="chip active" data-filter="all" onclick="setBoardFilter('all')"><i class="fa-solid fa-list"></i> 전체 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="checkin" onclick="setBoardFilter('checkin')"><i class="fa-solid fa-right-to-bracket"></i> 오늘 체크인 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="checkout" onclick="setBoardFilter('checkout')"><i class="fa-solid fa-right-from-bracket"></i> 체크아웃 <span class="chip-count">0</span></button>
-                <button class="chip" data-filter="completed" onclick="setBoardFilter('completed')"><i class="fa-solid fa-check-double"></i> 체크아웃 완료 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="inhouse" onclick="setBoardFilter('inhouse')"><i class="fa-solid fa-bed"></i> 투숙 중 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="group" onclick="setBoardFilter('group')"><i class="fa-solid fa-users"></i> 단체 <span class="chip-count">0</span></button>
                 <button class="chip" data-filter="late" onclick="setBoardFilter('late')"><i class="fa-solid fa-clock"></i> 레이트 <span class="chip-count">0</span></button>
@@ -574,7 +571,7 @@ function reservationBucket(res) {
     const refDate = range.mode === 'day' ? range.start : todayDate();
     const status = effectiveReservationStatus(res, refDate);
     if (status === 'cancelled') return 'cancelled';
-    if (status === 'completed') return 'completed';
+    if (status === 'completed') return null;
     if (status === 'checkout') return 'checkout';
     if (range.mode === 'day') {
         if (isBoardCheckoutTargetStatus(status) && end && sameDate(end, range.start)) return 'checkout';
@@ -595,16 +592,10 @@ function boardReservationCounts() {
     if (boardCountsCache.signature === signature && boardCountsCache.counts) {
         return { ...boardCountsCache.counts };
     }
-    const counts = { all: 0, group: 0, vacant: 0, checkin: 0, checkinDirty: 0, dirty: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, completed: 0, cancelled: 0 };
+    const counts = { all: 0, group: 0, vacant: 0, checkin: 0, checkinDirty: 0, dirty: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, cancelled: 0 };
     counts.all = rooms.length;
-    reservations.forEach(res => {
-        if (reservationShadowedByCompletedCheckout(res)) return;
-        const bucket = reservationBucket(res);
-        if (!bucket) return;
-        if (boardIsGroupReservation(res)) counts.group++;
-        if (counts[bucket] !== undefined) counts[bucket]++;
-        if (reservationLateCheckoutEnabled(res)) counts.late++;
-        if (reservationHasRoomChange(res)) counts.roommove++;
+    ['group', 'checkin', 'inhouse', 'checkout', 'reserved', 'late', 'roommove', 'cancelled'].forEach(filter => {
+        counts[filter] = rooms.filter(room => reservationForRoomFilter(room, filter)).length;
     });
     rooms.forEach(room => {
         const state = boardStatusFor(room);
@@ -681,7 +672,6 @@ function boardFilterIcon(filter) {
         checkout: 'fa-right-from-bracket',
         late: 'fa-clock',
         roommove: 'fa-right-left',
-        completed: 'fa-check-double',
         cancelled: 'fa-ban'
     }[filter] || 'fa-circle';
 }
@@ -921,10 +911,8 @@ function boardStatusFor(room) {
             end: reservationEnd(res)
         }))
         .sort((a, b) => a.start - b.start);
-    const completedCheckoutToday = completedCheckoutForRoomOnFocusDate(room);
-    if (completedCheckoutToday) return { status: 'completed', label: boardText('status.completed'), res: completedCheckoutToday };
     const related = roomReservations
-        .filter(item => item.start && item.end && item.status !== 'cancelled' && item.status !== 'completed' && reservationOverlapsRange(item.res, range));
+        .filter(item => item.start && item.end && item.status !== 'cancelled' && item.status !== 'completed' && !reservationShadowedByCompletedCheckout(item.res) && reservationOverlapsRange(item.res, range));
 
     const checkoutDue = related.find(item => isBoardCheckoutTargetStatus(item.effectiveStatus) && sameDate(item.end, focusDate));
     if (checkoutDue) return { status: 'checkout', label: boardText('status.checkout'), res: checkoutDue.res };
@@ -1107,12 +1095,15 @@ function boardStayActions(room, res) {
             <option value="clean"${cleanState === 'clean' ? ' selected' : ''}>${escapeHtml(boardText('stay.clean'))}</option>
         </select>`;
     }
-    const active = boardStayState(room, res);
     const options = [
         { key: 'mur', label: boardText('stay.mur') },
         { key: 'clean', label: boardText('stay.clean') },
         { key: 'dnd', label: boardText('stay.dnd') }
     ];
+    const activeRaw = boardStayState(room, res);
+    const active = options.some(opt => opt.key === activeRaw)
+        ? activeRaw
+        : (cleanState === 'dirty' ? 'mur' : cleanState);
     return `<select class="board-clean-select ${escapeHtml(active)}" data-res-id="${escapeHtml(res.id)}" data-room-key="${escapeHtml(roomKey)}" aria-label="${escapeHtml(boardText('stay.aria.occupied'))}" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardStayState(event,this)">
         ${options.map(opt => `<option value="${opt.key}"${active === opt.key ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
     </select>`;
@@ -1131,14 +1122,12 @@ function reservationStateForFilter(res) {
         checkin: 'arrival',
         inhouse: 'inhouse',
         checkout: 'checkout',
-        completed: 'completed',
         cancelled: 'cancelled'
     };
     const labelByBucket = {
         checkin: boardText('status.arrival'),
         inhouse: boardText('status.inhouse'),
         checkout: boardText('status.checkout'),
-        completed: boardText('status.completed'),
         cancelled: boardText('status.cancelled')
     };
     return {
@@ -1149,6 +1138,7 @@ function reservationStateForFilter(res) {
 }
 
 function reservationMatchesBoardFilter(res, filter) {
+    if (filter === 'completed') return false;
     if (filter === 'all') return reservationOverlapsRange(res);
     if (!reservationOverlapsRange(res)) return false;
     if (reservationShadowedByCompletedCheckout(res)) return false;
@@ -1158,12 +1148,19 @@ function reservationMatchesBoardFilter(res, filter) {
     return reservationBucket(res) === filter;
 }
 
-function reservationForRoomFilter(room) {
-    if (boardFilter === 'all') return null;
-    if (boardFilter === 'checkinDirty') return boardCheckinDirtyReservationForRoom(room);
-    if (boardFilter === 'dirty') {
+function reservationForRoomFilter(room, filter = boardFilter) {
+    if (filter === 'all' || filter === 'completed') return null;
+    if (filter === 'checkinDirty') return boardCheckinDirtyReservationForRoom(room);
+    if (filter === 'dirty') {
         return reservations
-            .filter(res => roomMatchesReservation(room, res) && reservationOverlapsRange(res) && boardCleaningSummary(room, res).key === 'dirty')
+            .filter(res => {
+                const status = normalizeReservationStatus(res.status);
+                return roomMatchesReservation(room, res) &&
+                    reservationOverlapsRange(res) &&
+                    !['cancelled', 'completed'].includes(status) &&
+                    !reservationShadowedByCompletedCheckout(res) &&
+                    boardCleaningSummary(room, res).key === 'dirty';
+            })
             .sort((a, b) => {
                 const left = parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0;
                 const right = parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0;
@@ -1171,7 +1168,7 @@ function reservationForRoomFilter(room) {
             })[0] || null;
     }
     return reservations
-        .filter(res => roomMatchesReservation(room, res) && reservationMatchesBoardFilter(res, boardFilter))
+        .filter(res => roomMatchesReservation(room, res) && reservationMatchesBoardFilter(res, filter))
         .sort((a, b) => {
             const left = parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0;
             const right = parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0;
@@ -1187,7 +1184,6 @@ function boardStatusIcon(status) {
         checkout: 'fa-right-from-bracket',
         late: 'fa-clock',
         reserved: 'fa-calendar-check',
-        completed: 'fa-check-double',
         cancelled: 'fa-ban',
         blocked: 'fa-users',
         oos: 'fa-screwdriver-wrench'
@@ -1578,6 +1574,7 @@ function setBoardPeriod(period) {
 }
 
 function setBoardFilter(filter) {
+    if (filter === 'completed') filter = 'vacant';
     boardFilter = filter;
     document.querySelectorAll('#boardChips .chip').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === filter));
     renderReservationBoard();
@@ -1585,7 +1582,7 @@ function setBoardFilter(filter) {
 
 function applyBoardUrlParams() {
     const params = new URLSearchParams(location.search);
-    const filterAliases = { cleaning: 'dirty', clean: 'dirty', vacancy: 'vacant', empty: 'vacant' };
+    const filterAliases = { cleaning: 'dirty', clean: 'dirty', vacancy: 'vacant', empty: 'vacant', completed: 'vacant' };
     const rawFilter = params.get('filter');
     const filter = filterAliases[rawFilter] || rawFilter;
     const chips = Array.from(document.querySelectorAll('#boardChips .chip'));

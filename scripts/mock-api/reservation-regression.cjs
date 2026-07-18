@@ -199,6 +199,17 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       status: 'vacant-clean',
       housekeepingStatus: 'clean',
       cleaningStatus: 'clean'
+    }, {
+      id: 'T-905',
+      roomNo: 'T-905',
+      fullRoom: 'T-905',
+      number: '905',
+      type: 'Standard',
+      building: 'Test Tower',
+      frontStatus: 'vacant',
+      status: 'vacant-dirty',
+      housekeepingStatus: 'dirty',
+      cleaningStatus: 'dirty'
     }];
     reservations = [{
       id: 'RSV-BOARD-CLEANING-VISIBLE',
@@ -219,6 +230,25 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       nights: 2,
       len: 2,
       amount: 100
+    }, {
+      id: 'RSV-BOARD-DIRTY-ARRIVAL',
+      room: 'T-905',
+      roomNo: 'T-905',
+      fullRoom: 'T-905',
+      type: 'Standard',
+      status: 'confirmed',
+      guest: 'Board Dirty Arrival',
+      guestName: 'Board Dirty Arrival',
+      roomingGuestName: 'Board Dirty Arrival',
+      checkInDate: toIso(today),
+      checkOutDate: toIso(tomorrow),
+      checkin: toIso(today),
+      checkout: toIso(tomorrow),
+      cin: toMd(today),
+      cout: toMd(tomorrow),
+      nights: 1,
+      len: 1,
+      amount: 100
     }];
     window.rooms = rooms;
     window.reservations = reservations;
@@ -229,13 +259,18 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
     const card = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => el.innerText.includes('Board Clean Guest'));
     const cleanSelect = card?.querySelector('.board-clean-select');
     const selectedOption = cleanSelect?.selectedOptions?.[0];
+    const dirtyCard = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => el.innerText.includes('Board Dirty Arrival'));
+    const dirtySelect = dirtyCard?.querySelector('.board-clean-select');
     return {
       cardText: card?.innerText || '',
       cleanValue: cleanSelect?.value || '',
       cleanLabel: selectedOption?.textContent?.trim() || '',
       cleanClass: cleanSelect?.className || '',
       readinessText: card?.querySelector('.board-readiness')?.innerText.trim() || '',
-      statusText: card?.querySelector('.board-status')?.innerText.trim() || ''
+      statusText: card?.querySelector('.board-status')?.innerText.trim() || '',
+      dirtyText: dirtyCard?.innerText || '',
+      dirtyValue: dirtySelect?.value || '',
+      dirtyClass: dirtySelect?.className || ''
     };
   });
 
@@ -243,6 +278,8 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
   assert(boardState.statusText.includes('미도착'), 'Reservation board test card must exercise the overdue check-in state.', boardState);
   assert(boardState.readinessText.includes('체크인 가능'), 'Reservation board must keep check-in readiness visible for a clean overdue arrival.', boardState);
   assert(boardState.cleanValue === 'clean' && boardState.cleanLabel === '청소완료' && boardState.cleanClass.includes('clean'), 'Reservation board must show cleaning status even when check-in readiness is visible.', boardState);
+
+  assert(boardState.dirtyText.includes('Board Dirty Arrival') && boardState.dirtyValue === 'mur' && boardState.dirtyClass.includes('mur'), 'Reservation board must render a dirty arrival cleaning select with the orange MUR tone.', boardState);
 
   return boardState;
 }
@@ -342,22 +379,34 @@ async function reservationBoardFilterColorRegression(page, base) {
     };
 
     const all = capture1203('all');
-    const completed = capture1203('completed');
     const dirty = capture1203('dirty');
+    const vacant = capture1203('vacant');
     const late = capture1203('late');
     const inhouse = capture1203('inhouse');
     const lateLegendVisible = !!document.querySelector('.board-legend-swatch.late');
+    const completedChipVisible = !!document.querySelector('#boardChips .chip[data-filter="completed"]');
+    const chipCardCounts = Array.from(document.querySelectorAll('#boardChips .chip')).map(chip => {
+      const filter = chip.dataset.filter;
+      window.setBoardFilter(filter);
+      return {
+        filter,
+        chip: Number(chip.querySelector('.chip-count')?.textContent?.trim() || 0),
+        cardCount: document.querySelectorAll('.reservation-board-box').length
+      };
+    });
 
-    window.setBoardFilter('completed');
+    window.setBoardFilter('all');
     const hoverCard = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => (el.innerText || '').includes('1203'));
     const before = hoverCard ? getComputedStyle(hoverCard) : null;
     return {
       all,
-      completed,
       dirty,
+      vacant,
       late,
       inhouse,
       lateLegendVisible,
+      completedChipVisible,
+      chipCardCounts,
       hoverTarget: hoverCard ? {
         left: hoverCard.getBoundingClientRect().left + 10,
         top: hoverCard.getBoundingClientRect().top + 10,
@@ -367,12 +416,13 @@ async function reservationBoardFilterColorRegression(page, base) {
     };
   });
 
-  assert(result.all.found && result.all.className.includes('completed') && !result.all.className.includes('late') && !result.all.statusClass.includes('late'), 'Room 1203 all filter must prefer the completed checkout over stale late state.', result);
-  assert(result.all.borderColor === result.completed.borderColor && result.all.boxShadow === result.completed.boxShadow, 'Room 1203 all and completed filters must render the same completed status color.', result);
+  assert(result.all.found && result.all.className.includes('vacant') && !result.all.className.includes('completed') && !result.all.className.includes('late') && !result.all.statusClass.includes('late'), 'Room 1203 all filter must treat a completed checkout as vacant instead of stale late/completed reservation state.', result);
+  assert(!result.completedChipVisible, 'Reservation board must not expose a separate completed checkout filter chip.', result);
+  assert(result.chipCardCounts.every(item => item.chip === item.cardCount), 'Reservation board filter chip counts must match the visible room card count.', result);
   assert(!result.lateLegendVisible, 'Reservation board legend must not expose late as a main card color.', result);
-  assert(result.completed.found && result.completed.className.includes('completed'), 'Room 1203 completed filter must render completed status color.', result);
-  assert(result.dirty.found && result.dirty.className.includes('completed'), 'Room 1203 dirty filter must keep the completed reservation color.', result);
-  assert(result.completed.borderColor === result.dirty.borderColor && result.completed.boxShadow === result.dirty.boxShadow, 'Room 1203 completed and dirty filters must keep identical status colors.', result);
+  assert(result.vacant.found && result.vacant.className.includes('vacant'), 'Room 1203 vacant filter must include a room after completed checkout.', result);
+  assert(result.dirty.found && result.dirty.className.includes('vacant'), 'Room 1203 dirty filter must show the room as vacant with cleaning needed after completed checkout.', result);
+  assert(result.all.borderColor === result.dirty.borderColor && result.all.boxShadow === result.dirty.boxShadow, 'Room 1203 all and dirty filters must keep the same vacant status color.', result);
   assert(!result.late.found && !result.inhouse.found, 'Room 1203 stale late/in-house stay must be hidden once the same room has a completed checkout today.', result);
 
   if (result.hoverTarget) {
