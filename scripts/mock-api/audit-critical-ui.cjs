@@ -146,7 +146,7 @@ async function expenseCrudFlow(browser, results) {
   await page.goto(`${base}/dashboard/operations/expense-purchases.html?critical-ui=expense-crud`);
   await waitForPage(page, '[data-expense-action="edit"]');
 
-  await runCase(results, 'EXP-004', 'Existing expense opens in edit mode', async () => {
+  await runCase(results, 'EXP-006-PARTIAL', 'Existing expense values load in edit mode', async () => {
     await page.locator('[data-expense-action="edit"]').first().click();
     const modal = page.locator('#expenseFormModal.active');
     await modal.waitFor({ state: 'visible' });
@@ -161,7 +161,7 @@ async function expenseCrudFlow(browser, results) {
     return values;
   });
 
-  await runCase(results, 'EXP-003', 'Expense create, update, delete persists in the list', async () => {
+  await runCase(results, 'EXP-CRUD-TRACE', 'Expense create, currency, update, and delete persist in the list', async () => {
     await page.locator('button[onclick="openExpenseFormModal()"]' ).click();
     const modal = page.locator('#expenseFormModal.active');
     await modal.waitFor({ state: 'visible' });
@@ -192,7 +192,7 @@ async function expenseCrudFlow(browser, results) {
     return { currencies: currencyOptions, create: true, update: true, delete: true };
   });
 
-  await runCase(results, 'EXP-008', 'Expense custom date range accepts both dates', async () => {
+  await runCase(results, 'EXP-009-PARTIAL', 'Expense custom date range retains both selected dates', async () => {
     await page.locator('#expensePeriodFilter').selectOption('custom');
     await page.locator('#expenseStartDate').fill('2026-07-01');
     await page.locator('#expenseEndDate').fill('2026-07-31');
@@ -222,14 +222,19 @@ async function addExistingGuest(page) {
   await page.waitForFunction(() => Number((document.getElementById('unifiedStayGuestCount')?.textContent || '').match(/\d+/)?.[0] || 0) >= 1);
 }
 
-async function prepareBookableRoom(page, housekeepingStatus) {
-  return page.evaluate(status => {
-    const room = (window.rooms || []).find(item => item && (item.id || item.roomNo));
+async function prepareBookableRoom(page, housekeepingStatus, preferredRoomId = '') {
+  return page.evaluate(({ status, preferred }) => {
+    const matchesPreferred = item => [item?.id, item?.roomNo, item?.number, item?.room]
+      .filter(Boolean)
+      .map(String)
+      .some(value => value === preferred || value.endsWith(`-${preferred}`));
+    const room = (window.rooms || []).find(item => preferred && matchesPreferred(item))
+      || (window.rooms || []).find(item => item && (item.id || item.roomNo));
     if (!room) throw new Error('No room fixture is available');
-    const roomId = String(room.id || room.roomNo);
+    const roomId = String(room.roomNo || room.number || room.room || room.id);
     window.reservations = (window.reservations || []).filter(reservation => {
       const value = String(reservation.room || reservation.fullRoom || reservation.roomId || reservation.roomNo || '');
-      return value !== roomId;
+      return value !== roomId && !value.endsWith(`-${roomId}`);
     });
     if (typeof reservations !== 'undefined') reservations = window.reservations;
     Object.assign(room, {
@@ -243,7 +248,7 @@ async function prepareBookableRoom(page, housekeepingStatus) {
     });
     window.renderReservationBoard();
     return roomId;
-  }, housekeepingStatus);
+  }, { status: housekeepingStatus, preferred: preferredRoomId });
 }
 
 async function clickRoomCard(page, roomId) {
@@ -262,7 +267,7 @@ async function reservationBookingFlow(browser, results) {
   await waitForPage(page, '.reservation-board-box');
 
   let selectedRoomId = '';
-  await runCase(results, 'RES-BOARD-002', 'Clicked room stays selected in the new booking modal', async () => {
+  await runCase(results, 'RES-BOARD-002-PARTIAL', 'Clicked room stays selected in the new booking modal', async () => {
     selectedRoomId = await prepareBookableRoom(page, 'dirty');
     await clickRoomCard(page, selectedRoomId);
     const selected = await page.locator('#unifiedRoom').inputValue();
@@ -270,7 +275,7 @@ async function reservationBookingFlow(browser, results) {
     return { clicked: selectedRoomId, selected };
   });
 
-  await runCase(results, 'RES-BOARD-003', 'Dirty room requires confirmation and cancel prevents save', async () => {
+  await runCase(results, 'RES-BOARD-003-PARTIAL', 'Dirty room requires confirmation and cancel prevents save', async () => {
     await addExistingGuest(page);
     const before = await page.evaluate(roomId => (window.reservations || []).filter(item => String(item.room || item.fullRoom || '') === roomId).length, selectedRoomId);
     await page.locator('#unifiedResModal.active button[onclick="saveUnifiedRes()"]' ).click();
@@ -284,11 +289,14 @@ async function reservationBookingFlow(browser, results) {
     return { room: selectedRoomId, warning: message.replace(/\s+/g, ' ').trim() };
   });
 
-  await runCase(results, 'RES-BOARD-005', 'Clean room booking saves to the clicked room', async () => {
-    await page.evaluate(roomId => {
-      const room = (window.rooms || []).find(item => String(item.id || item.roomNo) === roomId);
-      Object.assign(room, { housekeepingStatus: 'clean', cleaningStatus: 'clean', status: 'vacant-clean', frontStatus: 'vacant-clean' });
-    }, selectedRoomId);
+  await runCase(results, 'RES-BOARD-005', 'Room 1203 remains selected and saves as room 1203', async () => {
+    await page.locator('#unifiedResModal.active .modal-close').click();
+    selectedRoomId = await prepareBookableRoom(page, 'clean', '1203');
+    assert(selectedRoomId === '1203', 'The preferred 1203 fixture was not selected', { selectedRoomId });
+    await clickRoomCard(page, selectedRoomId);
+    const selected = await page.locator('#unifiedRoom').inputValue();
+    assert(selected === '1203', 'The booking modal did not retain room 1203', { selected });
+    await addExistingGuest(page);
     await page.locator('#unifiedResModal.active button[onclick="saveUnifiedRes()"]' ).click();
     await page.waitForFunction(() => !document.getElementById('unifiedResModal')?.classList.contains('active'));
     const saved = await page.evaluate(roomId => {
@@ -297,7 +305,7 @@ async function reservationBookingFlow(browser, results) {
     }, selectedRoomId);
     assert(saved.length === 1 && String(saved[0].room) === selectedRoomId, 'The reservation was not saved to the clicked room', { selectedRoomId, saved });
     assert(pageErrors.length === 0, 'Reservation Board raised a JavaScript error', pageErrors);
-    return { clicked: selectedRoomId, saved: saved[0] };
+    return { clicked: selectedRoomId, selected, saved: saved[0] };
   });
 
   await context.close();
