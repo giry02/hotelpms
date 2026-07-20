@@ -753,7 +753,7 @@
 | P1-FOLIO-002 | PASS | 배포본 1205호 완료 상세에서 `Reopen Settlement` 실행 후 미완료 상태와 완료 버튼이 새로고침 뒤 유지되고, 감사 로그에 folio·예약·객실·실행자·`Completed → Incomplete` 기록 확인; 검증 후 다시 완료 처리 | - | 변경 없음 | PASS | 배포 Settlement Status 및 Audit Log 연속 검증, 2026-07-10 05:20 로그 |
 | P1-EXP-001 | PASS | 배포본에서 `P1 Expense Fuel` PHP 현금 1,250 등록, 1,350 수정, 새로고침 지속, 사용자 지정 기간 조회, KPI 반영, 일일 마감 출금 1,350 반영, 삭제 후 목록 제거 확인 | - | 변경 없음 | PASS | 배포 Expense Purchases 및 Night Audit 연속 검증; 테스트 데이터 삭제 완료 |
 | P1-EXP-002 | PASS | 배포본에서 USD 카드 10 및 KRW 계좌이체 10,000 등록, 목록·KPI 통화별 합계 반영, PHP 호텔 통화 선택지 PHP/USD/KRW만 노출되고 VND 미노출 확인 | - | 변경 없음 | PASS | 배포 Expense Purchases 검증; USD/KRW 테스트 데이터 삭제 완료 |
-| P1-NIGHT-001 | PARTIAL | 마감 회귀 통과, 시재 수식 수기 대조와 재진입 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-NIGHT-001 | PASS | 배포본에서 2026-07-10 시작시재(PHP 54,900·USD 300·KRW 520,000), 현금입금 PHP 2,900, 중간출금 PHP 3,200, 마감시재(PHP 54,600·USD 300·KRW 520,000)를 입력해 차액 `Matched` 확인; 마감 후 재접속 시 완료 상태·담당자·인계 메모·5건 처리 이력 유지 및 중복 마감 차단 확인 | 출금 부호 수식 오류, 단일 출금 상세 버튼 미노출, 마감로그 통화·동적 문구·상세 팝업·날짜 이동 라벨의 영문 미적용 | 현금 흐름 수식을 `시작시재 + 현금입금 - 출금`으로 수정하고 단일 출금 상세 노출, 통화 보존, 마감로그/상세 팝업/이동 버튼 다국어 동기화 | PASS | 배포 `hotelpms-eight.vercel.app` 직접 검증; 소스 `a99a3ce7`, `8dbdde8f`, `6360d0a2`, `ec72f4d6`, `4db339d0`, `8574d1a0` |
 | P1-GUEST-001 | PARTIAL | 고객 등록 회귀 통과, 수정·예약 연결 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
 | P1-PERM-001 | PARTIAL | 권한 회귀 통과, 역할별 실제 재로그인과 접근 차단 증거 미완료 | - | 변경 없음 | PARTIAL | `support-critical-ui.log` |
 | P1-AUDIT-001 | PARTIAL | 저장 회귀 통과, 모든 주요 변경의 감사 행 수기 대조 미완료 | - | 변경 없음 | PARTIAL | `support-storage.log` |
