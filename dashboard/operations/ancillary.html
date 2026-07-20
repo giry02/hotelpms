@@ -762,6 +762,10 @@ function computeEffectiveReservationStatus(res, refDate = todayDate()) {
 function activeReservationForRoom(room) {
     const cacheKey = `${dateCacheKey(todayDate())}|${roomCacheKey(room)}`;
     if (activeRoomCache.has(cacheKey)) return activeRoomCache.get(cacheKey);
+    if (!roomHasInHouseStatus(room)) {
+        activeRoomCache.set(cacheKey, null);
+        return null;
+    }
     const today = todayDate();
     const active = reservations.filter(res => {
         if (effectiveReservationStatus(res, today) !== 'checkedin') return false;
@@ -1446,7 +1450,10 @@ function renderRoomCard(room) {
     const summary = serviceSummary(orders).filter(item => item.total > 0);
     const guest = reservationGuest(res) || ancillaryLabel('noGuest');
     return `
-        <article class="service-room-card ${status}" onclick="openServiceEntry('${escapeHtml(room.id || roomNo(room))}')">
+        <article class="service-room-card ${status}"
+            data-room-no="${escapeHtml(roomNo(room))}"
+            data-room-operational-inhouse="${roomHasInHouseStatus(room) ? 'true' : 'false'}"
+            onclick="openServiceEntry('${escapeHtml(room.id || roomNo(room))}')">
             <div class="service-room-top">
                 <div><div class="service-room-no">${escapeHtml(roomNo(room))}</div><div class="service-room-type">${escapeHtml(roomType(room))}</div></div>
                 <span class="service-status ${status}"><i class="fa-solid ${active ? 'fa-bed' : next ? 'fa-calendar-check' : 'fa-door-open'}"></i>${statusLabel}</span>

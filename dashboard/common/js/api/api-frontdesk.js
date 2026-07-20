@@ -99,16 +99,36 @@ Object.assign(window.PmsAPI, {
     },
 
     getReservations: async () => {
+        let apiReservations = [];
         try {
             if (window.PmsMockApi) {
                 const env = await window.PmsMockApi.request('GET', '/reservations');
-                const reservations = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyReservation);
-                if (reservations.length) return reservations;
+                apiReservations = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyReservation);
             }
         } catch(e) {
             console.warn('Mock reservations fallback', e);
         }
-        return [];
+
+        // Every operational screen must use the same mutable reservation state.
+        // Stored records override seed/API records so checkout, cancellation and
+        // room moves do not reappear as stale stays on ancillary screens.
+        let storedReservations = [];
+        try {
+            const parsed = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
+            if (Array.isArray(parsed)) storedReservations = parsed;
+        } catch (e) {
+            console.warn('Stored reservations fallback', e);
+        }
+        const merged = new Map();
+        apiReservations.forEach((reservation, index) => {
+            const id = reservation?.id || reservation?.reservationId || `api-${index}`;
+            merged.set(String(id), reservation);
+        });
+        storedReservations.forEach((reservation, index) => {
+            const id = reservation?.id || reservation?.reservationId || `stored-${index}`;
+            merged.set(String(id), reservation);
+        });
+        return [...merged.values()];
     },
 
     syncGroupsToReservations: async (reservations) => {

@@ -523,17 +523,22 @@ async function ancillaryInhouseOnlyFlow(page) {
     const cards = Array.from(document.querySelectorAll('.service-room-card'));
     const activeCards = cards.filter(card => card.classList.contains('inhouse'));
     const blockedCards = cards.filter(card => card.classList.contains('arrival') || card.classList.contains('empty'));
+    const nonInHouseInventoryRoomNos = cards
+      .filter(card => card.dataset.roomOperationalInhouse !== 'true')
+      .map(card => card.dataset.roomNo || card.querySelector('.service-room-no')?.textContent?.trim() || 'unknown');
     const kpiText = document.getElementById('kpiInhouse')?.textContent || '0';
     return {
       cardCount: cards.length,
       inhouseCardCount: activeCards.length,
       blockedCardCount: blockedCards.length,
+      nonInHouseInventoryRoomNos,
       kpiInhouse: Number((kpiText.match(/\d+/) || ['0'])[0]),
       boardText: document.getElementById('ancillaryBoardContainer')?.innerText || ''
     };
   });
   assert(state.cardCount > 0, 'ancillary board did not render any in-house service rooms');
   assert(state.blockedCardCount === 0, 'ancillary board rendered vacant or future check-in rooms');
+  assert(state.nonInHouseInventoryRoomNos.length === 0, `ancillary board rendered rooms that are not in-house in room inventory: ${state.nonInHouseInventoryRoomNos.join(', ')}`);
   assert(state.cardCount === state.inhouseCardCount, 'ancillary board rendered non-in-house cards');
   assert(state.cardCount === state.kpiInhouse, `ancillary board card count diverged from in-house KPI: cards ${state.cardCount}, KPI ${state.kpiInhouse}`);
   assert(!/공실|체크인 예정/.test(state.boardText), 'ancillary board still displayed vacant or future check-in labels');
@@ -621,19 +626,20 @@ async function dashboardPartnerVendorDetailFlow(page) {
   assert(adminState.selectedAction.includes('REST-RIVERSIDE'), 'partner admin link did not select the requested vendor');
   assert(adminState.hasVoucherSection, 'partner restaurant admin link did not expose coupon/voucher output settings');
 
-  await goto(page, '/dashboard/operations/ancillary.html?service=restaurant&vendorId=REST-RIVERSIDE&test=e2e-partner-ancillary-link');
+  await goto(page, '/dashboard/operations/ancillary.html?service=all&vendorId=REST-RIVERSIDE&test=e2e-partner-ancillary-link');
   await page.waitForFunction(() => document.querySelector('.service-filter-chip.active') && document.querySelectorAll('.service-room-card').length > 0, null, { timeout: 15000 });
   const ancillaryState = await page.evaluate(() => ({
     activeFilter: document.querySelector('.service-filter-chip.active')?.dataset.service || '',
     cardCount: document.querySelectorAll('.service-room-card').length,
     inhouseCardCount: document.querySelectorAll('.service-room-card.inhouse').length
   }));
-  assert(ancillaryState.activeFilter === 'restaurant', 'partner ancillary link did not open restaurant service filter');
+  assert(ancillaryState.activeFilter === 'all', 'partner ancillary registration link did not preserve the in-house room list');
   assert(ancillaryState.cardCount > 0, 'partner ancillary link did not render in-house service rooms');
   assert(ancillaryState.inhouseCardCount > 0, 'partner ancillary link did not render any clickable in-house service rooms');
   await page.locator('.service-room-card.inhouse').first().click();
   await page.locator('#serviceDetailModal.active').waitFor({ state: 'visible', timeout: 10000 });
   await page.evaluate(() => window.openServiceModalFromDetail?.());
+  await page.evaluate(() => window.selectServiceType?.('restaurant'));
   await page.waitForFunction(() => {
     const section = document.getElementById('detailRegistrationSection');
     return !!(section && !section.classList.contains('is-hidden') && document.getElementById('serviceVendor')?.value);
