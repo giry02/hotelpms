@@ -375,6 +375,10 @@ let currentStatus = 'all';
 function normalizeRoomListStatus(room) {
     const value = String(room?.status || room?.frontStatus || room?.housekeepingStatus || '').toLowerCase();
     const housekeeping = String(room?.housekeepingStatus || '').toLowerCase();
+    const hasExplicitCleaningState = Boolean(room?.cleaningStatusUpdatedAt);
+    if (hasExplicitCleaningState && ['cleaning', 'in-progress', 'cleaning-in-progress'].includes(housekeeping)) return 'cleaning';
+    if (hasExplicitCleaningState && ['dirty', 'vacant-dirty', 'pending-clean', 'needs-cleaning', 'inspect'].includes(housekeeping)) return 'vacant-dirty';
+    if (hasExplicitCleaningState && ['clean', 'vacant-clean', 'ready', 'completed'].includes(housekeeping)) return 'vacant-clean';
     if (['occupied', 'in-house', 'checked-in', 'checkedin', 'inhouse'].includes(value)) return 'occupied';
     if (['oos', 'out-of-service', 'maintenance', 'outofservice'].includes(value)) return 'oos';
     if (['cleaning', 'in-progress', 'cleaning-in-progress'].includes(value) || ['cleaning', 'in-progress', 'cleaning-in-progress'].includes(housekeeping)) return 'cleaning';

@@ -661,13 +661,18 @@ function housekeepingStatusForRoom(room) {
             ...room,
             hkStatus: task.status,
             taskId: task.id,
-            taskType: task.type
+            taskType: task.type,
+            hasExplicitCleaningState: true
         };
     }
     const hkStatus = normalizeHousekeepingStatus(
         room.housekeepingStatus || room.hkStatus || room.cleaningStatus || room.status || room.frontStatus
     ) || 'clean';
-    return { ...room, hkStatus };
+    return {
+        ...room,
+        hkStatus,
+        hasExplicitCleaningState: Boolean(room.cleaningStatusUpdatedAt)
+    };
 }
 
 function housekeepingRoomSummary() {
@@ -778,7 +783,16 @@ function renderRoomBox(r, appendHtml) {
     const isOccupied = (r.status === 'occupied');
     const activeTask = r.taskId ? tasks.find(t => t.id === r.taskId) : null;
     
-    if (isOccupied) {
+    if (r.hasExplicitCleaningState && r.hkStatus === 'dirty') {
+        boxClass = 'vacant-dirty';
+        stLabel = isEn ? 'Pending Clean' : '청소 요망';
+    } else if (r.hasExplicitCleaningState && r.hkStatus === 'cleaning') {
+        boxClass = 'cleaning';
+        stLabel = isEn ? 'Cleaning' : '청소 중';
+    } else if (r.hasExplicitCleaningState && r.hkStatus === 'clean') {
+        boxClass = 'vacant-clean';
+        stLabel = isEn ? 'Completed' : '청소 완료';
+    } else if (isOccupied) {
         boxClass = 'occupied';
         stLabel = isEn ? 'Occupied' : '투숙 중';
         
@@ -819,6 +833,9 @@ function renderRoomBox(r, appendHtml) {
         if (r.hkStatus === 'dirty') {
             const btnText = isEn ? 'Start Stayover Clean' : '투숙중 청소시작';
             actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'cleaning'); event.stopPropagation();">${btnText}</button>`;
+        } else if (r.hkStatus === 'cleaning') {
+            const btnText = isEn ? 'Complete Clean' : '청소 완료';
+            actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'clean'); event.stopPropagation();">${btnText}</button>`;
         }
     } else if (!isOccupied && r.taskId) {
         if (r.hkStatus === 'dirty') {
@@ -833,7 +850,7 @@ function renderRoomBox(r, appendHtml) {
         actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'clean'); event.stopPropagation();">${btnText}</button>`;
     }
 
-    if (!isOccupied && r.hkStatus === 'clean') {
+    if ((!isOccupied || r.hasExplicitCleaningState) && r.hkStatus === 'clean') {
         let nameToDisplay = 'Maria G.';
         if (r.taskId) {
             const task = tasks.find(t => t.id === r.taskId);
@@ -1077,6 +1094,7 @@ async function completeTask(id, nextStatus) {
         if (localRoomIndex > -1) {
             allRooms[localRoomIndex].housekeepingStatus = nextStatus;
             allRooms[localRoomIndex].cleaningStatus = nextStatus;
+            allRooms[localRoomIndex].cleaningStatusUpdatedAt = new Date().toISOString();
             if (nextStatus === 'cleaning' && allRooms[localRoomIndex].status !== 'occupied') {
                 allRooms[localRoomIndex].status = 'vacant-dirty';
                 allRooms[localRoomIndex].frontStatus = 'vacant-dirty';
