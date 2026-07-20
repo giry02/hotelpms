@@ -796,7 +796,35 @@ async function housekeepingMaintenanceFlow(page) {
 
   await goto(page, '/dashboard/operations/maintenance.html');
   await page.waitForFunction(desc => document.body.innerText.includes(desc), description, { timeout: 10000 });
-  return { requestId: saved.id, room };
+  await page.locator('#langSelect').selectOption('en');
+  await page.waitForFunction(() => localStorage.getItem('pms_lang') === 'en' && document.documentElement.lang === 'en', null, { timeout: 5000 });
+  await page.waitForFunction(() => typeof window.openMaintModal === 'function', null, { timeout: 10000 });
+  await page.locator('.filter-actions-group .btn-primary-sm').click();
+  await page.locator('#newRequestModal.active').waitFor({ state: 'visible', timeout: 5000 });
+  const maintenanceFormState = await page.evaluate(() => ({
+    roomOptions: Array.from(document.querySelectorAll('#newRoom option')).map(option => option.textContent.trim()),
+    roomLabel: document.getElementById('maintenanceRoomFieldLabel')?.textContent.trim() || '',
+    typeLabel: document.getElementById('maintenanceTypeFieldLabel')?.textContent.trim() || '',
+    detailsLabel: document.getElementById('maintenanceDetailsFieldLabel')?.textContent.trim() || '',
+    priorityLabel: document.getElementById('maintenancePriorityFieldLabel')?.textContent.trim() || '',
+    assigneeLabel: document.getElementById('maintenanceAssigneeFieldLabel')?.textContent.trim() || '',
+    detailsPlaceholder: document.getElementById('newDesc')?.placeholder || '',
+    cancelText: document.getElementById('maintenanceFormCancel')?.textContent.trim() || ''
+  }));
+  assert(maintenanceFormState.roomOptions.length > 1 && maintenanceFormState.roomOptions.some(text => /1215/.test(text)), 'maintenance room selector did not render identifiable room numbers', maintenanceFormState);
+  assert(!maintenanceFormState.roomOptions.some(text => text.includes('[object Object]')), 'maintenance room selector rendered object values instead of room numbers', maintenanceFormState);
+  assert(
+    maintenanceFormState.roomLabel === 'Room *'
+      && maintenanceFormState.typeLabel === 'Type *'
+      && maintenanceFormState.detailsLabel === 'Details *'
+      && maintenanceFormState.priorityLabel === 'Priority'
+      && maintenanceFormState.assigneeLabel === 'Assignee'
+      && maintenanceFormState.detailsPlaceholder === 'Describe the issue and exact location.'
+      && maintenanceFormState.cancelText === 'Cancel',
+    `maintenance form labels did not fully follow the selected language: ${JSON.stringify(maintenanceFormState)}`
+  );
+  await page.evaluate(() => window.closeModal('newRequestModal'));
+  return { requestId: saved.id, room, maintenanceFormState };
 }
 
 async function adminTenantApplicationFlow(page) {

@@ -455,25 +455,25 @@
         <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
-                    <label class="form-label">객실 선택 <span style="color:var(--danger)">*</span></label>
+                    <label class="form-label" id="maintenanceRoomFieldLabel">객실 선택 <span style="color:var(--danger)">*</span></label>
                     <select class="form-input" id="newRoom">
                         <option value="">객실 선택</option>
                     </select>
                 </div>
                 <div>
-                    <label class="form-label">유형 <span style="color:var(--danger)">*</span></label>
+                    <label class="form-label" id="maintenanceTypeFieldLabel">유형 <span style="color:var(--danger)">*</span></label>
                     <select class="form-input" id="newType">
                         <option>기타</option>
                     </select>
                 </div>
             </div>
             <div>
-                <label class="form-label">상세 내용 <span style="color:var(--danger)">*</span></label>
+                <label class="form-label" id="maintenanceDetailsFieldLabel">상세 내용 <span style="color:var(--danger)">*</span></label>
                 <textarea class="form-input" id="newDesc" style="min-height:80px; resize:vertical;" placeholder="증상 및 위치를 구체적으로 작성해주세요."></textarea>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
-                    <label class="form-label">우선순위</label>
+                    <label class="form-label" id="maintenancePriorityFieldLabel">우선순위</label>
                     <select class="form-input" id="newPriority">
                         <option value="urgent">🔴 긴급 (즉시 처리)</option>
                         <option value="high">🟡 높음</option>
@@ -482,7 +482,7 @@
                     </select>
                 </div>
                 <div id="assigneeWrapper">
-                    <label class="form-label">담당자 배정</label>
+                    <label class="form-label" id="maintenanceAssigneeFieldLabel">담당자 배정</label>
                     <select class="form-input" id="newAssignee">
                         <option>미배정</option>
                     </select>
@@ -490,7 +490,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-outline" onclick="cancelMaintenanceForm()">취소</button>
+            <button class="btn-outline" id="maintenanceFormCancel" onclick="cancelMaintenanceForm()">취소</button>
             <button class="btn-primary-sm" id="maintenanceFormSubmit" onclick="addTicket()"><i class="fa-solid fa-check"></i> 등록</button>
         </div>
     </div>
@@ -509,19 +509,42 @@
 </div>
 
 <script>
+function maintenanceRoomScalar(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value !== 'object') return String(value).trim();
+    return maintenanceRoomScalar(value.roomNo)
+        || maintenanceRoomScalar(value.number)
+        || maintenanceRoomScalar(value.display)
+        || maintenanceRoomScalar(value.id)
+        || maintenanceRoomScalar(value.value)
+        || maintenanceRoomScalar(value.name);
+}
+
 function maintenanceRoomDisplay(room) {
-    return room.roomNo || room.number || room.display || room.id || String(room.roomId || '').split('-').pop() || room.displayName;
+    if (!room || typeof room !== 'object') return maintenanceRoomScalar(room);
+    return maintenanceRoomScalar(room.roomNo)
+        || maintenanceRoomScalar(room.number)
+        || maintenanceRoomScalar(room.display)
+        || maintenanceRoomScalar(room.id)
+        || maintenanceRoomScalar(room.roomId).split('-').pop()
+        || maintenanceRoomScalar(room.displayName);
 }
 
 function maintenanceRoomFullId(room) {
-    return room.roomId || room.fullRoom || room.id || maintenanceRoomDisplay(room);
+    return maintenanceRoomScalar(room?.roomId)
+        || maintenanceRoomScalar(room?.fullRoom)
+        || maintenanceRoomScalar(room?.id)
+        || maintenanceRoomDisplay(room);
 }
 
-function maintenanceRoomLabel(room) {
-    const building = room.building || room.buildingName || room.bldgCode || '';
+function maintenanceRoomOptionLabel(room) {
+    const building = maintenanceRoomScalar(room?.building)
+        || maintenanceRoomScalar(room?.buildingName)
+        || maintenanceRoomScalar(room?.bldgCode);
     const no = maintenanceRoomDisplay(room);
-    const type = room.type || room.roomTypeName || '';
-    return [building, no, type].filter(Boolean).join(' · ');
+    const type = maintenanceRoomScalar(room?.type) || maintenanceRoomScalar(room?.roomTypeName);
+    const roomLabel = maintenanceLang() === 'en' ? `Room ${no}` : `${no}호`;
+    return [roomLabel, building, type].filter(Boolean).join(' · ');
 }
 
 function sortMaintenanceRooms(list) {
@@ -549,10 +572,10 @@ async function populateMaintenanceRoomSelect() {
         .map(room => {
             const display = maintenanceRoomDisplay(room);
             const fullId = maintenanceRoomFullId(room);
-            return `<option value="${display}" data-room-id="${fullId}">${maintenanceRoomLabel(room)}</option>`;
+            return `<option value="${display}" data-room-id="${fullId}">${maintenanceRoomOptionLabel(room)}</option>`;
         })
         .join('');
-    select.innerHTML = `<option value="">객실 선택</option>${options}`;
+    select.innerHTML = `<option value="">${maintenanceText('객실 선택', 'Select room')}</option>${options}`;
 }
 
 async function openMaintModal(preserveEdit = false) {
@@ -571,7 +594,7 @@ async function openMaintModal(preserveEdit = false) {
     var typeEl = document.getElementById('newType');
     if (typeEl && window.PmsAPI && PmsAPI.getMAINTENANCE_TYPES) {
         var types = await PmsAPI.getMAINTENANCE_TYPES();
-        typeEl.innerHTML = types.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+        typeEl.innerHTML = types.map(t => `<option value="${t.name}">${maintenanceTypeLabel(t.name)}</option>`).join('');
     }
     await populateMaintenanceRoomSelect();
 
@@ -588,11 +611,12 @@ async function openMaintModal(preserveEdit = false) {
             if (assigneeEl && PmsAPI.getDEFAULT_STAFF) {
                 var staff = await PmsAPI.getDEFAULT_STAFF();
                 var maintStaff = staff.filter(s => s.roleId === 'sys_maintenance' || s.roleId === 'sys_admin');
-                assigneeEl.innerHTML = maintStaff.map(s => `<option value="${s.name}">${s.name} (${s.roleId === 'sys_admin' ? '관리자' : '시설팀'})</option>`).join('') + '<option value="미배정">미배정</option>';
+                assigneeEl.innerHTML = maintStaff.map(s => `<option value="${s.name}">${s.name} (${s.roleId === 'sys_admin' ? maintenanceText('관리자', 'Admin') : maintenanceText('시설팀', 'Maintenance')})</option>`).join('') + `<option value="미배정">${maintenanceText('미배정', 'Unassigned')}</option>`;
             }
         }
     }
 
+    applyMaintenanceFormI18n();
     openModal('newRequestModal');
 }
 
@@ -696,6 +720,28 @@ function renderMaintenancePriorityOptions() {
         modalPriority.innerHTML = modalOptions.map(([value, label]) => `<option value="${value}" ${value === selectedModalPriority ? 'selected' : ''}>${label}</option>`).join('');
     }
 }
+function applyMaintenanceFormI18n() {
+    const required = '<span style="color:var(--danger)">*</span>';
+    const labels = {
+        maintenanceRoomFieldLabel: `${maintenanceText('객실 선택', 'Room')} ${required}`,
+        maintenanceTypeFieldLabel: `${maintenanceText('유형', 'Type')} ${required}`,
+        maintenanceDetailsFieldLabel: `${maintenanceText('상세 내용', 'Details')} ${required}`,
+        maintenancePriorityFieldLabel: maintenanceText('우선순위', 'Priority'),
+        maintenanceAssigneeFieldLabel: maintenanceText('담당자 배정', 'Assignee')
+    };
+    Object.entries(labels).forEach(([id, html]) => {
+        const element = document.getElementById(id);
+        if (element) element.innerHTML = html;
+    });
+    const roomSelect = document.getElementById('newRoom');
+    if (roomSelect?.options?.[0]?.value === '') roomSelect.options[0].textContent = maintenanceText('객실 선택', 'Select room');
+    const typeSelect = document.getElementById('newType');
+    if (typeSelect) Array.from(typeSelect.options).forEach(option => { option.textContent = maintenanceTypeLabel(option.value); });
+    const details = document.getElementById('newDesc');
+    if (details) details.placeholder = maintenanceText('증상 및 위치를 구체적으로 작성해주세요.', 'Describe the issue and exact location.');
+    const cancel = document.getElementById('maintenanceFormCancel');
+    if (cancel) cancel.textContent = maintenanceText('취소', 'Cancel');
+}
 function applyMaintenanceLocalI18n() {
     document.documentElement.lang = maintenanceLang();
     document.title = `${maintenanceText('시설 보수', 'Maintenance')} — Hotel PMS`;
@@ -727,6 +773,7 @@ function applyMaintenanceLocalI18n() {
     }
     const createButton = document.querySelector('.filter-actions-group .btn-primary-sm');
     if (createButton) createButton.innerHTML = `<i class="fa-solid fa-plus"></i> ${maintenanceText('티켓 생성', 'Create Ticket')}`;
+    applyMaintenanceFormI18n();
 }
 
 let requests = [];
