@@ -398,6 +398,9 @@
                     <option value="normal">🔵 일반</option>
                     <option value="low">⚪ 낮음</option>
                 </select>
+                <input class="form-input" type="date" id="maintenanceStartDate" onchange="filterMt(null)" aria-label="시작일" style="width:138px; padding:6px 10px; font-size:.8rem;">
+                <span aria-hidden="true" style="color:var(--txt3);">~</span>
+                <input class="form-input" type="date" id="maintenanceEndDate" onchange="filterMt(null)" aria-label="종료일" style="width:138px; padding:6px 10px; font-size:.8rem;">
                 <button class="btn-primary-sm" onclick="openMaintModal()"><i class="fa-solid fa-plus"></i> 티켓 생성</button>
             </div>
         </div>
@@ -772,6 +775,10 @@ function applyMaintenanceLocalI18n() {
         const urgentCount = document.getElementById('chipUrgentCount')?.textContent || '0';
         urgentButton.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${maintenanceText('긴급 대기', 'Urgent Pending')} <span class="chip-count" id="chipUrgentCount">${urgentCount}</span>`;
     }
+    const startDate = document.getElementById('maintenanceStartDate');
+    const endDate = document.getElementById('maintenanceEndDate');
+    if (startDate) startDate.setAttribute('aria-label', maintenanceText('시작일', 'Start date'));
+    if (endDate) endDate.setAttribute('aria-label', maintenanceText('종료일', 'End date'));
     const createButton = document.querySelector('.filter-actions-group .btn-primary-sm');
     if (createButton) createButton.innerHTML = `<i class="fa-solid fa-plus"></i> ${maintenanceText('티켓 생성', 'Create Ticket')}`;
     applyMaintenanceFormI18n();
@@ -1065,10 +1072,15 @@ function updateKPI() {
 function getFiltered() {
     const pf = document.getElementById('priorityFilter').value;
     const search = (document.getElementById('searchMt').value || '').toLowerCase();
+    const startDate = document.getElementById('maintenanceStartDate')?.value || '';
+    const endDate = document.getElementById('maintenanceEndDate')?.value || '';
     return requests.filter(r => {
         // 검색어 필터는 항상 적용
         const haystack = [r.room, r.desc, r.id, r.type, r.assignee].join(' ').toLowerCase();
         if (search && !haystack.includes(search)) return false;
+        const requestDate = maintenanceDateOnly(r.issuedAt || r.date || r.createdAt || r.requestedAt || '');
+        if (startDate && requestDate < startDate) return false;
+        if (endDate && requestDate > endDate) return false;
         
         // 긴급대기 모드일 경우: 긴급(urgent)이면서 완료가 아닌 것만 무조건 통과 (나머지 탭 무시)
         if (isUrgentOnly) {

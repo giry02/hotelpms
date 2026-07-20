@@ -839,15 +839,40 @@ async function housekeepingMaintenanceFlow(page) {
   await requestRow.locator('button[aria-label="Edit request"]').click();
   await page.locator('#newRequestModal.active').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#newType').selectOption({ label: 'HVAC' });
+  await page.locator('#newPriority').selectOption('urgent');
   await page.locator('#maintenanceFormSubmit').click();
   await page.waitForFunction(() => !document.querySelector('#newRequestModal.active'), null, { timeout: 5000 });
   await requestRow.locator('button[aria-label="Edit request"]').click();
   await page.locator('#newRequestModal.active').waitFor({ state: 'visible', timeout: 5000 });
   const persistedType = await page.locator('#newType').inputValue();
   const persistedTypeLabel = await page.locator('#newType option:checked').textContent();
+  const persistedPriority = await page.locator('#newPriority').inputValue();
   assert(persistedType === '에어컨/냉난방' && persistedTypeLabel.trim() === 'HVAC', `maintenance type changed after edit save: ${persistedType} / ${persistedTypeLabel}`);
+  assert(persistedPriority === 'urgent', `maintenance priority changed after edit save: ${persistedPriority}`);
   await page.evaluate(() => window.closeModal('newRequestModal'));
-  return { requestId: saved.id, room, maintenanceFormState, persistedType };
+
+  await page.locator('#priorityFilter').selectOption('urgent');
+  assert(await requestRow.isVisible(), 'urgent priority filter hid the urgent maintenance request');
+  await page.locator('#priorityFilter').selectOption('normal');
+  assert(!(await requestRow.isVisible()), 'priority filter displayed a request with a different priority');
+  await page.locator('#priorityFilter').selectOption('');
+
+  const requestDate = await page.evaluate(id => {
+    const list = JSON.parse(localStorage.getItem('pms_maintenance') || '[]');
+    const request = list.find(item => item.id === id);
+    return String(request?.issuedAt || request?.date || '').slice(0, 10);
+  }, saved.id);
+  const dayAfterRequest = new Date(`${requestDate}T00:00:00Z`);
+  dayAfterRequest.setUTCDate(dayAfterRequest.getUTCDate() + 1);
+  const nextDate = dayAfterRequest.toISOString().slice(0, 10);
+  await page.locator('#maintenanceStartDate').fill(nextDate);
+  assert(!(await requestRow.isVisible()), 'maintenance start-date filter did not exclude an older request');
+  await page.locator('#maintenanceStartDate').fill(requestDate);
+  await page.locator('#maintenanceEndDate').fill(requestDate);
+  assert(await requestRow.isVisible(), 'maintenance date range did not include the matching request date');
+  await page.locator('#maintenanceStartDate').fill('');
+  await page.locator('#maintenanceEndDate').fill('');
+  return { requestId: saved.id, room, maintenanceFormState, persistedType, persistedPriority, requestDate };
 }
 
 async function adminTenantApplicationFlow(page) {
