@@ -89,10 +89,15 @@ function assert(condition, message, details = null) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const consoleIssues = [];
   const timelineSource = fs.readFileSync(path.join(ROOT, 'dashboard', 'frontdesk', 'reservation-timeline.html'), 'utf8');
+  const companySource = fs.readFileSync(path.join(ROOT, 'dashboard', 'frontdesk', 'groups_companies.html'), 'utf8');
 
   assert(
     !timelineSource.includes('[displayName, companionTitle, timeTitle]'),
     'Timeline tooltip must not append companion names after a display label that already contains the full guest roster.'
+  );
+  assert(
+    companySource.includes('data-ko="기타" data-en="Other"') && companySource.includes('totals.other'),
+    'Group usage stats must expose Other as a dedicated detail and total column.'
   );
 
   page.on('console', msg => {
@@ -607,6 +612,7 @@ function assert(condition, message, details = null) {
         'group detail rejects overlapping room assignments in picker and save validation',
         'timeline merges persisted group rooms and rooming guests into reservations',
         'timeline tooltip lists each rooming guest once',
+        'group usage stats expose Other as a dedicated totalled column',
         'group detail avoids duplicate selected-room summary in allocation tab',
         'group detail splits room allocation and rooming list tabs'
       ]

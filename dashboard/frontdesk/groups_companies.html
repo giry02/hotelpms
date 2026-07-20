@@ -345,15 +345,16 @@
 .performance-table--monthly col:nth-child(4),
 .performance-table--monthly col:nth-child(5),
 .performance-table--monthly col:nth-child(6) { width: 20%; }
-.performance-table--events col:nth-child(1) { width: 11%; }
-.performance-table--events col:nth-child(2) { width: 29%; }
-.performance-table--events col:nth-child(3) { width: 9%; }
+.performance-table--events col:nth-child(1) { width: 10%; }
+.performance-table--events col:nth-child(2) { width: 24%; }
+.performance-table--events col:nth-child(3) { width: 8%; }
 .performance-table--events col:nth-child(4),
 .performance-table--events col:nth-child(5),
 .performance-table--events col:nth-child(6),
 .performance-table--events col:nth-child(7),
 .performance-table--events col:nth-child(8),
-.performance-table--events col:nth-child(9) { width: 8.5%; }
+.performance-table--events col:nth-child(9),
+.performance-table--events col:nth-child(10) { width: 8.285%; }
 .performance-table--events td:nth-child(2) {
     overflow: hidden;
 }
@@ -627,7 +628,7 @@
                 <div class="performance-table-wrap">
                     <table class="performance-table performance-table--events">
                         <colgroup>
-                            <col><col><col><col><col><col><col><col><col>
+                            <col><col><col><col><col><col><col><col><col><col>
                         </colgroup>
                         <thead>
                             <tr>
@@ -639,6 +640,7 @@
                                 <th class="amount" data-ko="음식점" data-en="Restaurant">음식점</th>
                                 <th class="amount" data-ko="골프" data-en="Golf">골프</th>
                                 <th class="amount" data-ko="렌터카" data-en="Rent-a-car">렌터카</th>
+                                <th class="amount" data-ko="기타" data-en="Other">기타</th>
                                 <th class="amount" data-ko="합계" data-en="Total">합계</th>
                             </tr>
                         </thead>
@@ -1468,7 +1470,7 @@ function openBlockModal(compId) {
         const count = document.getElementById('performanceEventCount');
         if (count) count.textContent = perfText(`전체 ${rows.length}건 중 ${rows.length}건 표시`, `Showing ${rows.length} of ${rows.length} records`);
         if (!rows.length) {
-            body.innerHTML = `<tr><td colspan="9"><div class="performance-empty">${perfText('선택한 조건의 행사 내역이 없습니다.', 'No event records for the selected conditions.')}</div></td></tr>`;
+            body.innerHTML = `<tr><td colspan="10"><div class="performance-empty">${perfText('선택한 조건의 행사 내역이 없습니다.', 'No event records for the selected conditions.')}</div></td></tr>`;
             if (foot) foot.innerHTML = '';
             return;
         }
@@ -1479,12 +1481,12 @@ function openBlockModal(compId) {
             acc.restaurant += row.restaurant;
             acc.golf += row.golf;
             acc.rentacar += row.rentacar;
+            acc.other += row.other;
             acc.total += row.total;
             return acc;
-        }, { stayNights: 0, room: 0, pos: 0, restaurant: 0, golf: 0, rentacar: 0, total: 0 });
+        }, { stayNights: 0, room: 0, pos: 0, restaurant: 0, golf: 0, rentacar: 0, other: 0, total: 0 });
         body.innerHTML = rows.map(row => {
             const currency = row.currency || 'PHP';
-            const otherMeta = row.other ? `<span class="performance-row-pill">${perfText('기타', 'Other')} ${companyMoney(row.other, currency)}</span>` : '';
             return `
                 <tr>
                     <td>${row.dateLabel}</td>
@@ -1492,7 +1494,6 @@ function openBlockModal(compId) {
                         <div class="performance-company-name">${perfEscape(row.name)}</div>
                         <div class="performance-row-meta">
                             <span>${perfEscape(row.id)}</span>
-                            ${otherMeta}
                         </div>
                     </td>
                     <td>${row.stayNights}${perfText('박', ' nights')}</td>
@@ -1501,6 +1502,7 @@ function openBlockModal(compId) {
                     <td class="amount">${companyMoney(row.restaurant, currency)}</td>
                     <td class="amount">${companyMoney(row.golf, currency)}</td>
                     <td class="amount">${companyMoney(row.rentacar, currency)}</td>
+                    <td class="amount">${companyMoney(row.other, currency)}</td>
                     <td class="amount">${companyMoney(row.total, currency)}</td>
                 </tr>
             `;
@@ -1517,6 +1519,7 @@ function openBlockModal(compId) {
                     <td class="amount">${companyMoney(totals.restaurant, currency)}</td>
                     <td class="amount">${companyMoney(totals.golf, currency)}</td>
                     <td class="amount">${companyMoney(totals.rentacar, currency)}</td>
+                    <td class="amount">${companyMoney(totals.other, currency)}</td>
                     <td class="amount">${companyMoney(totals.total, currency)}</td>
                 </tr>
             `;
