@@ -787,8 +787,26 @@ async function deleteGroup(id) {
     const g = groups.find(x => x.id === id);
     if (!g) return;
     if (await showConfirm(groupText('delete.confirm', { name: g.name }))) {
+        const linkedReservations = (Array.isArray(window.reservations)
+            ? window.reservations
+            : JSON.parse(localStorage.getItem('pms_reservations') || '[]'))
+            .filter(reservation => reservation.groupId === id);
         groups = groups.filter(x => x.id !== id);
         localStorage.setItem('pms_groups', JSON.stringify(groups));
+        const remainingReservations = (Array.isArray(window.reservations)
+            ? window.reservations
+            : JSON.parse(localStorage.getItem('pms_reservations') || '[]'))
+            .filter(reservation => reservation.groupId !== id);
+        window.reservations = remainingReservations;
+        localStorage.setItem('pms_reservations', JSON.stringify(remainingReservations));
+        if (window.PmsMockApi) {
+            await Promise.all([
+                window.PmsMockApi.request('DELETE', `/groups/events/${encodeURIComponent(id)}`),
+                ...linkedReservations
+                    .filter(reservation => reservation.id)
+                    .map(reservation => window.PmsMockApi.request('DELETE', `/reservations/${encodeURIComponent(reservation.id)}`))
+            ]).catch(error => console.warn('Group event cleanup failed', error));
+        }
         showToast(groupText('delete.done'));
         updateFilterCounts();
         renderGroups();
@@ -1863,6 +1881,7 @@ async function deleteGroup(id) {
             needCheck: '확인 필요',
             inProgress: '진행 중',
             manage: '관리',
+            delete: '삭제',
             noEvents: '해당 조건의 행사가 없습니다.',
             globalSearch: '예약번호, 고객명 검색...',
             eventSearch: '행사(블록)명 검색...',
@@ -1895,6 +1914,7 @@ async function deleteGroup(id) {
             needCheck: 'Check',
             inProgress: 'Open',
             manage: 'Manage',
+            delete: 'Delete',
             noEvents: 'No group events match the current filters.',
             globalSearch: 'Search reservation or guest...',
             eventSearch: 'Search event or block...',
@@ -2261,7 +2281,10 @@ async function deleteGroup(id) {
                         <div data-label="${T.rooms}"><div class="event-metric">${reservations.length}/${rooms.length}<small>${T.bookedAssigned}</small></div></div>
                         <div data-label="${T.guests}"><div class="event-metric">${guests}/${html(group.pax || 0)}<small>${T.registeredPax}</small></div></div>
                         <div data-label="${T.billing}"><div class="event-metric">${settlement}</div></div>
-                        <div><button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${html(group.id)}')" style="padding:0 14px"><i class="fa-solid fa-gear"></i> ${T.manage}</button></div>
+                        <div style="display:flex;gap:6px;justify-content:flex-end">
+                            <button class="btn-outline-sm" onclick="event.stopPropagation(); openGroupDetail('${html(group.id)}')" style="padding:0 12px"><i class="fa-solid fa-gear"></i> ${T.manage}</button>
+                            <button class="btn-outline-sm danger" title="${T.delete}" aria-label="${T.delete}" onclick="event.stopPropagation(); deleteGroup('${html(group.id)}')" style="width:36px;padding:0"><i class="fa-solid fa-trash"></i></button>
+                        </div>
                     </div>`;
                 }).join('')}
             </div>`;

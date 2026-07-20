@@ -450,6 +450,45 @@ function assert(condition, message, details = null) {
     assert(detailResult.roomingTabText === '투숙객 명단' && detailResult.roomingTabVisible, 'Group detail rooming tab must be visible as a separate guest list.', detailResult);
     assert(!detailResult.roomsPanelText.includes('투숙객 등록'), 'Room allocation tab must not include guest registration actions.', detailResult);
 
+    const overlapGuardResult = await page.evaluate(async () => {
+      const conflictRoom = (rooms || []).map(room => roomId(room)).find(Boolean) || '';
+      group.id = 'GRP-OVERLAP-GUARD';
+      group.name = 'Overlap Guard Event';
+      group.checkin = '2026-06-10';
+      group.checkout = '2026-06-12';
+      group.roomAllocations = [];
+      group.allocations = [];
+      group.roomingList = [];
+      reservations = [{
+        id: 'RSV-EXISTING-CONFLICT',
+        groupId: 'GRP-OTHER-EVENT',
+        room: conflictRoom,
+        checkInDate: '2026-06-09',
+        checkOutDate: '2026-06-13',
+        status: 'in-house'
+      }];
+      window.reservations = reservations;
+      window.renderRooms();
+      window.addDetailAllocationRow();
+      const row = document.querySelector('.allocation-editor-row');
+      const select = row?.querySelector('.detail-room');
+      const conflictOption = Array.from(select?.options || []).find(option => option.value === conflictRoom);
+      const disabledInPicker = !!conflictOption?.disabled;
+      if (conflictOption && select) {
+        conflictOption.disabled = false;
+        select.value = conflictRoom;
+      }
+      await window.saveRoomAllocationsFromDetail();
+      const blockedOnSave = !group.roomAllocations.length;
+      reservations = [];
+      window.reservations = reservations;
+      return { conflictRoom, disabledInPicker, blockedOnSave };
+    });
+
+    assert(overlapGuardResult.conflictRoom, 'Overlap guard regression requires at least one room fixture.', overlapGuardResult);
+    assert(overlapGuardResult.disabledInPicker, 'Rooms with overlapping reservations must be disabled in the group allocation picker.', overlapGuardResult);
+    assert(overlapGuardResult.blockedOnSave, 'Overlapping room assignments must be rejected again at save time.', overlapGuardResult);
+
     const roomMoveResult = await page.evaluate(async () => {
       const roomValues = (rooms || []).map(room => roomId(room)).filter(Boolean);
       const originalMoveRoom = roomValues.find(value => /1222|0802|1402/.test(value)) || roomValues[0] || '';
@@ -515,6 +554,7 @@ function assert(condition, message, details = null) {
         'group detail hydrates company data for existing events',
         'group detail separates company baseline and event discount',
         'group detail requires registered company selection',
+        'group detail rejects overlapping room assignments in picker and save validation',
         'group detail avoids duplicate selected-room summary in allocation tab',
         'group detail splits room allocation and rooming list tabs'
       ]

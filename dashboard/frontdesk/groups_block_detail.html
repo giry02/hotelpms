@@ -1150,8 +1150,53 @@ function allocationOptions(selected = '', unavailable = new Set()) {
         const id = roomId(r);
         if (id !== selected && unavailable.has(id)) return '';
         const label = `${r.bldgCode || r.building || ''} ${r.display || r.number || id}`.trim();
-        return `<option value="${id}" ${id === selected ? 'selected' : ''}>${label} · ${r.type || 'Standard'}</option>`;
+        const conflict = overlappingReservationForRoom(id);
+        const conflictLabel = conflict
+            ? ((localStorage.getItem('pms_lang') || window.currentLang || 'ko') === 'en'
+                ? ' · Reserved for these dates'
+                : ' · 해당 기간 예약 중')
+            : '';
+        return `<option value="${id}" ${id === selected ? 'selected' : ''} ${conflict ? 'disabled' : ''}>${label} · ${r.type || 'Standard'}${conflictLabel}</option>`;
     })).join('');
+}
+
+function normalizedRoomKey(value) {
+    return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function reservationMatchesRoom(reservation, targetRoomId) {
+    const target = normalizedRoomKey(targetRoomId);
+    if (!target) return false;
+    return [reservation?.room, reservation?.roomNo, reservation?.roomId, reservation?.fullRoom]
+        .map(normalizedRoomKey)
+        .filter(Boolean)
+        .some(value => value === target
+            || (value.length >= 3 && target.length >= 3 && (value.endsWith(target) || target.endsWith(value))));
+}
+
+function reservationDateValue(reservation, type) {
+    const value = type === 'in'
+        ? (reservation?.checkInDate || reservation?.checkin || reservation?.checkIn || reservation?.arrivalDate)
+        : (reservation?.checkOutDate || reservation?.checkout || reservation?.checkOut || reservation?.departureDate);
+    return String(value || '').slice(0, 10);
+}
+
+function reservationBlocksGroupDates(reservation) {
+    const status = String(reservation?.status || '').toLowerCase().replace(/[\s_]+/g, '-');
+    if (['cancelled', 'canceled', 'no-show', 'noshow'].includes(status)) return false;
+    if (String(reservation?.groupId || '') === String(group?.id || '')) return false;
+    const eventStart = String(group?.checkin || '').slice(0, 10);
+    const eventEnd = String(group?.checkout || '').slice(0, 10);
+    const reservationStart = reservationDateValue(reservation, 'in');
+    const reservationEnd = reservationDateValue(reservation, 'out');
+    if (!eventStart || !eventEnd || !reservationStart || !reservationEnd) return false;
+    return eventStart < reservationEnd && reservationStart < eventEnd;
+}
+
+function overlappingReservationForRoom(targetRoomId) {
+    return (reservations || []).find(reservation =>
+        reservationMatchesRoom(reservation, targetRoomId) && reservationBlocksGroupDates(reservation)
+    ) || null;
 }
 
 window.addDetailAllocationRow = function(allocation = {}) {
@@ -3444,6 +3489,17 @@ window.addEventListener('DataReady', () => {
         const ids = allocations.map(item => item.roomId);
         if (new Set(ids).size !== ids.length) {
             showToast('같은 호실이 중복되었습니다.', 'error');
+            return;
+        }
+        const conflicts = allocations
+            .map(item => ({ item, reservation: overlappingReservationForRoom(item.roomId) }))
+            .filter(entry => entry.reservation);
+        if (conflicts.length) {
+            const roomNames = conflicts.map(entry => entry.item.roomLabel || entry.item.roomId).join(', ');
+            const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+            showToast(lang === 'en'
+                ? `Room assignment conflicts with an existing reservation: ${roomNames}`
+                : `기존 예약과 기간이 겹치는 객실입니다: ${roomNames}`, 'error');
             return;
         }
         const roomingMoveResult = applyRoomingRoomMoves(allocationRoomMoves(Array.from(document.querySelectorAll('.allocation-editor-row'))));
