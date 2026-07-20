@@ -1371,7 +1371,11 @@ async function deleteMaintenanceRequest(id) {
         showToast(maintenanceText('진행 중이거나 완료된 요청은 삭제할 수 없습니다.', 'Active or completed requests cannot be deleted.'));
         return;
     }
-    if (!window.confirm(maintenanceText('이 요청을 삭제하시겠습니까?', 'Delete this request?'))) return;
+    const confirmMessage = maintenanceText('이 요청을 삭제하시겠습니까?', 'Delete this request?');
+    const confirmed = typeof window.showConfirm === 'function'
+        ? await window.showConfirm(confirmMessage)
+        : window.confirm(confirmMessage);
+    if (!confirmed) return;
     await setMaintenanceRoomAvailability(request, false);
     requests = requests.filter(item => item.id !== id);
     persistMaintenanceRequests();

@@ -881,7 +881,11 @@ async function housekeepingMaintenanceFlow(page) {
   assert(await requestRow.isVisible(), 'maintenance date range did not include the matching request date');
   await page.locator('#maintenanceStartDate').fill('');
   await page.locator('#maintenanceEndDate').fill('');
-  return { requestId: saved.id, room, maintenanceFormState, persistedType, persistedPriority, requestDate };
+  await requestRow.locator('button[aria-label="Delete request"]').click();
+  await page.locator('#pms-confirm-ok').click();
+  await page.waitForFunction(desc => !document.body.innerText.includes(desc), description, { timeout: 5000 });
+  assert(await requestRow.count() === 0, 'open maintenance request was not deleted after confirmation');
+  return { requestId: saved.id, room, maintenanceFormState, persistedType, persistedPriority, requestDate, deleted: true };
 }
 
 async function adminTenantApplicationFlow(page) {
