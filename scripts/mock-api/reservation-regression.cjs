@@ -736,6 +736,51 @@ async function reservationTimelineShadowRegression(page, base) {
   return result;
 }
 
+async function reservationBoardDynamicEnglishRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=board-dynamic-english`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof renderReservationBoard === 'function' && document.querySelector('#reservationBoardContainer'), null, { timeout: 15000 });
+
+  const result = await page.evaluate(() => {
+    localStorage.setItem('pms_lang', 'en');
+    currentLang = 'en';
+    window.currentLang = 'en';
+    boardFilter = 'all';
+    boardPeriod = 'today';
+    groups = [{ id: 'P1-GROUP-I18N', name: 'P1 Test Group' }];
+    rooms = [
+      { id: 'T-EN-1', roomNo: 'T-EN-1', fullRoom: 'T-EN-1', type: 'Standard', building: 'Test Tower', floor: 1, status: 'occupied', frontStatus: 'in-house', housekeepingStatus: 'dirty' },
+      { id: 'T-EN-2', roomNo: 'T-EN-2', fullRoom: 'T-EN-2', type: 'Standard', building: 'Test Tower', floor: 1, status: 'occupied', frontStatus: 'in-house', housekeepingStatus: 'dirty' }
+    ];
+    reservations = [
+      {
+        id: 'RSV-P1-DYNAMIC-EN-1', room: 'T-EN-1', roomNo: 'T-EN-1', fullRoom: 'T-EN-1', type: 'Standard', status: 'checkedin',
+        guest: 'Dynamic English Guest', guestName: 'Dynamic English Guest', checkInDate: '2026-07-09', checkOutDate: '2026-07-11',
+        checkin: '2026-07-09', checkout: '2026-07-11', cin: '7/9', cout: '7/11', amount: 100, balanceDue: 25,
+        lateCheckout: true, lateCheckoutTime: '14:00', roomChangeHistory: [{ fromRoom: 'T-EN-0', toRoom: 'T-EN-1', changedAt: '2026-07-10T09:00:00+09:00' }]
+      },
+      {
+        id: 'RSV-P1-DYNAMIC-EN-2', room: 'T-EN-2', roomNo: 'T-EN-2', fullRoom: 'T-EN-2', type: 'Standard', status: 'checkedin',
+        guest: 'Group English Guest', guestName: 'Group English Guest', groupId: 'P1-GROUP-I18N', groupName: 'P1 Test Group', isB2B: true,
+        checkInDate: '2026-07-09', checkOutDate: '2026-07-11', checkin: '2026-07-09', checkout: '2026-07-11', cin: '7/9', cout: '7/11', amount: 100
+      }
+    ];
+    const container = document.querySelector('#reservationBoardContainer');
+    container.dataset.renderSignature = '';
+    renderReservationBoard();
+    return {
+      text: container.innerText,
+      legendAria: document.querySelector('.board-status-legend')?.getAttribute('aria-label') || ''
+    };
+  });
+
+  const required = ['Check-in 14:00', 'Check-out 12:00', 'Late 14:00', 'Balance Due', 'Moved T-EN-0 → T-EN-1', 'Group', 'P1 Test Group'];
+  required.forEach(label => assert(result.text.includes(label), `Dynamic English board must render ${label}.`, result));
+  assert(result.legendAria === 'Room status color guide', 'Dynamic English legend aria-label must be translated.', result);
+  assert(!/[가-힣]/.test(result.text), 'Dynamic English board must not render Korean labels after rerender.', result);
+  return result;
+}
+
 (async () => {
   let base = DEFAULT_BASE;
   let server = null;
@@ -768,6 +813,7 @@ async function reservationTimelineShadowRegression(page, base) {
 
     const dashboardCountResult = await dashboardCheckinCountRegression(page, base);
     const boardCleaningVisibilityResult = await reservationBoardCleaningVisibilityRegression(page, base);
+    const boardDynamicEnglishResult = await reservationBoardDynamicEnglishRegression(page, base);
     const todayCheckinRoomMasterResult = await todayCheckinRoomMasterRegression(page, base);
     const boardFilterColorResult = await reservationBoardFilterColorRegression(page, base);
     const maintenanceBookingGuardResult = await maintenanceRoomBookingGuardRegression(page, base);
@@ -1100,6 +1146,7 @@ async function reservationTimelineShadowRegression(page, base) {
         'reservation guest roster merges compatibility-field duplicates',
         'occupied rooms render checkout action instead of check-in',
         'reservation board keeps cleaning status visible beside check-in readiness',
+        'reservation board dynamic rerender stays fully English',
         'today check-in rooms are not blocked by stale room master status',
         'reservation board keeps card status colors stable across filters and hover',
         'maintenance room cards explain the booking block without opening the form',
@@ -1115,6 +1162,7 @@ async function reservationTimelineShadowRegression(page, base) {
       dashboardCountResult,
       duplicateRosterState,
       boardCleaningVisibilityResult,
+      boardDynamicEnglishResult,
       todayCheckinRoomMasterResult,
       boardFilterColorResult,
       maintenanceBookingGuardResult,

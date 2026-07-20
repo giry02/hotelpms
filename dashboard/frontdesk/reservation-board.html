@@ -286,6 +286,23 @@ const BOARD_TEXT = {
         'label.balance': '잔액',
         'label.noReservation': '예약 없음',
         'label.unassigned': '미지정',
+        'label.vip': 'VIP 우수고객',
+        'label.roomMove': '객실 이동',
+        'label.move': '이동',
+        'label.group': '단체',
+        'label.groupBlock': '단체 블록',
+        'label.unassignedGuest': '투숙객 미배정',
+        'label.checkInTime': '입실',
+        'label.checkOutTime': '퇴실',
+        'label.lateTime': '레이트',
+        'settlement.unpaid': '미수금 있음',
+        'settlement.ready': '정산 필요',
+        'settlement.paid': '정산 완료',
+        'settlement.deposit': '예치금',
+        'settlement.title': '정산 현황에서 확인',
+        'readiness.blocked': '체크인 불가',
+        'readiness.ready': '체크인 가능',
+        'legend.aria': '객실 상태 색상 안내',
         'label.roomCount': '{count}개 객실',
         'label.floor': '{floor}층',
         'empty.noMatching': '조건에 맞는 예약 현황이 없습니다.',
@@ -339,6 +356,23 @@ const BOARD_TEXT = {
         'label.balance': 'Balance',
         'label.noReservation': 'No Reservation',
         'label.unassigned': 'Unassigned',
+        'label.vip': 'VIP Guest',
+        'label.roomMove': 'Room Move',
+        'label.move': 'Moved',
+        'label.group': 'Group',
+        'label.groupBlock': 'Group Block',
+        'label.unassignedGuest': 'Guest Unassigned',
+        'label.checkInTime': 'Check-in',
+        'label.checkOutTime': 'Check-out',
+        'label.lateTime': 'Late',
+        'settlement.unpaid': 'Balance Due',
+        'settlement.ready': 'Settlement Due',
+        'settlement.paid': 'Settled',
+        'settlement.deposit': 'Deposit',
+        'settlement.title': 'View settlement status',
+        'readiness.blocked': 'Check-in Blocked',
+        'readiness.ready': 'Ready to Check In',
+        'legend.aria': 'Room status color guide',
         'label.roomCount': '{count} {rooms}',
         'label.floor': 'Floor {floor}',
         'empty.noMatching': 'No reservation board items match the current filters.',
@@ -658,6 +692,7 @@ function updateBoardStaticLabels() {
     });
     const legend = document.querySelector('.board-status-legend');
     if (legend) {
+        legend.setAttribute('aria-label', boardText('legend.aria'));
         legend.innerHTML = `
             <span class="board-legend-item"><span class="board-legend-swatch arrival"></span>${boardText('legend.arrival')}</span>
             <span class="board-legend-item"><span class="board-legend-swatch inhouse"></span>${boardText('legend.inhouse')}</span>
@@ -892,18 +927,18 @@ function boardSettlementSummary(res, state) {
     const checkoutToday = (state?.status === 'checkout' || isBoardCheckoutTargetStatus(effectiveReservationStatus(res))) && sameDate(reservationEnd(res), todayDate());
     const badges = [];
     if (balance > 0) {
-        badges.push({ key: 'unpaid', label: '미수금 있음', icon: 'fa-circle-exclamation' });
+        badges.push({ key: 'unpaid', label: boardText('settlement.unpaid'), icon: 'fa-circle-exclamation' });
     } else if (checkoutToday && !isCompleted) {
-        badges.push({ key: 'ready', label: '정산 필요', icon: 'fa-file-invoice-dollar' });
+        badges.push({ key: 'ready', label: boardText('settlement.ready'), icon: 'fa-file-invoice-dollar' });
     } else if (isCompleted) {
-        badges.push({ key: 'paid', label: '정산 완료', icon: 'fa-circle-check' });
+        badges.push({ key: 'paid', label: boardText('settlement.paid'), icon: 'fa-circle-check' });
     }
-    if (deposit > 0) badges.push({ key: 'deposit', label: '예치금', icon: 'fa-wallet' });
+    if (deposit > 0) badges.push({ key: 'deposit', label: boardText('settlement.deposit'), icon: 'fa-wallet' });
     if (!badges.length) return { html: '', terms: '' };
     const target = `../operations/settlement-status.html?query=${encodeURIComponent(res.room || res.roomNo || res.id || '')}`;
     return {
         terms: badges.map(item => item.label).join(' '),
-        html: `<a class="board-settlement-summary" href="${target}" onclick="event.stopPropagation()" title="정산 현황에서 확인">
+        html: `<a class="board-settlement-summary" href="${target}" onclick="event.stopPropagation()" title="${escapeHtml(boardText('settlement.title'))}">
             ${badges.map(item => `<span class="board-settle-badge ${item.key}"><i class="fa-solid ${item.icon}"></i>${item.label}</span>`).join('')}
         </a>`
     };
@@ -911,8 +946,8 @@ function boardSettlementSummary(res, state) {
 
 function boardCheckinReadiness(state, cleanInfo) {
     if (!state?.res || state.status !== 'arrival') return '';
-    if (state.status === 'oos') return '<span class="board-readiness block"><i class="fa-solid fa-ban"></i>체크인 불가</span>';
-    if (cleanInfo?.key === 'clean') return '<span class="board-readiness ready"><i class="fa-solid fa-circle-check"></i>체크인 가능</span>';
+    if (state.status === 'oos') return `<span class="board-readiness block"><i class="fa-solid fa-ban"></i>${escapeHtml(boardText('readiness.blocked'))}</span>`;
+    if (cleanInfo?.key === 'clean') return `<span class="board-readiness ready"><i class="fa-solid fa-circle-check"></i>${escapeHtml(boardText('readiness.ready'))}</span>`;
     return '';
 }
 function boardStatusFor(room) {
@@ -1000,9 +1035,9 @@ function reservationStayTimeHtml(res) {
     if (!res) return '';
     const late = reservationLateCheckoutEnabled(res);
     return `<div class="board-time-list">
-        <div class="board-time-line"><i class="fa-regular fa-clock"></i>입실 ${escapeHtml(reservationCheckInTime(res))}</div>
-        <div class="board-time-line"><i class="fa-regular fa-clock"></i>퇴실 ${escapeHtml(reservationCheckOutTime(res))}</div>
-    </div>${late ? `<div class="board-late-pill"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(reservationLateCheckoutTime(res))}</div>` : ''}`;
+        <div class="board-time-line"><i class="fa-regular fa-clock"></i>${escapeHtml(boardText('label.checkInTime'))} ${escapeHtml(reservationCheckInTime(res))}</div>
+        <div class="board-time-line"><i class="fa-regular fa-clock"></i>${escapeHtml(boardText('label.checkOutTime'))} ${escapeHtml(reservationCheckOutTime(res))}</div>
+    </div>${late ? `<div class="board-late-pill"><i class="fa-solid fa-clock"></i>${escapeHtml(boardText('label.lateTime'))} ${escapeHtml(reservationLateCheckoutTime(res))}</div>` : ''}`;
 }
 
 function normalizedRoomOpsValue(value) {
@@ -1196,7 +1231,7 @@ function reservationStateForFilter(res) {
     };
     return {
         status: statusByBucket[bucket] || 'reserved',
-        label: labelByBucket[bucket] || '예약 예정',
+        label: labelByBucket[bucket] || boardText('status.reserved'),
         res
     };
 }
@@ -1346,14 +1381,14 @@ function boardCard(room) {
         displayName,
         groupName,
         boardGroupSearchText(res),
-        isVip ? 'VIP 우수고객' : '',
+        isVip ? boardText('label.vip') : '',
         res?.vip,
         res?.tier,
         companions.join(' '),
-        hasRoomChange ? `객실 이동 ${roomChangeText}` : '',
+        hasRoomChange ? `${boardText('label.roomMove')} ${roomChangeText}` : '',
         res ? reservationCheckInTime(res) : '',
         res ? reservationCheckOutTime(res) : '',
-        res && reservationLateCheckoutEnabled(res) ? `레이트 ${reservationLateCheckoutTime(res)}` : ''
+        res && reservationLateCheckoutEnabled(res) ? `${boardText('label.lateTime')} ${reservationLateCheckoutTime(res)}` : ''
     ].join(' ').toLowerCase();
     const query = document.getElementById('boardSearch')?.value.trim().toLowerCase() || '';
     if (query && !searchText.includes(query)) return '';
@@ -1367,10 +1402,10 @@ function boardCard(room) {
         ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"`
         : (canAttemptBooking ? `onclick="openBoardRoomBooking('${encodeURIComponent(roomId)}')"` : '');
     const flags = res ? [
-        hasRoomChange ? `<span class="board-flag move"><i class="fa-solid fa-right-left"></i>이동 ${escapeHtml(roomChangeText)}</span>` : ''
+        hasRoomChange ? `<span class="board-flag move"><i class="fa-solid fa-right-left"></i>${escapeHtml(boardText('label.move'))} ${escapeHtml(roomChangeText)}</span>` : ''
     ].filter(Boolean).join('') : '';
     const groupHeader = isGroup
-        ? `<div class="board-group-title"><span class="board-group-badge"><i class="fa-solid fa-users"></i>단체</span><span class="board-group-name">${escapeHtml(groupName || '단체 블록')}</span></div>`
+        ? `<div class="board-group-title"><span class="board-group-badge"><i class="fa-solid fa-users"></i>${escapeHtml(boardText('label.group'))}</span><span class="board-group-name">${escapeHtml(groupName || boardText('label.groupBlock'))}</span></div>`
         : '';
     const vipRow = isVip && isGroup
         ? `<div class="board-vip-row"><i class="fa-solid fa-crown"></i><span>VIP</span></div>`
@@ -1378,7 +1413,7 @@ function boardCard(room) {
     const vipInline = isVip && !isGroup
         ? `<span class="board-vip-inline"><i class="fa-solid fa-crown"></i>VIP</span>`
         : '';
-    const guestName = isGroup ? (primary || '투숙객 미배정') : (displayName || primary || '-');
+    const guestName = isGroup ? (primary || boardText('label.unassignedGuest')) : (displayName || primary || '-');
     return `<div class="room-box reservation-board-box ${state.status}${hasRoomChange ? ' room-moved' : ''}${canCreateBooking ? ' is-bookable' : ''}" ${click} style="${(res || canAttemptBooking) ? 'cursor:pointer' : ''}">
         <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${boardStatusIcon(state.status)}"></i>${state.label}</span></div>
         <div class="room-box-type">${escapeHtml(roomType(room))}</div>
