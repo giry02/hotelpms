@@ -711,6 +711,13 @@ function startRoomCleaning(roomId, type) {
     completeTask(task.id, 'cleaning');
 }
 
+function completeRoomCleaning(roomId, type) {
+    const room = allRooms.find(r => matchesRoomKey(r.id, roomId) || matchesRoomKey(r.roomId, roomId) || matchesRoomKey(r.fullRoom, roomId) || matchesRoomKey(r.roomNo, roomId));
+    if (!room) return;
+    const task = findActiveTaskForRoom(room) || createRoomCleanTask(room, type);
+    completeTask(task.id, 'clean');
+}
+
 function jsString(value) {
     return String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
@@ -829,25 +836,20 @@ function renderRoomBox(r, appendHtml) {
     let actionBtnHtml = '';
     let completedByHtml = '';
 
-    if (isOccupied && activeTask && activeTask.type === 'stayover') {
-        if (r.hkStatus === 'dirty') {
-            const btnText = isEn ? 'Start Stayover Clean' : '투숙중 청소시작';
-            actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'cleaning'); event.stopPropagation();">${btnText}</button>`;
-        } else if (r.hkStatus === 'cleaning') {
-            const btnText = isEn ? 'Complete Clean' : '청소 완료';
-            actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'clean'); event.stopPropagation();">${btnText}</button>`;
-        }
-    } else if (!isOccupied && r.taskId) {
-        if (r.hkStatus === 'dirty') {
-            const btnText = isEn ? 'Start Clean' : '청소시작';
-            actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'cleaning'); event.stopPropagation();">${btnText}</button>`;
-        }
-    } else if (!isOccupied && r.hkStatus === 'dirty') {
-        const btnText = isEn ? 'Start Clean' : '청소시작';
-        actionBtnHtml = `<button class="primary-action-btn" onclick="startRoomCleaning('${jsString(r.roomId || r.fullRoom || r.id)}', 'checkout'); event.stopPropagation();">${btnText}</button>`;
-    } else if (r.hkStatus === 'cleaning' && r.taskId) {
+    const roomRef = jsString(r.roomId || r.fullRoom || r.id);
+    const cleaningType = isOccupied ? 'stayover' : 'checkout';
+    if (r.hkStatus === 'dirty') {
+        const btnText = isEn ? (isOccupied ? 'Start Stayover Clean' : 'Start Clean') : (isOccupied ? '투숙중 청소시작' : '청소시작');
+        const action = r.taskId
+            ? `completeTask('${jsString(r.taskId)}', 'cleaning')`
+            : `startRoomCleaning('${roomRef}', '${cleaningType}')`;
+        actionBtnHtml = `<button class="primary-action-btn" onclick="${action}; event.stopPropagation();">${btnText}</button>`;
+    } else if (r.hkStatus === 'cleaning') {
         const btnText = isEn ? 'Complete Clean' : '청소 완료';
-        actionBtnHtml = `<button class="primary-action-btn" onclick="completeTask('${r.taskId}', 'clean'); event.stopPropagation();">${btnText}</button>`;
+        const action = r.taskId
+            ? `completeTask('${jsString(r.taskId)}', 'clean')`
+            : `completeRoomCleaning('${roomRef}', '${cleaningType}')`;
+        actionBtnHtml = `<button class="primary-action-btn" onclick="${action}; event.stopPropagation();">${btnText}</button>`;
     }
 
     if ((!isOccupied || r.hasExplicitCleaningState) && r.hkStatus === 'clean') {
