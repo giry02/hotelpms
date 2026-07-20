@@ -860,7 +860,16 @@ async function housekeepingMaintenanceFlow(page) {
   const requestDate = await page.evaluate(id => {
     const list = JSON.parse(localStorage.getItem('pms_maintenance') || '[]');
     const request = list.find(item => item.id === id);
-    return String(request?.issuedAt || request?.date || '').slice(0, 10);
+    const parsed = new Date(request?.issuedAt || request?.date || Date.now());
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(parsed).reduce((acc, part) => {
+      acc[part.type] = part.value;
+      return acc;
+    }, {});
+    return `${parts.year}-${parts.month}-${parts.day}`;
   }, saved.id);
   const dayAfterRequest = new Date(`${requestDate}T00:00:00Z`);
   dayAfterRequest.setUTCDate(dayAfterRequest.getUTCDate() + 1);
