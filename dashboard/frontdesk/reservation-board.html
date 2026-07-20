@@ -1203,22 +1203,26 @@ function reservationMatchesBoardFilter(res, filter) {
 function reservationForRoomFilter(room, filter = boardFilter) {
     if (filter === 'all' || filter === 'completed') return null;
     if (filter === 'checkinDirty') return boardCheckinDirtyReservationForRoom(room);
+    const state = boardStatusFor(room);
+    const currentReservation = state.res || null;
     if (filter === 'dirty') {
-        return reservations
-            .filter(res => {
-                const status = normalizeReservationStatus(res.status);
-                return roomMatchesReservation(room, res) &&
-                    reservationOverlapsRange(res) &&
-                    !['cancelled', 'completed'].includes(status) &&
-                    !reservationShadowedByCompletedCheckout(res) &&
-                    boardCleaningSummary(room, res).key === 'dirty';
-            })
-            .sort((a, b) => {
-                const left = parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0;
-                const right = parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0;
-                return left - right;
-            })[0] || null;
+        return boardCleaningSummary(room, currentReservation).key === 'dirty'
+            ? currentReservation
+            : null;
     }
+    if (filter === 'group') return currentReservation && boardIsGroupReservation(currentReservation) ? currentReservation : null;
+    if (filter === 'late') return currentReservation && reservationLateCheckoutEnabled(currentReservation) ? currentReservation : null;
+    if (filter === 'roommove') return currentReservation && reservationHasRoomChange(currentReservation) ? currentReservation : null;
+    if (filter !== 'cancelled') {
+        return currentReservation && reservationBucket(currentReservation) === filter
+            ? currentReservation
+            : null;
+    }
+
+    // Cancelled stays are historical. Only surface one when the room has no
+    // current board reservation, otherwise the same room would display a
+    // different guest and status when switching filters.
+    if (currentReservation) return null;
     return reservations
         .filter(res => roomMatchesReservation(room, res) && reservationMatchesBoardFilter(res, filter))
         .sort((a, b) => {
