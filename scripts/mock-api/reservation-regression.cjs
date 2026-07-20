@@ -886,6 +886,49 @@ async function reservationTimelineShadowRegression(page, base) {
     assert(editSearchState.rosterText.includes('Alexander Kim'), 'Edit detail must still show the reservation guest roster.', editSearchState);
     assert(editSearchState.privacyText.includes('Alexander Kim'), 'Edit detail must still show guest detail information below.', editSearchState);
 
+    const duplicateRosterState = await page.evaluate(async () => {
+      window.rooms = [{ id: 'T-902', number: '902', fullRoom: 'T-902', type: 'Standard', building: 'Test Tower', status: 'occupied', housekeepingStatus: 'clean', frontStatus: 'occupied' }];
+      window.reservations = [{
+        id: 'RSV-DUPLICATE-ROSTER',
+        room: 'T-902',
+        fullRoom: 'T-902',
+        type: 'Standard',
+        status: 'checkedin',
+        guest: 'P1 Companion',
+        guestName: 'P1 Companion',
+        roomingGuestName: 'P1 Companion',
+        guestId: 'G-P1-COMPANION',
+        roomingGuestId: 'G-P1-COMPANION',
+        companionGuestNames: ['Grace Miller'],
+        companionGuestIds: ['G-GRACE-MILLER'],
+        roomingGuestNames: ['P1 Companion', 'Grace Miller'],
+        roomingGuests: [
+          { guestId: 'G-P1-COMPANION', id: 'G-P1-COMPANION', name: 'P1 Companion', role: 'primary' },
+          { guestId: 'G-GRACE-MILLER', id: 'G-GRACE-MILLER', name: 'Grace Miller', role: 'companion' }
+        ],
+        companions: [{ name: 'Grace Miller', role: 'companion' }],
+        cin: '7/10',
+        cout: '7/12',
+        checkin: '2026-07-10',
+        checkout: '2026-07-12',
+        checkInDate: '2026-07-10',
+        checkOutDate: '2026-07-12',
+        nights: 2,
+        len: 2
+      }];
+      reservations = window.reservations;
+      await openUnifiedResModal('RSV-DUPLICATE-ROSTER');
+      const rosterText = document.getElementById('unifiedStayGuestList')?.innerText || '';
+      return {
+        rosterText,
+        graceOccurrences: (rosterText.match(/Grace Miller/g) || []).length,
+        countText: document.getElementById('unifiedStayGuestCount')?.innerText || ''
+      };
+    });
+
+    assert(duplicateRosterState.graceOccurrences === 1, 'Reservation guest roster must merge the same companion when one compatibility field omits the guest ID.', duplicateRosterState);
+    assert(duplicateRosterState.countText.includes('2'), 'Reservation guest roster count must exclude compatibility-field duplicates.', duplicateRosterState);
+
     const occupiedRoomFlowState = await page.evaluate(async () => {
       const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
       const tomorrowDate = new Date(`${today}T00:00:00`);
@@ -1026,6 +1069,7 @@ async function reservationTimelineShadowRegression(page, base) {
         'late checkout filter and sort labels stay distinct',
         'new reservation has no manual status/group conversion controls',
         'edit detail keeps guest search idle until user searches',
+        'reservation guest roster merges compatibility-field duplicates',
         'occupied rooms render checkout action instead of check-in',
         'reservation board keeps cleaning status visible beside check-in readiness',
         'today check-in rooms are not blocked by stale room master status',
@@ -1041,6 +1085,7 @@ async function reservationTimelineShadowRegression(page, base) {
         'dashboard today check-in KPI matches reservation board after rooms become in-house'
       ],
       dashboardCountResult,
+      duplicateRosterState,
       boardCleaningVisibilityResult,
       todayCheckinRoomMasterResult,
       boardFilterColorResult,

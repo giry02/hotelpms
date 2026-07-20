@@ -1084,6 +1084,28 @@
         return guestId ? `id:${guestId}` : `name:${name.toLowerCase()}`;
     }
 
+    function sameRosterGuest(left, right) {
+        const leftId = compactValue(left?.guestId || left?.id || left?.roomingGuestId);
+        const rightId = compactValue(right?.guestId || right?.id || right?.roomingGuestId);
+        if (leftId && rightId) return leftId === rightId;
+
+        const leftEmail = compactValue(left?.email || left?.guestEmail).toLowerCase();
+        const rightEmail = compactValue(right?.email || right?.guestEmail).toLowerCase();
+        if (leftEmail && rightEmail && leftEmail === rightEmail) return true;
+
+        const leftPhone = normalizeReservationGuestPhone(left?.phone || left?.mobile || left?.guestPhone).replace(/\D/g, '');
+        const rightPhone = normalizeReservationGuestPhone(right?.phone || right?.mobile || right?.guestPhone).replace(/\D/g, '');
+        if (leftPhone && rightPhone && leftPhone === rightPhone) return true;
+
+        const leftName = compactValue(left?.name || left?.guestName || left?.roomingGuestName || left?.guest).toLowerCase();
+        const rightName = compactValue(right?.name || right?.guestName || right?.roomingGuestName || right?.guest).toLowerCase();
+        return !!leftName && leftName === rightName;
+    }
+
+    function rosterGuestIndex(entries, candidate) {
+        return entries.findIndex(item => sameRosterGuest(item, candidate));
+    }
+
     function normalizeRosterGuest(source, fallbackRole = 'companion') {
         if (!source) return null;
         const item = typeof source === 'string' ? { name: source } : source;
@@ -1304,8 +1326,7 @@
         const addEntry = (raw, fallbackRole) => {
             const normalized = normalizeRosterGuest(mergeRosterGuestWithRecord(raw, guestList), fallbackRole);
             if (!normalized) return;
-            const key = rosterGuestKey(normalized);
-            const existingIndex = entries.findIndex(item => rosterGuestKey(item) === key);
+            const existingIndex = rosterGuestIndex(entries, normalized);
             if (normalized.role === 'primary') {
                 entries.forEach(item => { item.role = 'companion'; });
             }
@@ -1352,11 +1373,10 @@
             entries[0].role = 'primary';
         }
 
-        const seen = new Set();
+        const seen = [];
         return entries.filter(item => {
-            const key = rosterGuestKey(item);
-            if (!key || seen.has(key)) return false;
-            seen.add(key);
+            if (!rosterGuestKey(item) || seen.some(existing => sameRosterGuest(existing, item))) return false;
+            seen.push(item);
             return true;
         });
     }
@@ -1422,7 +1442,7 @@
         entries.forEach(entry => {
             const normalized = normalizeRosterGuest(entry, entry?.role || 'companion');
             if (!normalized) return;
-            const existingIndex = unifiedStayGuestRoster.findIndex(item => rosterGuestKey(item) === rosterGuestKey(normalized));
+            const existingIndex = rosterGuestIndex(unifiedStayGuestRoster, normalized);
             if (normalized.role === 'primary') unifiedStayGuestRoster.forEach(item => { item.role = 'companion'; });
             if (existingIndex >= 0) unifiedStayGuestRoster[existingIndex] = { ...unifiedStayGuestRoster[existingIndex], ...normalized };
             else unifiedStayGuestRoster.push(normalized);
@@ -1462,8 +1482,7 @@
     function upsertUnifiedRosterGuest(source, role = 'companion') {
         const normalized = normalizeRosterGuest(source, role);
         if (!normalized) return null;
-        const key = rosterGuestKey(normalized);
-        const existingIndex = unifiedStayGuestRoster.findIndex(item => rosterGuestKey(item) === key);
+        const existingIndex = rosterGuestIndex(unifiedStayGuestRoster, normalized);
         if (existingIndex >= 0 && unifiedStayGuestRoster[existingIndex].role === 'primary' && normalized.role !== 'primary') {
             return unifiedStayGuestRoster[existingIndex];
         }
