@@ -283,9 +283,9 @@
 - **저장값**: 생성 예약번호, 객실 ID PH01, 상태 `confirmed/reserved`.
 - **정리**: 생성 예약을 취소하고 PH01을 공실·청소 완료로 복원한다.
 
-#### P1-RES-NEW-002 청소 필요 1203 예약 경고 취소·계속·저장 유지
+#### P1-RES-NEW-002 청소 필요 공실 예약 경고 취소·계속·저장 유지
 
-- **fixture**: `FX-ROOM-DIRTY`
+- **fixture**: `FX-ROOM-DIRTY`. 실행 직전 대상 객실을 공실·청소 필요로 초기화하고 대상 객실 ID를 증거에 기록한다. 기준 예시는 1203이며, 기준 데이터가 이미 사용 중이면 대체 객실을 사용하되 해당 실행은 `PARTIAL`로 판정한다.
 - **입력**
   - 고객 `P1 Dirty Guest`, 이메일 `p1.res.dirty@example.com`
   - 체크인 `2026-07-10 14:00`, 체크아웃 `2026-07-11 12:00`, 객실 `1203`
@@ -702,51 +702,62 @@
 
 ## 10. 실행 결과 기록표
 
-현재는 계획 단계이므로 모든 결과는 `NOT TESTED`이다. 실행 후 아래 표를 갱신하며 별도 요약만으로 이 표를 대체하지 않는다.
+실행 후 아래 표를 갱신하며 별도 요약만으로 이 표를 대체하지 않는다. 이 표는 41개 핵심 프로세스의 최종 판정 원본이며, 이후 작성하는 모든 테스트 보고서에도 동일한 41개 ID와 개별 결과를 반드시 포함한다.
+
+각 행은 다음 조건을 모두 기록해야 한다.
+
+- `결과`: `PASS`, `PASS-LOCAL`, `FAIL`, `BLOCKED`, `PARTIAL`, `NOT TESTED` 중 하나
+- `실제 결과 요약`: 실제 입력값과 화면·저장·재진입·연계 화면 결과
+- `결함 ID`: 최초 실행이 실패했다면 수정 후 PASS가 되었더라도 결함 ID 유지
+- `수정 파일/수정 내용`: 원인과 변경 로직을 파일 단위로 기록
+- `재시험`: 최초 결과와 재시험 결과를 구분해 기록
+- `증거 경로`: 화면 캡처와 저장·재조회 결과가 있는 케이스 전용 디렉터리
+
+`PASS`는 8개 필수 게이트가 모두 충족된 경우에만 사용할 수 있다. 공통 스모크 테스트나 내부 함수 직접 호출 결과는 개별 행의 PASS 증거가 아니다.
 
 | 케이스 ID | 결과 | 실제 결과 요약 | 결함 ID | 수정 파일/수정 내용 | 재시험 | 증거 경로 |
 |---|---|---|---|---|---|---|
-| P1-AUTH-001 | NOT TESTED | - | - | - | - | - |
-| P1-AUTH-002 | NOT TESTED | - | - | - | - | - |
-| P1-STAFF-001 | NOT TESTED | - | - | - | - | - |
-| P1-DASH-001 | NOT TESTED | - | - | - | - | - |
-| P1-RES-VIEW-001 | NOT TESTED | - | - | - | - | - |
-| P1-RES-VIEW-002 | NOT TESTED | - | - | - | - | - |
-| P1-RES-NEW-001 | NOT TESTED | - | - | - | - | - |
-| P1-RES-NEW-002 | NOT TESTED | - | - | - | - | - |
-| P1-RES-NEW-003 | NOT TESTED | - | - | - | - | - |
-| P1-RES-NEW-004 | NOT TESTED | - | - | - | - | - |
-| P1-RES-NEW-005 | NOT TESTED | - | - | - | - | - |
-| P1-RES-EDIT-001 | NOT TESTED | - | - | - | - | - |
-| P1-RES-CANCEL-001 | NOT TESTED | - | - | - | - | - |
-| P1-CHECKIN-001 | NOT TESTED | - | - | - | - | - |
-| P1-CHECKIN-002 | NOT TESTED | - | - | - | - | - |
-| P1-CHECKIN-003 | NOT TESTED | - | - | - | - | - |
-| P1-STAY-001 | NOT TESTED | - | - | - | - | - |
-| P1-STAY-002 | NOT TESTED | - | - | - | - | - |
-| P1-STAY-003 | NOT TESTED | - | - | - | - | - |
-| P1-CHECKOUT-001 | NOT TESTED | - | - | - | - | - |
-| P1-CHECKOUT-002 | NOT TESTED | - | - | - | - | - |
-| P1-CHECKOUT-003 | NOT TESTED | - | - | - | - | - |
-| P1-GROUP-001 | NOT TESTED | - | - | - | - | - |
-| P1-GROUP-002 | NOT TESTED | - | - | - | - | - |
-| P1-GROUP-003 | NOT TESTED | - | - | - | - | - |
-| P1-GROUP-004 | NOT TESTED | - | - | - | - | - |
-| P1-HK-001 | NOT TESTED | - | - | - | - | - |
-| P1-MAINT-001 | NOT TESTED | - | - | - | - | - |
-| P1-ANC-001 | NOT TESTED | - | - | - | - | - |
-| P1-ANC-002 | NOT TESTED | - | - | - | - | - |
-| P1-ANC-003 | NOT TESTED | - | - | - | - | - |
-| P1-ANC-004 | NOT TESTED | - | - | - | - | - |
-| P1-FOLIO-001 | NOT TESTED | - | - | - | - | - |
-| P1-FOLIO-002 | NOT TESTED | - | - | - | - | - |
-| P1-EXP-001 | NOT TESTED | - | - | - | - | - |
-| P1-EXP-002 | NOT TESTED | - | - | - | - | - |
-| P1-NIGHT-001 | NOT TESTED | - | - | - | - | - |
-| P1-GUEST-001 | NOT TESTED | - | - | - | - | - |
-| P1-PERM-001 | NOT TESTED | - | - | - | - | - |
-| P1-AUDIT-001 | NOT TESTED | - | - | - | - | - |
-| P1-ADMIN-001 | NOT TESTED | - | - | - | - | - |
+| P1-AUTH-001 | PASS-LOCAL | desk 계정 로그인 후 대시보드 이동, 새로고침 후 세션 유지 | - | 변경 없음 | PASS-LOCAL | `outputs/process-phase1-20260720/P1-AUTH-001` |
+| P1-AUTH-002 | PARTIAL | 자동 인증 회귀 통과, 휴직·퇴직 계정의 실제 로그인 시도 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-STAFF-001 | PARTIAL | 입력·클릭 스위트 통과, 한 직원의 전체 CRUD·역할·상태 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-interactions.log` |
+| P1-DASH-001 | PASS-LOCAL | 금일 체크인 KPI 4 클릭 후 checkin 필터와 카드 4건 일치 | - | 변경 없음 | PASS-LOCAL | `manual-ui-results.json` |
+| P1-RES-VIEW-001 | PASS-LOCAL | 전체/체크아웃 필터에서 1203 카드 상태·색상·청소 셀렉트 동일 | - | 변경 없음 | PASS-LOCAL | `manual-ui-results.json` |
+| P1-RES-VIEW-002 | PASS-LOCAL | 객실 변경 배지 1과 실제 1202 카드 1건 일치 | - | 변경 없음 | PASS-LOCAL | `manual-ui-results.json` |
+| P1-RES-NEW-001 | PARTIAL | 예약 회귀 통과, 지정 PH01 정상 예약의 8게이트 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
+| P1-RES-NEW-002 | PARTIAL | 1212 대체 fixture로 경고 취소·승인·1건 저장 확인, 계획 입력 1203과 달라 PARTIAL | TC-DOC-001 | 청소 필요 fixture 대체 사용 판정 규칙 추가 | PARTIAL | `manual-ui-results.json` |
+| P1-RES-NEW-003 | PARTIAL | 점검 객실 차단 회귀 통과, 지정 입력 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
+| P1-RES-NEW-004 | PARTIAL | 중복 방지 회귀 통과, 지정 입력 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
+| P1-RES-NEW-005 | PARTIAL | 입력 검증 스위트 통과, 날짜·시간 각 오류 분기 증거 미완료 | - | 변경 없음 | PARTIAL | `support-inputs-ko.log` |
+| P1-RES-EDIT-001 | PARTIAL | 예약 회귀 통과, 수정 후 목록·타임라인·감사로그 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
+| P1-RES-CANCEL-001 | PARTIAL | 예약 취소 회귀 통과, 지정 예약의 객실 반환 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-CHECKIN-001 | PARTIAL | 체크인 회귀 통과, 지정 고객 UI 저장·재조회 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-CHECKIN-002 | PARTIAL | 청소 상태 경고 회귀 통과, 취소·계속 두 분기 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
+| P1-CHECKIN-003 | PARTIAL | 점검/미래 예약 차단 회귀 통과, 실제 두 분기 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
+| P1-STAY-001 | PARTIAL | 객실 이동 회귀 통과, 지정 예약 전 화면 재조회 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
+| P1-STAY-002 | PARTIAL | 투숙객 명단 회귀 통과, 추가·대표변경·삭제 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-STAY-003 | PARTIAL | 플랫카드 UI 회귀 통과, 저장·미리보기·가로 인쇄 증거 미완료 | - | 변경 없음 | PARTIAL | `support-critical-ui.log` |
+| P1-CHECKOUT-001 | PARTIAL | 수납·체크아웃 회귀 통과, 지정 금액의 연속 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-CHECKOUT-002 | PARTIAL | 미수금 차단 회귀 통과, 오류 분기 실제 입력 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-CHECKOUT-003 | PARTIAL | 상태 계산 회귀 통과, 체크아웃 완료/공실 역할 분리 재조회 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
+| P1-GROUP-001 | PARTIAL | 단체 회귀 통과, 업체 CRUD와 삭제 제약 전체 증거 미완료 | - | 변경 없음 | PARTIAL | `support-groups.log` |
+| P1-GROUP-002 | PARTIAL | 이벤트·객실 배정 회귀 통과, 지정 입력 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-groups.log` |
+| P1-GROUP-003 | PARTIAL | 명단 연결 회귀 통과, 예약 3화면 재조회 증거 미완료 | - | 변경 없음 | PARTIAL | `support-groups.log` |
+| P1-GROUP-004 | PARTIAL | 통계 회귀 통과, 기간별 합계 수기 대조 증거 미완료 | - | 변경 없음 | PARTIAL | `support-groups.log` |
+| P1-HK-001 | PARTIAL | 청소 상태 회귀 통과, 3화면 동기화 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
+| P1-MAINT-001 | PARTIAL | 시설보수 회귀 통과, 생성·수정·완료·삭제와 예약 차단 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-ANC-001 | PARTIAL | 빈 객실 미노출 회귀 통과, 지정 객실 화면 증거 미완료 | - | 변경 없음 | PARTIAL | `support-ancillary.log` |
+| P1-ANC-002 | PARTIAL | 카테고리 등록·필터 회귀 통과, 5종 실제 등록 증거 미완료 | - | 변경 없음 | PARTIAL | `support-ancillary.log` |
+| P1-ANC-003 | PARTIAL | 저장·감사 로그 회귀 통과, 완료 왕복 실제 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-storage.log` |
+| P1-ANC-004 | PARTIAL | 바우처 회귀 통과, 골프·렌터카·음식점 각각의 인쇄 증거 미완료 | - | 변경 없음 | PARTIAL | `support-ancillary.log` |
+| P1-FOLIO-001 | PARTIAL | 정산 E2E 통과, 지정 수납의 완료·상세 재조회 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-FOLIO-002 | PARTIAL | 정산 되돌리기 저장 회귀 통과, 감사로그 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-storage.log` |
+| P1-EXP-001 | PARTIAL | 입력·저장 회귀 통과, CRUD·KPI·시재 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-EXP-002 | PARTIAL | 다국어·통화 회귀 통과, 호텔 기준 통화 변경별 실제 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-i18n.log` |
+| P1-NIGHT-001 | PARTIAL | 마감 회귀 통과, 시재 수식 수기 대조와 재진입 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-GUEST-001 | PARTIAL | 고객 등록 회귀 통과, 수정·예약 연결 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
+| P1-PERM-001 | PARTIAL | 권한 회귀 통과, 역할별 실제 재로그인과 접근 차단 증거 미완료 | - | 변경 없음 | PARTIAL | `support-critical-ui.log` |
+| P1-AUDIT-001 | PARTIAL | 저장 회귀 통과, 모든 주요 변경의 감사 행 수기 대조 미완료 | - | 변경 없음 | PARTIAL | `support-storage.log` |
+| P1-ADMIN-001 | PARTIAL | API·데이터 계약 통과, PMS/Admin 양방향 실제 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-api.log` |
 
 ## 11. 완료 기준
 

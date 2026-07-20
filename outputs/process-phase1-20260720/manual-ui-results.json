@@ -1,0 +1,42 @@
+{
+  "executedAt": "2026-07-20T12:50:00+09:00",
+  "environment": "http://127.0.0.1:8765",
+  "cases": [
+    {
+      "id": "P1-AUTH-001",
+      "result": "PASS-LOCAL",
+      "input": "desk@hotel.example / password123!",
+      "actual": "로그인 후 dashboard/dashboard.html로 이동했고, 새로고침 후에도 세션이 유지됐다.",
+      "evidence": "outputs/process-phase1-20260720/P1-AUTH-001/after-reload.png"
+    },
+    {
+      "id": "P1-DASH-001",
+      "result": "PASS-LOCAL",
+      "input": "대시보드 금일 체크인 KPI 4건 클릭",
+      "actual": "reservation-board.html?filter=checkin으로 이동했고, 오늘 체크인 필터 4건과 카드 4건이 일치했다.",
+      "evidence": "Browser DOM snapshot"
+    },
+    {
+      "id": "P1-RES-VIEW-001",
+      "result": "PASS-LOCAL",
+      "input": "전체 필터와 체크아웃 필터에서 1203호 비교",
+      "actual": "두 필터 모두 카드 상태 클래스와 청소 상태 값이 동일했다.",
+      "evidence": "Browser DOM snapshot"
+    },
+    {
+      "id": "P1-RES-VIEW-002",
+      "result": "PASS-LOCAL",
+      "input": "객실 변경 필터 클릭",
+      "actual": "필터 배지 1건, 표시 카드 1건, 대상 1202호가 일치했다.",
+      "evidence": "Browser DOM snapshot"
+    },
+    {
+      "id": "P1-RES-NEW-002",
+      "result": "PARTIAL",
+      "input": "청소 필요 공실 1212호, DirtyCase Tester, +82 10 7200 4121, dirty.case.4121@example.com",
+      "actual": "최초 저장 시 경고가 표시됐고 취소 후 입력과 호실 선택이 유지됐다. 재저장 후 승인하자 1212호에 예약 1건이 생성되고 고객명과 PHP 140 금액이 유지됐다.",
+      "limitation": "계획서 예시 호실 1203호가 현재 데이터에서 공실이 아니어서 1212호로 대체 실행했다. 대체 fixture 사용 규칙에 따라 PASS로 승격하지 않았다.",
+      "evidence": "Browser DOM snapshot and persisted card state"
+    }
+  ]
+}

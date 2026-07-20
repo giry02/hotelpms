@@ -227,7 +227,7 @@
 | P1-RES-VIEW-001 | 전체·상태별 필터의 동일 카드 표현 | PG-PMS-008~010 |
 | P1-RES-VIEW-002 | 객실 변경 카운트와 실제 카드 수 | PG-PMS-008~010 |
 | P1-RES-NEW-001 | 청소 완료 공실의 정상 예약 | PG-PMS-008, PG-PMS-015 |
-| P1-RES-NEW-002 | 청소 필요 1203 예약 경고 취소·계속·저장 유지 | PG-PMS-008, PG-PMS-017 |
+| P1-RES-NEW-002 | 청소 필요 공실 예약 경고 취소·계속·저장 유지 | PG-PMS-008, PG-PMS-017 |
 | P1-RES-NEW-003 | 점검/수리 중 객실 예약 차단 | PG-PMS-008, PG-PMS-018 |
 | P1-RES-NEW-004 | 중복 일정 예약 차단 | PG-PMS-008~010 |
 | P1-RES-NEW-005 | 날짜·시간 유효성 검증 | PG-PMS-008 |
@@ -349,9 +349,59 @@
 
 | 케이스 ID | 실제 입력 데이터 | 예상 결과 | 실제 결과 | 결과 | 결함 ID | 원인 | 수정 파일/내용 | 재시험 결과 | UI 증거 | API·저장 증거 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| P1-AUTH-001 | 부록 A 기준 | 부록 A 기준 | 미실행 | NOT TESTED | - | - | - | NOT TESTED | - | - |
+| P1-AUTH-001 | `desk@hotel.example` | 대시보드 진입·세션 유지 | 기대와 일치 | PASS-LOCAL | - | - | 변경 없음 | PASS-LOCAL | `P1-AUTH-001/after-reload.png` | 세션 유지 |
+| P1-AUTH-002 | 부록 A 기준 | 휴직·퇴직 로그인 차단 | 지원 회귀만 완료 | PARTIAL | - | 개별 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-STAFF-001 | 부록 A 기준 | 직원 전체 CRUD·상태·역할 | 지원 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-interactions.log` |
+| P1-DASH-001 | 금일 체크인 KPI 4 | checkin 필터 카드 4 | 기대와 일치 | PASS-LOCAL | - | - | 변경 없음 | PASS-LOCAL | `manual-ui-results.json` | 카드 4건 |
+| P1-RES-VIEW-001 | 1203 전체/체크아웃 | 카드 상태·색상 동일 | 기대와 일치 | PASS-LOCAL | - | - | 변경 없음 | PASS-LOCAL | `manual-ui-results.json` | DOM 상태 동일 |
+| P1-RES-VIEW-002 | 객실 변경 필터 | 배지와 카드 수 일치 | 1건/1건 일치 | PASS-LOCAL | - | - | 변경 없음 | PASS-LOCAL | `manual-ui-results.json` | 1202 1건 |
+| P1-RES-NEW-001 | 부록 A 기준 | 정상 예약 1건 | 지원 회귀만 완료 | PARTIAL | - | 8게이트 증거 미완료 | 변경 없음 | PARTIAL | - | `support-reservation.log` |
+| P1-RES-NEW-002 | 1212, DirtyCase Tester | 경고 취소·승인·1건 저장 | 동작 일치, 계획 객실 1203과 불일치 | PARTIAL | TC-DOC-001 | fixture 불일치 | 대체 fixture 판정 규칙 추가 | PARTIAL | `manual-ui-results.json` | 1212 저장 1건 |
+| P1-RES-NEW-003 | 부록 A 기준 | 점검 객실 차단 | 지원 회귀만 완료 | PARTIAL | - | 개별 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-reservation.log` |
+| P1-RES-NEW-004 | 부록 A 기준 | 중복 예약 차단 | 지원 회귀만 완료 | PARTIAL | - | 개별 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-reservation.log` |
+| P1-RES-NEW-005 | 부록 A 기준 | 날짜·시간 오류 차단 | 입력 스위트만 완료 | PARTIAL | - | 개별 오류 분기 미완료 | 변경 없음 | PARTIAL | - | `support-inputs-ko.log` |
+| P1-RES-EDIT-001 | 부록 A 기준 | 수정·연계화면 반영 | 지원 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-reservation.log` |
+| P1-RES-CANCEL-001 | 부록 A 기준 | 취소·객실 반환 | 지원 회귀만 완료 | PARTIAL | - | 개별 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-CHECKIN-001 | 부록 A 기준 | 정상 체크인 | 지원 회귀만 완료 | PARTIAL | - | 개별 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-CHECKIN-002 | 부록 A 기준 | 청소 경고 양분기 | 지원 회귀만 완료 | PARTIAL | - | 두 분기 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-reservation.log` |
+| P1-CHECKIN-003 | 부록 A 기준 | 점검·미래 차단 | 지원 회귀만 완료 | PARTIAL | - | 두 차단 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-reservation.log` |
+| P1-STAY-001 | 부록 A 기준 | 객실 이동 | 지원 회귀만 완료 | PARTIAL | - | 연계화면 증거 미완료 | 변경 없음 | PARTIAL | - | `support-reservation.log` |
+| P1-STAY-002 | 부록 A 기준 | 명단 CRUD·대표 변경 | 지원 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-STAY-003 | 부록 A 기준 | 플랫카드 저장·인쇄 | 지원 회귀만 완료 | PARTIAL | - | 인쇄 증거 미완료 | 변경 없음 | PARTIAL | - | `support-critical-ui.log` |
+| P1-CHECKOUT-001 | 부록 A 기준 | 수납 후 체크아웃 | 지원 회귀만 완료 | PARTIAL | - | 지정 금액 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-CHECKOUT-002 | 부록 A 기준 | 미수금 체크아웃 차단 | 지원 회귀만 완료 | PARTIAL | - | 오류 분기 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-CHECKOUT-003 | 부록 A 기준 | 완료·공실 역할 분리 | 지원 회귀만 완료 | PARTIAL | - | 연계화면 증거 미완료 | 변경 없음 | PARTIAL | - | `support-reservation.log` |
+| P1-GROUP-001 | 부록 A 기준 | 업체 CRUD·삭제 제약 | 지원 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-groups.log` |
+| P1-GROUP-002 | 부록 A 기준 | 이벤트·객실 배정 | 지원 회귀만 완료 | PARTIAL | - | 지정 입력 증거 미완료 | 변경 없음 | PARTIAL | - | `support-groups.log` |
+| P1-GROUP-003 | 부록 A 기준 | 명단·예약 연결 | 지원 회귀만 완료 | PARTIAL | - | 3화면 증거 미완료 | 변경 없음 | PARTIAL | - | `support-groups.log` |
+| P1-GROUP-004 | 부록 A 기준 | 기간 통계 합계 | 지원 회귀만 완료 | PARTIAL | - | 수기 대조 미완료 | 변경 없음 | PARTIAL | - | `support-groups.log` |
+| P1-HK-001 | 부록 A 기준 | 청소 상태 동기화 | 지원 회귀만 완료 | PARTIAL | - | 3화면 증거 미완료 | 변경 없음 | PARTIAL | - | `support-reservation.log` |
+| P1-MAINT-001 | 부록 A 기준 | 보수 CRUD·예약 차단 | 지원 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-ANC-001 | 부록 A 기준 | 빈 객실 미노출 | 지원 회귀만 완료 | PARTIAL | - | 지정 객실 증거 미완료 | 변경 없음 | PARTIAL | - | `support-ancillary.log` |
+| P1-ANC-002 | 부록 A 기준 | 5종 등록·필터 | 지원 회귀만 완료 | PARTIAL | - | 5종 실제 입력 미완료 | 변경 없음 | PARTIAL | - | `support-ancillary.log` |
+| P1-ANC-003 | 부록 A 기준 | 완료 왕복·감사로그 | 저장 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-storage.log` |
+| P1-ANC-004 | 부록 A 기준 | 3종 바우처/쿠폰 | 지원 회귀만 완료 | PARTIAL | - | 인쇄 증거 미완료 | 변경 없음 | PARTIAL | - | `support-ancillary.log` |
+| P1-FOLIO-001 | 부록 A 기준 | 수납·완료·재조회 | 지원 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-FOLIO-002 | 부록 A 기준 | 미완료 전환·로그 | 저장 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-storage.log` |
+| P1-EXP-001 | 부록 A 기준 | 지출 CRUD·KPI·시재 | 지원 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-EXP-002 | 부록 A 기준 | 호텔 기준 통화 | 다국어 회귀만 완료 | PARTIAL | - | 통화별 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-i18n.log` |
+| P1-NIGHT-001 | 부록 A 기준 | 시재·흐름·마감 | 지원 회귀만 완료 | PARTIAL | - | 수기 대조 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-GUEST-001 | 부록 A 기준 | 고객 CRUD·예약 연결 | 지원 회귀만 완료 | PARTIAL | - | 연속 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-e2e.log` |
+| P1-PERM-001 | 부록 A 기준 | 역할별 접근 제어 | 지원 회귀만 완료 | PARTIAL | - | 역할별 재로그인 미완료 | 변경 없음 | PARTIAL | - | `support-critical-ui.log` |
+| P1-AUDIT-001 | 부록 A 기준 | 주요 변경 로그 완전성 | 저장 회귀만 완료 | PARTIAL | - | 수기 대조 미완료 | 변경 없음 | PARTIAL | - | `support-storage.log` |
+| P1-ADMIN-001 | 부록 A 기준 | PMS/Admin 연결 | 계약 회귀만 완료 | PARTIAL | - | 양방향 UI 증거 미완료 | 변경 없음 | PARTIAL | - | `support-api.log` |
 
 41개 P1 케이스와 E2E-001~025를 각각 한 행으로 기록한다. 케이스가 같은 페이지를 사용하더라도 정상·예외 입력과 예상 결과가 다르면 별도 실행한다.
+
+### 15.1 부록 A 개별 판정 의무
+
+1. 41개 P1 케이스의 최종 결과 원본은 부록 A의 `실행 결과 기록표`다.
+2. 본 문서나 별도 실행 보고서의 요약 PASS 수는 부록 A의 41개 결과 행에서만 집계한다.
+3. 부록 A에서 `NOT TESTED`, `PARTIAL`, `BLOCKED`, `FAIL`, 증거 누락 중 하나라도 남은 케이스는 전체 PASS에 포함하지 않는다.
+4. 공통 자동화, 페이지 스모크 테스트, 내부 함수 호출 결과만으로 부록 A의 개별 케이스를 PASS 처리하지 않는다.
+5. 각 PASS 행에는 실제 입력값, 8개 PASS 게이트 충족 여부, 수정 및 재시험 여부, UI 증거와 저장·재조회 증거를 남긴다.
+6. 별도 보고서를 작성할 때에도 부록 A 41개 ID를 모두 싣고 각 ID의 판정을 별도로 표시한다. 요약표만으로 대체할 수 없다.
+7. 부록 A와 요약 보고서의 판정이 다르면 부록 A의 더 보수적인 판정을 최종값으로 사용한다.
 
 ## 16. 결함 수정 및 재시험 규칙
 
