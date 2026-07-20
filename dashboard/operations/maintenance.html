@@ -252,11 +252,12 @@
         }
         @media (max-width: 1200px) { .kanban-wrap { grid-template-columns: 1fr; } }
         @media (max-width: 800px) {
-            .filter-bar-mt { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
+            .filter-bar-mt { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; width: 100%; max-width: 100%; box-sizing: border-box; }
+            .filter-bar-mt > .view-toggle { display: none !important; }
             .filter-bar-mt .filter-search-group { display: flex; width: 100%; gap: 8px; }
             .search-box-mt { flex: 1; }
             .filter-bar-divider { display: none; }
-            .filter-chips-group { overflow-x: auto; padding-bottom: 2px; display: flex; gap: 6px; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+            .filter-chips-group { flex: 0 1 auto; width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; padding-bottom: 2px; display: flex; gap: 6px; white-space: nowrap; box-sizing: border-box; -webkit-overflow-scrolling: touch; }
             .filter-actions-group { margin-left: 0 !important; width: 100%; display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
             .filter-actions-group .form-input { flex: 1; min-width: 0; }
             .filter-actions-group .view-toggle { display: none !important; }
@@ -448,7 +449,7 @@
 <div class="modal-overlay" id="newRequestModal" onclick="if(event.target===this)closeModal('newRequestModal')">
     <div class="modal-card" style="max-width:540px; width:95vw;">
         <div class="modal-header">
-            <h3 class="modal-title"><i class="fa-solid fa-wrench" style="color:var(--primary)"></i> 시설 보수 요청 등록</h3>
+            <h3 class="modal-title" id="maintenanceFormTitle"><i class="fa-solid fa-wrench" style="color:var(--primary)"></i> 시설 보수 요청 등록</h3>
             <button class="modal-close" onclick="closeModal('newRequestModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
@@ -489,8 +490,8 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-outline" onclick="closeModal('newRequestModal')">취소</button>
-            <button class="btn-primary-sm" onclick="addTicket()"><i class="fa-solid fa-check"></i> 등록</button>
+            <button class="btn-outline" onclick="cancelMaintenanceForm()">취소</button>
+            <button class="btn-primary-sm" id="maintenanceFormSubmit" onclick="addTicket()"><i class="fa-solid fa-check"></i> 등록</button>
         </div>
     </div>
 </div>
@@ -554,7 +555,12 @@ async function populateMaintenanceRoomSelect() {
     select.innerHTML = `<option value="">객실 선택</option>${options}`;
 }
 
-async function openMaintModal() {
+async function openMaintModal(preserveEdit = false) {
+    if (!preserveEdit) editingMaintenanceId = '';
+    const title = document.getElementById('maintenanceFormTitle');
+    const submit = document.getElementById('maintenanceFormSubmit');
+    if (title) title.innerHTML = `<i class="fa-solid fa-wrench" style="color:var(--primary)"></i> ${maintenanceText('시설 보수 요청 등록', 'New Maintenance Request')}`;
+    if (submit) submit.innerHTML = `<i class="fa-solid fa-check"></i> ${maintenanceText('등록', 'Register')}`;
     var r = document.getElementById('newRoom');
     var d = document.getElementById('newDesc');
     if (r) r.value = '';
@@ -592,6 +598,10 @@ async function openMaintModal() {
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function cancelMaintenanceForm() {
+    editingMaintenanceId = '';
+    closeModal('newRequestModal');
+}
 function showToast(msg) {
     let t = document.getElementById('pmsToast');
     if(!t) { t = document.createElement('div'); t.id='pmsToast'; t.style.cssText='position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:14px 22px;border-radius:10px;z-index:2147483010;font-size:.85rem;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.2);opacity:0;transform:translateY(12px);transition:all .3s;'; document.body.appendChild(t); }
@@ -604,6 +614,7 @@ const typeIcons = {
     '전기/조명':'fa-lightbulb', '배관/수도':'fa-faucet-drip', '에어컨/냉난방':'fa-temperature-arrow-down',
     '가구/비품':'fa-couch', '도어/잠금장치':'fa-door-closed', '엘리베이터':'fa-elevator', '객실 점검':'fa-clipboard-check', '기타':'fa-toolbox'
 };
+let editingMaintenanceId = '';
 const typeLabels = {
     electrical: '전기/조명',
     electric: '전기/조명',
@@ -1133,6 +1144,8 @@ function renderTable(data) {
                 <div class="maintenance-actions">
                     ${r.status === 'open' ? `<button class="action-btn action-start" onclick="event.stopPropagation(); changeStatus('${r.id}','in-progress')"><i class="fa-solid fa-play"></i> ${maintenanceText('착수', 'Start')}</button>` : ''}
                     ${r.status === 'in-progress' ? `<button class="action-btn action-complete" onclick="event.stopPropagation(); changeStatus('${r.id}','done')"><i class="fa-solid fa-check"></i> ${maintenanceText('완료 확인', 'Complete')}</button>` : ''}
+                    <button class="action-btn icon-only" onclick="event.stopPropagation(); openMaintenanceEditor('${r.id}')" aria-label="${maintenanceText('요청 수정', 'Edit request')}"><i class="fa-solid fa-pen"></i></button>
+                    <button class="action-btn icon-only danger" onclick="event.stopPropagation(); deleteMaintenanceRequest('${r.id}')" aria-label="${maintenanceText('요청 삭제', 'Delete request')}"><i class="fa-solid fa-trash"></i></button>
                     <button class="action-btn icon-only" onclick="event.stopPropagation(); showDetail('${r.id}')" aria-label="${maintenanceText('상세 보기', 'View details')}"><i class="fa-solid fa-eye"></i></button>
                 </div>
             </td>
@@ -1173,6 +1186,7 @@ async function changeStatus(id, newStatus) {
         if (newStatus === 'done') {
             if (!r.startedAt) r.startedAt = now;
             r.completedAt = now;
+            await setMaintenanceRoomAvailability(r, false);
         }
         r.status = newStatus;
         persistMaintenanceRequests();
@@ -1233,13 +1247,70 @@ async function showDetail(id) {
         </div>
     `;
     let footerHtml = `<button class="btn-outline" onclick="closeModal('detailModal')">${maintenanceText('닫기', 'Close')}</button>`;
+    footerHtml += `<button class="btn-outline" onclick="closeModal('detailModal'); openMaintenanceEditor('${r.id}')"><i class="fa-solid fa-pen"></i> ${maintenanceText('수정', 'Edit')}</button>`;
+    footerHtml += `<button class="btn-outline danger" onclick="deleteMaintenanceRequest('${r.id}')"><i class="fa-solid fa-trash"></i> ${maintenanceText('삭제', 'Delete')}</button>`;
     if (r.status === 'open') footerHtml += `<button class="btn-primary-sm btn-maintenance-start" onclick="changeStatus('${r.id}','in-progress'); closeModal('detailModal');"><i class="fa-solid fa-play"></i> ${maintenanceText('작업 착수', 'Start Work')}</button>`;
     if (r.status === 'in-progress') footerHtml += `<button class="btn-primary-sm btn-maintenance-complete" onclick="changeStatus('${r.id}','done'); closeModal('detailModal');"><i class="fa-solid fa-check"></i> ${maintenanceText('완료 확인', 'Complete')}</button>`;
     document.getElementById('detailFooter').innerHTML = footerHtml;
     openModal('detailModal');
 }
 
-function addTicket() {
+async function setMaintenanceRoomAvailability(request, blocked) {
+    if (!window.PmsAPI?.getAllRooms || !window.PmsAPI?.saveRooms) return;
+    const rooms = await PmsAPI.getAllRooms();
+    const key = request.roomId || request.room;
+    const room = rooms.find(item => maintenanceRoomMatches(item.id, key) || maintenanceRoomMatches(item.roomId, key) || maintenanceRoomMatches(item.fullRoom, key) || maintenanceRoomMatches(item.roomNo, request.room));
+    if (!room) return;
+    if (blocked) {
+        request.previousRoomStatus = request.previousRoomStatus || room.status || 'vacant-clean';
+        room.status = 'out-of-service';
+        room.frontStatus = 'out-of-service';
+        room.maintenanceRequestId = request.id;
+    } else if (!room.maintenanceRequestId || room.maintenanceRequestId === request.id) {
+        room.status = request.previousRoomStatus || 'vacant-dirty';
+        room.frontStatus = request.previousRoomStatus || 'vacant-dirty';
+        delete room.maintenanceRequestId;
+    }
+    await PmsAPI.saveRooms(rooms);
+}
+
+async function openMaintenanceEditor(id) {
+    const request = requests.find(item => item.id === id);
+    if (!request) return;
+    if (request.status !== 'open') {
+        showToast(maintenanceText('미착수 요청만 수정할 수 있습니다.', 'Only open requests can be edited.'));
+        return;
+    }
+    editingMaintenanceId = id;
+    await openMaintModal(true);
+    const roomSelect = document.getElementById('newRoom');
+    roomSelect.value = request.room;
+    document.getElementById('newType').value = request.type;
+    document.getElementById('newDesc').value = request.desc;
+    document.getElementById('newPriority').value = request.priority;
+    document.getElementById('newAssignee').value = request.assignee;
+    document.getElementById('maintenanceFormTitle').innerHTML = `<i class="fa-solid fa-pen" style="color:var(--primary)"></i> ${maintenanceText('시설 보수 요청 수정', 'Edit Maintenance Request')}`;
+    document.getElementById('maintenanceFormSubmit').innerHTML = `<i class="fa-solid fa-check"></i> ${maintenanceText('저장', 'Save')}`;
+}
+
+async function deleteMaintenanceRequest(id) {
+    const request = requests.find(item => item.id === id);
+    if (!request) return;
+    if (request.status !== 'open') {
+        showToast(maintenanceText('진행 중이거나 완료된 요청은 삭제할 수 없습니다.', 'Active or completed requests cannot be deleted.'));
+        return;
+    }
+    if (!window.confirm(maintenanceText('이 요청을 삭제하시겠습니까?', 'Delete this request?'))) return;
+    await setMaintenanceRoomAvailability(request, false);
+    requests = requests.filter(item => item.id !== id);
+    persistMaintenanceRequests();
+    closeModal('detailModal');
+    updateKPI();
+    render();
+    showToast(maintenanceText('시설 보수 요청을 삭제했습니다.', 'Maintenance request deleted.'));
+}
+
+async function addTicket() {
     const roomEl = document.getElementById('newRoom');
     const room = roomEl.value.trim();
     const roomId = roomEl.selectedOptions && roomEl.selectedOptions[0] ? roomEl.selectedOptions[0].dataset.roomId || room : room;
@@ -1248,9 +1319,25 @@ function addTicket() {
     const priority = document.getElementById('newPriority').value;
     const assignee = document.getElementById('newAssignee').value;
     if (!room || !desc) { showToast(maintenanceText('객실과 상세 내용을 선택/입력해주세요.', 'Please select a room and enter details.')); return; }
+    if (editingMaintenanceId) {
+        const request = requests.find(item => item.id === editingMaintenanceId);
+        if (!request || request.status !== 'open') return;
+        const roomChanged = request.room !== room || request.roomId !== roomId;
+        if (roomChanged) await setMaintenanceRoomAvailability(request, false);
+        Object.assign(request, { room, roomId, type, desc, priority, assignee });
+        if (roomChanged) await setMaintenanceRoomAvailability(request, true);
+        editingMaintenanceId = '';
+        persistMaintenanceRequests();
+        updateKPI(); render();
+        closeModal('newRequestModal');
+        showToast(maintenanceText('시설 보수 요청을 수정했습니다.', 'Maintenance request updated.'));
+        return;
+    }
     const issuedAt = new Date().toISOString();
     const today = issuedAt.split('T')[0];
-    requests.unshift({ id: 'MT-' + (nextId++), room, roomId, type, desc, priority, assignee, status: 'open', date: today, issuedAt, createdAt: issuedAt, requestedAt: issuedAt, startedAt: '', completedAt: '' });
+    const request = { id: 'MT-' + (nextId++), room, roomId, type, desc, priority, assignee, status: 'open', date: today, issuedAt, createdAt: issuedAt, requestedAt: issuedAt, startedAt: '', completedAt: '' };
+    requests.unshift(request);
+    await setMaintenanceRoomAvailability(request, true);
     persistMaintenanceRequests();
     updateKPI(); render();
     closeModal('newRequestModal');

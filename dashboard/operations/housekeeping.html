@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../common/css/dashboard.css">
     <link rel="stylesheet" href="../common/css/frontdesk.css">
     <link rel="stylesheet" href="../common/css/operations.css">
+    <script src="../common/js/privacy-audit.js"></script>
     <style>
     .mobile-bldg-item { padding: 14px 16px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--txt); background: var(--card); border: 1px solid var(--border); cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     .mobile-bldg-item:hover { background: var(--border2); }
@@ -333,6 +334,36 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="hkTaskEditModal" onclick="if(event.target===this) closeModal('hkTaskEditModal')">
+    <div class="modal-card" style="max-width:520px;width:95vw;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="hkTaskEditTitle"><i class="fa-solid fa-pen" style="color:var(--primary)"></i> 작업 수정</h3>
+            <button class="modal-close" onclick="closeModal('hkTaskEditModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div>
+                <label class="form-label" id="hkTaskAssigneeLabel">담당자</label>
+                <input class="form-input" id="hkTaskAssignee" autocomplete="off">
+            </div>
+            <div>
+                <label class="form-label" id="hkTaskPriorityLabel">우선순위</label>
+                <select class="form-input" id="hkTaskPriority">
+                    <option value="normal">일반</option>
+                    <option value="urgent">긴급</option>
+                </select>
+            </div>
+            <div style="grid-column:1 / -1;">
+                <label class="form-label" id="hkTaskNoteLabel">메모</label>
+                <textarea class="form-input" id="hkTaskNote" style="min-height:90px;resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" id="hkTaskEditCancel" onclick="closeModal('hkTaskEditModal')">취소</button>
+            <button class="btn-primary-sm" id="hkTaskEditSave" onclick="saveHousekeepingTaskEdit()"><i class="fa-solid fa-check"></i> 저장</button>
+        </div>
+    </div>
+</div>
+
 <!-- Mobile Filter Modal -->
 <div class="modal-overlay" id="mobileFilterModal" onclick="if(event.target===this) closeModal('mobileFilterModal')">
     <div class="modal-card">
@@ -380,31 +411,31 @@
 <div class="modal-overlay" id="newRequestModal" onclick="if(event.target===this)closeModal('newRequestModal')" data-no-i18n="true">
     <div class="modal-card" style="max-width:540px; width:95vw;">
         <div class="modal-header" style="padding: 20px 24px; border-bottom: 1px solid var(--border2); display: flex; justify-content: space-between; align-items: center;">
-            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-wrench" style="color:var(--primary)"></i> 시설 보수 요청 등록</h3>
+            <h3 class="modal-title" id="hkMaintModalTitle" style="display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-wrench" style="color:var(--primary)"></i> 시설 보수 요청 등록</h3>
             <button class="modal-close" onclick="closeModal('newRequestModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding:24px; display:flex; flex-direction:column; gap:16px;">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
-                    <label class="form-label">객실 선택 <span style="color:var(--danger)">*</span></label>
+                    <label class="form-label" id="hkMaintRoomLabel">객실 선택 <span style="color:var(--danger)">*</span></label>
                     <select class="form-input" id="newRoom">
                         <option value="">객실 선택</option>
                     </select>
                 </div>
                 <div>
-                    <label class="form-label">유형 <span style="color:var(--danger)">*</span></label>
+                    <label class="form-label" id="hkMaintTypeLabel">유형 <span style="color:var(--danger)">*</span></label>
                     <select class="form-input" id="newType">
                         <option>기타</option>
                     </select>
                 </div>
             </div>
             <div>
-                <label class="form-label">상세 내용 <span style="color:var(--danger)">*</span></label>
+                <label class="form-label" id="hkMaintDescLabel">상세 내용 <span style="color:var(--danger)">*</span></label>
                 <textarea class="form-input" id="newDesc" style="min-height:80px; resize:vertical;" placeholder="증상 및 위치를 구체적으로 작성해주세요."></textarea>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
-                    <label class="form-label">우선순위</label>
+                    <label class="form-label" id="hkMaintPriorityLabel">우선순위</label>
                     <select class="form-input" id="newPriority">
                         <option value="urgent">🔴 긴급 (즉시 처리)</option>
                         <option value="high">🟡 높음</option>
@@ -413,7 +444,7 @@
                     </select>
                 </div>
                 <div id="assigneeWrapper">
-                    <label class="form-label">담당자 배정</label>
+                    <label class="form-label" id="hkMaintAssigneeLabel">담당자 배정</label>
                     <select class="form-input" id="newAssignee">
                         <option>미배정</option>
                     </select>
@@ -421,8 +452,8 @@
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 24px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 16px 16px;">
-            <button class="btn-outline-maint" onclick="closeModal('newRequestModal')">취소</button>
-            <button class="btn-submit-maint" onclick="addTicketFromHK()"><i class="fa-solid fa-check"></i> 등록</button>
+            <button class="btn-outline-maint" id="hkMaintCancelButton" onclick="closeModal('newRequestModal')">취소</button>
+            <button class="btn-submit-maint" id="hkMaintSubmitButton" onclick="addTicketFromHK()"><i class="fa-solid fa-check"></i> 등록</button>
         </div>
     </div>
 </div>
@@ -443,6 +474,7 @@ let stayoverCleaningPolicy = {
 };
 let currentFilter = 'all';
 let currentView = 'grid';
+let editingHousekeepingTaskId = '';
 
 const typeMap = {
     'checkout': { label:'Check-out 청소', icon:'fa-person-walking-luggage', color:'var(--danger)' },
@@ -871,7 +903,7 @@ function renderTasks() {
             } else {
                 statusHtml += ` <span style="font-size:0.75rem;color:var(--txt3);font-weight:400;margin-left:4px">(청소: Maria G. / 점검: Nguyen K.)</span>`;
             }
-            actionHtml = `<button class="btn-outline-sm" disabled>${btnCompleted}</button>`;
+            actionHtml = `<button class="btn-outline-sm" data-hk-action="reopen" onclick="reopenHousekeepingTask('${jsString(t.id)}')"><i class="fa-solid fa-rotate-left"></i> ${isEn ? 'Reopen' : '완료 취소'}</button>`;
         }
 
         return `
@@ -890,6 +922,8 @@ function renderTasks() {
             </div>
             <div class="hk-task-right">
                 ${actionHtml}
+                <button class="btn-outline-sm" data-hk-action="edit" onclick="openHousekeepingTaskEditor('${jsString(t.id)}')" aria-label="${isEn ? 'Edit task' : '작업 수정'}"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn-outline-sm" data-hk-action="delete" onclick="deleteHousekeepingTask('${jsString(t.id)}')" aria-label="${isEn ? 'Delete task' : '작업 삭제'}"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>`;
     }).join('');
@@ -902,6 +936,95 @@ function updateKpis() {
     document.getElementById('kpi-inspect').textContent = summary.inspect;
     document.getElementById('kpi-clean').textContent = summary.clean;
     updateFilterCounts();
+}
+
+function applyHousekeepingTaskEditorI18n() {
+    const en = currentLang === 'en';
+    const text = {
+        hkTaskEditTitle: en ? 'Edit Task' : '작업 수정',
+        hkTaskAssigneeLabel: en ? 'Assignee' : '담당자',
+        hkTaskPriorityLabel: en ? 'Priority' : '우선순위',
+        hkTaskNoteLabel: en ? 'Note' : '메모',
+        hkTaskEditCancel: en ? 'Cancel' : '취소',
+        hkTaskEditSave: en ? 'Save' : '저장'
+    };
+    Object.entries(text).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (!element) return;
+        if (id === 'hkTaskEditTitle') element.innerHTML = `<i class="fa-solid fa-pen" style="color:var(--primary)"></i> ${value}`;
+        else if (id === 'hkTaskEditSave') element.innerHTML = `<i class="fa-solid fa-check"></i> ${value}`;
+        else element.textContent = value;
+    });
+    const priority = document.getElementById('hkTaskPriority');
+    if (priority) {
+        const selected = priority.value || 'normal';
+        priority.innerHTML = `<option value="normal">${en ? 'Normal' : '일반'}</option><option value="urgent">${en ? 'Urgent' : '긴급'}</option>`;
+        priority.value = selected;
+    }
+}
+
+function openHousekeepingTaskEditor(id) {
+    const task = tasks.find(item => item.id === id);
+    if (!task) return;
+    if (task.status !== 'dirty') {
+        showToast(currentLang === 'en' ? 'Only pending tasks can be edited.' : '대기 중인 작업만 수정할 수 있습니다.');
+        return;
+    }
+    editingHousekeepingTaskId = id;
+    document.getElementById('hkTaskAssignee').value = task.assignee || '';
+    document.getElementById('hkTaskPriority').value = task.priority === true || task.priority === 'urgent' ? 'urgent' : 'normal';
+    document.getElementById('hkTaskNote').value = task.note || '';
+    applyHousekeepingTaskEditorI18n();
+    openModal('hkTaskEditModal');
+}
+
+async function saveHousekeepingTaskEdit() {
+    const task = tasks.find(item => item.id === editingHousekeepingTaskId);
+    if (!task || task.status !== 'dirty') return;
+    task.assignee = document.getElementById('hkTaskAssignee').value.trim();
+    task.priority = document.getElementById('hkTaskPriority').value === 'urgent';
+    task.note = document.getElementById('hkTaskNote').value.trim();
+    if (window.PmsAPI?.saveTasks) await window.PmsAPI.saveTasks(tasks);
+    closeModal('hkTaskEditModal');
+    editingHousekeepingTaskId = '';
+    renderAllViews();
+    showToast(currentLang === 'en' ? 'Task updated.' : '작업을 수정했습니다.');
+}
+
+async function deleteHousekeepingTask(id) {
+    const task = tasks.find(item => item.id === id);
+    if (!task) return;
+    if (task.status !== 'dirty') {
+        showToast(currentLang === 'en' ? 'Active or completed tasks cannot be deleted.' : '진행 중이거나 완료된 작업은 삭제할 수 없습니다.');
+        return;
+    }
+    const confirmed = window.confirm(currentLang === 'en' ? 'Delete this task?' : '이 작업을 삭제하시겠습니까?');
+    if (!confirmed) return;
+    tasks = tasks.filter(item => item.id !== id);
+    if (window.PmsAPI?.saveTasks) await window.PmsAPI.saveTasks(tasks);
+    renderAllViews();
+    showToast(currentLang === 'en' ? 'Task deleted.' : '작업을 삭제했습니다.');
+}
+
+async function reopenHousekeepingTask(id) {
+    const task = tasks.find(item => item.id === id);
+    if (!task || task.status !== 'clean') return;
+    const confirmed = window.confirm(currentLang === 'en' ? 'Reopen this completed task?' : '완료된 작업을 다시 진행하시겠습니까?');
+    if (!confirmed) return;
+    task.status = 'dirty';
+    delete task.cleanedBy;
+    delete task.inspectedBy;
+    const room = allRooms.find(item => taskMatchesRoom(task, item));
+    if (room && room.status !== 'occupied') {
+        room.status = 'vacant-dirty';
+        room.frontStatus = 'vacant-dirty';
+        room.housekeepingStatus = 'dirty';
+        if (window.PmsAPI?.saveRooms) await window.PmsAPI.saveRooms(allRooms);
+    }
+    if (window.PmsAPI?.saveTasks) await window.PmsAPI.saveTasks(tasks);
+    window.PmsPrivacyAudit?.log?.('housekeeping.task.reopen', { taskId: task.id, room: task.room, status: 'dirty' });
+    renderAllViews();
+    showToast(currentLang === 'en' ? 'Task reopened.' : '작업을 다시 열었습니다.');
 }
 
 function updateFilterCounts() {
@@ -1186,7 +1309,32 @@ async function populateMaintenanceRoomSelect() {
             return `<option value="${display}" data-room-id="${fullId}">${maintenanceRoomLabel(room)}</option>`;
         })
         .join('');
-    select.innerHTML = `<option value="">객실 선택</option>${options}`;
+    select.innerHTML = `<option value="">${currentLang === 'en' ? 'Select room' : '객실 선택'}</option>${options}`;
+}
+
+function localizeMaintenanceRequestModal(lang = currentLang) {
+    const en = lang === 'en';
+    const setHtml = (id, html) => { const element = document.getElementById(id); if (element) element.innerHTML = html; };
+    setHtml('hkMaintModalTitle', `<i class="fa-solid fa-wrench" style="color:var(--primary)"></i> ${en ? 'New Maintenance Request' : '시설 보수 요청 등록'}`);
+    setHtml('hkMaintRoomLabel', `${en ? 'Room' : '객실 선택'} <span style="color:var(--danger)">*</span>`);
+    setHtml('hkMaintTypeLabel', `${en ? 'Type' : '유형'} <span style="color:var(--danger)">*</span>`);
+    setHtml('hkMaintDescLabel', `${en ? 'Details' : '상세 내용'} <span style="color:var(--danger)">*</span>`);
+    setHtml('hkMaintPriorityLabel', en ? 'Priority' : '우선순위');
+    setHtml('hkMaintAssigneeLabel', en ? 'Assignee' : '담당자 배정');
+    setHtml('hkMaintCancelButton', en ? 'Cancel' : '취소');
+    setHtml('hkMaintSubmitButton', `<i class="fa-solid fa-check"></i> ${en ? 'Create' : '등록'}`);
+    const description = document.getElementById('newDesc');
+    if (description) description.placeholder = en ? 'Describe the issue and its location.' : '증상 및 위치를 구체적으로 작성해주세요.';
+    const priority = document.getElementById('newPriority');
+    if (priority) {
+        const selected = priority.value || 'normal';
+        priority.innerHTML = en
+            ? '<option value="urgent">🔴 Urgent (immediate)</option><option value="high">🟡 High</option><option value="normal">🔵 Normal</option><option value="low">⚪ Low</option>'
+            : '<option value="urgent">🔴 긴급 (즉시 처리)</option><option value="high">🟡 높음</option><option value="normal">🔵 일반</option><option value="low">⚪ 낮음</option>';
+        priority.value = selected;
+    }
+    const room = document.getElementById('newRoom');
+    if (room?.options?.length) room.options[0].textContent = en ? 'Select room' : '객실 선택';
 }
 
 async function openMaintModal() {
@@ -1217,11 +1365,12 @@ async function openMaintModal() {
             if (assigneeEl && PmsAPI.getDEFAULT_STAFF) {
                 var staff = await PmsAPI.getDEFAULT_STAFF();
                 var maintStaff = staff.filter(s => s.roleId === 'sys_maintenance' || s.roleId === 'sys_admin');
-                assigneeEl.innerHTML = maintStaff.map(s => `<option value="${s.name}">${s.name} (${s.roleId === 'sys_admin' ? '관리자' : '시설팀'})</option>`).join('') + '<option value="미배정">미배정</option>';
+                assigneeEl.innerHTML = maintStaff.map(s => `<option value="${s.name}">${s.name} (${s.roleId === 'sys_admin' ? (currentLang === 'en' ? 'Admin' : '관리자') : (currentLang === 'en' ? 'Maintenance' : '시설팀')})</option>`).join('') + `<option value="미배정">${currentLang === 'en' ? 'Unassigned' : '미배정'}</option>`;
             }
         }
     }
 
+    localizeMaintenanceRequestModal(currentLang);
     openModal('newRequestModal');
 }
 
@@ -1325,6 +1474,7 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
     typeMap['checkout'].label = l==='en'?'C/O Clean':'체크아웃 청소';
     typeMap['stayover'].label = l==='en'?'Stayover Clean':'재실 청소';
     typeMap['deep'].label = l==='en'?'Deep Clean':'정밀 청소';
+    localizeMaintenanceRequestModal(l);
     renderAllViews();
 }
 document.addEventListener('DOMContentLoaded',()=>{setupI18n();changeLang(currentLang)});

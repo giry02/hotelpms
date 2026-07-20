@@ -1,0 +1,586 @@
+{
+  "suite": "admin-plan-direct",
+  "total": 23,
+  "passed": 23,
+  "failed": 0,
+  "results": [
+    {
+      "id": "ADM-AUTH-001",
+      "title": "Valid admin login creates an expiring session",
+      "status": "PASS",
+      "durationMs": 2880,
+      "evidence": {
+        "loggedIn": "true",
+        "session": {
+          "id": "ADM-001",
+          "name": "Super Admin",
+          "email": "superadmin@platform.example",
+          "role": "Platform Owner",
+          "expiresAt": 1784500010419
+        }
+      }
+    },
+    {
+      "id": "ADM-AUTH-002",
+      "title": "Invalid credentials are rejected without a session",
+      "status": "PASS",
+      "durationMs": 1871,
+      "evidence": {
+        "error": true,
+        "session": null,
+        "logs": [
+          {
+            "id": "AUD-1784471212510",
+            "actor": "superadmin@platform.example",
+            "action": "Failed Login",
+            "target": "superadmin@platform.example",
+            "details": "invalid credentials",
+            "ip": "127.0.0.1",
+            "createdAt": "2026-07-19T14:26:52.510Z",
+            "risk": "High"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ADM-AUTH-003",
+      "title": "Inactive admin is blocked and audited",
+      "status": "PASS",
+      "durationMs": 1925,
+      "evidence": {
+        "error": true,
+        "loggedIn": null,
+        "logs": [
+          {
+            "id": "AUD-1784471214410",
+            "actor": "inactive@example.com",
+            "action": "Blocked Access",
+            "target": "inactive@example.com",
+            "details": "status=inactive",
+            "ip": "127.0.0.1",
+            "createdAt": "2026-07-19T14:26:54.410Z",
+            "risk": "High"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ADM-AUTH-004",
+      "title": "Protected URL redirects and retains return URL",
+      "status": "PASS",
+      "durationMs": 1814,
+      "evidence": {
+        "url": "http://127.0.0.1:8765/admin/login.html",
+        "returnTo": "http://127.0.0.1:8765/admin/system/profile.html?admin-direct=1784471214524"
+      }
+    },
+    {
+      "id": "ADM-AUTH-005",
+      "title": "Expired session is removed and redirected",
+      "status": "PASS",
+      "durationMs": 1145,
+      "evidence": {
+        "loggedIn": null,
+        "session": null
+      }
+    },
+    {
+      "id": "ADM-TEN-REG-001",
+      "title": "PMS tenant creates tenant, admin invitation, and audit atomically",
+      "status": "PASS",
+      "durationMs": 2388,
+      "evidence": {
+        "tenants": [
+          {
+            "id": "TENANT-PMS1784471217415",
+            "code": "PMS1784471217415",
+            "hotelName": "QA pms PMS1784471217415",
+            "type": "pms",
+            "pmsEnabled": true,
+            "country": "Philippines",
+            "city": "Manila",
+            "timezone": "Asia/Manila (UTC+8)",
+            "currency": "PHP",
+            "roomCount": 25,
+            "email": "pms1784471217415@example.com",
+            "plan": "Free",
+            "status": "active",
+            "contractStart": "2026-07-01",
+            "contractEnd": "2027-06-30",
+            "createdAt": "2026-07-19T14:26:59.465Z"
+          }
+        ],
+        "users": [
+          {
+            "id": "ADM-1784471219465",
+            "tenantId": "TENANT-PMS1784471217415",
+            "name": "QA pms PMS1784471217415 Admin",
+            "email": "pms1784471217415@example.com",
+            "role": "Tenant Admin",
+            "status": "invited",
+            "inviteExpiresAt": "2026-07-22T14:26:59.465Z"
+          }
+        ],
+        "logs": [
+          {
+            "id": "AUD-1784471219465",
+            "actor": "Super Admin",
+            "actorId": "ADM-001",
+            "action": "tenant.create",
+            "target": "TENANT-PMS1784471217415",
+            "details": "QA pms PMS1784471217415 / Free",
+            "ip": "127.0.0.1",
+            "createdAt": "2026-07-19T14:26:59.465Z",
+            "risk": "Low"
+          },
+          {
+            "id": "AUD-1001",
+            "actor": "Super Admin",
+            "action": "tenant.approve",
+            "target": "APP-20260526-002",
+            "ip": "10.0.0.12",
+            "createdAt": "2026-05-26T15:10:00+09:00"
+          },
+          {
+            "id": "AUD-1002",
+            "actor": "Ops Manager",
+            "action": "user.password_reset",
+            "target": "TENANT-GRAND-SAIGON",
+            "ip": "10.0.0.14",
+            "createdAt": "2026-05-27T12:00:00+09:00"
+          }
+        ],
+        "last": "TENANT-PMS1784471217415"
+      }
+    },
+    {
+      "id": "ADM-TEN-REG-002",
+      "title": "Non-PMS partner is created without PMS dependency",
+      "status": "PASS",
+      "durationMs": 2329,
+      "evidence": {
+        "tenants": [
+          {
+            "id": "PARTNER-PTR1784471219804",
+            "code": "PTR1784471219804",
+            "hotelName": "QA partner PTR1784471219804",
+            "type": "partner",
+            "pmsEnabled": false,
+            "country": "Philippines",
+            "city": "Manila",
+            "timezone": "Asia/Manila (UTC+8)",
+            "currency": "PHP",
+            "roomCount": 25,
+            "email": "ptr1784471219804@example.com",
+            "plan": "Free",
+            "status": "active",
+            "contractStart": "2026-07-01",
+            "contractEnd": "2027-06-30",
+            "createdAt": "2026-07-19T14:27:01.809Z"
+          }
+        ],
+        "users": [
+          {
+            "id": "ADM-1784471221809",
+            "tenantId": "PARTNER-PTR1784471219804",
+            "name": "QA partner PTR1784471219804 Admin",
+            "email": "ptr1784471219804@example.com",
+            "role": "Tenant Admin",
+            "status": "invited",
+            "inviteExpiresAt": "2026-07-22T14:27:01.809Z"
+          }
+        ],
+        "logs": [
+          {
+            "id": "AUD-1784471221810",
+            "actor": "Super Admin",
+            "actorId": "ADM-001",
+            "action": "partner.create",
+            "target": "PARTNER-PTR1784471219804",
+            "details": "QA partner PTR1784471219804 / Free",
+            "ip": "127.0.0.1",
+            "createdAt": "2026-07-19T14:27:01.810Z",
+            "risk": "Low"
+          },
+          {
+            "id": "AUD-1001",
+            "actor": "Super Admin",
+            "action": "tenant.approve",
+            "target": "APP-20260526-002",
+            "ip": "10.0.0.12",
+            "createdAt": "2026-05-26T15:10:00+09:00"
+          },
+          {
+            "id": "AUD-1002",
+            "actor": "Ops Manager",
+            "action": "user.password_reset",
+            "target": "TENANT-GRAND-SAIGON",
+            "ip": "10.0.0.14",
+            "createdAt": "2026-05-27T12:00:00+09:00"
+          }
+        ],
+        "last": "PARTNER-PTR1784471219804"
+      }
+    },
+    {
+      "id": "ADM-TEN-REG-003",
+      "title": "Duplicate tenant code is blocked without partial records",
+      "status": "PASS",
+      "durationMs": 2016,
+      "evidence": {
+        "saved": false,
+        "tenants": [
+          {
+            "id": "TENANT-DUP",
+            "code": "DUP",
+            "hotelName": "Existing"
+          }
+        ],
+        "users": [],
+        "validation": "이미 사용 중인 호텔 코드입니다."
+      }
+    },
+    {
+      "id": "ADM-TEN-REG-004",
+      "title": "Required fields and reversed contract period are rejected",
+      "status": "PASS",
+      "durationMs": 1997,
+      "evidence": {
+        "empty": false,
+        "reversed": {
+          "saved": false,
+          "tenants": [],
+          "validation": "계약 종료일은 시작일 이후여야 합니다."
+        }
+      }
+    },
+    {
+      "id": "ADM-TEN-REG-005",
+      "title": "Country selection initializes currency and timezone",
+      "status": "PASS",
+      "durationMs": 1938,
+      "evidence": {
+        "Philippines": {
+          "currency": "PHP",
+          "timezone": "Asia/Manila (UTC+8)"
+        },
+        "Vietnam": {
+          "currency": "VND",
+          "timezone": "Asia/Ho_Chi_Minh (UTC+7)"
+        },
+        "South Korea": {
+          "currency": "KRW",
+          "timezone": "Asia/Seoul (UTC+9)"
+        }
+      }
+    },
+    {
+      "id": "ADM-USER-002",
+      "title": "Admin create and edit persist after rerender",
+      "status": "PASS",
+      "durationMs": 2000,
+      "evidence": {
+        "id": "ADM-1784471230060",
+        "name": "QA Admin Edited",
+        "email": "qa-admin@example.com",
+        "role": "Operations",
+        "status": "active",
+        "password": "Password123!"
+      }
+    },
+    {
+      "id": "ADM-USER-003",
+      "title": "Inactive and locked status persist for login policy",
+      "status": "PASS",
+      "durationMs": 2299,
+      "evidence": {
+        "id": "ADM-QA",
+        "name": "QA",
+        "email": "qa@example.com",
+        "password": "Password123!",
+        "role": "Operations",
+        "status": "locked"
+      }
+    },
+    {
+      "id": "ADM-USER-004",
+      "title": "Password reset creates one-hour token and audit entry",
+      "status": "PASS",
+      "durationMs": 1920,
+      "evidence": {
+        "user": {
+          "id": "ADM-OWNER",
+          "name": "Owner",
+          "email": "owner@example.com",
+          "password": "OwnerPass123!",
+          "role": "Platform Owner",
+          "status": "active",
+          "resetToken": "RST-1784471234293",
+          "resetExpiresAt": "2026-07-19T15:27:14.293Z"
+        },
+        "logs": [
+          {
+            "id": "AUD-1784471234293",
+            "actor": "Super Admin",
+            "actorId": "ADM-001",
+            "action": "user.password_reset",
+            "target": "ADM-OWNER",
+            "details": "owner@example.com",
+            "ip": "127.0.0.1",
+            "createdAt": "2026-07-19T14:27:14.293Z",
+            "risk": "Medium"
+          },
+          {
+            "id": "AUD-1001",
+            "actor": "Super Admin",
+            "action": "tenant.approve",
+            "target": "APP-20260526-002",
+            "ip": "10.0.0.12",
+            "createdAt": "2026-05-26T15:10:00+09:00"
+          },
+          {
+            "id": "AUD-1002",
+            "actor": "Ops Manager",
+            "action": "user.password_reset",
+            "target": "TENANT-GRAND-SAIGON",
+            "ip": "10.0.0.14",
+            "createdAt": "2026-05-27T12:00:00+09:00"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ADM-USER-005",
+      "title": "Last platform owner cannot be deleted or demoted",
+      "status": "PASS",
+      "durationMs": 1911,
+      "evidence": [
+        {
+          "id": "ADM-OWNER",
+          "name": "Owner",
+          "email": "owner@example.com",
+          "password": "OwnerPass123!",
+          "role": "Platform Owner",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "ADM-ADS-NEW-002",
+      "title": "Campaign save persists campaign and audit",
+      "status": "PASS",
+      "durationMs": 2176,
+      "evidence": {
+        "id": "ADS-1784471238390",
+        "name": "QA Campaign 1784471238271",
+        "advertiserId": "TEN-1",
+        "advertiser": "QA Hotel",
+        "type": "golf",
+        "placement": "dashboard",
+        "startDate": "2026-08-01",
+        "endDate": "2026-08-31",
+        "budget": 1000,
+        "status": "draft",
+        "manager": "QA Manager",
+        "phone": "+63 900 000 0000",
+        "email": "ads@example.com",
+        "address": "Manila",
+        "hours": "",
+        "settlement": "",
+        "bannerName": "",
+        "contentHtml": "<h4>광고 제안</h4><p>프런트 직원이 골프 문의를 받을 때 업체 담당자, 연락처, 이메일, 위치와 대표 상품을 한 화면에서 확인하고 계약 여부를 판단할 수 있게 노출합니다.</p><h4>계약 후 사용 흐름</h4><ol><li>호텔 담당자가 업체 연락처로 조건과 티타임 운영 방식을 확인합니다.</li><li>계약이 확정되면 업체/항목 관리에 골프장 업체와 판매 항목을 등록합니다.</li><li>예약 또는 부가서비스 등록 화면에서 실제 투숙객/단체에 연결해 사용합니다.</li></ol><h4>대표 상품 예시</h4><ul><li>9홀 라운딩 ₱180 / 오전 9홀</li><li>18홀 패키지 ₱520 / 그린피+카트</li></ul><h4>호텔 확인사항</h4><p>조조 라운드 제공 시간, 카트비 포함 여부, 취소 마감 시간, 바우처 출력 필드, 긴급 연락처를 업체와 먼저 확인해야 합니다.</p><figure><figcaption>이미지는 웹에디터 본문 안에 삽입될 수 있습니다.</figcaption></figure>",
+        "createdAt": "2026-07-19T14:27:18.390Z",
+        "views": 0,
+        "leads": 0
+      }
+    },
+    {
+      "id": "ADM-ADS-NEW-004",
+      "title": "Campaign invalid period and budget are blocked",
+      "status": "PASS",
+      "durationMs": 2020,
+      "evidence": {
+        "saved": false,
+        "campaigns": []
+      }
+    },
+    {
+      "id": "ADM-ADS-TGT-002",
+      "title": "Exclude targeting overrides include and inactive hotels",
+      "status": "PASS",
+      "durationMs": 1012,
+      "evidence": []
+    },
+    {
+      "id": "ADM-ADS-TGT-003",
+      "title": "Zero eligible target save is blocked",
+      "status": "PASS",
+      "durationMs": 1002,
+      "evidence": {
+        "saved": false,
+        "stored": "[]"
+      }
+    },
+    {
+      "id": "ADM-NOTICE-001",
+      "title": "Notice CRUD persists audience, period, and content",
+      "status": "PASS",
+      "durationMs": 1115,
+      "evidence": {
+        "created": "NTC-1784471243525",
+        "edited": "QA Notice Edited",
+        "remaining": 1
+      }
+    },
+    {
+      "id": "ADM-INT-002",
+      "title": "Integration key is masked and can be revoked",
+      "status": "PASS",
+      "durationMs": 1068,
+      "evidence": {
+        "id": "INT-1784471244569",
+        "name": "QA API",
+        "type": "payment",
+        "endpoint": "https://api.example.com",
+        "secretMasked": "Revoked",
+        "active": false,
+        "status": "error",
+        "lastSync": "-",
+        "latencyMs": 0,
+        "error": "키 폐기됨"
+      }
+    },
+    {
+      "id": "ADM-INT-004",
+      "title": "Integration test and retry persist status without duplicate records",
+      "status": "PASS",
+      "durationMs": 985,
+      "evidence": {
+        "test": true,
+        "retry": true,
+        "rows": [
+          {
+            "id": "INT-QA",
+            "name": "QA",
+            "type": "channel",
+            "endpoint": "https://api.example.com",
+            "secretMasked": "qa••••1234",
+            "active": true,
+            "status": "connected",
+            "error": "",
+            "latencyMs": 137,
+            "lastSync": "2026-07-19T14:27:25.601Z"
+          }
+        ],
+        "logs": [
+          {
+            "id": "AUD-1784471245601",
+            "actor": "Super Admin",
+            "actorId": "ADM-001",
+            "action": "integration.sync_retry",
+            "target": "INT-QA",
+            "details": "QA / connected",
+            "ip": "127.0.0.1",
+            "createdAt": "2026-07-19T14:27:25.601Z",
+            "risk": "Medium"
+          },
+          {
+            "id": "AUD-1784471245601",
+            "actor": "Super Admin",
+            "actorId": "ADM-001",
+            "action": "integration.connection_test",
+            "target": "INT-QA",
+            "details": "QA / connected",
+            "ip": "127.0.0.1",
+            "createdAt": "2026-07-19T14:27:25.601Z",
+            "risk": "Medium"
+          },
+          {
+            "id": "AUD-1001",
+            "actor": "Super Admin",
+            "action": "tenant.approve",
+            "target": "APP-20260526-002",
+            "ip": "10.0.0.12",
+            "createdAt": "2026-05-26T15:10:00+09:00"
+          },
+          {
+            "id": "AUD-1002",
+            "actor": "Ops Manager",
+            "action": "user.password_reset",
+            "target": "TENANT-GRAND-SAIGON",
+            "ip": "10.0.0.14",
+            "createdAt": "2026-05-27T12:00:00+09:00"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ADM-HELP-003",
+      "title": "Helpdesk allowed status transition, assignee, and reply persist",
+      "status": "PASS",
+      "durationMs": 1071,
+      "evidence": {
+        "ticket": {
+          "id": "TCK-QA",
+          "subject": "QA ticket",
+          "hotelName": "QA Hotel",
+          "requester": "Guest",
+          "status": "in_progress",
+          "priority": "High",
+          "slaDue": "2026-07-20",
+          "assignee": "Ops Manager",
+          "messages": [
+            {
+              "id": "MSG-1784471246670",
+              "author": "Super Admin",
+              "role": "admin",
+              "text": "We are checking.",
+              "createdAt": "2026-07-19T14:27:26.670Z"
+            }
+          ],
+          "updatedAt": "2026-07-19T14:27:26.671Z"
+        },
+        "logs": [
+          {
+            "id": "AUD-1784471246671",
+            "actor": "Super Admin",
+            "actorId": "ADM-001",
+            "action": "helpdesk.update",
+            "target": "TCK-QA",
+            "details": "open->in_progress / Ops Manager / reply=true",
+            "ip": "127.0.0.1",
+            "createdAt": "2026-07-19T14:27:26.671Z",
+            "risk": "Low"
+          },
+          {
+            "id": "AUD-1001",
+            "actor": "Super Admin",
+            "action": "tenant.approve",
+            "target": "APP-20260526-002",
+            "ip": "10.0.0.12",
+            "createdAt": "2026-05-26T15:10:00+09:00"
+          },
+          {
+            "id": "AUD-1002",
+            "actor": "Ops Manager",
+            "action": "user.password_reset",
+            "target": "TENANT-GRAND-SAIGON",
+            "ip": "10.0.0.14",
+            "createdAt": "2026-05-27T12:00:00+09:00"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ADM-HELP-006",
+      "title": "Helpdesk ticket detail is usable on mobile and EN",
+      "status": "PASS",
+      "durationMs": 1082,
+      "evidence": {
+        "open": true,
+        "text": "SUPER ADMIN\nPlatform Management\nMAIN\nPlatform Status\nTENANT HOTEL MANAGEMENT\nHotel List\nDirect Admin Registration\nAD NETWORK\nCampaigns\nNew Campaign\nAd Billing\nSYSTEM MANAGEMENT\nAdmin Accounts\nSubscription & Billing\nIntegrations\nCustomer Support\nNotice Management\nAudit Logs\nSA\nSuper Admin\nPlatform Operator\nHelpdesk Tickets\nKR Korean\nEN English\nSearch\nAll Statuses\nOpen\nIn Progress\nResolved\nClosed\nTicket List\n1 tickets\nOriginal user text\nOpen\nTCK-M · QA Hotel\nGuest · High\nOriginal user text\nTCK-M · QA Hotel · Guest\nStatus\nOpen\nIn Progress\nResolved\nClosed\nAssignee\nUnassigned\nOps Manager\nSuper Admin\nSLA: 2026-07-20 · Priority: High\nConversation\nNo messages.\nReply\nSave & Reply",
+        "overflow": false
+      }
+    }
+  ]
+}
