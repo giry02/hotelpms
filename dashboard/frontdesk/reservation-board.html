@@ -104,6 +104,8 @@
         .board-clean-select.mur,
         .board-clean-select[data-clean-tone="dirty"],
         .board-clean-select[data-clean-tone="mur"]{color:#b45309!important;border-color:#fed7aa!important;background-color:#fff7ed!important}
+        .board-clean-select.cleaning,
+        .board-clean-select[data-clean-tone="cleaning"]{color:#1d4ed8!important;border-color:#bfdbfe!important;background-color:#eff6ff!important}
         .board-clean-select.clean,
         .board-clean-select[data-clean-tone="clean"]{color:#047857!important;border-color:#a7f3d0!important;background-color:#ecfdf5!important}
         .board-clean-select.dnd,
@@ -272,6 +274,7 @@ const BOARD_TEXT = {
         'stay.dnd': '방해금지',
         'stay.away': '외출',
         'stay.mur': '청소필요',
+        'stay.cleaning': '청소 중',
         'stay.clean': '청소완료',
         'stay.aria.empty': '빈방 청소 상태 변경',
         'stay.aria.occupied': '청소 상태 변경',
@@ -324,6 +327,7 @@ const BOARD_TEXT = {
         'stay.dnd': 'Do Not Disturb',
         'stay.away': 'Away',
         'stay.mur': 'Needs Cleaning',
+        'stay.cleaning': 'Cleaning',
         'stay.clean': 'Clean',
         'stay.aria.empty': 'Change vacant-room cleaning status',
         'stay.aria.occupied': 'Change cleaning status',
@@ -1009,9 +1013,11 @@ function boardStayState(room, res) {
     const flag = room?.guestFlag || res?.guestFlag || 'none';
     const cleaningState = normalizedRoomOpsValue(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus);
     const isCleanRequested = flag === 'mur' || ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState);
+    const isCleaning = ['cleaning', 'inprogress', 'cleaninginprogress'].includes(cleaningState);
     const isCleanComplete = ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState);
     if (boardStayEditable(res) && !boardOccupiedCleaningIsFresh(room, res)) return 'mur';
     if (flag === 'dnd' || flag === 'away') return flag;
+    if (isCleaning) return 'cleaning';
     if (isCleanRequested) return 'mur';
     if (isCleanComplete) return 'clean';
     return 'none';
@@ -1022,6 +1028,9 @@ function boardCleaningSummary(room, res) {
     const stayState = boardStayState(room, res);
     if (stayState === 'dnd') {
         return { key: 'dnd', label: '방해금지', icon: 'fa-ban' };
+    }
+    if (stayState === 'cleaning' || ['cleaning', 'inprogress', 'cleaninginprogress'].includes(cleaningState)) {
+        return { key: 'cleaning', label: boardText('stay.cleaning'), icon: 'fa-spinner' };
     }
     if (stayState === 'clean' || ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState)) {
         return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
@@ -1107,11 +1116,13 @@ function boardStayActions(room, res) {
     if (!res) {
         return `<select class="board-clean-select ${escapeHtml(cleanState)}" data-clean-tone="${escapeHtml(cleanState)}" data-room-key="${escapeHtml(roomKey)}" aria-label="${escapeHtml(boardText('stay.aria.empty'))}" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardCleanState(event,this)">
             <option value="dirty"${cleanState === 'dirty' ? ' selected' : ''}>${escapeHtml(boardText('stay.mur'))}</option>
+            <option value="cleaning"${cleanState === 'cleaning' ? ' selected' : ''}>${escapeHtml(boardText('stay.cleaning'))}</option>
             <option value="clean"${cleanState === 'clean' ? ' selected' : ''}>${escapeHtml(boardText('stay.clean'))}</option>
         </select>`;
     }
     const options = [
         { key: 'mur', label: boardText('stay.mur') },
+        { key: 'cleaning', label: boardText('stay.cleaning') },
         { key: 'clean', label: boardText('stay.clean') },
         { key: 'dnd', label: boardText('stay.dnd') }
     ];
@@ -1126,7 +1137,7 @@ function boardStayActions(room, res) {
 
 function updateBoardCleanSelectTone(select, state = '') {
     if (!select) return;
-    select.classList.remove('dirty', 'mur', 'clean', 'dnd');
+    select.classList.remove('dirty', 'mur', 'cleaning', 'clean', 'dnd');
     const next = String(state || select.value || '').toLowerCase();
     select.querySelectorAll('option').forEach(option => {
         const selected = option.value === next;
@@ -1135,10 +1146,11 @@ function updateBoardCleanSelectTone(select, state = '') {
         else option.removeAttribute('selected');
     });
     select.dataset.cleanTone = next;
-    if (['dirty', 'mur', 'clean', 'dnd'].includes(next)) select.classList.add(next);
+    if (['dirty', 'mur', 'cleaning', 'clean', 'dnd'].includes(next)) select.classList.add(next);
     const toneStyles = {
         dirty: { bg: '#fff7ed', border: '#fed7aa', color: '#b45309' },
         mur: { bg: '#fff7ed', border: '#fed7aa', color: '#b45309' },
+        cleaning: { bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8' },
         clean: { bg: '#ecfdf5', border: '#a7f3d0', color: '#047857' },
         dnd: { bg: '#fff1f2', border: '#fecdd3', color: '#be123c' }
     };
@@ -1321,7 +1333,7 @@ function boardCard(room) {
     const hasRoomChange = !!(res && reservationHasRoomChange(res));
     const roomChangeText = hasRoomChange ? reservationRoomChangeText(res) : '';
     const stayState = res ? boardStayState(room, res) : '';
-    const stayStateLabels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), clean: boardText('stay.clean') };
+    const stayStateLabels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), cleaning: boardText('stay.cleaning'), clean: boardText('stay.clean') };
     const settlementInfo = boardSettlementSummary(res, state);
     const searchText = [
         room.id,
@@ -1525,6 +1537,17 @@ async function syncBoardStayStateToHousekeeping(room, res, state) {
         }
         return;
     }
+    if (state === 'cleaning') {
+        if (window.PmsAPI?.syncRoomStatusToTask) {
+            await window.PmsAPI.syncRoomStatusToTask(roomId, 'cleaning', {
+                reservationId: res?.id,
+                guestName: primaryGuest(res),
+                type: 'stayover',
+                source: 'reservation-board'
+            });
+        }
+        return;
+    }
     if (state === 'clean') {
         if (window.PmsAPI?.syncRoomStatusToTask) {
             await window.PmsAPI.syncRoomStatusToTask(roomId, 'clean', {
@@ -1573,6 +1596,11 @@ window.setBoardStayState = async function(event, button) {
             room.cleaningStatus = 'dirty';
             room.guestFlag = 'none';
             res.guestFlag = 'none';
+        } else if (state === 'cleaning') {
+            room.housekeepingStatus = 'cleaning';
+            room.cleaningStatus = 'cleaning';
+            room.guestFlag = 'none';
+            res.guestFlag = 'none';
         } else if (state === 'clean') {
             room.housekeepingStatus = 'clean';
             room.cleaningStatus = 'clean';
@@ -1585,10 +1613,15 @@ window.setBoardStayState = async function(event, button) {
             res.guestFlag = state;
         }
         await persistBoardStayState(room, res);
+        window.PmsPrivacyAudit?.log?.('room.cleaning.status', {
+            screen: 'reservation-board', reservationId: res.id, guestName: reservationGuestName(res),
+            room: room.id || room.roomNo || roomKey, status: state,
+            fields: ['room', 'cleaningStatus']
+        });
         await syncBoardStayStateToHousekeeping(room, res, state);
         renderReservationBoard();
         if (window.showToast) {
-            const labels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), clean: boardText('stay.clean') };
+            const labels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), cleaning: boardText('stay.cleaning'), clean: boardText('stay.clean') };
             window.showToast(boardTextFormat('stay.toast', { room: room.id || room.roomNo || roomKey, state: labels[state] || state }), 'success');
         }
     } finally {
@@ -1623,6 +1656,16 @@ window.setBoardCleanState = async function(event, button) {
                     note: '예약현황에서 빈방 청소 필요 처리'
                 });
             }
+        } else if (state === 'cleaning') {
+            room.status = 'vacant-dirty';
+            room.frontStatus = 'vacant-dirty';
+            room.housekeepingStatus = 'cleaning';
+            room.cleaningStatus = 'cleaning';
+            if (window.PmsAPI?.syncRoomStatusToTask) {
+                await window.PmsAPI.syncRoomStatusToTask(roomId, 'cleaning', {
+                    type: 'checkout', source: 'reservation-board', note: '예약현황에서 청소 시작'
+                });
+            }
         } else {
             room.status = 'vacant-clean';
             room.frontStatus = 'vacant-clean';
@@ -1636,6 +1679,10 @@ window.setBoardCleanState = async function(event, button) {
             }
         }
         await persistBoardStayState(room, null);
+        window.PmsPrivacyAudit?.log?.('room.cleaning.status', {
+            screen: 'reservation-board', room: room.id || room.roomNo || roomKey, status: state,
+            fields: ['room', 'cleaningStatus']
+        });
         renderReservationBoard();
         if (window.showToast) window.showToast(boardTextFormat('toast.cleaningChanged', { room: room.id || room.roomNo || roomKey }), 'success');
     } finally {

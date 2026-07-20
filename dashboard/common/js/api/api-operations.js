@@ -88,6 +88,21 @@ Object.assign(window.PmsAPI, {
 
         if (['vacant-clean', 'clean'].includes(status)) {
             completeOpenTasks('객실 정비 완료');
+        } else if (['cleaning', 'in-progress', 'cleaning-in-progress'].includes(status)) {
+            if (existingTaskIndex === -1) {
+                tasks.push({
+                    id: 't' + Date.now(), room: displayRoom, roomId,
+                    type: requestedType || 'checkout', status: 'cleaning', priority: false,
+                    note: context?.note || '청소 진행 중',
+                    startedAt: new Date().toISOString(),
+                    reservationId: context?.reservationId || null
+                });
+            } else {
+                tasks[existingTaskIndex].status = 'cleaning';
+                tasks[existingTaskIndex].startedAt = tasks[existingTaskIndex].startedAt || new Date().toISOString();
+                tasks[existingTaskIndex].reservationId = context?.reservationId || tasks[existingTaskIndex].reservationId;
+            }
+            changed = true;
         } else if (['occupied', 'in-house', 'inhouse', 'checkedin', 'checked-in'].includes(status)) {
             return true;
         } else if (['vacant-dirty', 'dirty'].includes(status) || isStayoverRequest) {

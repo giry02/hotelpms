@@ -136,6 +136,7 @@
 .room-clean-mini{display:inline-flex;align-items:center;gap:4px;margin-top:5px;border-radius:999px;padding:3px 8px;font-size:.64rem;font-weight:900;line-height:1.2}
 .room-clean-mini.clean{background:#dcfce7;color:#059669}
 .room-clean-mini.dirty{background:#fef3c7;color:#d97706}
+.room-clean-mini.cleaning{background:#eff6ff;color:#1d4ed8}
 .room-clean-mini.occupied{background:#dbeafe;color:#2563eb}
 .room-clean-mini.oos{background:#fee2e2;color:#dc2626}
 .room-related-guest{margin-top:5px;font-size:.68rem;font-weight:850;color:var(--txt2);display:flex;align-items:center;gap:4px;justify-content:center;line-height:1.25}
@@ -365,6 +366,7 @@ const statusConfig = {
     'occupied': { label: '투숙 중' },
     'vacant-clean': { label: '청결 공실' },
     'vacant-dirty': { label: '오염 공실' },
+    'cleaning': { label: '청소 중' },
     'oos': { label: '점검 중' }
 };
 
@@ -375,6 +377,7 @@ function normalizeRoomListStatus(room) {
     const housekeeping = String(room?.housekeepingStatus || '').toLowerCase();
     if (['occupied', 'in-house', 'checked-in', 'checkedin', 'inhouse'].includes(value)) return 'occupied';
     if (['oos', 'out-of-service', 'maintenance', 'outofservice'].includes(value)) return 'oos';
+    if (['cleaning', 'in-progress', 'cleaning-in-progress'].includes(value) || ['cleaning', 'in-progress', 'cleaning-in-progress'].includes(housekeeping)) return 'cleaning';
     if (['dirty', 'vacant-dirty', 'pending-clean', 'needs-cleaning', 'inspect'].includes(value)) return 'vacant-dirty';
     if (value === 'vacant') {
         return ['dirty', 'vacant-dirty', 'pending-clean', 'needs-cleaning', 'inspect'].includes(housekeeping)
@@ -682,6 +685,7 @@ function toggleBuilding(el) {
 function roomCleanBadgeHtml(status) {
     if (status === 'occupied') return '<div class="room-clean-mini occupied"><i class="fa-solid fa-bed"></i>재실 중</div>';
     if (status === 'vacant-dirty') return '<div class="room-clean-mini dirty"><i class="fa-solid fa-broom"></i>청소 필요</div>';
+    if (status === 'cleaning') return `<div class="room-clean-mini cleaning"><i class="fa-solid fa-spinner"></i>${currentLang === 'en' ? 'Cleaning' : '청소 중'}</div>`;
     if (status === 'oos') return '<div class="room-clean-mini oos"><i class="fa-solid fa-screwdriver-wrench"></i>점검</div>';
     return '<div class="room-clean-mini clean"><i class="fa-solid fa-circle-check"></i>청소 완료</div>';
 }
@@ -991,6 +995,7 @@ function changeLang(l){currentLang=l;window.currentLang=l;localStorage.setItem('
     statusConfig['occupied'].label = l==='en'?'Occupied':'투숙 중';
     statusConfig['vacant-clean'].label = l==='en'?'Vacant Clean':'청결 공실';
     statusConfig['vacant-dirty'].label = l==='en'?'Vacant Dirty':'오염 공실';
+    statusConfig['cleaning'].label = l==='en'?'Cleaning':'청소 중';
     statusConfig['oos'].label = l==='en'?'Out of Order':'점검/수리중';
     renderRooms();
 }
