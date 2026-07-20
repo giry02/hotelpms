@@ -198,9 +198,9 @@
                 </div>
                 <button type="button" class="btn-primary-sm" onclick="renderCloseLog()"><i class="fa-solid fa-search"></i> 검색</button>
                 <div class="log-date-tools">
-                    <button type="button" class="btn-outline-sm" onclick="shiftLogDate(-1)" aria-label="전일"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button type="button" class="btn-outline-sm" id="previousLogDateBtn" onclick="shiftLogDate(-1)" aria-label="전일"><i class="fa-solid fa-chevron-left"></i></button>
                     <input id="logDateInput" class="log-date-input" type="date" onchange="renderCloseLog()">
-                    <button type="button" class="btn-outline-sm" onclick="shiftLogDate(1)" aria-label="다음일"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button type="button" class="btn-outline-sm" id="nextLogDateBtn" onclick="shiftLogDate(1)" aria-label="다음일"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
             </div>
             <div class="filter-right">
@@ -396,7 +396,7 @@
 <div class="modal-overlay" id="logDetailModal" onclick="if(event.target===this) closeLogDetailModal()">
     <div class="modal-card detail-modal">
         <div class="modal-header">
-            <h3 class="modal-title"><i class="fa-solid fa-clipboard-list" style="color:var(--primary)"></i> 마감 로그 상세</h3>
+            <h3 class="modal-title"><i class="fa-solid fa-clipboard-list" style="color:var(--primary)"></i> <span data-ko="마감 로그 상세" data-en="Close Log Details">마감 로그 상세</span></h3>
             <button type="button" class="modal-close" onclick="closeLogDetailModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body detail-body" id="logDetailBody"></div>
@@ -939,6 +939,8 @@ function syncClosingLogLocale() {
     });
     const search = document.getElementById('logSearch');
     if (search) search.placeholder = localeText('Folio, 고객, 담당자, 메모 검색...', 'Search folio, guest, staff, or memo...');
+    document.getElementById('previousLogDateBtn')?.setAttribute('aria-label', localeText('전일', 'Previous day'));
+    document.getElementById('nextLogDateBtn')?.setAttribute('aria-label', localeText('다음일', 'Next day'));
     const typeOptions = document.getElementById('logTypeFilter')?.options;
     const labels = {
         all: localeText('전체 유형', 'All Types'),
