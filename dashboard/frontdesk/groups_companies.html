@@ -553,7 +553,7 @@
             <input type="hidden" id="compRate" value="">
             <div>
                 <label class="form-label">메모</label>
-                <textarea id="compNote" class="form-input" style="width:100%;min-height:60px;resize:vertical" placeholder="추가 계약사항 등" data-ko="추가 계약사항 등" data-en="Additional contract terms, etc."></textarea>
+                <textarea id="compNote" class="form-input" style="width:100%;min-height:84px;padding:12px 14px;line-height:1.5;resize:vertical" placeholder="추가 계약사항 등" data-ko="추가 계약사항 등" data-en="Additional contract terms, etc."></textarea>
             </div>
         </div>
         <div class="modal-footer">
@@ -585,9 +585,9 @@
                             <option value="year" data-ko="&#52572;&#44540; 1&#45380;" data-en="Last 1 year">&#52572;&#44540; 1&#45380;</option>
                             <option value="custom" data-ko="&#44592;&#44036; &#49440;&#53469;" data-en="Custom period">&#44592;&#44036; &#49440;&#53469;</option>
                         </select>
-                        <input id="performanceStartDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="&#49884;&#51089;&#51068;" data-date-format-sync>
+                        <input id="performanceStartDate" type="date" class="form-input" onfocus="activatePerformanceCustomPeriod()" onchange="activatePerformanceCustomPeriod();refreshCompanyPerformanceModal()" aria-label="&#49884;&#51089;&#51068;" data-date-format-sync>
                         <span class="performance-range-separator">~</span>
-                        <input id="performanceEndDate" type="date" class="form-input" onchange="refreshCompanyPerformanceModal()" aria-label="&#51333;&#47308;&#51068;" data-date-format-sync>
+                        <input id="performanceEndDate" type="date" class="form-input" onfocus="activatePerformanceCustomPeriod()" onchange="activatePerformanceCustomPeriod();refreshCompanyPerformanceModal()" aria-label="&#51333;&#47308;&#51068;" data-date-format-sync>
                         <button class="btn-primary-sm" style="height:38px" onclick="refreshCompanyPerformanceModal()"><span data-ko="&#51312;&#54924;" data-en="Search">&#51312;&#54924;</span></button>
                     </div>
                 </div>
@@ -940,7 +940,10 @@ function editCompany(id) {
     title.textContent = companyLang() === 'en' ? 'Edit Group' : '단체 정보 수정';
     document.getElementById('compId').value = c.id;
     document.getElementById('compName').value = c.name;
-    document.getElementById('compType').value = c.type;
+    const typeSelect = document.getElementById('compType');
+    const normalizedType = typeof companyTypeKey === 'function' ? companyTypeKey(c.type) : c.type;
+    const typeOption = Array.from(typeSelect.options).find(option => option.value === normalizedType || option.value === c.type);
+    typeSelect.value = typeOption?.value || '';
     document.getElementById('compStatus').value = c.status;
     document.getElementById('compContactName').value = c.contactName;
     document.getElementById('compPhone').value = normalizeCompanyPhone(c.phone);
@@ -963,6 +966,12 @@ async function saveCompany() {
     const id = document.getElementById('compId').value;
     const name = document.getElementById('compName').value;
     if(!name) { showToast(companyText('nameRequired'), 'error'); return; }
+    const typeInput = document.getElementById('compType');
+    if (!typeInput.value) {
+        showToast(companyLang() === 'en' ? 'Select a primary type.' : '대표 유형을 선택해 주세요.', 'error');
+        typeInput.focus();
+        return;
+    }
     const phoneInput = document.getElementById('compPhone');
     const phone = normalizeCompanyPhone(phoneInput.value);
     if (!isValidCompanyPhone(phone, false)) {
@@ -1508,10 +1517,8 @@ function openBlockModal(compId) {
     function syncPerformanceDateInputs() {
         const isEnglish = companyLang() === 'en';
         document.querySelectorAll('[data-date-format-sync]').forEach(input => {
-            input.type = isEnglish ? 'text' : 'date';
+            input.type = 'date';
             input.lang = isEnglish ? 'en-CA' : 'ko-KR';
-            input.inputMode = isEnglish ? 'numeric' : '';
-            input.placeholder = isEnglish ? 'YYYY-MM-DD' : '';
             input.setAttribute('aria-label', isEnglish
                 ? (input.id === 'performanceStartDate' ? 'Start date' : 'End date')
                 : (input.id === 'performanceStartDate' ? '시작일' : '종료일'));
@@ -1523,10 +1530,16 @@ function openBlockModal(compId) {
         const mode = document.getElementById('performancePeriodSelect')?.value || 'all';
         const start = document.getElementById('performanceStartDate');
         const end = document.getElementById('performanceEndDate');
-        const custom = mode === 'custom';
-        if (start) start.disabled = !custom;
-        if (end) end.disabled = !custom;
+        if (mode !== 'custom') {
+            if (start) start.value = '';
+            if (end) end.value = '';
+        }
         refreshCompanyPerformanceModal();
+    };
+
+    window.activatePerformanceCustomPeriod = function() {
+        const period = document.getElementById('performancePeriodSelect');
+        if (period && period.value !== 'custom') period.value = 'custom';
     };
 
     window.openCompanyPerformanceModal = async function(companyId = '') {
@@ -1536,8 +1549,8 @@ function openBlockModal(compId) {
         if (period) period.value = 'all';
         const start = document.getElementById('performanceStartDate');
         const end = document.getElementById('performanceEndDate');
-        if (start) { start.value = ''; start.disabled = true; }
-        if (end) { end.value = ''; end.disabled = true; }
+        if (start) { start.value = ''; start.disabled = false; start.onfocus = activatePerformanceCustomPeriod; }
+        if (end) { end.value = ''; end.disabled = false; end.onfocus = activatePerformanceCustomPeriod; }
         openModal('companyPerformanceModal');
         await refreshCompanyPerformanceModal();
     };

@@ -38,17 +38,17 @@
                 <a class="view-all-btn" href="ancillary.html">부가서비스</a>
             </div>
             <div class="event-collection-grid">
-                <a class="event-collection-card ad-event-card--restaurant" href="ancillary.html">
+                <a class="event-collection-card ad-event-card--restaurant" href="#" onclick="openRestaurantEvent(0);return false">
                     <span class="ad-event-card__badge"><i class="fa-solid fa-utensils"></i> 주변 맛집</span>
                     <strong>투숙객 전용 레스토랑 20% 할인</strong>
                     <span class="ad-event-card__time"><b>체크인 쿠폰</b> 당일 사용</span>
                 </a>
-                <a class="event-collection-card ad-event-card--restaurant-2" href="ancillary.html">
+                <a class="event-collection-card ad-event-card--restaurant-2" href="#" onclick="openRestaurantEvent(1);return false">
                     <span class="ad-event-card__badge"><i class="fa-solid fa-mug-saucer"></i> 카페 제휴</span>
                     <strong>웰컴 디저트 세트 할인</strong>
                     <span class="ad-event-card__time"><b>객실번호 인증</b> 커피 세트 혜택</span>
                 </a>
-                <a class="event-collection-card ad-event-card--restaurant-3" href="ancillary.html">
+                <a class="event-collection-card ad-event-card--restaurant-3" href="#" onclick="openRestaurantEvent(2);return false">
                     <span class="ad-event-card__badge"><i class="fa-solid fa-bowl-food"></i> 다이닝</span>
                     <strong>패밀리 디너 세트 할인</strong>
                     <span class="ad-event-card__time"><b>호텔 키 인증</b> 세트 메뉴 할인</span>
@@ -105,6 +105,47 @@
         </section>
     </div>
 </div>
+
+<div class="modal-overlay" id="restaurantEventModal" onclick="if(event.target===this)closeModal('restaurantEventModal')">
+    <div class="modal-card" style="max-width:720px;width:min(94vw,720px)">
+        <div class="modal-header">
+            <h3 class="modal-title"><i class="fa-solid fa-utensils" style="color:var(--primary);margin-right:8px"></i><span id="restaurantEventTitle"></span></h3>
+            <button class="modal-close" type="button" onclick="closeModal('restaurantEventModal')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="display:grid;gap:14px">
+            <div id="restaurantEventBenefit" style="font-size:18px;font-weight:800;color:var(--txt)"></div>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+                <div class="info-box"><span class="label">적용 기간</span><strong id="restaurantEventPeriod"></strong></div>
+                <div class="info-box"><span class="label">위치</span><strong id="restaurantEventLocation"></strong></div>
+            </div>
+            <div class="info-box"><span class="label">이용 방법</span><strong id="restaurantEventGuide"></strong></div>
+            <div class="info-box"><span class="label">담당자 연락처</span><strong id="restaurantEventContact"></strong></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-outline" type="button" onclick="closeModal('restaurantEventModal')">닫기</button>
+            <a class="btn-primary-sm" href="ancillary.html"><i class="fa-solid fa-arrow-right"></i> 부가서비스 등록</a>
+        </div>
+    </div>
+</div>
+
+<script>
+const restaurantEvents = [
+    { title:'Riverside Dining', benefit:'투숙객 전용 디너 메뉴 20% 할인', period:'2026-07-01 ~ 2026-08-31', location:'호텔 1층 Riverside Dining', guide:'체크인 당일 객실 키 또는 체크인 쿠폰을 제시하세요. 주류와 중복 할인은 제외됩니다.', contact:'Restaurant Desk · +63 2 8555 1200' },
+    { title:'Lobby Cafe', benefit:'웰컴 디저트와 커피 세트 특별가', period:'2026-07-01 ~ 2026-08-31', location:'호텔 로비 Lobby Cafe', guide:'객실번호 확인 후 투숙 기간 중 1회 사용할 수 있습니다.', contact:'Lobby Cafe · +63 2 8555 1210' },
+    { title:'Family Table', benefit:'4인 패밀리 디너 세트 15% 할인', period:'2026-07-15 ~ 2026-09-15', location:'호텔 2층 Family Table', guide:'이용 하루 전 예약하고 호텔 키를 제시하세요. 제휴 세트 메뉴에만 적용됩니다.', contact:'Dining Reservation · +63 2 8555 1220' }
+];
+function openRestaurantEvent(index) {
+    const item = restaurantEvents[index];
+    if (!item) return;
+    document.getElementById('restaurantEventTitle').textContent = item.title;
+    document.getElementById('restaurantEventBenefit').textContent = item.benefit;
+    document.getElementById('restaurantEventPeriod').textContent = item.period;
+    document.getElementById('restaurantEventLocation').textContent = item.location;
+    document.getElementById('restaurantEventGuide').textContent = item.guide;
+    document.getElementById('restaurantEventContact').textContent = item.contact;
+    openModal('restaurantEventModal');
+}
+</script>
 
 </body>
 </html>

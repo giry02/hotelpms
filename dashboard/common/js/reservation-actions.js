@@ -2573,7 +2573,23 @@
 
     function reservationBlocksAvailability(res) {
         const status = normalizedReservationStatus(res?.status);
-        return !['cancelled', 'completed'].includes(status);
+        return !['cancelled', 'completed'].includes(status) && !reservationShadowedByCompletedStay(res);
+    }
+
+    function reservationShadowedByCompletedStay(res) {
+        const guest = String(res?.guestName || res?.guest || '').trim().toLowerCase();
+        const start = parseReservationDate(res?.checkInDate || res?.checkin || res?.cin);
+        if (!guest || !start) return false;
+        return reservationList().some(other => {
+            if (!other || other.id === res.id || normalizedReservationStatus(other.status) !== 'completed') return false;
+            const otherGuest = String(other.guestName || other.guest || '').trim().toLowerCase();
+            const end = parseReservationDate(other.checkOutDate || other.checkout || other.cout);
+            return otherGuest === guest
+                && end?.getTime() === start.getTime()
+                && [res.roomId, res.fullRoom, res.room, res.roomNo].some(value =>
+                    [other.roomId, other.fullRoom, other.room, other.roomNo].some(otherValue => sameRoomValue(value, otherValue))
+                );
+        });
     }
 
     function reservationOverlapsDates(res, checkin, checkout) {
@@ -2718,7 +2734,6 @@
         if (!room) return actionText('flow.noRoom');
         const statuses = roomOpsStatuses(room);
         if (statuses.some(status => ['oos', 'outofservice', 'outoforder', 'maintenance'].includes(status))) return actionText('flow.maintenanceRoom');
-        if (statuses.some(status => ['occupied', 'inhouse', 'checkedin'].includes(status))) return actionText('flow.occupiedRoom');
         return '';
     }
 

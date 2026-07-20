@@ -524,10 +524,14 @@ function completedCheckoutForRoomOnFocusDate(room) {
 }
 
 function reservationShadowedByCompletedCheckout(res) {
-    if (!reservationLateCheckoutEnabled(res)) return false;
     const room = roomForReservation(res);
     const completed = room ? completedCheckoutForRoomOnFocusDate(room) : null;
-    return !!(completed && completed.id !== res.id);
+    if (!completed || completed.id === res.id) return false;
+    const guest = String(res?.guestName || res?.guest || '').trim().toLowerCase();
+    const completedGuest = String(completed?.guestName || completed?.guest || '').trim().toLowerCase();
+    const start = reservationStart(res);
+    const completedEnd = reservationEnd(completed);
+    return !!(guest && guest === completedGuest && start && completedEnd && sameDate(start, completedEnd));
 }
 
 function isReservationRoomInHouse(res) {

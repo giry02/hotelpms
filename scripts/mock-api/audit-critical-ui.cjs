@@ -6,6 +6,7 @@ const { chromium } = require('playwright');
 const ROOT = path.resolve(__dirname, '..', '..');
 const base = process.env.PMS_BASE_URL || 'http://127.0.0.1:8765';
 const resultFile = process.env.PMS_RESULT_FILE || '';
+const scope = process.env.PMS_CRITICAL_SCOPE || 'all';
 
 function contentType(file) {
   return {
@@ -76,6 +77,7 @@ async function waitForPage(page, selector) {
 async function createContext(browser, language = 'ko') {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   await context.addInitScript(lang => {
+    sessionStorage.setItem('pms_logged_in', 'true');
     sessionStorage.setItem('admin_logged_in', 'true');
     localStorage.setItem('pms_lang', lang);
     localStorage.setItem('pms_admin_lang', lang);
@@ -403,8 +405,15 @@ async function reservationBookingFlow(browser, results) {
       return matches.map(item => ({ id: item.id, room: item.room || item.fullRoom, guest: item.guest || item.name, status: item.status }));
     }, selectedRoomId);
     assert(saved.length === 1 && String(saved[0].room) === selectedRoomId, 'The reservation was not saved to the clicked room', { selectedRoomId, saved });
+    await page.reload();
+    await waitForPage(page, '.reservation-board-box');
+    const persisted = await page.evaluate(({ roomId, reservationId }) => {
+      const match = (window.reservations || []).find(item => item.id === reservationId);
+      return match ? { id: match.id, room: match.room || match.fullRoom, status: match.status } : null;
+    }, { roomId: selectedRoomId, reservationId: saved[0].id });
+    assert(persisted && String(persisted.room) === selectedRoomId, 'The room 1203 reservation did not persist after reload', { selectedRoomId, saved: saved[0], persisted });
     assert(pageErrors.length === 0, 'Reservation Board raised a JavaScript error', pageErrors);
-    return { clicked: selectedRoomId, selected, saved: saved[0] };
+    return { clicked: selectedRoomId, selected, saved: saved[0], persisted };
   });
 
   await context.close();
@@ -421,10 +430,10 @@ async function reservationBookingFlow(browser, results) {
   const browser = await chromium.launch({ headless: true });
   const results = [];
   try {
-    await loginGuardFlow(browser, results);
-    await staffModalFlow(browser, results);
-    await expenseCrudFlow(browser, results);
-    await reservationBookingFlow(browser, results);
+    if (scope === 'all' || scope === 'login') await loginGuardFlow(browser, results);
+    if (scope === 'all' || scope === 'staff') await staffModalFlow(browser, results);
+    if (scope === 'all' || scope === 'expense') await expenseCrudFlow(browser, results);
+    if (scope === 'all' || scope === 'reservation') await reservationBookingFlow(browser, results);
   } finally {
     await browser.close();
     if (server) await new Promise(resolve => server.close(resolve));

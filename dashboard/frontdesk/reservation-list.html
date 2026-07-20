@@ -173,7 +173,6 @@
             <button class="ops-tab active" data-filter="all" onclick="setFilter(this,'all')"><i class="fa-solid fa-list"></i> <span class="ops-label">전체</span> <span class="ops-count">0</span></button>
             <button class="ops-tab" data-filter="checkin" onclick="setFilter(this,'checkin')"><i class="fa-solid fa-right-to-bracket"></i> <span class="ops-label">오늘 체크인</span> <span class="ops-count">0</span></button>
             <button class="ops-tab" data-filter="checkout" onclick="setFilter(this,'checkout')"><i class="fa-solid fa-right-from-bracket"></i> <span class="ops-label">체크아웃</span> <span class="ops-count">0</span></button>
-            <button class="ops-tab" data-filter="completed" onclick="setFilter(this,'completed')"><i class="fa-solid fa-check-double"></i> <span class="ops-label">완료</span> <span class="ops-count">0</span></button>
             <button class="ops-tab" data-filter="inhouse" onclick="setFilter(this,'inhouse')"><i class="fa-solid fa-bed"></i> <span class="ops-label">투숙 중</span> <span class="ops-count">0</span></button>
             <button class="ops-tab" data-filter="group" onclick="setFilter(this,'group')"><i class="fa-solid fa-users"></i> <span class="ops-label">단체</span> <span class="ops-count">0</span></button>
             <button class="ops-tab" data-filter="lateCheckout" onclick="setFilter(this,'lateCheckout')"><i class="fa-solid fa-clock"></i> <span class="ops-label">레이트</span> <span class="ops-count">0</span></button>
@@ -292,12 +291,6 @@
         <button class="bs-option" onclick="selectResFilter(this,'checkout','체크아웃')">
             <div class="bs-option-icon" style="background:rgba(139,92,246,.1);color:#7C3AED"><i class="fa-solid fa-right-from-bracket"></i></div>
             <span class="bs-option-label">체크아웃</span>
-            <span class="bs-option-count">0</span>
-            <i class="fa-solid fa-check bs-option-check"></i>
-        </button>
-        <button class="bs-option" onclick="selectResFilter(this,'completed','체크아웃 완료')">
-            <div class="bs-option-icon" style="background:#f1f5f9;color:#64748b"><i class="fa-solid fa-check-double"></i></div>
-            <span class="bs-option-label">체크아웃 완료</span>
             <span class="bs-option-count">0</span>
             <i class="fa-solid fa-check bs-option-check"></i>
         </button>
@@ -1144,6 +1137,19 @@ function roomIsVacantState(room) {
     return listRoomStatusFor(room).status === 'vacant';
 }
 
+function reservationShadowedByCompletedStay(res) {
+    const guest = String(res?.guestName || res?.guest || '').trim().toLowerCase();
+    const start = parseListDate(res?.checkInDate || res?.checkin || res?.cin);
+    if (!guest || !start) return false;
+    const room = roomForReservation(res);
+    return !!(room && reservations.some(other => {
+        if (!other || other.id === res.id || normalizeListStatus(other.status) !== 'completed') return false;
+        const otherGuest = String(other.guestName || other.guest || '').trim().toLowerCase();
+        const end = parseListDate(other?.checkOutDate || other?.checkout || other?.cout);
+        return otherGuest === guest && end && sameDate(end, start) && roomMatchesReservation(room, other);
+    }));
+}
+
 function listRoomStatusFor(room) {
     const today = todayDate();
     const range = periodRange(currentPeriodFilter) || { start: today, end: today };
@@ -1160,7 +1166,7 @@ function listRoomStatusFor(room) {
             start: parseListDate(res?.checkInDate || res?.checkin || res?.cin),
             end: parseListDate(res?.checkOutDate || res?.checkout || res?.cout)
         }))
-        .filter(item => item.start && item.end && item.status !== 'cancelled' && item.status !== 'completed' && stayOverlapsRange(item.res, range))
+        .filter(item => item.start && item.end && item.status !== 'cancelled' && item.status !== 'completed' && !reservationShadowedByCompletedStay(item.res) && stayOverlapsRange(item.res, range))
         .sort((a, b) => a.start - b.start);
 
     const checkoutDue = related.find(item => isCheckoutTargetStatus(item.effectiveStatus) && sameDate(item.end, focusDate));
@@ -1413,6 +1419,7 @@ function rowMatchesFilter(res) {
 }
 
 function rowMatchesPeriod(res) {
+    if (reservationShadowedByCompletedStay(res)) return false;
     const range = periodRange(currentPeriodFilter);
     if (!range) return true;
     const start = parseListDate(res?.checkInDate || res?.checkin || res?.cin);
@@ -1699,7 +1706,7 @@ function refreshReservationLabels() {
     });
     document.querySelectorAll('.bs-option').forEach(option => {
         const click = option.getAttribute('onclick') || '';
-        const filter = ['all', 'checkin', 'checkout', 'completed', 'inhouse', 'group', 'lateCheckout', 'dirty', 'vacant', 'roommove', 'cancelled'].find(key => click.includes(`'${key}'`));
+        const filter = ['all', 'checkin', 'checkout', 'inhouse', 'group', 'lateCheckout', 'dirty', 'vacant', 'roommove', 'cancelled'].find(key => click.includes(`'${key}'`));
         const label = option.querySelector('.bs-option-label');
         if (filter && label) label.textContent = filterLabel(filter);
     });
