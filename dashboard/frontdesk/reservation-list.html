@@ -437,6 +437,11 @@ const reservationLabels = {
         'doc.actionTitle': '신분증/여권 확인 완료 처리',
         'note.empty': '특이사항 없음',
         'stay.night': '박',
+        'label.checkinTime': '입실',
+        'label.checkoutTime': '퇴실',
+        'label.lateCheckout': '레이트',
+        'label.deposit': '예치금',
+        'label.balance': '잔액',
         'page.empty': '총 <b>0건</b>',
         'confirm.docVerify': '{name} 고객의 신분증/여권 확인을 완료 처리할까요?',
         'confirm.flow': '{name} 예약을 {action} 처리하시겠습니까?',
@@ -504,6 +509,11 @@ const reservationLabels = {
         'doc.actionTitle': 'Mark ID/passport as verified',
         'note.empty': 'No notes',
         'stay.night': 'N',
+        'label.checkinTime': 'Check-in',
+        'label.checkoutTime': 'Check-out',
+        'label.lateCheckout': 'Late',
+        'label.deposit': 'Deposit',
+        'label.balance': 'Balance',
         'page.empty': '<b>0</b> reservations',
         'confirm.docVerify': 'Mark ID/passport verification as complete for {name}?',
         'confirm.flow': 'Process {action} for {name}?',
@@ -939,7 +949,7 @@ function reservationLateCheckoutTime(res) {
 
 function lateCheckoutBadge(res) {
     if (!reservationLateCheckoutEnabled(res)) return '';
-    return `<span class="late-checkout-pill"><i class="fa-solid fa-clock"></i>레이트 ${escapeHtml(reservationLateCheckoutTime(res))}</span>`;
+    return `<span class="late-checkout-pill"><i class="fa-solid fa-clock"></i>${escapeHtml(resText('label.lateCheckout'))} ${escapeHtml(reservationLateCheckoutTime(res))}</span>`;
 }
 
 function reservationDateTimeCell(res, kind) {
@@ -948,7 +958,7 @@ function reservationDateTimeCell(res, kind) {
     const time = isIn ? reservationCheckInTime(res) : reservationCheckOutTime(res);
     return `<div class="res-date-cell">
         <span>${escapeHtml(date || '-')}</span>
-        <span class="res-time-meta"><i class="fa-regular fa-clock"></i>${isIn ? '입실' : '퇴실'} ${escapeHtml(time)}</span>
+        <span class="res-time-meta"><i class="fa-regular fa-clock"></i>${escapeHtml(resText(isIn ? 'label.checkinTime' : 'label.checkoutTime'))} ${escapeHtml(time)}</span>
         ${!isIn ? lateCheckoutBadge(res) : ''}
     </div>`;
 }
@@ -1059,7 +1069,7 @@ function moneyStack(res) {
     const balance = balanceDueAmount(res);
     return `<div class="res-money-stack">
         <div>${formatMoney(res)}</div>
-        ${(prepaid || balance) ? `<div class="res-money-sub">예치금 ${formatMoney({ amount: prepaid })}<br>잔액 ${formatMoney({ amount: balance })}</div>` : ''}
+        ${(prepaid || balance) ? `<div class="res-money-sub">${escapeHtml(resText('label.deposit'))} ${formatMoney({ amount: prepaid })}<br>${escapeHtml(resText('label.balance'))} ${formatMoney({ amount: balance })}</div>` : ''}
     </div>`;
 }
 
