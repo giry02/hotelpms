@@ -142,6 +142,9 @@
 
     const UNIFIED_MODAL_TEXT = {
         ko: {
+            'booking.checkoutBeforeCheckin': '체크아웃은 체크인과 같거나 이후 날짜여야 합니다.',
+            'booking.checkoutTimeBeforeCheckin': '같은 날짜에는 체크아웃 시간이 체크인 시간보다 늦어야 합니다.',
+            'booking.lateCheckoutTimeInvalid': '레이트 체크아웃 시간은 기본 체크아웃 시간보다 늦어야 합니다.',
             checkInDate: '체크인',
             checkOutDate: '체크아웃',
             checkInTime: '체크인 시간',
@@ -223,6 +226,9 @@
             guestNotesLabel: '특이사항'
         },
         en: {
+            'booking.checkoutBeforeCheckin': 'Check-out must be on or after check-in.',
+            'booking.checkoutTimeBeforeCheckin': 'For a same-day stay, check-out time must be later than check-in time.',
+            'booking.lateCheckoutTimeInvalid': 'Late check-out time must be later than the standard check-out time.',
             checkInDate: 'Check-in',
             checkOutDate: 'Check-out',
             checkInTime: 'Check-in Time',
@@ -1814,18 +1820,22 @@
                     <div class="md-item">
                         <div class="md-label" data-action-i18n="checkInDate" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkInDate'))}</div>
                         <input type="date" id="unifiedCin" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
+                        <div id="unifiedCinError" class="unified-stay-error" style="display:none;margin-top:5px;color:#dc2626;font-size:.72rem;font-weight:800;line-height:1.35"></div>
                     </div>
                     <div class="md-item">
                         <div class="md-label" data-action-i18n="checkOutDate" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkOutDate'))}</div>
                         <input type="date" id="unifiedCout" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:600;box-sizing:border-box;background:#fff;">
+                        <div id="unifiedCoutError" class="unified-stay-error" style="display:none;margin-top:5px;color:#dc2626;font-size:.72rem;font-weight:800;line-height:1.35"></div>
                     </div>
                     <div class="md-item">
                         <div class="md-label" data-action-i18n="checkInTime" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkInTime'))}</div>
                         <input type="time" id="unifiedCheckInTime" value="14:00" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                        <div id="unifiedCheckInTimeError" class="unified-stay-error" style="display:none;margin-top:5px;color:#dc2626;font-size:.72rem;font-weight:800;line-height:1.35"></div>
                     </div>
                     <div class="md-item">
                         <div class="md-label" data-action-i18n="checkOutTime" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkOutTime'))}</div>
                         <input type="time" id="unifiedCheckOutTime" value="12:00" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                        <div id="unifiedCheckOutTimeError" class="unified-stay-error" style="display:none;margin-top:5px;color:#dc2626;font-size:.72rem;font-weight:800;line-height:1.35"></div>
                     </div>
                     <div class="md-item">
                         <label style="display:flex;align-items:center;gap:8px;height:38px;margin-top:20px;border:1px solid var(--border);border-radius:8px;padding:0 10px;background:#fff;font-size:.8rem;font-weight:900;color:var(--txt);cursor:pointer">
@@ -1836,6 +1846,7 @@
                     <div class="md-item">
                         <div class="md-label" data-action-i18n="lateCheckoutTime" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('lateCheckoutTime'))}</div>
                         <input type="time" id="unifiedLateCheckoutTime" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#f8fafc;">
+                        <div id="unifiedLateCheckoutTimeError" class="unified-stay-error" style="display:none;margin-top:5px;color:#dc2626;font-size:.72rem;font-weight:800;line-height:1.35"></div>
                     </div>
                     <div id="unifiedStayTimeHelp" style="grid-column:1 / -1;margin-top:-10px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
                     <div class="md-item">
@@ -1991,6 +2002,7 @@
                 const input = document.getElementById(id);
                 if (input) input.addEventListener('change', () => {
                     if (id === 'unifiedCin' && input.min && input.value && input.value < input.min) input.value = input.min;
+                    clearUnifiedStayValidation();
                     window.updateUnifiedStayAndRooms();
                     refreshUnifiedRateQuote();
                 });
@@ -1999,10 +2011,16 @@
             if (roomInput) roomInput.addEventListener('change', () => refreshUnifiedRateQuote());
             ['unifiedCheckInTime', 'unifiedCheckOutTime', 'unifiedLateCheckoutTime'].forEach(id => {
                 const input = document.getElementById(id);
-                if (input) input.addEventListener('change', syncUnifiedLateCheckoutControls);
+                if (input) input.addEventListener('change', () => {
+                    clearUnifiedStayValidation();
+                    syncUnifiedLateCheckoutControls();
+                });
             });
             const lateToggle = document.getElementById('unifiedLateCheckout');
-            if (lateToggle) lateToggle.addEventListener('change', syncUnifiedLateCheckoutControls);
+            if (lateToggle) lateToggle.addEventListener('change', () => {
+                clearUnifiedStayValidation();
+                syncUnifiedLateCheckoutControls();
+            });
             applyReservationPlacardI18n();
             applyUnifiedReservationI18n();
             ['unifiedNightlyRate', 'unifiedPrepaid'].forEach(id => {
@@ -2433,20 +2451,14 @@
         const checkoutEl = document.getElementById('unifiedCout');
         const checkin = parseReservationDate(getUnifiedDateInputValue('unifiedCin'));
         let checkout = parseReservationDate(getUnifiedDateInputValue('unifiedCout'));
-        if (options.autoFix && checkin && (!checkout || checkout <= checkin)) {
+        if (options.autoFix && checkin && !checkout) {
             checkout = new Date(checkin);
             checkout.setDate(checkout.getDate() + 1);
             if (checkoutEl?.tagName === 'INPUT') checkoutEl.value = toDateInputValue(checkout);
             else if (checkoutEl) checkoutEl.textContent = toReservationDateText(checkout);
         }
-        if (checkoutEl?.tagName === 'INPUT') {
-            const minCheckout = checkin ? new Date(checkin) : null;
-            if (minCheckout) {
-                minCheckout.setDate(minCheckout.getDate() + 1);
-                checkoutEl.min = toDateInputValue(minCheckout);
-            }
-        }
-        return { checkin, checkout, valid: !!(checkin && checkout && checkout > checkin) };
+        if (checkoutEl?.tagName === 'INPUT') checkoutEl.removeAttribute('min');
+        return { checkin, checkout, valid: !!(checkin && checkout && checkout >= checkin) };
     }
 
     function updateUnifiedNightsLabel() {
@@ -2460,6 +2472,60 @@
         const nights = Math.max(1, Math.round((checkout - checkin) / 86400000));
         nightsEl.textContent = actionLang() === 'en' ? `${nights}N` : `${nights}박`;
         return nights;
+    }
+
+    function clearUnifiedStayValidation() {
+        ['unifiedCin', 'unifiedCout', 'unifiedCheckInTime', 'unifiedCheckOutTime', 'unifiedLateCheckoutTime'].forEach(id => {
+            const input = document.getElementById(id);
+            const error = document.getElementById(`${id}Error`);
+            input?.removeAttribute('aria-invalid');
+            if (input) input.style.borderColor = 'var(--border)';
+            if (error) {
+                error.textContent = '';
+                error.style.display = 'none';
+            }
+        });
+    }
+
+    function setUnifiedStayFieldError(id, message) {
+        const input = document.getElementById(id);
+        const error = document.getElementById(`${id}Error`);
+        if (input) {
+            input.setAttribute('aria-invalid', 'true');
+            input.style.borderColor = '#dc2626';
+        }
+        if (error) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+        return input;
+    }
+
+    function validateUnifiedStaySchedule() {
+        clearUnifiedStayValidation();
+        const range = getUnifiedDateRange({ autoFix: false });
+        if (!range.checkin || !range.checkout) {
+            return { valid: false, range, message: actionText('booking.dateRequired'), input: null };
+        }
+        if (range.checkout < range.checkin) {
+            const message = unifiedModalText('booking.checkoutBeforeCheckin');
+            return { valid: false, range, message, input: setUnifiedStayFieldError('unifiedCout', message) };
+        }
+
+        const checkInTime = getUnifiedTimeValue('unifiedCheckInTime', '14:00');
+        const checkOutTime = getUnifiedTimeValue('unifiedCheckOutTime', '12:00');
+        if (range.checkout.getTime() === range.checkin.getTime() && checkOutTime <= checkInTime) {
+            const message = unifiedModalText('booking.checkoutTimeBeforeCheckin');
+            return { valid: false, range, message, input: setUnifiedStayFieldError('unifiedCheckOutTime', message) };
+        }
+
+        const lateCheckout = !!document.getElementById('unifiedLateCheckout')?.checked;
+        const lateCheckoutTime = getUnifiedTimeValue('unifiedLateCheckoutTime', checkOutTime);
+        if (lateCheckout && lateCheckoutTime <= checkOutTime) {
+            const message = unifiedModalText('booking.lateCheckoutTimeInvalid');
+            return { valid: false, range, message, input: setUnifiedStayFieldError('unifiedLateCheckoutTime', message) };
+        }
+        return { valid: true, range, message: '', input: null };
     }
 
     function normalizeReservationTime(value, fallback = '') {
@@ -2648,7 +2714,7 @@
         const requestedValue = preferredValue || previousValue;
         const id = document.getElementById('unifiedResId')?.value;
         const currentRes = id ? reservationList().find(res => res.id === id) : null;
-        const { checkin, checkout, valid } = getUnifiedDateRange({ autoFix: true });
+        const { checkin, checkout, valid } = getUnifiedDateRange({ autoFix: false });
         roomSelect.innerHTML = '';
 
         if (!valid) {
@@ -3456,7 +3522,8 @@
             showReservationAlert(actionText('guest.required'), 'error');
             return;
         }
-        const dateRange = getUnifiedDateRange({ autoFix: false });
+        const stayValidation = validateUnifiedStaySchedule();
+        const dateRange = stayValidation.range;
         if (!dateRange.checkin || !dateRange.checkout) {
             showReservationAlert(actionText('booking.dateRequired'), 'error');
             return;
@@ -3465,8 +3532,9 @@
             showReservationAlert(actionText('booking.pastCheckin'), 'error');
             return;
         }
-        if (!dateRange.valid) {
-            showReservationAlert(actionText('booking.invalidDates'), 'error');
+        if (!stayValidation.valid) {
+            stayValidation.input?.focus();
+            showReservationAlert(stayValidation.message || actionText('booking.invalidDates'), 'error');
             return;
         }
         updateUnifiedNightsLabel();

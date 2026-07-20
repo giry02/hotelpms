@@ -534,6 +534,73 @@ async function overlappingReservationGuardRegression(page, base) {
   return result;
 }
 
+async function reservationStayValidationRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=stay-validation`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof saveUnifiedRes === 'function', null, { timeout: 15000 });
+
+  const result = await page.evaluate(async () => {
+    const beforeCount = (window.reservations || []).length;
+    const alerts = [];
+    const previousAlert = window.showAlert;
+    if (window.PmsAPI) window.PmsAPI.getAllRoomTypes = async () => [{ id: 'RT-DELUXE', name: 'Deluxe', baseRate: 140 }];
+    window.showAlert = message => { alerts.push(String(message || '')); };
+    await window.openUnifiedResModal({
+      roomNo: '1402', room: '1402', checkInDate: '2026-07-10', checkOutDate: '2026-07-11',
+      guestId: 'G-STAY-VALIDATION', guestName: 'Stay Validation Guest', guest: 'Stay Validation Guest', amount: 140
+    });
+
+    const setValue = (id, value) => {
+      const input = document.getElementById(id);
+      if (input) input.value = value;
+    };
+    const branch = async ({ cin, cout, checkInTime, checkOutTime, lateCheckout, lateCheckoutTime, errorId }) => {
+      setValue('unifiedCin', cin);
+      setValue('unifiedCout', cout);
+      setValue('unifiedCheckInTime', checkInTime);
+      setValue('unifiedCheckOutTime', checkOutTime);
+      const lateToggle = document.getElementById('unifiedLateCheckout');
+      if (lateToggle) lateToggle.checked = lateCheckout;
+      if (lateCheckout) setValue('unifiedLateCheckoutTime', lateCheckoutTime);
+      await window.saveUnifiedRes();
+      const input = document.getElementById(errorId);
+      const error = document.getElementById(`${errorId}Error`);
+      return {
+        value: input?.value || '',
+        invalid: input?.getAttribute('aria-invalid') === 'true',
+        error: error?.textContent || '',
+        count: (window.reservations || []).length
+      };
+    };
+
+    const checkoutBeforeCheckin = await branch({
+      cin: '2026-07-10', cout: '2026-07-09', checkInTime: '14:00', checkOutTime: '12:00',
+      lateCheckout: false, lateCheckoutTime: '', errorId: 'unifiedCout'
+    });
+    const sameDayTimeReversal = await branch({
+      cin: '2026-07-10', cout: '2026-07-10', checkInTime: '14:00', checkOutTime: '12:00',
+      lateCheckout: false, lateCheckoutTime: '', errorId: 'unifiedCheckOutTime'
+    });
+    const lateCheckoutReversal = await branch({
+      cin: '2026-07-10', cout: '2026-07-11', checkInTime: '14:00', checkOutTime: '12:00',
+      lateCheckout: true, lateCheckoutTime: '11:00', errorId: 'unifiedLateCheckoutTime'
+    });
+    window.showAlert = previousAlert;
+    return { beforeCount, alerts, checkoutBeforeCheckin, sameDayTimeReversal, lateCheckoutReversal };
+  });
+
+  assert(result.checkoutBeforeCheckin.value === '2026-07-09', 'Invalid checkout date must not be silently rewritten.', result);
+  assert(result.checkoutBeforeCheckin.invalid && result.checkoutBeforeCheckin.error, 'Checkout-before-checkin must show an adjacent checkout-date error.', result);
+  assert(result.sameDayTimeReversal.invalid && result.sameDayTimeReversal.error, 'Same-day reversed times must show an adjacent checkout-time error.', result);
+  assert(result.lateCheckoutReversal.invalid && result.lateCheckoutReversal.error, 'Reversed late checkout must show an adjacent late-time error.', result);
+  assert([
+    result.checkoutBeforeCheckin.count,
+    result.sameDayTimeReversal.count,
+    result.lateCheckoutReversal.count
+  ].every(count => count === result.beforeCount), 'Invalid stay schedules must not create a reservation.', result);
+  return result;
+}
+
 async function reservationTimelineShadowRegression(page, base) {
   await page.goto(`${base}/dashboard/frontdesk/reservation-timeline.html?test=timeline-shadow`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -624,6 +691,7 @@ async function reservationTimelineShadowRegression(page, base) {
     const boardFilterColorResult = await reservationBoardFilterColorRegression(page, base);
     const maintenanceBookingGuardResult = await maintenanceRoomBookingGuardRegression(page, base);
     const overlappingReservationGuardResult = await overlappingReservationGuardRegression(page, base);
+    const stayValidationResult = await reservationStayValidationRegression(page, base);
     const timelineShadowResult = await reservationTimelineShadowRegression(page, base);
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
@@ -866,6 +934,7 @@ async function reservationTimelineShadowRegression(page, base) {
         'reservation board keeps card status colors stable across filters and hover',
         'maintenance room cards explain the booking block without opening the form',
         'overlapping bookings show conflict details and do not save',
+        'invalid dates and times stay visible, show adjacent errors, and do not save',
         'reservation timeline prefers the saved booking over a stale same-guest handoff',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
@@ -877,6 +946,7 @@ async function reservationTimelineShadowRegression(page, base) {
       boardFilterColorResult,
       maintenanceBookingGuardResult,
       overlappingReservationGuardResult,
+      stayValidationResult,
       timelineShadowResult
     }, null, 2));
   } catch (error) {
