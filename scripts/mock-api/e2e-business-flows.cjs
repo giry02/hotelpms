@@ -289,6 +289,14 @@ async function individualReservationFlow(page) {
     };
   }, stored.id);
   assert(checkedInState.checkoutActionVisible, 'checkout action did not appear after timeline check-in');
+  await page.evaluate(id => {
+    const list = window.reservations || [];
+    const reservation = list.find(item => item.id === id);
+    if (!reservation) return;
+    reservation.balanceDue = 0;
+    reservation.outstandingBalance = 0;
+    localStorage.setItem('pms_reservations', JSON.stringify(list));
+  }, stored.id);
   await page.locator('#unifiedFlowActions button[onclick*="checkout"]').click();
   await clickConfirmOk(page);
   await page.waitForFunction(id => {
