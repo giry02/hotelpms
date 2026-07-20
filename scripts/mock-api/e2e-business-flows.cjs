@@ -681,6 +681,50 @@ async function readonlyCheckedInReservationFlow(page) {
     return res?.status;
   }, lockedReservationId);
   assert(afterDirectCheckinStatus === beforeCancelStatus, 'checked-in reservation was re-checked-in through the shared flow action');
+  const blockedCheckout = await page.evaluate(async id => {
+    const res = window.reservations.find(item => item.id === id);
+    const roomKey = String(res?.roomNo || res?.room || '').trim();
+    const findRoom = () => (window.rooms || []).find(item =>
+      String(item?.roomNo || item?.number || item?.room || '').trim() === roomKey
+    );
+    const beforeRoom = findRoom();
+    const before = {
+      reservationStatus: res?.status,
+      roomStatus: beforeRoom?.status,
+      frontStatus: beforeRoom?.frontStatus,
+      housekeepingStatus: beforeRoom?.housekeepingStatus
+    };
+    const alerts = [];
+    let confirmCalled = false;
+    const originalAlert = window.showAlert;
+    const originalConfirm = window.showConfirm;
+    window.showAlert = message => { alerts.push(String(message || '')); };
+    window.showConfirm = async () => { confirmCalled = true; return true; };
+    try {
+      await window.processUnifiedReservationFlow('checkout');
+    } finally {
+      window.showAlert = originalAlert;
+      window.showConfirm = originalConfirm;
+    }
+    const afterRoom = findRoom();
+    return {
+      before,
+      after: {
+        reservationStatus: res?.status,
+        roomStatus: afterRoom?.status,
+        frontStatus: afterRoom?.frontStatus,
+        housekeepingStatus: afterRoom?.housekeepingStatus
+      },
+      alerts,
+      confirmCalled
+    };
+  }, lockedReservationId);
+  assert(blockedCheckout.alerts.length === 1, 'outstanding checkout did not show a blocking alert');
+  assert(!blockedCheckout.confirmCalled, 'outstanding checkout reached the confirmation step');
+  assert(
+    JSON.stringify(blockedCheckout.after) === JSON.stringify(blockedCheckout.before),
+    'outstanding checkout changed reservation or room state'
+  );
   await page.evaluate(id => window.cancelResAction(id), lockedReservationId);
   await page.waitForTimeout(300);
   const afterCancelStatus = await page.evaluate(id => {

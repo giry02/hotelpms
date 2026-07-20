@@ -8,6 +8,7 @@
             'action.checkout': '체크아웃',
             'flow.alreadyCheckedIn': '이미 체크인 또는 투숙 중인 예약입니다. 체크인을 다시 처리할 수 없습니다.',
             'flow.checkoutOnlyInhouse': '체크아웃은 투숙 중 예약에서만 처리할 수 있습니다.',
+            'flow.checkoutOutstanding': '미수금 {amount}이 남아 있어 체크아웃할 수 없습니다. 먼저 정산을 완료해 주세요.',
             'flow.noRoom': '객실을 먼저 배정해야 체크인할 수 있습니다.',
             'flow.dirtyRoom': '배정 객실 청소가 아직 완료되지 않았습니다.',
             'flow.dirtyRoomWarning': '배정 객실 청소가 아직 완료되지 않았습니다.\n체크인은 진행할 수 있지만 객실 준비 상태는 하우스키핑 확인 대상으로 남습니다.',
@@ -66,6 +67,7 @@
             'action.checkout': 'Check-out',
             'flow.alreadyCheckedIn': 'This reservation is already checked in or in-house. Check-in cannot be processed again.',
             'flow.checkoutOnlyInhouse': 'Check-out can only be processed for in-house reservations.',
+            'flow.checkoutOutstanding': 'Outstanding balance {amount} remains. Complete settlement before check-out.',
             'flow.noRoom': 'Assign a room before check-in.',
             'flow.dirtyRoom': 'The assigned room has not been cleaned yet.',
             'flow.dirtyRoomWarning': 'The assigned room has not been cleaned yet.\nYou can continue check-in, but the room readiness remains flagged for housekeeping.',
@@ -499,6 +501,47 @@
         } catch(e) {
             return `${currency} ${normalizeMoneyAmount(amount, currency).toLocaleString()}`;
         }
+    }
+
+    async function reservationCheckoutOutstanding(res) {
+        const reservationId = String(res?.id || res?.reservationId || '').trim();
+        if (reservationId && window.PmsMockApi) {
+            try {
+                const envelope = await window.PmsMockApi.request('GET', '/folios');
+                const folios = window.PmsMockApi.items(envelope).filter(folio =>
+                    String(folio?.reservationId || '').trim() === reservationId
+                );
+                if (folios.length) {
+                    const balances = folios.map(folio => ({
+                        amount: normalizeMoneyAmount(
+                            typeof folio?.balance === 'object' ? folio.balance.amount : folio?.balance,
+                            folio?.balance?.currency || folio?.currency || reservationCurrency(res)
+                        ),
+                        currency: folio?.balance?.currency || folio?.currency || reservationCurrency(res)
+                    }));
+                    return balances.reduce((total, balance) => ({
+                        amount: total.amount + balance.amount,
+                        currency: total.currency || balance.currency
+                    }), { amount: 0, currency: balances[0]?.currency || reservationCurrency(res) });
+                }
+            } catch(e) {
+                console.warn('Folio balance load for checkout guard failed', e);
+            }
+        }
+
+        const explicit = Number(
+            res?.balanceDue ??
+            res?.outstandingBalance ??
+            res?.paymentPlan?.balanceDue ??
+            res?.settlement?.balanceDue
+        );
+        if (Number.isFinite(explicit)) {
+            return { amount: normalizeMoneyAmount(explicit, reservationCurrency(res)), currency: reservationCurrency(res) };
+        }
+        return {
+            amount: normalizeMoneyAmount(reservationAmountValue(res) - reservationPrepaidValue(res), reservationCurrency(res)),
+            currency: reservationCurrency(res)
+        };
     }
 
     const PREPAYMENT_CURRENCIES = ['PHP', 'USD', 'KRW'];
@@ -3266,6 +3309,16 @@
             showReservationAlert(message, 'error');
             renderUnifiedFlowActions(res);
             return;
+        }
+        if (action === 'checkout') {
+            const outstanding = await reservationCheckoutOutstanding(res);
+            if (outstanding.amount > 0) {
+                showReservationAlert(actionText('flow.checkoutOutstanding', {
+                    amount: formatSettlementMoney(outstanding.amount, outstanding.currency)
+                }), 'error');
+                renderUnifiedFlowActions(res);
+                return;
+            }
         }
         const room = roomForReservation(res);
         let checkinWarning = '';
