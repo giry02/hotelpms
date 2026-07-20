@@ -594,7 +594,8 @@ async function openMaintModal(preserveEdit = false) {
     var typeEl = document.getElementById('newType');
     if (typeEl && window.PmsAPI && PmsAPI.getMAINTENANCE_TYPES) {
         var types = await PmsAPI.getMAINTENANCE_TYPES();
-        typeEl.innerHTML = types.map(t => `<option value="${t.name}">${maintenanceTypeLabel(t.name)}</option>`).join('');
+        const normalizedTypes = [...new Set(types.map(t => normalizeMaintenanceType(t.name)))];
+        typeEl.innerHTML = normalizedTypes.map(type => `<option value="${type}">${maintenanceTypeLabel(type)}</option>`).join('');
     }
     await populateMaintenanceRoomSelect();
 
@@ -875,6 +876,7 @@ function normalizeMaintenanceStatus(status) {
 function normalizeMaintenanceType(type) {
     const raw = String(type || '').trim();
     const key = raw.replace(/[-\s]/g, '').toLowerCase();
+    if (raw === '에어컨/난방' || raw === '에어컨/냉난방') return '에어컨/냉난방';
     if (typeIcons[raw]) return raw;
     return typeLabels[key] || typeLabels[raw.toLowerCase()] || '기타';
 }

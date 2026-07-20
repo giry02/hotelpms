@@ -826,7 +826,20 @@ async function housekeepingMaintenanceFlow(page) {
     `maintenance form labels did not fully follow the selected language: ${JSON.stringify(maintenanceFormState)}`
   );
   await page.evaluate(() => window.closeModal('newRequestModal'));
-  return { requestId: saved.id, room, maintenanceFormState };
+
+  const requestRow = page.locator('tr', { hasText: description }).first();
+  await requestRow.locator('button[aria-label="Edit request"]').click();
+  await page.locator('#newRequestModal.active').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#newType').selectOption({ label: 'HVAC' });
+  await page.locator('#maintenanceFormSubmit').click();
+  await page.waitForFunction(() => !document.querySelector('#newRequestModal.active'), null, { timeout: 5000 });
+  await requestRow.locator('button[aria-label="Edit request"]').click();
+  await page.locator('#newRequestModal.active').waitFor({ state: 'visible', timeout: 5000 });
+  const persistedType = await page.locator('#newType').inputValue();
+  const persistedTypeLabel = await page.locator('#newType option:checked').textContent();
+  assert(persistedType === '에어컨/냉난방' && persistedTypeLabel.trim() === 'HVAC', `maintenance type changed after edit save: ${persistedType} / ${persistedTypeLabel}`);
+  await page.evaluate(() => window.closeModal('newRequestModal'));
+  return { requestId: saved.id, room, maintenanceFormState, persistedType };
 }
 
 async function adminTenantApplicationFlow(page) {
