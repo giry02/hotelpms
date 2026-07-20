@@ -577,7 +577,65 @@ async function ancillaryEnglishModalFlow(page) {
   await page.evaluate(() => window.selectServiceType?.('rentacar'));
   const rentacarLabels = await page.locator('#serviceVariableGrid .form-label').allInnerTexts();
   assert(rentacarLabels.join('|') === 'Vehicle / Class|Rental Hours|Pickup Location', `rent-a-car registration labels did not follow English: ${JSON.stringify(rentacarLabels)}`);
-  return { baseState, golfLabels, rentacarLabels };
+
+  await page.evaluate(() => window.closeServiceDetailModal?.());
+  const voucherExpectations = {
+    golf: { title: 'Golf Voucher', fields: ['Guest Name', 'Room No.', 'Usage Date / Time', 'Service Item', 'Guests', 'Tee Time', 'Course / Vendor'], stub: 'Usage Confirmation' },
+    rentacar: { title: 'Rent-a-car Voucher', fields: ['Guest Name', 'Room No.', 'Usage Date / Time', 'Pickup Location', 'Vehicle / Class', 'Service Item', 'Amount', 'Vendor Contact', 'Vendor Address'], stub: 'Vehicle Handover' },
+    restaurant: { title: 'Restaurant Coupon', fields: ['Guest Name', 'Room No.', 'Usage Date / Time', 'Service Item', 'Amount', 'Vendor Contact', 'Location', 'Vendor Address', 'Benefit', 'Terms'], stub: 'Coupon Redemption' }
+  };
+  const vouchers = {};
+  for (const [type, expected] of Object.entries(voucherExpectations)) {
+    const state = await page.evaluate(serviceType => {
+      let order = serviceOrders.find(item => item.service === serviceType && orderHasAssignedGuest(item) && voucherFieldsForOrder(item).length > 0);
+      if (!order) {
+        const baseOrder = serviceOrders.find(item => orderHasAssignedGuest(item));
+        const vendor = vendors.find(item => item.type === serviceType);
+        const vendorItem = vendor?.items?.[0];
+        if (baseOrder && vendor && vendorItem) {
+          order = {
+            ...baseOrder,
+            id: `E2E-VOUCHER-${serviceType}`,
+            service: serviceType,
+            vendorId: vendor.id,
+            vendor: vendor.name,
+            item: vendorItem.name,
+            total: Number(vendorItem.price || 0),
+            voucherFields: defaultVoucherFields(serviceType),
+            pickup: vendorItem.pickupBase || 'Hotel Lobby',
+            vehicle: vendorItem.vehicleClass || vendorItem.name,
+            courseName: vendor.name,
+            teeTime: '09:30'
+          };
+          serviceOrders.push(order);
+        }
+      }
+      if (!order) return null;
+      openOrderVoucherModal(order.id);
+      const sheet = document.querySelector('#serviceVoucherModal .voucher-sheet');
+      const printDocument = buildServiceVoucherPrintDocument([order]);
+      const result = {
+        title: sheet?.querySelector('.voucher-heading')?.innerText.trim() || '',
+        fields: Array.from(sheet?.querySelectorAll('.voucher-row strong') || []).map(node => node.innerText.trim()),
+        stub: sheet?.querySelector('.voucher-stub-title')?.innerText.trim() || '',
+        modalTitle: document.querySelector('#serviceVoucherModal .modal-title')?.innerText.trim() || '',
+        closeText: document.querySelector('#serviceVoucherModal .modal-footer .btn-outline')?.innerText.trim() || '',
+        printText: document.getElementById('serviceVoucherPrintLabel')?.innerText.trim() || '',
+        printLang: (printDocument.match(/<html lang="([^"]+)"/) || [])[1] || '',
+        printTitle: (printDocument.match(/<title>([^<]+)<\/title>/) || [])[1] || ''
+      };
+      closeOrderVoucherModal();
+      return result;
+    }, type);
+    assert(state, `${type} voucher fixture was not available`);
+    assert(state.title === expected.title, `${type} voucher title did not follow English: ${JSON.stringify(state)}`);
+    expected.fields.forEach(label => assert(state.fields.includes(label), `${type} voucher omitted English field ${label}: ${JSON.stringify(state)}`));
+    assert(state.stub === expected.stub, `${type} voucher stub did not follow English: ${JSON.stringify(state)}`);
+    assert(state.modalTitle === 'Voucher Print' && state.closeText === 'Close' && /^Print/.test(state.printText), `${type} voucher actions did not follow English: ${JSON.stringify(state)}`);
+    assert(state.printLang === 'en' && state.printTitle === 'Voucher Print', `${type} print document did not follow English: ${JSON.stringify(state)}`);
+    vouchers[type] = state;
+  }
+  return { baseState, golfLabels, rentacarLabels, vouchers };
 }
 
 async function ancillaryVendorVoucherFlow(page) {

@@ -505,17 +505,17 @@
         </div>
     </div>
 </div>
-<div class="modal-overlay" id="serviceVoucherModal" style="display:none">
+<div class="modal-overlay" id="serviceVoucherModal" data-no-auto-i18n style="display:none">
     <div class="modal-card service-voucher-modal">
         <div class="modal-header">
-            <h3 class="modal-title"><i class="fa-solid fa-receipt" style="color:var(--primary)"></i> 바우처 출력</h3>
+            <h3 class="modal-title"><i class="fa-solid fa-receipt" style="color:var(--primary)"></i> <span data-ko="바우처 출력" data-en="Voucher Print">바우처 출력</span></h3>
             <button class="modal-close" onclick="closeOrderVoucherModal()">&times;</button>
         </div>
         <div class="modal-body">
             <div id="serviceVoucherPrintBody" class="voucher-print-wrap"></div>
         </div>
         <div class="modal-footer">
-            <button class="btn-outline" onclick="closeOrderVoucherModal()">닫기</button>
+            <button class="btn-outline" onclick="closeOrderVoucherModal()" data-ko="닫기" data-en="Close">닫기</button>
             <button class="btn-primary-sm" onclick="printServiceVoucher()"><i class="fa-solid fa-print"></i> <span id="serviceVoucherPrintLabel" data-ko="인쇄하기" data-en="Print">인쇄하기</span></button>
         </div>
     </div>
@@ -557,9 +557,16 @@ const seedVendors = [
     { id:'OTHER-CONCIERGE', type:'other', name:'컨시어지 기타 서비스', contact:'Front Desk / 내선 0', location:'프런트 데스크', address:'The Grand Saigon Lobby', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'현장 지원 요청', price:120, desc:'특별 요청 처리 기본료' }, { name:'티켓 대행', price:180, desc:'공연/전시 티켓 대행' }] }
 ];
 const voucherFieldLabels = {
-    guest:'투숙객명', room:'객실번호', date:'이용일시', people:'인원', teeTime:'티오프', course:'골프장/업체명',
-    pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', partnerContact:'업체 연락처', address:'업체 주소', memo:'메모'
+    guest:['투숙객명','Guest Name'], room:['객실번호','Room No.'], date:['이용일시','Usage Date / Time'], people:['인원','Guests'],
+    teeTime:['티오프','Tee Time'], course:['골프장/업체명','Course / Vendor'], pickup:['픽업 위치','Pickup Location'],
+    vehicle:['차량/차종','Vehicle / Class'], item:['이용 항목','Service Item'], amount:['금액','Amount'],
+    partnerContact:['업체 연락처','Vendor Contact'], location:['업체 위치','Location'], address:['업체 주소','Vendor Address'],
+    benefit:['혜택','Benefit'], terms:['사용 조건','Terms'], memo:['메모','Memo']
 };
+function voucherFieldLabel(field) {
+    const labels = voucherFieldLabels[field];
+    return Array.isArray(labels) ? ancillaryText(labels[0], labels[1]) : field;
+}
 
 const initialVoucherFieldsByType = {
     golf: ['guest','room','date','item','people','teeTime','course']
@@ -629,6 +636,9 @@ function ancillaryLabel(key) {
     return labels[lang]?.[key] || labels.ko[key] || key;
 }
 function applyAncillaryStaticI18n() {
+    document.querySelectorAll('#serviceVoucherModal [data-ko][data-en]').forEach(element => {
+        element.textContent = ancillaryText(element.dataset.ko, element.dataset.en);
+    });
     document.querySelectorAll('[data-ancillary-label]').forEach(element => {
         element.textContent = ancillaryLabel(element.getAttribute('data-ancillary-label'));
     });
@@ -652,6 +662,13 @@ function refreshAncillaryI18nAndBoard() {
             showRegistration: !registration?.classList.contains('is-hidden'),
             serviceType: selectedService
         });
+    }
+    const voucherModal = document.getElementById('serviceVoucherModal');
+    if (voucherModal?.classList.contains('active') && selectedVoucherOrderIds.length) {
+        const orders = selectedVoucherOrderIds.map(id => serviceOrders.find(item => item.id === id)).filter(Boolean);
+        const body = document.getElementById('serviceVoucherPrintBody');
+        if (body) body.innerHTML = renderVoucherBatch(orders);
+        updateServiceVoucherPrintLabel(orders.length);
     }
 }
 function scheduleAncillaryI18nRefresh() {
@@ -924,15 +941,18 @@ function voucherDataFromOrder(order, room = findRoomById(order?.roomId || order?
         guest: order?.guest || reservationGuest(res) || '-',
         room: order?.room || (room ? roomNo(room) : '-'),
         date: dateTime ? dateTime.replace('T', ' ') : '-',
-        people: `${Number(order?.qty || 1).toLocaleString('ko-KR')}명`,
+        people: ancillaryText(`${Number(order?.qty || 1).toLocaleString('ko-KR')}명`, `${Number(order?.qty || 1).toLocaleString('en')} guests`),
         teeTime: order?.teeTime || (dateTime ? dateTime.slice(11, 16) : '-'),
         course: order?.courseName || order?.vendor || '-',
-        pickup: order?.pickup || '호텔 로비',
+        pickup: order?.pickup || ancillaryText('호텔 로비', 'Hotel Lobby'),
         vehicle: order?.vehicle || order?.item || '-',
         item: order?.item || '-',
         amount: money(order?.total || 0),
         partnerContact: vendor?.contact || order?.vendor || '-',
+        location: vendor?.location || '-',
         address: vendor?.address || '-',
+        benefit: vendor?.benefit || order?.item || '-',
+        terms: vendor?.terms || vendor?.usagePeriod || '-',
         memo: order?.memo || '-'
     };
 }
@@ -962,10 +982,10 @@ function renderVoucherSheet(order) {
             </div>
         </div>
         <div class="voucher-body">
-            ${fields.map(field => `<div class="voucher-row"><strong>${escapeHtml(voucherFieldLabels[field] || field)}</strong><span>${escapeHtml(data[field] || '-')}</span></div>`).join('')}
+            ${fields.map(field => `<div class="voucher-row"><strong>${escapeHtml(voucherFieldLabel(field))}</strong><span>${escapeHtml(data[field] || '-')}</span></div>`).join('')}
         </div>
         ${stubRows.length ? `<div class="voucher-stub">
-            <div class="voucher-stub-title">${order.service === 'golf' ? '절취용 이용 확인' : order.service === 'restaurant' ? '쿠폰 사용 확인' : '차량 인수 확인'}</div>
+            <div class="voucher-stub-title">${order.service === 'golf' ? ancillaryText('절취용 이용 확인', 'Usage Confirmation') : order.service === 'restaurant' ? ancillaryText('쿠폰 사용 확인', 'Coupon Redemption') : ancillaryText('차량 인수 확인', 'Vehicle Handover')}</div>
             <div class="voucher-stub-grid">${stubRows.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong> ${escapeHtml(value || '____________')}</div>`).join('')}</div>
         </div>` : ''}
     </section>`;
@@ -1001,7 +1021,7 @@ function voucherBatchOrdersFor(order) {
 }
 function voucherListMeta(order, data) {
     const meta = [
-        data.room && data.room !== '-' ? `${data.room}호` : '',
+        data.room && data.room !== '-' ? ancillaryText(`${data.room}호`, `Room ${data.room}`) : '',
         data.guest && data.guest !== '-' ? data.guest : '',
         order?.vendor || '',
         data.date && data.date !== '-' ? data.date : ''
@@ -1022,7 +1042,7 @@ function renderVoucherOrderList(orders) {
         <section class="voucher-list-group">
             <div class="voucher-list-head">
                 <span><i class="fa-solid ${escapeHtml(group.service.icon)}"></i> ${escapeHtml(group.vendorName)}</span>
-                <strong class="voucher-list-count">${group.orders.length}건</strong>
+                <strong class="voucher-list-count">${ancillaryText(`${group.orders.length}건`, `${group.orders.length} items`)}</strong>
             </div>
             <div class="voucher-list-items">
                 ${group.orders.map(order => {
@@ -1034,7 +1054,7 @@ function renderVoucherOrderList(orders) {
                             <div class="voucher-list-meta">${voucherListMeta(order, data)}</div>
                         </div>
                         <strong class="voucher-list-money">${escapeHtml(data.amount)}</strong>
-                        <button type="button" class="btn-outline voucher-print-one" onclick="printServiceVoucher('${escapeHtml(order.id || '')}')"><i class="fa-solid fa-print"></i> 항목 출력</button>
+                        <button type="button" class="btn-outline voucher-print-one" onclick="printServiceVoucher('${escapeHtml(order.id || '')}')"><i class="fa-solid fa-print"></i> ${ancillaryText('항목 출력', 'Print Item')}</button>
                     </article>`;
                 }).join('')}
             </div>
@@ -2041,25 +2061,26 @@ function saveServiceOrder() {
 function openOrderVoucherModal(orderId) {
     const order = serviceOrders.find(item => item.id === orderId);
     if (!order || !['restaurant', 'golf', 'rentacar'].includes(order.service)) return;
-    if (!orderHasAssignedGuest(order)) return window.showAlert?.('투숙객이 배정된 객실의 부가서비스만 바우처를 출력할 수 있습니다.', { type: 'warning' });
+    if (!orderHasAssignedGuest(order)) return window.showAlert?.(ancillaryText('투숙객이 배정된 객실의 부가서비스만 바우처를 출력할 수 있습니다.', 'Vouchers can only be printed for rooms with an assigned guest.'), { type: 'warning' });
     const fields = voucherFieldsForOrder(order);
-    if (!fields.length) return window.showAlert?.('업체/항목 관리에서 바우처 출력 항목을 먼저 설정해 주세요.', { type: 'warning' });
+    if (!fields.length) return window.showAlert?.(ancillaryText('업체/항목 관리에서 바우처 출력 항목을 먼저 설정해 주세요.', 'Configure voucher fields in Vendor / Item Management first.'), { type: 'warning' });
     const orders = voucherBatchOrdersFor(order);
     selectedVoucherOrderId = orderId;
     selectedVoucherOrderIds = orders.map(item => item.id);
     const body = document.getElementById('serviceVoucherPrintBody');
     if (body) body.innerHTML = renderVoucherBatch(orders);
-    const printLabel = document.getElementById('serviceVoucherPrintLabel');
-    if (printLabel) {
-        const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
-        printLabel.textContent = orders.length > 1
-            ? (lang === 'en' ? `Print All ${orders.length}` : `전체 ${orders.length}건 출력`)
-            : (lang === 'en' ? 'Print' : '인쇄하기');
-    }
+    updateServiceVoucherPrintLabel(orders.length);
     const modal = document.getElementById('serviceVoucherModal');
     modal.style.display = 'flex';
     modal.classList.add('active');
     document.body.classList.add('service-voucher-preview-open');
+}
+function updateServiceVoucherPrintLabel(orderCount) {
+    const printLabel = document.getElementById('serviceVoucherPrintLabel');
+    if (!printLabel) return;
+    printLabel.textContent = orderCount > 1
+        ? ancillaryText(`전체 ${orderCount}건 출력`, `Print All ${orderCount}`)
+        : ancillaryText('인쇄하기', 'Print');
 }
 function closeOrderVoucherModal() {
     selectedVoucherOrderId = '';
@@ -2092,12 +2113,13 @@ function buildServiceVoucherPrintDocument(orders) {
     const printPageMedia = isSinglePrint
         ? 'html,body{width:90mm;min-height:140mm;background:#fff}.service-voucher-print-page{width:90mm;padding:4mm;box-shadow:none}'
         : 'html,body{width:210mm;min-height:297mm;background:#fff}.service-voucher-print-page{width:190mm;padding:0;box-shadow:none}';
+    const language = ancillaryLang();
     return `<!doctype html>
-<html lang="ko">
+<html lang="${language}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>바우처 출력</title>
+<title>${escapeHtml(ancillaryText('바우처 출력', 'Voucher Print'))}</title>
 <style>
     ${pageRule}
     *{box-sizing:border-box}
@@ -2153,7 +2175,7 @@ function printServiceVoucher(orderId = '') {
     if (!orders.length) return;
     const printWindow = window.open('', '_blank', 'width=900,height=700');
     if (!printWindow) {
-        if (typeof showToast === 'function') showToast('브라우저 팝업 차단을 해제한 뒤 다시 출력해주세요.', 'error');
+        if (typeof showToast === 'function') showToast(ancillaryText('브라우저 팝업 차단을 해제한 뒤 다시 출력해주세요.', 'Allow browser pop-ups and try printing again.'), 'error');
         return;
     }
     printWindow.document.open();
@@ -2164,16 +2186,16 @@ function printOrderVoucher(orderId) {
     openOrderVoucherModal(orderId);
 }
 voucherTitleForOrder = function(order) {
-    if (order?.service === 'restaurant') return '제휴 음식점 쿠폰';
-    if (order?.service === 'golf') return '골프장 바우처';
-    if (order?.service === 'rentacar') return '렌터카 바우처';
-    return '부가서비스 바우처';
+    if (order?.service === 'restaurant') return ancillaryText('제휴 음식점 쿠폰', 'Restaurant Coupon');
+    if (order?.service === 'golf') return ancillaryText('골프장 바우처', 'Golf Voucher');
+    if (order?.service === 'rentacar') return ancillaryText('렌터카 바우처', 'Rent-a-car Voucher');
+    return ancillaryText('부가서비스 바우처', 'Ancillary Voucher');
 };
 voucherStubRowsForOrder = function(order, data) {
-    if (order?.service === 'restaurant') return [['음식점', data.course], ['혜택', data.item], ['투숙객', data.guest], ['확인', '']];
-    if (order?.service === 'golf') return [['티오프', data.teeTime], ['코스', data.course], ['투숙객', data.guest], ['서명', '']];
-    if (order?.service === 'rentacar') return [['픽업', data.pickup], ['차량', data.vehicle], ['투숙객', data.guest], ['서명', '']];
-    return [['객실', data.room], ['담당', data.partnerContact]];
+    if (order?.service === 'restaurant') return [[ancillaryText('음식점', 'Restaurant'), data.course], [ancillaryText('혜택', 'Benefit'), data.item], [ancillaryText('투숙객', 'Guest'), data.guest], [ancillaryText('확인', 'Confirmation'), '']];
+    if (order?.service === 'golf') return [[ancillaryText('티오프', 'Tee Time'), data.teeTime], [ancillaryText('코스', 'Course'), data.course], [ancillaryText('투숙객', 'Guest'), data.guest], [ancillaryText('서명', 'Signature'), '']];
+    if (order?.service === 'rentacar') return [[ancillaryText('픽업', 'Pickup'), data.pickup], [ancillaryText('차량', 'Vehicle'), data.vehicle], [ancillaryText('투숙객', 'Guest'), data.guest], [ancillaryText('서명', 'Signature'), '']];
+    return [[ancillaryText('객실', 'Room'), data.room], [ancillaryText('담당', 'Contact'), data.partnerContact]];
 };
 document.addEventListener('DOMContentLoaded', async () => {
     loadVendors();
