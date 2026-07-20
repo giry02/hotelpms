@@ -601,6 +601,55 @@ async function reservationStayValidationRegression(page, base) {
   return result;
 }
 
+async function reservationEditPersistenceRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=edit-persistence`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof saveUnifiedRes === 'function', null, { timeout: 15000 });
+
+  const result = await page.evaluate(async () => {
+    if (window.PmsAPI) window.PmsAPI.getAllRoomTypes = async () => [
+      { id: 'RT-STANDARD', name: 'Standard', baseRate: 140 },
+      { id: 'RT-DELUXE', name: 'Deluxe', baseRate: 140 },
+      { id: 'RT-PREMIER', name: 'Premier', baseRate: 300 },
+      { id: 'RT-PENTHOUSE', name: 'Penthouse', baseRate: 650 }
+    ];
+    const target = (window.reservations || []).find(item => {
+      const status = String(item.status || '').toLowerCase().replace(/[^a-z]/g, '');
+      const checkin = String(item.checkInDate || item.checkin || '');
+      return ['confirmed', 'reserved'].includes(status) && checkin >= '2026-07-10' && item.room;
+    });
+    if (!target) return { missingFixture: true };
+    const id = target.id || target.reservationId;
+    await window.openUnifiedResModal(id);
+    const note = document.getElementById('unifiedReservationNote');
+    const nightly = document.getElementById('unifiedNightlyRate');
+    if (note) note.value = 'P1 late arrival';
+    if (nightly) {
+      nightly.value = '560';
+      nightly.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    await window.saveUnifiedRes();
+    const saved = (window.reservations || []).find(item => (item.id || item.reservationId) === id);
+    await window.openUnifiedResModal(id);
+    const reopenedNote = document.getElementById('unifiedReservationNote');
+    return {
+      missingFixture: false,
+      id,
+      noteVisible: Boolean(note && getComputedStyle(note).display !== 'none'),
+      savedNote: saved?.specialNotes || saved?.notes || saved?.note || '',
+      reopenedNote: reopenedNote?.value || '',
+      savedRate: Number(saved?.rate?.amount || 0)
+    };
+  });
+
+  assert(!result.missingFixture, 'Editable reservation fixture must exist.', result);
+  assert(result.noteVisible, 'Reservation note field must be visible in the edit form.', result);
+  assert(result.savedNote === 'P1 late arrival', 'Reservation note must persist on save.', result);
+  assert(result.reopenedNote === 'P1 late arrival', 'Reservation note must reload in the detail modal.', result);
+  assert(result.savedRate === 560, 'Edited nightly rate must persist.', result);
+  return result;
+}
+
 async function reservationTimelineShadowRegression(page, base) {
   await page.goto(`${base}/dashboard/frontdesk/reservation-timeline.html?test=timeline-shadow`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -673,7 +722,7 @@ async function reservationTimelineShadowRegression(page, base) {
   page.on('console', msg => {
     if (!['error', 'warning'].includes(msg.type())) return;
     const text = msg.text();
-    if (/ERR_NETWORK_ACCESS_DENIED|Failed to load resource|Rate calendar lookup failed|favicon|googleapis|gstatic|cdnjs|cdn\.jsdelivr/i.test(text)) return;
+    if (/ERR_NETWORK_ACCESS_DENIED|Failed to load resource|Rate calendar lookup failed|Mock room types fallback|favicon|googleapis|gstatic|cdnjs|cdn\.jsdelivr/i.test(text)) return;
     consoleIssues.push(`${msg.type()}: ${text}`);
   });
   page.on('pageerror', err => consoleIssues.push(`pageerror: ${err.message}`));
@@ -692,6 +741,7 @@ async function reservationTimelineShadowRegression(page, base) {
     const maintenanceBookingGuardResult = await maintenanceRoomBookingGuardRegression(page, base);
     const overlappingReservationGuardResult = await overlappingReservationGuardRegression(page, base);
     const stayValidationResult = await reservationStayValidationRegression(page, base);
+    const editPersistenceResult = await reservationEditPersistenceRegression(page, base);
     const timelineShadowResult = await reservationTimelineShadowRegression(page, base);
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
@@ -935,6 +985,7 @@ async function reservationTimelineShadowRegression(page, base) {
         'maintenance room cards explain the booking block without opening the form',
         'overlapping bookings show conflict details and do not save',
         'invalid dates and times stay visible, show adjacent errors, and do not save',
+        'reservation date, rate, and note edits persist after reopening',
         'reservation timeline prefers the saved booking over a stale same-guest handoff',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
@@ -947,6 +998,7 @@ async function reservationTimelineShadowRegression(page, base) {
       maintenanceBookingGuardResult,
       overlappingReservationGuardResult,
       stayValidationResult,
+      editPersistenceResult,
       timelineShadowResult
     }, null, 2));
   } catch (error) {

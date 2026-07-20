@@ -223,7 +223,9 @@
             guestPhoneLabel: '휴대폰',
             guestEmailLabel: '이메일',
             guestIdCheckLabel: '신분증 확인',
-            guestNotesLabel: '특이사항'
+            guestNotesLabel: '특이사항',
+            reservationNoteLabel: '예약 메모',
+            reservationNotePlaceholder: '예: 늦은 도착, 객실 준비 요청'
         },
         en: {
             'booking.checkoutBeforeCheckin': 'Check-out must be on or after check-in.',
@@ -307,7 +309,9 @@
             guestPhoneLabel: 'Mobile Phone',
             guestEmailLabel: 'Email',
             guestIdCheckLabel: 'ID Check',
-            guestNotesLabel: 'Notes'
+            guestNotesLabel: 'Notes',
+            reservationNoteLabel: 'Reservation Note',
+            reservationNotePlaceholder: 'E.g. late arrival or room preparation request'
         }
     };
 
@@ -1849,6 +1853,10 @@
                         <div id="unifiedLateCheckoutTimeError" class="unified-stay-error" style="display:none;margin-top:5px;color:#dc2626;font-size:.72rem;font-weight:800;line-height:1.35"></div>
                     </div>
                     <div id="unifiedStayTimeHelp" style="grid-column:1 / -1;margin-top:-10px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
+                    <div class="md-item" style="grid-column:1 / -1;">
+                        <label class="md-label" for="unifiedReservationNote" data-action-i18n="reservationNoteLabel" style="display:block;color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('reservationNoteLabel'))}</label>
+                        <textarea id="unifiedReservationNote" data-action-placeholder="reservationNotePlaceholder" placeholder="${actionEscapeHtml(unifiedModalText('reservationNotePlaceholder'))}" style="min-height:68px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font);width:100%;font-weight:600;line-height:1.45;box-sizing:border-box;background:#fff;resize:vertical"></textarea>
+                    </div>
                     <div class="md-item">
                         <div class="md-label" data-action-i18n="stay" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('stay'))}</div>
                         <div class="md-value" id="unifiedNights" style="font-size:0.9rem;font-weight:700;"></div>
@@ -3369,6 +3377,8 @@
             setUnifiedDateValue('unifiedCin', prefill?.checkin || prefill?.cin || prefill?.checkInDate, today);
             setUnifiedDateValue('unifiedCout', prefill?.checkout || prefill?.cout || prefill?.checkOutDate, tomorrow);
             setUnifiedStayTimeValues(null, prefill || {});
+            const reservationNote = document.getElementById('unifiedReservationNote');
+            if (reservationNote) reservationNote.value = compactValue(prefill?.specialNotes || prefill?.notes || prefill?.note);
             const preferredRoom = prefill?.room || prefill?.fullRoom || prefill?.roomId || prefill?.roomNo || prefill?.roomLabel || '';
             window.updateUnifiedStayAndRooms(preferredRoom);
             if (window._editGuestWidget) {
@@ -3454,6 +3464,8 @@
             setUnifiedDateValue('unifiedCin', res.checkInDate || res.checkin || res.cin);
             setUnifiedDateValue('unifiedCout', res.checkOutDate || res.checkout || res.cout);
             setUnifiedStayTimeValues(res);
+            const reservationNote = document.getElementById('unifiedReservationNote');
+            if (reservationNote) reservationNote.value = compactValue(res.specialNotes || res.notes || res.note);
             window.updateUnifiedStayAndRooms(targetRoomValue);
             const shouldLoadRoster = !isEditingBlock || (isEditableGroupBlock && !res.isGroupPlaceholder);
             setUnifiedGuestRoster(shouldLoadRoster ? await rosterGuestsForReservation(res) : []);
@@ -3632,6 +3644,7 @@
             };
         guest = guestPayload.guest || guest;
         const companionGuestNames = guestPayload.companionGuestNames;
+        const reservationNote = compactValue(document.getElementById('unifiedReservationNote')?.value);
         
         if (isB2B) channel = linkedGroupName || channel || 'Group';
         
@@ -3705,6 +3718,9 @@
                 initials: guest.substring(0,2).toUpperCase(),
                 vip: 'Standard'
             };
+            newRes.specialNotes = reservationNote;
+            newRes.notes = reservationNote;
+            newRes.note = reservationNote;
             allRes.unshift(newRes);
             savedRes = newRes;
             if (newRes.groupId) groupSyncMeta = { roomChanged: true, beforeRoom: '', beforeFullRoom: '' };
@@ -3747,6 +3763,7 @@
                 const beforeGuest = guestNameForReservation(res);
                 const beforeGuestId = compactValue(res.guestId || res.roomingGuestId);
                 const beforeCompanionNames = companionNamesForReservation(res);
+                const beforeReservationNote = compactValue(res.specialNotes || res.notes || res.note);
                 if (shouldWriteGuest) {
                     const nextGuestId = guestPayload.guestId || (beforeGuest === guest ? beforeGuestId : '');
                     res.guest = guest;
@@ -3790,6 +3807,9 @@
                 res.roomingGuestNames = guestPayload.roomingGuestNames;
                 res.roomingGuests = guestPayload.roomingGuests;
                 res.companions = guestPayload.companions;
+                res.specialNotes = reservationNote;
+                res.notes = reservationNote;
+                res.note = reservationNote;
                 res.amount = totalAmount;
                 res.rate = { amount: nightlyRate, currency };
                 res.totalAmount = { amount: totalAmount, currency };
@@ -3853,6 +3873,7 @@
                 addAuditChange('prepayment', '예치금', beforePrepaid, prepaidAmount);
                 addAuditChange('channel', '유입/업체', beforeChannel, channel);
                 addAuditChange('group', '단체', beforeGroupId, groupId);
+                addAuditChange('note', '예약 메모', beforeReservationNote, reservationNote);
                 if (auditChanges.length) {
                     logReservationAudit('reservation.update', {
                         reservationId: res.id,
