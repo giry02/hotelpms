@@ -954,11 +954,12 @@ function voucherDataFromOrder(order, room = findRoomById(order?.roomId || order?
     const vendor = vendorForOrder(order);
     const res = activeReservationForRoom(room || {}) || nextReservationForRoom(room || {});
     const dateTime = order?.dateTime || '';
+    const guestCount = Number(order?.qty || 1);
     return {
         guest: order?.guest || reservationGuest(res) || '-',
         room: order?.room || (room ? roomNo(room) : '-'),
         date: dateTime ? dateTime.replace('T', ' ') : '-',
-        people: ancillaryText(`${Number(order?.qty || 1).toLocaleString('ko-KR')}명`, `${Number(order?.qty || 1).toLocaleString('en')} guests`),
+        people: ancillaryText(`${guestCount.toLocaleString('ko-KR')}명`, `${guestCount.toLocaleString('en')} ${guestCount === 1 ? 'guest' : 'guests'}`),
         teeTime: order?.teeTime || (dateTime ? dateTime.slice(11, 16) : '-'),
         course: voucherDisplayValue(order?.courseName || order?.vendor || '-'),
         pickup: voucherDisplayValue(order?.pickup || ancillaryText('호텔 로비', 'Hotel Lobby')),
