@@ -88,6 +88,12 @@ function assert(condition, message, details = null) {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const consoleIssues = [];
+  const timelineSource = fs.readFileSync(path.join(ROOT, 'dashboard', 'frontdesk', 'reservation-timeline.html'), 'utf8');
+
+  assert(
+    !timelineSource.includes('[displayName, companionTitle, timeTitle]'),
+    'Timeline tooltip must not append companion names after a display label that already contains the full guest roster.'
+  );
 
   page.on('console', msg => {
     if (!['error', 'warning'].includes(msg.type())) return;
@@ -600,6 +606,7 @@ function assert(condition, message, details = null) {
         'group detail requires registered company selection',
         'group detail rejects overlapping room assignments in picker and save validation',
         'timeline merges persisted group rooms and rooming guests into reservations',
+        'timeline tooltip lists each rooming guest once',
         'group detail avoids duplicate selected-room summary in allocation tab',
         'group detail splits room allocation and rooming list tabs'
       ]
