@@ -749,8 +749,8 @@
 | P1-ANC-002 | PASS | Vercel 배포본 1210호에 통합 POS ₱1,200·골프 ₱450·렌터카 ₱180·음식점 ₱70·기타 ₱80을 각각 등록했다. 객실 합계 ₱1,980, 전체 KPI ₱4,221, 서비스별 KPI·필터 결과를 대조하고 새로고침 후 5종 모두 유지됨을 확인했다. | 2026-07-21 | 변경 없음 | PASS | Vercel 1210호 5종 등록·KPI·필터·재조회 수동 증거 |
 | P1-ANC-003 | PASS | Vercel 배포본 1210호 기타 주문을 등록→수락→완료→미완료 전환하고 새로고침 후 수락 상태가 유지됨을 확인했다. 운영 감사 로그에서 동일 주문의 `Completed -> Incomplete`, 금액 PHP 80, 객실 1210 기록을 대조했다. | 2026-07-21 | 상태 전환 저장·감사 로그 경로 확인. 감사 로그 영문 화면의 일부 한글 동작명은 P1-AUDIT-001에서 별도 처리 | PASS | Vercel 1210호 상태 왕복·재조회·감사 로그 수동 증거 |
 | P1-ANC-004 | PASS | Vercel 배포본에서 골프·렌터카·음식점 바우처/쿠폰을 각각 열어 제목·필드·절취 영역·닫기·인쇄 버튼을 확인했다. 열린 골프 바우처를 한국어→영어로 전환해 즉시 재렌더링됨을 확인했고 실제 인쇄 버튼을 호출했다. 인쇄 문서의 `lang=en`과 영문 제목은 E2E에서 검증했다. | 2026-07-21 | 바우처 모달 전체 다국어화, 골프·렌터카·음식점 시스템 데이터 영문화, 인원 단복수 보정 | PASS | 배포 `b1a38c30`, `ed6e67ab`, `b083d1ce`, `bcdd2c4f`; Vercel 3종 미리보기·언어 전환·인쇄 호출 수동 증거; `npm run e2e` 12개 통과 |
-| P1-FOLIO-001 | PARTIAL | 정산 E2E 통과, 지정 수납의 완료·상세 재조회 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
-| P1-FOLIO-002 | PARTIAL | 정산 되돌리기 저장 회귀 통과, 감사로그 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-storage.log` |
+| P1-FOLIO-001 | PASS | 배포본 1205호에서 PHP 현금 2,080 전액 수납 후 목록 `Complete` 클릭 시 상세 팝업 없이 확인창만 표시되고, 완료·새로고침 지속·상세 완료 정보·수납/완료 처리 이력 확인 | 목록 카드의 완료 클릭 이벤트가 상위 카드 상세 열기와 충돌 | 카드 전용 완료 핸들러에서 기본 동작·버블링·즉시 전파를 차단하고 `openDetail: false`로 완료 처리 | PASS | 배포 `https://hotelpms-eight.vercel.app/dashboard/operations/settlement-status.html`, commit `c4f3a2c`, 로컬 기능 14/14·E2E 12/12 |
+| P1-FOLIO-002 | PASS | 배포본 1205호 완료 상세에서 `Reopen Settlement` 실행 후 미완료 상태와 완료 버튼이 새로고침 뒤 유지되고, 감사 로그에 folio·예약·객실·실행자·`Completed → Incomplete` 기록 확인; 검증 후 다시 완료 처리 | - | 변경 없음 | PASS | 배포 Settlement Status 및 Audit Log 연속 검증, 2026-07-10 05:20 로그 |
 | P1-EXP-001 | PARTIAL | 입력·저장 회귀 통과, CRUD·KPI·시재 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
 | P1-EXP-002 | PARTIAL | 다국어·통화 회귀 통과, 호텔 기준 통화 변경별 실제 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-i18n.log` |
 | P1-NIGHT-001 | PARTIAL | 마감 회귀 통과, 시재 수식 수기 대조와 재진입 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
