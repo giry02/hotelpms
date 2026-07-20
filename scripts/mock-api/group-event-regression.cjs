@@ -539,6 +539,50 @@ function assert(condition, message, details = null) {
     assert(roomMoveResult.stayedRoom === roomMoveResult.originalStayRoom, 'Changing one assigned room must not move guests from other room rows.', roomMoveResult);
     assert(roomMoveResult.allocationRooms.includes(roomMoveResult.replacementRoom) && !roomMoveResult.allocationRooms.includes(roomMoveResult.originalMoveRoom), 'Room allocation must save the changed room id.', roomMoveResult);
     assert(!roomMoveResult.unassignedMoveDuplicate, 'Moved rooming guest must not remain as an unassigned duplicate after room allocation change.', roomMoveResult);
+
+    const timelineSyncResult = await page.evaluate(async () => {
+      const timelineGroup = {
+        id: 'GRP-TIMELINE-SYNC',
+        name: 'Timeline Sync Event',
+        agency: 'Timeline Company',
+        checkin: '2026-08-20',
+        checkout: '2026-08-22',
+        currency: 'PHP',
+        roomAllocations: [{
+          roomId: '0802',
+          roomLabel: 'FT 0802',
+          type: 'Standard',
+          baseRate: 100,
+          discountPercent: 10,
+          rate: 90
+        }],
+        roomingList: [{
+          id: 'G-TIMELINE-SYNC',
+          guestId: 'G-TIMELINE-SYNC',
+          roomId: '0802',
+          role: 'primary',
+          name: 'Timeline Primary'
+        }]
+      };
+      localStorage.setItem('pms_groups', JSON.stringify([timelineGroup]));
+      localStorage.setItem('pms_reservations', JSON.stringify([]));
+      const timelineRows = await window.PmsAPI.getTimelineReservations();
+      const synced = timelineRows.find(item => item.groupId === timelineGroup.id && item.room === '0802');
+      return {
+        found: !!synced,
+        guest: synced?.guest || '',
+        groupName: synced?.groupName || '',
+        cin: synced?.cin || '',
+        cout: synced?.cout || '',
+        rate: Number(synced?.rate?.amount || 0)
+      };
+    });
+
+    assert(timelineSyncResult.found, 'Timeline reservations must include persisted group room allocations.', timelineSyncResult);
+    assert(timelineSyncResult.guest === 'Timeline Primary', 'Timeline group reservation must include the persisted primary guest.', timelineSyncResult);
+    assert(timelineSyncResult.groupName === 'Timeline Sync Event', 'Timeline group reservation must preserve the event name.', timelineSyncResult);
+    assert(timelineSyncResult.cin === '8/20' && timelineSyncResult.cout === '8/22', 'Timeline group reservation must preserve the event dates.', timelineSyncResult);
+    assert(timelineSyncResult.rate === 90, 'Timeline group reservation must preserve the discounted room rate.', timelineSyncResult);
     assert(consoleIssues.length === 0, 'Console warnings/errors during group event regression.', consoleIssues);
 
     console.log(JSON.stringify({
@@ -555,6 +599,7 @@ function assert(condition, message, details = null) {
         'group detail separates company baseline and event discount',
         'group detail requires registered company selection',
         'group detail rejects overlapping room assignments in picker and save validation',
+        'timeline merges persisted group rooms and rooming guests into reservations',
         'group detail avoids duplicate selected-room summary in allocation tab',
         'group detail splits room allocation and rooming list tabs'
       ]

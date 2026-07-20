@@ -76,12 +76,21 @@ Object.assign(window.PmsAPI, {
             const id = reservation?.id || reservation?.reservationId || `stored-${index}`;
             mergedReservations.set(String(id), reservation);
         });
-        if (mergedReservations.size) return [...mergedReservations.values()];
+        if (mergedReservations.size) {
+            const merged = [...mergedReservations.values()];
+            return window.PmsAPI.syncGroupsToReservations
+                ? window.PmsAPI.syncGroupsToReservations(merged)
+                : merged;
+        }
         try {
             if (window.PmsMockApi) {
                 const env = await window.PmsMockApi.request('GET', '/reservations/timeline');
                 const reservations = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyReservation);
-                if (reservations.length) return reservations;
+                if (reservations.length) {
+                    return window.PmsAPI.syncGroupsToReservations
+                        ? window.PmsAPI.syncGroupsToReservations(reservations)
+                        : reservations;
+                }
             }
         } catch(e) {
             console.warn('Mock timeline reservations fallback', e);
