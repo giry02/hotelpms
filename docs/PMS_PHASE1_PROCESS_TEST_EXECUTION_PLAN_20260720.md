@@ -285,7 +285,7 @@
 
 #### P1-RES-NEW-002 청소 필요 공실 예약 경고 취소·계속·저장 유지
 
-- **fixture**: `FX-ROOM-DIRTY`. 실행 직전 대상 객실을 공실·청소 필요로 초기화하고 대상 객실 ID를 증거에 기록한다. 기준 예시는 1203이며, 기준 데이터가 이미 사용 중이면 대체 객실을 사용하되 해당 실행은 `PARTIAL`로 판정한다.
+- **fixture**: `FX-ROOM-DIRTY`. 실행 직전 대상 객실을 공실·청소 필요·점검 아님으로 초기화하고 대상 객실 ID를 증거에 기록한다. 기준 예시는 1203이다. 기준 객실이 사용 중이면 동일한 선행조건을 충족하는 대체 객실을 사용할 수 있으며, 실제 객실 ID와 시작 상태를 증거에 기록하고 모든 절차와 연계 화면 검증을 완료하면 `PASS`로 판정한다.
 - **입력**
   - 고객 `P1 Dirty Guest`, 이메일 `p1.res.dirty@example.com`
   - 체크인 `2026-07-10 14:00`, 체크아웃 `2026-07-11 12:00`, 객실 `1203`
@@ -724,7 +724,7 @@
 | P1-RES-VIEW-001 | PASS-LOCAL | 전체/체크아웃 필터에서 1203 카드 상태·색상·청소 셀렉트 동일 | - | 변경 없음 | PASS-LOCAL | `manual-ui-results.json` |
 | P1-RES-VIEW-002 | PASS-LOCAL | 객실 변경 배지 1과 실제 1202 카드 1건 일치 | - | 변경 없음 | PASS-LOCAL | `manual-ui-results.json` |
 | P1-RES-NEW-001 | PARTIAL | 예약 회귀 통과, 지정 PH01 정상 예약의 8게이트 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
-| P1-RES-NEW-002 | PARTIAL | 1212 대체 fixture로 경고 취소·승인·1건 저장 확인, 계획 입력 1203과 달라 PARTIAL | TC-DOC-001 | 청소 필요 fixture 대체 사용 판정 규칙 추가 | PARTIAL | `manual-ui-results.json` |
+| P1-RES-NEW-002 | PASS | Vercel 배포본에서 1212호를 공실·청소 필요·점검 아님으로 확인하고 카드 클릭 시 모달 객실이 1212로 유지됨을 확인했다. 저장 시 청소 경고 취소 경로는 0건, 계속 경로는 예약 `RSV-20260710145616-796` 1건을 생성했고 새로고침 뒤에도 1212·청소 필요로 유지됐다. 예약 목록과 타임라인에서 동일 고객·객실을 확인한 후 취소 사유를 입력해 정리했으며 1212는 `No Reservation`·`Needs Cleaning`으로 복원됐다. | 2026-07-21 | 동등 fixture 사용 시 실제 객실과 시작 상태를 기록하고 전체 게이트를 완료하면 PASS로 판정하도록 계획 기준 수정. 동적 카드 재렌더링의 영문 상태·시간·정산·단체·이동 라벨 하드코딩 제거 | PASS | 배포 `84b27ab`; Vercel 예약 현황·예약 목록·타임라인·취소 후 원복 수동 증거; `npm run test:reservations` 21개, `npm run e2e` 12개 통과 |
 | P1-RES-NEW-003 | PARTIAL | 점검 객실 차단 회귀 통과, 지정 입력 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
 | P1-RES-NEW-004 | PARTIAL | 중복 방지 회귀 통과, 지정 입력 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
 | P1-RES-NEW-005 | PARTIAL | 입력 검증 스위트 통과, 날짜·시간 각 오류 분기 증거 미완료 | - | 변경 없음 | PARTIAL | `support-inputs-ko.log` |
