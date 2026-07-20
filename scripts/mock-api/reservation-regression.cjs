@@ -448,6 +448,46 @@ async function reservationBoardFilterColorRegression(page, base) {
   return result;
 }
 
+async function maintenanceRoomBookingGuardRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=maintenance-booking-guard`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof renderReservationBoard === 'function' && typeof openBoardRoomBooking === 'function', null, { timeout: 15000 });
+
+  const result = await page.evaluate(() => {
+    const testRoom = (window.rooms || []).find(item => String(item.roomNo || item.number || item.id || '').includes('1215'))
+      || { id: 'FT-1215', roomNo: '1215', number: '1215', type: 'Deluxe' };
+    testRoom.status = 'out-of-service';
+    testRoom.frontStatus = 'out-of-service';
+    testRoom.housekeepingStatus = 'maintenance';
+    testRoom.maintenanceStatus = 'maintenance';
+    if (!(window.rooms || []).includes(testRoom)) window.rooms.push(testRoom);
+    window.reservations = (window.reservations || []).filter(item => String(item.roomNo || item.room || item.roomId || '').replace(/\D/g, '') !== '1215');
+    boardFilter = 'all';
+
+    let alertMessage = '';
+    const previousAlert = window.showAlert;
+    window.showAlert = message => { alertMessage = String(message || ''); };
+    renderReservationBoard();
+    const card = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => (el.innerText || '').includes('1215'));
+    const clickHandler = card?.getAttribute('onclick') || '';
+    card?.click();
+    window.showAlert = previousAlert;
+
+    return {
+      cardFound: Boolean(card),
+      clickHandler,
+      alertMessage,
+      modalVisible: Boolean(document.querySelector('#unifiedReservationModal.show, #unifiedReservationModal[style*="display: block"]'))
+    };
+  });
+
+  assert(result.cardFound, 'Maintenance room card must be rendered.', result);
+  assert(result.clickHandler.includes('openBoardRoomBooking'), 'Maintenance room card must route clicks through the booking guard.', result);
+  assert(/점검|수리|inspection|maintenance/i.test(result.alertMessage), 'Maintenance room click must explain why booking is blocked.', result);
+  assert(!result.modalVisible, 'Maintenance room click must not open the reservation form.', result);
+  return result;
+}
+
 async function reservationTimelineShadowRegression(page, base) {
   await page.goto(`${base}/dashboard/frontdesk/reservation-timeline.html?test=timeline-shadow`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -536,6 +576,7 @@ async function reservationTimelineShadowRegression(page, base) {
     const boardCleaningVisibilityResult = await reservationBoardCleaningVisibilityRegression(page, base);
     const todayCheckinRoomMasterResult = await todayCheckinRoomMasterRegression(page, base);
     const boardFilterColorResult = await reservationBoardFilterColorRegression(page, base);
+    const maintenanceBookingGuardResult = await maintenanceRoomBookingGuardRegression(page, base);
     const timelineShadowResult = await reservationTimelineShadowRegression(page, base);
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
@@ -776,6 +817,7 @@ async function reservationTimelineShadowRegression(page, base) {
         'reservation board keeps cleaning status visible beside check-in readiness',
         'today check-in rooms are not blocked by stale room master status',
         'reservation board keeps card status colors stable across filters and hover',
+        'maintenance room cards explain the booking block without opening the form',
         'reservation timeline prefers the saved booking over a stale same-guest handoff',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
@@ -785,6 +827,7 @@ async function reservationTimelineShadowRegression(page, base) {
       boardCleaningVisibilityResult,
       todayCheckinRoomMasterResult,
       boardFilterColorResult,
+      maintenanceBookingGuardResult,
       timelineShadowResult
     }, null, 2));
   } catch (error) {

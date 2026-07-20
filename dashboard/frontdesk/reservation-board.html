@@ -1346,13 +1346,14 @@ function boardCard(room) {
     const query = document.getElementById('boardSearch')?.value.trim().toLowerCase() || '';
     if (query && !searchText.includes(query)) return '';
     const roomId = room.id || room.fullRoom || room.roomNo || room.number || room.display || '';
+    const canAttemptBooking = !res && !!roomId;
     const canCreateBooking = !res && state.status === 'vacant' && !!roomId;
     const cleanInfo = boardCleaningSummary(room, res);
     const cleanAction = boardStayActions(room, res);
     const readinessHtml = boardCheckinReadiness(state, cleanInfo);
     const click = res
         ? `onclick="openUnifiedResModal('${escapeHtml(res.id)}')"`
-        : (canCreateBooking ? `onclick="openBoardRoomBooking('${encodeURIComponent(roomId)}')"` : '');
+        : (canAttemptBooking ? `onclick="openBoardRoomBooking('${encodeURIComponent(roomId)}')"` : '');
     const flags = res ? [
         hasRoomChange ? `<span class="board-flag move"><i class="fa-solid fa-right-left"></i>이동 ${escapeHtml(roomChangeText)}</span>` : ''
     ].filter(Boolean).join('') : '';
@@ -1366,7 +1367,7 @@ function boardCard(room) {
         ? `<span class="board-vip-inline"><i class="fa-solid fa-crown"></i>VIP</span>`
         : '';
     const guestName = isGroup ? (primary || '투숙객 미배정') : (displayName || primary || '-');
-    return `<div class="room-box reservation-board-box ${state.status}${hasRoomChange ? ' room-moved' : ''}${canCreateBooking ? ' is-bookable' : ''}" ${click} style="${res ? 'cursor:pointer' : ''}">
+    return `<div class="room-box reservation-board-box ${state.status}${hasRoomChange ? ' room-moved' : ''}${canCreateBooking ? ' is-bookable' : ''}" ${click} style="${(res || canAttemptBooking) ? 'cursor:pointer' : ''}">
         <div class="room-box-num"><span>${escapeHtml(room.id || room.roomNo || '-')}</span><span class="board-status ${state.status}"><i class="fa-solid ${boardStatusIcon(state.status)}"></i>${state.label}</span></div>
         <div class="room-box-type">${escapeHtml(roomType(room))}</div>
         ${res ? `<div class="board-guest">
