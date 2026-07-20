@@ -253,6 +253,16 @@ const DEFAULT_LOGIN_PASSWORDS = Object.freeze({
     'maintenance@hotel.example': 'password123!'
 });
 
+const DEFAULT_LOGIN_PROFILES = Object.freeze({
+    'admin@hotel.com': { id: 's1', roleId: 'sys_admin', name: 'Nguyen Kim' },
+    'kim@hotel.example': { id: 's1', roleId: 'sys_admin', name: 'Nguyen Kim' },
+    'gm@hotel.example': { id: 's2', roleId: 'sys_gm', name: 'Robert Ford' },
+    'sales@hotel.example': { id: 's3', roleId: 'sys_desk', name: '\uae40\uc9c0\uc5f0' },
+    'desk@hotel.example': { id: 's4', roleId: 'sys_desk', name: 'Sarah Connor' },
+    'housekeeping@hotel.example': { id: 's5', roleId: 'sys_housekeeping', name: 'Maria Garcia' },
+    'maintenance@hotel.example': { id: 's7', roleId: 'sys_maintenance', name: '\uae40\ucca0\uc218' }
+});
+
 function setLoginError(message) {
     const err = document.getElementById('loginError');
     const span = err?.querySelector('span');
@@ -303,12 +313,11 @@ function handleLogin(){
             setLoginError(currentLang === 'en' ? 'Invalid email or password.' : '\uc774\uba54\uc77c \ub610\ub294 \ube44\ubc00\ubc88\ud638\uac00 \uc62c\ubc14\ub974\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.');
             return;
         }
-        if (matchedStaff) {
-            localStorage.setItem('mock_user_id', matchedStaff.id);
-            localStorage.setItem('currentUserRole', matchedStaff.roleId || 'sys_desk');
-            localStorage.setItem('pms_staff_name', matchedStaff.name || '');
-            localStorage.setItem('pms_staff_email', matchedStaff.email || '');
-        }
+        const loginProfile = matchedStaff || DEFAULT_LOGIN_PROFILES[normalizedEmail];
+        localStorage.setItem('mock_user_id', loginProfile?.id || 's4');
+        localStorage.setItem('currentUserRole', loginProfile?.roleId || 'sys_desk');
+        localStorage.setItem('pms_staff_name', loginProfile?.name || '');
+        localStorage.setItem('pms_staff_email', loginProfile?.email || normalizedEmail);
         sessionStorage.setItem('pms_logged_in', 'true');
         // Redirect to dashboard
         window.location.href='dashboard.html';
