@@ -279,6 +279,24 @@ function assert(condition, message, details = null) {
     assert(companyHoverResult.childTransforms.every(item => item.transitionProperty === 'none' && item.transitionDuration === '0s'), 'Company card buttons must use stable, non-animated hover styles.', companyHoverResult);
     assert(stableBox(cardBoxBeforeHover, cardBoxAfterHover) && stableBox(cardBoxBeforeHover, cardBoxAfterButtonHover), 'Company card bounding box must stay stable across card and button hover.', { cardBoxBeforeHover, cardBoxAfterHover, cardBoxAfterButtonHover });
     assert(buttonHoverStyles.every(item => JSON.stringify(item.before) === JSON.stringify(item.after)), 'Company card action buttons must not visually flicker on hover.', buttonHoverStyles);
+
+    await page.getByRole('button', { name: /신규 단체 등록/ }).click();
+    await page.locator('#compName').fill('P1 Save Regression');
+    await page.locator('#compCode').fill('P1-COMP-REGRESSION');
+    await page.locator('#compType').selectOption('Travel Agency');
+    await page.locator('#compContactName').fill('P1 Manager');
+    await page.locator('#compGroupDiscount').fill('10');
+    await page.locator('#companyModal .modal-footer button').filter({ hasText: '저장' }).click();
+    const regressionCard = page.locator('.company-card').filter({ hasText: 'P1 Save Regression' });
+    await regressionCard.waitFor({ state: 'visible', timeout: 5000 });
+    assert((await regressionCard.textContent()).includes('P1-COMP-REGRESSION'), 'Entered company code must be persisted and displayed.');
+    assert((await regressionCard.textContent()).includes('10%'), 'Entered company discount must be persisted and displayed.');
+    await regressionCard.locator('[data-company-action="edit"]').click();
+    await page.locator('#compContactName').fill('P1 Manager Updated');
+    await page.locator('#companyModal .modal-footer button').filter({ hasText: '저장' }).click();
+    await page.waitForFunction(() => document.querySelector('.company-card')?.ownerDocument.body.textContent.includes('P1 Manager Updated'), null, { timeout: 5000 });
+    assert((await regressionCard.textContent()).includes('P1 Manager Updated'), 'Company edits must remain after asynchronous persistence completes.');
+
     await firstCompanyCard.locator('[data-company-action="edit"]').first().click();
     await page.waitForFunction(() => document.getElementById('companyModal')?.classList.contains('active'), null, { timeout: 5000 });
     const editActionResult = await page.evaluate(() => ({
@@ -493,6 +511,7 @@ function assert(condition, message, details = null) {
         'settlement-needed count excludes paid past and future pending events',
         'company card hover does not move the pointer hit area',
         'company card action buttons remain clickable',
+        'company code, discount, and async edits persist',
         'group detail hydrates company data for existing events',
         'group detail separates company baseline and event discount',
         'group detail requires registered company selection',

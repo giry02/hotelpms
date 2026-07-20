@@ -503,9 +503,15 @@
             <button class="modal-close" onclick="closeModal('companyModal')"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
-            <div>
-                <label class="form-label">단체명 <span style="color:var(--danger)">*</span></label>
-                <input type="text" id="compName" class="form-input" style="width:100%" placeholder="예: 삼성전자 워크숍, 김대리 단체" data-ko="예: 삼성전자 워크숍, 김대리 단체" data-en="E.g. Samsung workshop, Manager Kim group">
+            <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px">
+                <div>
+                    <label class="form-label"><span data-ko="단체명" data-en="Group Name">단체명</span> <span style="color:var(--danger)">*</span></label>
+                    <input type="text" id="compName" class="form-input" style="width:100%" placeholder="예: 삼성전자 워크숍, 김대리 단체" data-ko="예: 삼성전자 워크숍, 김대리 단체" data-en="E.g. Samsung workshop, Manager Kim group">
+                </div>
+                <div>
+                    <label class="form-label" data-ko="단체 코드" data-en="Group Code">단체 코드</label>
+                    <input type="text" id="compCode" class="form-input" style="width:100%" placeholder="예: COMP-1001" data-ko="예: COMP-1001" data-en="E.g. COMP-1001">
+                </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
@@ -925,6 +931,8 @@ function openNewCompanyModal() {
     title.textContent = companyLang() === 'en' ? 'Register Group' : '신규 단체 등록';
     document.getElementById('compId').value = '';
     document.getElementById('compName').value = '';
+    document.getElementById('compCode').value = '';
+    document.getElementById('compCode').readOnly = false;
     document.getElementById('compContactName').value = '';
     document.getElementById('compPhone').value = '';
     document.getElementById('compRate').value = '';
@@ -940,6 +948,8 @@ function editCompany(id) {
     title.textContent = companyLang() === 'en' ? 'Edit Group' : '단체 정보 수정';
     document.getElementById('compId').value = c.id;
     document.getElementById('compName').value = c.name;
+    document.getElementById('compCode').value = c.id;
+    document.getElementById('compCode').readOnly = true;
     const typeSelect = document.getElementById('compType');
     const normalizedType = typeof companyTypeKey === 'function' ? companyTypeKey(c.type) : c.type;
     const typeOption = Array.from(typeSelect.options).find(option => option.value === normalizedType || option.value === c.type);
@@ -964,8 +974,14 @@ async function persistCompanies() {
 
 async function saveCompany() {
     const id = document.getElementById('compId').value;
-    const name = document.getElementById('compName').value;
+    const name = document.getElementById('compName').value.trim();
     if(!name) { showToast(companyText('nameRequired'), 'error'); return; }
+    const requestedCode = document.getElementById('compCode').value.trim();
+    if (!id && requestedCode && companies.some(company => String(company.id).toLowerCase() === requestedCode.toLowerCase())) {
+        showToast(companyLang() === 'en' ? 'This group code is already in use.' : '이미 사용 중인 단체 코드입니다.', 'error');
+        document.getElementById('compCode').focus();
+        return;
+    }
     const typeInput = document.getElementById('compType');
     if (!typeInput.value) {
         showToast(companyLang() === 'en' ? 'Select a primary type.' : '대표 유형을 선택해 주세요.', 'error');
@@ -987,6 +1003,7 @@ async function saveCompany() {
         status: document.getElementById('compStatus').value,
         contactName: document.getElementById('compContactName').value,
         phone,
+        groupDiscount: Number(document.getElementById('compGroupDiscount').value || 0),
         rate: document.getElementById('compRate').value,
         billing: document.getElementById('compBilling').value,
         note: document.getElementById('compNote').value
@@ -997,7 +1014,7 @@ async function saveCompany() {
         const c = companies.find(x => x.id === id);
         Object.assign(c, data);
     } else {
-        data.id = 'COMP-' + Math.floor(Math.random()*10000);
+        data.id = requestedCode || ('COMP-' + Math.floor(Math.random()*10000));
         companies.unshift(data);
     }
     await persistCompanies();
@@ -1655,25 +1672,10 @@ function openBlockModal(compId) {
         updateCompanyRateSummary();
     };
     const oldSave = window.saveCompany;
-    window.saveCompany = function() {
+    window.saveCompany = async function() {
         ensureCompanyDiscountField();
-        const discount = Number(document.getElementById('compGroupDiscount').value || 0);
         updateCompanyRateSummary();
-        const rate = document.getElementById('compRate');
-        oldSave();
-        try {
-            const saved = JSON.parse(localStorage.getItem('pms_companies') || '[]');
-            const name = document.getElementById('compName').value;
-            const id = document.getElementById('compId').value;
-            const c = saved.find(x => (id && x.id === id) || x.name === name);
-            if (c) {
-                c.groupDiscount = discount;
-                c.rate = rate?.value || '';
-                localStorage.setItem('pms_companies', JSON.stringify(saved));
-                companies = saved;
-                renderCompanies();
-            }
-        } catch(e) {}
+        await oldSave();
     };
     document.addEventListener('DOMContentLoaded', () => {
         ensureCompanyDiscountField();
