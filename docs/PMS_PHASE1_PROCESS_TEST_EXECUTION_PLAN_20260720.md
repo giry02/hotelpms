@@ -739,10 +739,10 @@
 | P1-CHECKOUT-001 | PARTIAL | 수납·체크아웃 회귀 통과, 지정 금액의 연속 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
 | P1-CHECKOUT-002 | PARTIAL | 미수금 차단 회귀 통과, 오류 분기 실제 입력 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
 | P1-CHECKOUT-003 | PARTIAL | 상태 계산 회귀 통과, 체크아웃 완료/공실 역할 분리 재조회 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
-| P1-GROUP-001 | PARTIAL | 단체 회귀 통과, 업체 CRUD와 삭제 제약 전체 증거 미완료 | - | 변경 없음 | PARTIAL | `support-groups.log` |
-| P1-GROUP-002 | PARTIAL | 이벤트·객실 배정 회귀 통과, 지정 입력 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-groups.log` |
-| P1-GROUP-003 | PARTIAL | 명단 연결 회귀 통과, 예약 3화면 재조회 증거 미완료 | - | 변경 없음 | PARTIAL | `support-groups.log` |
-| P1-GROUP-004 | PARTIAL | 통계 회귀 통과, 기간별 합계 수기 대조 증거 미완료 | - | 변경 없음 | PARTIAL | `support-groups.log` |
+| P1-GROUP-001 | PASS | 배포본에서 업체 등록·수정 저장·행사 연결·삭제 제약 및 연결 제거 후 삭제 확인 | 2026-07-20 | 업체 수정값 비저장 수정 | PASS | 배포 `0931e575`, 수동 CRUD 증거 |
+| P1-GROUP-002 | PASS | 배포본에서 0802·0803 배정, 할인율 10%와 최종가 ₱90 저장 및 중복 객실 선택 차단 확인 | 2026-07-20 | 객실 중복 배정 방지 추가 | PASS | 배포 `7c290f27`, `support-groups.log` |
+| P1-GROUP-003 | PASS | 배포본에서 0802 대표·동반, 0803 대표 저장 후 행사 상세·타임라인 재조회와 중복 없는 툴팁 확인 | 2026-07-20 | 타임라인 단체 예약 동기화 및 툴팁 중복 수정 | PASS | 배포 `acb99035`, `063a4370` |
+| P1-GROUP-004 | PASS | 배포본에서 전체·사용자 지정 기간 갱신 및 객실 2,460+POS 1,197+음식점 0+골프 1,200+렌터카 600+기타 0=총합 5,457 대조 | 2026-07-20 | 기타 금액 독립 열·합계 추가 | PASS | 배포 `559b8299`, 수동 합계 대조 |
 | P1-HK-001 | PARTIAL | 청소 상태 회귀 통과, 3화면 동기화 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-reservation.log` |
 | P1-MAINT-001 | PARTIAL | 시설보수 회귀 통과, 생성·수정·완료·삭제와 예약 차단 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
 | P1-ANC-001 | PARTIAL | 빈 객실 미노출 회귀 통과, 지정 객실 화면 증거 미완료 | - | 변경 없음 | PARTIAL | `support-ancillary.log` |
