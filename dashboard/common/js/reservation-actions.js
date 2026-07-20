@@ -3466,6 +3466,11 @@
             return;
         }
         if (!currentRes && selectedRoom) {
+            const bookingBlockReason = checkinBlockReasonForRoom(selectedRoom);
+            if (bookingBlockReason) {
+                showReservationAlert(bookingBlockReason, 'error');
+                return;
+            }
             const cleaningWarning = checkinWarningForRoom(selectedRoom);
             if (cleaningWarning) {
                 const confirmed = await confirmReservationDialog(

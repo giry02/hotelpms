@@ -23,7 +23,7 @@
 <h1>사용자 관리</h1>
 </div>
 <div class="topbar-right">
-<button class="btn-primary" style="padding:8px 16px; font-size:0.85rem;" onclick="alert('신규 관리자 초대 메일을 발송하는 화면으로 연결됩니다.')"><i class="fa-solid fa-user-plus"></i> 신규 관리자 초대</button>
+<button class="btn-primary" id="newAdminButton" style="padding:8px 16px; font-size:0.85rem;" onclick="openUserModal()" data-ko="신규 관리자 등록" data-en="New Admin"><i class="fa-solid fa-user-plus"></i> 신규 관리자 등록</button>
 </div>
 </header>
 <div class="content">
@@ -32,6 +32,14 @@
 <h2>사용자 목록</h2>
 </div>
 <div class="card-body">
+<div class="filter-bar" style="margin-bottom:14px">
+<div class="filter-left" style="flex:1;display:flex;gap:8px;flex-wrap:wrap">
+<input class="form-control" data-no-auto-i18n id="userSearch" type="search" placeholder="이름 또는 이메일 검색" style="min-width:220px;max-width:360px" oninput="renderUsers()"/>
+<select class="form-control" id="userRoleFilter" style="width:180px" onchange="renderUsers()"><option value="">전체 역할</option><option>Platform Owner</option><option>System Admin</option><option>Operations</option><option>Support Specialist</option><option>Sales Manager</option></select>
+<select class="form-control" id="userStatusFilter" style="width:140px" onchange="renderUsers()"><option value="">전체 상태</option><option value="active">활성</option><option value="inactive">비활성</option><option value="locked">잠금</option></select>
+</div>
+<strong id="userResultCount" style="white-space:nowrap">0명</strong>
+</div>
 <table class="data-table">
 <thead>
 <tr>
@@ -51,6 +59,19 @@
 </div>
 </div>
 </div>
+<div class="modal-overlay" id="userModal" onclick="if(event.target===this) closeUserModal()">
+<div class="modal" style="max-width:620px">
+<div class="modal-header"><h3 id="userModalTitle">관리자 등록</h3><button class="modal-close" onclick="closeUserModal()"><i class="fa-solid fa-xmark"></i></button></div>
+<div class="modal-body"><div class="grid-2">
+<input id="editUserId" type="hidden"/>
+<div class="form-group"><label class="form-label">이름</label><input class="form-control" id="userName" required/></div>
+<div class="form-group"><label class="form-label">이메일</label><input class="form-control" id="userEmail" required type="email"/></div>
+<div class="form-group"><label class="form-label">역할</label><select class="form-control" id="userRole"><option>Platform Owner</option><option>System Admin</option><option>Operations</option><option>Support Specialist</option><option>Sales Manager</option></select></div>
+<div class="form-group"><label class="form-label">상태</label><select class="form-control" id="userStatus"><option value="active">활성</option><option value="inactive">비활성</option><option value="locked">잠금</option></select></div>
+<div class="form-group" style="grid-column:1/-1"><label class="form-label">비밀번호</label><input class="form-control" id="userPassword" minlength="8" placeholder="신규 등록 시 8자 이상" type="password"/></div>
+</div></div>
+<div class="modal-footer"><button class="btn-outline" onclick="closeUserModal()">취소</button><button class="btn-primary" id="saveUserButton" onclick="saveUser()">저장</button></div>
+</div></div>
 <script>
 	function escapeAdminUserHtml(value) {
 		return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -67,23 +88,30 @@
 	}
 
 	function renderUsers() {
-		const users = window.AdminData?.users || [];
+		const users = window.AdminStore ? AdminStore.read('users', window.AdminData?.users || []) : (window.AdminData?.users || []);
 		const tbody = document.getElementById('userTableBody');
-		const roleLabel = {
-			'System Admin': '시스템 관리자',
-			'Sales Manager': '영업 관리자',
-			'Support Specialist': '지원 담당자',
-			'Platform Owner': '플랫폼 최고 관리자',
-			'Operations': '운영 관리자'
+		const lang = localStorage.getItem('pms_admin_lang') === 'en' ? 'en' : 'ko';
+		const copy = lang === 'en' ? {
+			roles: {}, statuses: { active:'Active', inactive:'Inactive', locked:'Locked' }, empty:'No administrator accounts match the current filters.', people:'users', edit:'Edit', reset:'Reset Password'
+		} : {
+			roles: { 'System Admin':'시스템 관리자', 'Sales Manager':'영업 관리자', 'Support Specialist':'지원 담당자', 'Platform Owner':'플랫폼 최고 관리자', Operations:'운영 관리자' },
+			statuses: { active:'활성', inactive:'비활성', locked:'잠금' }, empty:'조건에 맞는 관리자 계정이 없습니다.', people:'명', edit:'수정', reset:'비밀번호 초기화'
 		};
-		const statusLabel = { active: '활성', inactive: '비활성' };
+		const query = (document.getElementById('userSearch')?.value || '').trim().toLowerCase();
+		const roleFilter = document.getElementById('userRoleFilter')?.value || '';
+		const statusFilter = document.getElementById('userStatusFilter')?.value || '';
+		const filteredUsers = users.filter(user => {
+			const haystack = `${user.id || ''} ${user.name || ''} ${user.email || ''}`.toLowerCase();
+			return (!query || haystack.includes(query)) && (!roleFilter || user.role === roleFilter) && (!statusFilter || user.status === statusFilter);
+		});
+		document.getElementById('userResultCount').textContent = lang === 'en' ? `${filteredUsers.length} ${copy.people}` : `${filteredUsers.length}${copy.people}`;
 
-		if (!users.length) {
-			tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:28px;">표시할 관리자 계정이 없습니다.</td></tr>';
+		if (!filteredUsers.length) {
+			tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:28px;">${escapeAdminUserHtml(copy.empty)}</td></tr>`;
 			return;
 		}
 		
-		tbody.innerHTML = users.map(u => {
+		tbody.innerHTML = filteredUsers.map(u => {
 			const role = u.role || '-';
 			const status = u.status || '-';
 			const email = u.email || '-';
@@ -91,25 +119,122 @@
 			<tr>
 				<td><strong>${escapeAdminUserHtml(u.id || '-')}</strong></td>
 				<td>${escapeAdminUserHtml(u.name || '-')}</td>
-				<td><span class="badge ${role === 'System Admin' ? 'indigo' : 'gray'}">${escapeAdminUserHtml(roleLabel[role] || role)}</span></td>
+				<td><span class="badge ${role === 'System Admin' ? 'indigo' : 'gray'}">${escapeAdminUserHtml(copy.roles[role] || role)}</span></td>
 				<td>${escapeAdminUserHtml(email)}</td>
-				<td><span class="badge ${status === 'active' ? 'green' : 'red'}">${escapeAdminUserHtml(statusLabel[status] || status)}</span></td>
+				<td><span class="badge ${status === 'active' ? 'green' : 'red'}">${escapeAdminUserHtml(copy.statuses[status] || status)}</span></td>
 				<td>${escapeAdminUserHtml(u.lastLogin || '-')}</td>
 				<td>
-					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;" onclick="alert('${escapeAdminUserJs(email)} 계정 편집 화면을 엽니다.')">수정</button>
-					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;color:var(--primary);border-color:var(--primary)" onclick="sendAdminPasswordReset('${escapeAdminUserJs(email)}')"><i class="fa-solid fa-envelope"></i> 비밀번호 초기화</button>
+					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;" onclick="openUserModal('${escapeAdminUserJs(u.id)}')">${escapeAdminUserHtml(copy.edit)}</button>
+					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;color:var(--primary);border-color:var(--primary)" onclick="sendAdminPasswordReset('${escapeAdminUserJs(email)}')"><i class="fa-solid fa-envelope"></i> ${escapeAdminUserHtml(copy.reset)}</button>
+					<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;color:var(--danger);border-color:var(--danger-lt)" onclick="deleteUser('${escapeAdminUserJs(u.id)}')"><i class="fa-solid fa-trash"></i></button>
 				</td>
 			</tr>
 		`;
 		}).join('');
 	}
 
+	function localizeUserFilters() {
+		const en = localStorage.getItem('pms_admin_lang') === 'en';
+		document.getElementById('userSearch').placeholder = en ? 'Search name or email' : '이름 또는 이메일 검색';
+		document.getElementById('userRoleFilter').options[0].textContent = en ? 'All roles' : '전체 역할';
+		const status = document.getElementById('userStatusFilter').options;
+		status[0].textContent = en ? 'All statuses' : '전체 상태';
+		status[1].textContent = en ? 'Active' : '활성'; status[2].textContent = en ? 'Inactive' : '비활성'; status[3].textContent = en ? 'Locked' : '잠금';
+		const modalLabels = document.querySelectorAll('#userModal .form-label');
+		const labelCopy = en ? ['Name', 'Email', 'Role', 'Status', 'Password'] : ['이름', '이메일', '역할', '상태', '비밀번호'];
+		modalLabels.forEach((label, index) => { if (labelCopy[index]) label.textContent = labelCopy[index]; });
+		document.getElementById('userPassword').placeholder = en ? 'At least 8 characters for a new account' : '신규 등록 시 8자 이상';
+		const footerButtons = document.querySelectorAll('#userModal .modal-footer button');
+		if (footerButtons[0]) footerButtons[0].textContent = en ? 'Cancel' : '취소';
+		if (footerButtons[1]) footerButtons[1].textContent = en ? 'Save' : '저장';
+		const editing = Boolean(document.getElementById('editUserId')?.value);
+		document.getElementById('userModalTitle').textContent = en ? (editing ? 'Edit Administrator' : 'Register Administrator') : (editing ? '관리자 수정' : '관리자 등록');
+		renderUsers();
+	}
+	window.addEventListener('DataReady', localizeUserFilters);
+	window.addEventListener('languagechange', localizeUserFilters);
+
 	if (window.onAdminDataReady) window.onAdminDataReady(renderUsers);
 	else window.addEventListener('DataReady', renderUsers);
 
 	function sendAdminPasswordReset(email) {
+		const users = AdminStore.read('users', []);
+		const user = users.find(row => row.email === email);
+		if (!user) return;
+		user.resetToken = `RST-${Date.now()}`;
+		user.resetExpiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+		AdminStore.write('users', users);
+		AdminStore.audit('user.password_reset', user.id, email, 'Medium');
 		alert(`${email}로 비밀번호 재설정 링크가 발송되었습니다.`);
 	}
+
+	function openUserModal(id = '') {
+		const users = AdminStore.read('users', []);
+		const user = users.find(row => String(row.id) === String(id));
+		document.getElementById('editUserId').value = user?.id || '';
+		document.getElementById('userName').value = user?.name || '';
+		document.getElementById('userEmail').value = user?.email || '';
+		document.getElementById('userRole').value = user?.role || 'System Admin';
+		document.getElementById('userStatus').value = user?.status || 'active';
+		document.getElementById('userPassword').value = '';
+		localizeUserFilters();
+		document.getElementById('userModal').classList.add('active');
+	}
+
+	function closeUserModal() { document.getElementById('userModal').classList.remove('active'); }
+
+	function saveUser() {
+		const id = document.getElementById('editUserId').value;
+		const nameInput = document.getElementById('userName');
+		const emailInput = document.getElementById('userEmail');
+		const passwordInput = document.getElementById('userPassword');
+		if (!nameInput.checkValidity()) return nameInput.reportValidity();
+		if (!emailInput.checkValidity()) return emailInput.reportValidity();
+		if (!id && passwordInput.value.length < 8) {
+			passwordInput.setCustomValidity('비밀번호는 8자 이상 입력해야 합니다.');
+			return passwordInput.reportValidity();
+		}
+		passwordInput.setCustomValidity('');
+		const users = AdminStore.read('users', []);
+		const email = emailInput.value.trim().toLowerCase();
+		if (users.some(row => row.email.toLowerCase() === email && String(row.id) !== String(id))) {
+			emailInput.setCustomValidity('이미 사용 중인 이메일입니다.');
+			return emailInput.reportValidity();
+		}
+		emailInput.setCustomValidity('');
+		const existing = users.find(row => String(row.id) === String(id));
+		if (existing?.role === 'Platform Owner' && document.getElementById('userRole').value !== 'Platform Owner') {
+			const otherOwners = users.filter(row => row.role === 'Platform Owner' && row.status === 'active' && String(row.id) !== String(id));
+			if (!otherOwners.length) return alert('최종 최고관리자의 권한은 제거할 수 없습니다.');
+		}
+		const item = {
+			...(existing || {}),
+			id: id || `ADM-${Date.now()}`,
+			name: nameInput.value.trim(),
+			email,
+			role: document.getElementById('userRole').value,
+			status: document.getElementById('userStatus').value,
+			password: passwordInput.value || existing?.password || 'admin1234'
+		};
+		AdminStore.upsert('users', item);
+		AdminStore.audit(existing ? 'user.update' : 'user.create', item.id, `${item.email} / ${item.role} / ${item.status}`, item.status === 'active' ? 'Low' : 'High');
+		closeUserModal();
+		renderUsers();
+	}
+
+	function deleteUser(id) {
+		const users = AdminStore.read('users', []);
+		const user = users.find(row => String(row.id) === String(id));
+		if (!user) return;
+		if (user.role === 'Platform Owner' && users.filter(row => row.role === 'Platform Owner' && row.status === 'active').length <= 1) {
+			return alert('최종 최고관리자 계정은 삭제할 수 없습니다.');
+		}
+		if (!confirm(`${user.email} 계정을 삭제하시겠습니까?`)) return;
+		AdminStore.remove('users', id);
+		AdminStore.audit('user.delete', id, user.email, 'High');
+		renderUsers();
+	}
+	document.addEventListener('DOMContentLoaded', localizeUserFilters);
 </script>
 </body>
 </html>

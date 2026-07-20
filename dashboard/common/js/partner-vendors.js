@@ -4,7 +4,8 @@
 
   const voucherFieldLabels = {
     guest:'투숙객명', room:'객실번호', date:'이용일시', people:'인원', teeTime:'티오프', course:'골프장/업체명',
-    pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', partnerContact:'업체 연락처', address:'업체 주소', memo:'메모'
+    pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', partnerContact:'업체 연락처', location:'업체 위치', address:'업체 주소',
+    benefit:'혜택', terms:'사용 조건', memo:'메모'
   };
 
   const voucherFieldGroups = {
@@ -18,7 +19,7 @@
       { title:'렌터카 인수 정보', icon:'fa-car', fields:['pickup','vehicle'] }
     ],
     restaurant: [
-      { title:'쿠폰 기본 정보', icon:'fa-ticket', fields:['guest','room','date','item','amount','partnerContact','address','memo'] }
+      { title:'쿠폰 기본 정보', icon:'fa-ticket', fields:['guest','room','date','item','amount','partnerContact','location','address','benefit','terms','memo'] }
     ],
     other: []
   };
@@ -153,9 +154,9 @@
         en:'<h4>Restaurant partner offer</h4><p>Shows guest-facing restaurant location, menu prices, and benefit details for front desk booking support.</p>'
       },
       items:[
-        { name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' },
-        { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' },
-        { name:'패밀리 세트', price:420, desc:'4인 기준' }
+        { name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴', benefit:'호텔 투숙객 디저트 2개 무료', terms:'방문 전 예약 필수, 쿠폰 1매당 1회 사용' },
+        { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰', benefit:'웰컴 디저트 1개 제공', terms:'체크인 당일부터 체크아웃일까지 사용 가능' },
+        { name:'패밀리 세트', price:420, desc:'4인 기준', benefit:'음료 4잔 무료', terms:'4인 방문 기준, 다른 할인과 중복 사용 불가' }
       ]
     },
     {
@@ -192,7 +193,7 @@
   }
   function defaultVoucherFields(type) {
     if (type === 'pos' || type === 'other') return [];
-    if (type === 'restaurant') return ['guest','room','date','item','amount','partnerContact','address'];
+    if (type === 'restaurant') return ['guest','room','date','item','amount','partnerContact','location','address','benefit','terms'];
     if (hasInitialVoucherFields(type)) return initialVoucherFields(type);
     return (voucherFieldGroups[type] || []).flatMap(group => group.fields);
   }

@@ -169,6 +169,8 @@
 
 <script>
 let allOrders = [];
+let inHouseReservations = [];
+let folioByReservationId = new Map();
 
 const statusInfo = {
     new: { labelKey:'newStatus', groupKey:'openGroup', cls:'new', icon:'fa-circle-exclamation', taskClass:'dirty' },
@@ -570,6 +572,7 @@ window.addEventListener('languagechange', () => {
 function openModal(id) {
     const modal = document.getElementById(id);
     if (modal) modal.classList.add('active');
+    if (id === 'addOrderModal') prepareManualOrderForm();
 }
 
 function closeModal(id) {
@@ -579,8 +582,21 @@ function closeModal(id) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        const orders = await PmsAPI.getOrders();
+        const [orders, reservationsEnvelope, foliosEnvelope] = await Promise.all([
+            PmsAPI.getOrders(),
+            window.PmsMockApi?.request('GET', '/reservations').catch(() => null),
+            window.PmsMockApi?.request('GET', '/folios').catch(() => null)
+        ]);
         allOrders = orders.map(normalizeOrder).sort(orderSort);
+        const reservations = window.PmsMockApi?.items ? window.PmsMockApi.items(reservationsEnvelope) : (reservationsEnvelope?.data?.items || []);
+        const folios = window.PmsMockApi?.items ? window.PmsMockApi.items(foliosEnvelope) : (foliosEnvelope?.data?.items || []);
+        inHouseReservations = (reservations || []).filter(item => {
+            const status = String(item.status || '').replace(/[-_\s]/g, '').toLowerCase();
+            return ['checkedin', 'inhouse', 'occupied'].includes(status) && (item.guestId || item.guestName || item.guest);
+        });
+        folioByReservationId = new Map((folios || [])
+            .filter(item => item.reservationId)
+            .map(item => [String(item.reservationId), item.folioId || item.id]));
         
         refreshCategoryControls();
         updateKPIs();
@@ -589,6 +605,93 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (typeof changeLang === 'function') changeLang(posLang());
     } catch(e) { console.error(e); }
 });
+
+function prepareManualOrderForm() {
+    const select = document.getElementById('orderStaySelect');
+    if (!select) return;
+    const placeholder = posLang() === 'en' ? 'Select an in-house guest...' : '투숙 중인 객실/투숙객을 선택하세요...';
+    select.innerHTML = [
+        `<option value="">${escapeHtml(placeholder)}</option>`,
+        ...inHouseReservations.map(item => {
+            const reservationId = item.reservationId || item.id || '';
+            const room = item.roomNo || item.room || String(item.roomId || '').split('-').pop();
+            const guest = item.guestName || item.guest || '';
+            const folioId = item.folioId || folioByReservationId.get(String(reservationId)) || '';
+            return `<option value="${escapeHtml(reservationId)}" data-room="${escapeHtml(room)}" data-room-id="${escapeHtml(item.roomId || room)}" data-guest-id="${escapeHtml(item.guestId || '')}" data-guest="${escapeHtml(guest)}" data-folio-id="${escapeHtml(folioId)}">${escapeHtml(room)} · ${escapeHtml(guest)}</option>`;
+        })
+    ].join('');
+    document.getElementById('itemSelect')?.dispatchEvent(new Event('change'));
+}
+
+function syncManualOrderPrice() {
+    const item = document.getElementById('itemSelect');
+    const quantity = Math.max(1, Number(document.getElementById('itemQty')?.value || 1));
+    const unitPrice = Number(item?.value || 0);
+    if (item?.value !== 'custom') document.getElementById('orderPrice').value = (unitPrice * quantity).toFixed(2);
+}
+
+async function submitManualOrder() {
+    const stay = document.getElementById('orderStaySelect');
+    const selectedStay = stay?.selectedOptions?.[0];
+    const item = document.getElementById('itemSelect');
+    const selectedItem = item?.selectedOptions?.[0];
+    const billingMethod = document.getElementById('orderBillingMethod')?.value || 'folio';
+    const amount = Number(document.getElementById('orderPrice')?.value || 0);
+    const quantity = Math.max(1, Number(document.getElementById('itemQty')?.value || 1));
+    const folioId = selectedStay?.dataset.folioId || '';
+    if (!stay?.value) {
+        showToast(posLang() === 'en' ? 'Select an in-house guest.' : '투숙 중인 객실과 투숙객을 선택해 주세요.', 'error');
+        stay?.focus();
+        return;
+    }
+    if (!item?.value || item.value === 'custom') {
+        showToast(posLang() === 'en' ? 'Select a registered service item.' : '등록된 서비스 항목을 선택해 주세요.', 'error');
+        item?.focus();
+        return;
+    }
+    if (!Number.isFinite(amount) || amount < 0) {
+        showToast(posLang() === 'en' ? 'Enter a valid charge amount.' : '올바른 청구 금액을 입력해 주세요.', 'error');
+        document.getElementById('orderPrice')?.focus();
+        return;
+    }
+    if (billingMethod === 'folio' && !folioId) {
+        showToast(posLang() === 'en' ? 'No Folio is linked to this reservation.' : '선택한 예약에 연결된 Folio가 없습니다.', 'error');
+        return;
+    }
+    const now = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+    const body = {
+        id: `ORD-MANUAL-${Date.now()}`,
+        reservationId: stay.value,
+        folioId,
+        roomId: selectedStay.dataset.roomId || selectedStay.dataset.room || '',
+        roomNo: selectedStay.dataset.room || '',
+        guestId: selectedStay.dataset.guestId || '',
+        guestName: selectedStay.dataset.guest || '',
+        category: document.getElementById('orderCategorySelect')?.value || 'other',
+        categoryLabel: document.getElementById('orderCategorySelect')?.selectedOptions?.[0]?.textContent || '',
+        items: [`${selectedItem.textContent.replace(/\s*\([^)]*\)\s*$/, '').trim()} x${quantity}`],
+        quantity,
+        total: { amount, currency: localStorage.getItem('pms_default_currency') || 'PHP' },
+        billingMethod,
+        status: 'new',
+        date: now.slice(0, 10),
+        time: now.slice(11, 16),
+        createdAt: now
+    };
+    try {
+        const response = await window.PmsMockApi.request('POST', '/pos/orders', { body });
+        const saved = response?.data?.item || body;
+        allOrders.unshift(normalizeOrder(saved));
+        allOrders.sort(orderSort);
+        updateKPIs();
+        renderOrders();
+        closeModal('addOrderModal');
+        showToast(posLang() === 'en' ? 'The order was saved.' : '오더가 저장되었습니다.', 'success');
+    } catch (error) {
+        console.error(error);
+        showToast(posLang() === 'en' ? 'Failed to save the order.' : '오더 저장에 실패했습니다.', 'error');
+    }
+}
 </script>
 
 <!-- Add Order Modal -->
@@ -601,8 +704,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
                 <div style="display:flex;flex-direction:column;gap:6px">
-                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)"><span data-ko="객실 번호" data-en="Room No.">객실 번호</span> <span style="color:var(--danger)">*</span></label>
-                    <input type="text" data-ko="예: 1401" data-en="Ex: 1401" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%" placeholder="예: 1401">
+                    <label style="font-size:.8rem;font-weight:600;color:var(--txt2)"><span data-ko="투숙 객실 / 투숙객" data-en="In-house Room / Guest">투숙 객실 / 투숙객</span> <span style="color:var(--danger)">*</span></label>
+                    <select id="orderStaySelect" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff"></select>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)"><span data-ko="카테고리 분류" data-en="Category">카테고리 분류</span> <span style="color:var(--danger)">*</span></label>
@@ -612,7 +715,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div style="display:flex;flex-direction:column;gap:6px">
                 <label style="font-size:.8rem;font-weight:600;color:var(--txt2)"><span data-ko="서비스 항목" data-en="Service Item">서비스 항목</span> <span style="color:var(--danger)">*</span></label>
                 <div style="display:flex;gap:10px">
-                    <select id="itemSelect" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
+                    <select id="itemSelect" onchange="syncManualOrderPrice()" style="flex:1;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);background:#fff">
                         <option value="" data-ko="항목을 선택하세요..." data-en="Select an item...">항목을 선택하세요...</option>
                         <option value="25.00" data-ko="클럽 샌드위치 ($25.00)" data-en="Club Sandwich ($25.00)">클럽 샌드위치 ($25.00)</option>
                         <option value="15.00" data-ko="아메리카노 ($15.00)" data-en="Americano ($15.00)">아메리카노 ($15.00)</option>
@@ -621,7 +724,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <option value="15.00" data-ko="드라이클리닝 (셔츠) ($15.00)" data-en="Dry Cleaning (Shirt) ($15.00)">드라이클리닝 (셔츠) ($15.00)</option>
                         <option value="custom" data-ko="직접 입력" data-en="Custom Entry">직접 입력</option>
                     </select>
-                    <input type="number" id="itemQty" value="1" min="1" style="width:60px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;text-align:center">
+                    <input type="number" id="itemQty" value="1" min="1" onchange="syncManualOrderPrice()" oninput="syncManualOrderPrice()" style="width:60px;height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;text-align:center">
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -631,17 +734,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <label style="font-size:.8rem;font-weight:600;color:var(--txt2)" data-ko="과금 방식" data-en="Billing Method">과금 방식</label>
-                    <select style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
-                        <option data-ko="객실 정산으로 합산 청구" data-en="Post to room folio">객실 정산으로 합산 청구</option>
-                        <option data-ko="현장 현금 결제" data-en="On-site cash payment">현장 현금 결제</option>
-                        <option data-ko="무료 서비스" data-en="Complimentary service">무료 서비스</option>
+                    <select id="orderBillingMethod" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;background:#fff">
+                        <option value="folio" data-ko="객실 정산으로 합산 청구" data-en="Post to room folio">객실 정산으로 합산 청구</option>
+                        <option value="cash" data-ko="현장 현금 결제" data-en="On-site cash payment">현장 현금 결제</option>
+                        <option value="complimentary" data-ko="무료 서비스" data-en="Complimentary service">무료 서비스</option>
                     </select>
                 </div>
             </div>
         </div>
         <div class="modal-footer" style="padding:16px 20px;border-top:1px solid var(--border2);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
             <button class="btn-outline" onclick="closeModal('addOrderModal')" data-ko="취소" data-en="Cancel">취소</button>
-            <button class="btn-primary-sm" onclick="closeModal('addOrderModal'); showToast('오더가 전송되었습니다.', 'success');"><i class="fa-solid fa-check"></i> <span data-ko="오더 전송" data-en="Send Order">오더 전송</span></button>
+            <button class="btn-primary-sm" onclick="submitManualOrder()"><i class="fa-solid fa-check"></i> <span data-ko="오더 저장" data-en="Save Order">오더 저장</span></button>
         </div>
     </div>
 </div>

@@ -1,128 +1,21 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>공지사항 관리 - Super Admin</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
-<link href="../common/css/admin-base.css" rel="stylesheet"/>
-<link href="../common/css/admin-pages.css" rel="stylesheet"/>
-<script src="../common/js/admin-sidebar.js"></script>
-<script src="../common/js/admin-i18n-catalog.js"></script>
-<script src="../common/js/admin-i18n.js"></script>
-</head>
-<body>
-<div class="main">
-<header class="topbar">
-<div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><h1>공지사항 관리</h1></div>
-<div class="topbar-right">
-<button class="btn-primary" onclick="openNoticeModal(false)"><i class="fa-solid fa-plus"></i> <span>새 공지 작성</span></button>
-<select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px"><option value="ko">한국어</option><option value="en">English</option></select>
-</div>
-</header>
-<div class="content">
-<div class="filter-bar">
-<div class="filter-left">
-<div class="filter-chips">
-<button class="chip active">전체</button>
-<button class="chip">발행됨</button>
-<button class="chip">미발행</button>
-</div>
-</div>
-</div>
-<div class="card">
-<div class="card-body"><div class="table-wrap"><table>
-<thead><tr><th>제목</th><th>대상 사용자</th><th>국가/지역</th><th>조회 수</th><th>상태</th><th>관리</th></tr></thead>
-<tbody>
-<tr><td style="font-weight:600">시스템 점검 안내 (5/25 02:00~06:00 UTC)</td><td><span class="status-badge info">전체</span></td><td><span class="status-badge" style="background:var(--border2);color:var(--txt2)">전 지역</span></td><td>1,204</td><td><span class="status-badge active">발행됨</span></td><td><button class="btn-outline btn-sm" onclick="openNoticeModal(true)"><i class="fa-solid fa-pen"></i></button></td></tr>
-<tr><td style="font-weight:600">베트남 지역 정산 시스템 업데이트 안내</td><td><span class="status-badge" style="background:var(--purple-lt);color:var(--purple)">호텔 관리자</span></td><td><span class="status-badge" style="background:var(--primary-lt);color:var(--primary)">베트남</span></td><td>342</td><td><span class="status-badge active">발행됨</span></td><td><button class="btn-outline btn-sm" onclick="openNoticeModal(true)"><i class="fa-solid fa-pen"></i></button></td></tr>
-<tr><td style="font-weight:600">한국 지역 카카오 알림톡 연동 안내</td><td><span class="status-badge" style="background:var(--purple-lt);color:var(--purple)">호텔 관리자</span></td><td><span class="status-badge" style="background:var(--success-lt);color:var(--success)">한국</span></td><td>89</td><td><span class="status-badge active">발행됨</span></td><td><button class="btn-outline btn-sm" onclick="openNoticeModal(true)"><i class="fa-solid fa-pen"></i></button></td></tr>
-<tr><td style="font-weight:600">6월 글로벌 프로모션 캠페인 신청 안내</td><td><span class="status-badge" style="background:var(--purple-lt);color:var(--purple)">호텔 관리자</span></td><td><span class="status-badge" style="background:var(--border2);color:var(--txt2)">전 지역</span></td><td>0</td><td><span class="status-badge pending">미발행</span></td><td><button class="btn-outline btn-sm" onclick="openNoticeModal(true)"><i class="fa-solid fa-pen"></i></button></td></tr>
-<tr><td style="font-weight:600">유럽 지역 개인정보 처리 방침 업데이트</td><td><span class="status-badge info">전체</span></td><td><span class="status-badge" style="background:var(--border2);color:var(--txt2)">전 지역</span></td><td>0</td><td><span class="status-badge pending">미발행</span></td><td><button class="btn-outline btn-sm" onclick="openNoticeModal(true)"><i class="fa-solid fa-pen"></i></button></td></tr>
-</tbody>
-</table></div></div>
-</div>
-</div>
-</div>
-
-<!-- NOTICE EDITOR MODAL -->
-<div class="modal-overlay" id="noticeModal" onclick="if(event.target===this) closeModal('noticeModal')">
-<div class="modal-card" style="width:700px;max-width:95vw">
-<div class="modal-header">
-<h3 class="modal-title"><i class="fa-solid fa-bullhorn"></i> <span id="noticeModalTitle">공지 작성</span></h3>
-<button class="modal-close" onclick="closeModal('noticeModal')"><i class="fa-solid fa-xmark"></i></button>
-</div>
-<div class="modal-body" style="display:flex;flex-direction:column;gap:16px">
-<div class="form-group full">
-<label class="form-label">제목 <span style="color:var(--danger)">*</span></label>
-<input class="form-control" placeholder="제목을 입력하세요" type="text"/>
-</div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-<div class="form-group">
-<label class="form-label">대상 사용자</label>
-<select class="form-control">
-<option data-ko="전체 사용자" data-en="All users">전체 사용자</option>
-<option data-ko="호텔 관리자" data-en="Hotel admins">호텔 관리자</option>
-<option data-ko="일반 스태프 (Staff)" data-en="General staff">일반 스태프 (Staff)</option>
-</select>
-</div>
-<div class="form-group">
-<label class="form-label">대상 지역</label>
-<select class="form-control">
-<option data-ko="전 지역" data-en="All regions">전 지역</option>
-<option data-ko="한국" data-en="South Korea">한국</option>
-<option data-ko="베트남" data-en="Vietnam">베트남</option>
-<option>Thailand</option>
-</select>
-</div>
-</div>
-<div class="form-group full">
-<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--txt)">
-<input style="width:16px;height:16px" type="checkbox"/>
-					상단에 고정하기 (중요 공지)
-				</label>
-</div>
-<div class="form-group full" style="flex:1">
-<label class="form-label">공지 내용 (본문) <span style="color:var(--danger)">*</span></label>
-<!-- Mock Editor Toolbar -->
-<div style="border:1px solid var(--border);border-bottom:none;border-radius:var(--radius-sm) var(--radius-sm) 0 0;padding:8px;background:var(--bg);display:flex;gap:8px">
-<button onclick="this.style.background=this.style.background==='var(--primary-lt)'?'transparent':'var(--primary-lt)';this.style.color=this.style.color==='var(--primary)'?'var(--txt2)':'var(--primary)'" style="border:none;background:transparent;cursor:pointer;color:var(--txt2);padding:4px 8px;border-radius:4px;transition:0.2s;" title="Bold" type="button"><i class="fa-solid fa-bold"></i></button>
-<button onclick="this.style.background=this.style.background==='var(--primary-lt)'?'transparent':'var(--primary-lt)';this.style.color=this.style.color==='var(--primary)'?'var(--txt2)':'var(--primary)'" style="border:none;background:transparent;cursor:pointer;color:var(--txt2);padding:4px 8px;border-radius:4px;transition:0.2s;" title="Italic" type="button"><i class="fa-solid fa-italic"></i></button>
-<button onclick="prompt('URL 입력:');" style="border:none;background:transparent;cursor:pointer;color:var(--txt2);padding:4px 8px;border-radius:4px;transition:0.2s;" title="Link" type="button"><i class="fa-solid fa-link"></i></button>
-<button onclick="alert('이미지 업로드 창이 열립니다.');" style="border:none;background:transparent;cursor:pointer;color:var(--txt2);padding:4px 8px;border-radius:4px;transition:0.2s;" title="Image" type="button"><i class="fa-solid fa-image"></i></button>
-</div>
-<textarea class="form-control" placeholder="내용을 입력하세요..." style="min-height:200px;border-radius:0 0 var(--radius-sm) var(--radius-sm);resize:vertical"></textarea>
-</div>
-</div>
-<div class="modal-footer">
-<button class="btn-outline" onclick="closeModal('noticeModal')">취소</button>
-<button class="btn-outline" onclick="saveNotice(false)" style="color:var(--primary);border-color:var(--primary)">임시 저장</button>
-<button class="btn-primary" onclick="saveNotice(true)">발행하기</button>
-</div>
-</div>
-</div>
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>플랫폼 공지 관리 - Super Admin</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/><link rel="stylesheet" href="../common/css/admin-base.css"/><link rel="stylesheet" href="../common/css/admin-pages.css"/><script src="../common/js/admin-sidebar.js"></script><script src="../common/js/admin-i18n-catalog.js"></script><script src="../common/js/admin-i18n.js"></script><style>.notice-actions{display:flex;gap:6px}.notice-preview{border:1px solid var(--border);border-radius:8px;padding:16px;background:var(--bg)}@media(max-width:720px){.modal-card{max-height:92vh;overflow:auto}.grid-2{grid-template-columns:1fr!important}.table-wrap table{min-width:760px}}</style></head>
+<body><div class="main"><header class="topbar"><div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><h1 data-ko="플랫폼 공지 관리" data-en="Platform Notices">플랫폼 공지 관리</h1></div><div class="topbar-right"><button class="btn-primary" id="newNoticeButton"><i class="fa-solid fa-plus"></i> <span data-ko="새 공지" data-en="New Notice">새 공지</span></button><select class="hotel-select" id="langSelect" onchange="changeLang(this.value)"><option value="ko">한국어</option><option value="en">English</option></select></div></header>
+<main class="content"><div class="filter-bar"><div class="filter-chips" id="noticeFilters"><button class="chip active" data-filter="all" data-ko="전체" data-en="All">전체</button><button class="chip" data-filter="published" data-ko="게시 중" data-en="Published">게시 중</button><button class="chip" data-filter="scheduled" data-ko="예약" data-en="Scheduled">예약</button><button class="chip" data-filter="draft" data-ko="임시 저장" data-en="Draft">임시 저장</button><button class="chip" data-filter="expired" data-ko="만료" data-en="Expired">만료</button></div></div><section class="card"><div class="card-body"><div class="table-wrap"><table><thead><tr><th data-ko="제목" data-en="Title">제목</th><th data-ko="대상" data-en="Audience">대상</th><th data-ko="기간" data-en="Period">기간</th><th data-ko="상태" data-en="Status">상태</th><th data-ko="조회" data-en="Views">조회</th><th data-ko="관리" data-en="Actions">관리</th></tr></thead><tbody id="noticeBody"></tbody></table></div></div></section></main></div>
+<div class="modal-overlay" id="noticeModal"><div class="modal-card" style="width:760px;max-width:95vw"><div class="modal-header"><h3 class="modal-title" id="noticeModalTitle"></h3><button class="modal-close" id="closeNoticeButton"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><input id="noticeId" type="hidden"/><div class="grid-2"><div class="form-group"><label class="form-label" data-ko="한국어 제목" data-en="Korean Title">한국어 제목</label><input class="form-control" id="noticeTitleKo" required/></div><div class="form-group"><label class="form-label" data-ko="영문 제목" data-en="English Title">영문 제목</label><input class="form-control" id="noticeTitleEn" required/></div><div class="form-group"><label class="form-label" data-ko="대상 유형" data-en="Audience Type">대상 유형</label><select class="form-control" id="noticeAudience"><option value="all" data-ko="전체 호텔" data-en="All Hotels">전체 호텔</option><option value="selected" data-ko="지정 호텔" data-en="Selected Hotels">지정 호텔</option><option value="admins" data-ko="호텔 관리자" data-en="Hotel Admins">호텔 관리자</option></select></div><div class="form-group"><label class="form-label" data-ko="대상 호텔" data-en="Target Hotels">대상 호텔</label><select class="form-control" id="noticeHotels" multiple size="3"></select></div><div class="form-group"><label class="form-label" data-ko="시작일" data-en="Start Date">시작일</label><input class="form-control" id="noticeStart" type="date" required/></div><div class="form-group"><label class="form-label" data-ko="종료일" data-en="End Date">종료일</label><input class="form-control" id="noticeEnd" type="date" required/></div></div><div class="form-group"><label class="form-label" data-ko="한국어 내용" data-en="Korean Content">한국어 내용</label><textarea class="form-control" id="noticeContentKo" rows="4" required></textarea></div><div class="form-group"><label class="form-label" data-ko="영문 내용" data-en="English Content">영문 내용</label><textarea class="form-control" id="noticeContentEn" rows="4" required></textarea></div><div class="notice-preview" id="noticePreview"></div></div><div class="modal-footer"><button class="btn-outline" id="deleteNoticeButton" type="button"><i class="fa-solid fa-trash"></i> <span data-ko="삭제" data-en="Delete">삭제</span></button><button class="btn-outline" id="saveDraftNoticeButton" type="button" data-ko="임시 저장" data-en="Save Draft">임시 저장</button><button class="btn-primary" id="publishNoticeButton" type="button" data-ko="게시 저장" data-en="Save Publication">게시 저장</button></div></div></div>
 <script>
-document.querySelectorAll('.chip').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active')})});
-
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-function openNoticeModal(isEdit) {
-	document.getElementById('noticeModalTitle').textContent = isEdit ? '공지사항 수정' : '새 공지 작성';
-	openModal('noticeModal');
-}
-
-function saveNotice(isPublish) {
-	if(isPublish) {
-		alert('성공적으로 발행되었습니다.');
-	} else {
-		alert('임시 저장되었습니다.');
-	}
-	closeModal('noticeModal');
-}
-</script>
-</body>
-</html>
+const today=()=>new Date().toISOString().slice(0,10);const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const currentLanguage=()=>window.currentLang||localStorage.getItem('pms_admin_lang')||localStorage.getItem('pms_lang')||'ko';let notices=[];let filter='all';
+const seeds=[{id:'NTC-001',titleKo:'시스템 정기 점검 안내',titleEn:'Scheduled System Maintenance',contentKo:'서비스 점검 시간 동안 일부 기능이 제한됩니다.',contentEn:'Some features will be unavailable during maintenance.',audience:'all',hotelIds:[],startDate:'2026-07-01',endDate:'2026-12-31',publicationStatus:'published',views:1204}];
+function statusOf(item){const now=today();if(item.publicationStatus==='draft')return'draft';if(item.startDate>now)return'scheduled';if(item.endDate<now)return'expired';return'published'}
+function hotelRows(){return AdminStore.read('tenants',window.AdminData?.tenants||[])}
+function statusLabel(status){const en=currentLanguage()==='en';return {published:en?'Published':'게시 중',scheduled:en?'Scheduled':'예약',draft:en?'Draft':'임시 저장',expired:en?'Expired':'만료'}[status]||status}
+function render(){const lang=currentLanguage();const rows=notices.filter(n=>filter==='all'||statusOf(n)===filter);document.getElementById('noticeBody').innerHTML=rows.length?rows.map(n=>{const status=statusOf(n);const title=lang==='en'?(n.titleEn||n.titleKo):(n.titleKo||n.titleEn);const target=n.audience==='selected'?`${n.hotelIds.length} ${lang==='en'?'hotels':'개 호텔'}`:(n.audience==='admins'?(lang==='en'?'Hotel Admins':'호텔 관리자'):(lang==='en'?'All Hotels':'전체 호텔'));return `<tr data-id="${esc(n.id)}"><td><strong>${esc(title)}</strong><div class="ad-table-note">${esc(n.id)}</div></td><td>${esc(target)}</td><td>${esc(n.startDate)} ~ ${esc(n.endDate)}</td><td><span class="status-badge ${status==='published'?'active':status==='expired'?'gray':'pending'}">${esc(statusLabel(status))}</span></td><td>${Number(n.views||0).toLocaleString()}</td><td><div class="notice-actions"><button class="btn-outline btn-sm edit-notice" aria-label="Edit"><i class="fa-solid fa-pen"></i></button><button class="btn-outline btn-sm remove-notice" aria-label="Delete"><i class="fa-solid fa-trash"></i></button></div></td></tr>`}).join(''):`<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--txt3)">${lang==='en'?'No notices.':'공지사항이 없습니다.'}</td></tr>`;bindRows()}
+function renderPreview(){const lang=currentLanguage();const title=document.getElementById(lang==='en'?'noticeTitleEn':'noticeTitleKo').value||'-';const content=document.getElementById(lang==='en'?'noticeContentEn':'noticeContentKo').value||'-';document.getElementById('noticePreview').innerHTML=`<strong>${esc(title)}</strong><p>${esc(content)}</p>`}
+function populateHotels(selected=[]){document.getElementById('noticeHotels').innerHTML=hotelRows().map(h=>`<option value="${esc(h.id)}" ${selected.includes(String(h.id))?'selected':''}>${esc(h.hotelName||h.name)} (${esc(h.code||h.id)})</option>`).join('')}
+function openNotice(id=''){const item=notices.find(n=>n.id===id);document.getElementById('noticeId').value=item?.id||'';document.getElementById('noticeTitleKo').value=item?.titleKo||'';document.getElementById('noticeTitleEn').value=item?.titleEn||'';document.getElementById('noticeContentKo').value=item?.contentKo||'';document.getElementById('noticeContentEn').value=item?.contentEn||'';document.getElementById('noticeAudience').value=item?.audience||'all';document.getElementById('noticeStart').value=item?.startDate||today();document.getElementById('noticeEnd').value=item?.endDate||today();populateHotels((item?.hotelIds||[]).map(String));document.getElementById('deleteNoticeButton').style.display=item?'inline-flex':'none';document.getElementById('noticeModalTitle').textContent=currentLanguage()==='en'?(item?'Edit Notice':'New Notice'):(item?'공지 수정':'새 공지');renderPreview();document.getElementById('noticeModal').classList.add('active')}
+function closeNotice(){document.getElementById('noticeModal').classList.remove('active')}
+function saveNotice(status){const ids=['noticeTitleKo','noticeTitleEn','noticeContentKo','noticeContentEn','noticeStart','noticeEnd'];const invalid=ids.map(id=>document.getElementById(id)).find(el=>!el.checkValidity());if(invalid){invalid.reportValidity();return false}const start=document.getElementById('noticeStart').value,end=document.getElementById('noticeEnd').value;if(start>end){document.getElementById('noticeEnd').setCustomValidity(currentLanguage()==='en'?'End date must not precede start date.':'종료일은 시작일보다 빠를 수 없습니다.');document.getElementById('noticeEnd').reportValidity();return false}document.getElementById('noticeEnd').setCustomValidity('');const audience=document.getElementById('noticeAudience').value;const hotelIds=[...document.getElementById('noticeHotels').selectedOptions].map(o=>o.value);if(audience==='selected'&&!hotelIds.length){window.showToast?showToast(currentLanguage()==='en'?'Select at least one hotel.':'대상 호텔을 하나 이상 선택하세요.','error'):null;return false}const old=notices.find(n=>n.id===document.getElementById('noticeId').value);const item={...old,id:old?.id||`NTC-${Date.now()}`,titleKo:document.getElementById('noticeTitleKo').value.trim(),titleEn:document.getElementById('noticeTitleEn').value.trim(),contentKo:document.getElementById('noticeContentKo').value.trim(),contentEn:document.getElementById('noticeContentEn').value.trim(),audience,hotelIds,startDate:start,endDate:end,publicationStatus:status,views:old?.views||0,updatedAt:new Date().toISOString()};notices=old?notices.map(n=>n.id===item.id?item:n):[item,...notices];AdminStore.write('platformNotices',notices);AdminStore.audit(old?'notice.update':'notice.create',item.id,`${item.publicationStatus} / ${item.audience} / ${item.startDate}-${item.endDate}`);closeNotice();render();return true}
+function removeNotice(id){const item=notices.find(n=>n.id===id);if(!item)return;notices=notices.filter(n=>n.id!==id);AdminStore.write('platformNotices',notices);AdminStore.audit('notice.delete',id,item.titleKo,'High');closeNotice();render()}
+function bindRows(){document.querySelectorAll('.edit-notice').forEach(b=>b.onclick=()=>openNotice(b.closest('tr').dataset.id));document.querySelectorAll('.remove-notice').forEach(b=>b.onclick=()=>removeNotice(b.closest('tr').dataset.id))}
+window.applyLocalI18n=function(lang){document.querySelectorAll('[data-ko][data-en]').forEach(el=>el.textContent=el.getAttribute(lang==='en'?'data-en':'data-ko'));render();if(document.getElementById('noticeModal').classList.contains('active'))renderPreview()};
+document.addEventListener('DOMContentLoaded',()=>{notices=AdminStore.read('platformNotices',seeds);document.getElementById('newNoticeButton').onclick=()=>openNotice();document.getElementById('closeNoticeButton').onclick=closeNotice;document.getElementById('saveDraftNoticeButton').onclick=()=>saveNotice('draft');document.getElementById('publishNoticeButton').onclick=()=>saveNotice('published');document.getElementById('deleteNoticeButton').onclick=()=>removeNotice(document.getElementById('noticeId').value);['noticeTitleKo','noticeTitleEn','noticeContentKo','noticeContentEn'].forEach(id=>document.getElementById(id).oninput=renderPreview);document.querySelectorAll('#noticeFilters .chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('#noticeFilters .chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});window.applyLocalI18n(currentLanguage())});
+</script></body></html>

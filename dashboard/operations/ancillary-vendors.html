@@ -174,7 +174,7 @@
       <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px">
         <div class="form-row">
           <div><label class="form-label">항목명</label><input id="itemName" class="form-input" placeholder="예: 18홀 그린피" data-ko="예: 18홀 그린피" data-en="E.g. 18-hole green fee"></div>
-          <div><label class="form-label">기준 금액</label><input id="itemPrice" type="number" class="form-input" min="0" placeholder="예: 450" data-ko="예: 450" data-en="E.g. 450"></div>
+          <div><label class="form-label">기준 금액</label><input id="itemPrice" type="number" class="form-input" min="1" max="100000000" step="0.01" placeholder="예: 450" data-ko="예: 450" data-en="E.g. 450"></div>
         </div>
         <div id="itemTypeFields"></div>
         <div><label class="form-label">설명</label><input id="itemDesc" class="form-input" placeholder="예: 주중 18홀, 카트 별도" data-ko="예: 주중 18홀, 카트 별도" data-en="E.g. Weekday 18 holes, cart separate"></div>
@@ -206,14 +206,15 @@
     let selectedVendorId = '';
     const voucherFieldLabels = {
       guest:'투숙객명', room:'객실번호', date:'이용일시', people:'인원', teeTime:'티오프', course:'코스/업체명',
-      pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', partnerContact:'업체 연락처', address:'업체 주소', memo:'메모'
+      pickup:'픽업 위치', vehicle:'차량/차종', item:'이용 항목', amount:'금액', partnerContact:'업체 연락처', location:'업체 위치', address:'업체 주소',
+      benefit:'혜택', terms:'사용 조건', memo:'메모'
     };
     const voucherFieldGroups = {
       pos: [
         { title:'전표 기본 정보', icon:'fa-receipt', fields:['guest','room','date','item','amount','memo'] }
       ],
       restaurant: [
-        { title:'쿠폰 기본 정보', icon:'fa-ticket', fields:['guest','room','date','item','amount','partnerContact','address','memo'] }
+        { title:'쿠폰 기본 정보', icon:'fa-ticket', fields:['guest','room','date','item','amount','partnerContact','location','address','benefit','terms','memo'] }
       ],
       golf: [
         { title:'공통 정보', icon:'fa-circle-info', fields:['guest','room','date','item','amount','partnerContact','address','memo'] },
@@ -242,7 +243,7 @@
       { id:'GOLF-SKY72', type:'golf', name:'스카이72', contact:'Lee Manager', address:'Andrews Ave, Pasay, Metro Manila', commission:12, voucherFields:['guest','room','date','item','people','teeTime','course'], items:[{ name:'9홀 라운딩', price:180, desc:'9홀 기준 단가', category:'golf', holes:'9홀', basePeople:2 }, { name:'18홀 패키지', price:520, desc:'그린피+카트 기준 단가', category:'golf', holes:'18홀', basePeople:4 }] },
       { id:'RENT-LOTTE', type:'rentacar', name:'롯데렌터카', contact:'Park Manager', address:'NAIA Terminal 3 Arrival Hall, Pasay', commission:13, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'세단 기본 대여', price:160, desc:'1시간 기준 단가', category:'rentacar', vehicleClass:'세단', pickupBase:'호텔 로비' }, { name:'공항 픽업 기본료', price:90, desc:'편도 기본료', category:'rentacar', vehicleClass:'세단', pickupBase:'NAIA Terminal 3' }, { name:'전기차 기본 대여', price:230, desc:'1시간 기준 단가', category:'rentacar', vehicleClass:'전기차', pickupBase:'호텔 로비' }] },
       { id:'RENT-SK', type:'rentacar', name:'SK렌터카', contact:'Choi Manager', address:'BGC Transport Hub, Taguig', commission:14, voucherFields:['guest','room','date','pickup','vehicle','item','amount','partnerContact','address'], items:[{ name:'SUV 기본 대여', price:260, desc:'1시간 기준 단가', category:'rentacar', vehicleClass:'SUV', pickupBase:'BGC Transport Hub' }, { name:'기사 포함 밴 기본 대여', price:320, desc:'1시간 기준 단가', category:'rentacar', vehicleClass:'기사 포함 밴', pickupBase:'호텔 로비' }] },
-      { id:'REST-RIVERSIDE', type:'restaurant', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', location:'호텔에서 차량 8분', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰' }, { name:'패밀리 세트', price:420, desc:'4인 기준' }] },
+      { id:'REST-RIVERSIDE', type:'restaurant', name:'리버사이드 비스트로', contact:'Minh Nguyen / +84 90 118 2233', location:'호텔에서 차량 8분', address:'12 Nguyen Hue St, District 1, Ho Chi Minh City', commission:8, voucherFields:[], logoDataUrl:'', items:[{ name:'디너 세트 2인', price:260, desc:'투숙객 전용 메뉴', benefit:'호텔 투숙객 디저트 2개 무료', terms:'방문 전 예약 필수, 쿠폰 1매당 1회 사용' }, { name:'웰컴 디저트', price:70, desc:'체크인 쿠폰', benefit:'웰컴 디저트 1개 제공', terms:'체크인 당일부터 체크아웃일까지 사용 가능' }, { name:'패밀리 세트', price:420, desc:'4인 기준', benefit:'음료 4잔 무료', terms:'4인 방문 기준, 다른 할인과 중복 사용 불가' }] },
       { id:'OTHER-CONCIERGE', type:'other', name:'컨시어지 기타 서비스', contact:'Front Desk / 내선 0', location:'프런트 데스크', address:'The Grand Saigon Lobby', commission:0, voucherFields:[], logoDataUrl:'', items:[{ name:'현장 지원 요청', price:120, desc:'특별 요청 처리 기본료' }, { name:'티켓 대행', price:180, desc:'공연/전시 티켓 대행' }] }
     ];
     function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -356,6 +357,22 @@
     function renderItemTypeFields(type) {
       const target = document.getElementById('itemTypeFields');
       if (!target) return;
+      if (type === 'restaurant') {
+        target.innerHTML = `
+          <div class="item-type-fields">
+            <div class="field-full">
+              <label class="form-label" data-ko="쿠폰 혜택" data-en="Coupon Benefit">쿠폰 혜택</label>
+              <input id="itemBenefit" class="form-input" data-placeholder-ko="예: 투숙객 디저트 2개 무료" data-placeholder-en="E.g. Two complimentary desserts" placeholder="예: 투숙객 디저트 2개 무료">
+            </div>
+            <div class="field-full">
+              <label class="form-label" data-ko="이용 조건" data-en="Terms of Use">이용 조건</label>
+              <textarea id="itemTerms" class="form-input" rows="2" data-placeholder-ko="예: 방문 전 예약 필수, 쿠폰 1매당 1회 사용" data-placeholder-en="E.g. Reservation required; one use per coupon" placeholder="예: 방문 전 예약 필수, 쿠폰 1매당 1회 사용"></textarea>
+            </div>
+            <div class="item-type-help" data-ko="혜택과 이용 조건은 음식점 쿠폰 미리보기와 인쇄물에 그대로 표시됩니다." data-en="The benefit and terms appear on the restaurant coupon preview and printout.">혜택과 이용 조건은 음식점 쿠폰 미리보기와 인쇄물에 그대로 표시됩니다.</div>
+          </div>
+        `;
+        return;
+      }
       if (type === 'rentacar') {
         target.innerHTML = `
           <div class="item-type-fields">
@@ -385,7 +402,7 @@
               <label class="form-label">홀</label>
               <input id="itemHoles" class="form-input" type="number" min="1" max="72" step="1" inputmode="numeric" placeholder="예: 18">
             </div>
-            <div><label class="form-label">기준 인원</label><input id="itemBasePeople" class="form-input" type="number" min="1" placeholder="예: 4"></div>
+            <div><label class="form-label">기준 인원</label><input id="itemBasePeople" class="form-input" type="number" min="1" max="100" step="1" placeholder="예: 4"></div>
             <div class="item-type-help">골프 항목은 홀 수를 숫자로 입력합니다. 기준 인원, 기준 단가처럼 가격 기준만 저장하고 코스, 티오프, 실제 적용 금액은 부가서비스 등록 화면에서 입력합니다.</div>
           </div>
         `;
@@ -408,6 +425,13 @@
       return select.value.trim();
     }
     function readItemExtraFields(type) {
+      if (type === 'restaurant') {
+        const benefit = document.getElementById('itemBenefit')?.value.trim() || '';
+        const terms = document.getElementById('itemTerms')?.value.trim() || '';
+        if (!benefit) return { error: vendorText('쿠폰 혜택을 입력해 주세요.', 'Enter the coupon benefit.') };
+        if (!terms) return { error: vendorText('이용 조건을 입력해 주세요.', 'Enter the terms of use.') };
+        return { benefit, terms };
+      }
       if (type === 'rentacar') {
         const vehicleClass = itemSelectValue('itemVehicleClass', 'itemVehicleCustom');
         if (!vehicleClass) return { error:'차량 등급을 선택해 주세요.' };
@@ -418,12 +442,14 @@
       }
       if (type === 'golf') {
         const holesValue = (document.getElementById('itemHoles')?.value || '').trim();
-        const basePeople = Number(document.getElementById('itemBasePeople')?.value || 0);
+        const basePeopleValue = (document.getElementById('itemBasePeople')?.value || '').trim();
         if (!holesValue) return { error:'홀 수를 입력해 주세요.' };
         if (!/^\d+$/.test(holesValue)) return { error:'홀 수는 숫자만 입력해 주세요.' };
         const holesNumber = Number(holesValue);
         if (holesNumber < 1 || holesNumber > 72) return { error:'홀 수는 1~72 사이로 입력해 주세요.' };
-        if (!basePeople) return { error:'기준 인원을 입력해 주세요.' };
+        if (!/^\d+$/.test(basePeopleValue)) return { error:'기준 인원은 숫자로 입력해 주세요.' };
+        const basePeople = Number(basePeopleValue);
+        if (basePeople < 1 || basePeople > 100) return { error:'기준 인원은 1~100명 사이로 입력해 주세요.' };
         return {
           holes: `${holesNumber}홀`,
           basePeople
@@ -475,7 +501,7 @@
     }
     function defaultVoucherFields(type) {
       if (window.PmsPartnerVendors?.defaultVoucherFields) return window.PmsPartnerVendors.defaultVoucherFields(type);
-      if (type === 'restaurant') return ['guest','room','date','item','amount','partnerContact','address'];
+      if (type === 'restaurant') return ['guest','room','date','item','amount','partnerContact','location','address','benefit','terms'];
       if (!['golf', 'rentacar'].includes(type)) return [];
       if (hasInitialVoucherFields(type)) return initialVoucherFields(type);
       return (voucherFieldGroups[type] || []).flatMap(group => group.fields);
@@ -505,7 +531,10 @@
         item: item.name || serviceLabel(vendor?.type),
         amount: money(item.price || 0),
         partnerContact: vendor?.contact || '-',
+        location: displayVendorLocation(vendor),
         address: vendor?.address || '주소 미등록',
+        benefit: item.benefit || item.desc || vendorText('투숙객 전용 혜택', 'Guest-only benefit'),
+        terms: item.terms || vendor?.terms || vendorText('호텔 투숙 기간 내 1회 사용', 'One use during the hotel stay'),
         memo:'프런트 확인 후 제공'
       };
     }
@@ -715,8 +744,13 @@
       const type = document.getElementById('vendorType').value;
       const name = document.getElementById('vendorName').value.trim();
       if (!name) return window.showAlert('업체명을 입력해 주세요.', { type: 'error' });
+      const commissionValue = (document.getElementById('vendorCommission').value || '').trim();
+      const commission = commissionValue === '' ? 0 : Number(commissionValue);
+      if (!Number.isFinite(commission) || commission < 0 || commission > 100) {
+        return window.showAlert('수수료율은 0~100 사이의 숫자로 입력해 주세요.', { type: 'error' });
+      }
       const id = `${type.toUpperCase()}-${Date.now()}`;
-      vendors.unshift({ id, type, name, contact: document.getElementById('vendorContact').value.trim(), address: document.getElementById('vendorAddress').value.trim(), location: document.getElementById('vendorLocation').value.trim(), commission: Number(document.getElementById('vendorCommission').value || 0), voucherFields: defaultVoucherFields(type), logoDataUrl:'', items: [] });
+      vendors.unshift({ id, type, name, contact: document.getElementById('vendorContact').value.trim(), address: document.getElementById('vendorAddress').value.trim(), location: document.getElementById('vendorLocation').value.trim(), commission, voucherFields: defaultVoucherFields(type), logoDataUrl:'', items: [] });
       currentType = type;
       selectedVendorId = id;
       persistVendors();
@@ -736,12 +770,17 @@
       if (!vendor) return;
       const name = document.getElementById('itemName').value.trim();
       if (!name) return window.showAlert('항목명을 입력해 주세요.', { type: 'error' });
+      const priceValue = (document.getElementById('itemPrice').value || '').trim();
+      const price = Number(priceValue);
+      if (!priceValue || !Number.isFinite(price) || price <= 0 || price > 100000000) {
+        return window.showAlert('기준 금액은 0보다 크고 100,000,000 이하인 숫자로 입력해 주세요.', { type: 'error' });
+      }
       const extra = readItemExtraFields(vendor.type);
       if (extra.error) return window.showAlert(extra.error, { type: 'error' });
       vendor.items = vendor.items || [];
       vendor.items.push({
         name,
-        price: Number(document.getElementById('itemPrice').value || 0),
+        price,
         desc: document.getElementById('itemDesc').value.trim(),
         category: vendor.type,
         ...extra

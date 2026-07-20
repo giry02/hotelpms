@@ -99,6 +99,7 @@ function assert(condition, message, details = null) {
 
   try {
     await page.addInitScript(() => {
+      sessionStorage.setItem('pms_logged_in', 'true');
       sessionStorage.setItem('admin_logged_in', 'true');
       localStorage.setItem('pms_lang', 'ko');
       localStorage.removeItem('pms_groups');
@@ -137,7 +138,7 @@ function assert(condition, message, details = null) {
 
     const result = await page.evaluate(() => {
       const fmt = (date) => date.toISOString().slice(0, 10);
-      const now = new Date();
+      const now = window.PmsDate?.today ? window.PmsDate.today() : new Date();
       now.setHours(0, 0, 0, 0);
       const days = (offset) => {
         const date = new Date(now);
@@ -500,7 +501,14 @@ function assert(condition, message, details = null) {
       ]
     }, null, 2));
   } catch (error) {
-    console.error(JSON.stringify({ ok: false, error: error.message, details: error.details || null, consoleIssues }, null, 2));
+    console.error(JSON.stringify({
+      ok: false,
+      error: error.message,
+      stack: error.stack || null,
+      url: page.url(),
+      details: error.details || null,
+      consoleIssues
+    }, null, 2));
     process.exitCode = 1;
   } finally {
     await browser.close();

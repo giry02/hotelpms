@@ -473,6 +473,7 @@ async function reservationBoardFilterColorRegression(page, base) {
 
   try {
     await page.addInitScript(() => {
+      sessionStorage.setItem('pms_logged_in', 'true');
       sessionStorage.setItem('admin_logged_in', 'true');
       localStorage.setItem('pms_lang', 'ko');
     });
@@ -730,7 +731,14 @@ async function reservationBoardFilterColorRegression(page, base) {
       boardFilterColorResult
     }, null, 2));
   } catch (error) {
-    console.error(JSON.stringify({ ok: false, error: error.message, details: error.details || null, consoleIssues }, null, 2));
+    console.error(JSON.stringify({
+      ok: false,
+      error: error.message,
+      stack: error.stack || null,
+      url: page.url(),
+      details: error.details || null,
+      consoleIssues
+    }, null, 2));
     process.exitCode = 1;
   } finally {
     await browser.close();

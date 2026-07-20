@@ -54,6 +54,21 @@
                                 <label class="form-label">호텔 주소</label>
                                 <input type="text" class="form-control" value="8 Dong Khoi Street, District 1, Ho Chi Minh City">
                             </div>
+                            <div class="form-group full">
+                                <label class="form-label" data-i18n-key="Hotel Logo">호텔 로고</label>
+                                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                                    <div id="hotelLogoPreview" style="width:88px;height:56px;border:1px dashed var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;color:var(--txt3);font-size:.72rem;font-weight:700">LOGO</div>
+                                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                        <label class="btn-outline" style="cursor:pointer;margin:0">
+                                            <i class="fa-solid fa-image"></i>
+                                            <span data-i18n-key="Upload Logo">로고 등록</span>
+                                            <input id="hotelLogoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+                                        </label>
+                                        <button type="button" class="btn-outline" id="hotelLogoDeleteBtn"><i class="fa-solid fa-trash"></i> <span data-i18n-key="Delete Logo">로고 삭제</span></button>
+                                    </div>
+                                </div>
+                                <small style="color:var(--txt3)" data-i18n-key="Logo File Guide">PNG, JPEG, WebP · 최대 2MB</small>
+                            </div>
                             <style>
 .lang-btn { padding: 8px 16px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--txt2); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .lang-btn.active { background: var(--primary-lt); color: var(--primary); border-color: var(--primary); }
@@ -371,6 +386,18 @@ Object.assign(translations.en, {
     "Free cancellation until 48h before check-in": "Free cancellation until 48h before check-in (1 night charged after that)",
     "Non-refundable": "Non-refundable"
 });
+Object.assign(translations.ko, {
+    "Hotel Logo": "호텔 로고",
+    "Upload Logo": "로고 등록",
+    "Delete Logo": "로고 삭제",
+    "Logo File Guide": "PNG, JPEG, WebP · 최대 2MB"
+});
+Object.assign(translations.en, {
+    "Hotel Logo": "Hotel Logo",
+    "Upload Logo": "Upload Logo",
+    "Delete Logo": "Delete Logo",
+    "Logo File Guide": "PNG, JPEG, WebP · max 2 MB"
+});
 function setupSettingsI18n(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,null,false);let n;const t=[];while(n=w.nextNode()){const o=n.nodeValue,x=o.trim();if(x&&translations.ko[x]&&!n.parentNode.hasAttribute('data-i18n-key')){const s=document.createElement('span');s.setAttribute('data-i18n-key',x);s.textContent=x;t.push({node:n,span:s,originalText:o})}}t.forEach(({node:n,span:s,originalText:o})=>{const f=document.createDocumentFragment();const l=o.match(/^\s+/),r=o.match(/\s+$/);if(l)f.appendChild(document.createTextNode(l[0]));f.appendChild(s);if(r)f.appendChild(document.createTextNode(r[0]));n.parentNode.replaceChild(f,n)})}
 function applySettingsI18n(l){currentLang=l;window.currentLang=l;localStorage.setItem('pms_lang', l);
     const d = Object.assign({}, window.translations ? window.translations[l] : {}, translations[l] || translations.ko);
@@ -395,6 +422,49 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
 <script>
 (function(){
     let currentHotelSettings = null;
+    let pendingHotelLogo = null;
+    const HOTEL_LOGO_MAX_BYTES = 2 * 1024 * 1024;
+    const HOTEL_LOGO_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+
+    function settingsMessage(ko, en) {
+        return (localStorage.getItem('pms_lang') || window.currentLang || 'ko') === 'en' ? en : ko;
+    }
+
+    function renderHotelLogo(value) {
+        const preview = document.getElementById('hotelLogoPreview');
+        if (!preview) return;
+        preview.innerHTML = value
+            ? `<img src="${value}" alt="Hotel logo" style="max-width:100%;max-height:100%;object-fit:contain">`
+            : 'LOGO';
+    }
+
+    function validateHotelLogoFile(file) {
+        if (!file) return false;
+        if (!HOTEL_LOGO_TYPES.has(file.type)) {
+            if (window.showToast) showToast(settingsMessage('PNG, JPEG, WebP 이미지 파일만 등록할 수 있습니다.', 'Only PNG, JPEG, or WebP images can be uploaded.'), 'error');
+            return false;
+        }
+        if (file.size > HOTEL_LOGO_MAX_BYTES) {
+            if (window.showToast) showToast(settingsMessage('로고 파일은 2MB 이하여야 합니다.', 'The logo file must be 2 MB or smaller.'), 'error');
+            return false;
+        }
+        return true;
+    }
+
+    function readHotelLogoFile(file) {
+        if (!validateHotelLogoFile(file)) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            pendingHotelLogo = String(reader.result || '');
+            renderHotelLogo(pendingHotelLogo);
+        };
+        reader.onerror = () => {
+            if (window.showToast) showToast(settingsMessage('로고 파일을 읽지 못했습니다. 다시 시도해 주세요.', 'The logo file could not be read. Please try again.'), 'error');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    window.validateHotelLogoFile = validateHotelLogoFile;
 
     function setSelectValue(id, value) {
         const el = document.getElementById(id);
@@ -497,6 +567,8 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
         const policy = currentHotelSettings.stayoverCleaningPolicy || {};
         const admin = currentHotelSettings.adminContact || {};
         const operationalPolicy = currentHotelSettings.operationalPolicy || {};
+        pendingHotelLogo = currentHotelSettings.logoDataUrl || localStorage.getItem('pms_hotel_logo') || '';
+        renderHotelLogo(pendingHotelLogo);
 
         const checkinTime = document.getElementById('hotelDefaultCheckinTime');
         if (checkinTime) checkinTime.value = operationalPolicy.defaultCheckinTime || '15:00';
@@ -540,6 +612,7 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
                 }
                 const next = {
                     ...(currentHotelSettings || {}),
+                    logoDataUrl: pendingHotelLogo || '',
                     adminContact: collectAdminContact(),
                     operationalPolicy: collectOperationalPolicy(),
                     stayoverCleaningPolicy: collectStayoverPolicy()
@@ -548,6 +621,8 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
                     ? await window.PmsAPI.saveHotelSettings(next)
                     : next;
                 localStorage.setItem('pms_hotel_settings', JSON.stringify(currentHotelSettings));
+                if (pendingHotelLogo) localStorage.setItem('pms_hotel_logo', pendingHotelLogo);
+                else localStorage.removeItem('pms_hotel_logo');
                 if (window.showToast) showToast('호텔 설정이 저장되었습니다.');
             });
         }
@@ -555,6 +630,14 @@ document.addEventListener('DOMContentLoaded',()=>{setupSettingsI18n();if(typeof 
 
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('input[type="tel"]').forEach(bindSettingsPhoneInput);
+        document.getElementById('hotelLogoFile')?.addEventListener('change', event => {
+            readHotelLogoFile(event.target.files?.[0]);
+            event.target.value = '';
+        });
+        document.getElementById('hotelLogoDeleteBtn')?.addEventListener('click', () => {
+            pendingHotelLogo = '';
+            renderHotelLogo('');
+        });
         loadHotelSettings().catch(error => console.warn('Hotel settings load failed', error));
     });
 })();

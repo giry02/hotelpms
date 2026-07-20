@@ -121,6 +121,31 @@ function notificationTarget(item) {
     return target;
 }
 
+function notificationTargetMessage() {
+    return getNotificationLang() === 'en'
+        ? 'The linked item is unavailable. Refresh the notification or open it from the relevant menu.'
+        : '연결된 대상을 찾을 수 없습니다. 알림을 새로고침하거나 해당 메뉴에서 다시 확인해주세요.';
+}
+
+async function openNotificationTarget(event, target) {
+    event.preventDefault();
+    const url = new URL(target, window.location.href);
+    if (url.origin !== window.location.origin) {
+        window.location.assign(url.href);
+        return;
+    }
+    try {
+        const response = await fetch(url.href, { method: 'HEAD', cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        window.location.assign(url.href);
+    } catch (error) {
+        if (window.pmsAlert) await window.pmsAlert(notificationTargetMessage(), {
+            title: getNotificationLang() === 'en' ? 'Notice' : '안내'
+        });
+        else window.alert(notificationTargetMessage());
+    }
+}
+
 async function loadNotificationActivities() {
     if (Array.isArray(window.PMS_Notifications) && window.PMS_Notifications.length) {
         activities = window.PMS_Notifications.map(normalizeNotification);
@@ -160,7 +185,7 @@ function renderActivities(filter) {
         container.innerHTML += `
             <div class="timeline-item">
                 <div class="timeline-icon ${act.type}"><i class="fa-solid ${act.icon}"></i></div>
-                <${tag} class="timeline-link" ${target ? `href="${target}"` : ''}>
+                <${tag} class="timeline-link" ${target ? `href="${target}" onclick="openNotificationTarget(event, this.getAttribute('href'))"` : ''}>
                 <div class="timeline-content">
                     <div class="timeline-header">
                         <div class="timeline-title">${title}</div>

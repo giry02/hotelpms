@@ -156,12 +156,26 @@ function submitApplication(event) {
         return;
     }
 
-    const mockKey = 'mockapi:v1:ADMIN:tenant-applications';
-    const legacyApplications = JSON.parse(localStorage.getItem('admin_tenant_applications') || '[]');
-    const applications = JSON.parse(localStorage.getItem(mockKey) || '[]');
-    const data = {
+	const mockKey = 'mockapi:v1:ADMIN:tenant-applications';
+	const legacyApplications = JSON.parse(localStorage.getItem('admin_tenant_applications') || '[]');
+	const applications = JSON.parse(localStorage.getItem(mockKey) || '[]');
+	const adminApplications = JSON.parse(localStorage.getItem('pms_admin_store:tenantApplications') || '[]');
+	const existingTenants = JSON.parse(localStorage.getItem('pms_admin_store:tenants') || '[]');
+	const email = document.getElementById('email').value.trim().toLowerCase();
+	const hotelName = document.getElementById('hotelName').value.trim();
+	if ([...applications, ...legacyApplications, ...adminApplications].some(item => String(item.email).toLowerCase() === email && !['rejected', '반려'].includes(String(item.status).toLowerCase()))) {
+		error.textContent = '같은 이메일로 처리 중인 입점 신청이 있습니다.';
+		error.classList.add('show');
+		return;
+	}
+	if (existingTenants.some(item => String(item.hotelName).toLowerCase() === hotelName.toLowerCase() || String(item.adminEmail).toLowerCase() === email)) {
+		error.textContent = '이미 등록된 호텔 또는 관리자 이메일입니다.';
+		error.classList.add('show');
+		return;
+	}
+	const data = {
         id: 'APP-' + new Date().toISOString().slice(0,10).replaceAll('-', '') + '-' + String(applications.length + legacyApplications.length + 1).padStart(3, '0'),
-        hotelName: document.getElementById('hotelName').value.trim(),
+		hotelName,
         rooms: Number(document.getElementById('rooms').value || 0),
         country: document.getElementById('country').value,
         city: document.getElementById('city').value.trim(),
@@ -171,14 +185,16 @@ function submitApplication(event) {
         defaultCurrencyLocked: true,
         contactName: document.getElementById('contactName').value.trim(),
         phone,
-        email: document.getElementById('email').value.trim(),
+		email,
+		password,
         source: document.getElementById('source').value,
         memo: document.getElementById('memo').value.trim(),
         status: '심사 중',
         submittedAt: new Date().toISOString().slice(0, 10)
     };
-    applications.unshift(data);
-    localStorage.setItem(mockKey, JSON.stringify(applications));
+	applications.unshift(data);
+	localStorage.setItem(mockKey, JSON.stringify(applications));
+	localStorage.setItem('pms_admin_store:tenantApplications', JSON.stringify([data, ...adminApplications]));
     alert(`입점 신청이 접수되었습니다.\n신청번호: ${data.id}\n심사 결과는 ${data.email}로 안내됩니다.`);
     location.href = '../login.html';
 }

@@ -1,331 +1,37 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>플랫폼 현황 - Super Admin</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
-<link href="common/css/admin-base.css" rel="stylesheet"/>
-<link href="common/css/admin-pages.css" rel="stylesheet"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin Dashboard - Super Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<link rel="stylesheet" href="common/css/admin-base.css"/>
+<link rel="stylesheet" href="common/css/admin-pages.css"/>
 <script src="common/js/admin-sidebar.js"></script>
 <script src="common/js/admin-i18n-catalog.js"></script>
 <script src="common/js/admin-i18n.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<style>
+.dashboard-toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}.dashboard-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:18px}.dashboard-kpi{display:flex;gap:13px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:17px;text-decoration:none;color:inherit;min-width:0}.dashboard-kpi i{width:40px;height:40px;border-radius:8px;display:grid;place-items:center;background:var(--primary-lt);color:var(--primary)}.dashboard-kpi strong{display:block;font-size:1.35rem}.dashboard-kpi span{font-size:.75rem;color:var(--txt3);font-weight:700}.dashboard-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;margin-bottom:18px}.property-kind{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 8px;font-size:.72rem;font-weight:800}.property-kind.pms{background:#dcfce7;color:#047857}.property-kind.partner{background:#ede9fe;color:#6d28d9}.integration-warning{display:flex;gap:12px;align-items:flex-start;padding:13px;border:1px solid #fed7aa;background:#fff7ed;border-radius:8px;margin-bottom:9px}.integration-warning i{color:#c2410c;margin-top:3px}.dashboard-empty{padding:32px;text-align:center;color:var(--txt3)}.dashboard-status-list{display:grid;gap:9px}.dashboard-status-row{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(110px,.7fr) minmax(90px,.5fr);gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:8px}.dashboard-status-row strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.metric-list{display:grid;gap:10px}.metric-row{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}@media(max-width:1100px){.dashboard-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){.dashboard-toolbar{align-items:stretch;flex-direction:column}.dashboard-grid{grid-template-columns:1fr}.dashboard-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-status-row{grid-template-columns:1fr auto}.dashboard-status-row .status-badge{grid-column:1/-1;justify-self:start}}@media(max-width:430px){.dashboard-kpis{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-<div class="main">
-<header class="topbar">
-<div class="topbar-left">
-<button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-<h1>플랫폼 현황</h1>
-<span class="date-badge"><i class="fa-regular fa-calendar"></i> 2026 5 20</span>
-</div>
-<div class="topbar-right">
-<select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px">
-<option value="ko">한국어</option><option value="en"> English</option>
-</select>
-</div>
-</header>
-<div class="content">
-<!-- KPI -->
-<div class="kpi-grid">
-<div class="kpi-card indigo"><div class="kpi-icon"><i class="fa-solid fa-building"></i></div><div class="kpi-body"><div class="kpi-value">12</div><div class="kpi-label">전체 호텔</div><span class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> +2</span></div></div>
-<div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-money-bill-trend-up"></i></div><div class="kpi-body"><div class="kpi-value">$125K</div><div class="kpi-label">MRR (월 매출)</div><span class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> 8.4%</span></div></div>
-<div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-user-minus"></i></div><div class="kpi-body"><div class="kpi-value">1.2%</div><div class="kpi-label">이탈률</div><span class="kpi-trend down"><i class="fa-solid fa-arrow-down"></i> 0.3%</span></div></div>
-<div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-chart-pie"></i></div><div class="kpi-body"><div class="kpi-value">85%</div><div class="kpi-label">평균 가동률</div><span class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> 2%</span></div></div>
-</div>
-<!-- PMS 운영 적용 현황 -->
-<div class="card">
-<div class="card-header">
-<div class="card-title"><i class="fa-solid fa-layer-group"></i> PMS 운영 적용 현황</div>
-<a class="btn-outline btn-sm" href="tenants/list.html"><i class="fa-solid fa-arrow-right"></i> 호텔별 확인</a>
-</div>
-<div class="card-body">
-<div class="admin-ops-coverage-grid" id="adminPmsCoverageGrid">
-<div class="empty-state" style="grid-column:1/-1;padding:20px">적용 현황을 불러오는 중입니다.</div>
-</div>
-</div>
-</div>
-<!-- 7일 차트 + 국가 현황 -->
-<div class="grid-2">
-<div class="card">
-<div class="card-header"><div class="card-title"><i class="fa-solid fa-chart-area"></i> 최근 7일 차트</div></div>
-<div class="card-body">
-<div id="trafficChart" style="width:100%; height:200px"></div>
-</div>
-</div>
-<div class="card">
-<div class="card-header"><div class="card-title"><i class="fa-solid fa-earth-asia"></i> 국가별 호텔 수</div></div>
-<div class="card-body">
-<div class="progress-list">
-<div class="progress-item"><span class="progress-label">베트남</span><div class="progress-bar-bg"><div class="progress-bar" style="width:66%;background:var(--primary)"></div></div><span class="progress-val">8</span></div>
-<div class="progress-item"><span class="progress-label">한국</span><div class="progress-bar-bg"><div class="progress-bar" style="width:25%;background:var(--success)"></div></div><span class="progress-val">3</span></div>
-<div class="progress-item"><span class="progress-label">태국</span><div class="progress-bar-bg"><div class="progress-bar" style="width:8%;background:var(--warning)"></div></div><span class="progress-val">1</span></div>
-</div>
-</div>
-</div>
-</div>
-<!-- 최근 입점 호텔 + 캠페인 TOP 3 -->
-<div class="grid-2">
-<div class="card">
-<div class="card-header"><div class="card-title"><i class="fa-solid fa-building"></i> 최근 입점 호텔</div><a class="btn-outline btn-sm" href="tenants/list.html"><i class="fa-solid fa-arrow-right"></i></a></div>
-<div class="card-body"><div class="table-wrap"><table>
-<thead><tr><th>호텔명</th><th>플랜</th><th></th></tr></thead>
-<tbody>
-<tr class="empty-state" style="display:none;"><td colspan="3"><i class="fa-solid fa-inbox empty-state-icon"></i>최근 입점 호텔이 없습니다.</td></tr>
-<tr><td data-label="호텔명" style="font-weight:600">The Grand Saigon</td><td data-label="플랜"><span class="status-badge" style="background:var(--purple-lt);color:var(--purple)">Premium</span></td><td data-label=""><span class="status-badge active">운영 중</span></td></tr>
-<tr><td data-label="호텔명" style="font-weight:600">Da Nang Beach Resort</td><td data-label="플랜"><span class="status-badge" style="background:var(--primary-lt);color:var(--primary)">Standard</span></td><td data-label=""><span class="status-badge active">운영 중</span></td></tr>
-<tr><td data-label="호텔명" style="font-weight:600">Seoul Tower Hotel</td><td data-label="플랜"><span class="status-badge" style="background:var(--border2);color:var(--txt2)">Free</span></td><td data-label=""><span class="status-badge pending">심사 중</span></td></tr>
-</tbody>
-</table></div></div>
-</div>
-<div class="card">
-<div class="card-header"><div class="card-title"><i class="fa-solid fa-rectangle-ad"></i> <span data-ko="제휴 광고 캠페인 TOP 3" data-en="Partner Ad Campaigns TOP 3">제휴 광고 캠페인 TOP 3</span></div><a class="btn-outline btn-sm" href="ads/campaigns.html"><i class="fa-solid fa-arrow-right"></i></a></div>
-<div class="card-body"><div class="table-wrap"><table>
-<thead><tr><th data-ko="캠페인" data-en="Campaign">캠페인</th><th data-ko="상세 조회" data-en="Detail Views">상세 조회</th><th data-ko="계약 문의" data-en="Contract Leads">계약 문의</th></tr></thead>
-<tbody>
-<tr class="empty-state" style="display:none;"><td colspan="3"><i class="fa-solid fa-inbox empty-state-icon"></i>캠페인이 없습니다.</td></tr>
-<tr><td data-label="캠페인" style="font-weight:600" data-ko="썬밸리 CC 제휴 광고" data-en="Sun Valley CC Partner Ad">썬밸리 CC 제휴 광고</td><td data-label="상세 조회">12,480</td><td data-label="계약 문의" style="color:var(--success);font-weight:700" data-ko="42건" data-en="42 leads">42건</td></tr>
-<tr><td data-label="캠페인" style="font-weight:600" data-ko="롯데렌터카 공항 픽업 제휴" data-en="Lotte Rent-a-car Airport Pickup">롯데렌터카 공항 픽업 제휴</td><td data-label="상세 조회">15,210</td><td data-label="계약 문의" style="color:var(--success);font-weight:700" data-ko="64건" data-en="64 leads">64건</td></tr>
-<tr><td data-label="캠페인" style="font-weight:600" data-ko="스카이72 골프 패키지" data-en="Sky72 Golf Package">스카이72 골프 패키지</td><td data-label="상세 조회">8,930</td><td data-label="계약 문의" style="font-weight:700" data-ko="31건" data-en="31 leads">31건</td></tr>
-</tbody>
-</table></div></div>
-</div>
-</div>
-<!-- Global Error Logs -->
-<div class="card" style="margin-top:20px">
-<div class="card-header">
-<div class="card-title"><i class="fa-solid fa-bug" style="color:var(--danger)"></i> 글로벌 시스템 로그</div>
-<a class="btn-outline btn-sm" download="" href="common/downloads/global_audit_logs.xlsx" style="text-decoration:none;"><i class="fa-solid fa-download"></i> <span data-i18n-key="Download Excel">엑셀 다운로드</span></a>
-</div>
-<div class="card-body">
-<div class="table-wrap">
-<table>
-<thead>
-<tr>
-<th>발생 시간</th>
-<th>테넌트 (호텔)</th>
-<th>모듈</th>
-<th>상태 코드</th>
-<th>메시지</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td data-label="발생 시간" style="color:var(--txt3);font-size:0.8rem">2026-05-21 15:12</td>
-<td data-label="테넌트" style="font-weight:600">The Grand Saigon</td>
-<td data-label="모듈">결제</td>
-<td data-label="상태 코드"><span class="status-badge" style="background:var(--danger-lt);color:var(--danger)">500</span></td>
-<td data-label="메시지">PG사 타임아웃 오류 발생</td>
-</tr>
-<tr>
-<td data-label="발생 시간" style="color:var(--txt3);font-size:0.8rem">2026-05-21 14:05</td>
-<td data-label="테넌트" style="font-weight:600">Seoul Tower Hotel</td>
-<td data-label="모듈">객실</td>
-<td data-label="상태 코드"><span class="status-badge" style="background:var(--warning-lt);color:var(--warning)">403</span></td>
-<td data-label="메시지">권한: RBAC 정책 충돌</td>
-</tr>
-<tr>
-<td data-label="발생 시간" style="color:var(--txt3);font-size:0.8rem">2026-05-21 09:30</td>
-<td data-label="테넌트" style="font-weight:600">시스템</td>
-<td data-label="모듈">배치 작업</td>
-<td data-label="상태 코드"><span class="status-badge" style="background:var(--danger-lt);color:var(--danger)">오류</span></td>
-<td data-label="메시지">자동화 스크립트 오류 (메모리)</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</div>
-</div>
+<div class="main"><header class="topbar"><div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><h1 data-ko="&#54540;&#47019;&#54268; &#50868;&#50689; &#54788;&#54889;" data-en="Platform Dashboard">&#54540;&#47019;&#54268; &#50868;&#50689; &#54788;&#54889;</h1></div><div class="topbar-right"><select class="hotel-select" id="langSelect" onchange="changeLang(this.value)"><option value="ko">KR &#54620;&#44397;&#50612;</option><option value="en">EN English</option></select></div></header>
+<main class="content"><div class="dashboard-toolbar"><div><h2 style="margin:0 0 5px" data-ko="&#53685;&#54633; &#50868;&#50689; &#45824;&#49884;&#48372;&#46300;" data-en="Unified Operations Dashboard">&#53685;&#54633; &#50868;&#50689; &#45824;&#49884;&#48372;&#46300;</h2><p style="margin:0;color:var(--txt3)" data-ko="PMS &#49324;&#50857; &#54840;&#53588;&#44284; &#54028;&#53944;&#45320; &#54252;&#53560; &#49324;&#50857; &#50629;&#52404;&#47484; &#44396;&#48516;&#54644; &#48372;&#50668;&#51469;&#45768;&#45796;." data-en="PMS properties and partner-portal properties are shown separately.">PMS &#49324;&#50857; &#54840;&#53588;&#44284; &#54028;&#53944;&#45320; &#54252;&#53560; &#49324;&#50857; &#50629;&#52404;&#47484; &#44396;&#48516;&#54644; &#48372;&#50668;&#51469;&#45768;&#45796;.</p></div><select class="form-control" id="dashboardPeriod" style="width:170px"><option value="all" data-ko="&#51204;&#52404; &#44592;&#44036;" data-en="All Time">&#51204;&#52404; &#44592;&#44036;</option><option value="30" data-ko="&#52572;&#44540; 30&#51068;" data-en="Last 30 Days">&#52572;&#44540; 30&#51068;</option><option value="90" data-ko="&#52572;&#44540; 90&#51068;" data-en="Last 90 Days">&#52572;&#44540; 90&#51068;</option><option value="365" data-ko="&#52572;&#44540; 1&#45380;" data-en="Last Year">&#52572;&#44540; 1&#45380;</option></select></div>
+<section class="dashboard-kpis" id="dashboardKpis"></section>
+<section id="integrationWarnings"></section>
+<div class="dashboard-grid"><section class="card"><div class="card-header"><div class="card-title"><i class="fa-solid fa-building"></i> <span data-ko="&#54840;&#53588; / &#54028;&#53944;&#45320; &#50672;&#44208; &#54788;&#54889;" data-en="Property Connection Status">&#54840;&#53588; / &#54028;&#53944;&#45320; &#50672;&#44208; &#54788;&#54889;</span></div><a href="tenants/list.html" class="btn-outline btn-sm"><i class="fa-solid fa-arrow-right"></i></a></div><div class="card-body"><div class="dashboard-status-list" id="propertyStatusList"></div></div></section><section class="card"><div class="card-header"><div class="card-title"><i class="fa-solid fa-file-invoice-dollar"></i> <span data-ko="&#52397;&#44396; &#50836;&#50557;" data-en="Billing Summary">&#52397;&#44396; &#50836;&#50557;</span></div><a href="system/billing.html" class="btn-outline btn-sm"><i class="fa-solid fa-arrow-right"></i></a></div><div class="card-body"><div class="metric-list" id="billingSummary"></div></div></section></div>
+<div class="dashboard-grid"><section class="card"><div class="card-header"><div class="card-title"><i class="fa-solid fa-rectangle-ad"></i> <span data-ko="&#52896;&#54168;&#51064; &#54788;&#54889;" data-en="Campaign Status">&#52896;&#54168;&#51064; &#54788;&#54889;</span></div><a href="ads/campaigns.html" class="btn-outline btn-sm"><i class="fa-solid fa-arrow-right"></i></a></div><div class="card-body"><div class="metric-list" id="campaignSummary"></div></div></section><section class="card"><div class="card-header"><div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> <span data-ko="&#52572;&#44540; &#54876;&#46041;" data-en="Recent Activity">&#52572;&#44540; &#54876;&#46041;</span></div><a href="system/audit-logs.html" class="btn-outline btn-sm"><i class="fa-solid fa-arrow-right"></i></a></div><div class="card-body"><div class="metric-list" id="recentActivity"></div></div></section></div></main></div>
 <script>
-const chartTooltip = document.createElement('div');
-chartTooltip.id = 'chartDataLayer';
-chartTooltip.style.cssText = 'position:fixed;display:none;background:rgba(15,23,42,.92);color:#fff;padding:12px 16px;border-radius:8px;font-size:.85rem;z-index:9999;box-shadow:0 10px 25px rgba(0,0,0,.3);pointer-events:none;backdrop-filter:blur(4px);transition:opacity .15s;opacity:0;transform:translate(-50%,-100%);margin-top:-15px;';
-chartTooltip.innerHTML = '<div id="chartDataTitle" style="font-weight:700;margin-bottom:6px;color:#cbd5e1;font-size:.75rem;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:4px"></div><div id="chartDataContent" style="line-height:1.5"></div>';
-document.body.appendChild(chartTooltip);
-const chartTooltipTitle = chartTooltip.querySelector('#chartDataTitle');
-const chartTooltipContent = chartTooltip.querySelector('#chartDataContent');
-
-const DEFAULT_ADMIN_PMS_OPERATION_COVERAGE = [
-	{
-		title: '정산/마감 운영',
-		icon: 'fa-file-invoice-dollar',
-		status: '적용',
-		tone: 'active',
-		description: '정산 상세, 고객용 명세서, 예치금/미수금, 시재 등록 흐름을 분리했습니다.',
-		items: ['정산 상세', '고객용 명세서', '시재 등록']
-	},
-	{
-		title: '개인정보/감사 로그',
-		icon: 'fa-shield-halved',
-		status: '적용',
-		tone: 'active',
-		description: '개인정보 상세 열람과 엑셀 다운로드 이력을 관리자 감사 로그로 남깁니다.',
-		items: ['상세 열람 로그', '다운로드 로그', '관리자 전용']
-	},
-	{
-		title: '제휴 광고 관리',
-		icon: 'fa-rectangle-ad',
-		status: '연동 준비',
-		tone: 'ready',
-		description: '호텔 담당자가 골프장과 렌터카 업체의 연락처, 주소, 계약 조건을 확인하고 제휴 여부를 검토하는 광고 흐름입니다.',
-		items: ['계약 문의', '업체 정보', '배너 광고']
-	},
-	{
-		title: '테넌트 메뉴 정책',
-		icon: 'fa-sliders',
-		status: '적용',
-		tone: 'active',
-		description: '호텔별 메뉴와 하위 기능 노출을 Super Admin에서 제어합니다.',
-		items: ['메뉴 활성화', '하위 메뉴', '호텔별 정책']
-	}
-];
-
-function escapeAdminHtml(value) {
-	return String(value ?? '').replace(/[&<>"']/g, char => ({
-		'&': '&amp;',
-		'<': '&lt;',
-		'>': '&gt;',
-		'"': '&quot;',
-		"'": '&#39;'
-	}[char]));
-}
-
-function renderAdminPmsCoverage() {
-	const target = document.getElementById('adminPmsCoverageGrid');
-	if (!target) return;
-	const summary = window.AdminData?.dashboardSummary || {};
-	const coverage = Array.isArray(summary.pmsOperationCoverage) && summary.pmsOperationCoverage.length
-		? summary.pmsOperationCoverage
-		: DEFAULT_ADMIN_PMS_OPERATION_COVERAGE;
-	target.innerHTML = coverage.map(item => `
-		<div class="admin-ops-coverage-card">
-			<div class="admin-ops-coverage-head">
-				<div class="admin-ops-coverage-title"><i class="fa-solid ${escapeAdminHtml(item.icon || 'fa-circle-check')}"></i>${escapeAdminHtml(item.title)}</div>
-				<span class="coverage-badge ${escapeAdminHtml(item.tone || 'active')}">${escapeAdminHtml(item.status || '적용')}</span>
-			</div>
-			<div class="admin-ops-coverage-desc">${escapeAdminHtml(item.description || '')}</div>
-			<div class="admin-ops-coverage-list">
-				${(item.items || []).slice(0, 4).map(text => `<span>${escapeAdminHtml(text)}</span>`).join('')}
-			</div>
-		</div>
-	`).join('');
-}
-
-function toggleChartDataLayer(e, title, content) {
-	e.stopPropagation();
-	if (chartTooltip.style.display === 'block' && chartTooltipTitle.textContent === title) {
-		hideChartDataLayer();
-		return;
-	}
-	chartTooltipTitle.textContent = title;
-	chartTooltipContent.innerHTML = content;
-	chartTooltip.style.display = 'block';
-	chartTooltip.style.opacity = '1';
-	chartTooltip.style.left = e.clientX + 'px';
-	chartTooltip.style.top = e.clientY + 'px';
-}
-
-function hideChartDataLayer() {
-	chartTooltip.style.opacity = '0';
-	setTimeout(() => {
-		if (chartTooltip.style.opacity === '0') chartTooltip.style.display = 'none';
-	}, 160);
-}
-
-document.addEventListener('click', hideChartDataLayer);
-
-function renderFallbackTrafficChart(target, categories, traffic) {
-	if (!target) return;
-	const max = Math.max(...traffic, 1);
-	target.innerHTML = `<div style="height:200px;display:flex;align-items:end;gap:10px;padding:10px 4px 0">
-		${traffic.map((value, index) => {
-			const height = Math.max(16, Math.round((value / max) * 170));
-			const color = index >= 5 ? '#F59E0B' : '#3B82F6';
-			return `<button type="button" aria-label="${categories[index]} ${value}k" data-chart-index="${index}" style="flex:1;height:${height}px;border:none;border-radius:6px 6px 0 0;background:${color};color:#fff;font-size:.7rem;font-weight:800;cursor:pointer;display:flex;align-items:start;justify-content:center;padding-top:6px">${value}k</button>`;
-		}).join('')}
-	</div>
-	<div style="display:flex;gap:10px;padding:6px 4px 0;color:#64748b;font-size:.7rem;font-weight:700">
-		${categories.map(day => `<span style="flex:1;text-align:center">${day}</span>`).join('')}
-	</div>`;
-	target.querySelectorAll('[data-chart-index]').forEach(button => {
-		button.addEventListener('click', event => {
-			const index = Number(button.dataset.chartIndex);
-			const day = categories[index];
-			const value = traffic[index];
-			toggleChartDataLayer(event, `최근 7일 접속량 - ${day}`, `<div style="display:flex;justify-content:space-between;gap:20px"><span>접속량:</span><strong style="color:#93c5fd">${value}k</strong></div>`);
-		});
-	});
-}
-
-	window.addEventListener("DataReady", function() {
-		renderAdminPmsCoverage();
-		const categories = ['월', '화', '수', '목', '금', '토', '일'];
-		const traffic = [80, 95, 120, 110, 150, 165, 140];
-		const target = document.querySelector("#trafficChart");
-		if (typeof ApexCharts === 'undefined') {
-			renderFallbackTrafficChart(target, categories, traffic);
-			return;
-		}
-		var options = {
-			series: [{
-				name: '접속량',
-				data: traffic
-			}],
-			chart: {
-				type: 'bar',
-				height: 200,
-				toolbar: { show: false },
-				fontFamily: 'var(--font)',
-				events: {
-					dataPointSelection: function(event, chartContext, config) {
-						const day = categories[config.dataPointIndex];
-						const value = traffic[config.dataPointIndex];
-						toggleChartDataLayer(event, `최근 7일 접속량 - ${day}`, `<div style="display:flex;justify-content:space-between;gap:20px"><span>접속량:</span><strong style="color:#93c5fd">${value}k</strong></div>`);
-					}
-				}
-			},
-			xaxis: { categories },
-			colors: ['#3B82F6', '#3B82F6', '#3B82F6', '#3B82F6', '#3B82F6', '#F59E0B', '#F59E0B'],
-			plotOptions: {
-				bar: {
-					borderRadius: 4,
-					distributed: true
-				}
-			},
-			dataLabels: { enabled: true, formatter: function (val) { return val + 'k'; }, style: { fontSize: '11px', fontWeight: 700 } },
-			legend: { show: false },
-			states: {
-				hover: {
-					filter: {
-						type: 'darken',
-						value: 0.8
-					}
-				}
-			},
-			tooltip: {
-				y: { formatter: function (val) { return val + "k" } }
-			}
-		};
-		var chart = new ApexCharts(document.querySelector("#trafficChart"), options);
-		chart.render();
-	});
-</script>
-<script>
-window.applyLocalI18n = function(lang) {
-  document.querySelectorAll('[data-ko][data-en]').forEach(el => {
-    el.textContent = el.getAttribute(lang === 'en' ? 'data-en' : 'data-ko');
-  });
-};
-document.addEventListener('DOMContentLoaded', () => {
-  window.applyLocalI18n(window.currentLang || localStorage.getItem('pms_lang') || 'ko');
-});
+(function(){
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));const lang=()=>window.currentLang||localStorage.getItem('pms_admin_lang')||'ko';const tx=(ko,en)=>lang()==='en'?en:ko;const read=(key,fallback=[])=>window.AdminStore?AdminStore.read(key,window.AdminData?.[key]||fallback):(window.AdminData?.[key]||fallback);
+function kindOf(row){return row.type==='partner'||row.pmsEnabled===false||String(row.id||'').startsWith('PARTNER-')?'partner':'pms'}function activeOf(row){return !['suspended','terminated','deleted','rejected'].includes(String(row.status||'active').toLowerCase())}function inPeriod(row){const days=document.getElementById('dashboardPeriod').value;if(days==='all')return true;const raw=row.updatedAt||row.createdAt||row.issuedAt||row.startDate||row.periodStart;if(!raw)return true;return new Date(raw).getTime()>=Date.now()-Number(days)*86400000}
+function moneyMap(rows,key='amount'){return rows.reduce((map,row)=>{const currency=row.currency||'PHP';map[currency]=(map[currency]||0)+Number(row[key]||0);return map},{})}function moneyLines(map){return Object.keys(map).length?Object.entries(map).map(([currency,value])=>`<div class="metric-row"><span>${esc(currency)}</span><strong>${esc(new Intl.NumberFormat('en-US').format(value))}</strong></div>`).join(''):`<div class="dashboard-empty">${tx('&#45936;&#51060;&#53552;&#44032; &#50630;&#49845;&#45768;&#45796;.','No data.')}</div>`}
+function render(){const tenants=read('tenants',[]),applications=read('tenantApplications',[]),campaigns=read('adCampaigns',[]).filter(inPeriod),billing=read('billing',[]).filter(inPeriod),integrations=read('integrations',[]),logs=read('auditLogs',[]).filter(inPeriod),pms=tenants.filter(row=>kindOf(row)==='pms'),partners=tenants.filter(row=>kindOf(row)==='partner'),active=tenants.filter(activeOf);const kpis=[['fa-building',tenants.length,tx('&#51204;&#52404; &#50629;&#52404;','All Properties'),'tenants/list.html'],['fa-hotel',pms.length,tx('PMS &#54840;&#53588;','PMS Hotels'),'tenants/list.html?type=pms'],['fa-handshake',partners.length,tx('&#54028;&#53944;&#45320; &#54252;&#53560;','Partner Portal'),'tenants/list.html?type=partner'],['fa-file-circle-question',applications.filter(row=>row.status==='pending').length,tx('&#49888;&#52397; &#45824;&#44592;','Pending Applications'),'tenants/list.html?tab=applications'],['fa-rectangle-ad',campaigns.filter(row=>['active','scheduled'].includes(row.status)).length,tx('&#50868;&#50689; &#52896;&#54168;&#51064;','Running Campaigns'),'ads/campaigns.html']];document.getElementById('dashboardKpis').innerHTML=kpis.map(([icon,value,label,href])=>`<a class="dashboard-kpi" href="${href}"><i class="fa-solid ${icon}"></i><div><strong>${value}</strong><span>${label}</span></div></a>`).join('');
+document.getElementById('propertyStatusList').innerHTML=tenants.length?tenants.map(row=>{const kind=kindOf(row),status=String(row.status||'active');return`<a class="dashboard-status-row" href="tenants/detail.html?id=${encodeURIComponent(row.id)}" data-property-id="${esc(row.id)}"><strong>${esc(row.hotelName||row.name||row.id)}</strong><span class="property-kind ${kind}">${kind==='pms'?tx('PMS &#50672;&#44208;','PMS Connected'):tx('&#54028;&#53944;&#45320; &#54252;&#53560;','Partner Portal')}</span><span class="status-badge ${activeOf(row)?'active':'inactive'}">${esc(status)}</span></a>`}).join(''):`<div class="dashboard-empty">${tx('&#46321;&#47197;&#46108; &#50629;&#52404;&#44032; &#50630;&#49845;&#45768;&#45796;.','No properties registered.')}</div>`;
+const errors=integrations.filter(row=>row.active!==false&&['error','failed','disconnected'].includes(String(row.status||'').toLowerCase()));document.getElementById('integrationWarnings').innerHTML=errors.map(row=>`<a class="integration-warning" href="system/integrations.html" data-integration-id="${esc(row.id)}"><i class="fa-solid fa-triangle-exclamation"></i><div><strong>${esc(row.name||row.id)}</strong><div>${tx('&#50672;&#46041; &#51109;&#50528;&#44032; &#45824;&#49884;&#48372;&#46300;&#50640; &#51204;&#54028;&#46104;&#50632;&#49845;&#45768;&#45796;.','Integration failure propagated to the dashboard.')} ${esc(row.lastError||row.status)}</div></div></a>`).join('');
+document.getElementById('billingSummary').innerHTML=moneyLines(moneyMap(billing.filter(row=>row.status!=='cancelled')));const statuses=['active','scheduled','draft','paused','ended'];document.getElementById('campaignSummary').innerHTML=statuses.map(status=>`<div class="metric-row"><span>${esc(status)}</span><strong>${campaigns.filter(row=>row.status===status).length}</strong></div>`).join('');document.getElementById('recentActivity').innerHTML=logs.length?logs.slice(0,5).map(row=>`<div class="metric-row"><span><strong>${esc(row.action)}</strong><br><small>${esc(row.actor||row.actorId||'-')}</small></span><span>${esc(row.target||'-')}</span></div>`).join(''):`<div class="dashboard-empty">${tx('&#52572;&#44540; &#54876;&#46041;&#51060; &#50630;&#49845;&#45768;&#45796;.','No recent activity.')}</div>`;document.body.dataset.tenantCount=tenants.length;document.body.dataset.activeTenantCount=active.length}
+document.addEventListener('DOMContentLoaded',()=>{document.getElementById('dashboardPeriod').onchange=render;if(window.adminDataReady)render();else window.addEventListener('DataReady',render,{once:true})});window.addEventListener('AdminStoreChanged',render);window.renderAdminDashboard=render;window.applyLocalI18n=function(next){document.documentElement.lang=next;document.querySelectorAll('[data-ko][data-en]').forEach(el=>el.textContent=el.getAttribute(next==='en'?'data-en':'data-ko'));render()}
+})();
 </script>
 </body>
 </html>

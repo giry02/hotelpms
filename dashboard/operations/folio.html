@@ -1416,6 +1416,8 @@ function invoiceMetaRows(folio) {
             ['행사 기간', folio.groupPeriodText || `${formatDate(group.checkin || group.checkInDate)} ~ ${formatDate(group.checkout || group.checkOutDate)}`],
             ['객실 블록', `블록 ${block} · 픽업 ${pickup}${pax ? ` · PAX ${pax}` : ''}`],
             ['정산 방식', sanitizeSettlementRouting(group.routing || folio.routing)],
+            ['단체 할인', `${Number(folio.discountPercent || group.eventDiscountPercent || group.discountPercent || 0)}%`],
+            ['청구 조건', folio.billingTerms || group.billingTerms || group.paymentTerms || sanitizeSettlementRouting(group.routing || folio.routing) || '-'],
             ['포함 항목', folioServiceSummary(folio)],
             ['정산일', out]
         ];
@@ -1661,6 +1663,8 @@ function enrichFolioWithGroup(folio) {
         groupPeriodText: `${formatDate(checkin)} ~ ${formatDate(checkout)}`,
         groupRoomsText: rooms.slice(0, 4).join(', ') + (rooms.length > 4 ? ` 외 ${rooms.length - 4}` : ''),
         routing: sanitizeSettlementRouting(group.routing || folio.routing),
+        discountPercent: Number(folio.discountPercent ?? group.eventDiscountPercent ?? group.discountPercent ?? 0),
+        billingTerms: folio.billingTerms || group.billingTerms || group.paymentTerms || sanitizeSettlementRouting(group.routing || folio.routing),
         status: Number(folio.bal || 0) > 0 ? 'unpaid' : (folio.status || 'group')
     };
 }
@@ -1993,6 +1997,9 @@ function mapApiFolio(item) {
         tier: item.tier || item.guestTier || item.membershipTier || '',
         companyId: item.companyId || '',
         companyName: item.companyName || '',
+        discountPercent: Number(item.discountPercent ?? item.eventDiscountPercent ?? 0),
+        billingTerms: item.billingTerms || item.paymentTerms || item.routing || '',
+        routing: item.routing || '',
         folioType: item.folioType || '',
         sourceReservationIds: Array.isArray(item.reservationIds) ? item.reservationIds : [],
         sourceRoomIds: Array.isArray(item.roomIds) ? item.roomIds : [],
@@ -2884,6 +2891,8 @@ function settlementDetailMetaRows(folio) {
     if (isGroupFolio(folio)) {
         rows.push(['업체', group.agency || group.companyName || folio.companyName || '-']);
         rows.push(['정산 방식', sanitizeSettlementRouting(group.routing || folio.routing)]);
+        rows.push(['단체 할인', `${Number(folio.discountPercent || group.eventDiscountPercent || group.discountPercent || 0)}%`]);
+        rows.push(['청구 조건', folio.billingTerms || group.billingTerms || group.paymentTerms || sanitizeSettlementRouting(group.routing || folio.routing) || '-']);
     }
     if ((folio.sourceFolioIds || []).length) rows.push(['원천 Folio', (folio.sourceFolioIds || []).join(', ')]);
     if (folio.settlementCompletedAt) rows.push(['완료 일시', formatDateTime(folio.settlementCompletedAt)]);

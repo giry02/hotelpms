@@ -1251,6 +1251,20 @@ function openBoardRoomBooking(encodedRoomId) {
         || sameRoomValue(item?.number, roomId)
         || sameRoomValue(item?.display, roomId)
         || sameRoomValue(item?.roomLabel, roomId));
+    const unavailable = room && (
+        normalizeStatus(room.status || room.frontStatus || room.housekeepingStatus) === 'oos'
+        || ['maintenance', 'outofservice', 'outoforder', 'oos'].includes(String(room.maintenanceStatus || '').replace(/[-_\s]/g, '').toLowerCase())
+        || room.isOutOfService === true
+        || room.outOfService === true
+    );
+    if (unavailable) {
+        const message = boardLang() === 'en'
+            ? 'Rooms under inspection or maintenance cannot be booked.'
+            : '\uC810\uAC80/\uC218\uB9AC \uC911\uC778 \uAC1D\uC2E4\uC740 \uC608\uC57D\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.';
+        if (window.showAlert) window.showAlert(message, { type: 'error' });
+        else if (window.showToast) window.showToast(message, 'error');
+        return;
+    }
     const range = boardRange();
     const checkin = range.start || todayDate();
     const checkout = addDays(checkin, 1);

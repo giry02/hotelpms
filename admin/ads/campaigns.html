@@ -1,194 +1,39 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>캠페인 목록 - Super Admin</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
-<link href="../common/css/admin-base.css" rel="stylesheet"/><link href="../common/css/admin-pages.css" rel="stylesheet"/>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>&#52896;&#54168;&#51064; &#47785;&#47197; - Super Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<link rel="stylesheet" href="../common/css/admin-base.css"/><link rel="stylesheet" href="../common/css/admin-pages.css"/>
+<script src="../common/js/admin-sidebar.js"></script><script src="../common/js/admin-i18n-catalog.js"></script><script src="../common/js/admin-i18n.js"></script>
 <style>
-.ad-page-actions .btn-outline.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-}
-.ad-page-actions .btn-outline.active i {
-  color: #fff;
-}
+.campaign-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.campaign-tools .form-control{width:auto;min-width:150px}.campaign-name{display:flex;gap:10px;align-items:center;min-width:220px}.campaign-thumb{width:56px;height:40px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#f1f5f9;display:grid;place-items:center;flex:none}.campaign-thumb img{width:100%;height:100%;object-fit:cover}.campaign-fallback{font-size:.65rem;color:var(--txt3);text-align:center;line-height:1.15}.campaign-actions{display:flex;gap:6px;white-space:nowrap}.empty-row{text-align:center;color:var(--txt3);padding:34px}.row-note{font-size:.7rem;color:var(--txt3);margin-top:3px}
+@media(max-width:760px){.campaign-tools>*{flex:1 1 140px}.table-wrap{overflow-x:auto}.campaign-actions{flex-wrap:wrap}}
 </style>
-<script src="../common/js/admin-sidebar.js"></script><script src="../common/js/admin-i18n-catalog.js"></script>
-<script src="../common/js/admin-i18n.js"></script>
 </head>
-<body>
-<div class="main">
-<header class="topbar">
-<div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><h1 data-ko="캠페인 목록" data-en="Campaigns">캠페인 목록</h1></div>
-<div class="topbar-right">
-<a class="btn-primary" href="new.html"><i class="fa-solid fa-plus"></i> <span data-ko="새 캠페인 등록" data-en="New Campaign">새 캠페인 등록</span></a>
-<select class="hotel-select" id="langSelect" onchange="changeLang(this.value)" style="width:110px"><option value="ko">KR 한국어</option><option value="en">EN English</option></select>
-</div>
-</header>
+<body><div class="main">
+<header class="topbar"><div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><h1 data-ko="&#52896;&#54168;&#51064; &#47785;&#47197;" data-en="Campaigns">&#52896;&#54168;&#51064; &#47785;&#47197;</h1></div><div class="topbar-right"><a class="btn-primary" href="new.html"><i class="fa-solid fa-plus"></i> <span data-ko="&#49352; &#52896;&#54168;&#51064;" data-en="New Campaign">&#49352; &#52896;&#54168;&#51064;</span></a><select class="hotel-select" id="langSelect" onchange="changeLang(this.value)"><option value="ko">KR &#54620;&#44397;&#50612;</option><option value="en">EN English</option></select></div></header>
 <div class="content">
-<div class="kpi-grid">
-<div class="kpi-card indigo"><div class="kpi-icon"><i class="fa-solid fa-rectangle-ad"></i></div><div class="kpi-body"><div class="kpi-value">12</div><div class="kpi-label" data-ko="활성 캠페인" data-en="Active Campaigns">활성 캠페인</div></div></div>
-<div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-building-circle-check"></i></div><div class="kpi-body"><div class="kpi-value">8</div><div class="kpi-label" data-ko="계약 문의 대상" data-en="Contract Leads">계약 문의 대상</div></div></div>
-<div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-handshake"></i></div><div class="kpi-body"><div class="kpi-value">5</div><div class="kpi-label" data-ko="계약 검토 중" data-en="Under Review">계약 검토 중</div></div></div>
-<div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-chart-simple"></i></div><div class="kpi-body"><div class="kpi-value">38.4K</div><div class="kpi-label" data-ko="상세 조회" data-en="Detail Views">상세 조회</div></div></div>
-</div>
-
-<div class="card">
-<div class="card-header">
-<div class="card-title"><i class="fa-solid fa-bullhorn"></i> <span data-ko="광고 캠페인 관리" data-en="Ad Campaign Management">광고 캠페인 관리</span></div>
-<div class="ad-page-actions">
-<button class="btn-outline btn-sm" type="button"><i class="fa-solid fa-filter"></i> <span data-ko="진행 중" data-en="Active">진행 중</span></button>
-<button class="btn-outline btn-sm" type="button"><i class="fa-solid fa-golf-ball-tee"></i> <span data-ko="골프장" data-en="Golf">골프장</span></button>
-<button class="btn-outline btn-sm" type="button"><i class="fa-solid fa-car"></i> <span data-ko="렌터카" data-en="Rent-a-car">렌터카</span></button>
-</div>
-</div>
-<div class="card-body">
-<div class="table-wrap"><table>
-<thead><tr>
-<th data-ko="캠페인명" data-en="Campaign">캠페인명</th>
-<th data-ko="광고주/업체" data-en="Advertiser / Vendor">광고주/업체</th>
-<th data-ko="서비스" data-en="Service">서비스</th>
-<th data-ko="노출 위치" data-en="Placement">노출 위치</th>
-<th data-ko="계약 문의 연락처" data-en="Contract Contact">계약 문의 연락처</th>
-<th data-ko="운영/주소" data-en="Hours / Address">운영/주소</th>
-<th data-ko="광고 제안" data-en="Ad Offer">광고 제안</th>
-<th data-ko="기간" data-en="Period">기간</th>
-<th data-ko="조회/문의" data-en="Views / Leads">조회/문의</th>
-<th data-ko="상태" data-en="Status">상태</th>
-<th data-ko="상세" data-en="Detail">상세</th>
-</tr></thead>
-<tbody>
-<tr>
-<td data-label="캠페인명" style="font-weight:800">썬밸리 CC 제휴 광고<div class="ad-table-note">ADS-GOLF-1001</div></td>
-<td data-label="광고주/업체">썬밸리 CC</td>
-<td data-label="서비스"><span class="status-badge info"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</span></td>
-<td data-label="노출 위치">대시보드 배너 / 제휴 이벤트</td>
-<td data-label="계약 문의 연락처">Kim Manager<br/>+84 90 118 2233</td>
-<td data-label="운영/주소">06:00~19:00<br/>Long Thanh, Dong Nai</td>
-<td data-label="광고 제안">프런트 전용 그린피 패키지 안내</td>
-<td data-label="기간">07.01 ~ 07.31</td>
-<td data-label="조회/문의">12,480 / 42</td>
-<td data-label="상태"><span class="status-badge active">진행 중</span></td>
-<td data-label="상세"><a class="btn-outline btn-sm" href="detail.html"><i class="fa-solid fa-eye"></i></a></td>
-</tr>
-<tr>
-<td data-label="캠페인명" style="font-weight:800">스카이72 골프 패키지<div class="ad-table-note">ADS-GOLF-1002</div></td>
-<td data-label="광고주/업체">스카이72 골프</td>
-<td data-label="서비스"><span class="status-badge info"><i class="fa-solid fa-golf-ball-tee"></i> 골프장</span></td>
-<td data-label="노출 위치">호텔 제휴 이벤트</td>
-<td data-label="계약 문의 연락처">Lee Manager<br/>+84 91 202 8833</td>
-<td data-label="운영/주소">05:30~18:30<br/>District 9, Ho Chi Minh</td>
-<td data-label="광고 제안">단체 고객 라운딩 예약 제휴</td>
-<td data-label="기간">07.01 ~ 08.15</td>
-<td data-label="조회/문의">8,930 / 31</td>
-<td data-label="상태"><span class="status-badge active">진행 중</span></td>
-<td data-label="상세"><a class="btn-outline btn-sm" href="detail.html"><i class="fa-solid fa-eye"></i></a></td>
-</tr>
-<tr>
-<td data-label="캠페인명" style="font-weight:800">롯데렌터카 공항 픽업 제휴<div class="ad-table-note">ADS-RENT-1003</div></td>
-<td data-label="광고주/업체">롯데렌터카 베트남</td>
-<td data-label="서비스"><span class="status-badge pending"><i class="fa-solid fa-car"></i> 렌터카</span></td>
-<td data-label="노출 위치">대시보드 배너 / 렌터카 안내</td>
-<td data-label="계약 문의 연락처">Park Manager<br/>+84 93 450 7788</td>
-<td data-label="운영/주소">24시간<br/>Tan Son Nhat Airport</td>
-<td data-label="광고 제안">공항 픽업과 장기 렌트 제휴</td>
-<td data-label="기간">07.01 ~ 07.31</td>
-<td data-label="조회/문의">15,210 / 64</td>
-<td data-label="상태"><span class="status-badge active">진행 중</span></td>
-<td data-label="상세"><a class="btn-outline btn-sm" href="detail.html"><i class="fa-solid fa-eye"></i></a></td>
-</tr>
-<tr>
-<td data-label="캠페인명" style="font-weight:800">미남 리버 크루즈 제휴<div class="ad-table-note">ADS-LOCAL-1004</div></td>
-<td data-label="광고주/업체">Saigon River Tour</td>
-<td data-label="서비스"><span class="status-badge" style="background:var(--purple-lt);color:var(--purple)"><i class="fa-solid fa-map-location-dot"></i> 지역 제휴</span></td>
-<td data-label="노출 위치">호텔 제휴 이벤트</td>
-<td data-label="계약 문의 연락처">Nguyen Linh<br/>+84 88 400 1100</td>
-<td data-label="운영/주소">17:00~22:30<br/>Bach Dang Pier</td>
-<td data-label="광고 제안">투숙객 야간 투어 제휴</td>
-<td data-label="기간">07.05 ~ 08.05</td>
-<td data-label="조회/문의">5,520 / 18</td>
-<td data-label="상태"><span class="status-badge pending">검토 중</span></td>
-<td data-label="상세"><a class="btn-outline btn-sm" href="detail.html"><i class="fa-solid fa-eye"></i></a></td>
-</tr>
-</tbody>
-</table></div>
-</div>
-</div>
-</div>
-</div>
+<div class="kpi-grid"><div class="kpi-card indigo"><div class="kpi-body"><div class="kpi-value" id="campaignCount">0</div><div class="kpi-label" data-ko="&#51204;&#52404; &#52896;&#54168;&#51064;" data-en="All Campaigns">&#51204;&#52404; &#52896;&#54168;&#51064;</div></div></div><div class="kpi-card green"><div class="kpi-body"><div class="kpi-value" id="activeCount">0</div><div class="kpi-label" data-ko="&#51652;&#54665; &#51473;" data-en="Active">&#51652;&#54665; &#51473;</div></div></div><div class="kpi-card orange"><div class="kpi-body"><div class="kpi-value" id="leadCount">0</div><div class="kpi-label" data-ko="&#44228;&#50557; &#47928;&#51032;" data-en="Contract Leads">&#44228;&#50557; &#47928;&#51032;</div></div></div><div class="kpi-card purple"><div class="kpi-body"><div class="kpi-value" id="viewCount">0</div><div class="kpi-label" data-ko="&#49345;&#49464; &#51312;&#54924;" data-en="Detail Views">&#49345;&#49464; &#51312;&#54924;</div></div></div></div>
+<section class="card"><div class="card-header"><div class="card-title"><i class="fa-solid fa-bullhorn"></i> <span data-ko="&#44305;&#44256; &#52896;&#54168;&#51064; &#44288;&#47532;" data-en="Ad Campaign Management">&#44305;&#44256; &#52896;&#54168;&#51064; &#44288;&#47532;</span></div><div class="campaign-tools"><input class="form-control" id="campaignSearch" data-ko-placeholder="&#52896;&#54168;&#51064;, &#44305;&#44256;&#51452; &#44160;&#49353;" data-en-placeholder="Search campaign or advertiser" placeholder="&#52896;&#54168;&#51064;, &#44305;&#44256;&#51452; &#44160;&#49353;"/><select class="form-control" id="campaignStatus"><option value="all" data-ko="&#51204;&#52404; &#49345;&#53468;" data-en="All Statuses">&#51204;&#52404; &#49345;&#53468;</option><option value="active" data-ko="&#51652;&#54665; &#51473;" data-en="Active">&#51652;&#54665; &#51473;</option><option value="scheduled" data-ko="&#50696;&#51221;" data-en="Scheduled">&#50696;&#51221;</option><option value="paused" data-ko="&#51473;&#51648;" data-en="Paused">&#51473;&#51648;</option><option value="ended" data-ko="&#51333;&#47308;" data-en="Ended">&#51333;&#47308;</option></select><select class="form-control" id="campaignType"><option value="all" data-ko="&#51204;&#52404; &#50976;&#54805;" data-en="All Types">&#51204;&#52404; &#50976;&#54805;</option><option value="golf" data-ko="&#44264;&#54532;&#51109;" data-en="Golf">&#44264;&#54532;&#51109;</option><option value="rentacar" data-ko="&#47116;&#53552;&#52852;" data-en="Rent-a-car">&#47116;&#53552;&#52852;</option><option value="restaurant" data-ko="&#51020;&#49885;&#51216;" data-en="Restaurant">&#51020;&#49885;&#51216;</option><option value="other" data-ko="&#44592;&#53440;" data-en="Other">&#44592;&#53440;</option></select></div></div><div class="card-body"><div class="table-wrap"><table><thead><tr><th data-ko="&#52896;&#54168;&#51064;" data-en="Campaign">&#52896;&#54168;&#51064;</th><th data-ko="&#44305;&#44256;&#51452;" data-en="Advertiser">&#44305;&#44256;&#51452;</th><th data-ko="&#49436;&#48708;&#49828;" data-en="Service">&#49436;&#48708;&#49828;</th><th data-ko="&#44592;&#44036;" data-en="Period">&#44592;&#44036;</th><th data-ko="&#51312;&#54924;/&#47928;&#51032;" data-en="Views / Leads">&#51312;&#54924;/&#47928;&#51032;</th><th data-ko="&#49345;&#53468;" data-en="Status">&#49345;&#53468;</th><th data-ko="&#44288;&#47532;" data-en="Actions">&#44288;&#47532;</th></tr></thead><tbody id="campaignTableBody"></tbody></table></div></div></section>
+</div></div>
 <script>
-window.applyLocalI18n = function(lang) {
-  document.querySelectorAll('[data-ko][data-en]').forEach(el => { el.textContent = el.getAttribute(lang === 'en' ? 'data-en' : 'data-ko'); });
-  document.querySelectorAll('[data-ko-placeholder][data-en-placeholder]').forEach(el => { el.setAttribute('placeholder', el.getAttribute(lang === 'en' ? 'data-en-placeholder' : 'data-ko-placeholder')); });
-  const pairs = {
-    '썬밸리 CC 제휴 광고':'Sun Valley CC Partner Ad',
-    '썬밸리 CC':'Sun Valley CC',
-    '골프장':'Golf Course',
-    '대시보드 배너 / 제휴 이벤트':'Dashboard Banner / Partner Events',
-    '프런트 전용 그린피 패키지 안내':'Front desk green fee package',
-    '진행 중':'Active',
-    '스카이72 골프 패키지':'Sky72 Golf Package',
-    '스카이72 골프':'Sky72 Golf',
-    '호텔 제휴 이벤트':'Hotel Partner Events',
-    '단체 고객 라운딩 예약 제휴':'Group golf round partnership',
-    '롯데렌터카 공항 픽업 제휴':'Lotte Rent-a-car Airport Pickup',
-    '롯데렌터카 베트남':'Lotte Rent-a-car Vietnam',
-    '렌터카':'Rent-a-car',
-    '대시보드 배너 / 렌터카 안내':'Dashboard Banner / Rent-a-car Guide',
-    '24시간':'24 hours',
-    '공항 픽업과 장기 렌트 제휴':'Airport pickup and long-term rental partnership',
-    '미남 리버 크루즈 제휴':'Saigon River Cruise Partner Ad',
-    '지역 제휴':'Local Partner',
-    '투숙객 야간 투어 제휴':'Guest night tour partnership',
-    '검토 중':'Under Review'
-  };
-  const reverse = Object.fromEntries(Object.entries(pairs).map(([ko,en]) => [en, ko]));
-  const map = lang === 'en' ? pairs : reverse;
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      const parent = node.parentElement;
-      if (!parent || ['SCRIPT','STYLE','TEXTAREA','INPUT'].includes(parent.tagName)) return NodeFilter.FILTER_REJECT;
-      return map[node.nodeValue.trim()] ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
-    }
-  });
-  const nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-  nodes.forEach(node => { node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), map[node.nodeValue.trim()]); });
-};
-function filterCampaigns(filter, activeButton) {
-  const wasActive = activeButton.classList.contains('active');
-  document.querySelectorAll('.ad-page-actions .btn-outline').forEach(button => button.classList.remove('active'));
-  const nextFilter = wasActive ? '' : filter;
-  if (nextFilter) activeButton.classList.add('active');
-  document.querySelectorAll('tbody tr').forEach(row => {
-    const html = row.innerHTML;
-    const text = row.innerText || '';
-    const isActive = !!row.querySelector('td:nth-child(10) .status-badge.active');
-    const isGolf = /ADS-GOLF|fa-golf-ball-tee|Golf/i.test(html) || /골프/.test(text);
-    const isRentacar = /ADS-RENT|fa-car|Rent-a-car/i.test(html) || /렌터카/.test(text);
-    row.hidden = !!nextFilter && !(
-      (nextFilter === 'active' && isActive) ||
-      (nextFilter === 'golf' && isGolf) ||
-      (nextFilter === 'rentacar' && isRentacar)
-    );
-  });
-}
-function setupCampaignFilters() {
-  const filters = ['active', 'golf', 'rentacar'];
-  document.querySelectorAll('.ad-page-actions .btn-outline').forEach((button, index) => {
-    const filter = filters[index];
-    if (!filter) return;
-    button.addEventListener('click', () => filterCampaigns(filter, button));
-  });
-}
-document.addEventListener('DOMContentLoaded', () => {
-  setupCampaignFilters();
-  window.applyLocalI18n(window.currentLang || localStorage.getItem('pms_lang') || 'ko');
-});
-</script>
-</body>
-</html>
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const language=()=>window.currentLang||localStorage.getItem('pms_admin_lang')||'ko';
+function campaigns(){return AdminStore.read('adCampaigns',window.AdminData?.adCampaigns||[])}
+function typeOf(row){return String(row.type||row.serviceArea||'other').toLowerCase()}
+function metricsOf(row){return {views:Number(row.views??row.metrics?.detailViews??0),leads:Number(row.leads??row.metrics?.contractLeads??0)}}
+function label(map,key){return map[key]?.[language()==='en'?1:0]||key}
+function typeLabel(value){return label({golf:['&#44264;&#54532;&#51109;','Golf'],rentacar:['&#47116;&#53552;&#52852;','Rent-a-car'],restaurant:['&#51020;&#49885;&#51216;','Restaurant'],other:['&#44592;&#53440;','Other']},value)}
+function statusLabel(value){return label({active:['&#51652;&#54665; &#51473;','Active'],scheduled:['&#50696;&#51221;','Scheduled'],paused:['&#51473;&#51648;','Paused'],draft:['&#51076;&#49884; &#51200;&#51109;','Draft'],pending:['&#44160;&#49688; &#51473;','Under Review'],ended:['&#51333;&#47308;','Ended'],archived:['&#48372;&#44288;','Archived']},value)}
+function statusClass(value){return value==='active'?'active':value==='ended'||value==='archived'?'inactive':'pending'}
+function filteredRows(){const query=document.getElementById('campaignSearch').value.trim().toLowerCase();const status=document.getElementById('campaignStatus').value;const type=document.getElementById('campaignType').value;return campaigns().filter(row=>(status==='all'||row.status===status)&&(type==='all'||typeOf(row)===type)&&(!query||`${row.name||''} ${row.nameEn||''} ${row.advertiser||''} ${row.advertiserEn||''}`.toLowerCase().includes(query)))}
+function creative(row){const source=row.imageUrl||row.bannerUrl||row.creativeUrl||'';return source?`<img src="${esc(source)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'campaign-fallback',textContent:'${language()==='en'?'Image unavailable':'\uC774\uBBF8\uC9C0 \uC5C6\uC74C'}'}))"/>`:`<span class="campaign-fallback">${language()==='en'?'No image':'\uC774\uBBF8\uC9C0 \uC5C6\uC74C'}</span>`}
+function render(){const all=campaigns(),rows=filteredRows(),totals=all.reduce((m,row)=>{const metrics=metricsOf(row);m.views+=metrics.views;m.leads+=metrics.leads;return m},{views:0,leads:0});document.getElementById('campaignCount').textContent=all.length;document.getElementById('activeCount').textContent=all.filter(row=>row.status==='active').length;document.getElementById('leadCount').textContent=totals.leads.toLocaleString();document.getElementById('viewCount').textContent=totals.views.toLocaleString();document.getElementById('campaignTableBody').innerHTML=rows.length?rows.map(row=>{const metrics=metricsOf(row),start=row.startDate||row.period?.start||'-',end=row.endDate||row.period?.end||'-';return `<tr data-campaign-id="${esc(row.id)}"><td><div class="campaign-name"><div class="campaign-thumb">${creative(row)}</div><div data-user-content><strong>${esc(row.name||row.nameEn||row.id)}</strong><div class="row-note">${esc(row.id)}</div></div></div></td><td data-user-content>${esc(row.advertiser||row.advertiserEn||'-')}</td><td>${typeLabel(typeOf(row))}</td><td>${esc(start)} ~ ${esc(end)}</td><td>${metrics.views.toLocaleString()} / ${metrics.leads.toLocaleString()}</td><td><span class="status-badge ${statusClass(row.status)}">${statusLabel(row.status)}</span></td><td><div class="campaign-actions"><a class="btn-outline btn-sm campaign-detail" href="detail.html?id=${encodeURIComponent(row.id)}" data-ko="&#49345;&#49464;" data-en="Details">${language()==='en'?'Details':'&#49345;&#49464;'}</a>${row.status==='active'?`<button class="btn-outline btn-sm campaign-pause" type="button" data-id="${esc(row.id)}">${language()==='en'?'Pause':'\uC911\uC9C0'}</button>`:`<button class="btn-outline btn-sm campaign-start" type="button" data-id="${esc(row.id)}">${language()==='en'?'Start':'\uC2DC\uC791'}</button>`}<button class="btn-outline btn-sm campaign-end" type="button" data-id="${esc(row.id)}">${language()==='en'?'End':'\uC885\uB8CC'}</button><button class="btn-outline btn-sm campaign-delete" type="button" data-id="${esc(row.id)}" aria-label="Delete"><i class="fa-solid fa-trash"></i></button></div></td></tr>`}).join(''):`<tr><td colspan="7" class="empty-row">${language()==='en'?'No campaigns match the current filters.':'\uC870\uAC74\uC5D0 \uB9DE\uB294 \uCEA0\uD398\uC778\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.'}</td></tr>`;bindRows()}
+function transition(id,status){const rows=campaigns(),index=rows.findIndex(row=>String(row.id)===String(id));if(index<0)return false;const before=rows[index].status;if(status==='active'&&rows[index].endDate&&rows[index].endDate<new Date().toISOString().slice(0,10))return false;rows[index]={...rows[index],status,updatedAt:new Date().toISOString()};AdminStore.write('adCampaigns',rows);AdminStore.audit('campaign.status',id,JSON.stringify({before,after:status}),'Medium');render();return true}
+function removeCampaign(id){const rows=campaigns(),row=rows.find(item=>String(item.id)===String(id));if(!row)return false;const hasHistory=metricsOf(row).views>0||metricsOf(row).leads>0;if(hasHistory)return transition(id,'archived');AdminStore.write('adCampaigns',rows.filter(item=>String(item.id)!==String(id)));AdminStore.audit('campaign.delete',id,JSON.stringify({before:row,after:null}),'High');render();return true}
+function bindRows(){document.querySelectorAll('.campaign-start').forEach(button=>button.onclick=()=>transition(button.dataset.id,'active'));document.querySelectorAll('.campaign-pause').forEach(button=>button.onclick=()=>transition(button.dataset.id,'paused'));document.querySelectorAll('.campaign-end').forEach(button=>button.onclick=()=>transition(button.dataset.id,'ended'));document.querySelectorAll('.campaign-delete').forEach(button=>button.onclick=()=>removeCampaign(button.dataset.id))}
+function setup(){['campaignSearch','campaignStatus','campaignType'].forEach(id=>document.getElementById(id).addEventListener(id==='campaignSearch'?'input':'change',render));render()}
+window.applyLocalI18n=function(lang){document.documentElement.lang=lang;document.querySelectorAll('[data-ko][data-en]').forEach(el=>el.textContent=el.getAttribute(lang==='en'?'data-en':'data-ko'));document.querySelectorAll('[data-ko-placeholder][data-en-placeholder]').forEach(el=>el.placeholder=el.getAttribute(lang==='en'?'data-en-placeholder':'data-ko-placeholder'));render()};
+document.addEventListener('DOMContentLoaded',setup);window.addEventListener('AdminStoreChanged',event=>{if(event.detail.key==='adCampaigns')render()});
+</script></body></html>

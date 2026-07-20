@@ -9,6 +9,9 @@
 <link href="../common/css/admin-base.css" rel="stylesheet"/><link href="../common/css/admin-pages.css" rel="stylesheet"/>
 <script src="../common/js/admin-sidebar.js"></script><script src="../common/js/admin-i18n-catalog.js"></script>
 <script src="../common/js/admin-i18n.js"></script>
+<style>
+.ad-creative-input{display:block;width:100%;padding:12px;border:1px dashed var(--line);border-radius:8px;background:var(--bg);cursor:pointer}.ad-preview{min-height:180px;border:1px solid var(--line);border-radius:8px;background:#fff;display:grid;grid-template-columns:minmax(0,1fr) 260px;overflow:hidden}.ad-preview-copy{padding:24px;display:flex;flex-direction:column;justify-content:center}.ad-preview-copy h3{margin:0 0 8px;font-size:1.25rem}.ad-preview-copy p{margin:0;color:var(--txt2);line-height:1.6}.ad-preview-media{background:#f1f5f9;display:grid;place-items:center;color:var(--txt3);overflow:hidden}.ad-preview-media img{width:100%;height:100%;object-fit:cover}.creative-error{margin-top:6px;color:var(--danger);font-size:.75rem;min-height:18px}@media(max-width:700px){.ad-preview{grid-template-columns:1fr}.ad-preview-media{min-height:140px}}
+</style>
 </head>
 <body>
 <div class="main">
@@ -25,12 +28,14 @@
 <div class="config-panel-header"><h3><i class="fa-solid fa-rectangle-ad"></i> <span data-ko="캠페인 기본 정보" data-en="Campaign Basics">캠페인 기본 정보</span></h3></div>
 <div class="config-panel-body">
 <div class="grid-2">
-<div class="form-group"><label class="form-label" data-ko="캠페인명" data-en="Campaign Name">캠페인명</label><input class="form-control" data-ko-placeholder="예: 썬밸리 CC 제휴 광고" data-en-placeholder="Ex: Sun Valley CC Partner Ad" placeholder="예: 썬밸리 CC 제휴 광고" type="text"/></div>
-<div class="form-group"><label class="form-label" data-ko="광고주/업체명" data-en="Advertiser / Vendor">광고주/업체명</label><input class="form-control" data-ko-placeholder="예: 썬밸리 CC" data-en-placeholder="Ex: Sun Valley CC" placeholder="예: 썬밸리 CC" type="text"/></div>
-<div class="form-group"><label class="form-label" data-ko="서비스 구분" data-en="Service Type">서비스 구분</label><select class="form-control"><option data-ko="골프장" data-en="Golf Course">골프장</option><option data-ko="렌터카" data-en="Rent-a-car">렌터카</option><option data-ko="지역 제휴" data-en="Local Partner">지역 제휴</option><option data-ko="외부 제휴" data-en="External Partner">외부 제휴</option></select></div>
-<div class="form-group"><label class="form-label" data-ko="노출 위치" data-en="Placement">노출 위치</label><select class="form-control"><option data-ko="대시보드 배너" data-en="Dashboard Banner">대시보드 배너</option><option data-ko="호텔 제휴 이벤트" data-en="Hotel Partner Events">호텔 제휴 이벤트</option><option data-ko="대시보드 배너 + 제휴 이벤트" data-en="Dashboard Banner + Partner Events">대시보드 배너 + 제휴 이벤트</option></select></div>
-<div class="form-group"><label class="form-label" data-ko="적용 시작일" data-en="Start Date">적용 시작일</label><input class="form-control" type="date"/></div>
-<div class="form-group"><label class="form-label" data-ko="적용 종료일" data-en="End Date">적용 종료일</label><input class="form-control" type="date"/></div>
+<div class="form-group"><label class="form-label" data-ko="캠페인명" data-en="Campaign Name">캠페인명</label><input class="form-control" id="campaignName" required data-ko-placeholder="예: 썬밸리 CC 제휴 광고" data-en-placeholder="Ex: Sun Valley CC Partner Ad" placeholder="예: 썬밸리 CC 제휴 광고" type="text"/></div>
+<div class="form-group"><label class="form-label" data-ko="광고주/호텔" data-en="Advertiser / Hotel">광고주/호텔</label><select class="form-control" id="campaignAdvertiser" required><option value="" data-ko="광고주를 선택하세요" data-en="Select an advertiser">광고주를 선택하세요</option></select></div>
+<div class="form-group"><label class="form-label" data-ko="서비스 구분" data-en="Service Type">서비스 구분</label><select class="form-control" id="campaignType"><option value="golf" data-ko="골프장" data-en="Golf Course">골프장</option><option value="rentacar" data-ko="렌터카" data-en="Rent-a-car">렌터카</option><option value="restaurant" data-ko="음식점" data-en="Restaurant">음식점</option><option value="other" data-ko="기타" data-en="Other">기타</option></select></div>
+<div class="form-group"><label class="form-label" data-ko="노출 위치" data-en="Placement">노출 위치</label><select class="form-control" id="campaignPlacement"><option value="dashboard" data-ko="대시보드 배너" data-en="Dashboard Banner">대시보드 배너</option><option value="partner" data-ko="호텔 제휴 이벤트" data-en="Hotel Partner Events">호텔 제휴 이벤트</option><option value="both" data-ko="대시보드 배너 + 제휴 이벤트" data-en="Dashboard Banner + Partner Events">대시보드 배너 + 제휴 이벤트</option></select></div>
+<div class="form-group"><label class="form-label" data-ko="적용 시작일" data-en="Start Date">적용 시작일</label><input class="form-control" id="campaignStart" required type="date"/></div>
+<div class="form-group"><label class="form-label" data-ko="적용 종료일" data-en="End Date">적용 종료일</label><input class="form-control" id="campaignEnd" required type="date"/></div>
+<div class="form-group"><label class="form-label" data-ko="예산" data-en="Budget">예산</label><input class="form-control" id="campaignBudget" min="0" required type="number" value="0"/></div>
+<div class="form-group"><label class="form-label" data-ko="상태" data-en="Status">상태</label><select class="form-control" id="campaignStatus"><option value="draft" data-ko="임시 저장" data-en="Draft">임시 저장</option><option value="scheduled" data-ko="예약" data-en="Scheduled">예약</option><option value="active" data-ko="진행 중" data-en="Active">진행 중</option></select></div>
 </div>
 </div>
 </div>
@@ -39,12 +44,12 @@
 <div class="config-panel-header"><h3><i class="fa-solid fa-address-card"></i> <span data-ko="계약 문의 정보" data-en="Contract Contact Info">계약 문의 정보</span></h3></div>
 <div class="config-panel-body">
 <div class="grid-3">
-<div class="form-group"><label class="form-label" data-ko="담당자" data-en="Manager">담당자</label><input class="form-control" data-ko-placeholder="예: Kim Manager" data-en-placeholder="Ex: Kim Manager" placeholder="예: Kim Manager" type="text"/></div>
-<div class="form-group"><label class="form-label" data-ko="연락처" data-en="Phone">연락처</label><input class="form-control" data-ko-placeholder="예: +63 917 230 4471" data-en-placeholder="Ex: +63 917 230 4471" placeholder="예: +63 917 230 4471" type="tel"/></div>
-<div class="form-group"><label class="form-label" data-ko="이메일" data-en="Email">이메일</label><input class="form-control" data-ko-placeholder="예: sales@sunvalleycc.vn" data-en-placeholder="Ex: sales@sunvalleycc.vn" placeholder="예: sales@sunvalleycc.vn" type="email"/></div>
-<div class="form-group" style="grid-column:1/-1"><label class="form-label" data-ko="업체 주소" data-en="Vendor Address">업체 주소</label><input class="form-control" data-ko-placeholder="예: Long Thanh District, Dong Nai, Vietnam" data-en-placeholder="Ex: Long Thanh District, Dong Nai, Vietnam" placeholder="예: Long Thanh District, Dong Nai, Vietnam" type="text"/></div>
-<div class="form-group"><label class="form-label" data-ko="운영 시간" data-en="Operating Hours">운영 시간</label><input class="form-control" data-ko-placeholder="예: 06:00~19:00" data-en-placeholder="Ex: 06:00~19:00" placeholder="예: 06:00~19:00" type="text"/></div>
-<div class="form-group"><label class="form-label" data-ko="정산 조건" data-en="Settlement Terms">정산 조건</label><input class="form-control" data-ko-placeholder="예: 월말 수수료 정산" data-en-placeholder="Ex: Monthly commission settlement" placeholder="예: 월말 수수료 정산" type="text"/></div>
+<div class="form-group"><label class="form-label" data-ko="담당자" data-en="Manager">담당자</label><input class="form-control" id="campaignManager" required data-ko-placeholder="예: Kim Manager" data-en-placeholder="Ex: Kim Manager" placeholder="예: Kim Manager" type="text"/></div>
+<div class="form-group"><label class="form-label" data-ko="연락처" data-en="Phone">연락처</label><input class="form-control" id="campaignPhone" required data-ko-placeholder="예: +63 917 230 4471" data-en-placeholder="Ex: +63 917 230 4471" placeholder="예: +63 917 230 4471" type="tel"/></div>
+<div class="form-group"><label class="form-label" data-ko="이메일" data-en="Email">이메일</label><input class="form-control" id="campaignEmail" required data-ko-placeholder="예: sales@sunvalleycc.vn" data-en-placeholder="Ex: sales@sunvalleycc.vn" placeholder="예: sales@sunvalleycc.vn" type="email"/></div>
+<div class="form-group" style="grid-column:1/-1"><label class="form-label" data-ko="업체 주소" data-en="Vendor Address">업체 주소</label><input class="form-control" id="campaignAddress" required data-ko-placeholder="예: Long Thanh District, Dong Nai, Vietnam" data-en-placeholder="Ex: Long Thanh District, Dong Nai, Vietnam" placeholder="예: Long Thanh District, Dong Nai, Vietnam" type="text"/></div>
+<div class="form-group"><label class="form-label" data-ko="운영 시간" data-en="Operating Hours">운영 시간</label><input class="form-control" id="campaignHours" data-ko-placeholder="예: 06:00~19:00" data-en-placeholder="Ex: 06:00~19:00" placeholder="예: 06:00~19:00" type="text"/></div>
+<div class="form-group"><label class="form-label" data-ko="정산 조건" data-en="Settlement Terms">정산 조건</label><input class="form-control" id="campaignSettlement" data-ko-placeholder="예: 월말 수수료 정산" data-en-placeholder="Ex: Monthly commission settlement" placeholder="예: 월말 수수료 정산" type="text"/></div>
 </div>
 </div>
 </div>
@@ -73,17 +78,19 @@
 <div class="config-panel-header"><h3><i class="fa-solid fa-image"></i> <span data-ko="광고 배너 업로드" data-en="Ad Creative Upload">광고 배너 업로드</span></h3></div>
 <div class="config-panel-body">
 <div class="grid-3">
-<div class="form-group"><label class="form-label" data-ko="한국어 배너" data-en="Korean Banner">한국어 배너</label><div class="ad-banner-drop"><i class="fa-solid fa-cloud-arrow-up"></i><span>728x90 / 300x250</span></div></div>
-<div class="form-group"><label class="form-label" data-ko="영어 배너" data-en="English Banner">영어 배너</label><div class="ad-banner-drop"><i class="fa-solid fa-cloud-arrow-up"></i><span>728x90 / 300x250</span></div></div>
-<div class="form-group"><label class="form-label" data-ko="일본어 배너" data-en="Japanese Banner">일본어 배너</label><div class="ad-banner-drop"><i class="fa-solid fa-cloud-arrow-up"></i><span>728x90 / 300x250</span></div></div>
+<div class="form-group"><label class="form-label" data-ko="한국어 배너" data-en="Korean Banner">한국어 배너</label><input class="ad-creative-input" id="campaignBannerKo" type="file" accept="image/png,image/jpeg,image/webp"/><div class="creative-error" id="campaignBannerKoError"></div></div>
+<div class="form-group"><label class="form-label" data-ko="영어 배너" data-en="English Banner">영어 배너</label><input class="ad-creative-input" id="campaignBannerEn" type="file" accept="image/png,image/jpeg,image/webp"/><div class="creative-error" id="campaignBannerEnError"></div></div>
+<div class="form-group"><label class="form-label" data-ko="일본어 배너" data-en="Japanese Banner">일본어 배너</label><input class="ad-creative-input" id="campaignBannerJa" type="file" accept="image/png,image/jpeg,image/webp"/><div class="creative-error" id="campaignBannerJaError"></div></div>
 </div>
 <div class="ad-form-help" data-ko="광고 소재에는 손님용 예약 버튼보다 호텔 담당자가 계약 문의를 할 수 있는 문구를 우선 사용합니다." data-en="Use hotel-facing contract inquiry copy rather than guest-facing booking CTAs.">광고 소재에는 손님용 예약 버튼보다 호텔 담당자가 계약 문의를 할 수 있는 문구를 우선 사용합니다.</div>
+<div class="ad-preview" id="campaignPreview" style="margin-top:14px"><div class="ad-preview-copy"><h3 id="campaignPreviewTitle">Campaign preview</h3><p id="campaignPreviewBody">Advertiser · Placement · Period</p></div><div class="ad-preview-media" id="campaignPreviewMedia"><i class="fa-regular fa-image fa-2x"></i></div></div>
 </div>
 </div>
 
 <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
 <a class="btn-outline" href="campaigns.html" data-ko="취소" data-en="Cancel">취소</a>
-<button class="btn-primary" type="button" onclick="saveCampaign()"><i class="fa-solid fa-check"></i> <span data-ko="저장" data-en="Save">저장</span></button>
+<button class="btn-outline" id="saveCampaignDraftButton" type="button" onclick="saveCampaign('draft')"><i class="fa-solid fa-floppy-disk"></i> <span data-ko="임시 저장" data-en="Save Draft">임시 저장</span></button>
+<button class="btn-primary" id="saveCampaignButton" type="button" onclick="saveCampaign()"><i class="fa-solid fa-check"></i> <span data-ko="저장" data-en="Save">저장</span></button>
 </div>
 </div>
 </div>
@@ -93,11 +100,100 @@ window.applyLocalI18n = function(lang) {
   document.querySelectorAll('[data-ko-placeholder][data-en-placeholder]').forEach(el => { el.setAttribute('placeholder', el.getAttribute(lang === 'en' ? 'data-en-placeholder' : 'data-ko-placeholder')); });
   document.querySelectorAll('[data-ko-html][data-en-html]').forEach(el => { el.innerHTML = el.getAttribute(lang === 'en' ? 'data-en-html' : 'data-ko-html'); });
 };
-function saveCampaign() {
+function saveCampaign(forceStatus = '') {
+  const requiredIds = ['campaignName', 'campaignAdvertiser', 'campaignStart', 'campaignEnd', 'campaignBudget', 'campaignManager', 'campaignPhone', 'campaignEmail', 'campaignAddress'];
+  const invalid = requiredIds.map(id => document.getElementById(id)).find(input => !input.checkValidity());
+  if (invalid) { invalid.reportValidity(); invalid.focus(); return false; }
+  const start = document.getElementById('campaignStart').value;
+  const end = document.getElementById('campaignEnd').value;
+  if (start > end) {
+    document.getElementById('campaignEnd').setCustomValidity(window.currentLang === 'en' ? 'End date must be on or after the start date.' : '종료일은 시작일 이후여야 합니다.');
+    document.getElementById('campaignEnd').reportValidity();
+    return false;
+  }
+  document.getElementById('campaignEnd').setCustomValidity('');
+  const campaigns = AdminStore.read('adCampaigns', []);
+  const placement = document.getElementById('campaignPlacement').value;
+  const overlap = campaigns.some(item => item.placement === placement && item.status !== 'ended' && start <= item.endDate && end >= item.startDate);
+  if (overlap && !confirm(window.currentLang === 'en' ? 'This placement overlaps another campaign. Continue?' : '같은 노출 위치의 기간이 겹칩니다. 계속 저장하시겠습니까?')) return false;
+  const advertiserOption = document.getElementById('campaignAdvertiser').selectedOptions[0];
+  const campaign = {
+    id: `ADS-${Date.now()}`,
+    name: document.getElementById('campaignName').value.trim(),
+    advertiserId: document.getElementById('campaignAdvertiser').value,
+    advertiser: advertiserOption?.dataset.name || advertiserOption?.textContent || '',
+    type: document.getElementById('campaignType').value,
+    placement,
+    startDate: start,
+    endDate: end,
+    budget: Number(document.getElementById('campaignBudget').value),
+    status: forceStatus || document.getElementById('campaignStatus').value,
+    manager: document.getElementById('campaignManager').value.trim(),
+    phone: document.getElementById('campaignPhone').value.trim(),
+    email: document.getElementById('campaignEmail').value.trim().toLowerCase(),
+    address: document.getElementById('campaignAddress').value.trim(),
+    hours: document.getElementById('campaignHours').value.trim(),
+    settlement: document.getElementById('campaignSettlement').value.trim(),
+    bannerName: document.getElementById('campaignBannerKo').files[0]?.name || document.getElementById('campaignBannerEn').files[0]?.name || '',
+    contentHtml: document.getElementById('adContentEditor').innerHTML,
+    createdAt: new Date().toISOString(), views: 0, leads: 0
+  };
+  AdminStore.write('adCampaigns', [campaign, ...campaigns]);
+  AdminStore.audit('campaign.create', campaign.id, `${campaign.name} / ${campaign.status} / ${campaign.placement}`);
   if (window.showToast) window.showToast(window.currentLang === 'en' ? 'Campaign saved.' : '캠페인이 등록되었습니다.', 'success');
-  setTimeout(() => { window.location.href = 'campaigns.html'; }, 500);
+  setTimeout(() => { window.location.href = `detail.html?id=${encodeURIComponent(campaign.id)}`; }, 120);
+  return true;
 }
-document.addEventListener('DOMContentLoaded', () => window.applyLocalI18n(window.currentLang || localStorage.getItem('pms_lang') || 'ko'));
+document.addEventListener('DOMContentLoaded', () => {
+  window.applyLocalI18n(window.currentLang || localStorage.getItem('pms_lang') || 'ko');
+  const tenants = AdminStore.read('tenants', []);
+  const advertiser = document.getElementById('campaignAdvertiser');
+  const selectableStatuses = new Set(['active', 'approved', 'trial']);
+  advertiser.innerHTML += tenants.filter(item => selectableStatuses.has(String(item.status || '').toLowerCase())).map(item => `<option value="${String(item.id).replaceAll('&', '&amp;').replaceAll('"', '&quot;')}" data-name="${String(item.hotelName || item.name || item.id).replaceAll('&', '&amp;').replaceAll('"', '&quot;')}">${String(item.hotelName || item.name || item.id).replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</option>`).join('');
+  const previewFields = ['campaignName','campaignAdvertiser','campaignPlacement','campaignStart','campaignEnd','campaignManager'];
+  previewFields.forEach(id => {
+    const field = document.getElementById(id);
+    field.addEventListener('input', renderCampaignPreview);
+    field.addEventListener('change', renderCampaignPreview);
+  });
+  ['campaignBannerKo','campaignBannerEn','campaignBannerJa'].forEach(id => document.getElementById(id).addEventListener('change', event => validateCampaignCreative(event.target)));
+  renderCampaignPreview();
+});
+
+function validateCampaignCreative(input) {
+  const file = input.files[0];
+  const error = document.getElementById(`${input.id}Error`);
+  error.textContent = '';
+  if (!file) { renderCampaignPreview(); return true; }
+  if (!['image/png','image/jpeg','image/webp'].includes(file.type)) {
+    error.textContent = window.currentLang === 'en' ? 'PNG, JPEG, or WebP only.' : 'PNG, JPEG, WebP 형식만 등록할 수 있습니다.';
+    input.value = '';
+    renderCampaignPreview();
+    return false;
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    error.textContent = window.currentLang === 'en' ? 'The file must be 2 MB or smaller.' : '파일은 2MB 이하여야 합니다.';
+    input.value = '';
+    renderCampaignPreview();
+    return false;
+  }
+  renderCampaignPreview(file);
+  return true;
+}
+
+function renderCampaignPreview(file) {
+  const advertiser = document.getElementById('campaignAdvertiser').selectedOptions[0]?.dataset.name || '-';
+  const placement = document.getElementById('campaignPlacement').selectedOptions[0]?.textContent || '-';
+  document.getElementById('campaignPreviewTitle').textContent = document.getElementById('campaignName').value.trim() || (window.currentLang === 'en' ? 'Campaign preview' : '캠페인 미리보기');
+  document.getElementById('campaignPreviewBody').textContent = `${advertiser} · ${placement} · ${document.getElementById('campaignStart').value || '-'} ~ ${document.getElementById('campaignEnd').value || '-'}`;
+  const media = document.getElementById('campaignPreviewMedia');
+  const selected = [file, document.getElementById('campaignBannerKo').files[0], document.getElementById('campaignBannerEn').files[0], document.getElementById('campaignBannerJa').files[0]]
+    .find(candidate => candidate instanceof Blob && ['image/png','image/jpeg','image/webp'].includes(candidate.type));
+  if (!selected) { media.innerHTML = '<i class="fa-regular fa-image fa-2x"></i>'; return; }
+  const reader = new FileReader();
+  reader.onload = () => { media.innerHTML = `<img alt="Creative preview" src="${reader.result}"/>`; };
+  reader.readAsDataURL(selected);
+}
 </script>
 </body>
 </html>

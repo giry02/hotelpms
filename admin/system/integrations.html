@@ -1,138 +1,17 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>연동 관리 - Super Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="../common/css/admin-base.css">
-    <link rel="stylesheet" href="../common/css/admin-pages.css">
-    <script src="../common/js/admin-i18n-catalog.js"></script>
-<script src="../common/js/admin-i18n.js"></script>
-    <script src="../common/js/admin-sidebar.js"></script>
-    <style>
-        .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-        .app-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; transition: all 0.2s; }
-        .app-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); border-color: var(--primary-lt); }
-        .app-header { display: flex; align-items: center; gap: 15px; }
-        .app-icon { width: 50px; height: 50px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; }
-        .app-title { font-size: 1.1rem; font-weight: 700; color: var(--txt); }
-        .app-cat { font-size: 0.75rem; font-weight: 600; color: var(--txt3); text-transform: uppercase; letter-spacing: 0.5px; }
-        .app-desc { font-size: 0.85rem; color: var(--txt2); line-height: 1.5; flex: 1; }
-        .app-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border2); padding-top: 15px; }
-        .toggle-switch { position: relative; width: 44px; height: 24px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(20px); }
-    </style>
-</head>
-<body>
-<div class="main">
-    <header class="topbar">
-        <div class="topbar-left">
-            <button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-            <h1>서드파티 연동 관리</h1>
-        </div>
-    </header>
-    <div class="content">
-        <div class="filter-bar">
-            <div style="display:flex;gap:10px;">
-                <button class="btn-outline">전체 연동</button>
-                <button class="btn-outline">결제(PG)</button>
-                <button class="btn-outline">메시징</button>
-            </div>
-            <button class="btn-primary"><i class="fa-solid fa-plus"></i> 커스텀 연동 추가</button>
-        </div>
-
-        <div class="app-grid">
-            <div class="app-card">
-                <div class="app-header">
-                    <div class="app-icon" style="background: #635BFF;"><i class="fa-brands fa-stripe-s"></i></div>
-                    <div>
-                        <div class="app-title">Stripe 결제</div>
-                        <div class="app-cat">결제(PG)</div>
-                    </div>
-                </div>
-                <div class="app-desc">글로벌 신용카드 결제 및 디파짓(Pre-auth) 처리를 위한 Stripe 결제 모듈입니다. 테넌트들이 자신의 Stripe 계정을 연결할 수 있습니다.</div>
-                <div class="app-footer">
-                    <button class="btn-outline-sm" onclick="alert('API 설정을 엽니다.')">API 설정</button>
-                    <label class="toggle-switch">
-                        <input type="checkbox" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-
-            <div class="app-card">
-                <div class="app-header">
-                    <div class="app-icon" style="background: #FEE500; color: #371D1E;"><i class="fa-solid fa-comment"></i></div>
-                    <div>
-                        <div class="app-title">Kakao Alimtalk</div>
-                        <div class="app-cat">메시징</div>
-                    </div>
-                </div>
-                <div class="app-desc">국내 고객을 위한 카카오톡 알림톡 발송 모듈입니다. 예약 확정, 체크인 안내, 웰컴 메시지 자동 발송을 지원합니다.</div>
-                <div class="app-footer">
-                    <button class="btn-outline-sm">API 설정</button>
-                    <label class="toggle-switch">
-                        <input type="checkbox" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-
-            <div class="app-card">
-                <div class="app-header">
-                    <div class="app-icon" style="background: #00A650;"><i class="fa-solid fa-building-columns"></i></div>
-                    <div>
-                        <div class="app-title">NICE Pay (나이스페이)</div>
-                        <div class="app-cat">결제(PG)</div>
-                    </div>
-                </div>
-                <div class="app-desc">국내 신용카드, 가상계좌, 간편결제(네이버페이, 카카오페이 등)를 지원하는 국내 표준 결제 게이트웨이 연동 모듈입니다.</div>
-                <div class="app-footer">
-                    <button class="btn-outline-sm">API 설정</button>
-                    <label class="toggle-switch">
-                        <input type="checkbox">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>외부 연동 관리 - Super Admin</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/><link rel="stylesheet" href="../common/css/admin-base.css"/><link rel="stylesheet" href="../common/css/admin-pages.css"/><script src="../common/js/admin-sidebar.js"></script><script src="../common/js/admin-i18n-catalog.js"></script><script src="../common/js/admin-i18n.js"></script><style>.app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}.app-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:12px}.app-card.error{border-color:var(--danger)}.app-head{display:flex;gap:12px;align-items:center}.app-icon{width:42px;height:42px;border-radius:8px;display:grid;place-items:center;color:#fff;background:var(--primary)}.app-title{font-weight:800}.app-meta{font-size:.78rem;color:var(--txt3)}.app-actions{display:flex;gap:7px;flex-wrap:wrap}.toggle{display:inline-flex;align-items:center;gap:7px}.secret-preview{font-family:monospace;background:var(--bg);padding:8px;border-radius:6px}.integration-log{font-size:.78rem;color:var(--txt2)}@media(max-width:480px){.app-grid{grid-template-columns:1fr}.app-actions button{flex:1}}</style></head>
+<body><div class="main"><header class="topbar"><div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><h1 data-ko="외부 연동 관리" data-en="Integrations">외부 연동 관리</h1></div><div class="topbar-right"><select class="hotel-select" id="langSelect" onchange="changeLang(this.value)"><option value="ko">한국어</option><option value="en">English</option></select></div></header><main class="content"><div class="filter-bar"><div class="filter-chips" id="integrationFilters"><button class="chip active" data-filter="all" data-ko="전체" data-en="All">전체</button><button class="chip" data-filter="payment" data-ko="결제" data-en="Payment">결제</button><button class="chip" data-filter="message" data-ko="메시지" data-en="Messaging">메시지</button><button class="chip" data-filter="channel" data-ko="채널" data-en="Channel">채널</button><button class="chip" data-filter="error" data-ko="오류" data-en="Errors">오류</button></div><button class="btn-primary" id="newIntegrationButton"><i class="fa-solid fa-plus"></i> <span data-ko="연동 추가" data-en="Add Integration">연동 추가</span></button></div><div class="app-grid" id="integrationGrid"></div></main></div>
+<div class="modal-overlay" id="integrationModal"><div class="modal-card" style="width:620px;max-width:94vw"><div class="modal-header"><h3 class="modal-title" id="integrationModalTitle"></h3><button class="modal-close" id="closeIntegrationButton"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><input id="integrationId" type="hidden"/><div class="grid-2"><div class="form-group"><label class="form-label" data-ko="연동명" data-en="Name">연동명</label><input class="form-control" id="integrationName" required/></div><div class="form-group"><label class="form-label" data-ko="유형" data-en="Type">유형</label><select class="form-control" id="integrationType"><option value="payment" data-ko="결제" data-en="Payment">결제</option><option value="message" data-ko="메시지" data-en="Messaging">메시지</option><option value="channel" data-ko="채널" data-en="Channel">채널</option></select></div><div class="form-group" style="grid-column:1/-1"><label class="form-label">Endpoint</label><input class="form-control" id="integrationEndpoint" type="url" required/></div><div class="form-group" style="grid-column:1/-1"><label class="form-label">API Key</label><input class="form-control" id="integrationSecret" autocomplete="new-password" data-ko-placeholder="변경할 때만 입력" data-en-placeholder="Enter only to replace" placeholder="변경할 때만 입력" type="password"/></div></div></div><div class="modal-footer"><button class="btn-outline" id="revokeSecretButton" type="button" data-ko="키 폐기" data-en="Revoke Key">키 폐기</button><button class="btn-primary" id="saveIntegrationButton" type="button" data-ko="저장" data-en="Save">저장</button></div></div></div>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const filterButtons = Array.from(document.querySelectorAll('.filter-bar > div .btn-outline'));
-    const cards = Array.from(document.querySelectorAll('.app-card'));
-    const applyFilter = (filter) => {
-        cards.forEach((card, index) => {
-            const show = filter === 'all' || (filter === 'payment' && (index === 0 || index === 2)) || (filter === 'message' && index === 1);
-            card.style.display = show ? '' : 'none';
-        });
-    };
-    filterButtons.forEach((button, index) => {
-        button.addEventListener('click', () => {
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            applyFilter(['all', 'payment', 'message'][index] || 'all');
-        });
-    });
-
-    const addButton = document.querySelector('.filter-bar > .btn-primary');
-    if (addButton) {
-        addButton.addEventListener('click', () => alert('커스텀 연동 등록 화면을 준비했습니다.'));
-    }
-
-    document.querySelectorAll('.app-footer .btn-outline-sm').forEach(button => {
-        if (!button.getAttribute('onclick')) {
-            button.addEventListener('click', () => alert('API 설정 화면을 엽니다.'));
-        }
-    });
-});
-</script>
-</body>
-</html>
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const language=()=>window.currentLang||localStorage.getItem('pms_admin_lang')||localStorage.getItem('pms_lang')||'ko';let integrations=[];let filter='all';const seed=[{id:'INT-STRIPE',name:'Stripe',type:'payment',endpoint:'https://api.stripe.com',secretMasked:'sk_live_••••4821',active:true,status:'connected',lastSync:'2026-07-19 10:00',latencyMs:182},{id:'INT-TWILIO',name:'Twilio',type:'message',endpoint:'https://api.twilio.com',secretMasked:'AC••••7230',active:true,status:'connected',lastSync:'2026-07-19 09:40',latencyMs:240},{id:'INT-CHANNEL',name:'Channel Manager',type:'channel',endpoint:'https://channel.example/api',secretMasked:'ch_••••1002',active:false,status:'error',lastSync:'2026-07-18 21:00',error:'Authentication failed'}];
+function typeLabel(type){const en=language()==='en';return{payment:en?'Payment':'결제',message:en?'Messaging':'메시지',channel:en?'Channel':'채널'}[type]||type}function statusLabel(status){const en=language()==='en';return status==='connected'?(en?'Connected':'정상'):status==='testing'?(en?'Testing':'검사 중'):(en?'Error':'오류')}
+function render(){const rows=integrations.filter(i=>filter==='all'||(filter==='error'?i.status==='error':i.type===filter));document.getElementById('integrationGrid').innerHTML=rows.length?rows.map(i=>`<article class="app-card ${i.status==='error'?'error':''}" data-id="${esc(i.id)}"><div class="app-head"><div class="app-icon"><i class="fa-solid ${i.type==='payment'?'fa-credit-card':i.type==='message'?'fa-message':'fa-arrows-rotate'}"></i></div><div><div class="app-title">${esc(i.name)}</div><div class="app-meta">${esc(typeLabel(i.type))} · ${esc(statusLabel(i.status))}</div></div></div><div class="secret-preview">${esc(i.secretMasked||'Not configured')}</div><div class="integration-log">${language()==='en'?'Last sync':'최근 동기화'}: ${esc(i.lastSync||'-')} · ${Number(i.latencyMs||0)}ms${i.error?`<br><span style="color:var(--danger)">${esc(i.error)}</span>`:''}</div><label class="toggle"><input class="integration-toggle" type="checkbox" ${i.active?'checked':''}/> <span>${language()==='en'?'Active':'사용'}</span></label><div class="app-actions"><button class="btn-outline btn-sm configure-integration"><i class="fa-solid fa-gear"></i> ${language()==='en'?'Configure':'설정'}</button><button class="btn-outline btn-sm test-integration"><i class="fa-solid fa-plug"></i> ${language()==='en'?'Test':'연결 검사'}</button><button class="btn-outline btn-sm sync-integration"><i class="fa-solid fa-rotate"></i> ${language()==='en'?'Retry Sync':'동기화 재실행'}</button></div></article>`).join(''):`<div style="padding:30px;color:var(--txt3)">${language()==='en'?'No integrations.':'연동이 없습니다.'}</div>`;bindCards()}
+function persist(action,item,details=''){AdminStore.write('integrations',integrations);AdminStore.audit(action,item?.id||'integration',details||item?.name||'','Medium');render()}
+function bindCards(){document.querySelectorAll('.app-card').forEach(card=>{const id=card.dataset.id;card.querySelector('.configure-integration').onclick=()=>openIntegration(id);card.querySelector('.integration-toggle').onchange=e=>{const item=integrations.find(i=>i.id===id);item.active=e.target.checked;persist('integration.toggle',item,`${item.name} / active=${item.active}`)};card.querySelector('.test-integration').onclick=()=>testConnection(id);card.querySelector('.sync-integration').onclick=()=>retrySync(id)})}
+function openIntegration(id=''){const item=integrations.find(i=>i.id===id);document.getElementById('integrationId').value=item?.id||'';document.getElementById('integrationName').value=item?.name||'';document.getElementById('integrationType').value=item?.type||'payment';document.getElementById('integrationEndpoint').value=item?.endpoint||'';document.getElementById('integrationSecret').value='';document.getElementById('revokeSecretButton').style.display=item?'inline-flex':'none';document.getElementById('integrationModalTitle').textContent=language()==='en'?(item?'Configure Integration':'Add Integration'):(item?'연동 설정':'연동 추가');document.getElementById('integrationModal').classList.add('active')}
+function closeIntegration(){document.getElementById('integrationModal').classList.remove('active')}
+function saveIntegration(){const name=document.getElementById('integrationName'),endpoint=document.getElementById('integrationEndpoint');if(!name.checkValidity()){name.reportValidity();return false}if(!endpoint.checkValidity()){endpoint.reportValidity();return false}const id=document.getElementById('integrationId').value;const old=integrations.find(i=>i.id===id);const secret=document.getElementById('integrationSecret').value;const item={...old,id:old?.id||`INT-${Date.now()}`,name:name.value.trim(),type:document.getElementById('integrationType').value,endpoint:endpoint.value.trim(),secretMasked:secret?`${secret.slice(0,3)}••••${secret.slice(-4)}`:(old?.secretMasked||'Not configured'),active:old?.active??false,status:old?.status||'connected',lastSync:old?.lastSync||'-',latencyMs:old?.latencyMs||0};integrations=old?integrations.map(i=>i.id===id?item:i):[item,...integrations];closeIntegration();persist(old?'integration.update':'integration.create',item,`${item.name} / ${item.type}`);return true}
+function revokeSecret(){const item=integrations.find(i=>i.id===document.getElementById('integrationId').value);if(!item)return false;item.secretMasked='Revoked';item.active=false;item.status='error';item.error=language()==='en'?'Key revoked':'키 폐기됨';closeIntegration();persist('integration.key_revoke',item,item.name);return true}
+function testConnection(id){const item=integrations.find(i=>i.id===id);item.status=/invalid|fail/i.test(item.endpoint)?'error':'connected';item.error=item.status==='error'?(language()==='en'?'Connection failed':'연결 실패'):'';item.latencyMs=137;item.lastSync=new Date().toISOString();persist('integration.connection_test',item,`${item.name} / ${item.status}`);return item.status==='connected'}
+function retrySync(id){const item=integrations.find(i=>i.id===id);item.lastSync=new Date().toISOString();item.status=item.active?'connected':'error';item.error=item.active?'':(language()==='en'?'Integration is inactive':'연동이 비활성 상태입니다.');persist('integration.sync_retry',item,`${item.name} / ${item.status}`);return item.status==='connected'}
+window.applyLocalI18n=function(next){document.querySelectorAll('[data-ko][data-en]').forEach(el=>el.textContent=el.getAttribute(next==='en'?'data-en':'data-ko'));document.querySelectorAll('[data-ko-placeholder][data-en-placeholder]').forEach(el=>el.placeholder=el.getAttribute(next==='en'?'data-en-placeholder':'data-ko-placeholder'));render()};document.addEventListener('DOMContentLoaded',()=>{integrations=AdminStore.read('integrations',seed);document.getElementById('newIntegrationButton').onclick=()=>openIntegration();document.getElementById('closeIntegrationButton').onclick=closeIntegration;document.getElementById('saveIntegrationButton').onclick=saveIntegration;document.getElementById('revokeSecretButton').onclick=revokeSecret;document.querySelectorAll('#integrationFilters .chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('#integrationFilters .chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');filter=b.dataset.filter;render()});window.applyLocalI18n(language())});
+</script></body></html>

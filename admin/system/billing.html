@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>결제 관리 - Super Admin</title>
+<title data-ko="구독 및 결제 - Super Admin" data-en="Subscriptions & Billing - Super Admin">구독 및 결제 - Super Admin</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
@@ -14,216 +14,70 @@
 <script src="../common/js/admin-i18n.js"></script>
 <script src="../common/js/admin-sidebar.js"></script>
 <style>
-		.action-btn { font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 4px; }
-		.btn-alert { background: var(--warning-lt); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
-		.btn-promo { background: var(--purple-lt); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
-	</style>
+.billing-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.billing-toolbar .form-control{width:auto;min-width:150px}.billing-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.billing-kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}.billing-kpi-label{font-size:.76rem;color:var(--txt3);font-weight:700;margin-bottom:8px}.billing-kpi-values{display:grid;gap:5px}.billing-money{display:flex;justify-content:space-between;gap:8px;font-size:.84rem}.billing-money strong{color:var(--txt1)}.billing-actions{display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}.billing-actions button{width:34px;height:32px;padding:0;display:inline-grid;place-items:center}.billing-status{white-space:nowrap}.billing-empty{text-align:center!important;color:var(--txt3);padding:34px!important}.billing-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.billing-modal-grid .wide{grid-column:1/-1}.billing-balance{font-weight:800}.billing-balance.due{color:var(--danger)}.billing-balance.credit{color:var(--success)}.idempotency-note{font-size:.74rem;color:var(--txt3);margin-top:4px}.data-table td{vertical-align:middle}.table-wrap{overflow:auto}.table-wrap table{min-width:1120px}.btn-danger-soft{color:var(--danger);border-color:#fecaca;background:#fff}.btn-success-soft{color:var(--success);border-color:#a7f3d0;background:#fff}.btn-warning-soft{color:#b45309;border-color:#fed7aa;background:#fff7ed}@media(max-width:900px){.billing-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.billing-modal-grid{grid-template-columns:1fr}}@media(max-width:520px){.billing-kpi-grid{grid-template-columns:1fr}.billing-toolbar>*{width:100%!important}}
+</style>
 </head>
 <body>
 <div class="main">
-<header class="topbar">
-<div class="topbar-left">
-<button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-<h1>과금 현황 (Billing)</h1>
-</div>
-</header>
-<div class="content">
-<!-- KPI -->
-<div class="kpi-grid">
-<div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-money-bill-trend-up"></i></div><div class="kpi-body"><div class="kpi-value">$125,000</div><div class="kpi-label">이번 달 결제 완료</div></div></div>
-<div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-clock"></i></div><div class="kpi-body"><div class="kpi-value">$18,400</div><div class="kpi-label">미납 및 연체</div></div></div>
-<div class="kpi-card red"><div class="kpi-icon"><i class="fa-solid fa-user-slash"></i></div><div class="kpi-body"><div class="kpi-value">2</div><div class="kpi-label">정지된 테넌트 (이탈)</div></div></div>
-</div>
-<div class="card">
-<div class="card-header" style="flex-direction:column; align-items:flex-start; gap:16px;">
-<h2 style="font-size:1.1rem; font-weight:700;">All 결제 내역</h2>
-<div class="filter-chips">
-<button class="chip active" onclick="filterTable('all', this)">전체</button>
-<button class="chip" onclick="filterTable('overdue', this)" style="color:var(--danger);border-color:var(--danger-lt);">미납/연체</button>
-<button class="chip" onclick="filterTable('expiring', this)">만료 임박 (D-3)</button>
-<button class="chip" onclick="filterTable('expired', this)">만료됨</button>
-</div>
-</div>
+<header class="topbar"><div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><h1 data-ko="구독 및 결제" data-en="Subscriptions & Billing">구독 및 결제</h1></div><div class="topbar-right"><select class="hotel-select" id="langSelect" onchange="changeLang(this.value)"><option value="ko">KR 한국어</option><option value="en">EN English</option></select></div></header>
+<main class="content">
+<section class="billing-kpi-grid" id="billingKpis"></section>
+<section class="card">
+<div class="card-header"><div class="card-title"><i class="fa-solid fa-file-invoice-dollar"></i> <span data-ko="호텔별 청구 및 수납" data-en="Hotel Invoices & Payments">호텔별 청구 및 수납</span></div><button class="btn-primary" id="newInvoiceButton" type="button"><i class="fa-solid fa-plus"></i> <span data-ko="청구 등록" data-en="New Invoice">청구 등록</span></button></div>
 <div class="card-body">
-<table class="data-table">
-<thead>
-<tr>
-<th>호텔</th>
-<th>플랜</th>
-<th>결제 주기</th>
-<th>금액</th>
-<th>갱신일</th>
-<th>상태</th>
-<th>관리</th>
-</tr>
-</thead>
-<tbody id="billingTableBody">
-<!-- JS Inject -->
-</tbody>
-</table>
+<div class="billing-toolbar" style="margin-bottom:14px">
+<select class="form-control" id="billingHotelFilter"><option value="all" data-ko="전체 호텔" data-en="All Hotels">전체 호텔</option></select>
+<select class="form-control" id="billingStatusFilter"><option value="all" data-ko="전체 상태" data-en="All Statuses">전체 상태</option><option value="open" data-ko="미수납" data-en="Open">미수납</option><option value="partial" data-ko="부분수납" data-en="Partially Paid">부분수납</option><option value="paid" data-ko="수납 완료" data-en="Paid">수납 완료</option><option value="overdue" data-ko="연체" data-en="Overdue">연체</option><option value="cancelled" data-ko="취소" data-en="Cancelled">취소</option></select>
+<input class="form-control" id="billingStartFilter" type="date" aria-label="Start date"/>
+<input class="form-control" id="billingEndFilter" type="date" aria-label="End date"/>
+<input class="form-control" id="billingSearch" type="search" data-ko-placeholder="호텔, 청구번호 검색" data-en-placeholder="Search hotel or invoice" placeholder="호텔, 청구번호 검색"/>
 </div>
-</div>
-</div>
-</div>
-<!-- Promo Modal -->
-<div class="modal-overlay" id="promoModal">
-<div class="modal-card" style="max-width:400px">
-<div class="modal-header">
-<div class="modal-title"><i class="fa-solid fa-gift" style="color:var(--purple)"></i> 프로모션 메일 발송</div>
-<button class="modal-close" onclick="closeModal('promoModal')"><i class="fa-solid fa-xmark"></i></button>
-</div>
-<div class="modal-body">
-<p style="font-size:0.85rem;color:var(--txt2);margin-bottom:20px;">만료된 호텔(이탈 Guest)을 다시 유치하기 위해 특별 할인을 제안합니다.</p>
-<div class="form-group" style="margin-bottom:16px;">
-<label class="form-label">할인 금액 ($)</label>
-<div style="display:flex;align-items:center;gap:10px;">
-<span style="font-weight:600;color:var(--txt2)">- $</span>
-<input class="form-control" placeholder="예: 50" type="number" value="50"/>
-<span style="font-size:0.8rem;color:var(--txt3)">/ 월</span>
-</div>
-</div>
-<div class="form-group" style="margin-bottom:20px;">
-<label class="form-label">연장 기간</label>
-<select class="form-control">
-<option value="3">3개월</option>
-<option value="6">6개월</option>
-<option value="12">1년 연장 (추천)</option>
-</select>
-</div>
-</div>
-<div class="modal-footer">
-<button class="btn-outline" onclick="closeModal('promoModal')">취소</button>
-<button class="btn-purple" onclick="alert('프로모션 메일이 발송되었습니다!');closeModal('promoModal');"><i class="fa-solid fa-paper-plane"></i> 메일 발송</button>
-</div>
-</div>
-</div>
-<!-- Alert Modal -->
-<div class="modal-overlay" id="alertModal">
-<div class="modal-card" style="max-width:400px">
-<div class="modal-header">
-<div class="modal-title"><i class="fa-solid fa-bell" style="color:var(--warning)"></i> 만료 임박 안내 발송</div>
-<button class="modal-close" onclick="closeModal('alertModal')"><i class="fa-solid fa-xmark"></i></button>
-</div>
-<div class="modal-body">
-<p style="font-size:0.85rem;color:var(--txt2);margin-bottom:10px;">만료가 3일 이내로 다가온 테넌트에게 카드 확인 및 갱신 안내 알림을 발송합니다.</p>
-<div style="background:var(--warning-lt);padding:12px;border-radius:8px;font-size:0.8rem;color:#92400e;margin-top:10px;">
-				발송 Channel : <strong>이메일 및 앱 푸시 알림</strong>
-</div>
-</div>
-<div class="modal-footer">
-<button class="btn-outline" onclick="closeModal('alertModal')">취소</button>
-<button class="btn-warning" onclick="alert('안내 알림이 발송되었습니다.');closeModal('alertModal');"><i class="fa-solid fa-paper-plane"></i> 안내 발송</button>
-</div>
-</div>
-</div>
+<div class="table-wrap"><table class="data-table"><thead><tr><th data-ko="청구번호" data-en="Invoice">청구번호</th><th data-ko="호텔/계약" data-en="Hotel / Contract">호텔/계약</th><th data-ko="기간" data-en="Period">기간</th><th data-ko="청구액" data-en="Amount">청구액</th><th data-ko="수납/환불" data-en="Paid / Refund">수납/환불</th><th data-ko="잔액" data-en="Balance">잔액</th><th data-ko="납기/상태" data-en="Due / Status">납기/상태</th><th data-ko="관리" data-en="Actions">관리</th></tr></thead><tbody id="billingTableBody"></tbody></table></div>
+</div></section>
+</main></div>
+
+<div class="modal-overlay" id="invoiceModal"><div class="modal-card" style="max-width:720px"><div class="modal-header"><div class="modal-title" id="invoiceModalTitle" data-ko="청구 등록" data-en="New Invoice">청구 등록</div><button class="modal-close" id="closeInvoiceModal"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><input id="invoiceId" type="hidden"/><div class="billing-modal-grid">
+<div class="form-group wide"><label class="form-label" data-ko="호텔" data-en="Hotel">호텔</label><select class="form-control" id="invoiceTenant" required></select></div>
+<div class="form-group"><label class="form-label" data-ko="요금제" data-en="Plan">요금제</label><select class="form-control" id="invoicePlan"><option>Standard</option><option>Premium</option><option>Enterprise</option></select></div>
+<div class="form-group"><label class="form-label" data-ko="통화" data-en="Currency">통화</label><select class="form-control" id="invoiceCurrency"><option>PHP</option><option>USD</option><option>KRW</option><option>VND</option></select></div>
+<div class="form-group"><label class="form-label" data-ko="기간 시작" data-en="Period Start">기간 시작</label><input class="form-control" id="invoicePeriodStart" type="date" required/></div>
+<div class="form-group"><label class="form-label" data-ko="기간 종료" data-en="Period End">기간 종료</label><input class="form-control" id="invoicePeriodEnd" type="date" required/></div>
+<div class="form-group"><label class="form-label" data-ko="납기일" data-en="Due Date">납기일</label><input class="form-control" id="invoiceDueAt" type="date" required/></div>
+<div class="form-group"><label class="form-label" data-ko="청구 금액" data-en="Amount">청구 금액</label><input class="form-control" id="invoiceAmount" type="number" min="0.01" step="0.01" required/></div>
+<div class="form-group wide"><label class="form-label" data-ko="메모" data-en="Memo">메모</label><textarea class="form-control" id="invoiceMemo" rows="3"></textarea></div>
+</div></div><div class="modal-footer"><button class="btn-outline" id="cancelInvoiceModal" data-ko="취소" data-en="Cancel">취소</button><button class="btn-primary" id="saveInvoiceButton"><i class="fa-solid fa-check"></i> <span data-ko="저장" data-en="Save">저장</span></button></div></div></div>
+
+<div class="modal-overlay" id="paymentModal"><div class="modal-card" style="max-width:520px"><div class="modal-header"><div class="modal-title" id="paymentModalTitle" data-ko="수납 등록" data-en="Register Payment">수납 등록</div><button class="modal-close" id="closePaymentModal"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><input id="paymentInvoiceId" type="hidden"/><div class="form-group"><label class="form-label" data-ko="처리 유형" data-en="Transaction Type">처리 유형</label><select class="form-control" id="paymentType"><option value="payment" data-ko="수납" data-en="Payment">수납</option><option value="refund" data-ko="환불" data-en="Refund">환불</option></select></div><div class="form-group"><label class="form-label" data-ko="금액" data-en="Amount">금액</label><input class="form-control" id="paymentAmount" type="number" min="0.01" step="0.01" required/></div><div class="form-group"><label class="form-label" data-ko="요청 키" data-en="Request Key">요청 키</label><input class="form-control" id="paymentRequestKey" required/><div class="idempotency-note" data-ko="같은 요청 키는 한 번만 처리됩니다." data-en="The same request key is processed only once.">같은 요청 키는 한 번만 처리됩니다.</div></div></div><div class="modal-footer"><button class="btn-outline" id="cancelPaymentModal" data-ko="취소" data-en="Cancel">취소</button><button class="btn-primary" id="savePaymentButton"><i class="fa-solid fa-check"></i> <span data-ko="처리" data-en="Process">처리</span></button></div></div></div>
+
 <script>
-	let currentFilter = 'all';
-
-	function normalizeBillingStatus(invoice) {
-		const rawStatus = invoice.status || 'open';
-		if (['paid', 'overdue', 'expiring', 'expired'].includes(rawStatus)) return rawStatus;
-		if (rawStatus === 'cancelled' || rawStatus === 'canceled') return 'expired';
-
-		const dueAt = invoice.dueAt || invoice.date || invoice.renewalDate;
-		if (dueAt) {
-			const today = new Date('2026-06-01T00:00:00+09:00');
-			const dueDate = new Date(`${dueAt}T00:00:00+09:00`);
-			const diffDays = Math.ceil((dueDate - today) / 86400000);
-			invoice.dday = diffDays;
-			if (diffDays < 0) return 'overdue';
-			if (diffDays <= 3) return 'expiring';
-		}
-		return 'open';
-	}
-
-	function formatMoney(amount, currency) {
-		const value = Number(amount?.amount ?? amount ?? 0);
-		return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 }).format(value);
-	}
-
-	function normalizeInvoice(invoice) {
-		return {
-			id: invoice.id || invoice.invoiceId || invoice.tenantId || '-',
-			hotel: invoice.hotel || invoice.hotelName || invoice.tenantName || invoice.tenantId || '-',
-			plan: invoice.plan || 'Standard',
-			cycle: invoice.cycle || invoice.billingCycle || 'Monthly',
-			amount: invoice.amount,
-			currency: 'PHP',
-			date: invoice.date || invoice.dueAt || invoice.renewalDate || invoice.issuedAt || '-',
-			status: normalizeBillingStatus(invoice),
-			dday: invoice.dday
-		};
-	}
-
-	function escapeAdminBillingHtml(value) {
-		return String(value ?? '').replace(/[&<>"']/g, ch => ({
-			'&': '&amp;',
-			'<': '&lt;',
-			'>': '&gt;',
-			'"': '&quot;',
-			"'": '&#39;'
-		}[ch]));
-	}
-
-	function renderTable() {
-		const invoices = (window.AdminData?.billing || []).map(normalizeInvoice);
-		const tbody = document.getElementById('billingTableBody');
-		
-		const filtered = invoices.filter(i => {
-			if (currentFilter === 'all') return true;
-			return i.status === currentFilter;
-		});
-
-		if (!filtered.length) {
-			tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:28px;">표시할 결제 내역이 없습니다.</td></tr>';
-			return;
-		}
-
-		tbody.innerHTML = filtered.map(i => {
-			let badgeColor = 'gray';
-			let statusLabel = i.status;
-			let actionBtn = '-';
-			
-			if (i.status === 'paid') { badgeColor = 'green'; statusLabel = '결제 완료'; }
-			if (i.status === 'open') { badgeColor = 'orange'; statusLabel = '미결제'; }
-			if (i.status === 'overdue') { badgeColor = 'red'; statusLabel = '연체'; }
-			if (i.status === 'expiring') { 
-				badgeColor = 'orange'; 
-				statusLabel = `만료 임박 (D-${i.dday})`; 
-				actionBtn = `<button class="action-btn btn-alert" onclick="openModal('alertModal')"><i class="fa-solid fa-bell"></i> 갱신 안내</button>`;
-			}
-			if (i.status === 'expired') { 
-				badgeColor = 'gray'; 
-				statusLabel = '만료됨'; 
-				actionBtn = `<button class="action-btn btn-promo" onclick="openModal('promoModal')"><i class="fa-solid fa-gift"></i> 프로모션</button>`;
-			}
-
-			return `
-			<tr>
-				<td><strong style="font-weight:600;">${escapeAdminBillingHtml(i.hotel)}</strong><br><span style="font-size:0.7rem;color:var(--txt3)">${escapeAdminBillingHtml(i.id)}</span></td>
-				<td><span class="badge ${i.plan === 'Premium' ? 'purple' : 'gray'}">${escapeAdminBillingHtml(i.plan)}</span></td>
-				<td>${i.cycle === 'Yearly' ? '<span class="badge indigo">연간</span>' : '<span class="badge gray">월간</span>'}</td>
-				<td style="font-weight:600;">${formatMoney(i.amount, i.currency)}</td>
-				<td>${escapeAdminBillingHtml(i.date)}</td>
-				<td><span class="badge ${badgeColor}">${escapeAdminBillingHtml(statusLabel)}</span></td>
-				<td>${actionBtn}</td>
-			</tr>
-			`;
-		}).join('');
-	}
-
-	function filterTable(status, btn) {
-		currentFilter = status;
-		document.querySelectorAll('.chip').forEach(t => t.classList.remove('active'));
-		if (btn) btn.classList.add('active');
-		renderTable();
-	}
-
-	function openModal(id) { document.getElementById(id).classList.add('active'); }
-	function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-	if (window.onAdminDataReady) window.onAdminDataReady(renderTable);
-	else window.addEventListener('DataReady', renderTable);
+const billingEsc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const billingLang=()=>window.currentLang||localStorage.getItem('pms_admin_lang')||localStorage.getItem('pms_lang')||'ko';
+const billingText=(ko,en)=>billingLang()==='en'?en:ko;
+let invoices=[];
+let tenants=[];
+function normalizedInvoice(row){const amount=Number(row.amount?.amount??row.amount??0),paid=Number(row.paidAmount??row.paid??(row.status==='paid'?amount:0)),refunded=Number(row.refundedAmount??row.refunded??0);return{...row,id:row.id||row.invoiceId||`INV-${Date.now()}`,tenantId:row.tenantId||'',hotelName:row.hotelName||row.hotel||row.tenantName||row.tenantId||'-',plan:row.plan||'Standard',currency:row.currency||row.amount?.currency||'PHP',periodStart:row.periodStart||row.issuedAt||row.date||'',periodEnd:row.periodEnd||row.dueAt||row.date||'',dueAt:row.dueAt||row.date||'',amount,paidAmount:paid,refundedAmount:refunded,transactions:Array.isArray(row.transactions)?row.transactions:[],requestKeys:Array.isArray(row.requestKeys)?row.requestKeys:[],status:row.status||'open'} }
+function balanceOf(row){return Math.max(0,Number(row.amount)-Number(row.paidAmount)+Number(row.refundedAmount))}
+function computeStatus(row){if(row.status==='cancelled')return'cancelled';const balance=balanceOf(row);if(balance<=0&&row.paidAmount>0)return'paid';if(row.paidAmount>0)return'partial';if(row.dueAt&&row.dueAt<new Date().toISOString().slice(0,10))return'overdue';return'open'}
+function statusLabel(status){return{open:billingText('미수납','Open'),partial:billingText('부분수납','Partially Paid'),paid:billingText('수납 완료','Paid'),overdue:billingText('연체','Overdue'),cancelled:billingText('취소','Cancelled')}[status]||status}
+function statusClass(status){return status==='paid'?'active':status==='overdue'||status==='cancelled'?'danger':'pending'}
+function money(amount,currency){return new Intl.NumberFormat(currency==='KRW'?'ko-KR':currency==='VND'?'vi-VN':'en-US',{style:'currency',currency,maximumFractionDigits:['KRW','VND'].includes(currency)?0:2}).format(Number(amount)||0)}
+function persistInvoices(action,target,details,before=null,after=null){AdminStore.write('billing',invoices);AdminStore.audit(action,target,JSON.stringify({details,before,after}),action.includes('cancel')||action.includes('refund')?'High':'Medium')}
+function populateTenantOptions(){const select=document.getElementById('invoiceTenant');select.innerHTML=tenants.map(t=>`<option value="${billingEsc(t.id)}" data-plan="${billingEsc(t.plan||'Standard')}" data-currency="${billingEsc(t.currency||'PHP')}">${billingEsc(t.hotelName||t.name||t.id)} (${billingEsc(t.id)})</option>`).join('')}
+function filteredInvoices(){const hotel=document.getElementById('billingHotelFilter').value,status=document.getElementById('billingStatusFilter').value,start=document.getElementById('billingStartFilter').value,end=document.getElementById('billingEndFilter').value,query=document.getElementById('billingSearch').value.trim().toLowerCase();return invoices.map(row=>({...row,status:computeStatus(row)})).filter(row=>(hotel==='all'||row.tenantId===hotel)&&(status==='all'||row.status===status)&&(!start||row.periodEnd>=start)&&(!end||row.periodStart<=end)&&(!query||`${row.id} ${row.hotelName}`.toLowerCase().includes(query)))}
+function renderKpis(rows){const totals={};rows.forEach(row=>{const currency=row.currency||'PHP';totals[currency]??={amount:0,paid:0,balance:0};totals[currency].amount+=row.amount;totals[currency].paid+=row.paidAmount-row.refundedAmount;totals[currency].balance+=balanceOf(row)});const cards=[[billingText('총 청구','Total Billed'),'amount','fa-file-invoice-dollar'],[billingText('수납 합계','Total Paid'),'paid','fa-money-bill-transfer'],[billingText('미수금','Outstanding'),'balance','fa-triangle-exclamation'],[billingText('연체 건수','Overdue'),'count','fa-clock']];document.getElementById('billingKpis').innerHTML=cards.map(([label,key,icon])=>`<article class="billing-kpi"><div class="billing-kpi-label"><i class="fa-solid ${icon}"></i> ${label}</div><div class="billing-kpi-values">${key==='count'?`<strong>${rows.filter(row=>computeStatus(row)==='overdue').length}</strong>`:(Object.keys(totals).length?Object.entries(totals).map(([currency,value])=>`<div class="billing-money"><span>${currency}</span><strong>${money(value[key],currency)}</strong></div>`).join(''):'<strong>-</strong>')}</div></article>`).join('')}
+function renderBilling(){const rows=filteredInvoices();renderKpis(rows);const body=document.getElementById('billingTableBody');body.innerHTML=rows.length?rows.map(row=>{const status=computeStatus(row),balance=balanceOf(row);return`<tr data-id="${billingEsc(row.id)}"><td><strong>${billingEsc(row.id)}</strong><div class="ad-table-note">${billingEsc(row.memo||'')}</div></td><td><strong>${billingEsc(row.hotelName)}</strong><div class="ad-table-note">${billingEsc(row.plan)} · ${billingEsc(row.tenantId)}</div></td><td>${billingEsc(row.periodStart||'-')}<br>${billingEsc(row.periodEnd||'-')}</td><td><strong>${money(row.amount,row.currency)}</strong><div class="ad-table-note">${billingEsc(row.currency)}</div></td><td>${money(row.paidAmount,row.currency)}<br><span class="ad-table-note">${billingText('환불','Refund')} ${money(row.refundedAmount,row.currency)}</span></td><td class="billing-balance ${balance>0?'due':''}">${money(balance,row.currency)}</td><td>${billingEsc(row.dueAt||'-')}<br><span class="status-badge ${statusClass(status)} billing-status">${statusLabel(status)}</span></td><td><div class="billing-actions"><button class="btn-outline edit-invoice" title="${billingText('수정','Edit')}"><i class="fa-solid fa-pen"></i></button>${!['paid','cancelled'].includes(status)?`<button class="btn-outline btn-success-soft pay-invoice" title="${billingText('수납','Payment')}"><i class="fa-solid fa-credit-card"></i></button>`:''}${row.paidAmount>row.refundedAmount?`<button class="btn-outline btn-warning-soft refund-invoice" title="${billingText('환불','Refund')}"><i class="fa-solid fa-rotate-left"></i></button>`:''}${status!=='cancelled'?`<button class="btn-outline btn-danger-soft cancel-invoice" title="${billingText('취소','Cancel')}"><i class="fa-solid fa-ban"></i></button>`:''}<button class="btn-outline retry-invoice" title="${billingText('재시도','Retry')}"><i class="fa-solid fa-arrows-rotate"></i></button></div></td></tr>`}).join(''):`<tr><td class="billing-empty" colspan="8">${billingText('조건에 맞는 청구가 없습니다.','No invoices match the filters.')}</td></tr>`;bindBillingRows()}
+function bindBillingRows(){document.querySelectorAll('#billingTableBody tr[data-id]').forEach(row=>{const id=row.dataset.id;row.querySelector('.edit-invoice')?.addEventListener('click',()=>openInvoice(id));row.querySelector('.pay-invoice')?.addEventListener('click',()=>openPayment(id,'payment'));row.querySelector('.refund-invoice')?.addEventListener('click',()=>openPayment(id,'refund'));row.querySelector('.cancel-invoice')?.addEventListener('click',()=>cancelInvoice(id));row.querySelector('.retry-invoice')?.addEventListener('click',()=>retryInvoice(id))})}
+function openInvoice(id=''){const row=invoices.find(item=>item.id===id);document.getElementById('invoiceId').value=row?.id||'';document.getElementById('invoiceTenant').value=row?.tenantId||tenants[0]?.id||'';document.getElementById('invoicePlan').value=row?.plan||document.getElementById('invoiceTenant').selectedOptions[0]?.dataset.plan||'Standard';document.getElementById('invoiceCurrency').value=row?.currency||document.getElementById('invoiceTenant').selectedOptions[0]?.dataset.currency||'PHP';document.getElementById('invoicePeriodStart').value=row?.periodStart||new Date().toISOString().slice(0,10);document.getElementById('invoicePeriodEnd').value=row?.periodEnd||new Date().toISOString().slice(0,10);document.getElementById('invoiceDueAt').value=row?.dueAt||new Date().toISOString().slice(0,10);document.getElementById('invoiceAmount').value=row?.amount||'';document.getElementById('invoiceMemo').value=row?.memo||'';document.getElementById('invoiceModalTitle').textContent=row?billingText('청구 수정','Edit Invoice'):billingText('청구 등록','New Invoice');document.getElementById('invoiceModal').classList.add('active')}
+function closeInvoice(){document.getElementById('invoiceModal').classList.remove('active')}
+function saveInvoice(){const ids=['invoiceTenant','invoicePeriodStart','invoicePeriodEnd','invoiceDueAt','invoiceAmount'];const invalid=ids.map(id=>document.getElementById(id)).find(input=>!input.checkValidity());if(invalid){invalid.reportValidity();return false}const start=document.getElementById('invoicePeriodStart').value,end=document.getElementById('invoicePeriodEnd').value;if(start>end){const input=document.getElementById('invoicePeriodEnd');input.setCustomValidity(billingText('종료일은 시작일 이후여야 합니다.','End date must be on or after the start date.'));input.reportValidity();return false}document.getElementById('invoicePeriodEnd').setCustomValidity('');const id=document.getElementById('invoiceId').value,old=invoices.find(row=>row.id===id),tenantId=document.getElementById('invoiceTenant').value,tenant=tenants.find(row=>row.id===tenantId);const row={...old,id:old?.id||`INV-${Date.now()}`,tenantId,hotelName:tenant?.hotelName||tenant?.name||tenantId,plan:document.getElementById('invoicePlan').value,currency:document.getElementById('invoiceCurrency').value,periodStart:start,periodEnd:end,dueAt:document.getElementById('invoiceDueAt').value,amount:Number(document.getElementById('invoiceAmount').value),paidAmount:old?.paidAmount||0,refundedAmount:old?.refundedAmount||0,transactions:old?.transactions||[],requestKeys:old?.requestKeys||[],status:old?.status==='cancelled'?'open':old?.status||'open',memo:document.getElementById('invoiceMemo').value.trim(),updatedAt:new Date().toISOString()};const duplicate=invoices.some(item=>item.id!==row.id&&item.tenantId===row.tenantId&&item.periodStart===row.periodStart&&item.periodEnd===row.periodEnd&&item.status!=='cancelled');if(duplicate){window.showToast?.(billingText('같은 호텔과 기간의 청구가 이미 있습니다.','An invoice already exists for this hotel and period.'),'error');return false}invoices=old?invoices.map(item=>item.id===row.id?row:item):[row,...invoices];persistInvoices(old?'billing.invoice_update':'billing.invoice_create',row.id,`${row.hotelName}/${row.periodStart}-${row.periodEnd}`,old,row);closeInvoice();renderBilling();return true}
+function cancelInvoice(id){const row=invoices.find(item=>item.id===id);if(!row)return false;const before={...row};row.status='cancelled';row.cancelledAt=new Date().toISOString();persistInvoices('billing.invoice_cancel',id,row.hotelName,before,row);renderBilling();return true}
+function openPayment(id,type){const row=invoices.find(item=>item.id===id);document.getElementById('paymentInvoiceId').value=id;document.getElementById('paymentType').value=type;document.getElementById('paymentAmount').value=type==='payment'?balanceOf(row):Math.max(0,row.paidAmount-row.refundedAmount);document.getElementById('paymentRequestKey').value=`${type.toUpperCase()}-${id}-${Date.now()}`;document.getElementById('paymentModalTitle').textContent=type==='payment'?billingText('수납 등록','Register Payment'):billingText('환불 등록','Register Refund');document.getElementById('paymentModal').classList.add('active')}
+function closePayment(){document.getElementById('paymentModal').classList.remove('active')}
+function savePayment(){const id=document.getElementById('paymentInvoiceId').value,row=invoices.find(item=>item.id===id),type=document.getElementById('paymentType').value,amount=Number(document.getElementById('paymentAmount').value),key=document.getElementById('paymentRequestKey').value.trim();if(!row||!amount||amount<=0||!key)return false;if(row.requestKeys.includes(key)){window.showToast?.(billingText('이미 처리된 요청입니다.','This request was already processed.'),'warning');closePayment();return true}if(type==='payment'&&amount>balanceOf(row)){window.showToast?.(billingText('잔액보다 큰 금액은 수납할 수 없습니다.','Payment cannot exceed the balance.'),'error');return false}if(type==='refund'&&amount>row.paidAmount-row.refundedAmount){window.showToast?.(billingText('수납액보다 큰 금액은 환불할 수 없습니다.','Refund cannot exceed net payments.'),'error');return false}const before={paidAmount:row.paidAmount,refundedAmount:row.refundedAmount,status:computeStatus(row)};if(type==='payment')row.paidAmount+=amount;else row.refundedAmount+=amount;row.requestKeys.push(key);row.transactions.push({id:`TX-${Date.now()}`,type,amount,currency:row.currency,requestKey:key,createdAt:new Date().toISOString()});row.status=computeStatus(row);persistInvoices(type==='payment'?'billing.payment':'billing.refund',id,`${key}/${amount}`,before,{paidAmount:row.paidAmount,refundedAmount:row.refundedAmount,status:row.status});closePayment();renderBilling();return true}
+function retryInvoice(id){const row=invoices.find(item=>item.id===id);const key=`RETRY-${id}`;row.requestKeys??=[];if(!row.requestKeys.includes(key)){row.requestKeys.push(key);persistInvoices('billing.retry',id,key,null,{requestKey:key})}else AdminStore.audit('billing.retry_duplicate_blocked',id,key,'Medium');renderBilling();return true}
+function initBilling(){tenants=AdminStore.read('tenants',window.AdminData?.tenants||[]);invoices=AdminStore.read('billing',window.AdminData?.billing||[]).map(normalizedInvoice);populateTenantOptions();const hotelFilter=document.getElementById('billingHotelFilter');hotelFilter.innerHTML+=tenants.map(t=>`<option value="${billingEsc(t.id)}">${billingEsc(t.hotelName||t.name||t.id)}</option>`).join('');['billingHotelFilter','billingStatusFilter','billingStartFilter','billingEndFilter'].forEach(id=>document.getElementById(id).addEventListener('change',renderBilling));document.getElementById('billingSearch').addEventListener('input',renderBilling);document.getElementById('newInvoiceButton').onclick=()=>openInvoice();document.getElementById('closeInvoiceModal').onclick=closeInvoice;document.getElementById('cancelInvoiceModal').onclick=closeInvoice;document.getElementById('saveInvoiceButton').onclick=saveInvoice;document.getElementById('closePaymentModal').onclick=closePayment;document.getElementById('cancelPaymentModal').onclick=closePayment;document.getElementById('savePaymentButton').onclick=savePayment;document.getElementById('invoiceTenant').onchange=event=>{const option=event.target.selectedOptions[0];document.getElementById('invoicePlan').value=option?.dataset.plan||'Standard';document.getElementById('invoiceCurrency').value=option?.dataset.currency||'PHP'};renderBilling()}
+window.applyLocalI18n=function(next){document.querySelectorAll('[data-ko][data-en]').forEach(el=>el.textContent=el.getAttribute(next==='en'?'data-en':'data-ko'));document.querySelectorAll('[data-ko-placeholder][data-en-placeholder]').forEach(el=>el.placeholder=el.getAttribute(next==='en'?'data-en-placeholder':'data-ko-placeholder'));if(invoices.length)renderBilling()};
+if(window.onAdminDataReady)window.onAdminDataReady(initBilling);else window.addEventListener('DataReady',initBilling,{once:true});
 </script>
 </body>
 </html>

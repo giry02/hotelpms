@@ -2138,6 +2138,7 @@ const RUNTIME_MESSAGE_FALLBACKS = {
     '새 건물/구역의 이름을 입력하세요:': 'Enter a new building/area name:',
     '건물/구역의 새 이름을 입력하세요:': 'Enter a new building/area name:',
     '이미 존재하는 건물/구역명입니다.': 'This building/area name already exists.',
+    '이미 등록된 객실 번호입니다.': 'This room number is already registered.',
     '투숙 중인 객실은 프론트데스크 예약 화면에서 체크아웃 처리를 해야 합니다.': 'Occupied rooms must be checked out from the front desk reservation screen.',
     '신규 Room이 등록되었습니다.': 'New room has been registered.',
     '오더가 전송되었습니다.': 'Order has been sent.',
@@ -2304,6 +2305,7 @@ function searchPlaceholderText(input) {
 
 function refreshSearchInputPlaceholder(input) {
     if (!input.placeholder) return;
+    if (input.matches('[data-no-auto-i18n], [data-no-i18n], [data-i18n-skip]')) return;
     if (!input.dataset.pmsSearchOriginalPlaceholder) {
         input.dataset.pmsSearchOriginalPlaceholder = input.placeholder;
     }

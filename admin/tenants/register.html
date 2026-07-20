@@ -34,17 +34,19 @@
 <div class="config-panel-header"><h3><i class="fa-solid fa-building"></i> <span>호텔 기본 정보</span></h3></div>
 <div class="config-panel-body">
 <div class="grid-2">
-<div class="form-group"><label class="form-label">호텔명</label><input class="form-control" placeholder="예: Seoul Tower Hotel" type="text"/></div>
+<div class="form-group"><label class="form-label" data-ko="등록 유형" data-en="Registration Type">등록 유형</label><select class="form-control" id="propertyType"><option value="pms" data-ko="PMS 사용 호텔" data-en="Hotel using PMS">PMS 사용 호텔</option><option value="partner" data-ko="PMS 미사용 파트너" data-en="Partner without PMS">PMS 미사용 파트너</option></select></div>
+<div class="form-group"><label class="form-label">호텔명</label><input class="form-control" id="hotelName" placeholder="예: Seoul Tower Hotel" required type="text"/></div>
+<div class="form-group"><label class="form-label" data-ko="호텔 코드" data-en="Hotel Code">호텔 코드</label><input class="form-control" id="hotelCode" placeholder="예: SEOUL-TOWER" data-placeholder-ko="예: SEOUL-TOWER" data-placeholder-en="e.g. SEOUL-TOWER" required type="text"/></div>
 <div class="form-group"><label class="form-label">국가/도시</label>
 <div style="display:flex;gap:8px">
-<select class="form-control" style="flex:1"><option>Vietnam</option><option>South Korea</option><option>Thailand</option></select>
-<input class="form-control" placeholder="City" style="flex:1" type="text"/>
+<select class="form-control" id="country" style="flex:1"><option>Vietnam</option><option>Philippines</option><option>South Korea</option><option>Thailand</option></select>
+<input class="form-control" id="city" placeholder="City" required style="flex:1" type="text"/>
 </div>
 </div>
-<div class="form-group"><label class="form-label">타임존</label><select class="form-control"><option>Asia/Ho_Chi_Minh (UTC+7)</option><option>Asia/Seoul (UTC+9)</option><option>Asia/Bangkok (UTC+7)</option></select></div>
+<div class="form-group"><label class="form-label">타임존</label><select class="form-control" id="timezone"><option>Asia/Ho_Chi_Minh (UTC+7)</option><option>Asia/Manila (UTC+8)</option><option>Asia/Seoul (UTC+9)</option><option>Asia/Bangkok (UTC+7)</option></select></div>
 <div class="form-group"><label class="form-label">기본 표시 통화</label><select class="form-control" id="defaultCurrency" required data-no-currency-normalize="true"><option value="PHP" selected>PHP 필리핀 페소</option><option value="VND">VND 베트남 동</option><option value="USD">USD 달러</option><option value="KRW">KRW 원화</option></select><div style="font-size:.72rem;color:var(--txt3);line-height:1.45;margin-top:6px">등록 후 호텔 운영 화면의 기준 표시 통화로 고정되며 호텔 설정에서 변경할 수 없습니다.</div></div>
-<div class="form-group"><label class="form-label">객실 수</label><input class="form-control" placeholder="0" type="number"/></div>
-<div class="form-group"><label class="form-label">대표 이메일</label><input class="form-control" placeholder="admin@hotel.com" type="email"/></div>
+<div class="form-group"><label class="form-label">객실 수</label><input class="form-control" id="roomCount" min="1" placeholder="0" required type="number"/></div>
+<div class="form-group"><label class="form-label">대표 이메일</label><input class="form-control" id="adminEmail" placeholder="admin@hotel.com" required type="email"/></div>
 </div>
 </div>
 </div>
@@ -52,18 +54,111 @@
 <div class="config-panel-header"><h3><i class="fa-solid fa-file-contract"></i> <span>계약 정보</span></h3></div>
 <div class="config-panel-body">
 <div class="grid-2">
-<div class="form-group"><label class="form-label">플랜</label><select class="form-control"><option>Free (무료 체험)</option><option>Standard ($99/월)</option><option>Premium ($299/월)</option></select></div>
+<div class="form-group"><label class="form-label">플랜</label><select class="form-control" id="plan"><option value="Free">Free (무료 체험)</option><option value="Standard">Standard ($99/월)</option><option value="Premium">Premium ($299/월)</option></select></div>
 <div class="form-group"><label class="form-label">계약 기간</label>
-<div style="display:flex;gap:8px;align-items:center"><input class="form-control" style="flex:1" type="date"/> <span>~</span> <input class="form-control" style="flex:1" type="date"/></div>
+<div style="display:flex;gap:8px;align-items:center"><input class="form-control" id="contractStart" required style="flex:1" type="date"/> <span>~</span> <input class="form-control" id="contractEnd" required style="flex:1" type="date"/></div>
 </div>
 </div>
 </div>
 </div>
 <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
 <a class="btn-outline" href="list.html">취소</a>
-<button class="btn-primary" onclick="alert('등록 완료! Hotel ID가 발급되었습니다.')"><i class="fa-solid fa-check"></i> <span>등록하기</span></button>
+<button class="btn-primary" id="registerTenantButton" onclick="registerTenant()"><i class="fa-solid fa-check"></i> <span>등록하기</span></button>
 </div>
 </div>
 </div>
+<script>
+const countryDefaults = {
+    Vietnam: { currency: 'VND', timezone: 'Asia/Ho_Chi_Minh (UTC+7)' },
+    Philippines: { currency: 'PHP', timezone: 'Asia/Manila (UTC+8)' },
+    'South Korea': { currency: 'KRW', timezone: 'Asia/Seoul (UTC+9)' },
+    Thailand: { currency: 'THB', timezone: 'Asia/Bangkok (UTC+7)' }
+};
+
+function applyCountryDefaults() {
+    const value = countryDefaults[document.getElementById('country').value];
+    if (!value) return;
+    const currency = document.getElementById('defaultCurrency');
+    if (![...currency.options].some(option => option.value === value.currency)) {
+        currency.add(new Option(value.currency, value.currency));
+    }
+    currency.value = value.currency;
+    document.getElementById('timezone').value = value.timezone;
+}
+
+function registerTenant() {
+    const fields = ['hotelName', 'hotelCode', 'city', 'roomCount', 'adminEmail', 'contractStart', 'contractEnd'];
+    const firstInvalid = fields.map(id => document.getElementById(id)).find(input => !input.checkValidity());
+    if (firstInvalid) {
+        firstInvalid.reportValidity();
+        firstInvalid.focus();
+        return false;
+    }
+    const start = document.getElementById('contractStart').value;
+    const end = document.getElementById('contractEnd').value;
+    if (start > end) {
+        document.getElementById('contractEnd').setCustomValidity('계약 종료일은 시작일 이후여야 합니다.');
+        document.getElementById('contractEnd').reportValidity();
+        return false;
+    }
+    document.getElementById('contractEnd').setCustomValidity('');
+    const hotelCode = document.getElementById('hotelCode').value.trim().toUpperCase();
+    const email = document.getElementById('adminEmail').value.trim().toLowerCase();
+    const tenants = AdminStore.read('tenants', []);
+    const users = AdminStore.read('users', []);
+    if (tenants.some(row => String(row.code || row.hotelCode || row.id).toUpperCase() === hotelCode)) {
+        document.getElementById('hotelCode').setCustomValidity('이미 사용 중인 호텔 코드입니다.');
+        document.getElementById('hotelCode').reportValidity();
+        return false;
+    }
+    document.getElementById('hotelCode').setCustomValidity('');
+    if (tenants.some(row => String(row.email || '').toLowerCase() === email) || users.some(row => String(row.email || '').toLowerCase() === email)) {
+        document.getElementById('adminEmail').setCustomValidity('이미 사용 중인 이메일입니다.');
+        document.getElementById('adminEmail').reportValidity();
+        return false;
+    }
+    document.getElementById('adminEmail').setCustomValidity('');
+    const type = document.getElementById('propertyType').value;
+    const id = type === 'pms' ? `TENANT-${hotelCode}` : `PARTNER-${hotelCode}`;
+    const tenant = {
+        id,
+        code: hotelCode,
+        hotelName: document.getElementById('hotelName').value.trim(),
+        type,
+        pmsEnabled: type === 'pms',
+        country: document.getElementById('country').value,
+        city: document.getElementById('city').value.trim(),
+        timezone: document.getElementById('timezone').value,
+        currency: document.getElementById('defaultCurrency').value,
+        roomCount: Number(document.getElementById('roomCount').value),
+        email,
+        plan: document.getElementById('plan').value,
+        status: 'active',
+        contractStart: start,
+        contractEnd: end,
+        createdAt: new Date().toISOString()
+    };
+    const nextTenants = [tenant, ...tenants];
+    const adminUser = { id: `ADM-${Date.now()}`, tenantId: id, name: `${tenant.hotelName} Admin`, email, role: 'Tenant Admin', status: 'invited', inviteExpiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString() };
+    try {
+        AdminStore.write('tenants', nextTenants);
+        AdminStore.write('users', [adminUser, ...users]);
+        AdminStore.audit(type === 'pms' ? 'tenant.create' : 'partner.create', id, `${tenant.hotelName} / ${tenant.plan}`);
+        sessionStorage.setItem('admin_last_created_tenant', id);
+        window.location.href = `detail.html?id=${encodeURIComponent(id)}`;
+        return true;
+    } catch (error) {
+        AdminStore.write('tenants', tenants);
+        AdminStore.write('users', users);
+        alert('등록 중 오류가 발생했습니다. 저장된 데이터는 없습니다.');
+        return false;
+    }
+}
+
+document.getElementById('country').addEventListener('change', applyCountryDefaults);
+document.getElementById('hotelCode').addEventListener('input', event => event.target.setCustomValidity(''));
+document.getElementById('adminEmail').addEventListener('input', event => event.target.setCustomValidity(''));
+applyCountryDefaults();
+</script>
 </body>
 </html>

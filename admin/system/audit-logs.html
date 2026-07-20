@@ -1,142 +1,43 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>감사 로그 - Super Admin</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Noto+Sans+KR:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
-<link href="../common/css/admin-base.css" rel="stylesheet"/>
-<link href="../common/css/admin-pages.css" rel="stylesheet"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Audit Logs - Super Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<link rel="stylesheet" href="../common/css/admin-base.css"/>
+<link rel="stylesheet" href="../common/css/admin-pages.css"/>
+<script src="../common/js/admin-sidebar.js"></script>
 <script src="../common/js/admin-i18n-catalog.js"></script>
 <script src="../common/js/admin-i18n.js"></script>
-<script src="../common/js/admin-sidebar.js"></script>
+<style>
+.audit-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.audit-toolbar .form-control{width:auto;min-width:160px}.audit-toolbar input{flex:1;min-width:220px}.audit-action{font-weight:700}.audit-detail{max-width:440px;white-space:normal;overflow-wrap:anywhere}.audit-empty{text-align:center!important;padding:36px!important;color:var(--txt3)}.filter-chips{display:flex;gap:7px;flex-wrap:wrap}.filter-chips .chip{border:1px solid var(--line);background:#fff;color:var(--txt2);border-radius:999px;padding:8px 13px;cursor:pointer;font-weight:700}.filter-chips .chip.active{background:var(--primary);border-color:var(--primary);color:#fff}@media(max-width:760px){.audit-toolbar>*{width:100%!important}.table-wrap{overflow:auto}.data-table{min-width:980px}}
+</style>
 </head>
 <body>
 <div class="main">
-<header class="topbar">
-<div class="topbar-left">
-<button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button>
-<h1>감사 로그</h1>
-</div>
-<div class="topbar-right">
-<a class="btn-outline" download="" href="../common/downloads/global_audit_logs.xlsx" style="padding:6px 12px;font-size:0.8rem;text-decoration:none;"><i class="fa-solid fa-download"></i> <span data-i18n-key="Download Excel">엑셀 다운로드</span></a>
-</div>
-</header>
-<div class="content">
-<div class="card">
-<div class="card-header">
-<h2>감사 이벤트</h2>
-<div class="filter-chips">
-<button class="chip active">전체</button>
-<button class="chip">로그인</button>
-<button class="chip">기기</button>
-<button class="chip" style="color:var(--danger);border-color:var(--danger-lt);">위험</button>
-</div>
-</div>
-<div class="card-body">
-<div class="table-wrap">
-<table class="data-table">
-<thead>
-<tr>
-<th>로그 ID</th>
-<th>시간</th>
-<th>관리자</th>
-<th>작업 유형</th>
-<th>상세</th>
-<th>접속 IP</th>
-<th>위험도</th>
-</tr>
-</thead>
-<tbody id="auditTableBody">
-<!-- JS Inject -->
-</tbody>
-</table>
-</div>
-</div>
-</div>
-</div>
+<header class="topbar"><div class="topbar-left"><button class="mobile-menu-btn" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></button><h1 data-ko="&#44048;&#49324; &#47196;&#44536;" data-en="Audit Logs">&#44048;&#49324; &#47196;&#44536;</h1></div><div class="topbar-right"><button class="btn-outline" id="downloadAuditButton" type="button"><i class="fa-solid fa-download"></i> <span data-ko="CSV &#45796;&#50868;&#47196;&#46300;" data-en="Download CSV">CSV &#45796;&#50868;&#47196;&#46300;</span></button></div></header>
+<main class="content"><section class="card"><div class="card-header"><div class="card-title"><i class="fa-solid fa-shield-halved"></i> <span data-ko="&#50868;&#50689; &#44048;&#49324; &#51060;&#47141;" data-en="Operational Audit Trail">&#50868;&#50689; &#44048;&#49324; &#51060;&#47141;</span></div><div class="filter-chips"><button class="chip active" data-filter="all" type="button" data-ko="&#51204;&#52404;" data-en="All">&#51204;&#52404;</button><button class="chip" data-filter="account" type="button" data-ko="&#47196;&#44536;&#51064;/&#44228;&#51221;" data-en="Login / Account">&#47196;&#44536;&#51064;/&#44228;&#51221;</button><button class="chip" data-filter="operation" type="button" data-ko="&#50868;&#50689; &#48320;&#44221;" data-en="Operations">&#50868;&#50689; &#48320;&#44221;</button><button class="chip" data-filter="risk" type="button" data-ko="&#44256;&#50948;&#54744;" data-en="High Risk">&#44256;&#50948;&#54744;</button></div></div><div class="card-body"><div class="audit-toolbar" style="margin-bottom:14px"><input class="form-control" id="auditSearch" type="search" data-ko-placeholder="&#44288;&#47532;&#51088;, &#45824;&#49345;, &#46041;&#51089;, &#49464;&#48512;&#45236;&#50669; &#44160;&#49353;" data-en-placeholder="Search actor, target, action, or details" placeholder="&#44288;&#47532;&#51088;, &#45824;&#49345;, &#46041;&#51089;, &#49464;&#48512;&#45236;&#50669; &#44160;&#49353;"/><select class="form-control" id="auditRisk"><option value="all" data-ko="&#51204;&#52404; &#50948;&#54744;&#46020;" data-en="All Risk Levels">&#51204;&#52404; &#50948;&#54744;&#46020;</option><option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option><option value="Critical">Critical</option></select></div><div class="table-wrap"><table class="data-table"><thead><tr><th data-ko="&#49884;&#44036;" data-en="Time">&#49884;&#44036;</th><th data-ko="&#44288;&#47532;&#51088;" data-en="Actor">&#44288;&#47532;&#51088;</th><th data-ko="&#46041;&#51089;" data-en="Action">&#46041;&#51089;</th><th data-ko="&#45824;&#49345;" data-en="Target">&#45824;&#49345;</th><th data-ko="&#48320;&#44221; &#45236;&#50669;" data-en="Change Details">&#48320;&#44221; &#45236;&#50669;</th><th>IP</th><th data-ko="&#50948;&#54744;&#46020;" data-en="Risk">&#50948;&#54744;&#46020;</th></tr></thead><tbody id="auditTableBody"></tbody></table></div></div></section></main>
 </div>
 <script>
-	function renderAuditLogs() {
-		const logs = window.AdminData?.auditLogs || [];
-		const tbody = document.getElementById('auditTableBody');
-		const actionLabel = {
-			'Device Registered': '신뢰 기기 등록',
-			'Failed Login': '로그인 실패',
-			'Permission Change': '권한 변경',
-			'Device Revoked': '기기 해제',
-			'Blocked Access': '접근 차단',
-			'tenant.approve': '입점 승인',
-			'user.password_reset': '비밀번호 초기화'
-		};
-		const riskLabel = { Low: '낮음', Medium: '보통', High: '높음', Critical: '위험' };
-
-		const normalizeLog = (log) => ({
-			id: log.id || log.logId || '-',
-			time: log.time || log.createdAt || '-',
-			adminId: log.adminId || log.actor || log.actorId || '-',
-			action: log.action || '-',
-			details: log.details || log.target || log.message || '-',
-			ip: log.ip || '-',
-			risk: log.risk || (/fail|blocked|error/i.test(log.action || '') ? 'High' : 'Low')
-		});
-
-		const escapeAdminAuditHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({
-			'&': '&amp;',
-			'<': '&lt;',
-			'>': '&gt;',
-			'"': '&quot;',
-			"'": '&#39;'
-		}[ch]));
-		
-		const renderLogs = (filter = 'all') => {
-			const filteredLogs = logs.map(normalizeLog).filter(l => {
-				if (filter === 'login') return /Login/i.test(l.action);
-				if (filter === 'device') return /Device/i.test(l.action);
-				if (filter === 'risk') return l.risk === 'High' || l.risk === 'Critical';
-				return true;
-			});
-			if (!filteredLogs.length) {
-				tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--txt3);padding:28px;">표시할 감사 로그가 없습니다.</td></tr>';
-				return;
-			}
-			tbody.innerHTML = filteredLogs.map(l => {
-			let riskBadge = 'gray';
-			if (l.risk === 'Critical') riskBadge = 'red';
-			else if (l.risk === 'High') riskBadge = 'orange';
-			else if (l.risk === 'Medium') riskBadge = 'indigo';
-			
-			return `
-			<tr>
-				<td style="font-size:0.75rem;color:var(--txt3);">${escapeAdminAuditHtml(l.id)}</td>
-				<td style="font-size:0.8rem;">${escapeAdminAuditHtml(l.time)}</td>
-				<td style="font-weight:600;">${escapeAdminAuditHtml(l.adminId)}</td>
-				<td><span class="badge ${riskBadge === 'red' ? 'red' : 'gray'}">${escapeAdminAuditHtml(actionLabel[l.action] || l.action)}</span></td>
-				<td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeAdminAuditHtml(l.details)}">${escapeAdminAuditHtml(l.details)}</td>
-				<td style="font-family:monospace;">${escapeAdminAuditHtml(l.ip)}</td>
-				<td><span class="badge ${riskBadge}">${escapeAdminAuditHtml(riskLabel[l.risk] || l.risk)}</span></td>
-			</tr>
-			`;
-			}).join('');
-		};
-
-		document.querySelectorAll('.filter-chips .chip').forEach((button, index) => {
-			const filters = ['all', 'login', 'device', 'risk'];
-			button.addEventListener('click', () => {
-				document.querySelectorAll('.filter-chips .chip').forEach(chip => chip.classList.remove('active'));
-				button.classList.add('active');
-				renderLogs(filters[index] || 'all');
-			});
-		});
-		renderLogs();
-	}
-
-	if (window.onAdminDataReady) window.onAdminDataReady(renderAuditLogs);
-	else window.addEventListener('DataReady', renderAuditLogs);
+(function(){
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const lang=()=>window.currentLang||localStorage.getItem('pms_admin_lang')||'ko';
+const text=(ko,en)=>lang()==='en'?en:ko;
+let activeFilter='all';
+function sourceLogs(){return window.AdminStore?AdminStore.read('auditLogs',window.AdminData?.auditLogs||[]):(window.AdminData?.auditLogs||[])}
+function normalize(log){const action=String(log.action||'-');return{id:log.id||log.logId||'-',time:log.createdAt||log.time||'-',actor:log.actor||log.adminId||log.actorId||'-',action,target:log.target||'-',details:typeof log.details==='string'?log.details:JSON.stringify(log.details||''),ip:log.ip||'-',risk:log.risk||(/fail|blocked|delete|cancel|refund|reopen|revoke|suspend/i.test(action)?'High':'Low')}}
+function actionLabel(action){const labels={
+'tenant.approve':['\uC785\uC810 \uC2B9\uC778','Tenant approved'],'tenant.create':['\uD638\uD154 \uB4F1\uB85D','Tenant created'],'partner.create':['\uD30C\uD2B8\uB108 \uB4F1\uB85D','Partner created'],'user.password_reset':['\uBE44\uBC00\uBC88\uD638 \uC7AC\uC124\uC815','Password reset'],'billing.create':['\uCCAD\uAD6C \uB4F1\uB85D','Invoice created'],'billing.update':['\uCCAD\uAD6C \uC218\uC815','Invoice updated'],'billing.payment':['\uC218\uB0A9 \uB4F1\uB85D','Payment received'],'billing.refund':['\uD658\uBD88 \uCC98\uB9AC','Payment refunded'],'billing.cancel':['\uCCAD\uAD6C \uCDE8\uC18C','Invoice cancelled'],'campaign.create':['\uCEA0\uD398\uC778 \uB4F1\uB85D','Campaign created'],'campaign.update':['\uCEA0\uD398\uC778 \uC218\uC815','Campaign updated'],'campaign.delete':['\uCEA0\uD398\uC778 \uC0AD\uC81C','Campaign deleted'],'helpdesk.update':['\uBB38\uC758 \uCC98\uB9AC','Helpdesk updated'],'helpdesk.attachment_view':['\uCCA8\uBD80\uD30C\uC77C \uC5F4\uB78C','Attachment viewed'],'notice.create':['\uACF5\uC9C0 \uB4F1\uB85D','Notice created'],'notice.update':['\uACF5\uC9C0 \uC218\uC815','Notice updated'],'profile.update':['\uB0B4 \uC815\uBCF4 \uC218\uC815','Profile updated']};
+const pair=labels[action];if(pair)return text(pair[0],pair[1]);return action.replaceAll('_',' ').replaceAll('.',' / ')}
+function detailText(value){if(!value)return '-';try{const parsed=JSON.parse(value);if(parsed&&typeof parsed==='object'){const parts=[];if(parsed.details)parts.push(String(parsed.details));if(parsed.before!==undefined)parts.push(`${text('\uBCC0\uACBD \uC804','Before')}: ${JSON.stringify(parsed.before)}`);if(parsed.after!==undefined)parts.push(`${text('\uBCC0\uACBD \uD6C4','After')}: ${JSON.stringify(parsed.after)}`);return parts.join(' | ')||value}}catch(_){ }return value}
+function category(row){if(/login|password|user|device|permission|profile/i.test(row.action))return'account';return'operation'}
+function filtered(){const query=document.getElementById('auditSearch').value.trim().toLowerCase(),risk=document.getElementById('auditRisk').value;return sourceLogs().map(normalize).filter(row=>(activeFilter==='all'||(activeFilter==='risk'?['High','Critical'].includes(row.risk):category(row)===activeFilter))&&(risk==='all'||row.risk===risk)&&(!query||`${row.actor} ${row.action} ${row.target} ${row.details}`.toLowerCase().includes(query)))}
+function render(){const rows=filtered(),body=document.getElementById('auditTableBody');body.innerHTML=rows.length?rows.map(row=>`<tr data-audit-id="${esc(row.id)}"><td>${esc(row.time)}</td><td><strong>${esc(row.actor)}</strong><div style="font-size:.72rem;color:var(--txt3)">${esc(row.id)}</div></td><td class="audit-action">${esc(actionLabel(row.action))}</td><td>${esc(row.target)}</td><td class="audit-detail">${esc(detailText(row.details))}</td><td style="font-family:monospace">${esc(row.ip)}</td><td><span class="badge ${row.risk==='Critical'?'red':row.risk==='High'?'orange':row.risk==='Medium'?'indigo':'gray'}">${esc(row.risk)}</span></td></tr>`).join(''):`<tr><td colspan="7" class="audit-empty">${text('&#51312;&#44148;&#50640; &#47582;&#45716; &#44048;&#49324; &#47196;&#44536;&#44032; &#50630;&#49845;&#45768;&#45796;.','No audit logs match the filters.')}</td></tr>`}
+function download(){const rows=filtered(),csv=['time,actor,action,target,details,ip,risk',...rows.map(row=>[row.time,row.actor,row.action,row.target,detailText(row.details),row.ip,row.risk].map(value=>`"${String(value??'').replace(/"/g,'""')}"`).join(','))].join('\n');const link=document.createElement('a');link.href=URL.createObjectURL(new Blob(['\ufeff',csv],{type:'text/csv;charset=utf-8'}));link.download='admin-audit-logs.csv';link.click();URL.revokeObjectURL(link.href)}
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[data-filter]').forEach(button=>button.onclick=()=>{document.querySelectorAll('[data-filter]').forEach(item=>item.classList.remove('active'));button.classList.add('active');activeFilter=button.dataset.filter;render()});document.getElementById('auditSearch').oninput=render;document.getElementById('auditRisk').onchange=render;document.getElementById('downloadAuditButton').onclick=download;if(window.adminDataReady)render();else window.addEventListener('DataReady',render,{once:true})});
+window.addEventListener('AdminStoreChanged',event=>{if(event.detail.key==='auditLogs')render()});window.renderAdminAuditLogs=render;window.applyLocalI18n=function(next){document.documentElement.lang=next;document.querySelectorAll('[data-ko][data-en]').forEach(el=>el.textContent=el.getAttribute(next==='en'?'data-en':'data-ko'));document.querySelectorAll('[data-ko-placeholder][data-en-placeholder]').forEach(el=>el.placeholder=el.getAttribute(next==='en'?'data-en-placeholder':'data-ko-placeholder'));render()}
+})();
 </script>
 </body>
 </html>

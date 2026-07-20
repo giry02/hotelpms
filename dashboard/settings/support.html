@@ -40,6 +40,17 @@
         .support-message { background:#f8fafc; padding:16px; border-radius:8px; margin-bottom:20px; font-size:0.9rem; line-height:1.6; white-space:pre-line; }
         .support-reply { background:var(--primary-lt); border:1px solid rgba(59,130,246,0.2); padding:16px; border-radius:8px; font-size:0.9rem; line-height:1.6; white-space:pre-line; }
         .support-empty-reply { background:#f8fafc; border:1px dashed var(--border); color:var(--txt3); padding:16px; border-radius:8px; font-size:0.86rem; }
+        .support-filters { padding:12px 16px; border-bottom:1px solid var(--border); display:grid; grid-template-columns:minmax(0,1fr) 118px 112px 132px 132px; gap:8px; }
+        .support-filters .form-input, .support-filters .form-select { min-width:0; }
+        .support-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
+        .support-detail-field { padding:10px 12px; border:1px solid var(--border2); border-radius:6px; background:#f8fafc; }
+        .support-detail-field small { display:block; color:var(--txt3); font-size:.72rem; margin-bottom:4px; }
+        .support-history { display:grid; gap:8px; margin-top:12px; }
+        .support-history-item { border-left:3px solid var(--primary); padding:8px 10px; background:#f8fafc; border-radius:0 6px 6px 0; font-size:.8rem; }
+        .support-detail-actions { display:flex; align-items:end; gap:8px; flex-wrap:wrap; margin-top:16px; }
+        .support-detail-actions .form-group { margin:0; flex:1 1 190px; }
+        .support-attachments { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 16px; }
+        .support-attachment { display:inline-flex; gap:6px; align-items:center; padding:6px 9px; border:1px solid var(--border); border-radius:6px; color:var(--primary); text-decoration:none; font-size:.78rem; }
         
         .support-detail { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
         .detail-header { padding: 20px; border-bottom: 1px solid var(--border); }
@@ -59,6 +70,15 @@
         @media(max-width: 1024px) {
             .support-layout { grid-template-columns: 1fr; height: auto; }
         }
+        @media(max-width: 600px) {
+            .content { padding:12px; }
+            .support-filters { grid-template-columns:1fr 1fr; }
+            .support-filters .form-input { grid-column:1/-1; }
+            .support-detail-grid { grid-template-columns:1fr; }
+            .list-header { gap:8px; }
+            .list-header h3 { min-width:0; }
+            .support-btn { min-height:40px; }
+        }
     </style>
 <script src="../common/js/i18n-catalog.js"></script>
 <script src="../common/js/i18n.js"></script>
@@ -74,8 +94,15 @@
 <!-- LIST -->
 <div class="support-list">
 <div class="list-header">
-<h3 style="font-size:1rem;font-weight:600;">나의 문의 내역</h3>
-<button class="support-btn primary" type="button" onclick="showNewTicketForm()"><i class="fa-solid fa-plus"></i> 문의하기</button>
+<h3 id="ticketListHeading" style="font-size:1rem;font-weight:600;">나의 문의 내역</h3>
+<button class="support-btn primary" id="newTicketButton" type="button" onclick="showNewTicketForm()"><i class="fa-solid fa-plus"></i> 문의하기</button>
+</div>
+<div class="support-filters">
+<input class="form-input" data-no-auto-i18n id="ticketSearch" type="search" placeholder="문의번호, 제목, 요청자 검색" oninput="renderTicketList()"/>
+<select class="form-select" id="ticketStatusFilter" onchange="renderTicketList()"><option value="">전체 상태</option><option value="processing">처리중</option><option value="answered">답변완료</option><option value="closed">종료</option></select>
+<select class="form-select" id="ticketPriorityFilter" onchange="renderTicketList()"><option value="">전체 우선순위</option><option value="urgent">긴급</option><option value="high">높음</option><option value="normal">보통</option><option value="low">낮음</option></select>
+<input class="form-input" id="ticketDateFrom" type="date" aria-label="시작일" onchange="renderTicketList()"/>
+<input class="form-input" id="ticketDateTo" type="date" aria-label="종료일" onchange="renderTicketList()"/>
 </div>
 <div class="list-items" id="ticketList"></div>
 </div>
@@ -90,11 +117,15 @@
 <!-- NEW TICKET FORM -->
 <div class="support-detail" id="newTicketView" style="display:none; flex-direction:column;">
 <div class="detail-header">
-<div class="detail-title">새 문의 작성하기</div>
+<div class="detail-title" id="newTicketTitle">새 문의 작성하기</div>
 </div>
 <div class="new-ticket-form" style="flex:1; overflow-y:auto;">
+<div class="support-detail-grid">
+<div class="form-group"><label class="form-label" id="requesterLabel">요청자</label><input class="form-input" id="ticketRequester" value="Nguyen Kim"/></div>
+<div class="form-group"><label class="form-label" id="priorityLabel">우선순위</label><select class="form-select" id="ticketPriority"><option value="urgent">긴급</option><option value="high">높음</option><option value="normal" selected>보통</option><option value="low">낮음</option></select></div>
+</div>
 <div class="form-group">
-<label class="form-label">문의 유형</label>
+<label class="form-label" id="typeLabel">문의 유형</label>
 <select class="form-select" id="ticketType">
 <option value="시스템 오류">시스템 오류</option>
 <option value="예약/운영">예약/운영</option>
@@ -104,24 +135,24 @@
 </select>
 </div>
 <div class="form-group">
-<label class="form-label">제목</label>
+<label class="form-label" id="subjectLabel">제목</label>
 <input class="form-input" id="ticketSubject" placeholder="문의 제목을 입력하세요" type="text"/>
 </div>
 <div class="form-group">
-<label class="form-label">내용</label>
+<label class="form-label" id="messageLabel">내용</label>
 <textarea class="form-textarea" id="ticketMessage" placeholder="상세한 증상이나 문의 내용을 입력해주세요."></textarea>
 </div>
 <div class="form-group">
-<label class="form-label">파일 첨부</label>
+<label class="form-label" id="attachmentLabel">파일 첨부</label>
 <div class="file-upload-wrap">
-<input id="ticketFile" multiple="" onchange="document.getElementById('fileName').textContent = this.files.length &gt; 0 ? Array.from(this.files).map(f=&gt;f.name).join(', ') : '선택된 파일 없음';" style="display:none;" type="file"/>
-<button class="file-upload-btn" onclick="document.getElementById('ticketFile').click()"><i class="fa-solid fa-paperclip"></i> 파일 선택</button>
+<input id="ticketFile" multiple="" onchange="document.getElementById('fileName').textContent = this.files.length &gt; 0 ? Array.from(this.files).map(f=&gt;f.name).join(', ') : st('noFile');" style="display:none;" type="file"/>
+<button class="file-upload-btn" id="fileSelectButton" type="button" onclick="document.getElementById('ticketFile').click()"><i class="fa-solid fa-paperclip"></i> 파일 선택</button>
 <span id="fileName" style="font-size:0.8rem;color:var(--txt3);">선택된 파일 없음</span>
 </div>
 </div>
 <div class="support-form-actions">
-<button class="support-btn outline" type="button" onclick="showTicketDetail()">취소</button>
-<button class="support-btn primary" type="button" onclick="submitTicket()"><i class="fa-solid fa-paper-plane"></i> 제출하기</button>
+<button class="support-btn outline" id="ticketCancelButton" type="button" onclick="showTicketDetail()">취소</button>
+<button class="support-btn primary" id="ticketSubmitButton" type="button" onclick="submitTicket()"><i class="fa-solid fa-paper-plane"></i> 제출하기</button>
 </div>
 </div>
 </div>
@@ -129,15 +160,20 @@
 </div>
 </div>
 <script>
-    const supportTickets = [
+    const supportTicketSeed = [
         {
             id: 'TK-10023',
             type: '요금/결제',
             title: '결제 모듈 연동 에러',
             date: '2026-05-20',
             status: 'processing',
+            priority: 'urgent',
+            requester: 'Nguyen Kim',
+            assignee: 'Platform Support',
             message: '안녕하세요. 오늘 예약 결제창에서 결제 대행사 연동 오류가 발생했습니다. 확인 부탁드립니다.',
-            reply: '고객님 이용에 불편을 드려 죄송합니다. 현재 결제 대행사 측의 일시적인 네트워크 지연이 발생한 것으로 파악되었습니다.\n오후 3시 경 복구될 예정이며, 처리 후 다시 안내해드리겠습니다.'
+            reply: '고객님 이용에 불편을 드려 죄송합니다. 현재 결제 대행사 측의 일시적인 네트워크 지연이 발생한 것으로 파악되었습니다.\n오후 3시 경 복구될 예정이며, 처리 후 다시 안내해드리겠습니다.',
+            attachments: [],
+            history: [{ at: '2026-05-20 10:30', actor: 'Platform Support', action: '답변 등록' }]
         },
         {
             id: 'TK-10020',
@@ -145,8 +181,13 @@
             title: '일간 리포트 다운로드 버그',
             date: '2026-05-21',
             status: 'answered',
+            priority: 'high',
+            requester: 'Sarah Connor',
+            assignee: 'Platform Support',
             message: '일일 마감 화면에서 일간 리포트 다운로드 버튼을 누르면 빈 파일이 내려받아집니다. 6월 20일 데이터 기준으로 확인 부탁드립니다.',
-            reply: '다운로드 파일 생성 시 정산 필터가 누락되는 문제를 확인해 수정했습니다.\n브라우저 새로고침 후 다시 다운로드하면 정상 파일을 받을 수 있습니다.'
+            reply: '다운로드 파일 생성 시 정산 필터가 누락되는 문제를 확인해 수정했습니다.\n브라우저 새로고침 후 다시 다운로드하면 정상 파일을 받을 수 있습니다.',
+            attachments: [{ name: 'daily-report-error.txt', type: 'text/plain', size: 128 }],
+            history: [{ at: '2026-05-21 14:10', actor: 'Platform Support', action: '답변 등록 · 답변완료' }]
         },
         {
             id: 'TK-10018',
@@ -154,18 +195,85 @@
             title: '직원 권한 변경 문의',
             date: '2026-05-18',
             status: 'closed',
+            priority: 'normal',
+            requester: 'Robert Ford',
+            assignee: 'Platform Support',
             message: '프론트 직원에게 예약 조회 권한은 유지하고 요금 설정 메뉴는 숨기고 싶습니다. 어떤 역할로 설정해야 하나요?',
-            reply: '직원 관리의 역할 및 접근 권한 관리에서 Front Desk 역할을 선택한 뒤 요금 설정 권한을 제외하면 됩니다.\n변경 후 해당 직원이 재로그인하면 메뉴가 갱신됩니다.'
+            reply: '직원 관리의 역할 및 접근 권한 관리에서 Front Desk 역할을 선택한 뒤 요금 설정 권한을 제외하면 됩니다.\n변경 후 해당 직원이 재로그인하면 메뉴가 갱신됩니다.',
+            attachments: [],
+            history: [{ at: '2026-05-18 16:00', actor: 'Platform Support', action: '문의 종료' }]
         }
     ];
 
-    const supportStatus = {
-        processing: { label: '처리중', badge: 'orange' },
-        answered: { label: '답변완료', badge: 'green' },
-        closed: { label: '종료', badge: 'blue' }
+    const supportCopy = {
+        ko: {
+            list: '나의 문의 내역', newTicket: '문의하기', search: '문의번호, 제목, 요청자 검색', allStatus: '전체 상태', allPriority: '전체 우선순위',
+            processing: '처리중', answered: '답변완료', closed: '종료', urgent: '긴급', high: '높음', normal: '보통', low: '낮음',
+            requester: '요청자', priority: '우선순위', type: '문의 유형', subject: '제목', message: '내용', attachment: '파일 첨부',
+            fileSelect: '파일 선택', noFile: '선택된 파일 없음', cancel: '취소', submit: '제출하기', newTitle: '새 문의 작성하기',
+            ticketNo: '문의번호', created: '작성일', status: '상태', assignee: '담당자', answerHistory: '답변 및 처리 이력', noAnswer: '아직 등록된 답변이 없습니다. 접수 순서대로 확인 중입니다.',
+            manager: '플랫폼 관리자', reply: '답변', replyPlaceholder: '답변 내용을 입력하세요', saveReply: '답변 등록', changeStatus: '상태 변경', reopen: '재오픈',
+            required: '요청자, 제목과 내용을 입력해주세요.', accepted: '접수되었습니다.', savedReply: '답변과 상태가 저장되었습니다.', savedStatus: '상태가 변경되었습니다.', saveFailed: '저장하지 못했습니다. 입력 내용은 유지됩니다.',
+            empty: '조건에 맞는 문의가 없습니다.', count: '건', download: '첨부 다운로드'
+        },
+        en: {
+            list: 'My Support Tickets', newTicket: 'New Ticket', search: 'Search ID, subject, or requester', allStatus: 'All statuses', allPriority: 'All priorities',
+            processing: 'In progress', answered: 'Answered', closed: 'Closed', urgent: 'Urgent', high: 'High', normal: 'Normal', low: 'Low',
+            requester: 'Requester', priority: 'Priority', type: 'Category', subject: 'Subject', message: 'Message', attachment: 'Attachments',
+            fileSelect: 'Choose Files', noFile: 'No files selected', cancel: 'Cancel', submit: 'Submit', newTitle: 'Create Support Ticket',
+            ticketNo: 'Ticket ID', created: 'Created', status: 'Status', assignee: 'Assignee', answerHistory: 'Replies and Activity', noAnswer: 'No reply has been registered yet. Tickets are reviewed in order.',
+            manager: 'Platform Support', reply: 'Reply', replyPlaceholder: 'Enter a reply', saveReply: 'Save Reply', changeStatus: 'Change Status', reopen: 'Reopen',
+            required: 'Enter the requester, subject, and message.', accepted: 'Ticket submitted.', savedReply: 'Reply and status saved.', savedStatus: 'Status updated.', saveFailed: 'Could not save. Your input has been retained.',
+            empty: 'No tickets match the current filters.', count: 'tickets', download: 'Download attachment'
+        }
     };
+    const supportStatus = {
+        processing: { badge: 'orange' }, answered: { badge: 'green' }, closed: { badge: 'blue' }
+    };
+    const supportPriority = { urgent: 'orange', high: 'orange', normal: 'blue', low: 'green' };
+    const SUPPORT_STORAGE_KEY = 'pms_support_tickets';
+    let supportTickets = loadSupportTickets();
 
-    let selectedTicketId = supportTickets[0].id;
+    let selectedTicketId = new URLSearchParams(location.search).get('ticket') || supportTickets[0]?.id || '';
+
+    function supportLang() { return localStorage.getItem('pms_lang') === 'en' ? 'en' : 'ko'; }
+    function st(key) { return supportCopy[supportLang()][key] || supportCopy.ko[key] || key; }
+    function supportTypeLabel(value) {
+        if (supportLang() !== 'en') return value;
+        return ({
+            '시스템 오류': 'System Error',
+            '예약/운영': 'Reservation / Operations',
+            '요금/결제': 'Rates / Payments',
+            '계정/권한': 'Account / Access',
+            '기타': 'Other'
+        })[value] || value;
+    }
+    function supportHistoryLabel(value) {
+        if (supportLang() !== 'en') return value;
+        return String(value || '')
+            .replace(/답변 등록/g, 'Reply saved')
+            .replace(/답변완료/g, 'Answered')
+            .replace(/문의 종료/g, 'Ticket closed')
+            .replace(/문의 접수/g, 'Ticket submitted')
+            .replace(/상태 변경/g, 'Status changed')
+            .replace(/재오픈/g, 'Reopened');
+    }
+    function loadSupportTickets() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(SUPPORT_STORAGE_KEY) || 'null');
+            if (Array.isArray(stored) && stored.length) return stored;
+        } catch (error) { console.warn('Support ticket storage could not be read.', error); }
+        return JSON.parse(JSON.stringify(supportTicketSeed));
+    }
+    function persistSupportTickets() {
+        try {
+            localStorage.setItem(SUPPORT_STORAGE_KEY, JSON.stringify(supportTickets));
+            return true;
+        } catch (error) {
+            console.error('Support ticket storage failed.', error);
+            return false;
+        }
+    }
 
     function escapeSupportHtml(value) {
         return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -179,34 +287,70 @@
 
     function statusBadge(status) {
         const meta = supportStatus[status] || supportStatus.processing;
-        return `<span class="badge ${meta.badge}">${escapeSupportHtml(meta.label)}</span>`;
+        return `<span class="badge ${meta.badge}">${escapeSupportHtml(st(status))}</span>`;
+    }
+
+    function priorityBadge(priority) {
+        const value = priority || 'normal';
+        return `<span class="badge ${supportPriority[value] || 'blue'}">${escapeSupportHtml(st(value))}</span>`;
+    }
+
+    function filteredSupportTickets() {
+        const query = document.getElementById('ticketSearch')?.value.trim().toLowerCase() || '';
+        const status = document.getElementById('ticketStatusFilter')?.value || '';
+        const priority = document.getElementById('ticketPriorityFilter')?.value || '';
+        const dateFrom = document.getElementById('ticketDateFrom')?.value || '';
+        const dateTo = document.getElementById('ticketDateTo')?.value || '';
+        return supportTickets.filter(ticket => {
+            const haystack = `${ticket.id} ${ticket.title} ${ticket.requester}`.toLowerCase();
+            return (!query || haystack.includes(query)) && (!status || ticket.status === status) && (!priority || ticket.priority === priority)
+                && (!dateFrom || ticket.date >= dateFrom) && (!dateTo || ticket.date <= dateTo);
+        });
     }
 
     function renderTicketList() {
-        document.getElementById('ticketList').innerHTML = supportTickets.map(ticket => `
+        const items = filteredSupportTickets();
+        document.getElementById('ticketListHeading').textContent = `${st('list')} (${items.length}${supportLang() === 'ko' ? st('count') : ''})`;
+        document.getElementById('ticketList').innerHTML = items.length ? items.map(ticket => `
             <div class="list-item ${ticket.id === selectedTicketId ? 'active' : ''}" role="button" tabindex="0"
                  onclick="showTicketDetail('${ticket.id}')"
                  onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showTicketDetail('${ticket.id}')}">
                 <div class="item-title">[${escapeSupportHtml(ticket.id)}] ${escapeSupportHtml(ticket.title)}</div>
                 <div class="item-meta">
-                    <span>${escapeSupportHtml(ticket.date)}</span>
-                    ${statusBadge(ticket.status)}
+                    <span>${escapeSupportHtml(ticket.date)} · ${escapeSupportHtml(ticket.requester || '-')}</span>
+                    <span>${priorityBadge(ticket.priority)} ${statusBadge(ticket.status)}</span>
                 </div>
             </div>
-        `).join('');
+        `).join('') : `<div class="support-empty-reply" style="margin:16px">${escapeSupportHtml(st('empty'))}</div>`;
     }
 
     function renderTicketDetail() {
         const ticket = supportTickets.find(item => item.id === selectedTicketId) || supportTickets[0];
         if (!ticket) return;
         document.getElementById('ticketDetailTitle').textContent = ticket.title;
-        document.getElementById('ticketDetailMeta').innerHTML = `문의번호: ${escapeSupportHtml(ticket.id)} | 유형: ${escapeSupportHtml(ticket.type)} | 작성일: ${escapeSupportHtml(ticket.date)} | 상태: ${statusBadge(ticket.status)}`;
+        document.getElementById('ticketDetailMeta').innerHTML = `${escapeSupportHtml(st('ticketNo'))}: ${escapeSupportHtml(ticket.id)} · ${escapeSupportHtml(st('created'))}: ${escapeSupportHtml(ticket.date)} · ${statusBadge(ticket.status)}`;
+        const attachments = (ticket.attachments || []).map(file => `<a class="support-attachment" href="data:text/plain;charset=utf-8,${encodeURIComponent(`${file.name}\n${ticket.id}`)}" download="${escapeSupportHtml(file.name)}" title="${escapeSupportHtml(st('download'))}"><i class="fa-solid fa-paperclip"></i>${escapeSupportHtml(file.name)}</a>`).join('');
+        const history = (ticket.history || []).slice().reverse().map(item => `<div class="support-history-item" data-no-i18n><strong>${escapeSupportHtml(supportHistoryLabel(item.action))}</strong><br>${escapeSupportHtml(item.at)} · ${escapeSupportHtml(item.actor)}</div>`).join('');
         document.getElementById('ticketDetailBody').innerHTML = `
+            <div class="support-detail-grid">
+                <div class="support-detail-field"><small>${escapeSupportHtml(st('requester'))}</small><strong>${escapeSupportHtml(ticket.requester || '-')}</strong></div>
+                <div class="support-detail-field"><small>${escapeSupportHtml(st('priority'))}</small>${priorityBadge(ticket.priority)}</div>
+                <div class="support-detail-field"><small>${escapeSupportHtml(st('type'))}</small><strong data-no-i18n>${escapeSupportHtml(supportTypeLabel(ticket.type))}</strong></div>
+                <div class="support-detail-field"><small>${escapeSupportHtml(st('assignee'))}</small><strong>${escapeSupportHtml(ticket.assignee || '-')}</strong></div>
+            </div>
             <div class="support-message">${escapeSupportHtml(ticket.message)}</div>
-            <h4 style="margin-bottom:12px;font-size:0.9rem;">답변 내역</h4>
+            ${attachments ? `<div class="support-attachments">${attachments}</div>` : ''}
+            <h4 style="margin-bottom:12px;font-size:0.9rem;">${escapeSupportHtml(st('answerHistory'))}</h4>
             ${ticket.reply
-                ? `<div class="support-reply"><strong>플랫폼 관리자</strong><br><br>${escapeSupportHtml(ticket.reply)}</div>`
-                : '<div class="support-empty-reply">아직 등록된 답변이 없습니다. 접수 순서대로 확인 중입니다.</div>'}
+                ? `<div class="support-reply"><strong>${escapeSupportHtml(st('manager'))}</strong><br><br>${escapeSupportHtml(ticket.reply)}</div>`
+                : `<div class="support-empty-reply">${escapeSupportHtml(st('noAnswer'))}</div>`}
+            <div class="support-detail-actions">
+                <div class="form-group"><label class="form-label" for="supportReplyInput">${escapeSupportHtml(st('reply'))}</label><textarea class="form-textarea" id="supportReplyInput" placeholder="${escapeSupportHtml(st('replyPlaceholder'))}" style="height:76px"></textarea></div>
+                <button class="support-btn primary" type="button" onclick="saveSupportReply()"><i class="fa-solid fa-reply"></i>${escapeSupportHtml(st('saveReply'))}</button>
+                <div class="form-group"><label class="form-label" for="supportStatusSelect">${escapeSupportHtml(st('changeStatus'))}</label><select class="form-select" id="supportStatusSelect"><option value="processing" ${ticket.status === 'processing' ? 'selected' : ''}>${escapeSupportHtml(st('processing'))}</option><option value="answered" ${ticket.status === 'answered' ? 'selected' : ''}>${escapeSupportHtml(st('answered'))}</option><option value="closed" ${ticket.status === 'closed' ? 'selected' : ''}>${escapeSupportHtml(st('closed'))}</option></select></div>
+                <button class="support-btn outline" type="button" onclick="changeSupportStatus()"><i class="fa-solid fa-rotate"></i>${escapeSupportHtml(ticket.status === 'closed' ? st('reopen') : st('changeStatus'))}</button>
+            </div>
+            <div class="support-history">${history}</div>
         `;
     }
 
@@ -227,16 +371,19 @@
         document.getElementById('ticketType').value = '시스템 오류';
         document.getElementById('ticketSubject').value = '';
         document.getElementById('ticketMessage').value = '';
+        document.getElementById('ticketRequester').value = 'Nguyen Kim';
+        document.getElementById('ticketPriority').value = 'normal';
         document.getElementById('ticketFile').value = '';
-        document.getElementById('fileName').textContent = '선택된 파일 없음';
+        document.getElementById('fileName').textContent = st('noFile');
     }
 
     function submitTicket() {
         const type = document.getElementById('ticketType').value;
         const title = document.getElementById('ticketSubject').value.trim();
         const message = document.getElementById('ticketMessage').value.trim();
-        if (!title || !message) {
-            showToast('제목과 내용을 입력해주세요.', 'error');
+        const requester = document.getElementById('ticketRequester').value.trim();
+        if (!requester || !title || !message) {
+            showToast(st('required'), 'error');
             return;
         }
         const nextNumber = Math.max(...supportTickets.map(ticket => Number(ticket.id.replace(/\D/g, '')))) + 1;
@@ -247,20 +394,88 @@
             title,
             date: today,
             status: 'processing',
+            priority: document.getElementById('ticketPriority').value,
+            requester,
+            assignee: 'Platform Support',
             message,
-            reply: ''
+            reply: '',
+            attachments: Array.from(document.getElementById('ticketFile').files || []).map(file => ({ name: file.name, type: file.type, size: file.size })),
+            history: [{ at: new Date().toLocaleString(supportLang() === 'en' ? 'en-US' : 'ko-KR'), actor: requester, action: supportLang() === 'en' ? 'Ticket submitted' : '문의 접수' }]
         };
         supportTickets.unshift(newTicket);
         selectedTicketId = newTicket.id;
+        if (!persistSupportTickets()) {
+            supportTickets.shift();
+            selectedTicketId = supportTickets[0]?.id || '';
+            showToast(st('saveFailed'), 'error');
+            return;
+        }
         resetTicketForm();
-        showToast('접수되었습니다.', 'success');
+        showToast(st('accepted'), 'success');
         showTicketDetail(newTicket.id);
     }
 
+    function saveSupportReply() {
+        const ticket = supportTickets.find(item => item.id === selectedTicketId);
+        const input = document.getElementById('supportReplyInput');
+        const reply = input?.value.trim() || '';
+        if (!ticket || !reply) return input?.focus();
+        const snapshot = JSON.stringify(ticket);
+        ticket.reply = ticket.reply ? `${ticket.reply}\n\n${reply}` : reply;
+        ticket.status = 'answered';
+        ticket.assignee = 'Platform Support';
+        ticket.updatedAt = new Date().toISOString();
+        ticket.history = ticket.history || [];
+        ticket.history.push({ at: new Date().toLocaleString(supportLang() === 'en' ? 'en-US' : 'ko-KR'), actor: 'Platform Support', action: supportLang() === 'en' ? 'Reply saved · Answered' : '답변 등록 · 답변완료' });
+        if (!persistSupportTickets()) Object.assign(ticket, JSON.parse(snapshot));
+        else showToast(st('savedReply'), 'success');
+        renderTicketList(); renderTicketDetail();
+    }
+
+    function changeSupportStatus() {
+        const ticket = supportTickets.find(item => item.id === selectedTicketId);
+        const next = document.getElementById('supportStatusSelect')?.value;
+        if (!ticket || !supportStatus[next] || ticket.status === next) return;
+        const previous = ticket.status;
+        const snapshot = JSON.stringify(ticket);
+        ticket.status = next;
+        ticket.updatedAt = new Date().toISOString();
+        ticket.history = ticket.history || [];
+        ticket.history.push({ at: new Date().toLocaleString(supportLang() === 'en' ? 'en-US' : 'ko-KR'), actor: 'Platform Support', action: `${st(previous)} → ${st(next)}` });
+        if (!persistSupportTickets()) Object.assign(ticket, JSON.parse(snapshot));
+        else showToast(st('savedStatus'), 'success');
+        renderTicketList(); renderTicketDetail();
+    }
+
+    function applySupportLanguage() {
+        document.documentElement.lang = supportLang();
+        document.getElementById('newTicketButton').innerHTML = `<i class="fa-solid fa-plus"></i> ${escapeSupportHtml(st('newTicket'))}`;
+        document.getElementById('ticketSearch').placeholder = st('search');
+        const statusOptions = document.getElementById('ticketStatusFilter').options;
+        statusOptions[0].textContent = st('allStatus');
+        ['processing','answered','closed'].forEach((key, index) => statusOptions[index + 1].textContent = st(key));
+        const priorityOptions = document.getElementById('ticketPriorityFilter').options;
+        priorityOptions[0].textContent = st('allPriority');
+        ['urgent','high','normal','low'].forEach((key, index) => priorityOptions[index + 1].textContent = st(key));
+        ['ticketPriority'].forEach(id => ['urgent','high','normal','low'].forEach((key, index) => document.getElementById(id).options[index].textContent = st(key)));
+        const typeOptions = document.getElementById('ticketType').options;
+        const typeLabels = supportLang() === 'en' ? ['System Error','Reservation / Operations','Rates / Payments','Account / Access','Other'] : ['시스템 오류','예약/운영','요금/결제','계정/권한','기타'];
+        typeLabels.forEach((label, index) => typeOptions[index].textContent = label);
+        document.getElementById('ticketDateFrom').setAttribute('aria-label', supportLang() === 'en' ? 'Start date' : '시작일');
+        document.getElementById('ticketDateTo').setAttribute('aria-label', supportLang() === 'en' ? 'End date' : '종료일');
+        const labels = { requesterLabel:'requester', priorityLabel:'priority', typeLabel:'type', subjectLabel:'subject', messageLabel:'message', attachmentLabel:'attachment', newTicketTitle:'newTitle', ticketCancelButton:'cancel' };
+        Object.entries(labels).forEach(([id,key]) => document.getElementById(id).textContent = st(key));
+        document.getElementById('fileSelectButton').innerHTML = `<i class="fa-solid fa-paperclip"></i> ${escapeSupportHtml(st('fileSelect'))}`;
+        document.getElementById('ticketSubmitButton').innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${escapeSupportHtml(st('submit'))}`;
+        if (!document.getElementById('ticketFile').files.length) document.getElementById('fileName').textContent = st('noFile');
+        renderTicketList(); renderTicketDetail();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-        renderTicketList();
-        renderTicketDetail();
+        applySupportLanguage();
     });
+    window.addEventListener('DataReady', applySupportLanguage);
+    window.addEventListener('languagechange', applySupportLanguage);
 </script>
 <script>
 // Sync language selector to stored preference

@@ -21,6 +21,7 @@ async function newContext(browser) {
     ignoreHTTPSErrors: true
   });
   await context.addInitScript(() => {
+    sessionStorage.setItem('pms_logged_in', 'true');
     sessionStorage.setItem('admin_logged_in', 'true');
     localStorage.setItem('pms_lang', 'ko');
   });

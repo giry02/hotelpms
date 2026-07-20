@@ -102,6 +102,7 @@ async function gotoWithRetry(page, url, attempts = 3) {
             '.event-company',
             '.company-name',
             '.data-row',
+            '[data-user-content]',
             '[data-i18n-data]'
           ].join(','));
         }

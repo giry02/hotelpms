@@ -446,6 +446,14 @@ function renderRoomTypes() {
                 <label>뷰 / 구분</label>
                 <input class="inline-input" id="rtView${index}" value="${escapeAttr(rt.view)}" placeholder="예: Ocean View">
             </div>
+            <div class="inline-field">
+                <label>기준요금</label>
+                <input class="inline-input" id="rtBasePrice${index}" type="number" min="1" max="100000000" step="1" value="${Number(rt.basePrice || 0)}">
+            </div>
+            <div class="inline-field">
+                <label>기준인원</label>
+                <input class="inline-input" id="rtCapacity${index}" type="number" min="1" max="20" step="1" value="${Number(rt.capacity || 2)}">
+            </div>
             <div class="inline-field roomtype-desc">
                 <label>설명</label>
                 <input class="inline-input" id="rtDesc${index}" value="${escapeAttr(rt.desc)}" placeholder="예: 최대 2인, 킹베드 1개">
@@ -463,6 +471,8 @@ function renderRoomTypes() {
             <div class="inline-manage-row roomtype-row new-row">
                 <div class="inline-field"><label>객실명</label><input class="inline-input" id="newRtName" placeholder="예: Deluxe"></div>
                 <div class="inline-field"><label>뷰 / 구분</label><input class="inline-input" id="newRtView" placeholder="예: City View"></div>
+                <div class="inline-field"><label>기준요금</label><input class="inline-input" id="newRtBasePrice" type="number" min="1" max="100000000" step="1" placeholder="예: 450"></div>
+                <div class="inline-field"><label>기준인원</label><input class="inline-input" id="newRtCapacity" type="number" min="1" max="20" step="1" value="2"></div>
                 <div class="inline-field roomtype-desc"><label>설명</label><input class="inline-input" id="newRtDesc" placeholder="예: 최대 2인, 킹베드 1개"></div>
                 <div class="inline-actions"><button class="btn-primary-sm" onclick="addRoomType()"><i class="fa-solid fa-plus"></i> 추가</button></div>
             </div>
@@ -475,8 +485,12 @@ async function saveRoomTypeRow(index) {
     if (!current) return;
     const name = document.getElementById(`rtName${index}`).value.trim();
     const view = document.getElementById(`rtView${index}`).value.trim();
+    const basePrice = Number(document.getElementById(`rtBasePrice${index}`).value);
+    const capacity = Number(document.getElementById(`rtCapacity${index}`).value);
     const id = current.id;
     if (!name) return showToast('객실명을 입력해 주세요.', 'error');
+    if (!Number.isFinite(basePrice) || basePrice < 1 || basePrice > 100000000) return showToast('기준요금은 1~100,000,000 범위로 입력해 주세요.', 'error');
+    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 20) return showToast('기준인원은 1~20명 범위의 정수로 입력해 주세요.', 'error');
     if (allRoomTypes.some((rt, i) => i !== index && roomTypeSearchKey(roomTypeLabel(rt.id)) === roomTypeSearchKey([name, view].filter(Boolean).join(' ')))) {
         return showToast('이미 등록된 객실 유형입니다.', 'error');
     }
@@ -487,6 +501,9 @@ async function saveRoomTypeRow(index) {
         code: current.code || id,
         name,
         view,
+        basePrice,
+        baseRate: basePrice,
+        capacity,
         desc: document.getElementById(`rtDesc${index}`).value.trim()
     });
     allRoomTypes[index] = updated;
@@ -500,7 +517,11 @@ async function saveRoomTypeRow(index) {
 async function addRoomType() {
     const name = document.getElementById('newRtName').value.trim();
     const view = document.getElementById('newRtView').value.trim();
+    const basePrice = Number(document.getElementById('newRtBasePrice').value);
+    const capacity = Number(document.getElementById('newRtCapacity').value);
     if (!name) return showToast('객실명을 입력해 주세요.', 'error');
+    if (!Number.isFinite(basePrice) || basePrice < 1 || basePrice > 100000000) return showToast('기준요금은 1~100,000,000 범위로 입력해 주세요.', 'error');
+    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 20) return showToast('기준인원은 1~20명 범위의 정수로 입력해 주세요.', 'error');
     if (allRoomTypes.some(rt => roomTypeSearchKey(roomTypeLabel(rt.id)) === roomTypeSearchKey([name, view].filter(Boolean).join(' ')))) {
         return showToast('이미 등록된 객실 유형입니다.', 'error');
     }
@@ -517,6 +538,9 @@ async function addRoomType() {
         code: id,
         name,
         view,
+        basePrice,
+        baseRate: basePrice,
+        capacity,
         desc: document.getElementById('newRtDesc').value.trim()
     }));
     await persistRoomTypes();
@@ -819,6 +843,15 @@ async function saveRoom() {
     }
     if (!type) {
         showToast('객실 유형을 입력해주세요.', 'error');
+        return;
+    }
+
+    const normalizedId = id.toLowerCase();
+    const duplicateRoom = allRooms.find((room, index) =>
+        index !== editingIdx && String(room.id || '').trim().toLowerCase() === normalizedId
+    );
+    if (duplicateRoom) {
+        showToast('이미 등록된 객실 번호입니다.', 'error');
         return;
     }
 

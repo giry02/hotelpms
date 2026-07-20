@@ -27,6 +27,7 @@
 <div class="content">
 <div class="filter-bar">
 <div class="filter-left">
+<input class="form-control" data-no-auto-i18n id="tenantSearch" type="search" placeholder="호텔명 또는 코드 검색" style="width:230px;height:36px" oninput="applyTenantFilters()"/>
 <div class="filter-chips">
 <button class="chip active" data-filter="전체" data-label="전체">전체</button>
 <button class="chip" data-filter="운영 중" data-label="운영 중">운영 중</button>
@@ -36,12 +37,16 @@
 </div>
 </div>
 <div class="filter-right">
-<select class="form-control" style="width:160px;height:36px"><option data-ko="전체 플랜" data-en="All plans">전체 플랜</option><option>Free</option><option>Standard</option><option>Premium</option></select>
+<select class="form-control" id="tenantPlanFilter" style="width:150px;height:36px" onchange="applyTenantFilters()"><option value="" data-ko="전체 플랜" data-en="All plans">전체 플랜</option><option>Free</option><option>Standard</option><option>Premium</option></select>
+<select class="form-control" id="tenantIntegrationFilter" style="width:150px;height:36px" onchange="applyTenantFilters()"><option value="" data-ko="전체 연동" data-en="All integrations">전체 연동</option><option value="PMS API">PMS API</option><option value="Partner Portal">Partner Portal</option></select>
+<select class="form-control" id="tenantSort" style="width:150px;height:36px" onchange="applyTenantFilters()"><option value="hotel-asc">호텔명 ↑</option><option value="hotel-desc">호텔명 ↓</option><option value="access-desc">최근 접속순</option></select>
+<button class="btn-outline" id="tenantExportButton" type="button" onclick="exportTenants()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+<strong id="tenantResultCount" style="white-space:nowrap">0개</strong>
 </div>
 </div>
 <div class="card">
 <div class="card-body"><div class="table-wrap"><table>
-<thead><tr><th>호텔명</th><th>국가/도시</th><th>플랜</th><th>객실 수</th><th>계약 기간</th><th>상태</th><th>관리</th></tr></thead>
+<thead><tr><th>호텔명</th><th>국가/도시</th><th>플랜</th><th>객실 수</th><th>계약 기간</th><th>상태</th><th>연동</th><th>최근 접속</th><th>관리</th></tr></thead>
 <tbody id="tenantTableBody">
 <tr><td style="font-weight:600">The Grand Saigon</td><td>Ho Chi Minh</td><td><span class="status-badge" style="background:var(--purple-lt);color:var(--purple)">Premium</span></td><td>320</td><td>2025.01 ~ 2027.12</td><td><span class="status-badge active">운영 중</span></td><td><a class="btn-outline btn-sm" href="detail.html"><i class="fa-solid fa-eye"></i></a></td></tr>
 <tr><td style="font-weight:600">Hanoi Lakeside</td><td>Hanoi</td><td><span class="status-badge" style="background:var(--primary-lt);color:var(--primary)">Standard</span></td><td>180</td><td>2025.06 ~ 2027.05</td><td><span class="status-badge active">운영 중</span></td><td><a class="btn-outline btn-sm" href="detail.html"><i class="fa-solid fa-eye"></i></a></td></tr>
@@ -50,6 +55,7 @@
 <tr><td style="font-weight:600">Bangkok Central</td><td>Bangkok</td><td><span class="status-badge" style="background:var(--primary-lt);color:var(--primary)">Standard</span></td><td>280</td><td>2025.11 ~ 2027.10</td><td><span class="status-badge active">운영 중</span></td><td><a class="btn-outline btn-sm" href="detail.html"><i class="fa-solid fa-eye"></i></a></td></tr>
 </tbody>
 </table></div></div>
+<div id="tenantEmptyState" style="display:none;padding:28px;text-align:center;color:var(--txt3)">조건에 맞는 호텔이 없습니다.</div>
 </div>
 </div>
 </div>
@@ -66,6 +72,14 @@ function escapeTenantHtml(value) {
 
 function updateFilterCounts() {
     const rows = document.querySelectorAll('tbody tr');
+    const en = (window.currentLang || localStorage.getItem('pms_admin_lang')) === 'en';
+    const englishLabels = {
+        '전체': 'All',
+        '운영 중': 'Active',
+        '심사 중': 'Under Review',
+        '정지됨': 'Suspended',
+        '반려': 'Rejected'
+    };
     document.querySelectorAll('.chip').forEach(chip => {
         const filterText = chip.getAttribute('data-filter');
         if (!filterText) return;
@@ -81,36 +95,51 @@ function updateFilterCounts() {
                 }
             }
         });
-        chip.textContent = `${label} (${count})`;
+        chip.textContent = `${en ? (englishLabels[label] || label) : label} (${count})`;
     });
 }
 
 function renderApplicationRows() {
     const tbody = document.getElementById('tenantTableBody');
-    if (!tbody || tbody.dataset.appRowsRendered === 'true') return;
+    if (!tbody) return;
     const tenants = window.AdminData?.tenants || [];
     if (tenants.length && tbody.dataset.tenantsRendered !== 'true') {
         tbody.innerHTML = tenants.map(tenant => `
-            <tr>
+            <tr data-status="${escapeTenantHtml(tenant.status === 'active' ? '운영 중' : tenant.status === 'suspended' ? '정지됨' : tenant.status || '')}" data-plan="${escapeTenantHtml(tenant.plan || 'Free')}" data-integration="${escapeTenantHtml(tenant.integration || 'PMS API')}" data-search="${escapeTenantHtml(`${tenant.hotelName || ''} ${tenant.id || ''} ${tenant.city || ''} ${tenant.country || ''}`.toLowerCase())}">
                 <td style="font-weight:600">${escapeTenantHtml(tenant.hotelName)}<br><span style="font-size:.7rem;color:var(--txt3)">${escapeTenantHtml(tenant.id)}</span></td>
                 <td>${escapeTenantHtml(tenant.city)}, ${escapeTenantHtml(tenant.country)}</td>
                 <td><span class="status-badge" style="background:var(--primary-lt);color:var(--primary)">${escapeTenantHtml(tenant.plan || 'Free')}</span></td>
-                <td>${escapeTenantHtml(tenant.rooms || '-')}</td>
+				<td>${escapeTenantHtml(tenant.roomCount || tenant.rooms || '-')}</td>
                 <td>${escapeTenantHtml(tenant.contractStart || '-')} ~ ${escapeTenantHtml(tenant.contractEnd || '-')}</td>
-                <td><span class="status-badge ${tenant.status === 'active' ? 'active' : 'pending'}">${tenant.status === 'active' ? '운영 중' : escapeTenantHtml(tenant.status)}</span></td>
-                <td><a class="btn-outline btn-sm" href="detail.html?id=${encodeURIComponent(tenant.id)}"><i class="fa-solid fa-eye"></i></a></td>
+                <td><span class="status-badge ${tenant.status === 'active' ? 'active' : 'pending'}">${tenant.status === 'active' ? '운영 중' : tenant.status === 'suspended' ? '정지됨' : escapeTenantHtml(tenant.status)}</span></td>
+                <td>${escapeTenantHtml(tenant.integration || 'PMS API')}</td>
+                <td>${escapeTenantHtml(tenant.lastAccess || '-')}</td>
+                <td style="display:flex;gap:4px">
+                    <a class="btn-outline btn-sm" href="detail.html?id=${encodeURIComponent(tenant.id)}" title="상세"><i class="fa-solid fa-eye"></i></a>
+                    <button class="btn-outline btn-sm" type="button" onclick="toggleTenantStatus(this, '${escapeTenantHtml(tenant.id)}')" title="상태 변경"><i class="fa-solid fa-power-off"></i></button>
+                    <button class="btn-outline btn-sm" type="button" onclick="deleteTenant('${escapeTenantHtml(tenant.id)}')" title="삭제"><i class="fa-solid fa-trash"></i></button>
+                </td>
             </tr>`).join('');
         tbody.dataset.tenantsRendered = 'true';
+        // The async tenant payload replaces the table body, so application rows
+        // rendered before DataReady must be appended again.
+        tbody.dataset.appRowsRendered = 'false';
     }
-    const stored = [
-        ...JSON.parse(localStorage.getItem('mockapi:v1:ADMIN:tenant-applications') || '[]'),
-        ...JSON.parse(localStorage.getItem('admin_tenant_applications') || '[]')
-    ];
-    const seeded = window.AdminData?.tenantApplications || [];
-    const apps = [...stored, ...seeded];
+	if (tbody.dataset.appRowsRendered === 'true') return;
+	const stored = [
+		...JSON.parse(localStorage.getItem('mockapi:v1:ADMIN:tenant-applications') || '[]'),
+		...JSON.parse(localStorage.getItem('admin_tenant_applications') || '[]'),
+		...JSON.parse(localStorage.getItem('pms_admin_store:tenantApplications') || '[]')
+	];
+	const seeded = window.AdminData?.tenantApplications || [];
+	const apps = [...new Map([...stored, ...seeded].map(app => [String(app.id), app])).values()];
     apps.reverse().forEach(app => {
         const row = document.createElement('tr');
         row.dataset.applicationId = app.id;
+        row.dataset.status = app.status || '심사 중';
+        row.dataset.plan = app.plan || 'Free';
+        row.dataset.integration = 'Partner Portal';
+        row.dataset.search = `${app.hotelName || ''} ${app.id || ''} ${app.city || ''} ${app.country || ''}`.toLowerCase();
         row.innerHTML = `
             <td style="font-weight:600">${escapeTenantHtml(app.hotelName)}<br><span style="font-size:.7rem;color:var(--txt3)">${escapeTenantHtml(app.id)}</span></td>
             <td>${escapeTenantHtml(app.city)}, ${escapeTenantHtml(app.country)}</td>
@@ -118,42 +147,155 @@ function renderApplicationRows() {
             <td>${escapeTenantHtml(app.rooms || '-')}</td>
             <td>${escapeTenantHtml(app.submittedAt || '접수일 미확인')} ~</td>
             <td><span class="status-badge pending">${escapeTenantHtml(app.status || '심사 중')}</span></td>
+            <td>Partner Portal</td>
+            <td>${escapeTenantHtml(app.updatedAt || app.submittedAt || '-')}</td>
             <td style="display:flex;gap:4px">
-                <a class="btn-outline btn-sm" href="detail.html"><i class="fa-solid fa-eye"></i></a>
-                <button class="btn-outline btn-sm" onclick="approveTenant(this)" style="color:var(--success);border-color:var(--success)" title="승인"><i class="fa-solid fa-check"></i></button>
-                <button class="btn-outline btn-sm" onclick="rejectTenant(this)" style="color:var(--danger);border-color:var(--danger)" title="반려"><i class="fa-solid fa-xmark"></i></button>
+				<a class="btn-outline btn-sm" href="detail.html?applicationId=${encodeURIComponent(app.id)}"><i class="fa-solid fa-eye"></i></a>
+				${['approved', 'active', '승인'].includes(String(app.status).toLowerCase()) ? '' : `<button class="btn-outline btn-sm" onclick="approveTenant(this, '${escapeTenantHtml(app.id)}')" style="color:var(--success);border-color:var(--success)" title="승인"><i class="fa-solid fa-check"></i></button>`}
+				${['rejected', '반려'].includes(String(app.status).toLowerCase()) ? '' : `<button class="btn-outline btn-sm" onclick="rejectTenant(this, '${escapeTenantHtml(app.id)}')" style="color:var(--danger);border-color:var(--danger)" title="반려"><i class="fa-solid fa-xmark"></i></button>`}
             </td>`;
         tbody.appendChild(row);
     });
     tbody.dataset.appRowsRendered = 'true';
 }
 
+let activeTenantStatus = '전체';
+let tenantFiltersRestored = false;
+
+function restoreTenantFilters() {
+    if (tenantFiltersRestored) return;
+    const stored = JSON.parse(localStorage.getItem('admin_tenant_filters') || 'null');
+    if (stored) {
+        document.getElementById('tenantSearch').value = stored.query || '';
+        document.getElementById('tenantPlanFilter').value = stored.plan || '';
+        document.getElementById('tenantIntegrationFilter').value = stored.integration || '';
+        document.getElementById('tenantSort').value = stored.sort || 'hotel-asc';
+        activeTenantStatus = stored.status || '전체';
+    }
+    tenantFiltersRestored = true;
+}
+
+restoreTenantFilters();
+
+function applyTenantFilters() {
+    const query = (document.getElementById('tenantSearch')?.value || '').trim().toLowerCase();
+    const plan = document.getElementById('tenantPlanFilter')?.value || '';
+    const integration = document.getElementById('tenantIntegrationFilter')?.value || '';
+    let visible = 0;
+    const tbody = document.getElementById('tenantTableBody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const sort = document.getElementById('tenantSort')?.value || 'hotel-asc';
+    rows.sort((a, b) => {
+        const nameA = a.dataset.search?.split(' ')[0] || a.cells[0]?.textContent.trim() || '';
+        const nameB = b.dataset.search?.split(' ')[0] || b.cells[0]?.textContent.trim() || '';
+        if (sort === 'hotel-desc') return nameB.localeCompare(nameA);
+        if (sort === 'access-desc') return (b.cells[7]?.textContent || '').localeCompare(a.cells[7]?.textContent || '');
+        return nameA.localeCompare(nameB);
+    }).forEach(row => tbody.appendChild(row));
+    rows.forEach(row => {
+        const status = row.dataset.status || row.cells[5]?.textContent.trim() || '';
+        const rowPlan = row.dataset.plan || row.cells[2]?.textContent.trim() || '';
+        const rowIntegration = row.dataset.integration || row.cells[6]?.textContent.trim() || '';
+        const haystack = row.dataset.search || row.textContent.toLowerCase();
+        const matches = (!query || haystack.includes(query)) && (!plan || rowPlan === plan) && (!integration || rowIntegration === integration)
+            && (activeTenantStatus === '전체' || status.startsWith(activeTenantStatus));
+        row.style.display = matches ? '' : 'none';
+        if (matches) visible += 1;
+    });
+    const en = localStorage.getItem('pms_admin_lang') === 'en';
+    document.getElementById('tenantResultCount').textContent = en ? `${visible} results` : `${visible}개`;
+    document.getElementById('tenantEmptyState').style.display = visible ? 'none' : 'block';
+    if (tenantFiltersRestored) localStorage.setItem('admin_tenant_filters', JSON.stringify({ query, plan, integration, status: activeTenantStatus, sort }));
+}
+
+function localizeTenantControls() {
+    const en = (window.currentLang || localStorage.getItem('pms_admin_lang')) === 'en';
+    document.getElementById('tenantSearch').placeholder = en ? 'Search hotel or code' : '호텔명 또는 코드 검색';
+    document.getElementById('tenantPlanFilter').options[0].textContent = en ? 'All plans' : '전체 플랜';
+    document.getElementById('tenantIntegrationFilter').options[0].textContent = en ? 'All integrations' : '전체 연동';
+    const sort = document.getElementById('tenantSort').options;
+    sort[0].textContent = en ? 'Hotel name ↑' : '호텔명 ↑';
+    sort[1].textContent = en ? 'Hotel name ↓' : '호텔명 ↓';
+    sort[2].textContent = en ? 'Recent access' : '최근 접속순';
+    document.getElementById('tenantEmptyState').textContent = en ? 'No hotels match the current filters.' : '조건에 맞는 호텔이 없습니다.';
+    updateFilterCounts();
+    applyTenantFilters();
+}
+
+function exportTenants() {
+    const rows = Array.from(document.querySelectorAll('#tenantTableBody tr')).filter(row => row.style.display !== 'none');
+    const headers = ['Hotel','Location','Plan','Rooms','Contract','Status','Integration','Last Access'];
+    const csv = [headers, ...rows.map(row => Array.from(row.cells).slice(0, 8).map(cell => cell.textContent.replace(/\s+/g, ' ').trim()))]
+        .map(cells => cells.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type:'text/csv;charset=utf-8' }));
+    link.download = 'hotel-list.csv';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 0);
+}
+
+function toggleTenantStatus(button, tenantId) {
+    const reason = prompt(localStorage.getItem('pms_admin_lang') === 'en' ? 'Reason for status change:' : '상태 변경 사유를 입력하세요:');
+    if (!reason) return;
+    const tenants = AdminStore.read('tenants', window.AdminData?.tenants || []);
+    const tenant = tenants.find(item => String(item.id) === String(tenantId));
+    if (!tenant) return alert('호텔 데이터를 찾을 수 없습니다.');
+    const previous = tenant.status || 'active';
+    tenant.status = previous === 'active' ? 'suspended' : 'active';
+    tenant.statusReason = reason;
+    tenant.statusChangedAt = new Date().toISOString();
+    AdminStore.write('tenants', tenants);
+    AdminStore.audit('tenant.status_change', tenant.id, `${previous} -> ${tenant.status} / ${reason}`, 'High');
+    const row = button.closest('tr');
+    row.dataset.status = tenant.status === 'active' ? '운영 중' : '정지됨';
+    const badge = row.cells[5].querySelector('.status-badge');
+    badge.className = `status-badge ${tenant.status === 'active' ? 'active' : ''}`;
+    badge.textContent = tenant.status === 'active' ? '운영 중' : '정지됨';
+    updateFilterCounts(); applyTenantFilters();
+}
+
+function deleteTenant(tenantId) {
+    const tenants = AdminStore.read('tenants', window.AdminData?.tenants || []);
+    const tenant = tenants.find(item => String(item.id) === String(tenantId));
+    if (!tenant) return;
+    if (Number(tenant.rooms || tenant.roomCount || 0) > 0 || tenant.applicationId) {
+        return alert(localStorage.getItem('pms_admin_lang') === 'en'
+            ? 'This hotel has linked rooms or application records. Suspend it instead of deleting it.'
+            : '연결된 객실 또는 입점 신청 데이터가 있어 삭제할 수 없습니다. 정지 상태로 변경하세요.');
+    }
+    if (!confirm(`${tenant.hotelName} 삭제`)) return;
+    AdminStore.remove('tenants', tenantId);
+    AdminStore.audit('tenant.delete', tenantId, tenant.hotelName, 'High');
+    document.querySelector(`#tenantTableBody tr a[href*="${CSS.escape(tenantId)}"]`)?.closest('tr')?.remove();
+    updateFilterCounts(); applyTenantFilters();
+}
+
 document.querySelectorAll('.chip').forEach(b=>{
     b.addEventListener('click',()=>{
         document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
         b.classList.add('active');
-        
-        const filterText = b.getAttribute('data-filter');
-        const rows = document.querySelectorAll('tbody tr');
-        rows.forEach(row => {
-            if (filterText === '전체') {
-                row.style.display = '';
-            } else {
-                const tdStatus = row.cells[5];
-                if (tdStatus && tdStatus.textContent.trim().startsWith(filterText)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            }
-        });
+        activeTenantStatus = b.getAttribute('data-filter') || '전체';
+        applyTenantFilters();
     })
 });
 
 window.addEventListener('DataReady', () => {
     renderApplicationRows();
     updateFilterCounts();
+    applyTenantFilters();
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    restoreTenantFilters();
+    document.getElementById('tenantSearch').addEventListener('input', applyTenantFilters);
+    document.getElementById('tenantPlanFilter').addEventListener('change', applyTenantFilters);
+    document.getElementById('tenantIntegrationFilter').addEventListener('change', applyTenantFilters);
+    document.getElementById('tenantSort').addEventListener('change', applyTenantFilters);
+    localizeTenantControls();
+    setTimeout(() => { renderApplicationRows(); updateFilterCounts(); applyTenantFilters(); }, 0);
+});
+window.addEventListener('DataReady', localizeTenantControls);
+window.addEventListener('languagechange', localizeTenantControls);
 
 function adminText(key, params = {}) {
     if (typeof window.t === 'function') {
@@ -173,24 +315,80 @@ function adminText(key, params = {}) {
     return text;
 }
 
-function approveTenant(btn) {
+function readTenantApplications() {
+	return JSON.parse(localStorage.getItem('pms_admin_store:tenantApplications') || '[]');
+}
+
+function writeTenantApplications(applications) {
+	AdminStore.write('tenantApplications', applications);
+	localStorage.setItem('mockapi:v1:ADMIN:tenant-applications', JSON.stringify(applications));
+}
+
+function approveTenant(btn, applicationId) {
 	if(confirm(adminText('tenant.approve.confirm'))) {
 		const row = btn.closest('tr');
+		const applications = readTenantApplications();
+		const application = applications.find(item => String(item.id) === String(applicationId));
+		if (!application) return alert('입점 신청 데이터를 찾을 수 없습니다.');
+		application.status = 'approved';
+		application.approvedAt = new Date().toISOString();
+		const tenants = AdminStore.read('tenants', []);
+		let tenant = tenants.find(item => item.applicationId === application.id);
+		if (!tenant) {
+			tenant = {
+				id: `TEN-${Date.now()}`,
+				applicationId: application.id,
+				hotelName: application.hotelName,
+				city: application.city,
+				country: application.country,
+				plan: application.plan,
+				roomCount: application.rooms,
+				currency: application.currency,
+				adminEmail: application.email,
+				status: 'active',
+				contractStart: new Date().toISOString().slice(0, 10),
+				contractEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10)
+			};
+			AdminStore.write('tenants', [tenant, ...tenants]);
+		}
+		const users = AdminStore.read('users', []);
+		if (!users.some(user => String(user.email).toLowerCase() === String(application.email).toLowerCase())) {
+			AdminStore.write('users', [{
+				id: `ADM-${Date.now()}`,
+				tenantId: tenant.id,
+				name: application.contactName,
+				email: application.email,
+				password: application.password || 'ChangeMe123!',
+				role: 'Tenant Admin',
+				status: 'active'
+			}, ...users]);
+		}
+		writeTenantApplications(applications);
+		AdminStore.audit('tenant.application_approve', tenant.id, `${application.id} / ${application.hotelName}`, 'High');
 		const badge = row.querySelector('.status-badge.pending');
 		if(badge) {
 			badge.className = 'status-badge active';
 			badge.textContent = '운영 중';
 		}
-		btn.parentElement.innerHTML = '<a href="detail.html" class="btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>';
+		row.dataset.status = '운영 중';
+		btn.parentElement.innerHTML = `<a href="detail.html?id=${encodeURIComponent(tenant.id)}" class="btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>`;
 		alert(adminText('tenant.approve.done'));
         updateFilterCounts();
 	}
 }
 
-function rejectTenant(btn) {
+function rejectTenant(btn, applicationId) {
 	const reason = prompt(adminText('tenant.reject.prompt'));
 	if(reason) {
 		const row = btn.closest('tr');
+		const applications = readTenantApplications();
+		const application = applications.find(item => String(item.id) === String(applicationId));
+		if (!application) return alert('입점 신청 데이터를 찾을 수 없습니다.');
+		application.status = 'rejected';
+		application.rejectedAt = new Date().toISOString();
+		application.rejectReason = reason;
+		writeTenantApplications(applications);
+		AdminStore.audit('tenant.application_reject', application.id, `${application.hotelName} / ${reason}`, 'High');
 		const badge = row.querySelector('.status-badge.pending');
 		if(badge) {
 			badge.className = 'status-badge';
@@ -198,6 +396,7 @@ function rejectTenant(btn) {
 			badge.style.color = 'var(--danger)';
 			badge.textContent = '반려';
 		}
+		row.dataset.status = '반려';
 		btn.parentElement.innerHTML = '<a href="detail.html" class="btn-outline btn-sm"><i class="fa-solid fa-eye"></i></a>';
 		alert(adminText('tenant.reject.done'));
         updateFilterCounts();

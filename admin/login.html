@@ -94,13 +94,42 @@ function handleLogin(){
 		return;
 	}
 
+	const defaultUsers = [
+		{ id: 'ADM-001', name: 'Super Admin', email: 'superadmin@platform.example', password: 'admin1234', role: 'Platform Owner', status: 'active' },
+		{ id: 'ADM-002', name: 'Ops Manager', email: 'ops@platform.example', password: 'ops12345', role: 'Operations', status: 'active' }
+	];
+	let storedUsers = [];
+	try { storedUsers = JSON.parse(localStorage.getItem('pms_admin_store:users') || '[]'); } catch (_) {}
+	const users = [
+		...storedUsers.map(user => {
+			const seed = defaultUsers.find(item => item.email === user.email);
+			return seed ? { ...seed, ...user, password: user.password || seed.password } : user;
+		}),
+		...defaultUsers.filter(seed => !storedUsers.some(user => user.email === seed.email))
+	];
+	const user = users.find(candidate => String(candidate.email).toLowerCase() === email.trim().toLowerCase());
+	const active = user && !['inactive', 'locked', 'suspended', 'retired', 'leave'].includes(String(user.status || '').toLowerCase());
+	if (!user || user.password !== pw || !active) {
+		err.classList.add('show');
+		btn.classList.remove('loading');
+		try {
+			const key = 'pms_admin_store:auditLogs';
+			const logs = JSON.parse(localStorage.getItem(key) || '[]');
+			logs.unshift({ id: `AUD-${Date.now()}`, actor: email || '-', action: active === false ? 'Blocked Access' : 'Failed Login', target: email || '-', details: active === false ? `status=${user?.status || 'unknown'}` : 'invalid credentials', ip: '127.0.0.1', createdAt: new Date().toISOString(), risk: 'High' });
+			localStorage.setItem(key, JSON.stringify(logs));
+		} catch (_) {}
+		return;
+	}
+
 	btn.classList.add('loading');
-	
 	setTimeout(() => {
-		// 로그인 성공
+		const session = { id: user.id, name: user.name, email: user.email, role: user.role, expiresAt: Date.now() + (8 * 60 * 60 * 1000) };
 		sessionStorage.setItem('admin_logged_in', 'true');
-		window.location.href = 'admin.html';
-	}, 1000);
+		sessionStorage.setItem('admin_session', JSON.stringify(session));
+		const returnTo = sessionStorage.getItem('admin_return_to');
+		sessionStorage.removeItem('admin_return_to');
+		window.location.href = returnTo || 'admin.html';
+	}, 120);
 }
 
 document.getElementById('email').addEventListener('input', function() {

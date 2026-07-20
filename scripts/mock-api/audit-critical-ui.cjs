@@ -5,6 +5,7 @@ const { chromium } = require('playwright');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const base = process.env.PMS_BASE_URL || 'http://127.0.0.1:8765';
+const resultFile = process.env.PMS_RESULT_FILE || '';
 
 function contentType(file) {
   return {
@@ -101,6 +102,77 @@ async function runCase(results, id, title, callback) {
   }
 }
 
+async function loginGuardFlow(browser, results) {
+  async function openLogin(staff) {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    await context.addInitScript(payload => {
+      localStorage.setItem('pms_lang', 'en');
+      localStorage.setItem('pms_staff', JSON.stringify(payload));
+      sessionStorage.clear();
+    }, staff ? [staff] : []);
+    const page = await context.newPage();
+    await page.goto(`${base}/dashboard/login.html?critical-ui=login-guard`);
+    await waitForPage(page, '#btnLogin');
+    return { context, page };
+  }
+
+  for (const scenario of [
+    { id: 'AUTH-003', status: 'leave', email: 'leave.qa@hotel.test', expected: 'on leave' },
+    { id: 'AUTH-004', status: 'retired', email: 'retired.qa@hotel.test', expected: 'Retired' }
+  ]) {
+    await runCase(results, scenario.id, `${scenario.status} staff cannot log in`, async () => {
+      const { context, page } = await openLogin({
+        id: `QA-${scenario.status}`,
+        name: `QA ${scenario.status}`,
+        email: scenario.email,
+        password: 'ValidPassword1!',
+        status: scenario.status
+      });
+      try {
+        await page.locator('#email').fill(scenario.email);
+        await page.locator('#password').fill('ValidPassword1!');
+        await page.locator('#btnLogin').click();
+        await page.locator('#loginError.show').waitFor({ state: 'visible', timeout: 4000 });
+        const message = (await page.locator('#loginError').innerText()).trim();
+        const state = await page.evaluate(() => ({
+          path: location.pathname,
+          loggedIn: sessionStorage.getItem('pms_logged_in')
+        }));
+        assert(message.includes(scenario.expected), 'Status-specific login error was not shown', { message, scenario });
+        assert(state.path.endsWith('/login.html') && state.loggedIn !== 'true', 'Inactive staff was logged in', state);
+        return { status: scenario.status, message, blocked: true };
+      } finally {
+        await context.close();
+      }
+    });
+  }
+
+  await runCase(results, 'AUTH-005', 'Empty and malformed credentials are rejected before login', async () => {
+    const { context, page } = await openLogin(null);
+    try {
+      await page.locator('#email').fill('');
+      await page.locator('#password').fill('');
+      await page.locator('#btnLogin').click();
+      let message = (await page.locator('#loginError.show').innerText()).trim();
+      assert(message === 'Enter email and password.', 'Empty credential validation failed', message);
+
+      await page.locator('#email').fill('not-an-email');
+      await page.locator('#password').fill('ValidPassword1!');
+      await page.locator('#btnLogin').click();
+      message = (await page.locator('#loginError.show').innerText()).trim();
+      const state = await page.evaluate(() => ({
+        path: location.pathname,
+        loggedIn: sessionStorage.getItem('pms_logged_in')
+      }));
+      assert(message === 'Enter a valid email address.', 'Malformed email validation failed', message);
+      assert(state.path.endsWith('/login.html') && state.loggedIn !== 'true', 'Malformed email was accepted', state);
+      return { empty: 'blocked', malformed: 'blocked', message };
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 async function staffModalFlow(browser, results) {
   const context = await createContext(browser, 'en');
   const page = await context.newPage();
@@ -146,7 +218,20 @@ async function expenseCrudFlow(browser, results) {
   await page.goto(`${base}/dashboard/operations/expense-purchases.html?critical-ui=expense-crud`);
   await waitForPage(page, '[data-expense-action="edit"]');
 
-  await runCase(results, 'EXP-006-PARTIAL', 'Existing expense values load in edit mode', async () => {
+  await runCase(results, 'EXP-003', 'Expense currency follows the PHP hotel currency policy', async () => {
+    await page.locator('button[onclick="openExpenseFormModal()"]' ).click();
+    const modal = page.locator('#expenseFormModal.active');
+    await modal.waitFor({ state: 'visible' });
+    const currencyOptions = await modal.locator('#expenseCurrency option').evaluateAll(options => options.map(option => option.value));
+    const selected = await modal.locator('#expenseCurrency').inputValue();
+    assert(selected === 'PHP', 'The hotel base currency is not selected by default', { selected, currencyOptions });
+    assert(currencyOptions.includes('PHP') && currencyOptions.includes('USD') && currencyOptions.includes('KRW'), 'Expected currencies are not selectable', currencyOptions);
+    assert(!currencyOptions.includes('VND'), 'VND should not be shown when the hotel base currency is PHP', currencyOptions);
+    await modal.locator('.modal-close').click();
+    return { selected, currencyOptions };
+  });
+
+  await runCase(results, 'EXP-006', 'Existing expense values load and persist after edit', async () => {
     await page.locator('[data-expense-action="edit"]').first().click();
     const modal = page.locator('#expenseFormModal.active');
     await modal.waitFor({ state: 'visible' });
@@ -157,42 +242,38 @@ async function expenseCrudFlow(browser, results) {
       buyer: root.querySelector('#expenseBuyer')?.value
     }));
     assert(values.id && values.date && values.item && values.buyer, 'Expense edit form was not populated', values);
-    await modal.locator('.modal-close').click();
-    return values;
+    const updatedItem = `${values.item} QA`;
+    await modal.locator('#expenseItem').fill(updatedItem);
+    await modal.locator('button[onclick="saveExpensePurchase()"]' ).click();
+    await page.waitForFunction(item => document.body.innerText.includes(item), updatedItem);
+    const updatedRow = page.locator('#expenseBody tr').filter({ hasText: updatedItem }).first();
+    assert(await updatedRow.count() === 1, 'Edited expense is not visible in the list', { values, updatedItem });
+    return { ...values, updatedItem, persisted: true };
   });
 
-  await runCase(results, 'EXP-CRUD-TRACE', 'Expense create, currency, update, and delete persist in the list', async () => {
+  await runCase(results, 'EXP-007', 'Expense deletion removes the record after confirmation', async () => {
     await page.locator('button[onclick="openExpenseFormModal()"]' ).click();
     const modal = page.locator('#expenseFormModal.active');
     await modal.waitFor({ state: 'visible' });
-    const currencyOptions = await modal.locator('#expenseCurrency option').evaluateAll(options => options.map(option => option.value));
-    assert(currencyOptions.includes('PHP') && currencyOptions.includes('USD') && currencyOptions.includes('KRW'), 'Expected currencies are not selectable', currencyOptions);
-    assert(!currencyOptions.includes('VND'), 'VND should not be shown when the hotel base currency is PHP', currencyOptions);
-    await modal.locator('#expenseItem').fill('QA Expense Test');
+    await modal.locator('#expenseItem').fill('QA Expense Delete Test');
     await modal.locator('#expenseVendor').fill('QA Vendor');
     await modal.locator('#expenseAmount').fill('1234');
-    await modal.locator('#expenseNote').fill('Created by critical UI regression');
+    await modal.locator('#expenseNote').fill('Delete regression record');
     await modal.locator('#expenseCurrency').selectOption('PHP');
     await modal.locator('button[onclick="saveExpensePurchase()"]' ).click();
-    await page.waitForFunction(() => document.body.innerText.includes('QA Expense Test'));
+    await page.waitForFunction(() => document.body.innerText.includes('QA Expense Delete Test'));
 
-    let row = page.locator('#expenseBody tr').filter({ hasText: 'QA Expense Test' }).first();
+    const row = page.locator('#expenseBody tr').filter({ hasText: 'QA Expense Delete Test' }).first();
     assert(await row.count() === 1, 'Created expense is not visible in the list');
-    await row.locator('[data-expense-action="edit"]').click();
-    await page.locator('#expenseFormModal.active #expenseItem').fill('QA Expense Test Updated');
-    await page.locator('#expenseFormModal.active button[onclick="saveExpensePurchase()"]' ).click();
-    await page.waitForFunction(() => document.body.innerText.includes('QA Expense Test Updated'));
-
-    row = page.locator('#expenseBody tr').filter({ hasText: 'QA Expense Test Updated' }).first();
     await row.locator('[data-expense-action="delete"]').click();
     await page.locator('#pms-confirm-modal').waitFor({ state: 'visible' });
     await page.locator('#pms-confirm-ok').click();
-    await page.waitForFunction(() => !document.body.innerText.includes('QA Expense Test Updated'));
+    await page.waitForFunction(() => !document.body.innerText.includes('QA Expense Delete Test'));
     assert(pageErrors.length === 0, 'Expense page raised a JavaScript error', pageErrors);
-    return { currencies: currencyOptions, create: true, update: true, delete: true };
+    return { created: true, confirmed: true, removed: true };
   });
 
-  await runCase(results, 'EXP-009-PARTIAL', 'Expense custom date range retains both selected dates', async () => {
+  await runCase(results, 'EXP-009', 'Expense custom date range retains both selected dates', async () => {
     await page.locator('#expensePeriodFilter').selectOption('custom');
     await page.locator('#expenseStartDate').fill('2026-07-01');
     await page.locator('#expenseEndDate').fill('2026-07-31');
@@ -267,15 +348,27 @@ async function reservationBookingFlow(browser, results) {
   await waitForPage(page, '.reservation-board-box');
 
   let selectedRoomId = '';
-  await runCase(results, 'RES-BOARD-002-PARTIAL', 'Clicked room stays selected in the new booking modal', async () => {
-    selectedRoomId = await prepareBookableRoom(page, 'dirty');
+  await runCase(results, 'RES-BOARD-002', 'Clean vacant room saves the reservation to the clicked room', async () => {
+    selectedRoomId = await prepareBookableRoom(page, 'clean');
     await clickRoomCard(page, selectedRoomId);
     const selected = await page.locator('#unifiedRoom').inputValue();
     assert(selected === selectedRoomId, 'The booking modal selected a different room', { clicked: selectedRoomId, selected });
-    return { clicked: selectedRoomId, selected };
+    await addExistingGuest(page);
+    await page.locator('#unifiedResModal.active button[onclick="saveUnifiedRes()"]' ).click();
+    await page.waitForFunction(() => !document.getElementById('unifiedResModal')?.classList.contains('active'));
+    const saved = await page.evaluate(roomId => (window.reservations || []).filter(item => {
+      const value = String(item.room || item.fullRoom || item.roomId || item.roomNo || '');
+      return value === roomId || value.endsWith(`-${roomId}`);
+    }).map(item => ({ id: item.id, room: item.room || item.fullRoom, status: item.status })), selectedRoomId);
+    assert(saved.length === 1, 'The saved reservation is not displayed on the clicked room', { selectedRoomId, saved });
+    return { clicked: selectedRoomId, selected, saved: saved[0] };
   });
 
-  await runCase(results, 'RES-BOARD-003-PARTIAL', 'Dirty room requires confirmation and cancel prevents save', async () => {
+  await runCase(results, 'RES-BOARD-003', 'Dirty room cancel blocks save and continue saves the reservation', async () => {
+    selectedRoomId = await prepareBookableRoom(page, 'dirty');
+    await clickRoomCard(page, selectedRoomId);
+    const selected = await page.locator('#unifiedRoom').inputValue();
+    assert(selected === selectedRoomId, 'The dirty-room booking modal selected a different room', { clicked: selectedRoomId, selected });
     await addExistingGuest(page);
     const before = await page.evaluate(roomId => (window.reservations || []).filter(item => String(item.room || item.fullRoom || '') === roomId).length, selectedRoomId);
     await page.locator('#unifiedResModal.active button[onclick="saveUnifiedRes()"]' ).click();
@@ -284,13 +377,19 @@ async function reservationBookingFlow(browser, results) {
     const message = await page.locator('#pms-confirm-message').innerText();
     assert(/청소|clean/i.test(message), 'Dirty-room confirmation does not explain the cleaning state', message);
     await page.locator('#pms-confirm-cancel').click();
-    const after = await page.evaluate(roomId => (window.reservations || []).filter(item => String(item.room || item.fullRoom || '') === roomId).length, selectedRoomId);
-    assert(after === before, 'Cancelling the dirty-room confirmation still saved a reservation', { before, after });
-    return { room: selectedRoomId, warning: message.replace(/\s+/g, ' ').trim() };
+    const afterCancel = await page.evaluate(roomId => (window.reservations || []).filter(item => String(item.room || item.fullRoom || '') === roomId).length, selectedRoomId);
+    assert(afterCancel === before, 'Cancelling the dirty-room confirmation still saved a reservation', { before, afterCancel });
+    assert(await page.locator('#unifiedResModal.active').isVisible(), 'Cancelling the warning unexpectedly closed the reservation modal');
+    await page.locator('#unifiedResModal.active button[onclick="saveUnifiedRes()"]' ).click();
+    await confirm.waitFor({ state: 'visible' });
+    await page.locator('#pms-confirm-ok').click();
+    await page.waitForFunction(() => !document.getElementById('unifiedResModal')?.classList.contains('active'));
+    const afterContinue = await page.evaluate(roomId => (window.reservations || []).filter(item => String(item.room || item.fullRoom || '') === roomId).length, selectedRoomId);
+    assert(afterContinue === before + 1, 'Continuing after the dirty-room warning did not save the reservation', { before, afterCancel, afterContinue });
+    return { room: selectedRoomId, selected, warning: message.replace(/\s+/g, ' ').trim(), before, afterCancel, afterContinue };
   });
 
   await runCase(results, 'RES-BOARD-005', 'Room 1203 remains selected and saves as room 1203', async () => {
-    await page.locator('#unifiedResModal.active .modal-close').click();
     selectedRoomId = await prepareBookableRoom(page, 'clean', '1203');
     assert(selectedRoomId === '1203', 'The preferred 1203 fixture was not selected', { selectedRoomId });
     await clickRoomCard(page, selectedRoomId);
@@ -322,6 +421,7 @@ async function reservationBookingFlow(browser, results) {
   const browser = await chromium.launch({ headless: true });
   const results = [];
   try {
+    await loginGuardFlow(browser, results);
     await staffModalFlow(browser, results);
     await expenseCrudFlow(browser, results);
     await reservationBookingFlow(browser, results);
@@ -331,14 +431,19 @@ async function reservationBookingFlow(browser, results) {
   }
 
   const failed = results.filter(result => result.status !== 'PASS');
-  console.log(JSON.stringify({
+  const summary = {
     suite: 'critical-ui-workflows',
     base,
     total: results.length,
     passed: results.length - failed.length,
     failed: failed.length,
     results
-  }, null, 2));
+  };
+  if (resultFile) {
+    fs.mkdirSync(path.dirname(path.resolve(resultFile)), { recursive: true });
+    fs.writeFileSync(path.resolve(resultFile), JSON.stringify(summary, null, 2));
+  }
+  console.log(JSON.stringify(summary, null, 2));
   process.exitCode = failed.length ? 1 : 0;
 })().catch(error => {
   console.error(error);

@@ -229,9 +229,15 @@ async function auditAncillaryPage(page, baseUrl) {
   const server = (await httpOk(DEFAULT_BASE)) ? null : await serveStatic(PORT);
   const browser = await chromium.launch({ headless: true });
   try {
-    const page = await browser.newPage({ viewport: { width: 1365, height: 900 } });
+    const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });
+    await context.addInitScript(() => {
+      sessionStorage.setItem('pms_logged_in', 'true');
+      sessionStorage.setItem('admin_logged_in', 'true');
+      localStorage.setItem('pms_lang', 'ko');
+    });
+    const page = await context.newPage();
     const vendorManagement = await auditVendorManagementPage(page, DEFAULT_BASE);
-    const page2 = await browser.newPage({ viewport: { width: 1365, height: 900 } });
+    const page2 = await context.newPage();
     const ancillary = await auditAncillaryPage(page2, DEFAULT_BASE);
     console.log(JSON.stringify({ ok: true, vendorManagement, ancillary }, null, 2));
   } finally {

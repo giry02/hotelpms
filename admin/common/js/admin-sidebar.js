@@ -3,12 +3,101 @@
  * 메뉴구조도_PMS.xlsx '최종 관리자(Super Admin)' 탭 기준
  */
 (function () {
+    const ADMIN_STORAGE_PREFIX = 'pms_admin_store:';
+    const DATA_STORAGE_KEYS = {
+        users: 'users',
+        billing: 'billing',
+        tickets: 'tickets',
+        devices: 'devices',
+        auditLogs: 'auditLogs',
+        tenantApplications: 'tenantApplications',
+        dashboardSummary: 'dashboardSummary',
+        tenants: 'tenants',
+        adCampaigns: 'adCampaigns',
+        notices: 'notices',
+        integrations: 'integrations',
+        profile: 'profile',
+        adTargeting: 'adTargeting',
+        adBilling: 'adBilling'
+    };
+
+    function clone(value) {
+        return JSON.parse(JSON.stringify(value));
+    }
+
+    function readStored(key, fallback) {
+        try {
+            const raw = localStorage.getItem(ADMIN_STORAGE_PREFIX + key);
+            return raw == null ? clone(fallback) : JSON.parse(raw);
+        } catch (_) {
+            return clone(fallback);
+        }
+    }
+
+    function writeStored(key, value) {
+        localStorage.setItem(ADMIN_STORAGE_PREFIX + key, JSON.stringify(value));
+        if (window.AdminData) window.AdminData[key] = clone(value);
+        window.dispatchEvent(new CustomEvent('AdminStoreChanged', { detail: { key, value: clone(value) } }));
+        return value;
+    }
+
+    window.AdminStore = {
+        prefix: ADMIN_STORAGE_PREFIX,
+        read(key, fallback = []) {
+            const source = window.AdminData && Object.prototype.hasOwnProperty.call(window.AdminData, key)
+                ? window.AdminData[key]
+                : fallback;
+            return readStored(key, source);
+        },
+        write: writeStored,
+        upsert(key, item, idField = 'id') {
+            const list = this.read(key, []);
+            const index = list.findIndex(row => String(row[idField]) === String(item[idField]));
+            if (index >= 0) list[index] = { ...list[index], ...clone(item) };
+            else list.unshift(clone(item));
+            writeStored(key, list);
+            return clone(item);
+        },
+        remove(key, id, idField = 'id') {
+            const list = this.read(key, []);
+            const next = list.filter(row => String(row[idField]) !== String(id));
+            writeStored(key, next);
+            return next.length !== list.length;
+        },
+        audit(action, target, details = '', risk = 'Low') {
+            const session = (() => {
+                try { return JSON.parse(sessionStorage.getItem('admin_session') || '{}'); } catch (_) { return {}; }
+            })();
+            const logs = this.read('auditLogs', []);
+            const entry = {
+                id: `AUD-${Date.now()}`,
+                actor: session.name || session.email || 'Super Admin',
+                actorId: session.id || 'ADM-001',
+                action,
+                target,
+                details,
+                ip: '127.0.0.1',
+                createdAt: new Date().toISOString(),
+                risk
+            };
+            logs.unshift(entry);
+            writeStored('auditLogs', logs);
+            return entry;
+        }
+    };
+
     // Auth Check
-    if (sessionStorage.getItem('admin_logged_in') !== 'true') {
+    let adminSession = null;
+    try { adminSession = JSON.parse(sessionStorage.getItem('admin_session') || 'null'); } catch (_) {}
+    const expired = adminSession && adminSession.expiresAt && Date.now() >= Number(adminSession.expiresAt);
+    if (sessionStorage.getItem('admin_logged_in') !== 'true' || expired) {
+        sessionStorage.removeItem('admin_logged_in');
+        sessionStorage.removeItem('admin_session');
+        sessionStorage.setItem('admin_return_to', window.location.href);
         const _p = window.location.pathname.split('/').filter(Boolean);
-        const depth = _p.length - _p.indexOf('admin') - 1;
-        const prefix = depth > 0 ? '../'.repeat(depth) : '';
-        window.location.replace(prefix + 'login.html');
+        const adminIndex = _p.lastIndexOf('admin');
+        const adminRoot = adminIndex >= 0 ? `/${_p.slice(0, adminIndex + 1).join('/')}` : '/admin';
+        window.location.replace(`${adminRoot}/login.html`);
         return;
     }
 
@@ -85,8 +174,10 @@
                 window.AdminData[item.key] = payload?.success && payload?.data
                     ? (payload.data.items || payload.data)
                     : payload;
+                window.AdminData[item.key] = readStored(DATA_STORAGE_KEYS[item.key] || item.key, window.AdminData[item.key]);
             } catch (err) {
                 window.AdminData[item.key] = window.AdminData[item.key] || JSON.parse(JSON.stringify(FALLBACK_DATA[item.key] || []));
+                window.AdminData[item.key] = readStored(DATA_STORAGE_KEYS[item.key] || item.key, window.AdminData[item.key]);
                 console.warn(`Admin data load failed: ${item.src}`, err);
             }
         }));

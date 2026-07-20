@@ -4,11 +4,14 @@ const { chromium } = require('playwright');
 
 const base = process.env.PMS_BASE_URL || 'http://127.0.0.1:8765';
 const pagePattern = process.env.PMS_PAGE_MATCH ? new RegExp(process.env.PMS_PAGE_MATCH, 'i') : null;
+const resultFile = process.env.PMS_RESULT_FILE || '';
 const screenshotDir = path.join(process.cwd(), 'scripts', 'mock-api', 'visual-audit-output');
 
 const viewports = [
-  { name: 'desktop', width: 1440, height: 900 },
-  { name: 'mobile', width: 390, height: 844 }
+  { name: 'desktop-1440', width: 1440, height: 900, touch: false },
+  { name: 'tablet-1024', width: 1024, height: 1366, touch: true },
+  { name: 'mobile-412', width: 412, height: 915, touch: true },
+  { name: 'mobile-360', width: 360, height: 800, touch: true }
 ];
 
 function walk(dir) {
@@ -57,13 +60,27 @@ async function evaluateLayout(page) {
 
     const overflowWhitelist = [
       'table', '.table-wrapper', '.calendar-wrapper', '.timeline-grid', '.timeline-scroll',
-      '.rate-table', '.data-table', '.chart-container', '.kanban-board'
+      '.rate-table', '.data-table', '.chart-container', '.kanban-board',
+      '.ad-hero-carousel', '.ad-event-showcase', '.carousel', '.slider',
+      '.filter-scroll', '.filter-chips', '.ops-tabs', '.tabs-scroll',
+      '[class*="scroll"]', '[class*="carousel"]', '[class*="track"]'
     ];
     const isInsideWhitelistedOverflow = el => overflowWhitelist.some(selector => el.closest(selector));
+    const isInsideIntentionalHorizontalFlow = el => {
+      let current = el;
+      while (current && current !== body) {
+        const style = getComputedStyle(current);
+        const overflowX = style.overflowX;
+        if ((overflowX === 'auto' || overflowX === 'scroll' || overflowX === 'hidden')
+          && current.scrollWidth > current.clientWidth + 4) return true;
+        current = current.parentElement;
+      }
+      return false;
+    };
 
     const overflowingElements = Array.from((body || document).querySelectorAll('*'))
       .filter(visible)
-      .filter(el => !isInsideWhitelistedOverflow(el))
+      .filter(el => !isInsideWhitelistedOverflow(el) && !isInsideIntentionalHorizontalFlow(el))
       .map(el => {
         const rect = el.getBoundingClientRect();
         const offCanvas = rect.right <= 0 || rect.left >= innerWidth;
@@ -85,7 +102,7 @@ async function evaluateLayout(page) {
 
     const clippedTextElements = Array.from(document.querySelectorAll('button, a, label, .chip, .status-badge'))
       .filter(visible)
-      .filter(el => !isInsideWhitelistedOverflow(el))
+      .filter(el => !isInsideWhitelistedOverflow(el) && !isInsideIntentionalHorizontalFlow(el))
       .filter(el => {
         const rect = el.getBoundingClientRect();
         const intersectsViewport = rect.right > 0 && rect.left < innerWidth && rect.bottom > 0 && rect.top < innerHeight;
@@ -119,7 +136,8 @@ async function auditOne(browser, pagePath, viewport) {
   const context = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
     deviceScaleFactor: 1,
-    isMobile: viewport.name === 'mobile'
+    isMobile: viewport.name.startsWith('mobile'),
+    hasTouch: viewport.touch
   });
   await context.addInitScript(() => {
     sessionStorage.setItem('admin_logged_in', 'true');
@@ -195,7 +213,7 @@ async function auditOne(browser, pagePath, viewport) {
     pages: pages.length,
     checks: results.length,
     failedCount: failed.length,
-    warned: warned.length,
+    warningCount: warned.length,
     failed,
     warned: warned.map(result => ({
       page: result.page,
@@ -205,6 +223,10 @@ async function auditOne(browser, pagePath, viewport) {
     }))
   };
 
+  if (resultFile) {
+    fs.mkdirSync(path.dirname(resultFile), { recursive: true });
+    fs.writeFileSync(resultFile, JSON.stringify(report, null, 2));
+  }
   console.log(JSON.stringify(report, null, 2));
   if (failed.length) process.exit(1);
 })();

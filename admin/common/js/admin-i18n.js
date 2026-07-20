@@ -1,6 +1,6 @@
 // i18n.js - Global Translation Dictionary (English Base)
 
-window.currentLang = localStorage.getItem('pms_lang') || 'ko';
+window.currentLang = localStorage.getItem('pms_admin_lang') || localStorage.getItem('pms_lang') || 'ko';
 window.PMS_I18N_NAMESPACE = window.PMS_I18N_NAMESPACE || 'admin';
 window.PMS_CURRENCY_META = window.PMS_CURRENCY_META || {
     PHP: { symbol: '₱', locale: 'en-PH' },
@@ -52,12 +52,7 @@ window.pmsNormalizeCurrencyDisplayText = window.pmsNormalizeCurrencyDisplayText 
         .replace(/금액\s+USD/g, `금액 ${currency}`)
         .replace(/단가\s*\(\s*USD\s*\)/g, `단가 (${currency})`)
         .replace(/요금\s*\(\s*USD\s*\)/g, `요금 (${currency})`)
-        .replace(/특별단가\s*\(\s*USD\s*\)/g, `특별단가(${currency})`)
-        .replace(/\bUSD\b/g, currency)
-        .replace(/\bKRW\b/g, currency)
-        .replace(/US\$/g, symbol)
-        .replace(/\$/g, symbol)
-        .replace(/₩/g, symbol);
+        .replace(/특별단가\s*\(\s*USD\s*\)/g, `특별단가(${currency})`);
 };
 
 (function installCurrencyDisplayNormalizer(){
@@ -485,6 +480,8 @@ function setupI18n() {
     const t = [];
     while(n = w.nextNode()) {
         const o = n.nodeValue, x = o.trim();
+        const parentTag = n.parentElement?.tagName;
+        if (parentTag === 'OPTION' || parentTag === 'SCRIPT' || parentTag === 'STYLE' || parentTag === 'TEXTAREA') continue;
         // NOW match against the English dictionary keys
         if(x && window.translations.en[x] && !n.parentNode.hasAttribute('data-i18n-key')) {
             const s = document.createElement('span');
@@ -520,6 +517,8 @@ function applyKoEnDatasetI18n(lang) {
 function changeLang(l) {
     window.currentLang = l;
     localStorage.setItem('pms_lang', l);
+    localStorage.setItem('pms_admin_lang', l);
+    document.documentElement.lang = l;
     const d = window.translations[l] || window.translations.en;
     const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
     const catalogDict = catalog[l] || catalog.en || {};
@@ -543,6 +542,10 @@ function changeLang(l) {
     
     const langSelects = document.querySelectorAll('#langSelect, .lang-select, select[onchange*="changeLang"]');
     langSelects.forEach(sel => {
+        const koreanOption = sel.querySelector('option[value="ko"]');
+        if (koreanOption) koreanOption.textContent = l === 'en' ? 'KR Korean' : 'KR 한국어';
+        const englishOption = sel.querySelector('option[value="en"]');
+        if (englishOption) englishOption.textContent = 'EN English';
         if(sel.value !== l) sel.value = l;
     });
 
@@ -1212,6 +1215,7 @@ function searchPlaceholderText(input) {
 
 function refreshSearchInputPlaceholder(input) {
     if (!input.placeholder) return;
+    if (input.matches('[data-no-auto-i18n], [data-no-i18n], [data-i18n-skip]')) return;
     if (!input.dataset.pmsSearchOriginalPlaceholder) {
         input.dataset.pmsSearchOriginalPlaceholder = input.placeholder;
     }
@@ -1379,13 +1383,15 @@ function installChangeLangGuard() {
         const nextLang = lang || window.currentLang || localStorage.getItem('pms_lang') || 'ko';
         window.currentLang = nextLang;
         localStorage.setItem('pms_lang', nextLang);
+        localStorage.setItem('pms_admin_lang', nextLang);
+        document.documentElement.lang = nextLang;
         const catalog = (window.PMS_I18N_CATALOG && window.PMS_I18N_CATALOG[window.PMS_I18N_NAMESPACE]) || {};
         applyVisibleTextI18nFallback(nextLang, catalog);
         window.dispatchEvent(new Event('languagechange'));
         return result;
     };
     window.changeLang.__pmsI18nGuard = true;
-    const lang = localStorage.getItem('pms_lang') || window.currentLang || 'ko';
+    const lang = localStorage.getItem('pms_admin_lang') || localStorage.getItem('pms_lang') || window.currentLang || 'ko';
     window.changeLang(lang);
     installI18nMutationObserver();
 }

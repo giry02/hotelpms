@@ -720,6 +720,13 @@ function saveStaff() {
     if (!pw || !pwConfirm) { showToast('비밀번호와 확인값을 모두 입력해 주세요.', 'error'); return; }
     if (pw !== pwConfirm) { showToast('비밀번호가 서로 일치하지 않습니다.', 'error'); return; }
     if (pw.length < 8) { showToast('비밀번호는 8자 이상으로 입력해 주세요.', 'error'); return; }
+    const hireDate = document.getElementById('newHireDate').value;
+    const terminationDate = document.getElementById('newTerminationDate').value;
+    if (hireDate && terminationDate && terminationDate < hireDate) {
+        showToast(staffText('퇴사일은 입사일보다 빠를 수 없습니다.', 'Termination date cannot be earlier than the hire date.'), 'error');
+        document.getElementById('newTerminationDate').focus();
+        return;
+    }
     const selectedRole = getRoleById(roleId);
 
     staffData.push({
@@ -729,11 +736,12 @@ function saveStaff() {
         empId: document.getElementById('newEmpId').value.trim(),
         phone: document.getElementById('newPhone').value.trim(),
         address: document.getElementById('newAddress').value.trim(),
-        hireDate: document.getElementById('newHireDate').value,
-        terminationDate: document.getElementById('newTerminationDate').value,
+        hireDate,
+        terminationDate,
         roleId,
         color: selectedRole?.color || '#64748B',
         status,
+        password: pw,
         last: '방금 등록',
         passwordUpdatedAt: new Date().toISOString(),
         passwordChangeRequired: false
@@ -823,10 +831,17 @@ function saveEdit() {
         return;
     }
     s.email = nextEmail;
+    const hireDate = document.getElementById('editHireDate').value;
+    const terminationDate = document.getElementById('editTerminationDate').value;
+    if (hireDate && terminationDate && terminationDate < hireDate) {
+        showToast(staffText('퇴사일은 입사일보다 빠를 수 없습니다.', 'Termination date cannot be earlier than the hire date.'), 'error');
+        document.getElementById('editTerminationDate').focus();
+        return;
+    }
     s.phone = document.getElementById('editPhone').value.trim();
     s.address = document.getElementById('editAddress').value.trim();
-    s.hireDate = document.getElementById('editHireDate').value;
-    s.terminationDate = document.getElementById('editTerminationDate').value;
+    s.hireDate = hireDate;
+    s.terminationDate = terminationDate;
     const nextRoleId = document.getElementById('editRole').value;
     if (!nextRoleId) { showToast('역할을 선택해 주세요.', 'error'); return; }
     if (nextRoleId === 'sys_admin') { showToast('관리자 역할은 직원 관리에서 부여할 수 없습니다.', 'error'); return; }
@@ -842,6 +857,7 @@ function saveEdit() {
         s.passwordUpdatedAt = new Date().toISOString();
         s.passwordChangeRequired = false;
         s.passwordMethod = 'manual';
+        s.password = newPw;
     }
 
     const role = getRoleById(s.roleId);

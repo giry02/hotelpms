@@ -318,8 +318,11 @@ function updateKpiCriteria() {
 
 function renderCounts() {
     const counts = { diamond: 0, platinum: 0, gold: 0, standard: 0 };
+    const config = currentConfig();
     membershipGuests.forEach(guest => {
-        const id = tierId(guest.tier);
+        const id = window.PMS_VIP_CRITERIA?.calculateTier
+            ? window.PMS_VIP_CRITERIA.calculateTier(guest, config)
+            : tierId(guest.tier);
         if (counts[id] === undefined) counts.standard += 1;
         else counts[id] += 1;
     });

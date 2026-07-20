@@ -37,6 +37,15 @@
     const _subDirs = ['frontdesk', 'operations', 'crm', 'settings'];
     const BASE = _subDirs.includes(_parentDir) ? '../' : '';
 
+    function enforceAuthenticatedSession() {
+        if (sessionStorage.getItem('pms_logged_in') === 'true') return true;
+        window.location.replace(BASE + 'login.html');
+        return false;
+    }
+
+    if (!enforceAuthenticatedSession()) return;
+    window.addEventListener('pageshow', enforceAuthenticatedSession);
+
     // ─── 사용자 역할 로드 (기본값 admin) ─────────
     window.currentUserRole = localStorage.getItem('currentUserRole') || 'sys_admin';
 
@@ -560,6 +569,11 @@
                     <i class="fa-solid fa-user-gear"></i>
                     <span>${lang === 'en' ? 'My Profile' : '내 정보 수정'}</span>
                 </button>`;
+        const logoutButton = `
+                <button type="button" class="sidebar-logout-btn" onclick="window.logoutHotelPms()">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>${lang === 'en' ? 'Log out' : '로그아웃'}</span>
+                </button>`;
 
         return `
 <div class="sidebar-overlay" onclick="PMS_Sidebar.toggleMenu()"></div>
@@ -580,6 +594,7 @@
                     <div class="sidebar-user-role">${sidebarEscape(roleText(activeProfile.roleId))}</div>
                 </div>
                 ${profileButton}
+                ${logoutButton}
             </div>
         </div>
     </div>
@@ -604,6 +619,12 @@ ${buildProfileModal(roleText)}`;
         if (!modal) return;
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
+    };
+
+    window.logoutHotelPms = function() {
+        sessionStorage.removeItem('pms_logged_in');
+        sessionStorage.removeItem('pms_current_reservation');
+        window.location.replace(BASE + 'login.html');
     };
 
     window.closeSidebarProfileModal = function() {
@@ -649,6 +670,7 @@ ${buildProfileModal(roleText)}`;
             last: '방금 전'
         };
         if (newPw) {
+            next.password = newPw;
             next.passwordUpdatedAt = new Date().toISOString();
             next.passwordChangeRequired = false;
             next.passwordMethod = 'self';

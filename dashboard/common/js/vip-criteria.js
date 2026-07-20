@@ -63,6 +63,17 @@
         return (guests || []).filter(guest => isVipTier(guest.tier, config)).length;
     }
 
+    function calculateTier(guest, config = getConfig()) {
+        const normalizedConfig = normalizeConfig(config);
+        const stays = Number(guest?.visits ?? guest?.stays ?? guest?.stayCount ?? guest?.stayNights ?? 0);
+        const spend = Number(guest?.spend ?? guest?.totalSpend ?? guest?.amount ?? 0);
+        for (const tier of ['diamond', 'platinum', 'gold']) {
+            const threshold = normalizedConfig.thresholds[tier];
+            if (stays >= Number(threshold.stays || 0) || spend >= Number(threshold.spend || 0)) return tier;
+        }
+        return 'standard';
+    }
+
     function vipSubtitle(config = getConfig(), lang = localStorage.getItem('pms_lang') || 'ko') {
         const tier = normalizeTier(config.vipMinimumTier);
         const isEn = lang === 'en';
@@ -88,6 +99,7 @@
         getConfig,
         saveConfig,
         isVipTier,
+        calculateTier,
         countVip,
         vipSubtitle
     };

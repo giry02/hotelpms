@@ -243,6 +243,16 @@ function readLoginStaffList() {
     }
 }
 
+const DEFAULT_LOGIN_PASSWORDS = Object.freeze({
+    'admin@hotel.com': 'password123!',
+    'kim@hotel.example': 'password123!',
+    'gm@hotel.example': 'password123!',
+    'sales@hotel.example': 'password123!',
+    'desk@hotel.example': 'password123!',
+    'housekeeping@hotel.example': 'password123!',
+    'maintenance@hotel.example': 'password123!'
+});
+
 function setLoginError(message) {
     const err = document.getElementById('loginError');
     const span = err?.querySelector('span');
@@ -257,26 +267,43 @@ function handleLogin(){
     const pw=document.getElementById('password').value;
 
     err.classList.remove('show');
+    if(!email || !pw){
+        setLoginError(currentLang === 'en' ? 'Enter email and password.' : '\uc774\uba54\uc77c\uacfc \ube44\ubc00\ubc88\ud638\ub97c \uc785\ub825\ud558\uc138\uc694.');
+        return;
+    }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+        setLoginError(currentLang === 'en' ? 'Enter a valid email address.' : '\uc62c\ubc14\ub978 \uc774\uba54\uc77c \ud615\uc2dd\uc744 \uc785\ub825\ud558\uc138\uc694.');
+        return;
+    }
     btn.classList.add('loading');
 
     setTimeout(()=>{
-        // Demo: any input works, empty fails
+        // Static demo credentials follow the same validation path as saved staff.
         if(!email || !pw){
             btn.classList.remove('loading');
             setLoginError(currentLang === 'en' ? 'Enter email and password.' : '이메일과 비밀번호를 입력하세요.');
             return;
         }
         // 로그인 Status Save
-        const matchedStaff = readLoginStaffList().find(staff => String(staff.email || '').toLowerCase() === email.toLowerCase());
+        const normalizedEmail = email.toLowerCase();
+        const matchedStaff = readLoginStaffList().find(staff => String(staff.email || '').toLowerCase() === normalizedEmail);
         if (matchedStaff) {
             const status = normalizeLoginStaffStatus(matchedStaff.status);
             if (status !== 'active') {
                 btn.classList.remove('loading');
                 setLoginError(status === 'retired'
-                    ? (currentLang === 'en' ? 'Retired staff cannot log in.' : '퇴직 직원은 로그인할 수 없습니다.')
-                    : (currentLang === 'en' ? 'Staff on leave cannot log in.' : '휴직 직원은 로그인할 수 없습니다.'));
+                    ? (currentLang === 'en' ? 'Retired staff cannot log in.' : '\ud1f4\uc9c1 \uc9c1\uc6d0\uc740 \ub85c\uadf8\uc778\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.')
+                    : (currentLang === 'en' ? 'Staff on leave cannot log in.' : '\ud734\uc9c1 \uc9c1\uc6d0\uc740 \ub85c\uadf8\uc778\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.'));
                 return;
             }
+        }
+        const expectedPassword = matchedStaff?.password || DEFAULT_LOGIN_PASSWORDS[normalizedEmail];
+        if (!expectedPassword || pw !== expectedPassword) {
+            btn.classList.remove('loading');
+            setLoginError(currentLang === 'en' ? 'Invalid email or password.' : '\uc774\uba54\uc77c \ub610\ub294 \ube44\ubc00\ubc88\ud638\uac00 \uc62c\ubc14\ub974\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.');
+            return;
+        }
+        if (matchedStaff) {
             localStorage.setItem('mock_user_id', matchedStaff.id);
             localStorage.setItem('currentUserRole', matchedStaff.roleId || 'sys_desk');
             localStorage.setItem('pms_staff_name', matchedStaff.name || '');
