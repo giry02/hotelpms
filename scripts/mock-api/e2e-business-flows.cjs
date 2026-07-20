@@ -545,6 +545,41 @@ async function ancillaryInhouseOnlyFlow(page) {
   return state;
 }
 
+async function ancillaryEnglishModalFlow(page) {
+  await goto(page, '/dashboard/operations/ancillary.html?test=e2e-ancillary-english-modal');
+  await page.waitForFunction(() => document.querySelectorAll('.service-room-card.inhouse').length > 0, null, { timeout: 15000 });
+  await page.evaluate(() => window.changeLang?.('en'));
+  await page.waitForFunction(() => document.documentElement.lang === 'en');
+  await page.locator('.service-room-card.inhouse').first().click();
+  await page.locator('#serviceDetailModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  await page.evaluate(() => window.openServiceModalFromDetail?.());
+
+  const baseState = await page.evaluate(() => ({
+    title: document.querySelector('#serviceDetailModal .modal-title')?.innerText.trim(),
+    sectionHeadings: Array.from(document.querySelectorAll('#serviceDetailModal .modal-section-head > span')).map(node => node.innerText.trim()),
+    tabs: Array.from(document.querySelectorAll('#serviceDetailModal .service-tab:not(.is-hidden)')).map(node => node.innerText.trim()),
+    labels: Array.from(document.querySelectorAll('#serviceDetailModal .modal-field-grid .form-label, #serviceDetailModal .service-price-grid .form-label, #serviceDetailModal textarea#serviceMemo')).map(node => node.tagName === 'TEXTAREA' ? node.placeholder : node.innerText.trim()),
+    addText: document.querySelector('#detailAddButton span')?.innerText.trim(),
+    registerText: document.querySelector('#detailRegistrationSection .service-register-action button')?.innerText.trim(),
+    closeText: document.querySelector('#serviceDetailModal .modal-footer button')?.innerText.trim()
+  }));
+  assert(baseState.title === 'Ancillary Details', `ancillary modal title did not follow English: ${JSON.stringify(baseState)}`);
+  assert(baseState.sectionHeadings.includes('Usage History') && baseState.sectionHeadings.includes('Ancillary Registration'), `ancillary section headings did not follow English: ${JSON.stringify(baseState)}`);
+  assert(baseState.tabs.join('|').includes('Integrated POS') && baseState.tabs.join('|').includes('Restaurant'), `ancillary service tabs did not follow English: ${JSON.stringify(baseState)}`);
+  assert(baseState.labels.includes('Department / Vendor') && baseState.labels.includes('Service Item') && baseState.labels.includes('Usage Date / Time') && baseState.labels.includes('Quantity / Guests'), `ancillary registration labels did not follow English: ${JSON.stringify(baseState)}`);
+  assert(baseState.labels.includes('Base Rate') && baseState.labels.includes('Applied Rate') && baseState.labels.includes('Estimated Total'), `ancillary price labels did not follow English: ${JSON.stringify(baseState)}`);
+  assert(baseState.labels.includes('Requests, pickup location, tee-time notes, etc.'), `ancillary memo placeholder did not follow English: ${JSON.stringify(baseState)}`);
+  assert(baseState.addText === 'Add Registration' && baseState.registerText === 'Register' && baseState.closeText === 'Close', `ancillary modal actions did not follow English: ${JSON.stringify(baseState)}`);
+
+  await page.evaluate(() => window.selectServiceType?.('golf'));
+  const golfLabels = await page.locator('#serviceVariableGrid .form-label').allInnerTexts();
+  assert(golfLabels.join('|') === 'Course|Tee Time|Holes', `golf registration labels did not follow English: ${JSON.stringify(golfLabels)}`);
+  await page.evaluate(() => window.selectServiceType?.('rentacar'));
+  const rentacarLabels = await page.locator('#serviceVariableGrid .form-label').allInnerTexts();
+  assert(rentacarLabels.join('|') === 'Vehicle / Class|Rental Hours|Pickup Location', `rent-a-car registration labels did not follow English: ${JSON.stringify(rentacarLabels)}`);
+  return { baseState, golfLabels, rentacarLabels };
+}
+
 async function ancillaryVendorVoucherFlow(page) {
   await goto(page, '/dashboard/operations/ancillary-vendors.html?test=e2e-ancillary-vendors');
   await page.waitForSelector('.vendor-tab[data-type="pos"]', { timeout: 30000 });
@@ -925,6 +960,7 @@ async function main() {
     ['dashboard check-in KPI -> reservation list count', dashboardCheckinKpiNavigationFlow],
     ['night audit closed handover view', nightAuditClosedHandoverFlow],
     ['ancillary board only shows in-house rooms', ancillaryInhouseOnlyFlow],
+    ['ancillary modal follows selected language', ancillaryEnglishModalFlow],
     ['ancillary vendor voucher management', ancillaryVendorVoucherFlow],
     ['dashboard partner vendor detail links', dashboardPartnerVendorDetailFlow],
     ['checked-in reservation readonly modal', readonlyCheckedInReservationFlow],
