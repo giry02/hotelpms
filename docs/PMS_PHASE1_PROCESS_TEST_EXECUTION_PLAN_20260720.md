@@ -751,8 +751,8 @@
 | P1-ANC-004 | PASS | Vercel 배포본에서 골프·렌터카·음식점 바우처/쿠폰을 각각 열어 제목·필드·절취 영역·닫기·인쇄 버튼을 확인했다. 열린 골프 바우처를 한국어→영어로 전환해 즉시 재렌더링됨을 확인했고 실제 인쇄 버튼을 호출했다. 인쇄 문서의 `lang=en`과 영문 제목은 E2E에서 검증했다. | 2026-07-21 | 바우처 모달 전체 다국어화, 골프·렌터카·음식점 시스템 데이터 영문화, 인원 단복수 보정 | PASS | 배포 `b1a38c30`, `ed6e67ab`, `b083d1ce`, `bcdd2c4f`; Vercel 3종 미리보기·언어 전환·인쇄 호출 수동 증거; `npm run e2e` 12개 통과 |
 | P1-FOLIO-001 | PASS | 배포본 1205호에서 PHP 현금 2,080 전액 수납 후 목록 `Complete` 클릭 시 상세 팝업 없이 확인창만 표시되고, 완료·새로고침 지속·상세 완료 정보·수납/완료 처리 이력 확인 | 목록 카드의 완료 클릭 이벤트가 상위 카드 상세 열기와 충돌 | 카드 전용 완료 핸들러에서 기본 동작·버블링·즉시 전파를 차단하고 `openDetail: false`로 완료 처리 | PASS | 배포 `https://hotelpms-eight.vercel.app/dashboard/operations/settlement-status.html`, commit `c4f3a2c`, 로컬 기능 14/14·E2E 12/12 |
 | P1-FOLIO-002 | PASS | 배포본 1205호 완료 상세에서 `Reopen Settlement` 실행 후 미완료 상태와 완료 버튼이 새로고침 뒤 유지되고, 감사 로그에 folio·예약·객실·실행자·`Completed → Incomplete` 기록 확인; 검증 후 다시 완료 처리 | - | 변경 없음 | PASS | 배포 Settlement Status 및 Audit Log 연속 검증, 2026-07-10 05:20 로그 |
-| P1-EXP-001 | PARTIAL | 입력·저장 회귀 통과, CRUD·KPI·시재 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
-| P1-EXP-002 | PARTIAL | 다국어·통화 회귀 통과, 호텔 기준 통화 변경별 실제 UI 증거 미완료 | - | 변경 없음 | PARTIAL | `support-i18n.log` |
+| P1-EXP-001 | PASS | 배포본에서 `P1 Expense Fuel` PHP 현금 1,250 등록, 1,350 수정, 새로고침 지속, 사용자 지정 기간 조회, KPI 반영, 일일 마감 출금 1,350 반영, 삭제 후 목록 제거 확인 | - | 변경 없음 | PASS | 배포 Expense Purchases 및 Night Audit 연속 검증; 테스트 데이터 삭제 완료 |
+| P1-EXP-002 | PASS | 배포본에서 USD 카드 10 및 KRW 계좌이체 10,000 등록, 목록·KPI 통화별 합계 반영, PHP 호텔 통화 선택지 PHP/USD/KRW만 노출되고 VND 미노출 확인 | - | 변경 없음 | PASS | 배포 Expense Purchases 검증; USD/KRW 테스트 데이터 삭제 완료 |
 | P1-NIGHT-001 | PARTIAL | 마감 회귀 통과, 시재 수식 수기 대조와 재진입 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
 | P1-GUEST-001 | PARTIAL | 고객 등록 회귀 통과, 수정·예약 연결 연속 증거 미완료 | - | 변경 없음 | PARTIAL | `support-e2e.log` |
 | P1-PERM-001 | PARTIAL | 권한 회귀 통과, 역할별 실제 재로그인과 접근 차단 증거 미완료 | - | 변경 없음 | PARTIAL | `support-critical-ui.log` |
