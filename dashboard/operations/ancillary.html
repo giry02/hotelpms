@@ -567,6 +567,23 @@ function voucherFieldLabel(field) {
     const labels = voucherFieldLabels[field];
     return Array.isArray(labels) ? ancillaryText(labels[0], labels[1]) : field;
 }
+function voucherDisplayValue(value) {
+    if (ancillaryLang() !== 'en') return value;
+    const translations = {
+        '썬밸리 CC':'Sun Valley CC',
+        '18홀 그린피':'18-hole Green Fee',
+        '롯데렌터카':'Lotte Rent-a-car',
+        '공항 픽업 기본료':'Airport Pickup Base Fare',
+        '세단':'Sedan',
+        '호텔 로비':'Hotel Lobby',
+        '리버사이드 비스트로':'Riverside Bistro',
+        '웰컴 디저트':'Welcome Dessert',
+        '호텔 도보 6분 / Nguyen Hue St':'6-minute walk from hotel / Nguyen Hue St',
+        '호텔에서 차량 8분':'8-minute drive from hotel',
+        '디너 세트, 웰컴 디저트, 패밀리 메뉴 제휴 할인':'Partner discounts on dinner set, welcome dessert, and family menu'
+    };
+    return translations[String(value || '')] || value;
+}
 
 const initialVoucherFieldsByType = {
     golf: ['guest','room','date','item','people','teeTime','course']
@@ -943,15 +960,15 @@ function voucherDataFromOrder(order, room = findRoomById(order?.roomId || order?
         date: dateTime ? dateTime.replace('T', ' ') : '-',
         people: ancillaryText(`${Number(order?.qty || 1).toLocaleString('ko-KR')}명`, `${Number(order?.qty || 1).toLocaleString('en')} guests`),
         teeTime: order?.teeTime || (dateTime ? dateTime.slice(11, 16) : '-'),
-        course: order?.courseName || order?.vendor || '-',
-        pickup: order?.pickup || ancillaryText('호텔 로비', 'Hotel Lobby'),
-        vehicle: order?.vehicle || order?.item || '-',
-        item: order?.item || '-',
+        course: voucherDisplayValue(order?.courseName || order?.vendor || '-'),
+        pickup: voucherDisplayValue(order?.pickup || ancillaryText('호텔 로비', 'Hotel Lobby')),
+        vehicle: voucherDisplayValue(order?.vehicle || order?.item || '-'),
+        item: voucherDisplayValue(order?.item || '-'),
         amount: money(order?.total || 0),
         partnerContact: vendor?.contact || order?.vendor || '-',
-        location: vendor?.location || '-',
+        location: voucherDisplayValue(vendor?.location || '-'),
         address: vendor?.address || '-',
-        benefit: vendor?.benefit || order?.item || '-',
+        benefit: voucherDisplayValue(vendor?.benefit || order?.item || '-'),
         terms: vendor?.terms || vendor?.usagePeriod || '-',
         memo: order?.memo || '-'
     };
@@ -978,7 +995,7 @@ function renderVoucherSheet(order) {
             <div class="voucher-logo">${vendor?.logoDataUrl ? `<img src="${escapeHtml(vendor.logoDataUrl)}" alt="">` : '<span class="voucher-logo-mark"><i class="fa-solid fa-building"></i></span>'}</div>
             <div>
                 <h2 class="voucher-heading">${escapeHtml(voucherTitleForOrder(order))}</h2>
-                <div class="voucher-sub">${escapeHtml(order.vendor || service.label)} · ${escapeHtml(vendor?.contact || '-')}</div>
+                <div class="voucher-sub">${escapeHtml(voucherDisplayValue(order.vendor || service.label))} · ${escapeHtml(vendor?.contact || '-')}</div>
             </div>
         </div>
         <div class="voucher-body">
