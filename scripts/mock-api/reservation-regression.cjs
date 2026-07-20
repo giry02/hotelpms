@@ -448,6 +448,60 @@ async function reservationBoardFilterColorRegression(page, base) {
   return result;
 }
 
+async function reservationTimelineShadowRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-timeline.html?test=timeline-shadow`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => window.PmsMockApi && typeof buildTimeline === 'function', null, { timeout: 15000 });
+
+  const backup = await page.evaluate(async () => {
+    const overlayKey = 'mockapi:v1:TENANT-GRAND-SAIGON:reservations';
+    const storedKey = 'pms_reservations';
+    const previousOverlay = localStorage.getItem(overlayKey);
+    const previousStored = localStorage.getItem(storedKey);
+    const env = await window.PmsMockApi.request('GET', '/reservations');
+    const items = window.PmsMockApi.items(env).filter(item => String(item.roomNo || item.room || '').trim() !== '1212' && !String(item.roomId || '').endsWith('1212'));
+    items.unshift(
+      {
+        id: 'RSV-TL-NEW-1212', reservationId: 'RSV-TL-NEW-1212', roomId: 'FT-1212', roomNo: '1212',
+        guestName: 'Timeline New Guest', guest: 'Timeline New Guest', status: 'confirmed',
+        checkInDate: '2026-07-10', checkOutDate: '2026-07-11', checkInTime: '14:00', checkOutTime: '12:00'
+      },
+      {
+        id: 'RSV-TL-STALE-1212', reservationId: 'RSV-TL-STALE-1212', roomId: 'FT-1212', roomNo: '1212',
+        guestName: 'Timeline Shadow Guest', guest: 'Timeline Shadow Guest', status: 'checked-in',
+        checkInDate: '2026-07-10', checkOutDate: '2026-07-11', checkInTime: '14:00', checkOutTime: '12:00'
+      },
+      {
+        id: 'RSV-TL-COMPLETED-1212', reservationId: 'RSV-TL-COMPLETED-1212', roomId: 'FT-1212', roomNo: '1212',
+        guestName: 'Timeline Shadow Guest', guest: 'Timeline Shadow Guest', status: 'completed',
+        checkInDate: '2026-07-09', checkOutDate: '2026-07-10', checkInTime: '14:00', checkOutTime: '12:00'
+      }
+    );
+    const overlay = { items, page: { page: 1, pageSize: Math.max(items.length, 50), total: items.length, totalPages: 1 } };
+    localStorage.setItem(overlayKey, JSON.stringify(overlay));
+    localStorage.setItem(storedKey, JSON.stringify(items));
+    return { overlayKey, storedKey, previousOverlay, previousStored };
+  });
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => document.body.innerText.includes('Timeline New Guest'), null, { timeout: 15000 });
+  const result = await page.evaluate(() => ({
+    hasNewGuest: document.body.innerText.includes('Timeline New Guest'),
+    shadowGuestOccurrences: (document.body.innerText.match(/Timeline Shadow Guest/g) || []).length,
+    roomText: Array.from(document.querySelectorAll('.tl-row')).find(row => row.innerText.includes('1212'))?.innerText || ''
+  }));
+
+  if (backup.previousOverlay === null) await page.evaluate(key => localStorage.removeItem(key), backup.overlayKey);
+  else await page.evaluate(({ key, value }) => localStorage.setItem(key, value), { key: backup.overlayKey, value: backup.previousOverlay });
+  if (backup.previousStored === null) await page.evaluate(key => localStorage.removeItem(key), backup.storedKey);
+  else await page.evaluate(({ key, value }) => localStorage.setItem(key, value), { key: backup.storedKey, value: backup.previousStored });
+
+  assert(result.hasNewGuest, 'Timeline must render a newly saved reservation for the selected room.', result);
+  assert(result.shadowGuestOccurrences === 1, 'Timeline must keep the completed stay but hide its stale same-guest handoff duplicate.', result);
+  return result;
+}
+
 (async () => {
   let base = DEFAULT_BASE;
   let server = null;
@@ -482,6 +536,7 @@ async function reservationBoardFilterColorRegression(page, base) {
     const boardCleaningVisibilityResult = await reservationBoardCleaningVisibilityRegression(page, base);
     const todayCheckinRoomMasterResult = await todayCheckinRoomMasterRegression(page, base);
     const boardFilterColorResult = await reservationBoardFilterColorRegression(page, base);
+    const timelineShadowResult = await reservationTimelineShadowRegression(page, base);
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -721,6 +776,7 @@ async function reservationBoardFilterColorRegression(page, base) {
         'reservation board keeps cleaning status visible beside check-in readiness',
         'today check-in rooms are not blocked by stale room master status',
         'reservation board keeps card status colors stable across filters and hover',
+        'reservation timeline prefers the saved booking over a stale same-guest handoff',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
         'dashboard today check-in KPI matches reservation board after rooms become in-house'
@@ -728,7 +784,8 @@ async function reservationBoardFilterColorRegression(page, base) {
       dashboardCountResult,
       boardCleaningVisibilityResult,
       todayCheckinRoomMasterResult,
-      boardFilterColorResult
+      boardFilterColorResult,
+      timelineShadowResult
     }, null, 2));
   } catch (error) {
     console.error(JSON.stringify({

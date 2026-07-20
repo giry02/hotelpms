@@ -862,9 +862,25 @@ function timelineReservationPriority(res, index) {
     return groupScore + assignedScore + statusScore + (Number.isFinite(index) ? index / 10000 : 0);
 }
 
+function timelineReservationShadowedByCompletedCheckout(res, list) {
+    if (!res || normalizeReservationStatus(res) === 'completed') return false;
+    const room = timelineRoomForReservation(res);
+    const start = timelineReservationStartDate(res);
+    const guest = String(timelineGuestName(res) || '').trim().toLowerCase();
+    if (!room || !start || !guest) return false;
+    return (list || []).some(completed => {
+        if (!completed || completed === res || normalizeReservationStatus(completed) !== 'completed') return false;
+        if (!timelineRoomMatchesReservation(room, completed)) return false;
+        const completedGuest = String(timelineGuestName(completed) || '').trim().toLowerCase();
+        const completedEnd = timelineReservationCheckoutDate(completed);
+        return completedGuest === guest && completedEnd && completedEnd.getTime() === start.getTime();
+    });
+}
+
 function dedupeTimelineReservations(list) {
     const occupied = new Map();
-    const source = (list || []).map((res, index) => ({ res, index }));
+    const candidates = (list || []).filter(res => !timelineReservationShadowedByCompletedCheckout(res, list));
+    const source = candidates.map((res, index) => ({ res, index }));
     source.sort((a, b) => timelineReservationPriority(a.res, a.index) - timelineReservationPriority(b.res, b.index));
     const kept = [];
     source.forEach(({ res }) => {
@@ -883,7 +899,7 @@ function dedupeTimelineReservations(list) {
         kept.push(res);
     });
     const keepIds = new Set(kept.map(res => res.id));
-    return (list || []).filter(res => keepIds.has(res.id));
+    return candidates.filter(res => keepIds.has(res.id));
 }
 
 function timelineDateClass(date) {
