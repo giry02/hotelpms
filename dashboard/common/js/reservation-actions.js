@@ -55,6 +55,10 @@
             'button.save': '저장',
             'cancel.notAllowed': '체크인 이후 예약은 취소할 수 없습니다. 체크아웃, 조기퇴실, 환불/정산 정정으로 처리해주세요.',
             'cancel.confirm': '[{name}] 고객의 예약을 취소하시겠습니까?',
+            'cancel.reasonTitle': '예약 취소 사유',
+            'cancel.reasonPrompt': '취소 사유를 입력해주세요.',
+            'cancel.reasonPlaceholder': '예: 고객 요청, 일정 변경, 중복 예약',
+            'cancel.reasonOk': '취소 처리',
             'cancel.done': '예약이 취소되었습니다.'
         },
         en: {
@@ -109,6 +113,10 @@
             'button.save': 'Save',
             'cancel.notAllowed': 'Reservations after check-in cannot be cancelled. Please handle it through check-out, early departure, refund, or settlement correction.',
             'cancel.confirm': 'Cancel the reservation for {name}?',
+            'cancel.reasonTitle': 'Cancellation Reason',
+            'cancel.reasonPrompt': 'Enter a reason for cancelling this reservation.',
+            'cancel.reasonPlaceholder': 'e.g. Guest request, schedule change, duplicate booking',
+            'cancel.reasonOk': 'Cancel Reservation',
             'cancel.done': 'Reservation has been cancelled.'
         }
     };
@@ -350,6 +358,12 @@
         if (window.showConfirm) return await window.showConfirm(message, options);
         console.warn('PMS confirmation dialog is unavailable.', message);
         return false;
+    }
+
+    async function promptReservationDialog(message, options = {}) {
+        if (window.showPrompt) return await window.showPrompt(message, options);
+        console.warn('PMS prompt dialog is unavailable.', message);
+        return null;
     }
 
     async function reservationGuestList() {
@@ -4030,18 +4044,29 @@
         const cancelMessage = actionText('cancel.confirm', { name: res.guest || guestNameForReservation(res) });
         const confirmed = await confirmReservationDialog(cancelMessage);
         if (confirmed) {
+            const cancelReason = await promptReservationDialog(actionText('cancel.reasonPrompt'), {
+                title: actionText('cancel.reasonTitle'),
+                placeholder: actionText('cancel.reasonPlaceholder'),
+                inputLabel: actionText('cancel.reasonTitle'),
+                okText: actionText('cancel.reasonOk'),
+                required: true
+            });
+            if (cancelReason === null) return;
             res.status = 'cancelled';
+            res.cancellationReason = cancelReason;
+            res.cancelReason = cancelReason;
             logReservationAudit('reservation.cancel', {
                 reservationId: res.id,
                 guestName: guestNameForReservation(res),
                 room: res.room,
                 beforeStatus: currentStatus,
                 afterStatus: 'cancelled',
-                fields: ['reservationId', 'guestName', 'room', 'status']
+                cancelReason,
+                fields: ['reservationId', 'guestName', 'room', 'status', 'cancelReason']
             });
             localStorage.setItem('pms_reservations', JSON.stringify(allRes));
             try {
-                if (window.PmsMockApi) await window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(resId)}`, { body: { status: 'cancelled' } });
+                if (window.PmsMockApi) await window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(resId)}`, { body: { status: 'cancelled', cancellationReason: cancelReason, cancelReason } });
             } catch(e) {
                 console.warn('Mock reservation cancel failed', e);
             }

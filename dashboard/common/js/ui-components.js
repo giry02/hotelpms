@@ -254,6 +254,25 @@
         .pms-toast.success { border-left-color: var(--success, #10b981); }
         .pms-toast.fade-out { animation: fadeOutRight 0.3s forwards; }
         .modal-overlay.active { display: flex !important; }
+        .pms-dialog-input {
+            width: 100%;
+            min-height: 42px;
+            margin-top: 14px;
+            padding: 10px 12px;
+            border: 1px solid var(--line, #dfe3ea);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--txt);
+            font: inherit;
+            box-sizing: border-box;
+        }
+        .pms-dialog-input:focus {
+            border-color: var(--primary);
+            outline: 2px solid rgba(59, 130, 246, 0.18);
+        }
+        .pms-dialog-input.invalid {
+            border-color: var(--danger, #ef4444);
+        }
         
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
@@ -294,6 +313,7 @@
             }
 
             const isAlert = mode === 'alert';
+            const isPrompt = mode === 'prompt';
             const titleText = options.title || (isAlert ? (currentLang() === 'ko' ? '알림' : 'Notice') : uiText('ui.confirm.title'));
             const okText = options.okText || (isAlert ? (currentLang() === 'ko' ? '확인' : 'OK') : uiText('ui.confirm.ok'));
             const titleEl = document.getElementById('pms-confirm-title');
@@ -304,6 +324,16 @@
 
             if (titleEl) titleEl.textContent = titleText;
             if (messageEl) messageEl.innerHTML = escapeHtml(msg || (isAlert ? titleText : uiText('ui.confirm.default'))).replace(/\n/g, '<br>');
+            let promptInput = null;
+            if (isPrompt && messageEl) {
+                promptInput = document.createElement(options.multiline ? 'textarea' : 'input');
+                if (!options.multiline) promptInput.type = 'text';
+                promptInput.className = 'pms-dialog-input';
+                promptInput.placeholder = options.placeholder || '';
+                promptInput.value = options.defaultValue || '';
+                promptInput.setAttribute('aria-label', options.inputLabel || titleText);
+                messageEl.appendChild(promptInput);
+            }
             if (btnCancel) {
                 btnCancel.textContent = options.cancelText || uiText('ui.confirm.cancel');
                 btnCancel.style.display = isAlert ? 'none' : 'inline-flex';
@@ -314,6 +344,7 @@
                 icon.style.color = options.type === 'error' ? 'var(--danger)' : 'var(--primary)';
             }
             modal.classList.add('active');
+            if (promptInput) setTimeout(() => promptInput.focus(), 0);
 
             const cleanup = () => {
                 modal.classList.remove('active');
@@ -323,8 +354,22 @@
                 if (nextCancel) nextCancel.style.display = 'inline-flex';
             };
 
-            btnOk.onclick = () => { cleanup(); resolve(true); };
-            btnCancel.onclick = () => { cleanup(); resolve(false); };
+            btnOk.onclick = () => {
+                if (isPrompt) {
+                    const value = String(promptInput?.value || '').trim();
+                    if (options.required && !value) {
+                        promptInput?.classList.add('invalid');
+                        promptInput?.focus();
+                        return;
+                    }
+                    cleanup();
+                    resolve(value);
+                    return;
+                }
+                cleanup();
+                resolve(true);
+            };
+            btnCancel.onclick = () => { cleanup(); resolve(isPrompt ? null : false); };
         });
     }
 
@@ -334,6 +379,10 @@
 
     window.showConfirm = function(msg, options = {}) {
         return showDialog(msg, options, 'confirm');
+    };
+
+    window.showPrompt = function(msg, options = {}) {
+        return showDialog(msg, options, 'prompt');
     };
 
     window.renderEmptyState = function(options = {}) {

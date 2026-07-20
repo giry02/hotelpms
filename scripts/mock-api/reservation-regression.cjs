@@ -967,6 +967,50 @@ async function reservationTimelineShadowRegression(page, base) {
     assert(blockResult.after.status === 'blocked', 'Saving a group block must preserve blocked status.', blockResult.after);
     assert(blockResult.after.guest === 'Preserved Block Name', 'Saving a group block must preserve the existing guest/group label.', blockResult.after);
 
+    const cancellationReasonResult = await page.evaluate(async () => {
+      const today = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : new Date().toISOString().slice(0, 10);
+      const tomorrowDate = new Date(`${today}T00:00:00`);
+      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+      const tomorrow = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
+      const reservation = {
+        id: 'RSV-CANCEL-REASON-TEST',
+        room: 'T-902',
+        fullRoom: 'T-902',
+        roomNo: 'T-902',
+        type: 'Standard',
+        status: 'confirmed',
+        guest: 'Cancellation Reason Guest',
+        guestName: 'Cancellation Reason Guest',
+        cin: today,
+        cout: tomorrow,
+        checkin: today,
+        checkout: tomorrow,
+        checkInDate: today,
+        checkOutDate: tomorrow,
+        nights: 1,
+        len: 1
+      };
+      window.reservations = [reservation];
+      reservations = window.reservations;
+      window.rooms = [{ roomNo: 'T-902', status: 'available', frontStatus: 'vacant', housekeepingStatus: 'clean' }];
+      const promptCalls = [];
+      window.showConfirm = async () => true;
+      window.showPrompt = async (message, options) => {
+        promptCalls.push({ message, options });
+        return 'P1 process cancellation';
+      };
+      await cancelResAction(reservation.id);
+      const auditLogs = window.PmsPrivacyAudit?.list?.() || [];
+      const audit = [...auditLogs].reverse().find(item => item.action === 'reservation.cancel' && item.details?.reservationId === reservation.id);
+      return { reservation, promptCalls, audit };
+    });
+
+    assert(cancellationReasonResult.promptCalls.length === 1, 'Cancellation must request a reason after confirmation.', cancellationReasonResult);
+    assert(cancellationReasonResult.promptCalls[0]?.options?.required === true, 'Cancellation reason must be required.', cancellationReasonResult);
+    assert(cancellationReasonResult.reservation.status === 'cancelled', 'Confirmed cancellation must change the reservation status.', cancellationReasonResult);
+    assert(cancellationReasonResult.reservation.cancelReason === 'P1 process cancellation', 'Cancellation reason must persist on the reservation.', cancellationReasonResult);
+    assert(cancellationReasonResult.audit?.details?.cancelReason === 'P1 process cancellation', 'Cancellation reason must be recorded in the audit log.', cancellationReasonResult);
+
     assert(consoleIssues.length === 0, 'Console warnings/errors during reservation regression.', consoleIssues);
 
     console.log(JSON.stringify({
@@ -985,6 +1029,7 @@ async function reservationTimelineShadowRegression(page, base) {
         'maintenance room cards explain the booking block without opening the form',
         'overlapping bookings show conflict details and do not save',
         'invalid dates and times stay visible, show adjacent errors, and do not save',
+        'reservation cancellation requires and audits a reason',
         'reservation date, rate, and note edits persist after reopening',
         'reservation timeline prefers the saved booking over a stale same-guest handoff',
         'representative/companion buttons only show for active guest candidates',
@@ -998,6 +1043,7 @@ async function reservationTimelineShadowRegression(page, base) {
       maintenanceBookingGuardResult,
       overlappingReservationGuardResult,
       stayValidationResult,
+      cancellationReasonResult,
       editPersistenceResult,
       timelineShadowResult
     }, null, 2));
