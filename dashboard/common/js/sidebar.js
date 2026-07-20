@@ -389,10 +389,45 @@
         return directAllowed ? { ...item, key } : null;
     }
 
+    function findPagePolicy(fileName) {
+        const normalizedFile = fileName === 'groups_block_detail.html'
+            ? 'groups_blocks.html'
+            : fileName;
+        for (const group of MENU) {
+            for (const item of group.items || []) {
+                const itemFile = hrefFile(item.href || item.mainHref);
+                if (itemFile === normalizedFile) return { group, item, child: null };
+                for (const child of item.children || []) {
+                    if (hrefFile(child.href) === normalizedFile) return { group, item, child };
+                }
+            }
+        }
+        return null;
+    }
+
+    function enforcePageAccess() {
+        const fileName = hrefFile(window.location.pathname);
+        const policy = findPagePolicy(fileName);
+        if (!policy) return true;
+
+        const roleAllowed = rolePolicyAllows(policy.group)
+            && rolePolicyAllows(policy.item)
+            && rolePolicyAllows(policy.child);
+        const menuKey = resolveMenuKey(policy.child || policy.item, policy.item);
+        if (roleAllowed && hotelMenuPolicyAllows(menuKey)) return true;
+
+        sessionStorage.setItem('pms_access_denied', fileName);
+        window.location.replace(BASE + 'dashboard.html');
+        return false;
+    }
+
+    if (!enforcePageAccess()) return;
+
     window.PMS_MenuPolicy = {
         resolveMenuKey,
         rolePolicyAllows,
-        hotelMenuPolicyAllows
+        hotelMenuPolicyAllows,
+        enforcePageAccess
     };
 
     function buildNavItem(item) {
