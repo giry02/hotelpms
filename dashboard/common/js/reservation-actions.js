@@ -3828,6 +3828,9 @@
                 res.fullRoom = selectedRoomId;
                 res.roomId = selectedRoomId;
                 res.roomNo = selectedRoomNo;
+                res.roomNumber = selectedRoomNo;
+                res.roomLabel = [selectedRoom?.displayName, selectedRoom?.roomLabel]
+                    .find(value => sameRoomValue(value, room)) || selectedRoomNo;
                 res.companionGuestNames = companionGuestNames;
                 res.companionGuestIds = guestPayload.companionGuestIds;
                 res.roomingGuestNames = guestPayload.roomingGuestNames;
