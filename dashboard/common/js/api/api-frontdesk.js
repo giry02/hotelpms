@@ -60,7 +60,23 @@ Object.assign(window.PmsAPI, {
         // the board and list. The dedicated JSON is only a seed fallback; using
         // it first can resurrect stale demo stays after create/update/delete.
         const currentReservations = await window.PmsAPI.getReservations();
-        if (currentReservations.length) return currentReservations;
+        let storedReservations = [];
+        try {
+            const parsed = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
+            if (Array.isArray(parsed)) storedReservations = parsed;
+        } catch (e) {
+            console.warn('Stored timeline reservations fallback', e);
+        }
+        const mergedReservations = new Map();
+        currentReservations.forEach((reservation, index) => {
+            const id = reservation?.id || reservation?.reservationId || `api-${index}`;
+            mergedReservations.set(String(id), reservation);
+        });
+        storedReservations.forEach((reservation, index) => {
+            const id = reservation?.id || reservation?.reservationId || `stored-${index}`;
+            mergedReservations.set(String(id), reservation);
+        });
+        if (mergedReservations.size) return [...mergedReservations.values()];
         try {
             if (window.PmsMockApi) {
                 const env = await window.PmsMockApi.request('GET', '/reservations/timeline');
@@ -70,7 +86,7 @@ Object.assign(window.PmsAPI, {
         } catch(e) {
             console.warn('Mock timeline reservations fallback', e);
         }
-        return currentReservations;
+        return [];
     },
 
     getReservations: async () => {
