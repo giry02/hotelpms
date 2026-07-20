@@ -3821,10 +3821,13 @@
                 res.nights = nights;
                 res.len = nights;
                 res.type = selectedRoom?.type || res.type || 'Standard';
-                const selectedRoomId = selectedRoom?.roomId || selectedRoom?.fullRoom || selectedRoom?.id || room;
+                const selectedRoomId = [selectedRoom?.roomId, selectedRoom?.fullRoom, selectedRoom?.id]
+                    .find(value => sameRoomValue(value, room)) || room;
+                const selectedRoomNo = [selectedRoom?.roomNo, selectedRoom?.number, selectedRoom?.display]
+                    .find(value => sameRoomValue(value, room)) || room;
                 res.fullRoom = selectedRoomId;
                 res.roomId = selectedRoomId;
-                res.roomNo = selectedRoom?.roomNo || selectedRoom?.number || selectedRoom?.display || room;
+                res.roomNo = selectedRoomNo;
                 res.companionGuestNames = companionGuestNames;
                 res.companionGuestIds = guestPayload.companionGuestIds;
                 res.roomingGuestNames = guestPayload.roomingGuestNames;
