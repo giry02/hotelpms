@@ -327,6 +327,8 @@ async function todayCheckinRoomMasterRegression(page, base) {
 
     const afterReservation = (window.reservations || []).find(item => item.id === reservation.id || item.reservationId === reservation.reservationId);
     const afterRoom = (window.rooms || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210');
+    const auditLogs = window.PmsPrivacyAudit?.list?.() || [];
+    const audit = [...auditLogs].reverse().find(item => item.action === 'reservation.checkin' && item.details?.reservationId === reservation.id);
     return {
       captured,
       actionText,
@@ -335,7 +337,8 @@ async function todayCheckinRoomMasterRegression(page, base) {
       staleRoom,
       staleRoomBlocked: roomBlocksCheckIn(staleRoom),
       afterReservation: clone(afterReservation),
-      afterRoom: clone(afterRoom)
+      afterRoom: clone(afterRoom),
+      audit: clone(audit)
     };
   });
 
@@ -344,6 +347,7 @@ async function todayCheckinRoomMasterRegression(page, base) {
   assert(result.captured.alerts.length === 0, 'Room 1210 today check-in must not show a blocking alert.', result);
   assert(result.captured.confirms.length > 0, 'Room 1210 today check-in must ask for confirmation before changing status.', result);
   assert(['checkedin', 'checked-in', 'inhouse', 'in-house'].includes(String(result.afterReservation?.status || '').toLowerCase()), 'Room 1210 today check-in must complete to an in-house state.', result);
+  assert(result.audit?.details?.room === '1210', 'Successful check-in must record the reservation and room in the audit log.', result);
 
   return result;
 }

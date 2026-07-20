@@ -3297,6 +3297,14 @@
         await persistUnifiedReservation(res);
         await persistUnifiedRoom(room);
         if (action === 'checkout') await syncUnifiedHousekeeping(room, 'vacant-dirty', res);
+        logReservationAudit(`reservation.${action}`, {
+            reservationId: res.id || res.reservationId || '',
+            guestName: guestNameForReservation(res),
+            room: room?.roomNo || room?.number || res.roomNo || res.roomNumber || res.room || res.fullRoom || '',
+            beforeStatus: currentStatus,
+            afterStatus: effectiveReservationStatus(res),
+            fields: ['reservationId', 'guestName', 'room', 'status']
+        });
         if (window.showToast) {
             const toastKey = checkinWarning ? 'flow.completedRoomNotReady' : 'flow.completed';
             window.showToast(actionText(toastKey, { action: label }), 'success');
