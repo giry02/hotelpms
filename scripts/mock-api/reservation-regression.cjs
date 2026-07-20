@@ -488,6 +488,52 @@ async function maintenanceRoomBookingGuardRegression(page, base) {
   return result;
 }
 
+async function overlappingReservationGuardRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=overlap-booking-guard`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof saveUnifiedRes === 'function', null, { timeout: 15000 });
+
+  const result = await page.evaluate(async () => {
+    const target = (window.reservations || []).find(item => String(item.roomNo || item.room || item.roomId || '').replace(/\D/g, '') === '1210');
+    if (!target) return { missingFixture: true };
+    const checkin = target.checkInDate || target.checkin || '2026-07-10';
+    const checkout = target.checkOutDate || target.checkout || '2026-07-11';
+    const beforeCount = window.reservations.length;
+    let alertMessage = '';
+    const previousAlert = window.showAlert;
+    window.showAlert = message => { alertMessage = String(message || ''); };
+
+    await window.openUnifiedResModal({
+      roomNo: '1210', room: '1210', checkInDate: checkin, checkOutDate: checkout,
+      guestId: 'G-OVERLAP-REGRESSION', guestName: 'Overlap Regression Guest', guest: 'Overlap Regression Guest',
+      amount: 140
+    });
+    const roomSelect = document.getElementById('unifiedRoom');
+    const option = Array.from(roomSelect?.options || []).find(item => String(item.value || '').replace(/\D/g, '') === '1210');
+    if (option) roomSelect.value = option.value;
+    await window.saveUnifiedRes();
+    window.showAlert = previousAlert;
+
+    return {
+      missingFixture: false,
+      optionDisabled: option?.disabled,
+      optionText: option?.textContent || '',
+      alertMessage,
+      beforeCount,
+      afterCount: window.reservations.length,
+      modalOpen: document.getElementById('unifiedResModal')?.classList.contains('active') || false
+    };
+  });
+
+  assert(!result.missingFixture, 'Overlap fixture for room 1210 must exist.', result);
+  assert(result.optionDisabled === false, 'A conflicting room must be selectable so the user can receive conflict details.', result);
+  assert(/1210|booked|예약/i.test(result.optionText), 'Conflicting room option must be visibly identified.', result);
+  assert(/RSV-|Overlap|Anh Nguyen|2026-|예약|booked/i.test(result.alertMessage), 'Overlap warning must include conflict details.', result);
+  assert(result.afterCount === result.beforeCount, 'Overlap attempt must not create a reservation.', result);
+  assert(result.modalOpen, 'Overlap warning must keep the reservation form open.', result);
+  return result;
+}
+
 async function reservationTimelineShadowRegression(page, base) {
   await page.goto(`${base}/dashboard/frontdesk/reservation-timeline.html?test=timeline-shadow`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -560,7 +606,7 @@ async function reservationTimelineShadowRegression(page, base) {
   page.on('console', msg => {
     if (!['error', 'warning'].includes(msg.type())) return;
     const text = msg.text();
-    if (/ERR_NETWORK_ACCESS_DENIED|Failed to load resource|favicon|googleapis|gstatic|cdnjs|cdn\.jsdelivr/i.test(text)) return;
+    if (/ERR_NETWORK_ACCESS_DENIED|Failed to load resource|Rate calendar lookup failed|favicon|googleapis|gstatic|cdnjs|cdn\.jsdelivr/i.test(text)) return;
     consoleIssues.push(`${msg.type()}: ${text}`);
   });
   page.on('pageerror', err => consoleIssues.push(`pageerror: ${err.message}`));
@@ -577,6 +623,7 @@ async function reservationTimelineShadowRegression(page, base) {
     const todayCheckinRoomMasterResult = await todayCheckinRoomMasterRegression(page, base);
     const boardFilterColorResult = await reservationBoardFilterColorRegression(page, base);
     const maintenanceBookingGuardResult = await maintenanceRoomBookingGuardRegression(page, base);
+    const overlappingReservationGuardResult = await overlappingReservationGuardRegression(page, base);
     const timelineShadowResult = await reservationTimelineShadowRegression(page, base);
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
@@ -818,6 +865,7 @@ async function reservationTimelineShadowRegression(page, base) {
         'today check-in rooms are not blocked by stale room master status',
         'reservation board keeps card status colors stable across filters and hover',
         'maintenance room cards explain the booking block without opening the form',
+        'overlapping bookings show conflict details and do not save',
         'reservation timeline prefers the saved booking over a stale same-guest handoff',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
@@ -828,6 +876,7 @@ async function reservationTimelineShadowRegression(page, base) {
       todayCheckinRoomMasterResult,
       boardFilterColorResult,
       maintenanceBookingGuardResult,
+      overlappingReservationGuardResult,
       timelineShadowResult
     }, null, 2));
   } catch (error) {

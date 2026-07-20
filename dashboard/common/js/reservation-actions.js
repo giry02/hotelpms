@@ -2660,17 +2660,21 @@
 
         roomSelect.disabled = false;
         const available = [];
+        const conflicts = [];
         const unavailable = [];
         (Array.isArray(window.rooms) ? window.rooms : []).forEach(room => {
             const value = roomLabel(room);
             if (!value) return;
             const conflict = roomConflictForDates(room, checkin, checkout, currentRes);
             const isCurrentRoom = !!(currentRes && roomMatchesReservation(room, currentRes));
-            const blocked = !isCurrentRoom && (roomMaintenanceBlocked(room) || (!currentRes && !!conflict));
-            (blocked ? unavailable : available).push({ room, value, conflict: isCurrentRoom ? null : conflict, blocked });
+            const blocked = !isCurrentRoom && roomMaintenanceBlocked(room);
+            const entry = { room, value, conflict: isCurrentRoom ? null : conflict, blocked };
+            if (blocked) unavailable.push(entry);
+            else if (!currentRes && conflict) conflicts.push(entry);
+            else available.push(entry);
         });
 
-        if (!available.length && !unavailable.length) {
+        if (!available.length && !conflicts.length && !unavailable.length) {
             roomSelect.disabled = true;
             roomSelect.innerHTML = `<option value="">${actionText('booking.noRooms')}</option>`;
             if (help) help.textContent = actionText('booking.noRooms');
@@ -2687,6 +2691,7 @@
             roomSelect.appendChild(opt);
         };
         available.forEach(appendOption);
+        conflicts.forEach(appendOption);
         unavailable.forEach(appendOption);
 
         const enabledValues = Array.from(roomSelect.options).filter(option => !option.disabled).map(option => option.value);
@@ -2696,8 +2701,8 @@
         roomSelect.value = preferred || previous || enabledValues[0] || '';
         if (!enabledValues.length) roomSelect.disabled = true;
         if (help) {
-            const countText = `${enabledValues.length} ${currentRes ? unifiedModalText('roomMoveAllowed') : unifiedModalText('roomAvailable')}`;
-            help.textContent = enabledValues.length
+            const countText = `${available.length} ${currentRes ? unifiedModalText('roomMoveAllowed') : unifiedModalText('roomAvailable')}`;
+            help.textContent = available.length
                 ? countText
                 : actionText('booking.noRooms');
         }
@@ -3476,8 +3481,15 @@
         }
         const selectedRoom = roomForValue(room);
         const selectedIsCurrentRoom = !!(currentRes && selectedRoom && roomMatchesReservation(selectedRoom, currentRes));
-        if (!selectedIsCurrentRoom && !currentRes && roomConflictForDates(selectedRoom || { id: room }, dateRange.checkin, dateRange.checkout, currentRes)) {
-            showReservationAlert(actionText('booking.roomUnavailable'), 'error');
+        const roomConflict = !selectedIsCurrentRoom && !currentRes
+            ? roomConflictForDates(selectedRoom || { id: room }, dateRange.checkin, dateRange.checkout, currentRes)
+            : null;
+        if (roomConflict) {
+            const conflictId = compactValue(roomConflict.id || roomConflict.reservationId) || '-';
+            const conflictGuest = compactValue(guestNameForReservation(roomConflict)) || '-';
+            const conflictStart = compactValue(roomConflict.checkInDate || roomConflict.checkin || roomConflict.cin) || '-';
+            const conflictEnd = compactValue(roomConflict.checkOutDate || roomConflict.checkout || roomConflict.cout) || '-';
+            showReservationAlert(`${actionText('booking.roomUnavailable')}\n${conflictId} · ${conflictGuest} · ${conflictStart} ~ ${conflictEnd}`, 'error');
             return;
         }
         if (!currentRes && selectedRoom) {
