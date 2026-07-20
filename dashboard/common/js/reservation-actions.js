@@ -3821,9 +3821,10 @@
                 res.nights = nights;
                 res.len = nights;
                 res.type = selectedRoom?.type || res.type || 'Standard';
-                res.fullRoom = selectedRoom?.fullRoom || selectedRoom?.roomId || selectedRoom?.id || room;
-                res.roomId = selectedRoom?.roomId || selectedRoom?.fullRoom || res.roomId || room;
-                res.roomNo = selectedRoom?.number || selectedRoom?.display || room;
+                const selectedRoomId = selectedRoom?.roomId || selectedRoom?.fullRoom || selectedRoom?.id || room;
+                res.fullRoom = selectedRoomId;
+                res.roomId = selectedRoomId;
+                res.roomNo = selectedRoom?.roomNo || selectedRoom?.number || selectedRoom?.display || room;
                 res.companionGuestNames = companionGuestNames;
                 res.companionGuestIds = guestPayload.companionGuestIds;
                 res.roomingGuestNames = guestPayload.roomingGuestNames;
