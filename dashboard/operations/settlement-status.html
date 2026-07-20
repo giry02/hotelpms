@@ -1641,7 +1641,7 @@ function settlementCard(folio) {
             ? `<button type="button" class="refund" onclick="event.stopPropagation(); openSettlementStatusDetail('${folioKey}')"><i class="fa-solid fa-rotate-left"></i> ${settlementText('refundConfirm')}</button>`
             : folio.balance > 0
                 ? `<button type="button" class="payment" onclick="event.stopPropagation(); openSettlementStatusPayment('${folioKey}')"><i class="fa-solid fa-credit-card"></i> ${settlementCardText('paymentRegister')}</button>`
-                : `<button type="button" class="complete" onclick="event.stopPropagation(); completeSettlementStatusFolio('${folioKey}', { openDetail: false })"><i class="fa-solid fa-door-open"></i> ${settlementCardText('settlementComplete')}</button>`;
+                : `<button type="button" class="complete" onclick="return completeSettlementStatusFromCard(event, '${folioKey}')"><i class="fa-solid fa-door-open"></i> ${settlementCardText('settlementComplete')}</button>`;
     const tags = [
         folio.deposit > 0 ? `<span class="settlement-tag"><i class="fa-solid fa-wallet"></i>${settlementText('depositExists')}</span>` : '',
         ...folio.tags.map(tag => `<span class="settlement-tag"><i class="fa-solid fa-tag"></i>${settlementEscape(tag)}</span>`)
@@ -1678,6 +1678,14 @@ function handleSettlementCardKey(event, folioKey) {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     openSettlementStatusDetail(folioKey);
+}
+
+function completeSettlementStatusFromCard(event, folioId) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    event?.stopImmediatePropagation?.();
+    void completeSettlementStatusFolio(folioId, { openDetail: false });
+    return false;
 }
 
 function settlementFolioById(folioId) {
