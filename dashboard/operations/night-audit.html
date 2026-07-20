@@ -674,7 +674,7 @@
         </div>
 
         <!-- 3. Closing Basis -->
-        <div class="audit-section close-basis-section" id="closeBasisSection">
+        <div class="audit-section close-basis-section" id="closeBasisSection" data-keep-currency>
             <div class="audit-header close-basis-header">
                 <span class="close-basis-summary-title"><i class="fa-solid fa-clipboard-check" style="color:var(--primary)"></i> 3. 마감 근거 <button type="button" class="close-basis-help-btn" onclick="event.preventDefault();event.stopPropagation();openCloseBasisGuideModal()" aria-label="마감 판단 기준"><i class="fa-solid fa-circle-question"></i></button></span>
             </div>
@@ -699,7 +699,7 @@
         </div>
         </div>
 
-        <div id="auditTabCash" class="audit-tab-panel">
+        <div id="auditTabCash" class="audit-tab-panel" data-keep-currency>
             <div class="audit-section">
                 <div class="audit-header">
                     <i class="fa-solid fa-handshake" style="color:var(--primary)"></i> 시재 시작 / 출금 / 정산 현황
@@ -2441,7 +2441,7 @@ function formatSignedCurrencyBreakdown(values = {}) {
 function renderCurrencyChips(values = {}, options = {}) {
     const tone = options.tone ? ` ${options.tone}` : '';
     return CASH_CURRENCIES.map(currency => `
-        <span class="currency-chip${tone}">
+        <span class="currency-chip${tone}" data-keep-currency>
             <span>${escapeAudit(cashCurrencyLabel(currency))}</span>
             <strong>${Number(values[currency] || 0).toLocaleString()}</strong>
         </span>
@@ -2474,7 +2474,7 @@ function renderCashCurrencyLines(values = {}, options = {}) {
         .map(currency => ({ currency, amount: Number(values?.[currency] || 0) }))
         .filter(item => includeZero || item.amount !== 0);
     if (!rows.length) return `<span class="cash-currency-empty">${escapeAudit(options.emptyLabel || cashUiText('미등록', 'Not registered'))}</span>`;
-    return `<div class="cash-currency-lines">${rows.map(item => {
+    return `<div class="cash-currency-lines" data-keep-currency>${rows.map(item => {
         const tone = item.amount > 0 ? 'positive' : item.amount < 0 ? 'negative' : 'zero';
         return `
             <div class="cash-currency-line">
