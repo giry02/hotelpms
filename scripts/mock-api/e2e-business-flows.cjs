@@ -803,6 +803,7 @@ async function housekeepingMaintenanceFlow(page) {
   await page.locator('#newRequestModal.active').waitFor({ state: 'visible', timeout: 5000 });
   const maintenanceFormState = await page.evaluate(() => ({
     roomOptions: Array.from(document.querySelectorAll('#newRoom option')).map(option => option.textContent.trim()),
+    typeOptions: Array.from(document.querySelectorAll('#newType option')).map(option => option.textContent.trim()),
     roomLabel: document.getElementById('maintenanceRoomFieldLabel')?.textContent.trim() || '',
     typeLabel: document.getElementById('maintenanceTypeFieldLabel')?.textContent.trim() || '',
     detailsLabel: document.getElementById('maintenanceDetailsFieldLabel')?.textContent.trim() || '',
@@ -813,6 +814,7 @@ async function housekeepingMaintenanceFlow(page) {
   }));
   assert(maintenanceFormState.roomOptions.length > 1 && maintenanceFormState.roomOptions.some(text => /1215/.test(text)), 'maintenance room selector did not render identifiable room numbers', maintenanceFormState);
   assert(!maintenanceFormState.roomOptions.some(text => text.includes('[object Object]')), 'maintenance room selector rendered object values instead of room numbers', maintenanceFormState);
+  assert(maintenanceFormState.typeOptions.includes('HVAC') && !maintenanceFormState.typeOptions.some(text => /[가-힣]/.test(text)), `maintenance type options did not fully follow the selected language: ${JSON.stringify(maintenanceFormState)}`);
   assert(
     maintenanceFormState.roomLabel === 'Room *'
       && maintenanceFormState.typeLabel === 'Type *'
