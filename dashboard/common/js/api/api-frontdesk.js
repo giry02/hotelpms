@@ -56,6 +56,11 @@ Object.assign(window.PmsAPI, {
     },
 
     getTimelineReservations: async () => {
+        // Timeline must reflect the same mutable reservation collection used by
+        // the board and list. The dedicated JSON is only a seed fallback; using
+        // it first can resurrect stale demo stays after create/update/delete.
+        const currentReservations = await window.PmsAPI.getReservations();
+        if (currentReservations.length) return currentReservations;
         try {
             if (window.PmsMockApi) {
                 const env = await window.PmsMockApi.request('GET', '/reservations/timeline');
@@ -65,7 +70,7 @@ Object.assign(window.PmsAPI, {
         } catch(e) {
             console.warn('Mock timeline reservations fallback', e);
         }
-        return window.PmsAPI.getReservations();
+        return currentReservations;
     },
 
     getReservations: async () => {
