@@ -175,7 +175,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForFunction(() => typeof renderReservationBoard === 'function' && document.querySelector('#reservationBoardContainer'), null, { timeout: 15000 });
 
-  const boardState = await page.evaluate(() => {
+  const boardState = await page.evaluate(async () => {
     const toIso = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const toMd = date => `${date.getMonth() + 1}/${date.getDate()}`;
     const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
@@ -263,6 +263,31 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
     const selectedOption = cleanSelect?.selectedOptions?.[0];
     const dirtyCard = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => el.innerText.includes('Board Dirty Arrival'));
     const dirtySelect = dirtyCard?.querySelector('.board-clean-select');
+    const dirtySnapshot = {
+      text: dirtyCard?.innerText || '',
+      value: dirtySelect?.value || '',
+      className: dirtySelect?.className || '',
+      tone: dirtySelect?.dataset?.cleanTone || '',
+      background: dirtySelect ? getComputedStyle(dirtySelect).backgroundColor : ''
+    };
+    const originalAudit = window.PmsPrivacyAudit;
+    const originalPmsApi = window.PmsAPI;
+    const originalMockApi = window.PmsMockApi;
+    localStorage.removeItem('pms_privacy_audit_logs');
+    window.PmsPrivacyAudit = undefined;
+    window.PmsAPI = {
+      saveRooms: async () => {},
+      setGuestFlag: async () => {},
+      syncRoomStatusToTask: async () => {}
+    };
+    window.PmsMockApi = null;
+    dirtySelect.value = 'cleaning';
+    await window.setBoardStayState({ preventDefault() {}, stopPropagation() {} }, dirtySelect);
+    const fallbackLogs = JSON.parse(localStorage.getItem('pms_privacy_audit_logs') || '[]')
+      .filter(entry => entry.action === 'room.cleaning.status' && entry.details?.room === 'T-905');
+    window.PmsPrivacyAudit = originalAudit;
+    window.PmsAPI = originalPmsApi;
+    window.PmsMockApi = originalMockApi;
     return {
       cardText: card?.innerText || '',
       cleanValue: cleanSelect?.value || '',
@@ -270,11 +295,13 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       cleanClass: cleanSelect?.className || '',
       readinessText: card?.querySelector('.board-readiness')?.innerText.trim() || '',
       statusText: card?.querySelector('.board-status')?.innerText.trim() || '',
-      dirtyText: dirtyCard?.innerText || '',
-      dirtyValue: dirtySelect?.value || '',
-      dirtyClass: dirtySelect?.className || '',
-      dirtyTone: dirtySelect?.dataset?.cleanTone || '',
-      dirtyBackground: dirtySelect ? getComputedStyle(dirtySelect).backgroundColor : ''
+      dirtyText: dirtySnapshot.text,
+      dirtyValue: dirtySnapshot.value,
+      dirtyClass: dirtySnapshot.className,
+      dirtyTone: dirtySnapshot.tone,
+      dirtyBackground: dirtySnapshot.background,
+      fallbackAuditCount: fallbackLogs.length,
+      fallbackAuditStatus: fallbackLogs[0]?.details?.status || ''
     };
   });
 
@@ -284,6 +311,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
   assert(boardState.cleanValue === 'clean' && boardState.cleanLabel === '청소완료' && boardState.cleanClass.includes('clean'), 'Reservation board must show cleaning status even when check-in readiness is visible.', boardState);
 
   assert(boardState.dirtyText.includes('Board Dirty Arrival') && boardState.dirtyValue === 'mur' && boardState.dirtyClass.includes('mur') && boardState.dirtyTone === 'mur' && boardState.dirtyBackground !== 'rgb(255, 255, 255)', 'Reservation board must render a dirty arrival cleaning select with the orange MUR tone.', boardState);
+  assert(boardState.fallbackAuditCount === 1 && boardState.fallbackAuditStatus === 'cleaning', 'Reservation board cleaning changes must write one audit row when the shared audit module is unavailable.', boardState);
 
   return boardState;
 }

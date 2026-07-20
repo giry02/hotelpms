@@ -1574,6 +1574,43 @@ async function persistBoardStayState(room, res) {
     }
 }
 
+function logBoardCleaningAudit(details) {
+    if (typeof window.PmsPrivacyAudit?.log === 'function') {
+        return window.PmsPrivacyAudit.log('room.cleaning.status', details);
+    }
+
+    try {
+        const storageKey = 'pms_privacy_audit_logs';
+        const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const logs = Array.isArray(parsed) ? parsed : [];
+        const role = localStorage.getItem('currentUserRole') || window.currentUserRole || 'sys_admin';
+        const actorName = localStorage.getItem('currentUserName')
+            || document.querySelector('.sidebar-user-name, .user-name')?.textContent?.trim()
+            || 'System';
+        const createdAt = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+        const entry = {
+            id: `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            action: 'room.cleaning.status',
+            createdAt,
+            actor: {
+                id: localStorage.getItem('mock_user_id') || role,
+                name: actorName,
+                role,
+                roleLabel: role
+            },
+            page: window.location.pathname,
+            details: details || {}
+        };
+        logs.push(entry);
+        localStorage.setItem(storageKey, JSON.stringify(logs.slice(-500)));
+        window.dispatchEvent(new CustomEvent('pms:privacy-audit', { detail: entry }));
+        return entry;
+    } catch (error) {
+        console.warn('Board cleaning audit save failed', error);
+        return null;
+    }
+}
+
 window.setBoardStayState = async function(event, button) {
     event?.preventDefault();
     event?.stopPropagation();
@@ -1614,8 +1651,8 @@ window.setBoardStayState = async function(event, button) {
             res.guestFlag = state;
         }
         await persistBoardStayState(room, res);
-        window.PmsPrivacyAudit?.log?.('room.cleaning.status', {
-            screen: 'reservation-board', reservationId: res.id, guestName: reservationGuestName(res),
+        logBoardCleaningAudit({
+            screen: 'reservation-board', reservationId: res.id, guestName: primaryGuest(res),
             room: room.id || room.roomNo || roomKey, status: state,
             fields: ['room', 'cleaningStatus']
         });
@@ -1680,7 +1717,7 @@ window.setBoardCleanState = async function(event, button) {
             }
         }
         await persistBoardStayState(room, null);
-        window.PmsPrivacyAudit?.log?.('room.cleaning.status', {
+        logBoardCleaningAudit({
             screen: 'reservation-board', room: room.id || room.roomNo || roomKey, status: state,
             fields: ['room', 'cleaningStatus']
         });
