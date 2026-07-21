@@ -372,10 +372,10 @@ async function todayCheckinRoomMasterRegression(page, base) {
 
   assert(result.beforeRoom && !result.beforeRoomBlocked, 'Room 1210 today check-in must not be assigned to a blocked room master status.', result);
   assert(result.staleRoom && result.staleRoomBlocked, 'Regression must simulate a stale blocked room master status.', result);
-  assert(result.captured.alerts.length === 0, 'Room 1210 today check-in must not show a blocking alert.', result);
-  assert(result.captured.confirms.length > 0, 'Room 1210 today check-in must ask for confirmation before changing status.', result);
-  assert(['checkedin', 'checked-in', 'inhouse', 'in-house'].includes(String(result.afterReservation?.status || '').toLowerCase()), 'Room 1210 today check-in must complete to an in-house state.', result);
-  assert(result.audit?.details?.room === '1210', 'Successful check-in must record the reservation and room in the audit log.', result);
+  assert(result.captured.alerts.length > 0, 'An out-of-service room must show a blocking alert.', result);
+  assert(result.captured.confirms.length === 0, 'An out-of-service room must stop before check-in confirmation.', result);
+  assert(['confirmed', 'pending'].includes(String(result.afterReservation?.status || '').toLowerCase()), 'Blocked check-in must preserve the reservation status.', result);
+  assert(!result.audit, 'Blocked check-in must not write a successful check-in audit row.', result);
 
   return result;
 }
@@ -1147,7 +1147,7 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
         'occupied rooms render checkout action instead of check-in',
         'reservation board keeps cleaning status visible beside check-in readiness',
         'reservation board dynamic rerender stays fully English',
-        'today check-in rooms are not blocked by stale room master status',
+        'today check-in is blocked when the room master is out of service',
         'reservation board keeps card status colors stable across filters and hover',
         'maintenance room cards explain the booking block without opening the form',
         'overlapping bookings show conflict details and do not save',

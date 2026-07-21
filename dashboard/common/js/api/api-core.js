@@ -421,9 +421,9 @@ window.PmsMockApi = window.PmsMockApi || (function() {
     }
 
     function roomStatus(status, housekeepingStatus = '') {
-        const value = String(status || '').toLowerCase();
-        if (['in-house', 'checked-in', 'occupied'].includes(value)) return 'occupied';
-        if (value === 'out-of-service') return 'oos';
+        const value = String(status || '').replace(/[-_\s]/g, '').toLowerCase();
+        if (['inhouse', 'checkedin', 'occupied'].includes(value)) return 'occupied';
+        if (['oos', 'outofservice', 'outoforder', 'maintenance'].includes(value)) return 'oos';
         if (value === 'vacant') {
             const housekeeping = String(housekeepingStatus || '').toLowerCase();
             if (['dirty', 'vacant-dirty', 'pending-clean', 'needs-cleaning', 'inspect'].includes(housekeeping)) return 'vacant-dirty';

@@ -803,7 +803,7 @@ function openStatusModal(roomId, currentStatus) {
     document.getElementById('statusChangeModal').classList.add('active');
 }
 
-function saveStatusChange() {
+async function saveStatusChange() {
     const roomId = document.getElementById('scRoomId').textContent;
     const oldStatus = document.getElementById('scOriginalStatus').value;
     const selected = document.querySelector('input[name="newRoomStatus"]:checked');
@@ -814,14 +814,29 @@ function saveStatusChange() {
         // Update local memory
         const rIdx = allRooms.findIndex(r => r.id === roomId);
         if (rIdx > -1) {
-            allRooms[rIdx].status = newStatus;
+            const room = allRooms[rIdx];
+            room.status = newStatus;
+
+            // Keep the canonical API fields in sync with the legacy UI status.
+            // getAllRooms() rebuilds status from frontStatus first, so updating
+            // only status causes an OOS room to become vacant after navigation.
+            if (newStatus === 'oos') {
+                room.frontStatus = 'out-of-service';
+                room.maintenanceStatus = 'out-of-service';
+            } else {
+                room.frontStatus = newStatus === 'occupied' ? 'occupied' : 'vacant';
+                room.maintenanceStatus = '';
+                if (newStatus === 'vacant-clean') room.housekeepingStatus = 'clean';
+                if (newStatus === 'vacant-dirty') room.housekeepingStatus = 'dirty';
+                if (newStatus === 'cleaning') room.housekeepingStatus = 'cleaning';
+            }
             
             // Save to storage
-            if (window.PmsAPI && window.PmsAPI.saveRooms) window.PmsAPI.saveRooms(allRooms);
+            if (window.PmsAPI && window.PmsAPI.saveRooms) await window.PmsAPI.saveRooms(allRooms);
             
             // Sync with housekeeping
             if (window.PmsAPI && window.PmsAPI.syncRoomStatusToTask) {
-                window.PmsAPI.syncRoomStatusToTask(roomId, newStatus);
+                await window.PmsAPI.syncRoomStatusToTask(roomId, newStatus);
             }
             
             renderRooms();

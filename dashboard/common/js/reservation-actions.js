@@ -2874,7 +2874,7 @@
     }
 
     function roomOpsStatuses(room) {
-        return [room?.frontStatus, room?.status, room?.occupancyStatus, room?.roomStatus]
+        return [room?.frontStatus, room?.status, room?.occupancyStatus, room?.roomStatus, room?.maintenanceStatus]
             .map(normalizedRoomOpsValue)
             .filter(Boolean);
     }
@@ -2906,7 +2906,7 @@
         if (!room) return actionText('flow.noRoom');
         const statuses = roomOpsStatuses(room);
         const maintenanceBlocked = statuses.some(status => ['oos', 'outofservice', 'outoforder', 'maintenance'].includes(status));
-        if (maintenanceBlocked && !reservationHasCheckinReadyState(res)) return actionText('flow.maintenanceRoom');
+        if (maintenanceBlocked) return actionText('flow.maintenanceRoom');
         if (statuses.some(status => ['occupied', 'inhouse', 'checkedin'].includes(status))) return actionText('flow.occupiedRoom');
         return '';
     }

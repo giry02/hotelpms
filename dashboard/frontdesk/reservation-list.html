@@ -1920,7 +1920,7 @@ function normalizedRoomOpsValue(value) {
 }
 
 function roomOpsStatuses(room) {
-    return [room?.frontStatus, room?.status, room?.housekeepingStatus]
+    return [room?.frontStatus, room?.status, room?.occupancyStatus, room?.roomStatus, room?.maintenanceStatus, room?.housekeepingStatus]
         .map(normalizedRoomOpsValue)
         .filter(Boolean);
 }
@@ -1947,7 +1947,7 @@ function checkinBlockReasonForReservation(res, room) {
     if (!room) return resText('block.noRoom');
     const statuses = roomOpsStatuses(room);
     const maintenanceBlocked = statuses.some(status => ['oos', 'outofservice', 'outoforder', 'maintenance'].includes(status));
-    if (maintenanceBlocked && !reservationHasCheckinReadyState(res)) return resText('block.maintenanceRoom');
+    if (maintenanceBlocked) return resText('block.maintenanceRoom');
     if (statuses.some(status => ['occupied', 'inhouse', 'checkedin'].includes(status))) return resText('block.occupiedRoom');
     return '';
 }
