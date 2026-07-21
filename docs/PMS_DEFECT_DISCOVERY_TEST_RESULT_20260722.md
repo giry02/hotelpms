@@ -188,7 +188,7 @@
 
 보조 스모크의 페이지 로드와 클릭 수는 업무 케이스 PASS 판정에 단독으로 사용하지 않았다.
 
-운영 배포 후 `PMS_BASE_URL=https://hotelpms-eight.vercel.app`로 예약 회귀를 다시 실행했다. 실행 당일 `2026-07-22` 기준으로 기존 24개 회귀 항목과 조기·당일·연장·단체 일부·placeholder·완료 취소·당일 재판매·레이트 완료 8개 하위 상태 전이가 모두 PASS했다. 아래 신규 상태 전이 케이스는 추가 수정 배포 후 운영 서버에서 별도로 재실행한다.
+운영 배포 후 `PMS_BASE_URL=https://hotelpms-eight.vercel.app`로 예약 회귀를 다시 실행했다. 실행 당일 `2026-07-22` 기준으로 예약 회귀 26개와 조기·당일·연장·단체 일부·placeholder·완료 취소·당일 재판매·레이트 완료 상태 전이가 모두 PASS했다. 아래 신규 상태 전이 9개도 수정 커밋 `fe18c47` 배포 후 같은 운영 서버에서 재실행해 모두 PASS했다.
 
 ## 11. 증거 파일
 
@@ -235,5 +235,7 @@
 - 수정 파일: `dashboard/common/js/reservation-actions.js`
 - 영구 회귀: `scripts/mock-api/reservation-regression.cjs`의 `reservationActionStateMatrixRegression`, `reservationFlowPersistenceReloadRegression`
 - 로컬 재시험: 예약 회귀 26/26 PASS, 단체 회귀 17/17 PASS, 업무 E2E 12/12 PASS, 60페이지 상호작용 169회 실행 오류 0건
+- 수정 커밋: `fe18c47`
+- 운영 재시험: `PMS_BASE_URL=https://hotelpms-eight.vercel.app npm.cmd run test:reservations` 실행, 예약 회귀 26/26 PASS 및 상태 전이 9/9 PASS
 
 `smoke:interactions`의 단순 클릭 결과는 업무 PASS 판정에 사용하지 않았다. `admin/ads/targeting.html`, `admin/system/profile.html`, `admin/tenants/register.html`의 저장·등록 버튼 3건은 화면 변화가 없는 후보로 탐지됐으며, 이번 예약 결함과 별개인 전용 업무 케이스에서 실제 저장 결과를 판정해야 한다.
