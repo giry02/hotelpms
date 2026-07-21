@@ -1,5 +1,6 @@
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const path = require('path');
 const { chromium } = require('playwright');
 
@@ -23,7 +24,8 @@ function contentType(file) {
 
 function httpOk(url) {
   return new Promise(resolve => {
-    const req = http.get(url, response => {
+    const client = new URL(url).protocol === 'https:' ? https : http;
+    const req = client.get(url, response => {
       response.resume();
       resolve(response.statusCode < 400);
     });

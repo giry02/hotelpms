@@ -1300,6 +1300,12 @@ function openBlockModal(compId) {
         return merged;
     }
 
+    function hasPerformanceSummary(group) {
+        if (!group || typeof group !== 'object') return false;
+        const owns = key => Object.prototype.hasOwnProperty.call(group, key);
+        return owns('settlementItems') || owns('roomAllocations') || owns('allocations');
+    }
+
     function isGroupInPeriod(group, range) {
         const date = parseDate(group.checkInDate || group.checkin || group.cin || group.createdAt);
         if (!date) return true;
@@ -1389,7 +1395,9 @@ function openBlockModal(compId) {
         const sourceGroups = companyId
             ? companyGroups(companies.find(company => company.id === companyId))
             : allGroupEvents();
-        const detailed = await Promise.all(sourceGroups.map(fetchGroupDetail));
+        const detailed = await Promise.all(sourceGroups.map(group => (
+            hasPerformanceSummary(group) ? group : fetchGroupDetail(group)
+        )));
         return detailed
             .filter(group => !companyId || companyGroups(companies.find(company => company.id === companyId)).some(source => source.id === group.id))
             .filter(group => isGroupInPeriod(group, range))
