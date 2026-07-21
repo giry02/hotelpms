@@ -370,6 +370,7 @@ async function todayCheckinRoomMasterRegression(page, base) {
     };
   });
 
+  assert(result.beforeRoom?.status === 'vacant-clean', 'Room adapter must preserve the canonical vacant-clean status.', result);
   assert(result.beforeRoom && !result.beforeRoomBlocked, 'Room 1210 today check-in must not be assigned to a blocked room master status.', result);
   assert(result.staleRoom && result.staleRoomBlocked, 'Regression must simulate a stale blocked room master status.', result);
   assert(result.captured.alerts.length > 0, 'An out-of-service room must show a blocking alert.', result);

@@ -424,12 +424,14 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         const value = String(status || '').replace(/[-_\s]/g, '').toLowerCase();
         if (['inhouse', 'checkedin', 'occupied'].includes(value)) return 'occupied';
         if (['oos', 'outofservice', 'outoforder', 'maintenance'].includes(value)) return 'oos';
+        if (['vacantclean', 'clean', 'ready'].includes(value)) return 'vacant-clean';
+        if (['vacantdirty', 'dirty', 'pendingclean', 'needscleaning', 'inspect'].includes(value)) return 'vacant-dirty';
         if (value === 'vacant') {
-            const housekeeping = String(housekeepingStatus || '').toLowerCase();
-            if (['dirty', 'vacant-dirty', 'pending-clean', 'needs-cleaning', 'inspect'].includes(housekeeping)) return 'vacant-dirty';
+            const housekeeping = String(housekeepingStatus || '').replace(/[-_\s]/g, '').toLowerCase();
+            if (['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect'].includes(housekeeping)) return 'vacant-dirty';
             return 'vacant-clean';
         }
-        return value || 'vacant-clean';
+        return 'vacant-clean';
     }
 
     function toLegacyRoom(item) {
