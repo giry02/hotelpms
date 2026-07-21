@@ -796,22 +796,22 @@
 
 | 회귀 ID | 사용자 노티/위험 | 실행 입력 및 절차 | 예상 결과 | 자동화/연계 케이스 | 현재 결과 |
 |---|---|---|---|---|---|
-| REG-DATE-001 | 화면과 신규 입력의 날짜가 과거 `2026-07-10`으로 고정됨 | 시스템 날짜를 기준으로 예약 현황, 타임라인, 신규 예약, 상단 시계를 차례로 연다 | 모든 기본 날짜와 조회 범위가 실행 당일이며 과거 고정값이 없다 | `reservation-regression.cjs` date boundary, `smoke-inputs.cjs` | PASS-LOCAL |
-| REG-DATE-002 | 월말 다음 날 계산 오류 | 기준일을 `2026-07-31`로 주입하고 예약 현황과 타임라인을 연다 | 다음 날은 `2026-08-01`, 타임라인 범위와 신규 예약 기본 종료일이 동일하다 | `reservation-regression.cjs` `dateBoundaryRegression` | PASS-LOCAL |
-| REG-DATE-003 | 연말 다음 날 계산 오류 | 기준일을 `2026-12-31`로 주입한다 | 다음 날은 `2027-01-01`이며 기간 검색에서 연도가 누락되지 않는다 | `reservation-regression.cjs` `dateBoundaryRegression` | PASS-LOCAL |
-| REG-DATE-004 | 윤년 경계 계산 오류 | 기준일을 `2028-02-29`로 주입한다 | 다음 날은 `2028-03-01`, 화면·검색 요청의 날짜가 일치한다 | `reservation-regression.cjs` `dateBoundaryRegression` | PASS-LOCAL |
-| REG-RES-001 | 예약 현황에서 1203호를 눌렀는데 모달은 다른 객실을 선택함 | 예약 현황의 임의 객실 카드를 눌러 신규 예약을 열고 날짜를 변경한다 | 최초 선택 객실이 유지되고 저장 대상도 동일 객실이다 | `reservation-regression.cjs` board room preservation, P1-RES-NEW-001/002 | PASS-LOCAL |
-| REG-RES-002 | 일반 `신규 예약`에서도 객실을 강제 유지해 충돌 가능 | 객실 카드가 아닌 상단 신규 예약을 열고 날짜를 변경한다 | 선택 기간에 예약 가능한 객실 목록과 기본 객실을 다시 계산한다 | `reservation-regression.cjs` standard new booking recalculation | PASS-LOCAL |
-| REG-RES-003 | 청소 필요 객실 예약 시 경고 없이 저장됨 | 청소 필요 객실을 카드에서 선택하고 저장을 누른 뒤 경고의 취소·계속을 각각 실행한다 | 취소는 0건, 계속은 정확히 1건 저장되며 선택 객실이 유지된다 | P1-RES-NEW-002, `e2e-business-flows.cjs` | PASS-LOCAL |
-| REG-RES-004 | 체크인·체크아웃 성공 후 팝업이 남고 배경만 변경됨 | 정상 예약을 체크인하고 다시 열어 체크아웃한다 | 각 성공 직후 팝업이 닫히며 재진입 시 다음 상태의 버튼만 표시된다 | `e2e-business-flows.cjs`, `reservation-regression.cjs` | PASS-LOCAL |
+| REG-DATE-001 | 화면과 신규 입력의 날짜가 과거 `2026-07-10`으로 고정됨 | 시스템 날짜를 기준으로 예약 현황, 타임라인, 신규 예약, 상단 시계를 차례로 연다 | 모든 기본 날짜와 조회 범위가 실행 당일이며 과거 고정값이 없다 | 운영 URL `reservation-regression.cjs` date boundary, `smoke-inputs.cjs` | PASS-DEPLOYED |
+| REG-DATE-002 | 월말 다음 날 계산 오류 | 기준일을 `2026-07-31`로 주입하고 예약 현황과 타임라인을 연다 | 다음 날은 `2026-08-01`, 타임라인 범위와 신규 예약 기본 종료일이 동일하다 | 운영 URL `reservation-regression.cjs` `dateBoundaryRegression` | PASS-DEPLOYED |
+| REG-DATE-003 | 연말 다음 날 계산 오류 | 기준일을 `2026-12-31`로 주입한다 | 다음 날은 `2027-01-01`이며 기간 검색에서 연도가 누락되지 않는다 | 운영 URL `reservation-regression.cjs` `dateBoundaryRegression` | PASS-DEPLOYED |
+| REG-DATE-004 | 윤년 경계 계산 오류 | 기준일을 `2028-02-29`로 주입한다 | 다음 날은 `2028-03-01`, 화면·검색 요청의 날짜가 일치한다 | 운영 URL `reservation-regression.cjs` `dateBoundaryRegression` | PASS-DEPLOYED |
+| REG-RES-001 | 예약 현황에서 1203호를 눌렀는데 모달은 다른 객실을 선택함 | 예약 현황의 임의 객실 카드를 눌러 신규 예약을 열고 날짜를 변경한다 | 최초 선택 객실이 유지되고 저장 대상도 동일 객실이다 | 운영 URL `reservation-regression.cjs` board room preservation, P1-RES-NEW-001/002 | PASS-DEPLOYED |
+| REG-RES-002 | 일반 `신규 예약`에서도 객실을 강제 유지해 충돌 가능 | 객실 카드가 아닌 상단 신규 예약을 열고 날짜를 변경한다 | 선택 기간에 예약 가능한 객실 목록과 기본 객실을 다시 계산한다 | 운영 URL `reservation-regression.cjs` standard new booking recalculation | PASS-DEPLOYED |
+| REG-RES-003 | 청소 필요 객실 예약 시 경고 없이 저장됨 | 청소 필요 객실을 카드에서 선택하고 저장을 누른 뒤 경고의 취소·계속을 각각 실행한다 | 취소는 0건, 계속은 정확히 1건 저장되며 선택 객실이 유지된다 | 운영 URL P1-RES-NEW-002, `e2e-business-flows.cjs` | PASS-DEPLOYED |
+| REG-RES-004 | 체크인·체크아웃 성공 후 팝업이 남고 배경만 변경됨 | 정상 예약을 체크인하고 다시 열어 체크아웃한다 | 각 성공 직후 팝업이 닫히며 재진입 시 다음 상태의 버튼만 표시된다 | 운영 URL `e2e-business-flows.cjs`, `reservation-regression.cjs` | PASS-DEPLOYED |
 | REG-RES-005 | 정산 완료/미완료 전환 후 예약 현황의 정산 배지가 이전 상태를 표시함 | 체크아웃 예정 예약에 정산 완료 기록을 저장하고 같은 화면에서 미완료 기록을 더 최신 시각으로 저장한다 | 완료 직후 `정산 완료`, 재전환 직후 `정산 필요`가 새로고침 없이 표시되고 최신 기록이 우선한다 | 운영 URL `reservation-regression.cjs` settlement completion/reopen invariant | PASS-DEPLOYED |
 | REG-RES-006 | 전체와 단체 필터에서 같은 예약의 카드 색상·상태가 달라짐 | 당일 투숙 중 단체 예약을 전체와 단체 필터에서 각각 조회한다 | 카드 클래스·상태명·테두리·그림자가 완전히 같고, 단체 여부는 보조 정보로만 표시된다 | 운영 URL `reservation-regression.cjs` group filter invariant | PASS-DEPLOYED |
 | REG-RES-007 | 점검 객실에 요청하지 않은 청소 중 상태가 노출됨 | 점검 중이면서 예약 없는 객실의 상태 풀다운을 연다 | 청소 필요·청소 완료·방해금지·점검 중 4개만 순서대로 표시된다 | 운영 URL `reservation-regression.cjs` cleaning visibility regression | PASS-DEPLOYED |
 | REG-I18N-001 | 영문 예약 현황 검색·신규 예약 시간 입력에 한글과 OS 로컬 시간이 노출됨 | 언어를 영어로 설정하고 예약 현황 검색창과 신규 예약 모달의 체크인·체크아웃·레이트 시간을 확인한다 | 검색 안내는 영문이며 시간 필드는 `HH:MM` 24시간 텍스트 값으로 표시된다 | 운영 URL `reservation-regression.cjs` dynamic English regression | PASS-DEPLOYED |
 | REG-GROUP-STATS-001 | 단체 거래 통계가 기간 변경만으로 조회되고 최근 1년 날짜 범위가 비어 있음 | 특정 단체 통계를 열어 최근 1년 선택, 날짜 입력 변경, 조회 버튼 클릭을 순서대로 실행한다 | 기간·날짜 변경만으로 조회하지 않고 조회 버튼에서 1회 실행되며, 시작일·종료일과 적용 범위가 명시된다 | 운영 URL `group-event-regression.cjs` performance query regression | PASS-DEPLOYED |
-| REG-QUERY-001 | 데이터 증가 시 예약 현황이 전체 이력을 모두 로드함 | 선택 영업일의 전후 범위를 벗어난 예약을 함께 준비하고 현황을 조회한다 | 선택 일자와 겹치는 운영 예약만 반환되고 외부 범위 예약은 렌더링되지 않는다 | `reservation-regression.cjs` reservation window query | PASS-LOCAL |
-| REG-QUERY-002 | 타임라인이 전체 이력을 무제한 로드함 | 최초 진입, 다음 주 이동, 오늘 복귀를 순서대로 실행한다 | 각 요청은 화면의 14일 범위만 조회하고 이동·복귀 때 조회 범위가 정확히 갱신된다 | `reservation-regression.cjs` timeline window query | PASS-LOCAL |
-| REG-GROUP-DATE-001 | 월/일 형식 단체 일정이 연말에 잘못된 연도로 합쳐짐 | `12/31~1/1` 단체 행사와 명시적 ISO 일정 데이터를 동기화한다 | 종료일은 다음 연도이며 명시적 ISO 연도는 현재 연도로 덮어쓰지 않는다 | `group-event-regression.cjs`, `api-frontdesk.js` | PASS-LOCAL |
+| REG-QUERY-001 | 데이터 증가 시 예약 현황이 전체 이력을 모두 로드함 | 선택 영업일의 전후 범위를 벗어난 예약을 함께 준비하고 현황을 조회한다 | 선택 일자와 겹치는 운영 예약만 반환되고 외부 범위 예약은 렌더링되지 않는다 | 운영 URL `reservation-regression.cjs` reservation window query | PASS-DEPLOYED |
+| REG-QUERY-002 | 타임라인이 전체 이력을 무제한 로드함 | 최초 진입, 다음 주 이동, 오늘 복귀를 순서대로 실행한다 | 각 요청은 화면의 14일 범위만 조회하고 이동·복귀 때 조회 범위가 정확히 갱신된다 | 운영 URL `reservation-regression.cjs` timeline window query | PASS-DEPLOYED |
+| REG-GROUP-DATE-001 | 월/일 형식 단체 일정이 연말에 잘못된 연도로 합쳐짐 | `12/31~1/1` 단체 행사와 명시적 ISO 일정 데이터를 동기화한다 | 종료일은 다음 연도이며 명시적 ISO 연도는 현재 연도로 덮어쓰지 않는다 | 운영 URL `group-event-regression.cjs`, `api-frontdesk.js` | PASS-DEPLOYED |
 
 ### 12.1 회귀 케이스 운영 규칙
 

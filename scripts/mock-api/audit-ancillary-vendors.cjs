@@ -7,6 +7,10 @@ const { chromium } = require('playwright');
 const ROOT = path.resolve(__dirname, '..', '..');
 const DEFAULT_BASE = process.env.PMS_BASE_URL || 'http://127.0.0.1:8765';
 const PORT = Number(new URL(DEFAULT_BASE).port || 8765);
+const BASE_HOST = new URL(DEFAULT_BASE).hostname;
+const IS_LOCAL_BASE = BASE_HOST === '127.0.0.1' || BASE_HOST === 'localhost';
+const NAV_TIMEOUT = Number(process.env.PMS_NAV_TIMEOUT || 15000);
+const NAV_ATTEMPTS = Number(process.env.PMS_NAV_ATTEMPTS || 2);
 const INITIAL_GOLF_FIELDS = ['guest', 'room', 'date', 'item', 'people', 'teeTime', 'course'];
 const CUSTOM_GOLF_FIELDS = ['guest', 'room', 'date', 'item', 'amount', 'partnerContact'];
 
@@ -80,11 +84,11 @@ function sameFields(left, right) {
   return JSON.stringify(left || []) === JSON.stringify(right || []);
 }
 
-async function gotoWithRetry(page, url, attempts = 3) {
+async function gotoWithRetry(page, url, attempts = NAV_ATTEMPTS) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      return await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      return await page.goto(url, { waitUntil: 'domcontentloaded', timeout: NAV_TIMEOUT });
     } catch (error) {
       lastError = error;
       if (attempt < attempts) await page.waitForTimeout(1000 * attempt);
@@ -95,15 +99,17 @@ async function gotoWithRetry(page, url, attempts = 3) {
 
 async function resetStorage(page) {
   await page.evaluate(() => {
+    const apiVersion = localStorage.getItem('pms_api_version');
     localStorage.clear();
-    localStorage.setItem('pms_api_version', 'v2.19');
+    if (apiVersion) localStorage.setItem('pms_api_version', apiVersion);
   });
 }
 
 async function seedCustomGolfStorage(page) {
   await page.evaluate(customFields => {
+    const apiVersion = localStorage.getItem('pms_api_version');
     localStorage.clear();
-    localStorage.setItem('pms_api_version', 'v2.19');
+    if (apiVersion) localStorage.setItem('pms_api_version', apiVersion);
     localStorage.setItem('pms_ancillary_vendors', JSON.stringify([
       {
         id: 'GOLF-SUNVALLEY',
@@ -133,10 +139,13 @@ async function seedCustomGolfStorage(page) {
 
 async function auditVendorManagementPage(page, baseUrl) {
   const url = `${baseUrl}/dashboard/operations/ancillary-vendors.html?type=golf`;
+  console.error('[ancillary-audit] vendor page: initial navigation');
   await gotoWithRetry(page, url);
   await resetStorage(page);
+  console.error('[ancillary-audit] vendor page: navigation after reset');
   await gotoWithRetry(page, url);
   await page.waitForSelector('.voucher-field input', { timeout: 10000 });
+  console.error('[ancillary-audit] vendor page: fields ready');
 
   const initialState = await page.evaluate(() => {
     const common = window.PmsPartnerVendors;
@@ -180,6 +189,7 @@ async function auditVendorManagementPage(page, baseUrl) {
   await page.locator('.voucher-field input[value="amount"]').check();
   await page.locator('.voucher-field input[value="people"]').uncheck();
   await page.evaluate(() => window.saveVoucherFields());
+  console.error('[ancillary-audit] vendor page: fields saved');
 
   const editedState = await page.evaluate(() => {
     const stored = JSON.parse(localStorage.getItem('pms_ancillary_vendors') || '[]')
@@ -197,19 +207,31 @@ async function auditVendorManagementPage(page, baseUrl) {
 
 async function auditAncillaryPage(page, baseUrl) {
   const url = `${baseUrl}/dashboard/operations/ancillary.html?service=golf`;
+  console.error('[ancillary-audit] ancillary page: initial navigation');
   await gotoWithRetry(page, url);
   await seedCustomGolfStorage(page);
+  console.error('[ancillary-audit] ancillary page: navigation after seed');
   await gotoWithRetry(page, url);
   await page.waitForSelector('.service-room-card', { timeout: 15000 });
+  console.error('[ancillary-audit] ancillary page: room cards ready');
 
-  const orderId = await page.evaluate(() => {
+  const printableOrder = await page.evaluate(() => {
     const orders = JSON.parse(localStorage.getItem('pms_ancillary_room_orders') || '[]');
-    return orders.find(order => order.service === 'golf' && order.room === '0801')?.id || orders.find(order => order.service === 'golf')?.id || '';
+    const golfOrders = orders.filter(order => order.service === 'golf');
+    const printable = golfOrders.find(order => order.room === '0801' && window.orderHasAssignedGuest?.(order))
+      || golfOrders.find(order => window.orderHasAssignedGuest?.(order));
+    return {
+      id: printable?.id || '',
+      golfOrderCount: golfOrders.length,
+      printableOrderCount: golfOrders.filter(order => window.orderHasAssignedGuest?.(order)).length
+    };
   });
-  assert(orderId, 'no golf order found for voucher audit');
+  assert(printableOrder.id, 'no printable golf order with an assigned guest found for voucher audit', printableOrder);
+  const orderId = printableOrder.id;
 
   await page.evaluate(id => window.openOrderVoucherModal(id), orderId);
   await page.waitForSelector('.voucher-sheet .voucher-row', { timeout: 5000, state: 'attached' });
+  console.error('[ancillary-audit] ancillary page: voucher ready');
 
   const state = await page.evaluate(expectedCount => {
     const stored = JSON.parse(localStorage.getItem('pms_ancillary_vendors') || '[]')
@@ -226,8 +248,9 @@ async function auditAncillaryPage(page, baseUrl) {
 }
 
 (async () => {
-  const server = (await httpOk(DEFAULT_BASE)) ? null : await serveStatic(PORT);
+  const server = IS_LOCAL_BASE && !(await httpOk(DEFAULT_BASE)) ? await serveStatic(PORT) : null;
   const browser = await chromium.launch({ headless: true });
+  console.error('[ancillary-audit] browser ready');
   try {
     const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });
     await context.addInitScript(() => {
@@ -237,8 +260,10 @@ async function auditAncillaryPage(page, baseUrl) {
     });
     const page = await context.newPage();
     const vendorManagement = await auditVendorManagementPage(page, DEFAULT_BASE);
+    console.error('[ancillary-audit] vendor audit complete');
     const page2 = await context.newPage();
     const ancillary = await auditAncillaryPage(page2, DEFAULT_BASE);
+    console.error('[ancillary-audit] ancillary audit complete');
     console.log(JSON.stringify({ ok: true, vendorManagement, ancillary }, null, 2));
   } finally {
     await browser.close();

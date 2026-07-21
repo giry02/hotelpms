@@ -33,6 +33,7 @@ async function runCases(browser, collector) {
       await wait(page, () => Array.isArray(tasks) && allRooms.length > 0);
       const result = await page.evaluate(async () => {
         window.confirm = () => true;
+        window.showConfirm = async () => true;
         const room = allRooms.find(item => item.status !== 'occupied') || allRooms[0];
         const task = createRoomCleanTask(room, 'checkout');
         task.status = 'clean';
@@ -81,7 +82,10 @@ async function runCases(browser, collector) {
         active.status = 'inspect';
         return { pending: pending.id, active: active.id };
       });
-      await page.evaluate(() => { window.confirm = () => true; });
+      await page.evaluate(() => {
+        window.confirm = () => true;
+        window.showConfirm = async () => true;
+      });
       await page.evaluate(id => deleteHousekeepingTask(id), ids.pending);
       await page.evaluate(id => deleteHousekeepingTask(id), ids.active);
       const result = await page.evaluate(async ids => {
@@ -111,7 +115,7 @@ async function runCases(browser, collector) {
     })
   );
 
-  await collector.run('HK-009', 'Housekeeping priority localization and mobile stability', 'Open editor in KO/EN at mobile width and verify stable options and dimensions.', () =>
+  await collector.run('HK-009', 'Housekeeping priority localization and tablet stability', 'Open editor in KO/EN at tablet width and verify stable options and dimensions.', () =>
     withPage(browser, 'dashboard/operations/housekeeping.html', async state => {
       const { page } = state;
       await wait(page, () => allRooms.length > 0);
@@ -124,7 +128,7 @@ async function runCases(browser, collector) {
       const after = await page.locator('#hkTaskPriority').boundingBox();
       assert(ko.join('|') === '일반|긴급' && en.join('|') === 'Normal|Urgent' && before.width === after.width, 'Priority select localization or stable sizing failed.', { ko, en, before, after });
       cleanRuntimeErrors(state); return { ko, en, width: before.width };
-    }, { viewport: { width: 390, height: 844 } })
+    }, { viewport: { width: 820, height: 1180 } })
   );
 
   await collector.run('MAINT-002', 'Maintenance request blocks room sales', 'Register request and verify selected room becomes out of service.', () =>
@@ -176,7 +180,10 @@ async function runCases(browser, collector) {
       const removable = await createMaintenance(page, 'QA removable');
       const guarded = await createMaintenance(page, 'QA guarded');
       await page.evaluate(id => changeStatus(id, 'in-progress'), guarded.id);
-      await page.evaluate(() => { window.confirm = () => true; });
+      await page.evaluate(() => {
+        window.confirm = () => true;
+        window.showConfirm = async () => true;
+      });
       await page.evaluate(id => deleteMaintenanceRequest(id), removable.id);
       await page.evaluate(id => deleteMaintenanceRequest(id), guarded.id);
       const result = await page.evaluate(ids => {
