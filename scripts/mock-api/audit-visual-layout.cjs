@@ -7,12 +7,21 @@ const pagePattern = process.env.PMS_PAGE_MATCH ? new RegExp(process.env.PMS_PAGE
 const resultFile = process.env.PMS_RESULT_FILE || '';
 const screenshotDir = path.join(process.cwd(), 'scripts', 'mock-api', 'visual-audit-output');
 
-const viewports = [
+const allViewports = [
   { name: 'desktop-1440', width: 1440, height: 900, touch: false },
   { name: 'tablet-1024', width: 1024, height: 1366, touch: true },
   { name: 'mobile-412', width: 412, height: 915, touch: true },
   { name: 'mobile-360', width: 360, height: 800, touch: true }
 ];
+const requestedViewports = (process.env.PMS_VISUAL_TARGETS || 'desktop-1440,tablet-1024')
+  .split(',')
+  .map(value => value.trim())
+  .filter(Boolean);
+const viewports = allViewports.filter(viewport => requestedViewports.includes(viewport.name));
+
+if (!viewports.length) {
+  throw new Error(`No valid visual targets: ${requestedViewports.join(', ')}`);
+}
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
