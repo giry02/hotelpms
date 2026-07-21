@@ -217,6 +217,36 @@ const ACTION_META = {
     'night.audit.cash.handover': { label: '시재 인수인계', type: 'other', icon: 'fa-money-bill-transfer' }
 };
 
+const ACTION_LABELS_EN = {
+    'guest.detail.view': 'View Guest Details',
+    'reservation.guest_detail.view': 'View Reservation Guest',
+    'room.stay_info.view': 'View Stay Details',
+    'guest.export.download': 'Download Guest Export',
+    'reservation.export.download': 'Download Reservation Export',
+    'reservation.create': 'Create Reservation',
+    'reservation.update': 'Update Reservation',
+    'reservation.cancel': 'Cancel Reservation',
+    'reservation.checkin': 'Process Check-in',
+    'reservation.checkout': 'Process Check-out',
+    'reservation.guests.adjust': 'Update Guest List',
+    'reservation.amount.adjust': 'Adjust Room Charge',
+    'reservation.prepayment.adjust': 'Adjust Deposit',
+    'reservation.room.move': 'Move Room',
+    'guest.search_results.view': 'View Guest Search Results',
+    'guest.search_selection.view': 'Select Guest Search Result',
+    'guest.blacklist.change': 'Update Blacklist',
+    'room.cleaning.status': 'Update Cleaning Status',
+    'ancillary.order.create': 'Create Ancillary Order',
+    'ancillary.order.reopen': 'Reopen Ancillary Order',
+    'folio.payment.complete': 'Complete Settlement Payment',
+    'folio.settlement.reopen': 'Reopen Settlement',
+    'staff.create': 'Create Staff',
+    'staff.update': 'Update Staff',
+    'staff.delete': 'Delete Staff',
+    'approval.refund.request': 'Request Refund Approval',
+    'night.audit.cash.handover': 'Cash Handover'
+};
+
 const FIELD_LABELS = {
     phone: '휴대폰',
     email: '이메일',
@@ -256,6 +286,30 @@ const FIELD_LABELS = {
     hireDate: '입사일',
     terminationDate: '퇴사일'
 };
+
+const FIELD_LABELS_EN = {
+    phone: 'Phone', email: 'Email', specialNotes: 'Special Notes', stayHistory: 'Stay History',
+    guestProfile: 'Guest Profile', reservationId: 'Reservation #', guestName: 'Guest', room: 'Room',
+    stayDates: 'Stay Dates', operationalNotes: 'Operations Note', amount: 'Amount', prepayment: 'Deposit',
+    companionGuestNames: 'Companions', status: 'Status', channel: 'Channel/Vendor', group: 'Group', dates: 'Stay Dates',
+    totalAmount: 'Total Amount', roomMoveHistory: 'Room Move History', blacklisted: 'Blacklist Status',
+    blacklistReason: 'Blacklist Reason', blacklistReleaseReason: 'Release Reason', blacklistHistory: 'Blacklist History',
+    cleaningStatus: 'Cleaning Status', payment: 'Payment', cashCount: 'Cash', folioId: 'Folio', orderId: 'Order #',
+    service: 'Service', item: 'Item', cancelReason: 'Cancellation Reason', staffId: 'Staff ID', staffName: 'Staff',
+    employeeId: 'Employee ID', role: 'Role', hireDate: 'Hire Date', terminationDate: 'Termination Date'
+};
+
+function auditLanguage() {
+    return (localStorage.getItem('pms_lang') || window.currentLang || document.documentElement.lang || 'ko').toLowerCase().startsWith('en') ? 'en' : 'ko';
+}
+
+function auditText(ko, en) {
+    return auditLanguage() === 'en' ? en : ko;
+}
+
+function auditFieldLabel(field) {
+    return auditLanguage() === 'en' ? (FIELD_LABELS_EN[field] || field) : (FIELD_LABELS[field] || field);
+}
 
 const AUDIT_DEMO_STORAGE_KEY = 'pms_audit_demo_seed_v3';
 const AUDIT_PAGE_SIZE = 12;
@@ -508,7 +562,9 @@ function ensureSettlementReopenAuditLogs() {
 }
 
 function actionMeta(action) {
-    return ACTION_META[action] || { label: action || '기타 동작', type: 'other', icon: 'fa-circle-info' };
+    const meta = ACTION_META[action];
+    if (!meta) return { label: action || auditText('기타 동작', 'Other Action'), type: 'other', icon: 'fa-circle-info' };
+    return { ...meta, label: auditLanguage() === 'en' ? (ACTION_LABELS_EN[action] || action) : meta.label };
 }
 
 const AUDIT_SCREEN_LABEL_BY_FILE = {
@@ -574,6 +630,31 @@ const AUDIT_SCREEN_LABEL_BY_KEY = {
     'audit-logs': '감사 로그'
 };
 
+const AUDIT_SCREEN_LABEL_EN_BY_FILE = {
+    'dashboard.html': 'Dashboard', 'reservation-board.html': 'Reservation Board',
+    'reservation-timeline.html': 'Reservation Timeline', 'reservation-list.html': 'Booking List',
+    'groups_blocks.html': 'Group Events', 'groups_companies.html': 'Group Companies',
+    'room-setup.html': 'Room Types', 'rates.html': 'Rate Calendar', 'rooms.html': 'Room Management',
+    'housekeeping.html': 'Housekeeping', 'maintenance.html': 'Maintenance', 'ancillary.html': 'Ancillary Registration',
+    'ancillary-vendors.html': 'Vendor / Item Management', 'unified-pos.html': 'Integrated POS',
+    'golf.html': 'Golf Course', 'rentacar.html': 'Rent-a-car', 'settlement-status.html': 'Settlement Status',
+    'folio.html': 'Folio List', 'expense-purchases.html': 'Expense Purchases', 'night-audit.html': 'Night Audit',
+    'reports.html': 'Revenue Analytics', 'closing-log.html': 'Closing Log', 'guests.html': 'Guest CRM',
+    'tier-history.html': 'Tier History', 'membership.html': 'Tier Rules', 'settings.html': 'Hotel Settings',
+    'staff.html': 'Staff List', 'roles.html': 'Role & Permissions', 'billing.html': 'Payment Settings',
+    'audit-logs.html': 'Audit Log', 'notices.html': 'Notices', 'support.html': 'Support'
+};
+
+const AUDIT_SCREEN_LABEL_EN_BY_KEY = {
+    dashboard: 'Dashboard', 'reservation-board': 'Reservation Board', 'reservation-timeline': 'Reservation Timeline',
+    'reservation-list': 'Booking List', crm: 'Guest CRM', 'guest-crm': 'Guest CRM', guests: 'Guest CRM',
+    rooms: 'Room Management', 'room-list': 'Room Management', housekeeping: 'Housekeeping', maintenance: 'Maintenance',
+    ancillary: 'Ancillary Registration', 'ancillary-vendors': 'Vendor / Item Management', 'unified-pos': 'Integrated POS',
+    golf: 'Golf Course', rentacar: 'Rent-a-car', folio: 'Folio List', 'settlement-status': 'Settlement Status',
+    'expense-purchases': 'Expense Purchases', 'night-audit': 'Night Audit', reports: 'Revenue Analytics',
+    'closing-log': 'Closing Log', staff: 'Staff List', roles: 'Role & Permissions', 'audit-logs': 'Audit Log'
+};
+
 function screenLabel(screen) {
     const raw = String(screen || '').trim();
     if (!raw) return '-';
@@ -583,18 +664,20 @@ function screenLabel(screen) {
         .replace(/^\/+/, '')
         .split(/[?#]/)[0];
     const file = value.split('/').filter(Boolean).pop();
-    if (file && AUDIT_SCREEN_LABEL_BY_FILE[file]) return AUDIT_SCREEN_LABEL_BY_FILE[file];
+    const fileLabels = auditLanguage() === 'en' ? AUDIT_SCREEN_LABEL_EN_BY_FILE : AUDIT_SCREEN_LABEL_BY_FILE;
+    const keyLabels = auditLanguage() === 'en' ? AUDIT_SCREEN_LABEL_EN_BY_KEY : AUDIT_SCREEN_LABEL_BY_KEY;
+    if (file && fileLabels[file]) return fileLabels[file];
     const key = value.split('/').filter(Boolean).pop() || value;
-    if (AUDIT_SCREEN_LABEL_BY_KEY[key]) return AUDIT_SCREEN_LABEL_BY_KEY[key];
+    if (keyLabels[key]) return keyLabels[key];
     const dashedKey = key.replace(/\.html$/i, '');
-    if (AUDIT_SCREEN_LABEL_BY_KEY[dashedKey]) return AUDIT_SCREEN_LABEL_BY_KEY[dashedKey];
+    if (keyLabels[dashedKey]) return keyLabels[dashedKey];
     return raw || '-';
 }
 
 function formatDateTime(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value || '-';
-    return date.toLocaleString('ko-KR', {
+    return date.toLocaleString(auditLanguage() === 'en' ? 'en-US' : 'ko-KR', {
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
@@ -606,7 +689,7 @@ function formatDateTime(value) {
 function fieldPills(fields) {
     const list = Array.isArray(fields) ? fields : [];
     if (!list.length) return '<span class="field-pill">-</span>';
-    return `<div class="field-list">${list.map(field => `<span class="field-pill">${escapeAudit(FIELD_LABELS[field] || field)}</span>`).join('')}</div>`;
+    return `<div class="field-list">${list.map(field => `<span class="field-pill">${escapeAudit(auditFieldLabel(field))}</span>`).join('')}</div>`;
 }
 
 function formatAuditMoney(amount, currency = 'PHP') {
@@ -626,35 +709,36 @@ function targetText(entry) {
 function detailText(entry) {
     const d = entry.details || {};
     const parts = [];
-    if (d.reservationId) parts.push(`예약 ${d.reservationId}`);
+    const label = (ko, en) => auditText(ko, en);
+    if (d.reservationId) parts.push(`${label('예약', 'Reservation')} ${d.reservationId}`);
     if (d.folioId) parts.push(`Folio ${d.folioId}`);
-    if (d.orderId) parts.push(`주문 ${d.orderId}`);
-    if (d.guestId) parts.push(`고객 ID ${d.guestId}`);
-    if (d.staffId) parts.push(`직원 ID ${d.staffId}`);
-    if (d.employeeId || d.afterEmployeeId || d.beforeEmployeeId) parts.push(`사번 ${d.beforeEmployeeId || d.employeeId || '-'} → ${d.afterEmployeeId || d.employeeId || '-'}`);
-    if (d.beforeRole || d.afterRole) parts.push(`역할 ${d.beforeRole || '-'} → ${d.afterRole || '-'}`);
-    if (d.service) parts.push(`서비스 ${d.service}`);
-    if (d.item) parts.push(`항목 ${d.item}`);
+    if (d.orderId) parts.push(`${label('주문', 'Order')} ${d.orderId}`);
+    if (d.guestId) parts.push(`${label('고객 ID', 'Guest ID')} ${d.guestId}`);
+    if (d.staffId) parts.push(`${label('직원 ID', 'Staff ID')} ${d.staffId}`);
+    if (d.employeeId || d.afterEmployeeId || d.beforeEmployeeId) parts.push(`${label('사번', 'Employee ID')} ${d.beforeEmployeeId || d.employeeId || '-'} → ${d.afterEmployeeId || d.employeeId || '-'}`);
+    if (d.beforeRole || d.afterRole) parts.push(`${label('역할', 'Role')} ${d.beforeRole || '-'} → ${d.afterRole || '-'}`);
+    if (d.service) parts.push(`${label('서비스', 'Service')} ${d.service}`);
+    if (d.item) parts.push(`${label('항목', 'Item')} ${d.item}`);
     if (d.exportType) parts.push(String(d.exportType).toUpperCase());
-    if (d.resultCount !== undefined) parts.push(`결과 ${d.resultCount}건`);
-    if (d.status) parts.push(`상태 ${d.status}`);
-    if (d.beforeStatus || d.afterStatus) parts.push(`상태 ${d.beforeStatus || '-'} → ${d.afterStatus || '-'}`);
-    if (d.cancelReason) parts.push(`취소 사유 ${d.cancelReason}`);
-    if (d.checkin || d.checkout) parts.push(`투숙 ${d.checkin || '-'} ~ ${d.checkout || '-'}`);
-    if (d.beforeAmount !== undefined || d.afterAmount !== undefined) parts.push(`금액 ${formatAuditMoney(d.beforeAmount, d.currency)} → ${formatAuditMoney(d.afterAmount, d.currency)}`);
-    if (d.amount !== undefined) parts.push(`금액 ${formatAuditMoney(d.amount, d.currency)}`);
-    if (d.beforePrepaid !== undefined || d.afterPrepaid !== undefined) parts.push(`예치금 ${formatAuditMoney(d.beforePrepaid, d.currency)} → ${formatAuditMoney(d.afterPrepaid, d.currency)}`);
-    if (d.prepaidAmount !== undefined) parts.push(`예치금 ${formatAuditMoney(d.prepaidAmount, d.currency)}`);
-    if (d.fromRoom || d.toRoom) parts.push(`객실 ${d.fromRoom || '-'} → ${d.toRoom || '-'}`);
-    if (d.room && !d.fromRoom && !d.toRoom) parts.push(`객실 ${d.room}`);
-    if (d.beforeGuest || d.afterGuest) parts.push(`대표 ${d.beforeGuest || '-'} → ${d.afterGuest || '-'}`);
-    if (Array.isArray(d.afterCompanions)) parts.push(`동반 ${d.afterCompanions.length}명`);
+    if (d.resultCount !== undefined) parts.push(`${label('결과', 'Results')} ${d.resultCount}${label('건', '')}`);
+    if (d.status) parts.push(`${label('상태', 'Status')} ${d.status}`);
+    if (d.beforeStatus || d.afterStatus) parts.push(`${label('상태', 'Status')} ${d.beforeStatus || '-'} → ${d.afterStatus || '-'}`);
+    if (d.cancelReason) parts.push(`${label('취소 사유', 'Cancellation Reason')} ${d.cancelReason}`);
+    if (d.checkin || d.checkout) parts.push(`${label('투숙', 'Stay')} ${d.checkin || '-'} ~ ${d.checkout || '-'}`);
+    if (d.beforeAmount !== undefined || d.afterAmount !== undefined) parts.push(`${label('금액', 'Amount')} ${formatAuditMoney(d.beforeAmount, d.currency)} → ${formatAuditMoney(d.afterAmount, d.currency)}`);
+    if (d.amount !== undefined) parts.push(`${label('금액', 'Amount')} ${formatAuditMoney(d.amount, d.currency)}`);
+    if (d.beforePrepaid !== undefined || d.afterPrepaid !== undefined) parts.push(`${label('예치금', 'Deposit')} ${formatAuditMoney(d.beforePrepaid, d.currency)} → ${formatAuditMoney(d.afterPrepaid, d.currency)}`);
+    if (d.prepaidAmount !== undefined) parts.push(`${label('예치금', 'Deposit')} ${formatAuditMoney(d.prepaidAmount, d.currency)}`);
+    if (d.fromRoom || d.toRoom) parts.push(`${label('객실', 'Room')} ${d.fromRoom || '-'} → ${d.toRoom || '-'}`);
+    if (d.room && !d.fromRoom && !d.toRoom) parts.push(`${label('객실', 'Room')} ${d.room}`);
+    if (d.beforeGuest || d.afterGuest) parts.push(`${label('대표', 'Primary')} ${d.beforeGuest || '-'} → ${d.afterGuest || '-'}`);
+    if (Array.isArray(d.afterCompanions)) parts.push(`${label('동반', 'Companions')} ${d.afterCompanions.length}${label('명', '')}`);
     if (Array.isArray(d.changes) && d.changes.length) {
-        d.changes.slice(0, 4).forEach(change => parts.push(`${change.label || FIELD_LABELS[change.field] || change.field}: ${change.before ?? '-'} → ${change.after ?? '-'}`));
-        if (d.changes.length > 4) parts.push(`외 ${d.changes.length - 4}건`);
+        d.changes.slice(0, 4).forEach(change => parts.push(`${auditFieldLabel(change.field) || change.label || change.field}: ${change.before ?? '-'} → ${change.after ?? '-'}`));
+        if (d.changes.length > 4) parts.push(`${label('외', 'Plus')} ${d.changes.length - 4}${label('건', ' more')}`);
     }
-    if (d.balanceDue !== undefined) parts.push(`잔액 ${formatAuditMoney(d.balanceDue, d.currency)}`);
-    if (d.filters && d.filters.queryApplied) parts.push('검색 조건 적용');
+    if (d.balanceDue !== undefined) parts.push(`${label('잔액', 'Balance')} ${formatAuditMoney(d.balanceDue, d.currency)}`);
+    if (d.filters && d.filters.queryApplied) parts.push(label('검색 조건 적용', 'Search filters applied'));
     return parts.join(' · ') || '-';
 }
 
@@ -844,6 +928,7 @@ function renderAuditLogs() {
 }
 
 window.addEventListener('pms:privacy-audit', renderAuditLogs);
+window.addEventListener('languagechange', renderAuditLogs);
 document.addEventListener('DOMContentLoaded', renderAuditLogs);
 document.addEventListener('DOMContentLoaded', () => {
     updateAuditPeriodUi();
