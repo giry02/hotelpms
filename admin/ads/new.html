@@ -144,12 +144,27 @@ function saveCampaign(forceStatus = '') {
   setTimeout(() => { window.location.href = `detail.html?id=${encodeURIComponent(campaign.id)}`; }, 120);
   return true;
 }
+
+function populateCampaignAdvertisers() {
+  const advertiser = document.getElementById('campaignAdvertiser');
+  if (!advertiser) return;
+  const selectedValue = advertiser.value;
+  const placeholder = advertiser.options[0]?.outerHTML || '<option value="">Select an advertiser</option>';
+  const selectableStatuses = new Set(['active', 'approved', 'trial']);
+  const tenants = AdminStore.read('tenants', []);
+  const options = tenants
+    .filter(item => selectableStatuses.has(String(item.status || '').toLowerCase()))
+    .map(item => `<option value="${String(item.id).replaceAll('&', '&amp;').replaceAll('"', '&quot;')}" data-name="${String(item.hotelName || item.name || item.id).replaceAll('&', '&amp;').replaceAll('"', '&quot;')}">${String(item.hotelName || item.name || item.id).replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</option>`)
+    .join('');
+  advertiser.innerHTML = placeholder + options;
+  if (selectedValue && [...advertiser.options].some(option => option.value === selectedValue)) advertiser.value = selectedValue;
+  renderCampaignPreview();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   window.applyLocalI18n(window.currentLang || localStorage.getItem('pms_lang') || 'ko');
-  const tenants = AdminStore.read('tenants', []);
-  const advertiser = document.getElementById('campaignAdvertiser');
-  const selectableStatuses = new Set(['active', 'approved', 'trial']);
-  advertiser.innerHTML += tenants.filter(item => selectableStatuses.has(String(item.status || '').toLowerCase())).map(item => `<option value="${String(item.id).replaceAll('&', '&amp;').replaceAll('"', '&quot;')}" data-name="${String(item.hotelName || item.name || item.id).replaceAll('&', '&amp;').replaceAll('"', '&quot;')}">${String(item.hotelName || item.name || item.id).replaceAll('&', '&amp;').replaceAll('<', '&lt;')}</option>`).join('');
+  populateCampaignAdvertisers();
+  window.onAdminDataReady?.(populateCampaignAdvertisers);
   const previewFields = ['campaignName','campaignAdvertiser','campaignPlacement','campaignStart','campaignEnd','campaignManager'];
   previewFields.forEach(id => {
     const field = document.getElementById(id);
