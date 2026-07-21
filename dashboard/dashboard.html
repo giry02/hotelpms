@@ -736,10 +736,81 @@
     function partnerVendors() {
         return partnerKit()?.load?.() || [];
     }
+    function adminCampaignRows() {
+        try {
+            const rows = JSON.parse(localStorage.getItem('pms_admin_store:adCampaigns') || '[]');
+            return Array.isArray(rows) ? rows : [];
+        } catch (_) {
+            return [];
+        }
+    }
+    function currentDashboardTenantId() {
+        return localStorage.getItem('pms_tenant_id') || 'TENANT-GRAND-SAIGON';
+    }
+    function activeAdminCampaigns() {
+        const today = todayIso();
+        const tenantId = currentDashboardTenantId();
+        return adminCampaignRows().filter(campaign => {
+            const placement = String(campaign?.placement || '').toLowerCase();
+            return String(campaign?.status || '').toLowerCase() === 'active'
+                && ['partner', 'both'].includes(placement)
+                && String(campaign?.advertiserId || '') === tenantId
+                && (!campaign?.startDate || campaign.startDate <= today)
+                && (!campaign?.endDate || campaign.endDate >= today);
+        });
+    }
+    function adminCampaignVendor(campaign) {
+        if (!campaign) return null;
+        return {
+            id: campaign.id,
+            type: campaign.type || 'other',
+            name: campaign.advertiser || campaign.name || campaign.id,
+            campaignTitle: campaign.name || campaign.id,
+            benefit: campaign.name || '',
+            contactPerson: campaign.manager || '-',
+            contactPhone: campaign.phone || '-',
+            contactEmail: campaign.email || '-',
+            address: campaign.address || '-',
+            operatingHours: campaign.hours || '-',
+            usagePeriod: [campaign.startDate, campaign.endDate].filter(Boolean).join(' ~ ') || '-',
+            settlementPolicy: campaign.settlement || '-',
+            detailContentHtml: { ko: campaign.contentHtml || '', en: campaign.contentHtml || '' },
+            items: []
+        };
+    }
     function partnerById(id) {
         const requestedId = String(id || '').trim();
         const aliasId = requestedId === 'POS-RIVERSIDE' ? 'REST-RIVERSIDE' : requestedId;
-        return partnerVendors().find(vendor => vendor.id === aliasId || vendor.id === requestedId);
+        const vendor = partnerVendors().find(row => row.id === aliasId || row.id === requestedId);
+        if (vendor) return vendor;
+        return adminCampaignVendor(activeAdminCampaigns().find(campaign => String(campaign.id) === requestedId));
+    }
+    function renderAdminCampaignEvents() {
+        const typeConfig = {
+            golf: { category: 'golf', cls: 'golf', icon: 'fa-golf-ball-tee' },
+            rentacar: { category: 'rentacar', cls: 'rentacar', icon: 'fa-car' },
+            restaurant: { category: 'restaurant', cls: 'restaurant', icon: 'fa-utensils' }
+        };
+        document.querySelectorAll('[data-admin-campaign]').forEach(node => node.remove());
+        activeAdminCampaigns().forEach(campaign => {
+            const config = typeConfig[campaign.type];
+            if (!config) return;
+            const root = document.querySelector(`.ad-event-group[data-event-category="${config.category}"] .ad-event-group__cards`);
+            if (!root) return;
+            const card = document.createElement('a');
+            card.className = `ad-event-card ad-event-card--${config.cls}`;
+            card.href = '#';
+            card.dataset.adminCampaign = campaign.id;
+            card.dataset.partnerId = campaign.id;
+            card.innerHTML = `
+                <div class="ad-event-card__headline">
+                    <span class="ad-event-card__badge"><i class="fa-solid ${config.icon}"></i> ${esc(partnerServiceLabel(campaign.type))}</span>
+                    <strong>${esc(campaign.name || campaign.id)}</strong>
+                </div>
+                <span class="ad-event-card__time"><b>${esc(campaign.startDate || '-')}</b> ~ ${esc(campaign.endDate || '-')}</span>
+            `;
+            root.prepend(card);
+        });
     }
     function partnerServiceLabel(type) {
         return partnerKit()?.serviceLabel?.(type, currentOpsLang()) || t('ancillary');
@@ -885,7 +956,7 @@
         const contactPhone = vendor.contactPhone || String(vendor.contact || '').split('/')[1]?.trim() || '-';
         const contactEmail = vendor.contactEmail || vendor.email || '-';
         const rawDetailHtml = localized(vendor.detailContentHtml, '');
-        const hasCustomDetail = vendor.type === 'pos' && vendor.id === 'POS-HOTEL' && String(rawDetailHtml || '').trim().length > 0;
+        const hasCustomDetail = String(rawDetailHtml || '').trim().length > 0;
         const summary = partnerAdSummary(vendor);
         const detailHtml = hasCustomDetail ? sanitizePartnerHtml(rawDetailHtml) : partnerAdVisualHtml(vendor);
         title.innerHTML = `<i class="fa-solid ${esc(icon)}" style="color:var(--primary)"></i><span class="partner-title-stack"><strong>${esc(summary.title)}</strong><small>${esc(summary.benefitLine)}<br>${esc(summary.metaLine)}</small></span>`;
@@ -961,7 +1032,7 @@
         setText('[data-ad-events] .view-all-btn', 'viewMore');
         setAria('[data-ad-events-prev]', 'eventPrev');
         setAria('[data-ad-events-next]', 'eventNext');
-        document.querySelectorAll('.ad-event-card').forEach(card => {
+        document.querySelectorAll('.ad-event-card:not([data-admin-campaign])').forEach(card => {
             const eventMap = card.classList.contains('ad-event-card--restaurant-2')
                 ? ['restaurant', 'restaurantTwoTitle', 'restaurantTwoTime']
                 : card.classList.contains('ad-event-card--restaurant-3')
@@ -1585,6 +1656,7 @@
         });
     });
     window.addEventListener('languagechange', () => {
+        renderAdminCampaignEvents();
         applyDashboardStaticText();
         const modal = document.getElementById('partnerDetailModal');
         if (modal?.classList.contains('active') && activePartnerDetailId) renderPartnerDetail(partnerById(activePartnerDetailId));
@@ -1594,6 +1666,7 @@
         renderActivities(dashboardOpsSnapshot.activities);
         renderAncillaryOrders(dashboardOpsSnapshot.ancillary);
     });
+    renderAdminCampaignEvents();
 })();
 
 (function(){
