@@ -539,6 +539,140 @@ async function reservationBoardFilterColorRegression(page, base) {
   return result;
 }
 
+async function reservationEarlyCheckoutStateRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=early-checkout-state`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof setBoardFilter === 'function' && typeof renderReservationBoard === 'function' && Array.isArray(window.reservations), null, { timeout: 15000 });
+
+  const result = await page.evaluate(() => {
+    const isoDate = offset => {
+      const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+      date.setDate(date.getDate() + offset);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    };
+    const ensureRoom = (roomNo, status, housekeepingStatus) => {
+      let room = (window.rooms || []).find(item => String(item.roomNo || item.number || '').replace(/\D/g, '') === roomNo);
+      if (!room) {
+        room = { id: `FT-${roomNo}`, roomId: `FT-${roomNo}`, roomNo, number: roomNo, type: 'Deluxe', building: 'Forest Tower' };
+        window.rooms.push(room);
+      }
+      Object.assign(room, {
+        status,
+        frontStatus: status === 'occupied' ? 'in-house' : 'vacant',
+        occupancyStatus: status === 'occupied' ? 'occupied' : 'vacant',
+        housekeepingStatus,
+        cleaningStatus: housekeepingStatus,
+        guest: status === 'occupied' ? `${roomNo} Guest` : ''
+      });
+      return room;
+    };
+    const roomNumber = item => String(item.roomNo || item.room || item.roomId || item.fullRoom || '').replace(/\D/g, '');
+    const fixtureRooms = ['1216', '1217', '1218', '1219', '1220', '1221', '1222'];
+    for (let index = window.reservations.length - 1; index >= 0; index -= 1) {
+      if (fixtureRooms.includes(roomNumber(window.reservations[index]))) window.reservations.splice(index, 1);
+    }
+
+    ensureRoom('1216', 'vacant-dirty', 'dirty');
+    ensureRoom('1217', 'occupied', 'occupied');
+    ensureRoom('1218', 'vacant-dirty', 'dirty');
+    ensureRoom('1219', 'occupied', 'occupied');
+    ensureRoom('1220', 'occupied', 'occupied');
+    ensureRoom('1221', 'vacant-clean', 'clean');
+    ensureRoom('1222', 'vacant-dirty', 'dirty');
+    const today = isoDate(0);
+    window.reservations.push(
+      {
+        id: 'QA-EARLY-1216', reservationId: 'QA-EARLY-1216', room: '1216', roomNo: '1216', roomId: 'FT-1216', fullRoom: 'FT-1216',
+        guest: 'Early Checkout Guest', guestName: 'Early Checkout Guest', groupId: 'QA-GROUP-EARLY', groupName: 'Early Checkout Group',
+        status: 'completed', checkoutCompleted: true, actualCheckOutDate: today, actualCheckOutAt: `${today}T09:00:00+09:00`,
+        checkInDate: isoDate(-1), checkOutDate: isoDate(1), checkin: isoDate(-1), checkout: isoDate(1), amount: 0
+      },
+      {
+        id: 'QA-EARLY-1216-BLOCK', reservationId: 'QA-EARLY-1216-BLOCK', room: '1216', roomNo: '1216', roomId: 'FT-1216', fullRoom: 'FT-1216',
+        guest: 'Unassigned Group Guest', guestName: 'Unassigned Group Guest', groupId: 'QA-GROUP-EARLY', groupName: 'Early Checkout Group',
+        status: 'blocked', isGroupPlaceholder: true,
+        checkInDate: isoDate(-1), checkOutDate: isoDate(1), checkin: isoDate(-1), checkout: isoDate(1), amount: 0
+      },
+      {
+        id: 'QA-EXTENDED-1217', reservationId: 'QA-EXTENDED-1217', room: '1217', roomNo: '1217', roomId: 'FT-1217', fullRoom: 'FT-1217',
+        guest: 'Extended Stay Guest', guestName: 'Extended Stay Guest', groupId: 'QA-GROUP-EARLY', status: 'checkedin',
+        checkInDate: isoDate(-2), checkOutDate: isoDate(2), checkin: isoDate(-2), checkout: isoDate(2), amount: 280
+      },
+      {
+        id: 'QA-SAMEDAY-1218', reservationId: 'QA-SAMEDAY-1218', room: '1218', roomNo: '1218', roomId: 'FT-1218', fullRoom: 'FT-1218',
+        guest: 'Same Day Checkout Guest', guestName: 'Same Day Checkout Guest', status: 'completed', checkoutCompleted: true,
+        actualCheckOutDate: today, checkedOutAt: `${today}T16:00:00+09:00`,
+        checkInDate: today, checkOutDate: isoDate(1), checkin: today, checkout: isoDate(1), amount: 140
+      },
+      {
+        id: 'QA-GROUP-STAY-1219', reservationId: 'QA-GROUP-STAY-1219', room: '1219', roomNo: '1219', roomId: 'FT-1219', fullRoom: 'FT-1219',
+        guest: 'Remaining Group Guest', guestName: 'Remaining Group Guest', groupId: 'QA-GROUP-EARLY', groupName: 'Early Checkout Group', status: 'checkedin',
+        checkInDate: isoDate(-1), checkOutDate: isoDate(1), checkin: isoDate(-1), checkout: isoDate(1), amount: 140
+      },
+      {
+        id: 'QA-REOPENED-1220', reservationId: 'QA-REOPENED-1220', room: '1220', roomNo: '1220', roomId: 'FT-1220', fullRoom: 'FT-1220',
+        guest: 'Reopened Stay Guest', guestName: 'Reopened Stay Guest', status: 'checkedin',
+        actualCheckOutDate: isoDate(-1), actualCheckOutAt: `${isoDate(-1)}T09:00:00+09:00`,
+        checkInDate: isoDate(-2), checkOutDate: isoDate(1), checkin: isoDate(-2), checkout: isoDate(1), amount: 280
+      },
+      {
+        id: 'QA-TURNOVER-COMPLETED-1221', reservationId: 'QA-TURNOVER-COMPLETED-1221', room: '1221', roomNo: '1221', roomId: 'FT-1221', fullRoom: 'FT-1221',
+        guest: 'Morning Checkout Guest', guestName: 'Morning Checkout Guest', status: 'completed', checkoutCompleted: true,
+        actualCheckOutDate: today, actualCheckOutAt: `${today}T09:00:00+09:00`,
+        checkInDate: isoDate(-1), checkOutDate: isoDate(1), checkin: isoDate(-1), checkout: isoDate(1), amount: 140
+      },
+      {
+        id: 'QA-TURNOVER-ARRIVAL-1221', reservationId: 'QA-TURNOVER-ARRIVAL-1221', room: '1221', roomNo: '1221', roomId: 'FT-1221', fullRoom: 'FT-1221',
+        guest: 'Afternoon Arrival Guest', guestName: 'Afternoon Arrival Guest', status: 'confirmed',
+        checkInDate: today, checkOutDate: isoDate(2), checkin: today, checkout: isoDate(2), amount: 280
+      },
+      {
+        id: 'QA-LATE-COMPLETED-1222', reservationId: 'QA-LATE-COMPLETED-1222', room: '1222', roomNo: '1222', roomId: 'FT-1222', fullRoom: 'FT-1222',
+        guest: 'Completed Late Checkout Guest', guestName: 'Completed Late Checkout Guest', status: 'completed', checkoutCompleted: true,
+        lateCheckout: true, lateCheckoutTime: '16:00', actualCheckOutDate: today, actualCheckOutAt: `${today}T15:30:00+09:00`,
+        checkInDate: isoDate(-1), checkOutDate: isoDate(1), checkin: isoDate(-1), checkout: isoDate(1), amount: 140
+      }
+    );
+
+    const capture = (filter, roomNo) => {
+      window.setBoardFilter(filter);
+      const card = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => (el.innerText || '').includes(roomNo));
+      return {
+        found: !!card,
+        className: card?.className || '',
+        text: (card?.innerText || '').replace(/\s+/g, ' ').trim(),
+        statusText: card?.querySelector('.board-status')?.innerText?.trim() || ''
+      };
+    };
+    const state = {
+      earlyAll: capture('all', '1216'),
+      earlyVacant: capture('vacant', '1216'),
+      earlyDirty: capture('dirty', '1216'),
+      earlyNoArrival: capture('noarrival', '1216'),
+      earlyGroup: capture('group', '1216'),
+      extendedInhouse: capture('inhouse', '1217'),
+      sameDayVacant: capture('vacant', '1218'),
+      remainingGroupInhouse: capture('inhouse', '1219'),
+      reopenedInhouse: capture('inhouse', '1220'),
+      turnoverArrival: capture('checkin', '1221'),
+      completedLate: capture('late', '1222')
+    };
+    window.setBoardFilter('all');
+    return state;
+  });
+
+  assert(result.earlyAll.found && result.earlyAll.className.includes('vacant') && !/미도착|no arrival/i.test(result.earlyAll.text), 'Early checkout must leave room 1216 vacant-dirty instead of resurrecting a no-arrival group block.', result);
+  assert(result.earlyVacant.found && result.earlyDirty.found, 'Early checkout room must appear in both vacant and cleaning-needed filters.', result);
+  assert(!result.earlyNoArrival.found && !result.earlyGroup.found, 'Completed early-checkout room must not reappear in no-arrival or group filters.', result);
+  assert(result.extendedInhouse.found && result.extendedInhouse.className.includes('inhouse'), 'An extended stay must remain in-house until its revised checkout date.', result);
+  assert(result.sameDayVacant.found && result.sameDayVacant.className.includes('vacant'), 'A same-day early checkout must become vacant-dirty.', result);
+  assert(result.remainingGroupInhouse.found && result.remainingGroupInhouse.className.includes('inhouse'), 'Early checkout of one group room must not end another occupied room in the same group.', result);
+  assert(result.reopenedInhouse.found && result.reopenedInhouse.className.includes('inhouse'), 'A reopened stay must remain in-house even when an old actual checkout timestamp exists.', result);
+  assert(result.turnoverArrival.found && /Afternoon Arrival Guest/.test(result.turnoverArrival.text), 'A new same-day arrival must remain visible after the previous guest checks out early.', result);
+  assert(!result.completedLate.found, 'A completed early checkout must not remain in the late-checkout filter.', result);
+  return result;
+}
+
 async function reservationBoardSettlementAndGroupInvariantRegression(page, base) {
   await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=board-settlement-group-invariant`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -1058,19 +1192,40 @@ async function successfulFlowClosesModalRegression(page, base) {
     try {
       await window.openUnifiedResModal(reservation.id);
       await window.processUnifiedReservationFlow('checkin');
+      const modalAfterCheckin = document.getElementById('unifiedResModal');
+      const checkinSnapshot = {
+        status: reservation.status,
+        modalActive: modalAfterCheckin?.classList.contains('active') || false,
+        modalDisplay: modalAfterCheckin?.style.display || ''
+      };
+      await window.openUnifiedResModal(reservation.id);
+      await window.processUnifiedReservationFlow('checkout');
+      const modalAfterCheckout = document.getElementById('unifiedResModal');
+      return {
+        checkinSnapshot,
+        checkoutSnapshot: {
+          status: reservation.status,
+          modalActive: modalAfterCheckout?.classList.contains('active') || false,
+          modalDisplay: modalAfterCheckout?.style.display || '',
+          checkoutCompleted: reservation.checkoutCompleted,
+          checkedOutAt: reservation.checkedOutAt,
+          actualCheckOutAt: reservation.actualCheckOutAt,
+          actualCheckOutDate: reservation.actualCheckOutDate,
+          roomStatus: room.status,
+          roomHousekeepingStatus: room.housekeepingStatus
+        }
+      };
     } finally {
       window.showConfirm = originalConfirm;
     }
-    const modal = document.getElementById('unifiedResModal');
-    return {
-      status: reservation.status,
-      modalActive: modal?.classList.contains('active') || false,
-      modalDisplay: modal?.style.display || ''
-    };
   });
 
-  assert(result.status === 'checkedin', 'Successful check-in must update the reservation status.', result);
-  assert(!result.modalActive && result.modalDisplay === 'none', 'Successful check-in must close the reservation modal.', result);
+  assert(result.checkinSnapshot.status === 'checkedin', 'Successful check-in must update the reservation status.', result);
+  assert(!result.checkinSnapshot.modalActive && result.checkinSnapshot.modalDisplay === 'none', 'Successful check-in must close the reservation modal.', result);
+  assert(result.checkoutSnapshot.status === 'completed' && result.checkoutSnapshot.checkoutCompleted === true, 'Successful early checkout must persist the completed state.', result);
+  assert(/^\d{4}-\d{2}-\d{2}$/.test(result.checkoutSnapshot.actualCheckOutDate || '') && result.checkoutSnapshot.checkedOutAt && result.checkoutSnapshot.actualCheckOutAt, 'Early checkout must persist the actual checkout date and timestamps.', result);
+  assert(result.checkoutSnapshot.roomStatus === 'vacant-dirty' && result.checkoutSnapshot.roomHousekeepingStatus === 'dirty', 'Early checkout must release the room as vacant-dirty.', result);
+  assert(!result.checkoutSnapshot.modalActive && result.checkoutSnapshot.modalDisplay === 'none', 'Successful early checkout must close the reservation modal.', result);
   return result;
 }
 
@@ -1254,6 +1409,8 @@ async function dateBoundaryRegression(browser, base) {
     console.log('[reservation-regression] date boundaries passed');
     const boardFilterColorResult = await reservationBoardFilterColorRegression(page, base);
     console.log('[reservation-regression] board filter colors passed');
+    const earlyCheckoutStateResult = await reservationEarlyCheckoutStateRegression(page, base);
+    console.log('[reservation-regression] early checkout state transitions passed');
     const boardSettlementAndGroupInvariantResult = await reservationBoardSettlementAndGroupInvariantRegression(page, base);
     console.log('[reservation-regression] board settlement and group filter invariants passed');
     const maintenanceBookingGuardResult = await maintenanceRoomBookingGuardRegression(page, base);
@@ -1598,6 +1755,7 @@ async function dateBoundaryRegression(browser, base) {
         'reservation board dynamic rerender stays fully English',
         'today check-in is blocked when the room master is out of service',
         'reservation board keeps card status colors stable across filters and hover',
+        'early, same-day, extended, and partial-group checkout states stay consistent',
         'reservation board settlement and group filter state stays synchronized',
         'maintenance room cards explain the booking block without opening the form',
         'overlapping bookings show conflict details and do not save',
@@ -1620,6 +1778,7 @@ async function dateBoundaryRegression(browser, base) {
       dateBoundaryResult,
       todayCheckinRoomMasterResult,
       boardFilterColorResult,
+      earlyCheckoutStateResult,
       boardSettlementAndGroupInvariantResult,
       maintenanceBookingGuardResult,
       overlappingReservationGuardResult,

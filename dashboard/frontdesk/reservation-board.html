@@ -467,6 +467,17 @@ function reservationEnd(res) {
     return parseDate(res?.checkOutDate || res?.checkout || res?.cout);
 }
 
+function reservationActualCheckout(res) {
+    const directDate = res?.actualCheckOutDate || res?.actualCheckoutDate;
+    if (directDate) return parseDate(directDate);
+    const timestamp = res?.actualCheckOutAt || res?.actualCheckoutAt || res?.checkedOutAt || res?.completedAt;
+    return timestamp ? parseDate(String(timestamp).slice(0, 10)) : null;
+}
+
+function reservationCompletionDate(res) {
+    return reservationActualCheckout(res) || reservationEnd(res);
+}
+
 function reservationOverlapsRange(res, range = boardRange()) {
     const start = reservationStart(res);
     const end = reservationEnd(res);
@@ -547,12 +558,14 @@ function completedCheckoutForRoomOnFocusDate(room) {
         .map(res => ({
             res,
             status: normalizeStatus(res.status),
-            end: reservationEnd(res)
+            completion: reservationCompletionDate(res),
+            scheduledEnd: reservationEnd(res)
         }))
         .find(item =>
-            item.end &&
+            item.completion &&
             item.status === 'completed' &&
-            sameDate(item.end, focusDate) &&
+            item.completion <= focusDate &&
+            (!item.scheduledEnd || focusDate <= item.scheduledEnd) &&
             reservationOverlapsRange(item.res, range)
         )?.res || null;
 }
@@ -564,8 +577,13 @@ function reservationShadowedByCompletedCheckout(res) {
     const guest = String(res?.guestName || res?.guest || '').trim().toLowerCase();
     const completedGuest = String(completed?.guestName || completed?.guest || '').trim().toLowerCase();
     const start = reservationStart(res);
-    const completedEnd = reservationEnd(completed);
-    return !!(guest && guest === completedGuest && start && completedEnd && sameDate(start, completedEnd));
+    const completedEnd = reservationCompletionDate(completed);
+    const sameGuestHandoff = guest && guest === completedGuest && start && completedEnd && sameDate(start, completedEnd);
+    const groupId = String(res?.groupId || '').trim();
+    const completedGroupId = String(completed?.groupId || '').trim();
+    const isGroupPlaceholder = normalizeReservationStatus(res?.status) === 'blocked' || res?.isGroupPlaceholder === true;
+    const sameGroupPlaceholder = groupId && groupId === completedGroupId && isGroupPlaceholder;
+    return !!(sameGuestHandoff || sameGroupPlaceholder);
 }
 
 function isReservationRoomInHouse(res) {
@@ -1557,6 +1575,7 @@ function boardDataSignature() {
         res.guestName || res.guest || '',
         res.checkIn || res.checkinDate || '',
         res.checkOut || res.checkoutDate || '',
+        res.actualCheckOutDate || res.actualCheckoutDate || res.actualCheckOutAt || res.actualCheckoutAt || res.checkedOutAt || '',
         res.lateCheckout || res.lateCheckoutTime || '',
         res.roomChangeFrom || res.previousRoom || res.movedFrom || '',
         res.groupId || '',

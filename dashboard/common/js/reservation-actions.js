@@ -3382,7 +3382,16 @@
                 room.guest = guestNameForReservation(res);
             }
         } else {
+            const completedAt = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+            const actualCheckOutDate = window.PmsDate?.todayIso
+                ? window.PmsDate.todayIso()
+                : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
             res.status = 'completed';
+            res.checkoutCompleted = true;
+            res.checkedOutAt = completedAt;
+            res.actualCheckOutAt = completedAt;
+            res.actualCheckOutDate = actualCheckOutDate;
+            res.completedAt = completedAt;
             if (room) {
                 room.status = 'vacant-dirty';
                 room.frontStatus = 'vacant';
