@@ -50,8 +50,6 @@
         .board-legend-swatch.inhouse{background:var(--success)}
         .board-legend-swatch.checkout{background:#f59e0b}
         .board-legend-swatch.late{background:#ea580c}
-        .board-legend-swatch.reserved{background:var(--purple)}
-        .board-legend-swatch.blocked{background:#111827}
         .board-legend-swatch.oos{background:var(--danger)}
         .building-section{margin-bottom:8px}
         .building-section + .building-section{margin-top:24px}
@@ -75,10 +73,9 @@
         .reservation-board-box.arrival{border-color:#bfdbfe;background:linear-gradient(0deg,rgba(239,246,255,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--primary),0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.inhouse{border-color:#bbf7d0;background:linear-gradient(0deg,rgba(240,253,244,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--success),0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.checkout{border-color:#fde68a;background:linear-gradient(0deg,rgba(255,251,235,.76),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 #f59e0b,0 2px 10px rgba(15,23,42,.04)}
-        .reservation-board-box.reserved{border-color:#ddd6fe;background:linear-gradient(0deg,rgba(245,243,255,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--purple),0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.cancelled{border-color:#fecaca;background:linear-gradient(0deg,rgba(254,242,242,.76),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--danger),0 2px 10px rgba(15,23,42,.04)}
-        .reservation-board-box.blocked{border-color:#cbd5e1;background:linear-gradient(0deg,rgba(248,250,252,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 #111827,0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.oos{border-color:#fecaca;background:linear-gradient(0deg,rgba(254,242,242,.76),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 var(--danger),0 2px 10px rgba(15,23,42,.04);opacity:.82}
+        .reservation-board-box.dnd{border-color:#fecdd3;background:linear-gradient(0deg,rgba(255,241,242,.72),rgba(255,255,255,.97));box-shadow:inset 4px 0 0 #e11d48,0 2px 10px rgba(15,23,42,.04)}
         .reservation-board-box.room-moved{outline:none}
         .reservation-board-box .room-box-num{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px}
         .board-status{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;font-size:.63rem;font-weight:900;white-space:nowrap}
@@ -86,10 +83,9 @@
         .board-status.arrival{background:var(--primary-lt);color:var(--primary-dk)}
         .board-status.inhouse{background:var(--success-lt);color:var(--success)}
         .board-status.checkout{background:#fef3c7;color:#92400e}
-        .board-status.reserved{background:var(--purple-lt);color:#6d28d9}
         .board-status.cancelled{background:var(--danger-lt);color:var(--danger)}
-        .board-status.blocked{background:#f1f5f9;color:#111827}
         .board-status.oos{background:var(--danger-lt);color:var(--danger)}
+        .board-status.dnd{background:#fff1f2;color:#be123c}
         .board-clean-summary{display:flex;align-items:center;justify-content:flex-end;gap:8px;width:100%}
         .board-clean-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 8px;font-size:.64rem;font-weight:900;white-space:nowrap}
         .board-clean-badge.clean{background:#dcfce7;color:#059669}
@@ -104,12 +100,12 @@
         .board-clean-select.mur,
         .board-clean-select[data-clean-tone="dirty"],
         .board-clean-select[data-clean-tone="mur"]{color:#b45309!important;border-color:#fed7aa!important;background-color:#fff7ed!important}
-        .board-clean-select.cleaning,
-        .board-clean-select[data-clean-tone="cleaning"]{color:#1d4ed8!important;border-color:#bfdbfe!important;background-color:#eff6ff!important}
         .board-clean-select.clean,
         .board-clean-select[data-clean-tone="clean"]{color:#047857!important;border-color:#a7f3d0!important;background-color:#ecfdf5!important}
         .board-clean-select.dnd,
         .board-clean-select[data-clean-tone="dnd"]{color:#be123c!important;border-color:#fecdd3!important;background-color:#fff1f2!important}
+        .board-clean-select.oos,
+        .board-clean-select[data-clean-tone="oos"]{color:#b91c1c!important;border-color:#fecaca!important;background-color:#fef2f2!important}
         .board-guest{width:100%;min-width:0;margin-top:3px;min-height:38px}
         .board-group-title{display:flex;align-items:flex-start;gap:5px;width:100%;min-width:0;margin-bottom:3px}
         .board-group-badge{display:inline-flex;align-items:center;gap:3px;background:#111827;color:#fff;border-radius:4px;padding:2px 5px;font-size:.56rem;font-weight:950;line-height:1;flex:0 0 auto}
@@ -185,7 +181,7 @@
             <div class="kpi-card blue"><div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiArrival">0</div><div class="kpi-label">오늘 체크인</div></div></div>
             <div class="kpi-card green"><div class="kpi-icon"><i class="fa-solid fa-bed"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiInhouse">0</div><div class="kpi-label">투숙 중</div></div></div>
             <div class="kpi-card orange"><div class="kpi-icon"><i class="fa-solid fa-right-from-bracket"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiCheckout">0</div><div class="kpi-label">체크아웃</div></div></div>
-            <div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-calendar-days"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiReserved">0</div><div class="kpi-label">예약 예정</div></div></div>
+            <div class="kpi-card purple"><div class="kpi-icon"><i class="fa-solid fa-calendar-days"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiReserved">0</div><div class="kpi-label">미도착</div></div></div>
             <div class="kpi-card"><div class="kpi-icon"><i class="fa-solid fa-door-open"></i></div><div class="kpi-body"><div class="kpi-value" id="kpiVacant">0</div><div class="kpi-label">예약 없음</div></div></div>
         </div>
 
@@ -195,7 +191,7 @@
                     <div class="search-container">
                         <div class="search-box-mt">
                             <i class="fa-solid fa-magnifying-glass"></i>
-                            <input id="boardSearch" type="text" placeholder="객실번호, 이름, 단체명 검색...">
+                            <input id="boardSearch" type="text" placeholder="Search room, name, or group...">
                         </div>
                         <button class="btn-search" onclick="renderReservationBoard()"><i class="fa-solid fa-search"></i> 검색</button>
                     </div>
@@ -203,9 +199,7 @@
                         <span class="board-legend-item"><span class="board-legend-swatch arrival"></span>체크인 예정</span>
                         <span class="board-legend-item"><span class="board-legend-swatch inhouse"></span>투숙 중</span>
                         <span class="board-legend-item"><span class="board-legend-swatch checkout"></span>체크아웃 예정</span>
-                        <span class="board-legend-item"><span class="board-legend-swatch reserved"></span>예약 예정</span>
                         <span class="board-legend-item"><span class="board-legend-swatch vacant"></span>예약 없음</span>
-                        <span class="board-legend-item"><span class="board-legend-swatch blocked"></span>단체 배정</span>
                         <span class="board-legend-item"><span class="board-legend-swatch oos"></span>점검 중</span>
                     </div>
                 </div>
@@ -260,7 +254,7 @@ const BOARD_TEXT = {
         'legend.reserved': '예약 예정',
         'legend.vacant': '예약 없음',
         'legend.blocked': '단체 배정',
-        'legend.oos': '점검 중',
+        'legend.oos': '점검중',
         'status.arrival': '체크인 예정',
         'status.noArrival': '미도착',
         'status.inhouse': '투숙 중',
@@ -269,13 +263,13 @@ const BOARD_TEXT = {
         'status.reserved': '예약 예정',
         'status.vacant': '예약 없음',
         'status.blocked': '단체 배정',
-        'status.oos': '점검 중',
+        'status.oos': '점검중',
+        'status.dnd': '방해금지',
         'status.cancelled': '취소/노쇼',
         'stay.none': '재실',
         'stay.dnd': '방해금지',
         'stay.away': '외출',
         'stay.mur': '청소필요',
-        'stay.cleaning': '청소 중',
         'stay.clean': '청소완료',
         'stay.aria.empty': '빈방 청소 상태 변경',
         'stay.aria.occupied': '청소 상태 변경',
@@ -340,12 +334,12 @@ const BOARD_TEXT = {
         'status.vacant': 'No Reservation',
         'status.blocked': 'Group Block',
         'status.oos': 'Out of Service',
+        'status.dnd': 'Do Not Disturb',
         'status.cancelled': 'Cancelled / No-show',
         'stay.none': 'In-house',
         'stay.dnd': 'Do Not Disturb',
         'stay.away': 'Away',
         'stay.mur': 'Needs Cleaning',
-        'stay.cleaning': 'Cleaning',
         'stay.clean': 'Clean',
         'stay.aria.empty': 'Change vacant-room cleaning status',
         'stay.aria.occupied': 'Change cleaning status',
@@ -492,6 +486,7 @@ function normalizeStatus(value) {
     if (['checkedout', 'completed', 'departed'].includes(key)) return 'completed';
     if (['blocked'].includes(key)) return 'blocked';
     if (['oos', 'outofservice', 'maintenance'].includes(key)) return 'oos';
+    if (['dnd', 'donotdisturb'].includes(key)) return 'dnd';
     return key || 'confirmed';
 }
 
@@ -625,8 +620,8 @@ function reservationBucket(res) {
         if (isBoardCheckoutTargetStatus(status) && end && sameDate(end, range.start)) return 'checkout';
         if (status === 'checkedin' && reservationActiveOn(res, range.start)) return 'inhouse';
         if (start && sameDate(start, range.start)) return 'checkin';
-        if (reservationActiveOn(res, range.start)) return status === 'checkedin' ? 'inhouse' : 'reserved';
-        return 'reserved';
+        if (reservationActiveOn(res, range.start)) return status === 'checkedin' ? 'inhouse' : 'noarrival';
+        return null;
     }
     if (status === 'checkedin' && reservationActiveOn(res, todayDate())) return 'inhouse';
     if (start && dateInRange(start, range)) return 'checkin';
@@ -640,9 +635,9 @@ function boardReservationCounts() {
     if (boardCountsCache.signature === signature && boardCountsCache.counts) {
         return { ...boardCountsCache.counts };
     }
-    const counts = { all: 0, group: 0, vacant: 0, checkin: 0, checkinDirty: 0, dirty: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, reserved: 0, cancelled: 0 };
+    const counts = { all: 0, group: 0, vacant: 0, checkin: 0, checkinDirty: 0, dirty: 0, inhouse: 0, checkout: 0, late: 0, roommove: 0, noarrival: 0, cancelled: 0 };
     counts.all = rooms.length;
-    ['group', 'checkin', 'inhouse', 'checkout', 'reserved', 'late', 'roommove', 'cancelled'].forEach(filter => {
+    ['group', 'checkin', 'inhouse', 'checkout', 'noarrival', 'late', 'roommove', 'cancelled'].forEach(filter => {
         counts[filter] = rooms.filter(room => reservationForRoomFilter(room, filter)).length;
     });
     rooms.forEach(room => {
@@ -684,7 +679,7 @@ function updateBoardStaticLabels() {
     const kpiLabels = [
         ['kpiInhouse', boardText('filter.inhouse')],
         ['kpiCheckout', boardText('filter.checkout')],
-        ['kpiReserved', boardText('filter.reserved')],
+        ['kpiReserved', boardText('status.noArrival')],
         ['kpiVacant', boardText('status.vacant')]
     ];
     kpiLabels.forEach(([id, label]) => {
@@ -698,9 +693,7 @@ function updateBoardStaticLabels() {
             <span class="board-legend-item"><span class="board-legend-swatch arrival"></span>${boardText('legend.arrival')}</span>
             <span class="board-legend-item"><span class="board-legend-swatch inhouse"></span>${boardText('legend.inhouse')}</span>
             <span class="board-legend-item"><span class="board-legend-swatch checkout"></span>${boardText('legend.checkout')}</span>
-            <span class="board-legend-item"><span class="board-legend-swatch reserved"></span>${boardText('legend.reserved')}</span>
             <span class="board-legend-item"><span class="board-legend-swatch vacant"></span>${boardText('legend.vacant')}</span>
-            <span class="board-legend-item"><span class="board-legend-swatch blocked"></span>${boardText('legend.blocked')}</span>
             <span class="board-legend-item"><span class="board-legend-swatch oos"></span>${boardText('legend.oos')}</span>
         `;
     }
@@ -919,12 +912,80 @@ function boardReservationDeposit(res) {
     );
 }
 
+const BOARD_SETTLEMENT_COMPLETIONS_KEY = 'pms_settlement_completions';
+const BOARD_SETTLEMENT_REOPENS_KEY = 'pms_settlement_reopens';
+
+function boardStorageRecords(key) {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch(e) {
+        return [];
+    }
+}
+
+function boardReservationIds(res) {
+    return [
+        res?.id,
+        res?.reservationId,
+        res?.folioId,
+        res?.folio?.id,
+        ...(Array.isArray(res?.reservationIds) ? res.reservationIds : [])
+    ]
+        .filter(Boolean)
+        .map(String);
+}
+
+function boardSettlementRecordTime(record, field) {
+    const parsed = Date.parse(record?.[field] || record?.createdAt || '');
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function boardSettlementRecordMatchesReservation(record, res) {
+    const reservationIds = new Set(boardReservationIds(res));
+    const recordIds = [
+        record?.reservationId,
+        record?.folioId,
+        ...(Array.isArray(record?.reservationIds) ? record.reservationIds : [])
+    ].filter(Boolean).map(String);
+    if (recordIds.some(id => reservationIds.has(id))) return true;
+    const room = res?.room || res?.roomNo || res?.roomId || res?.fullRoom || '';
+    if (!sameRoomValue(record?.room, room)) return false;
+    const checkout = boardDateKey(reservationEnd(res));
+    const recordDate = String(record?.businessDate || record?.completedAt || record?.reopenedAt || '').slice(0, 10);
+    return !!checkout && checkout === recordDate;
+}
+
+function boardSettlementMutationForReservation(res) {
+    if (!res) return { completion: null, reopen: null };
+    const completion = boardStorageRecords(BOARD_SETTLEMENT_COMPLETIONS_KEY)
+        .filter(record => boardSettlementRecordMatchesReservation(record, res))
+        .sort((a, b) => boardSettlementRecordTime(b, 'completedAt') - boardSettlementRecordTime(a, 'completedAt'))[0] || null;
+    const reopen = boardStorageRecords(BOARD_SETTLEMENT_REOPENS_KEY)
+        .filter(record => boardSettlementRecordMatchesReservation(record, res))
+        .sort((a, b) => boardSettlementRecordTime(b, 'reopenedAt') - boardSettlementRecordTime(a, 'reopenedAt'))[0] || null;
+    return { completion, reopen };
+}
+
+function boardSettlementCompletionForReservation(res) {
+    const { completion, reopen } = boardSettlementMutationForReservation(res);
+    if (!completion) return null;
+    if (reopen && boardSettlementRecordTime(reopen, 'reopenedAt') > boardSettlementRecordTime(completion, 'completedAt')) return null;
+    return completion;
+}
+
 function boardSettlementSummary(res, state) {
     if (!res) return { html: '', terms: '' };
     const balance = boardReservationBalance(res);
     const deposit = boardReservationDeposit(res);
     const status = normalizeStatus(res.status || '');
-    const isCompleted = ['completed', 'checkedout', 'checked-out', 'settled', 'closed'].includes(status);
+    const mutation = boardSettlementMutationForReservation(res);
+    const reopenedAfterCompletion = mutation.reopen && (!mutation.completion || boardSettlementRecordTime(mutation.reopen, 'reopenedAt') > boardSettlementRecordTime(mutation.completion, 'completedAt'));
+    const isCompleted = !reopenedAfterCompletion && (
+        ['completed', 'checkedout', 'checked-out', 'settled', 'closed'].includes(status)
+        || res.settlementCompleted === true
+        || !!mutation.completion
+    );
     const checkoutToday = (state?.status === 'checkout' || isBoardCheckoutTargetStatus(effectiveReservationStatus(res))) && sameDate(reservationEnd(res), todayDate());
     const badges = [];
     if (balance > 0) {
@@ -956,6 +1017,7 @@ function computeBoardStatusFor(room) {
     const focusDate = range.mode === 'day' ? range.start : todayDate();
     const roomStatus = normalizeStatus(room.status || room.frontStatus || room.housekeepingStatus);
     if (roomStatus === 'oos') return { status: 'oos', label: boardText('status.oos'), res: null };
+    if (roomStatus === 'dnd') return { status: 'dnd', label: boardText('status.dnd'), res: null };
     const roomReservations = reservations
         .filter(res => roomMatchesReservation(room, res))
         .map(res => ({
@@ -974,7 +1036,6 @@ function computeBoardStatusFor(room) {
 
     const active = related.find(item => item.start <= focusDate && focusDate < item.end);
     if (active) {
-        if (active.status === 'blocked' || active.res.isGroupPlaceholder) return { status: 'blocked', label: boardText('status.blocked'), res: active.res };
         if (sameDate(active.end, focusDate) && isBoardCheckoutTargetStatus(active.effectiveStatus)) return { status: 'checkout', label: boardText('status.checkout'), res: active.res };
         if (isBoardCheckoutTargetStatus(active.effectiveStatus) || roomStatus === 'inhouse') return { status: 'inhouse', label: boardText('status.inhouse'), res: active.res };
         if (sameDate(active.start, focusDate)) return { status: 'arrival', label: boardText('status.arrival'), res: active.res };
@@ -986,7 +1047,7 @@ function computeBoardStatusFor(room) {
         : related.find(item => dateInRange(item.start, range));
     if (arrival) return { status: 'arrival', label: boardText('status.arrival'), res: arrival.res };
     const next = related.find(item => item.start > focusDate && item.start <= range.end);
-    if (next) return { status: 'reserved', label: boardText('status.reserved'), res: next.res };
+    if (next) return { status: 'arrival', label: boardText('status.arrival'), res: next.res };
     return { status: 'vacant', label: boardText('status.vacant'), res: null };
 }
 
@@ -1060,12 +1121,15 @@ function normalizedRoomOpsValue(value) {
 function boardStayState(room, res) {
     const flag = room?.guestFlag || res?.guestFlag || 'none';
     const cleaningState = normalizedRoomOpsValue(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus);
+    const roomState = normalizeStatus(room?.status || room?.frontStatus || room?.maintenanceStatus || '');
+    if (roomState === 'oos' || cleaningState === 'oos') return 'oos';
+    if (roomState === 'dnd' || cleaningState === 'dnd') return 'dnd';
     const isCleanRequested = flag === 'mur' || ['dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState);
     const isCleaning = ['cleaning', 'inprogress', 'cleaninginprogress'].includes(cleaningState);
     const isCleanComplete = ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState);
     if (boardStayEditable(res) && !boardOccupiedCleaningIsFresh(room, res)) return 'mur';
     if (flag === 'dnd' || flag === 'away') return flag;
-    if (isCleaning) return 'cleaning';
+    if (isCleaning) return 'mur';
     if (isCleanRequested) return 'mur';
     if (isCleanComplete) return 'clean';
     return 'none';
@@ -1074,19 +1138,17 @@ function boardStayState(room, res) {
 function boardCleaningSummary(room, res) {
     const cleaningState = normalizedRoomOpsValue(room?.housekeepingStatus || room?.hkStatus || room?.cleaningStatus);
     const stayState = boardStayState(room, res);
-    if (stayState === 'dnd') {
-        return { key: 'dnd', label: '방해금지', icon: 'fa-ban' };
+    if (stayState === 'oos') {
+        return { key: 'oos', label: boardText('status.oos'), icon: 'fa-screwdriver-wrench' };
     }
-    if (stayState === 'cleaning' || ['cleaning', 'inprogress', 'cleaninginprogress'].includes(cleaningState)) {
-        return { key: 'cleaning', label: boardText('stay.cleaning'), icon: 'fa-spinner' };
-    }
+    if (stayState === 'dnd') return { key: 'dnd', label: boardText('stay.dnd'), icon: 'fa-ban' };
     if (stayState === 'clean' || ['clean', 'vacantclean', 'completed', 'complete', 'done', 'ready'].includes(cleaningState)) {
-        return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
+        return { key: 'clean', label: boardText('stay.clean'), icon: 'fa-check' };
     }
     if (res || ['mur', 'dirty', 'vacantdirty', 'pendingclean', 'needscleaning', 'inspect', 'needsinspection'].includes(cleaningState)) {
-        return { key: 'dirty', label: '청소 필요', icon: 'fa-broom' };
+        return { key: 'dirty', label: boardText('stay.mur'), icon: 'fa-broom' };
     }
-    return { key: 'clean', label: '청소 완료', icon: 'fa-check' };
+    return { key: 'clean', label: boardText('stay.clean'), icon: 'fa-check' };
 }
 
 function boardCheckinDirtyReservationForRoom(room) {
@@ -1162,15 +1224,18 @@ function boardStayActions(room, res) {
     const roomKey = room.roomId || room.fullRoom || room.id || res?.room || '';
     const cleanState = boardCleaningSummary(room, res).key;
     if (!res) {
+        const options = [
+            { key: 'dirty', label: boardText('stay.mur') },
+            { key: 'clean', label: boardText('stay.clean') },
+            { key: 'dnd', label: boardText('stay.dnd') },
+            { key: 'oos', label: boardText('status.oos') }
+        ];
         return `<select class="board-clean-select ${escapeHtml(cleanState)}" data-clean-tone="${escapeHtml(cleanState)}" data-room-key="${escapeHtml(roomKey)}" aria-label="${escapeHtml(boardText('stay.aria.empty'))}" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setBoardCleanState(event,this)">
-            <option value="dirty"${cleanState === 'dirty' ? ' selected' : ''}>${escapeHtml(boardText('stay.mur'))}</option>
-            <option value="cleaning"${cleanState === 'cleaning' ? ' selected' : ''}>${escapeHtml(boardText('stay.cleaning'))}</option>
-            <option value="clean"${cleanState === 'clean' ? ' selected' : ''}>${escapeHtml(boardText('stay.clean'))}</option>
+            ${options.map(opt => `<option value="${opt.key}"${cleanState === opt.key ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`).join('')}
         </select>`;
     }
     const options = [
         { key: 'mur', label: boardText('stay.mur') },
-        { key: 'cleaning', label: boardText('stay.cleaning') },
         { key: 'clean', label: boardText('stay.clean') },
         { key: 'dnd', label: boardText('stay.dnd') }
     ];
@@ -1185,7 +1250,7 @@ function boardStayActions(room, res) {
 
 function updateBoardCleanSelectTone(select, state = '') {
     if (!select) return;
-    select.classList.remove('dirty', 'mur', 'cleaning', 'clean', 'dnd');
+    select.classList.remove('dirty', 'mur', 'clean', 'dnd', 'oos');
     const next = String(state || select.value || '').toLowerCase();
     select.querySelectorAll('option').forEach(option => {
         const selected = option.value === next;
@@ -1194,13 +1259,13 @@ function updateBoardCleanSelectTone(select, state = '') {
         else option.removeAttribute('selected');
     });
     select.dataset.cleanTone = next;
-    if (['dirty', 'mur', 'cleaning', 'clean', 'dnd'].includes(next)) select.classList.add(next);
+    if (['dirty', 'mur', 'clean', 'dnd', 'oos'].includes(next)) select.classList.add(next);
     const toneStyles = {
         dirty: { bg: '#fff7ed', border: '#fed7aa', color: '#b45309' },
         mur: { bg: '#fff7ed', border: '#fed7aa', color: '#b45309' },
-        cleaning: { bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8' },
         clean: { bg: '#ecfdf5', border: '#a7f3d0', color: '#047857' },
-        dnd: { bg: '#fff1f2', border: '#fecdd3', color: '#be123c' }
+        dnd: { bg: '#fff1f2', border: '#fecdd3', color: '#be123c' },
+        oos: { bg: '#fef2f2', border: '#fecaca', color: '#b91c1c' }
     };
     const style = toneStyles[next];
     if (style) {
@@ -1302,7 +1367,8 @@ function boardStatusIcon(status) {
         reserved: 'fa-calendar-check',
         cancelled: 'fa-ban',
         blocked: 'fa-users',
-        oos: 'fa-screwdriver-wrench'
+        oos: 'fa-screwdriver-wrench',
+        dnd: 'fa-ban'
     })[status] || 'fa-calendar-check';
 }
 
@@ -1320,7 +1386,7 @@ function openBoardRoomBooking(encodedRoomId) {
         || sameRoomValue(item?.display, roomId)
         || sameRoomValue(item?.roomLabel, roomId));
     const unavailable = room && (
-        normalizeStatus(room.status || room.frontStatus || room.housekeepingStatus) === 'oos'
+        ['oos', 'dnd'].includes(normalizeStatus(room.status || room.frontStatus || room.housekeepingStatus))
         || ['maintenance', 'outofservice', 'outoforder', 'oos'].includes(String(room.maintenanceStatus || '').replace(/[-_\s]/g, '').toLowerCase())
         || room.isOutOfService === true
         || room.outOfService === true
@@ -1360,16 +1426,15 @@ function boardCard(room) {
     if (boardFilter !== 'all') {
         if (boardFilter === 'dirty') {
             const filteredRes = reservationForRoomFilter(room);
-            if (filteredRes) {
-                state = reservationStateForFilter(filteredRes);
-            }
             if (boardCleaningSummary(room, state.res).key !== 'dirty') return '';
         } else if (boardFilter === 'vacant') {
             if (state.status !== 'vacant') return '';
         } else {
             const filteredRes = reservationForRoomFilter(room);
             if (!filteredRes) return '';
-            state = reservationStateForFilter(filteredRes);
+            if (boardFilter === 'cancelled' && state.res !== filteredRes) {
+                state = reservationStateForFilter(filteredRes);
+            }
         }
     }
     const res = state.res;
@@ -1382,7 +1447,7 @@ function boardCard(room) {
     const hasRoomChange = !!(res && reservationHasRoomChange(res));
     const roomChangeText = hasRoomChange ? reservationRoomChangeText(res) : '';
     const stayState = res ? boardStayState(room, res) : '';
-    const stayStateLabels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), cleaning: boardText('stay.cleaning'), clean: boardText('stay.clean') };
+    const stayStateLabels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), clean: boardText('stay.clean') };
     const settlementInfo = boardSettlementSummary(res, state);
     const searchText = [
         room.id,
@@ -1460,7 +1525,7 @@ function updateBoardKpis() {
     document.getElementById('kpiArrival').textContent = reservationCounts.checkin;
     document.getElementById('kpiInhouse').textContent = reservationCounts.inhouse;
     document.getElementById('kpiCheckout').textContent = reservationCounts.checkout;
-    document.getElementById('kpiReserved').textContent = reservationCounts.reserved;
+    document.getElementById('kpiReserved').textContent = reservationCounts.noarrival;
     document.getElementById('kpiVacant').textContent = reservationCounts.vacant;
     updateBoardPeriodLabels();
     document.querySelectorAll('#boardChips .chip').forEach(chip => {
@@ -1498,8 +1563,25 @@ function boardDataSignature() {
         res.guestFlag || '',
         res.updatedAt || ''
     ].join(':')).join(',');
-    return `${roomSig}|${resSig}`;
+    const settlementSig = [
+        localStorage.getItem(BOARD_SETTLEMENT_COMPLETIONS_KEY) || '',
+        localStorage.getItem(BOARD_SETTLEMENT_REOPENS_KEY) || ''
+    ].join('|');
+    return `${roomSig}|${resSig}|${settlementSig}`;
 }
+
+function invalidateBoardSettlementState() {
+    boardStatusCache = { signature: '', states: new Map() };
+    boardCountsCache = { signature: '', counts: null };
+    const container = document.getElementById('reservationBoardContainer');
+    if (container) container.dataset.renderSignature = '';
+    renderReservationBoard();
+}
+
+window.addEventListener('pms:settlement-completions-updated', invalidateBoardSettlementState);
+window.addEventListener('storage', event => {
+    if ([BOARD_SETTLEMENT_COMPLETIONS_KEY, BOARD_SETTLEMENT_REOPENS_KEY].includes(event.key)) invalidateBoardSettlementState();
+});
 
 function renderReservationBoard() {
     const container = document.getElementById('reservationBoardContainer');
@@ -1598,17 +1680,6 @@ async function syncBoardStayStateToHousekeeping(room, res, state) {
         }
         return;
     }
-    if (state === 'cleaning') {
-        if (window.PmsAPI?.syncRoomStatusToTask) {
-            await window.PmsAPI.syncRoomStatusToTask(roomId, 'cleaning', {
-                reservationId: res?.id,
-                guestName: primaryGuest(res),
-                type: 'stayover',
-                source: 'reservation-board'
-            });
-        }
-        return;
-    }
     if (state === 'clean') {
         if (window.PmsAPI?.syncRoomStatusToTask) {
             await window.PmsAPI.syncRoomStatusToTask(roomId, 'clean', {
@@ -1695,11 +1766,6 @@ window.setBoardStayState = async function(event, button) {
             room.cleaningStatus = 'dirty';
             room.guestFlag = 'none';
             res.guestFlag = 'none';
-        } else if (state === 'cleaning') {
-            room.housekeepingStatus = 'cleaning';
-            room.cleaningStatus = 'cleaning';
-            room.guestFlag = 'none';
-            res.guestFlag = 'none';
         } else if (state === 'clean') {
             room.housekeepingStatus = 'clean';
             room.cleaningStatus = 'clean';
@@ -1720,7 +1786,7 @@ window.setBoardStayState = async function(event, button) {
         await syncBoardStayStateToHousekeeping(room, res, state);
         renderReservationBoard();
         if (window.showToast) {
-            const labels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), cleaning: boardText('stay.cleaning'), clean: boardText('stay.clean') };
+            const labels = { none: boardText('stay.none'), dnd: boardText('stay.dnd'), away: boardText('stay.away'), mur: boardText('stay.mur'), clean: boardText('stay.clean') };
             window.showToast(boardTextFormat('stay.toast', { room: room.id || room.roomNo || roomKey, state: labels[state] || state }), 'success');
         }
     } finally {
@@ -1748,6 +1814,9 @@ window.setBoardCleanState = async function(event, button) {
             room.frontStatus = 'vacant-dirty';
             room.housekeepingStatus = 'dirty';
             room.cleaningStatus = 'dirty';
+            room.maintenanceStatus = '';
+            room.isOutOfService = false;
+            room.outOfService = false;
             if (window.PmsAPI?.syncRoomStatusToTask) {
                 await window.PmsAPI.syncRoomStatusToTask(roomId, 'vacant-dirty', {
                     type: 'checkout',
@@ -1755,27 +1824,36 @@ window.setBoardCleanState = async function(event, button) {
                     note: '예약현황에서 빈방 청소 필요 처리'
                 });
             }
-        } else if (state === 'cleaning') {
-            room.status = 'vacant-dirty';
-            room.frontStatus = 'vacant-dirty';
-            room.housekeepingStatus = 'cleaning';
-            room.cleaningStatus = 'cleaning';
-            if (window.PmsAPI?.syncRoomStatusToTask) {
-                await window.PmsAPI.syncRoomStatusToTask(roomId, 'cleaning', {
-                    type: 'checkout', source: 'reservation-board', note: '예약현황에서 청소 시작'
-                });
-            }
-        } else {
+        } else if (state === 'clean') {
             room.status = 'vacant-clean';
             room.frontStatus = 'vacant-clean';
             room.housekeepingStatus = 'clean';
             room.cleaningStatus = 'clean';
+            room.maintenanceStatus = '';
+            room.isOutOfService = false;
+            room.outOfService = false;
             if (window.PmsAPI?.syncRoomStatusToTask) {
                 await window.PmsAPI.syncRoomStatusToTask(roomId, 'clean', {
                     source: 'reservation-board',
                     note: '예약현황에서 빈방 청소 완료 처리'
                 });
             }
+        } else if (state === 'dnd') {
+            room.status = 'dnd';
+            room.frontStatus = 'dnd';
+            room.housekeepingStatus = 'dnd';
+            room.cleaningStatus = 'dnd';
+            room.maintenanceStatus = '';
+            room.isOutOfService = false;
+            room.outOfService = false;
+        } else if (state === 'oos') {
+            room.status = 'oos';
+            room.frontStatus = 'oos';
+            room.housekeepingStatus = 'oos';
+            room.cleaningStatus = 'oos';
+            room.maintenanceStatus = 'oos';
+            room.isOutOfService = true;
+            room.outOfService = true;
         }
         await persistBoardStayState(room, null);
         logBoardCleaningAudit({

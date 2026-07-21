@@ -1911,12 +1911,12 @@
                     </div>
                     <div class="md-item">
                         <div class="md-label" data-action-i18n="checkInTime" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkInTime'))}</div>
-                        <input type="time" id="unifiedCheckInTime" value="14:00" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                        <input type="text" inputmode="numeric" pattern="[0-2][0-9]:[0-5][0-9]" maxlength="5" autocomplete="off" id="unifiedCheckInTime" value="14:00" placeholder="HH:MM" aria-label="Check-in time (24-hour)" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                         <div id="unifiedCheckInTimeError" class="unified-stay-error" style="display:none;margin-top:5px;color:#dc2626;font-size:.72rem;font-weight:800;line-height:1.35"></div>
                     </div>
                     <div class="md-item">
                         <div class="md-label" data-action-i18n="checkOutTime" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('checkOutTime'))}</div>
-                        <input type="time" id="unifiedCheckOutTime" value="12:00" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
+                        <input type="text" inputmode="numeric" pattern="[0-2][0-9]:[0-5][0-9]" maxlength="5" autocomplete="off" id="unifiedCheckOutTime" value="12:00" placeholder="HH:MM" aria-label="Check-out time (24-hour)" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#fff;">
                         <div id="unifiedCheckOutTimeError" class="unified-stay-error" style="display:none;margin-top:5px;color:#dc2626;font-size:.72rem;font-weight:800;line-height:1.35"></div>
                     </div>
                     <div class="md-item">
@@ -1927,7 +1927,7 @@
                     </div>
                     <div class="md-item">
                         <div class="md-label" data-action-i18n="lateCheckoutTime" style="color:var(--txt2);font-size:0.8rem;margin-bottom:6px">${actionEscapeHtml(unifiedModalText('lateCheckoutTime'))}</div>
-                        <input type="time" id="unifiedLateCheckoutTime" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#f8fafc;">
+                        <input type="text" inputmode="numeric" pattern="[0-2][0-9]:[0-5][0-9]" maxlength="5" autocomplete="off" id="unifiedLateCheckoutTime" placeholder="HH:MM" aria-label="Late check-out time (24-hour)" style="height:38px;border:1px solid var(--border);border-radius:4px;padding:0 10px;font-family:var(--font);width:100%;font-weight:700;box-sizing:border-box;background:#f8fafc;">
                         <div id="unifiedLateCheckoutTimeError" class="unified-stay-error" style="display:none;margin-top:5px;color:#dc2626;font-size:.72rem;font-weight:800;line-height:1.35"></div>
                     </div>
                     <div id="unifiedStayTimeHelp" style="grid-column:1 / -1;margin-top:-10px;font-size:0.72rem;color:var(--txt3);font-weight:700;line-height:1.45"></div>
@@ -2057,7 +2057,10 @@
     function applyUnifiedReservationI18n() {
         const roots = [document.getElementById('unifiedResModal'), document.getElementById('reservationPlacardModal')].filter(Boolean);
         if (!roots.length) return;
+        const lang = actionLang() === 'en' ? 'en' : 'ko';
         roots.forEach(root => {
+            root.lang = lang;
+            root.querySelectorAll('input, select, textarea').forEach(control => { control.lang = lang; });
             root.querySelectorAll('[data-action-i18n]').forEach(el => {
                 const key = el.getAttribute('data-action-i18n');
                 el.textContent = unifiedModalText(key);

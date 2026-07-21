@@ -592,9 +592,9 @@
                             <option value="year" data-ko="&#52572;&#44540; 1&#45380;" data-en="Last 1 year">&#52572;&#44540; 1&#45380;</option>
                             <option value="custom" data-ko="&#44592;&#44036; &#49440;&#53469;" data-en="Custom period">&#44592;&#44036; &#49440;&#53469;</option>
                         </select>
-                        <input id="performanceStartDate" type="date" class="form-input" onfocus="activatePerformanceCustomPeriod()" onchange="activatePerformanceCustomPeriod();refreshCompanyPerformanceModal()" aria-label="&#49884;&#51089;&#51068;" data-date-format-sync>
+                        <input id="performanceStartDate" type="date" class="form-input" onfocus="activatePerformanceCustomPeriod()" onchange="activatePerformanceCustomPeriod()" aria-label="&#49884;&#51089;&#51068;" data-date-format-sync>
                         <span class="performance-range-separator">~</span>
-                        <input id="performanceEndDate" type="date" class="form-input" onfocus="activatePerformanceCustomPeriod()" onchange="activatePerformanceCustomPeriod();refreshCompanyPerformanceModal()" aria-label="&#51333;&#47308;&#51068;" data-date-format-sync>
+                        <input id="performanceEndDate" type="date" class="form-input" onfocus="activatePerformanceCustomPeriod()" onchange="activatePerformanceCustomPeriod()" aria-label="&#51333;&#47308;&#51068;" data-date-format-sync>
                         <button class="btn-primary-sm" style="height:38px" onclick="refreshCompanyPerformanceModal()"><span data-ko="&#51312;&#54924;" data-en="Search">&#51312;&#54924;</span></button>
                     </div>
                 </div>
@@ -1425,7 +1425,6 @@ function openBlockModal(compId) {
 
     function performanceRangeLabel(range = performanceRange()) {
         if (range.mode === 'all') return perfText('\uC804\uCCB4 \uAE30\uAC04', 'All periods');
-        if (range.mode === 'year') return perfText('\uCD5C\uADFC 1\uB144', 'Last 1 year');
         const start = range.start ? isoDate(range.start) : perfText('\uC2DC\uC791\uC77C \uBBF8\uC9C0\uC815', 'No start date');
         const end = range.end ? isoDate(range.end) : perfText('\uC885\uB8CC\uC77C \uBBF8\uC9C0\uC815', 'No end date');
         return `${start} ~ ${end}`;
@@ -1550,11 +1549,16 @@ function openBlockModal(compId) {
         const mode = document.getElementById('performancePeriodSelect')?.value || 'all';
         const start = document.getElementById('performanceStartDate');
         const end = document.getElementById('performanceEndDate');
-        if (mode !== 'custom') {
+        if (mode === 'year') {
+            const rangeEnd = performanceToday();
+            const rangeStart = new Date(rangeEnd);
+            rangeStart.setFullYear(rangeStart.getFullYear() - 1);
+            if (start) start.value = isoDate(rangeStart);
+            if (end) end.value = isoDate(rangeEnd);
+        } else if (mode === 'all') {
             if (start) start.value = '';
             if (end) end.value = '';
         }
-        refreshCompanyPerformanceModal();
     };
 
     window.activatePerformanceCustomPeriod = function() {

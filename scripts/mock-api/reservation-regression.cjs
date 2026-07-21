@@ -212,6 +212,19 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       status: 'vacant-dirty',
       housekeepingStatus: 'dirty',
       cleaningStatus: 'dirty'
+    }, {
+      id: 'T-906',
+      roomNo: 'T-906',
+      fullRoom: 'T-906',
+      number: '906',
+      type: 'Standard',
+      building: 'Test Tower',
+      frontStatus: 'oos',
+      status: 'oos',
+      housekeepingStatus: 'oos',
+      cleaningStatus: 'oos',
+      maintenanceStatus: 'oos',
+      isOutOfService: true
     }];
     reservations = [{
       id: 'RSV-BOARD-CLEANING-VISIBLE',
@@ -263,6 +276,8 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
     const selectedOption = cleanSelect?.selectedOptions?.[0];
     const dirtyCard = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => el.innerText.includes('Board Dirty Arrival'));
     const dirtySelect = dirtyCard?.querySelector('.board-clean-select');
+    const oosCard = Array.from(document.querySelectorAll('.reservation-board-box')).find(el => el.innerText.includes('T-906'));
+    const oosSelect = oosCard?.querySelector('.board-clean-select');
     const dirtySnapshot = {
       text: dirtyCard?.innerText || '',
       value: dirtySelect?.value || '',
@@ -281,7 +296,7 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       syncRoomStatusToTask: async () => {}
     };
     window.PmsMockApi = null;
-    dirtySelect.value = 'cleaning';
+    dirtySelect.value = 'dnd';
     await window.setBoardStayState({ preventDefault() {}, stopPropagation() {} }, dirtySelect);
     const fallbackLogs = JSON.parse(localStorage.getItem('pms_privacy_audit_logs') || '[]')
       .filter(entry => entry.action === 'room.cleaning.status' && entry.details?.room === 'T-905');
@@ -300,6 +315,8 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
       dirtyClass: dirtySnapshot.className,
       dirtyTone: dirtySnapshot.tone,
       dirtyBackground: dirtySnapshot.background,
+      oosOptionValues: Array.from(oosSelect?.options || []).map(option => option.value),
+      oosOptionLabels: Array.from(oosSelect?.options || []).map(option => option.textContent.trim()),
       fallbackAuditCount: fallbackLogs.length,
       fallbackAuditStatus: fallbackLogs[0]?.details?.status || ''
     };
@@ -311,7 +328,9 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
   assert(boardState.cleanValue === 'clean' && boardState.cleanLabel === '청소완료' && boardState.cleanClass.includes('clean'), 'Reservation board must show cleaning status even when check-in readiness is visible.', boardState);
 
   assert(boardState.dirtyText.includes('Board Dirty Arrival') && boardState.dirtyValue === 'mur' && boardState.dirtyClass.includes('mur') && boardState.dirtyTone === 'mur' && boardState.dirtyBackground !== 'rgb(255, 255, 255)', 'Reservation board must render a dirty arrival cleaning select with the orange MUR tone.', boardState);
-  assert(boardState.fallbackAuditCount === 1 && boardState.fallbackAuditStatus === 'cleaning', 'Reservation board cleaning changes must write one audit row when the shared audit module is unavailable.', boardState);
+  assert(JSON.stringify(boardState.oosOptionValues) === JSON.stringify(['dirty', 'clean', 'dnd', 'oos']), 'Out-of-service room status menu must expose exactly dirty, clean, DND, and maintenance.', boardState);
+  assert(JSON.stringify(boardState.oosOptionLabels) === JSON.stringify(['청소필요', '청소완료', '방해금지', '점검중']), 'Out-of-service room status menu labels must match the approved four statuses.', boardState);
+  assert(boardState.fallbackAuditCount === 1 && boardState.fallbackAuditStatus === 'dnd', 'Reservation board cleaning changes must write one audit row when the shared audit module is unavailable.', boardState);
 
   return boardState;
 }
@@ -520,12 +539,94 @@ async function reservationBoardFilterColorRegression(page, base) {
   return result;
 }
 
+async function reservationBoardSettlementAndGroupInvariantRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=board-settlement-group-invariant`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof renderReservationBoard === 'function' && typeof setBoardFilter === 'function', null, { timeout: 15000 });
+
+  const result = await page.evaluate(() => {
+    const today = window.__qaIsoDate(0);
+    const yesterday = window.__qaIsoDate(-1);
+    const tomorrow = window.__qaIsoDate(1);
+    localStorage.setItem('pms_lang', 'ko');
+    localStorage.removeItem('pms_settlement_completions');
+    localStorage.removeItem('pms_settlement_reopens');
+    currentLang = 'ko';
+    window.currentLang = 'ko';
+    boardFilter = 'all';
+    boardPeriod = 'today';
+    groups = [{ id: 'P1-GROUP-INVARIANT', name: 'P1 Group Invariant' }];
+    rooms = [
+      { id: 'T-GROUP', roomNo: 'T-GROUP', fullRoom: 'T-GROUP', type: 'Standard', building: 'Test Tower', floor: 1, status: 'occupied', frontStatus: 'in-house', housekeepingStatus: 'clean' },
+      { id: 'T-SETTLE', roomNo: 'T-SETTLE', fullRoom: 'T-SETTLE', type: 'Standard', building: 'Test Tower', floor: 1, status: 'occupied', frontStatus: 'in-house', housekeepingStatus: 'dirty' }
+    ];
+    reservations = [
+      {
+        id: 'RSV-P1-GROUP-INVARIANT', room: 'T-GROUP', roomNo: 'T-GROUP', fullRoom: 'T-GROUP', status: 'checkedin',
+        guest: 'Group Invariant Guest', guestName: 'Group Invariant Guest', groupId: 'P1-GROUP-INVARIANT', groupName: 'P1 Group Invariant', isB2B: true,
+        checkInDate: yesterday, checkOutDate: tomorrow, checkin: yesterday, checkout: tomorrow, amount: 100, balanceDue: 0
+      },
+      {
+        id: 'RSV-P1-SETTLEMENT', room: 'T-SETTLE', roomNo: 'T-SETTLE', fullRoom: 'T-SETTLE', status: 'checkout',
+        guest: 'Settlement Invariant Guest', guestName: 'Settlement Invariant Guest',
+        checkInDate: yesterday, checkOutDate: today, checkin: yesterday, checkout: today, amount: 100, balanceDue: 0
+      }
+    ];
+    window.rooms = rooms;
+    window.reservations = reservations;
+    const container = document.getElementById('reservationBoardContainer');
+    const capture = (filter, roomId) => {
+      setBoardFilter(filter);
+      const card = Array.from(document.querySelectorAll('.reservation-board-box')).find(element => element.querySelector('.room-box-num span')?.textContent.trim() === roomId);
+      const style = card ? getComputedStyle(card) : null;
+      return {
+        found: !!card,
+        className: card?.className || '',
+        status: card?.querySelector('.board-status')?.innerText.trim() || '',
+        borderColor: style?.borderColor || '',
+        boxShadow: style?.boxShadow || '',
+        settlement: card?.querySelector('.board-settlement-summary')?.innerText.trim() || ''
+      };
+    };
+
+    container.dataset.renderSignature = '';
+    renderReservationBoard();
+    const groupAll = capture('all', 'T-GROUP');
+    const groupFiltered = capture('group', 'T-GROUP');
+
+    localStorage.setItem('pms_settlement_completions', JSON.stringify([{
+      id: 'DONE-P1-SETTLEMENT', reservationId: 'RSV-P1-SETTLEMENT', room: 'T-SETTLE', businessDate: today,
+      completedAt: `${today}T10:00:00+09:00`
+    }]));
+    window.dispatchEvent(new CustomEvent('pms:settlement-completions-updated'));
+    const settlementCompleted = capture('all', 'T-SETTLE');
+
+    localStorage.setItem('pms_settlement_reopens', JSON.stringify([{
+      id: 'REOPEN-P1-SETTLEMENT', reservationId: 'RSV-P1-SETTLEMENT', room: 'T-SETTLE', businessDate: today,
+      reopenedAt: `${today}T10:01:00+09:00`
+    }]));
+    window.dispatchEvent(new CustomEvent('pms:settlement-completions-updated'));
+    const settlementReopened = capture('all', 'T-SETTLE');
+    const legendText = document.querySelector('.board-status-legend')?.innerText || '';
+    localStorage.removeItem('pms_settlement_completions');
+    localStorage.removeItem('pms_settlement_reopens');
+    return { groupAll, groupFiltered, settlementCompleted, settlementReopened, legendText };
+  });
+
+  assert(result.groupAll.found && result.groupFiltered.found, 'Group reservation must render in both all and group filters.', result);
+  assert(result.groupAll.className === result.groupFiltered.className && result.groupAll.status === result.groupFiltered.status && result.groupAll.borderColor === result.groupFiltered.borderColor && result.groupAll.boxShadow === result.groupFiltered.boxShadow, 'Group reservation card state and color must remain identical across all and group filters.', result);
+  assert(result.settlementCompleted.settlement.includes('정산 완료'), 'Reservation board must reflect a settlement completion record immediately.', result);
+  assert(result.settlementReopened.settlement.includes('정산 필요'), 'Reservation board must reflect a newer settlement reopen record immediately.', result);
+  assert(!result.legendText.includes('예약 예정') && !result.legendText.includes('단체 배정'), 'Today reservation board legend must not expose reserved or group-block colors.', result);
+  return result;
+}
+
 async function maintenanceRoomBookingGuardRegression(page, base) {
   await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=maintenance-booking-guard`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForFunction(() => typeof renderReservationBoard === 'function' && typeof openBoardRoomBooking === 'function', null, { timeout: 15000 });
 
-  const result = await page.evaluate(() => {
+  const result = await page.evaluate(async () => {
     const testRoom = (window.rooms || []).find(item => String(item.roomNo || item.number || item.id || '').includes('1215'))
       || { id: 'FT-1215', roomNo: '1215', number: '1215', type: 'Deluxe' };
     testRoom.status = 'out-of-service';
@@ -793,7 +894,7 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
   await page.waitForFunction(() => typeof renderReservationBoard === 'function' && document.querySelector('#reservationBoardContainer'), null, { timeout: 15000 });
 
-  const result = await page.evaluate(() => {
+  const result = await page.evaluate(async () => {
     const today = window.__qaIsoDate(0);
     const yesterday = window.__qaIsoDate(-1);
     const tomorrow = window.__qaIsoDate(1);
@@ -823,15 +924,27 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
     const container = document.querySelector('#reservationBoardContainer');
     container.dataset.renderSignature = '';
     renderReservationBoard();
+    const boardSearchPlaceholder = document.getElementById('boardSearch')?.getAttribute('placeholder') || '';
+    await openUnifiedResModal();
+    const modal = document.getElementById('unifiedResModal');
+    const timeFields = ['unifiedCheckInTime', 'unifiedCheckOutTime', 'unifiedLateCheckoutTime'].map(id => {
+      const input = document.getElementById(id);
+      return { id, type: input?.type || '', value: input?.value || '', lang: input?.lang || '', placeholder: input?.placeholder || '' };
+    });
+    modal?.remove();
     return {
       text: container.innerText,
-      legendAria: document.querySelector('.board-status-legend')?.getAttribute('aria-label') || ''
+      legendAria: document.querySelector('.board-status-legend')?.getAttribute('aria-label') || '',
+      boardSearchPlaceholder,
+      timeFields
     };
   });
 
   const required = ['Check-in 14:00', 'Check-out 12:00', 'Late 14:00', 'Balance Due', 'Moved T-EN-0 → T-EN-1', 'Group', 'P1 Test Group'];
   required.forEach(label => assert(result.text.includes(label), `Dynamic English board must render ${label}.`, result));
   assert(result.legendAria === 'Room status color guide', 'Dynamic English legend aria-label must be translated.', result);
+  assert(result.boardSearchPlaceholder === 'Search room, name, or group...', 'English reservation board search placeholder must not contain Korean text.', result);
+  assert(result.timeFields.every(field => field.type === 'text' && field.lang === 'en' && /^\d{2}:\d{2}$/.test(field.value) && field.placeholder === 'HH:MM'), 'English reservation time controls must use locale-neutral 24-hour text values.', result);
   assert(!/[가-힣]/.test(result.text), 'Dynamic English board must not render Korean labels after rerender.', result);
   return result;
 }
@@ -1141,6 +1254,8 @@ async function dateBoundaryRegression(browser, base) {
     console.log('[reservation-regression] date boundaries passed');
     const boardFilterColorResult = await reservationBoardFilterColorRegression(page, base);
     console.log('[reservation-regression] board filter colors passed');
+    const boardSettlementAndGroupInvariantResult = await reservationBoardSettlementAndGroupInvariantRegression(page, base);
+    console.log('[reservation-regression] board settlement and group filter invariants passed');
     const maintenanceBookingGuardResult = await maintenanceRoomBookingGuardRegression(page, base);
     console.log('[reservation-regression] maintenance booking guard passed');
     const overlappingReservationGuardResult = await overlappingReservationGuardRegression(page, base);
@@ -1483,6 +1598,7 @@ async function dateBoundaryRegression(browser, base) {
         'reservation board dynamic rerender stays fully English',
         'today check-in is blocked when the room master is out of service',
         'reservation board keeps card status colors stable across filters and hover',
+        'reservation board settlement and group filter state stays synchronized',
         'maintenance room cards explain the booking block without opening the form',
         'overlapping bookings show conflict details and do not save',
         'invalid dates and times stay visible, show adjacent errors, and do not save',
@@ -1504,6 +1620,7 @@ async function dateBoundaryRegression(browser, base) {
       dateBoundaryResult,
       todayCheckinRoomMasterResult,
       boardFilterColorResult,
+      boardSettlementAndGroupInvariantResult,
       maintenanceBookingGuardResult,
       overlappingReservationGuardResult,
       stayValidationResult,

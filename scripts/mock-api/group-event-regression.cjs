@@ -317,6 +317,48 @@ function assert(condition, message, details = null) {
     }));
     assert(editActionResult.modalActive && editActionResult.companyId, 'Company edit button must open the edit modal with the company loaded.', editActionResult);
     await page.evaluate(() => closeModal('companyModal'));
+
+    await firstCompanyCard.locator('[data-company-action="performance"]').first().click();
+    await page.waitForFunction(() => document.getElementById('companyPerformanceModal')?.classList.contains('active'), null, { timeout: 7000 });
+    const performanceQueryResult = await page.evaluate(async () => {
+      const originalRefresh = window.refreshCompanyPerformanceModal;
+      let refreshCalls = 0;
+      window.refreshCompanyPerformanceModal = async function(...args) {
+        refreshCalls += 1;
+        return originalRefresh.apply(this, args);
+      };
+
+      const period = document.getElementById('performancePeriodSelect');
+      const start = document.getElementById('performanceStartDate');
+      const end = document.getElementById('performanceEndDate');
+      period.value = 'year';
+      period.dispatchEvent(new Event('change', { bubbles: true }));
+      const afterPeriodChange = refreshCalls;
+      const yearStart = start.value;
+      const yearEnd = end.value;
+
+      start.dispatchEvent(new Event('change', { bubbles: true }));
+      end.dispatchEvent(new Event('change', { bubbles: true }));
+      const afterDateChanges = refreshCalls;
+
+      document.querySelector('#companyPerformanceModal .company-performance-toolbar .btn-primary-sm')?.click();
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const afterSearch = refreshCalls;
+      const rangeLabel = document.getElementById('performanceRangeLabel')?.textContent.trim() || '';
+
+      window.refreshCompanyPerformanceModal = originalRefresh;
+      closeModal('companyPerformanceModal');
+      return { afterPeriodChange, afterDateChanges, afterSearch, yearStart, yearEnd, rangeLabel };
+    });
+    const yearEndDate = new Date(`${performanceQueryResult.yearEnd}T00:00:00`);
+    const expectedYearStart = new Date(yearEndDate);
+    expectedYearStart.setFullYear(expectedYearStart.getFullYear() - 1);
+    const expectedYearStartIso = `${expectedYearStart.getFullYear()}-${String(expectedYearStart.getMonth() + 1).padStart(2, '0')}-${String(expectedYearStart.getDate()).padStart(2, '0')}`;
+    assert(performanceQueryResult.afterPeriodChange === 0 && performanceQueryResult.afterDateChanges === 0, 'Changing group usage period inputs must not run a query before Search is pressed.', performanceQueryResult);
+    assert(performanceQueryResult.afterSearch === 1, 'Group usage stats must run exactly once when Search is pressed.', performanceQueryResult);
+    assert(performanceQueryResult.yearStart === expectedYearStartIso && /^\d{4}-\d{2}-\d{2}$/.test(performanceQueryResult.yearEnd), 'Recent one-year selection must populate explicit start and end dates.', performanceQueryResult);
+    assert(performanceQueryResult.rangeLabel === `${performanceQueryResult.yearStart} ~ ${performanceQueryResult.yearEnd}`, 'Group usage summary must show the applied start and end dates.', performanceQueryResult);
+
     await firstCompanyCard.locator('[data-company-action="create"]').first().click();
     await page.waitForURL(/groups_block_detail\.html\?mode=new&companyId=/, { timeout: 7000 });
     assert(page.url().includes('groups_block_detail.html?mode=new&companyId='), 'Company event creation button must navigate to new event detail with companyId.', { url: page.url() });
@@ -606,6 +648,7 @@ function assert(condition, message, details = null) {
         'company card hover does not move the pointer hit area',
         'company card action buttons remain clickable',
         'company code, discount, and async edits persist',
+        'group usage period inputs wait for Search and expose an explicit one-year date range',
         'group detail hydrates company data for existing events',
         'group detail separates company baseline and event discount',
         'group detail requires registered company selection',
