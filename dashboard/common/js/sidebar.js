@@ -4,33 +4,29 @@
  */
 
 (function () {
-    function applyDesktopViewportRequest() {
+    window.PMS_TABLET_ONLY = true;
+
+    function applyTabletViewportPolicy() {
         const meta = document.querySelector('meta[name="viewport"]');
         if (!meta) return;
-        const params = new URLSearchParams(window.location.search);
-        const forcedView = params.get('view');
-        if (forcedView === 'mobile') {
-            document.documentElement.classList.add('mobile-viewport-requested');
-            return;
-        }
         const ua = navigator.userAgent || '';
         const uaDataMobile = navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean'
             ? navigator.userAgentData.mobile
             : null;
         const mobileUa = /Android|iPhone|iPad|iPod|Mobi|Mobile/i.test(ua);
-        const desktopLikeUa = uaDataMobile === false || !mobileUa;
         const touchDevice = Number(navigator.maxTouchPoints || 0) > 0;
         const screenShortSide = Math.min(
             Number(screen.width || window.innerWidth || 0),
             Number(screen.height || window.innerHeight || 0)
         );
-        const desktopViewRequested = forcedView === 'desktop' || (touchDevice && desktopLikeUa && screenShortSide <= 1024);
-        if (!desktopViewRequested) return;
-        meta.setAttribute('content', 'width=1180, initial-scale=1.0');
-        document.documentElement.classList.add('desktop-viewport-requested');
+        const narrowTouchViewport = touchDevice && screenShortSide > 0 && screenShortSide < 1180;
+        if (mobileUa || uaDataMobile === true || narrowTouchViewport) {
+            meta.setAttribute('content', 'width=1180, initial-scale=1.0');
+        }
+        document.documentElement.classList.add('tablet-desktop-only');
     }
 
-    applyDesktopViewportRequest();
+    applyTabletViewportPolicy();
 
     const _pathParts = window.location.pathname.split('/').filter(Boolean);
     const _parentDir = _pathParts[_pathParts.length - 2] || '';

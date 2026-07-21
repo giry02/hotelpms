@@ -861,7 +861,7 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
     assert(koList.channelLeaks.length === 0, 'Reservation list leaked channel labels.', koList.channelLeaks);
     assert(!koList.otaSearchText.includes('RSV-002'), 'Reservation search must not match hidden channel values.');
     assert(JSON.stringify(countValues(koList.desktopBadges)) === JSON.stringify({ '단체': 1, '개인': 2 }), 'Desktop reservation kind badges are wrong.', koList.desktopBadges);
-    assert(JSON.stringify(countValues(koList.mobileBadges)) === JSON.stringify({ '단체': 1, '개인': 2 }), 'Mobile reservation kind badges are wrong.', koList.mobileBadges);
+    assert(koList.mobileBadges.length === 0, 'Retired mobile reservation cards must not render.', koList.mobileBadges);
     assert(koList.sortLabels.includes('레이트 우선') && !koList.sortLabels.includes('레이트 체크아웃'), 'Late checkout sort button must not duplicate the filter label in Korean.', koList.sortLabels);
 
     const enList = await page.evaluate(() => {

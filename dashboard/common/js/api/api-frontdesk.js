@@ -131,6 +131,17 @@ Object.assign(window.PmsAPI, {
         return [...merged.values()];
     },
 
+    saveReservations: async (reservations) => {
+        const items = Array.isArray(reservations) ? reservations : [];
+        try {
+            if (window.PmsMockApi) await window.PmsMockApi.request('PUT', '/reservations', { body: items });
+        } catch(e) {
+            console.warn('Mock reservations save fallback', e);
+        }
+        localStorage.setItem('pms_reservations', JSON.stringify(items));
+        return true;
+    },
+
     syncGroupsToReservations: async (reservations) => {
         const groupStr = localStorage.getItem('pms_groups');
         if (!groupStr) return reservations;

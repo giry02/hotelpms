@@ -1581,7 +1581,7 @@ function renderTable() {
     if (paginated.length === 0) {
         const emptyState = reservationEmptyState();
         tbody.innerHTML = `<tr><td colspan="9">${emptyState}</td></tr>`;
-        mobileContainer.innerHTML = emptyState;
+        if (!window.PMS_TABLET_ONLY) mobileContainer.innerHTML = emptyState;
         return;
     }
 
@@ -1623,7 +1623,7 @@ function renderTable() {
     }).join('');
 
     // Mobile cards
-    mobileContainer.innerHTML = paginated.map(r => {
+    if (!window.PMS_TABLET_ONLY) mobileContainer.innerHTML = paginated.map(r => {
         const status = effectiveRowStatus(r);
         const st = statusMeta(status);
         const isVip = String(r.vip || '').includes('VIP') || String(r.vip || '').includes('Gold') || r.isVip;

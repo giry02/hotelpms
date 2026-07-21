@@ -244,19 +244,31 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         localStorage.setItem(overlayKey(resource), JSON.stringify(data));
     }
 
+    const envelopeCache = new Map();
+
     async function fetchEnvelope(route) {
-        const res = await fetch(new URL(route.file, apiRoot).href, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`Mock API JSON not found: ${route.file}`);
-        const payload = await res.json();
-        if (!payload || payload.success !== true || !payload.data || !payload.meta) {
-            throw new Error(`Mock API invalid envelope: ${route.file}`);
+        const url = new URL(route.file, apiRoot).href;
+        const cacheKey = `${url}|${dateShiftDays()}`;
+        if (!envelopeCache.has(cacheKey)) {
+            const pending = fetch(url, { cache: 'force-cache' }).then(async res => {
+                if (!res.ok) throw new Error(`Mock API JSON not found: ${route.file}`);
+                const payload = await res.json();
+                if (!payload || payload.success !== true || !payload.data || !payload.meta) {
+                    throw new Error(`Mock API invalid envelope: ${route.file}`);
+                }
+                const shifted = shiftMockDates(payload, dateShiftDays());
+                if (shifted?.meta) {
+                    shifted.meta.generatedAt = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : shifted.meta.generatedAt;
+                    shifted.meta.demoDate = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : shifted.meta.demoDate;
+                }
+                return shifted;
+            }).catch(error => {
+                envelopeCache.delete(cacheKey);
+                throw error;
+            });
+            envelopeCache.set(cacheKey, pending);
         }
-        const shifted = shiftMockDates(payload, dateShiftDays());
-        if (shifted?.meta) {
-            shifted.meta.generatedAt = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : shifted.meta.generatedAt;
-            shifted.meta.demoDate = window.PmsDate?.todayIso ? window.PmsDate.todayIso() : shifted.meta.demoDate;
-        }
-        return shifted;
+        return clone(await envelopeCache.get(cacheKey));
     }
 
     function isListPayload(payload) {

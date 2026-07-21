@@ -195,7 +195,7 @@
                     <div class="search-container">
                         <div class="search-box-mt">
                             <i class="fa-solid fa-magnifying-glass"></i>
-                            <input id="boardSearch" type="text" placeholder="객실번호, 이름, 단체명 검색..." oninput="renderReservationBoard()">
+                            <input id="boardSearch" type="text" placeholder="객실번호, 이름, 단체명 검색...">
                         </div>
                         <button class="btn-search" onclick="renderReservationBoard()"><i class="fa-solid fa-search"></i> 검색</button>
                     </div>
@@ -236,6 +236,7 @@ let groups = [];
 let boardFilter = 'all';
 let boardPeriod = 'today';
 let boardCountsCache = { signature: '', counts: null };
+let boardStatusCache = { signature: '', states: new Map() };
 
 const BOARD_TEXT = {
     ko: {
@@ -950,7 +951,7 @@ function boardCheckinReadiness(state, cleanInfo) {
     if (cleanInfo?.key === 'clean') return `<span class="board-readiness ready"><i class="fa-solid fa-circle-check"></i>${escapeHtml(boardText('readiness.ready'))}</span>`;
     return '';
 }
-function boardStatusFor(room) {
+function computeBoardStatusFor(room) {
     const range = boardRange();
     const focusDate = range.mode === 'day' ? range.start : todayDate();
     const roomStatus = normalizeStatus(room.status || room.frontStatus || room.housekeepingStatus);
@@ -987,6 +988,18 @@ function boardStatusFor(room) {
     const next = related.find(item => item.start > focusDate && item.start <= range.end);
     if (next) return { status: 'reserved', label: boardText('status.reserved'), res: next.res };
     return { status: 'vacant', label: boardText('status.vacant'), res: null };
+}
+
+function boardStatusFor(room) {
+    const signature = `${boardLang()}|${boardPeriod}|${boardDataSignature()}`;
+    if (boardStatusCache.signature !== signature) {
+        boardStatusCache = { signature, states: new Map() };
+    }
+    const key = String(room?.id || room?.roomId || room?.fullRoom || room?.roomNo || room?.number || room?.display || '');
+    if (key && boardStatusCache.states.has(key)) return boardStatusCache.states.get(key);
+    const state = computeBoardStatusFor(room);
+    if (key) boardStatusCache.states.set(key, state);
+    return state;
 }
 
 function roomType(room) {
@@ -1129,19 +1142,18 @@ async function refreshBoardDailyStayCleaning() {
         const room = roomForReservation(res);
         if (resetBoardDailyStayCleaning(room, res)) changedReservations.push(res);
     });
-    if (!changedReservations.length) return;
+    if (!changedReservations.length) return false;
     localStorage.setItem('pms_rooms', JSON.stringify(rooms));
     localStorage.setItem('pms_reservations', JSON.stringify(reservations));
     try {
-        if (window.PmsAPI?.saveRooms) await window.PmsAPI.saveRooms(rooms);
-        if (window.PmsMockApi) {
-            await Promise.all(changedReservations.map(res =>
-                window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res })
-            ));
-        }
+        await Promise.all([
+            window.PmsAPI?.saveRooms ? window.PmsAPI.saveRooms(rooms) : Promise.resolve(),
+            window.PmsAPI?.saveReservations ? window.PmsAPI.saveReservations(reservations) : Promise.resolve()
+        ]);
     } catch(e) {
         console.warn('Daily stay cleaning refresh failed', e);
     }
+    return true;
 }
 
 function boardStayActions(room, res) {
@@ -1462,7 +1474,15 @@ function toggleBuilding(el) {
 }
 
 function boardDataSignature() {
-    const roomSig = rooms.map(room => `${room.id || room.roomNo || ''}:${room.status || ''}`).join(',');
+    const roomSig = rooms.map(room => [
+        room.id || room.roomNo || '',
+        room.status || '',
+        room.frontStatus || '',
+        room.housekeepingStatus || '',
+        room.cleaningStatus || '',
+        room.guestFlag || '',
+        room.updatedAt || room.cleaningStatusUpdatedAt || ''
+    ].join(':')).join(',');
     const resSig = reservations.map(res => [
         res.id || res.reservationId || '',
         res.roomId || res.room || '',
@@ -1470,19 +1490,23 @@ function boardDataSignature() {
         res.guestName || res.guest || '',
         res.checkIn || res.checkinDate || '',
         res.checkOut || res.checkoutDate || '',
+        res.lateCheckout || res.lateCheckoutTime || '',
+        res.roomChangeFrom || res.previousRoom || res.movedFrom || '',
+        res.groupId || '',
+        res.guestFlag || '',
         res.updatedAt || ''
     ].join(':')).join(',');
     return `${roomSig}|${resSig}`;
 }
 
 function renderReservationBoard() {
-    updateBoardKpis();
     const container = document.getElementById('reservationBoardContainer');
     const signatureBase = `${boardLang()}|${boardPeriod}|${boardFilter}|${document.getElementById('boardSearch')?.value || ''}|${boardDataSignature()}`;
     if (container.dataset.renderSignature === signatureBase) {
         syncRenderedBoardControls();
         return;
     }
+    updateBoardKpis();
     const hasBuildings = rooms.some(room => room.building);
     let rendered = 0;
     const htmlParts = [];
@@ -1815,10 +1839,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.rooms = rooms;
     window.reservations = reservations;
     window.groups = groups;
-    await refreshBoardDailyStayCleaning();
     applyBoardUrlParams();
     document.getElementById('langSelect')?.addEventListener('change', () => setTimeout(window.applyLocalI18n, 0));
+    let searchTimer = null;
+    document.getElementById('boardSearch')?.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(renderReservationBoard, 180);
+    });
     renderReservationBoard();
+
+    const runDailyCleaningRefresh = async () => {
+        const changed = await refreshBoardDailyStayCleaning();
+        if (changed) renderReservationBoard();
+    };
+    // Let the operational board paint before applying the once-per-day
+    // housekeeping correction, which can trigger a second full render.
+    setTimeout(runDailyCleaningRefresh, 1500);
 });
 </script>
 </body>

@@ -3,6 +3,29 @@
  * 메뉴구조도_PMS.xlsx '최종 관리자(Super Admin)' 탭 기준
  */
 (function () {
+    window.PMS_TABLET_ONLY = true;
+
+    function applyTabletViewportPolicy() {
+        const meta = document.querySelector('meta[name="viewport"]');
+        if (!meta) return;
+        const ua = navigator.userAgent || '';
+        const uaDataMobile = navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean'
+            ? navigator.userAgentData.mobile
+            : null;
+        const mobileUa = /Android|iPhone|iPad|iPod|Mobi|Mobile/i.test(ua);
+        const touchDevice = Number(navigator.maxTouchPoints || 0) > 0;
+        const screenShortSide = Math.min(
+            Number(screen.width || window.innerWidth || 0),
+            Number(screen.height || window.innerHeight || 0)
+        );
+        if (mobileUa || uaDataMobile === true || (touchDevice && screenShortSide > 0 && screenShortSide < 1180)) {
+            meta.setAttribute('content', 'width=1180, initial-scale=1.0');
+        }
+        document.documentElement.classList.add('tablet-desktop-only');
+    }
+
+    applyTabletViewportPolicy();
+
     const ADMIN_STORAGE_PREFIX = 'pms_admin_store:';
     const DATA_STORAGE_KEYS = {
         users: 'users',
