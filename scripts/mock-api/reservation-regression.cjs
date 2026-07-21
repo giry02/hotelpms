@@ -1229,6 +1229,320 @@ async function successfulFlowClosesModalRegression(page, base) {
   return result;
 }
 
+async function reservationActionStateMatrixRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=action-state-matrix`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof processUnifiedReservationFlow === 'function', null, { timeout: 15000 });
+
+  const result = await page.evaluate(async () => {
+    const iso = offset => window.__qaIsoDate(offset);
+    const originals = {
+      api: window.PmsAPI,
+      mockApi: window.PmsMockApi,
+      confirm: window.showConfirm,
+      alert: window.showAlert,
+      toast: window.showToast
+    };
+    const alerts = [];
+    const toasts = [];
+    const confirmations = [];
+    const saves = [];
+    const housekeepingSyncs = [];
+    const auditCount = (id, action = 'checkout') => (window.PmsPrivacyAudit?.list?.() || []).filter(item =>
+      item.action === `reservation.${action}` && item.details?.reservationId === id
+    ).length;
+    const modalOpen = () => {
+      const modal = document.getElementById('unifiedResModal');
+      return !!(modal?.classList.contains('active') && modal.style.display !== 'none');
+    };
+    const installData = (reservation, room, folioBalance = null) => {
+      window.reservations = [reservation];
+      window.rooms = [room];
+      reservations = window.reservations;
+      rooms = window.rooms;
+      window.PmsMockApi = {
+        request: async (method, path) => path === '/folios'
+          ? { data: { items: folioBalance === null ? [] : [{ reservationId: reservation.id, balance: folioBalance, currency: 'PHP' }] } }
+          : path === '/room-types'
+            ? { data: { items: [{ id: 'RT-STANDARD', name: 'Standard', rate: 140 }] } }
+            : { data: {} },
+        items: envelope => envelope?.data?.items || []
+      };
+    };
+    const makeRoom = (id, overrides = {}) => ({
+      id, roomId: id, roomNo: id, fullRoom: id, type: 'Standard', status: 'occupied',
+      frontStatus: 'in-house', housekeepingStatus: 'occupied', guest: 'Matrix Guest', ...overrides
+    });
+    const makeReservation = (id, roomId, overrides = {}) => ({
+      id, reservationId: id, room: roomId, roomId, roomNo: roomId, fullRoom: roomId,
+      guest: 'Matrix Guest', guestName: 'Matrix Guest', status: 'checkedin',
+      checkInDate: iso(-1), checkOutDate: iso(1), checkin: iso(-1), checkout: iso(1),
+      checkInTime: '14:00', checkOutTime: '12:00', amount: 140, balanceDue: 0, ...overrides
+    });
+
+    window.showAlert = async message => { alerts.push(String(message)); };
+    window.showToast = (message, type) => { toasts.push({ message: String(message), type }); };
+    window.PmsAPI = {
+      saveReservation: async reservation => {
+        saves.push({ id: reservation.id, status: reservation.status });
+        await new Promise(resolve => setTimeout(resolve, 15));
+      },
+      syncRoomStatusToTask: async (roomId, status) => {
+        housekeepingSyncs.push({ roomId, status });
+      }
+    };
+
+    try {
+      const balanceRoom = makeRoom('T-MATRIX-BALANCE');
+      const balanceReservation = makeReservation('RSV-MATRIX-BALANCE', balanceRoom.id, { balanceDue: 25 });
+      installData(balanceReservation, balanceRoom, 25);
+      window.showConfirm = async (message, options = {}) => { confirmations.push({ message: String(message), options }); return true; };
+      await window.openUnifiedResModal(balanceReservation.id);
+      const balanceAuditBefore = auditCount(balanceReservation.id);
+      await window.processUnifiedReservationFlow('checkout');
+      const outstandingBlocked = {
+        status: balanceReservation.status,
+        roomStatus: balanceRoom.status,
+        modalOpen: modalOpen(),
+        auditDelta: auditCount(balanceReservation.id) - balanceAuditBefore,
+        alert: alerts.at(-1) || ''
+      };
+
+      const cancelledRoom = makeRoom('T-MATRIX-CANCEL');
+      const cancelledReservation = makeReservation('RSV-MATRIX-CANCEL', cancelledRoom.id);
+      installData(cancelledReservation, cancelledRoom, 0);
+      window.showConfirm = async (message, options = {}) => { confirmations.push({ message: String(message), options }); return false; };
+      await window.openUnifiedResModal(cancelledReservation.id);
+      const cancelAuditBefore = auditCount(cancelledReservation.id);
+      await window.processUnifiedReservationFlow('checkout');
+      const confirmationCancelled = {
+        status: cancelledReservation.status,
+        roomStatus: cancelledRoom.status,
+        modalOpen: modalOpen(),
+        auditDelta: auditCount(cancelledReservation.id) - cancelAuditBefore
+      };
+
+      const movedOldRoom = makeRoom('T-MATRIX-OLD', { status: 'vacant-clean', frontStatus: 'vacant', housekeepingStatus: 'clean', guest: '' });
+      const movedRoom = makeRoom('T-MATRIX-MOVED');
+      const movedReservation = makeReservation('RSV-MATRIX-MOVED', movedRoom.id, {
+        previousRoom: movedOldRoom.id,
+        roomChangeHistory: [{ fromRoom: movedOldRoom.id, toRoom: movedRoom.id, changedAt: `${iso(0)}T08:00:00+09:00` }]
+      });
+      window.reservations = [movedReservation];
+      window.rooms = [movedOldRoom, movedRoom];
+      reservations = window.reservations;
+      rooms = window.rooms;
+      window.PmsMockApi = {
+        request: async (method, path) => path === '/room-types'
+          ? { data: { items: [{ id: 'RT-STANDARD', name: 'Standard', rate: 140 }] } }
+          : { data: {} },
+        items: envelope => envelope?.data?.items || []
+      };
+      window.showConfirm = async (message, options = {}) => { confirmations.push({ message: String(message), options }); return true; };
+      await window.openUnifiedResModal(movedReservation.id);
+      await window.processUnifiedReservationFlow('checkout');
+      const movedCheckout = {
+        status: movedReservation.status,
+        currentRoom: { status: movedRoom.status, housekeepingStatus: movedRoom.housekeepingStatus },
+        previousRoom: { status: movedOldRoom.status, housekeepingStatus: movedOldRoom.housekeepingStatus }
+      };
+
+      const futureRoom = makeRoom('T-MATRIX-FUTURE', { status: 'vacant-clean', frontStatus: 'vacant', housekeepingStatus: 'clean', guest: '' });
+      const futureReservation = makeReservation('RSV-MATRIX-FUTURE', futureRoom.id, {
+        status: 'confirmed', checkInDate: iso(1), checkOutDate: iso(2), checkin: iso(1), checkout: iso(2)
+      });
+      installData(futureReservation, futureRoom, 0);
+      await window.openUnifiedResModal(futureReservation.id);
+      const futureAuditBefore = auditCount(futureReservation.id);
+      await window.processUnifiedReservationFlow('checkin');
+      const futureCheckinBlocked = {
+        status: futureReservation.status,
+        roomStatus: futureRoom.status,
+        modalOpen: modalOpen(),
+        auditDelta: auditCount(futureReservation.id) - futureAuditBefore,
+        alert: alerts.at(-1) || ''
+      };
+
+      const dirtyRoom = makeRoom('T-MATRIX-DIRTY', {
+        status: 'vacant-dirty', frontStatus: 'vacant', housekeepingStatus: 'dirty', guest: ''
+      });
+      const dirtyReservation = makeReservation('RSV-MATRIX-DIRTY', dirtyRoom.id, {
+        status: 'confirmed', checkInDate: iso(0), checkOutDate: iso(2), checkin: iso(0), checkout: iso(2)
+      });
+      installData(dirtyReservation, dirtyRoom, 0);
+      window.showConfirm = async (message, options = {}) => {
+        confirmations.push({ message: String(message), options });
+        return false;
+      };
+      await window.openUnifiedResModal(dirtyReservation.id);
+      const dirtyAuditBefore = auditCount(dirtyReservation.id, 'checkin');
+      await window.processUnifiedReservationFlow('checkin');
+      const dirtyCheckinCancelled = {
+        status: dirtyReservation.status,
+        roomStatus: dirtyRoom.status,
+        housekeepingStatus: dirtyRoom.housekeepingStatus,
+        modalOpen: modalOpen(),
+        auditDelta: auditCount(dirtyReservation.id, 'checkin') - dirtyAuditBefore,
+        prompt: confirmations.at(-1) || {}
+      };
+
+      const dirtySaveBefore = saves.length;
+      window.showConfirm = async (message, options = {}) => {
+        confirmations.push({ message: String(message), options });
+        return true;
+      };
+      await window.processUnifiedReservationFlow('checkin');
+      const dirtyCheckinConfirmed = {
+        status: dirtyReservation.status,
+        roomStatus: dirtyRoom.status,
+        frontStatus: dirtyRoom.frontStatus,
+        housekeepingStatus: dirtyRoom.housekeepingStatus,
+        modalOpen: modalOpen(),
+        saveDelta: saves.length - dirtySaveBefore,
+        auditDelta: auditCount(dirtyReservation.id, 'checkin') - dirtyAuditBefore
+      };
+
+      const duplicateRoom = makeRoom('T-MATRIX-DUPLICATE');
+      const duplicateReservation = makeReservation('RSV-MATRIX-DUPLICATE', duplicateRoom.id);
+      installData(duplicateReservation, duplicateRoom, 0);
+      let duplicateConfirmCalls = 0;
+      window.showConfirm = async (message, options = {}) => {
+        confirmations.push({ message: String(message), options });
+        duplicateConfirmCalls += 1;
+        await new Promise(resolve => setTimeout(resolve, 20));
+        return true;
+      };
+      await window.openUnifiedResModal(duplicateReservation.id);
+      const duplicateAuditBefore = auditCount(duplicateReservation.id);
+      const saveBefore = saves.length;
+      const syncBefore = housekeepingSyncs.length;
+      await Promise.all([
+        window.processUnifiedReservationFlow('checkout'),
+        window.processUnifiedReservationFlow('checkout')
+      ]);
+      const duplicateCheckout = {
+        status: duplicateReservation.status,
+        confirmCalls: duplicateConfirmCalls,
+        saveDelta: saves.length - saveBefore,
+        syncDelta: housekeepingSyncs.length - syncBefore,
+        auditDelta: auditCount(duplicateReservation.id) - duplicateAuditBefore,
+        modalOpen: modalOpen()
+      };
+
+      const repeatAuditBefore = auditCount(duplicateReservation.id);
+      await window.openUnifiedResModal(duplicateReservation.id);
+      await window.processUnifiedReservationFlow('checkout');
+      const completedRepeatBlocked = {
+        status: duplicateReservation.status,
+        auditDelta: auditCount(duplicateReservation.id) - repeatAuditBefore,
+        alert: alerts.at(-1) || ''
+      };
+
+      return {
+        outstandingBlocked,
+        confirmationCancelled,
+        movedCheckout,
+        futureCheckinBlocked,
+        dirtyCheckinCancelled,
+        dirtyCheckinConfirmed,
+        duplicateCheckout,
+        completedRepeatBlocked,
+        confirmationCount: confirmations.length,
+        toastCount: toasts.length
+      };
+    } finally {
+      window.PmsAPI = originals.api;
+      window.PmsMockApi = originals.mockApi;
+      window.showConfirm = originals.confirm;
+      window.showAlert = originals.alert;
+      window.showToast = originals.toast;
+    }
+  });
+
+  assert(result.outstandingBlocked.status === 'checkedin' && result.outstandingBlocked.roomStatus === 'occupied', 'Outstanding balance must leave reservation and room unchanged.', result.outstandingBlocked);
+  assert(result.outstandingBlocked.modalOpen && result.outstandingBlocked.auditDelta === 0 && /25/.test(result.outstandingBlocked.alert), 'Outstanding balance must keep the modal open, explain the amount, and avoid audit mutation.', result.outstandingBlocked);
+  assert(result.confirmationCancelled.status === 'checkedin' && result.confirmationCancelled.roomStatus === 'occupied' && result.confirmationCancelled.modalOpen && result.confirmationCancelled.auditDelta === 0, 'Cancelling early checkout confirmation must preserve state and keep the modal open.', result.confirmationCancelled);
+  assert(result.movedCheckout.status === 'completed' && result.movedCheckout.currentRoom.status === 'vacant-dirty' && result.movedCheckout.currentRoom.housekeepingStatus === 'dirty', 'Checkout after room move must release the current room.', result.movedCheckout);
+  assert(result.movedCheckout.previousRoom.status === 'vacant-clean' && result.movedCheckout.previousRoom.housekeepingStatus === 'clean', 'Checkout after room move must not mutate the previous room.', result.movedCheckout);
+  assert(result.futureCheckinBlocked.status === 'confirmed' && result.futureCheckinBlocked.roomStatus === 'vacant-clean' && result.futureCheckinBlocked.modalOpen && result.futureCheckinBlocked.auditDelta === 0, 'Future reservation check-in must be blocked without state or audit changes.', result.futureCheckinBlocked);
+  assert(result.dirtyCheckinCancelled.status === 'confirmed' && result.dirtyCheckinCancelled.roomStatus === 'vacant-dirty' && result.dirtyCheckinCancelled.housekeepingStatus === 'dirty' && result.dirtyCheckinCancelled.modalOpen && result.dirtyCheckinCancelled.auditDelta === 0, 'Cancelling the dirty-room warning must preserve reservation and room state.', result.dirtyCheckinCancelled);
+  assert(/dirty|clean|청소/i.test(`${result.dirtyCheckinCancelled.prompt.message || ''} ${result.dirtyCheckinCancelled.prompt.options?.title || ''}`), 'Dirty-room check-in must show an explicit room-readiness warning.', result.dirtyCheckinCancelled);
+  assert(result.dirtyCheckinConfirmed.status === 'checkedin' && result.dirtyCheckinConfirmed.roomStatus === 'occupied' && result.dirtyCheckinConfirmed.frontStatus === 'in-house' && result.dirtyCheckinConfirmed.housekeepingStatus === 'dirty' && result.dirtyCheckinConfirmed.saveDelta === 1 && result.dirtyCheckinConfirmed.auditDelta === 1 && !result.dirtyCheckinConfirmed.modalOpen, 'Confirming dirty-room check-in must save once, preserve the dirty warning state, audit once, and close the modal.', result.dirtyCheckinConfirmed);
+  assert(result.duplicateCheckout.status === 'completed' && result.duplicateCheckout.confirmCalls === 1 && result.duplicateCheckout.saveDelta === 1 && result.duplicateCheckout.syncDelta === 1 && result.duplicateCheckout.auditDelta === 1 && !result.duplicateCheckout.modalOpen, 'Concurrent checkout clicks must execute exactly once.', result.duplicateCheckout);
+  assert(result.completedRepeatBlocked.status === 'completed' && result.completedRepeatBlocked.auditDelta === 0, 'Repeated checkout after completion must not create a second mutation or audit entry.', result.completedRepeatBlocked);
+  return result;
+}
+
+async function reservationFlowPersistenceReloadRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=flow-persistence-reload`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof processUnifiedReservationFlow === 'function', null, { timeout: 15000 });
+
+  const storageSnapshot = await page.evaluate(() => ({
+    reservations: localStorage.getItem('pms_reservations'),
+    rooms: localStorage.getItem('pms_rooms')
+  }));
+
+  try {
+    const immediate = await page.evaluate(async () => {
+      const today = window.__qaIsoDate(0);
+      const tomorrow = window.__qaIsoDate(1);
+      const room = {
+        id: 'T-PERSIST-ROOM', roomId: 'T-PERSIST-ROOM', roomNo: 'T-PERSIST-ROOM', fullRoom: 'T-PERSIST-ROOM',
+        type: 'Standard', status: 'occupied', frontStatus: 'in-house', housekeepingStatus: 'occupied', guest: 'Persist Guest'
+      };
+      const reservation = {
+        id: 'RSV-PERSIST-RELOAD', reservationId: 'RSV-PERSIST-RELOAD', room: room.id, roomId: room.id,
+        roomNo: room.roomNo, fullRoom: room.id, guest: 'Persist Guest', guestName: 'Persist Guest', status: 'checkedin',
+        checkInDate: today, checkOutDate: tomorrow, checkin: today, checkout: tomorrow,
+        checkInTime: '14:00', checkOutTime: '12:00', amount: 140, balanceDue: 0
+      };
+      window.reservations = [reservation];
+      window.rooms = [room];
+      reservations = window.reservations;
+      rooms = window.rooms;
+      window.PmsAPI = null;
+      window.PmsMockApi = {
+        request: async (method, path) => path === '/room-types'
+          ? { data: { items: [{ id: 'RT-STANDARD', name: 'Standard', rate: 140 }] } }
+          : { data: {} },
+        items: envelope => envelope?.data?.items || []
+      };
+      window.showConfirm = async () => true;
+      window.showAlert = async () => {};
+      window.showToast = () => {};
+      localStorage.setItem('pms_reservations', JSON.stringify([reservation]));
+      localStorage.setItem('pms_rooms', JSON.stringify([room]));
+      await window.openUnifiedResModal(reservation.id);
+      window.PmsMockApi = null;
+      await window.processUnifiedReservationFlow('checkout');
+      return {
+        reservation: JSON.parse(localStorage.getItem('pms_reservations') || '[]').find(item => item.id === reservation.id),
+        room: JSON.parse(localStorage.getItem('pms_rooms') || '[]').find(item => item.id === room.id)
+      };
+    });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    const afterReload = await page.evaluate(() => ({
+      reservation: JSON.parse(localStorage.getItem('pms_reservations') || '[]').find(item => item.id === 'RSV-PERSIST-RELOAD'),
+      room: JSON.parse(localStorage.getItem('pms_rooms') || '[]').find(item => item.id === 'T-PERSIST-ROOM')
+    }));
+
+    for (const [phase, state] of Object.entries({ immediate, afterReload })) {
+      assert(state.reservation?.status === 'completed' && state.reservation?.checkoutCompleted === true && !!state.reservation?.actualCheckOutDate && !!state.reservation?.actualCheckOutAt, `Checkout must persist completed timestamps ${phase}.`, state);
+      assert(state.room?.status === 'vacant-dirty' && state.room?.frontStatus === 'vacant' && state.room?.housekeepingStatus === 'dirty' && state.room?.guest === '', `Checkout must persist the released dirty room ${phase}.`, state);
+    }
+    return { immediate, afterReload };
+  } finally {
+    await page.evaluate(snapshot => {
+      if (snapshot.reservations === null) localStorage.removeItem('pms_reservations');
+      else localStorage.setItem('pms_reservations', snapshot.reservations);
+      if (snapshot.rooms === null) localStorage.removeItem('pms_rooms');
+      else localStorage.setItem('pms_rooms', snapshot.rooms);
+    }, storageSnapshot);
+  }
+}
+
 async function dateBoundaryRegression(browser, base) {
   const scenarios = [
     '2026-07-21',
@@ -1425,6 +1739,10 @@ async function dateBoundaryRegression(browser, base) {
     console.log('[reservation-regression] timeline shadow passed');
     const successfulFlowClosesModalResult = await successfulFlowClosesModalRegression(page, base);
     console.log('[reservation-regression] modal close passed');
+    const reservationActionStateMatrixResult = await reservationActionStateMatrixRegression(page, base);
+    console.log('[reservation-regression] action state matrix passed');
+    const reservationFlowPersistenceReloadResult = await reservationFlowPersistenceReloadRegression(page, base);
+    console.log('[reservation-regression] flow persistence reload passed');
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -1763,6 +2081,8 @@ async function dateBoundaryRegression(browser, base) {
         'reservation cancellation requires and audits a reason',
         'reservation date, rate, and note edits persist after reopening',
         'reservation timeline prefers the saved booking over a stale same-guest handoff',
+        'reservation action matrix blocks invalid transitions and deduplicates concurrent checkout',
+        'check-in and checkout state changes survive browser reload in fallback storage',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
         'dashboard today check-in KPI matches reservation board after rooms become in-house',
@@ -1775,6 +2095,8 @@ async function dateBoundaryRegression(browser, base) {
       boardRoomDatePreservationResult,
       reservationWindowQueryResult,
       successfulFlowClosesModalResult,
+      reservationActionStateMatrixResult,
+      reservationFlowPersistenceReloadResult,
       dateBoundaryResult,
       todayCheckinRoomMasterResult,
       boardFilterColorResult,

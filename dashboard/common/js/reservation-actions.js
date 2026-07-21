@@ -701,6 +701,7 @@
     let unifiedLastRateQuote = null;
     let unifiedPreserveRoomSelection = false;
     let unifiedPreferredRoomValue = '';
+    const unifiedFlowLocks = new Set();
 
     function unifiedAmountValue(value) {
         if (window.PmsMockApi?.amountValue) return window.PmsMockApi.amountValue(value);
@@ -3314,6 +3315,12 @@
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
         const res = allRes?.find(item => item.id === id);
         if (!res) return;
+        const flowKey = `${String(id)}:${String(action)}`;
+        if (unifiedFlowLocks.has(flowKey)) return;
+        unifiedFlowLocks.add(flowKey);
+        const flowButtons = Array.from(document.querySelectorAll('#unifiedFlowActions button'));
+        flowButtons.forEach(button => { button.disabled = true; });
+        try {
         if ((!window.rooms || !window.rooms.length) && window.PmsAPI?.getAllRooms) {
             try {
                 window.rooms = await window.PmsAPI.getAllRooms();
@@ -3417,6 +3424,10 @@
         }
         refreshUnifiedReservationViews({ action: `flow:${action}`, reservation: res });
         closeUnifiedResModal();
+        } finally {
+            unifiedFlowLocks.delete(flowKey);
+            flowButtons.forEach(button => { button.disabled = false; });
+        }
     };
     
     window.toggleUnifiedGroupSelect = function() {
