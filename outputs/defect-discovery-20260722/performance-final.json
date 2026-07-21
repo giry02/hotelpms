@@ -1,0 +1,121 @@
+{
+  "generatedAt": "2026-07-21T15:57:43.400Z",
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "blocked": 0
+  },
+  "results": [
+    {
+      "id": "DISC-PERF-001",
+      "title": "예약 1,000건 현황 초기 로드",
+      "procedure": "격리 저장소에 예약 1,000건을 주입하고 운영 배포본을 5회 새 컨텍스트에서 연 뒤 중앙값, P95, 최댓값을 측정한다.",
+      "status": "PASS",
+      "startedAt": "2026-07-21T15:57:26.038Z",
+      "finishedAt": "2026-07-21T15:57:31.593Z",
+      "details": {
+        "target": "https://hotelpms-eight.vercel.app",
+        "fixtureCount": 1000,
+        "durations": [
+          1080,
+          1048,
+          1159,
+          1187,
+          1065
+        ],
+        "medianMs": 1080,
+        "p95Ms": 1187,
+        "maxMs": 1187
+      }
+    },
+    {
+      "id": "DISC-PERF-002",
+      "title": "예약 이력 10,000건 타임라인 기간 조회",
+      "procedure": "예약 10,000건을 주입한 뒤 14일 타임라인을 이동하고 요청 범위와 렌더 결과가 선택 기간에 한정되는지 확인한다.",
+      "status": "PASS",
+      "startedAt": "2026-07-21T15:57:31.593Z",
+      "finishedAt": "2026-07-21T15:57:32.787Z",
+      "details": {
+        "target": "https://hotelpms-eight.vercel.app",
+        "fixtureCount": 10000,
+        "requests": [
+          {
+            "from": "2026-07-29",
+            "to": "2026-08-11",
+            "page": 1,
+            "pageSize": 1000
+          }
+        ],
+        "query": {
+          "from": "2026-07-29",
+          "to": "2026-08-11",
+          "page": 1,
+          "pageSize": 1000
+        },
+        "resultCount": 20,
+        "inRange": true,
+        "elapsedMs": 39.30000001192093
+      }
+    },
+    {
+      "id": "DISC-PERF-003",
+      "title": "감사로그 10,000건 검색·기간·페이지",
+      "procedure": "감사로그 10,000건을 주입하고 12건 페이지, 2페이지 이동, 고유 검색어 필터 및 처리 시간을 확인한다.",
+      "status": "PASS",
+      "startedAt": "2026-07-21T15:57:32.787Z",
+      "finishedAt": "2026-07-21T15:57:35.278Z",
+      "details": {
+        "target": "https://hotelpms-eight.vercel.app",
+        "fixtureCount": 10000,
+        "pageOneRows": 12,
+        "pageTwoRows": 12,
+        "currentPage": "2",
+        "total": 10020,
+        "filteredTotal": 1,
+        "filteredRows": 1,
+        "elapsedMs": 260.19999998807907
+      }
+    },
+    {
+      "id": "DISC-PERF-004",
+      "title": "단체 행사 1,000건 최근 1년 통계",
+      "procedure": "완전한 요약 데이터를 가진 단체 행사 1,000건을 주입하고 기간 변경은 조회 전 결과를 바꾸지 않으며 조회 후 5초 안에 집계되는지 확인한다.",
+      "status": "PASS",
+      "startedAt": "2026-07-21T15:57:35.278Z",
+      "finishedAt": "2026-07-21T15:57:36.758Z",
+      "details": {
+        "target": "https://hotelpms-eight.vercel.app",
+        "fixtureCount": 1000,
+        "before": "전체 1000건 중 1000건 표시",
+        "afterPeriodChange": "전체 1000건 중 1000건 표시",
+        "afterSearch": "전체 1000건 중 1000건 표시",
+        "detailCalls": 0,
+        "elapsedMs": 224.9000000357628,
+        "start": "2025-07-22",
+        "end": "2026-07-22",
+        "renderedRows": 1000
+      }
+    },
+    {
+      "id": "DISC-PERF-005",
+      "title": "페이지 10회 이동 중복 이벤트·메모리",
+      "procedure": "예약 현황과 타임라인을 같은 브라우저 컨텍스트에서 10회 이동하고 마지막 카드 한 번 클릭이 모달 하나만 여는지 확인한다.",
+      "status": "PASS",
+      "startedAt": "2026-07-21T15:57:36.758Z",
+      "finishedAt": "2026-07-21T15:57:43.400Z",
+      "details": {
+        "target": "https://hotelpms-eight.vercel.app",
+        "navigations": 10,
+        "initialHeap": 10000000,
+        "finalHeap": 10000000,
+        "cards": 33,
+        "activeBefore": 0,
+        "activeAfter": 1,
+        "detailModals": 1
+      }
+    }
+  ],
+  "target": "https://hotelpms-eight.vercel.app",
+  "scope": "defect-discovery-performance"
+}

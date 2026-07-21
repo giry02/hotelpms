@@ -298,16 +298,19 @@ function groupFixtures(count, companyId, today) {
       await page.waitForTimeout(500);
       const before = await page.evaluate(() => ({
         cards: document.querySelectorAll('.reservation-board-box[onclick*="openUnifiedResModal"]').length,
-        activeBefore: document.querySelectorAll('.modal.active, .modal.show').length
+        activeBefore: document.querySelectorAll('.modal.active, .modal.show, .modal-overlay.active').length
       }));
       const card = page.locator('.reservation-board-box[onclick*="openUnifiedResModal"]').first();
       if (before.cards) {
         await card.click();
-        await page.waitForTimeout(250);
+        await page.waitForFunction(() => {
+          const modal = document.querySelector('#unifiedResModal');
+          return modal?.classList.contains('active') && getComputedStyle(modal).display !== 'none';
+        }, null, { timeout: 5000 });
       }
       const after = await page.evaluate(() => ({
-        activeAfter: document.querySelectorAll('.modal.active, .modal.show').length,
-        detailModals: document.querySelectorAll('#unifiedReservationModal.active, #reservationModal.active, .modal.active').length
+        activeAfter: document.querySelectorAll('.modal.active, .modal.show, .modal-overlay.active').length,
+        detailModals: document.querySelectorAll('#unifiedResModal.active, #unifiedReservationModal.active, #reservationModal.active').length
       }));
       const result = { ...before, ...after };
       assert(errors.length === 0, 'Repeated navigation produced browser errors', errors);
