@@ -210,6 +210,9 @@ const ACTION_META = {
     'ancillary.order.reopen': { label: '부가서비스 미완료 전환', type: 'other', icon: 'fa-rotate-left' },
     'folio.payment.complete': { label: '정산 수납 완료', type: 'other', icon: 'fa-cash-register' },
     'folio.settlement.reopen': { label: '정산 미완료 전환', type: 'other', icon: 'fa-rotate-left' },
+    'staff.create': { label: '직원 등록', type: 'other', icon: 'fa-user-plus' },
+    'staff.update': { label: '직원 정보 변경', type: 'other', icon: 'fa-user-pen' },
+    'staff.delete': { label: '직원 삭제', type: 'other', icon: 'fa-user-minus' },
     'approval.refund.request': { label: '환불 승인 요청', type: 'other', icon: 'fa-circle-exclamation' },
     'night.audit.cash.handover': { label: '시재 인수인계', type: 'other', icon: 'fa-money-bill-transfer' }
 };
@@ -245,7 +248,13 @@ const FIELD_LABELS = {
     orderId: '주문번호',
     service: '서비스',
     item: '항목',
-    cancelReason: '취소 사유'
+    cancelReason: '취소 사유',
+    staffId: '직원 ID',
+    staffName: '직원명',
+    employeeId: '사번',
+    role: '역할',
+    hireDate: '입사일',
+    terminationDate: '퇴사일'
 };
 
 const AUDIT_DEMO_STORAGE_KEY = 'pms_audit_demo_seed_v3';
@@ -611,7 +620,7 @@ function targetText(entry) {
     const guest = d.guestName || d.afterGuest || d.beforeGuest || '';
     const reservationId = d.reservationId || '';
     if (guest && reservationId) return `${guest} · ${reservationId}`;
-    return guest || reservationId || d.folioId || d.orderId || d.guestId || d.exportType || d.room || '-';
+    return guest || reservationId || d.staffName || d.staffId || d.folioId || d.orderId || d.guestId || d.exportType || d.room || '-';
 }
 
 function detailText(entry) {
@@ -621,6 +630,9 @@ function detailText(entry) {
     if (d.folioId) parts.push(`Folio ${d.folioId}`);
     if (d.orderId) parts.push(`주문 ${d.orderId}`);
     if (d.guestId) parts.push(`고객 ID ${d.guestId}`);
+    if (d.staffId) parts.push(`직원 ID ${d.staffId}`);
+    if (d.employeeId || d.afterEmployeeId || d.beforeEmployeeId) parts.push(`사번 ${d.beforeEmployeeId || d.employeeId || '-'} → ${d.afterEmployeeId || d.employeeId || '-'}`);
+    if (d.beforeRole || d.afterRole) parts.push(`역할 ${d.beforeRole || '-'} → ${d.afterRole || '-'}`);
     if (d.service) parts.push(`서비스 ${d.service}`);
     if (d.item) parts.push(`항목 ${d.item}`);
     if (d.exportType) parts.push(String(d.exportType).toUpperCase());

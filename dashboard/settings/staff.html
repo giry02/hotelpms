@@ -16,6 +16,7 @@
     <script src="../common/js/i18n-catalog.js"></script>
 <script src="../common/js/i18n.js"></script>
     <script src="../common/js/sidebar.js"></script>
+    <script src="../common/js/privacy-audit.js"></script>
     <script>
         let ALL_MENUS = [];
     </script>
@@ -554,6 +555,19 @@ function populateEditRoleOptions(selectedRoleId = '') {
     else if (roles.length) editSel.value = roles[0].id;
 }
 
+function logStaffAudit(action, staff, details = {}) {
+    if (!window.PmsPrivacyAudit || !staff) return;
+    window.PmsPrivacyAudit.log(action, {
+        screen: 'staff',
+        staffId: staff.id || '',
+        staffName: staff.name || '',
+        roleId: staff.roleId || '',
+        status: normalizeStaffStatus(staff.status),
+        fields: ['staffId', 'staffName', ...(details.fields || [])],
+        ...details
+    });
+}
+
 function populateNewRoleOptions(selectedRoleId = '') {
     const newSel = document.getElementById('newRole');
     if (!newSel) return;
@@ -729,7 +743,7 @@ function saveStaff() {
     }
     const selectedRole = getRoleById(roleId);
 
-    staffData.push({
+    const newStaff = {
         id: 'staff_' + Date.now(),
         name,
         email,
@@ -745,9 +759,17 @@ function saveStaff() {
         last: '방금 등록',
         passwordUpdatedAt: new Date().toISOString(),
         passwordChangeRequired: false
-    });
+    };
+    staffData.push(newStaff);
 
     staffData = saveStaffData(staffData);
+    logStaffAudit('staff.create', newStaff, {
+        fields: ['employeeId', 'role', 'status', 'hireDate'],
+        employeeId: newStaff.empId,
+        afterRole: newStaff.roleId,
+        afterStatus: newStaff.status,
+        hireDate: newStaff.hireDate
+    });
     renderStaff();
     closeModal('addStaffModal');
     resetAddForm();
@@ -822,6 +844,14 @@ function saveEdit() {
         showToast('관리자 계정은 호텔 설정의 관리자 정보에서 관리합니다.', 'error');
         return;
     }
+    const before = {
+        name: s.name || '',
+        empId: s.empId || '',
+        roleId: s.roleId || '',
+        status: normalizeStaffStatus(s.status),
+        hireDate: s.hireDate || '',
+        terminationDate: s.terminationDate || ''
+    };
     s.name   = document.getElementById('editName').value.trim();
     s.empId  = document.getElementById('editEmpId').value.trim();
     const nextEmail = document.getElementById('editEmail').value.trim();
@@ -863,6 +893,21 @@ function saveEdit() {
     const role = getRoleById(s.roleId);
     if (role) s.color = role.color;
     staffData = saveStaffData(staffData);
+    logStaffAudit('staff.update', s, {
+        fields: ['staffName', 'employeeId', 'role', 'status', 'hireDate', 'terminationDate'],
+        beforeName: before.name,
+        afterName: s.name,
+        beforeEmployeeId: before.empId,
+        afterEmployeeId: s.empId,
+        beforeRole: before.roleId,
+        afterRole: s.roleId,
+        beforeStatus: before.status,
+        afterStatus: s.status,
+        beforeHireDate: before.hireDate,
+        afterHireDate: s.hireDate,
+        beforeTerminationDate: before.terminationDate,
+        afterTerminationDate: s.terminationDate
+    });
     renderStaff();
     closeModal('editStaffModal');
     showToast(newPw ? '직원 정보와 비밀번호가 수정되었습니다.' : '직원 정보가 수정되었습니다.', 'success');
@@ -878,6 +923,12 @@ async function deleteStaff() {
         ? window.t('staff.delete.confirm')
         : '이 직원을 삭제하시겠습니까?';
     if (!await showConfirm(confirmMessage)) return;
+    logStaffAudit('staff.delete', s, {
+        fields: ['staffId', 'staffName', 'employeeId', 'role', 'status'],
+        employeeId: s.empId || '',
+        beforeRole: s.roleId || '',
+        beforeStatus: normalizeStaffStatus(s.status)
+    });
     staffData = staffData.filter(x => x.id !== editingId);
     staffData = saveStaffData(staffData);
     renderStaff();

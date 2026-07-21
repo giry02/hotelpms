@@ -8,6 +8,7 @@
         sys_maintenance: { id: 's6', name: 'James Bond', roleLabel: { ko: '시설 보수', en: 'Maintenance' } }
     };
     const SENSITIVE_KEY_PATTERN = /(phone|mobile|email|passport|identity|idNumber|contact|address|birth|dob)/i;
+    const OPERATIONAL_ID_KEY_PATTERN = /^(reservationId|folioId|orderId|roomId|tenantId|groupId|eventId|ticketId|auditId|staffId|guestId|reservationNumber|folioNumber|orderNumber)$/i;
 
     function nowIso() {
         if (window.PmsDate && typeof window.PmsDate.nowIso === 'function') {
@@ -38,7 +39,11 @@
     function sanitizeDetails(value, key = '') {
         if (value === null || value === undefined) return value;
         if (SENSITIVE_KEY_PATTERN.test(key)) return '[redacted]';
-        if (typeof value === 'string') return redactString(value);
+        if (typeof value === 'string') {
+            // Operational identifiers must remain searchable in the audit log.
+            if (OPERATIONAL_ID_KEY_PATTERN.test(key)) return value;
+            return redactString(value);
+        }
         if (Array.isArray(value)) return value.map(item => sanitizeDetails(item, key));
         if (typeof value === 'object') {
             return Object.fromEntries(Object.entries(value).map(([childKey, childValue]) => [
