@@ -184,7 +184,7 @@ async function auditPage(browser, pagePath) {
           await locator.click({ timeout: 2500 }).catch(() => {});
         } else {
           const value = field.type === 'date'
-            ? '2026-07-10'
+            ? new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)
             : field.type === 'time'
               ? '12:00'
               : ['number', 'range'].includes(field.type)

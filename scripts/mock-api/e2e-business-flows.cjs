@@ -278,6 +278,7 @@ async function individualReservationFlow(page) {
     const block = Array.from(document.querySelectorAll('.tl-block')).find(item => item.innerText.includes(name));
     return !!block && block.classList.contains('checkedin');
   }, guestName, { timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector('#unifiedResModal.active'), null, { timeout: 10000 });
   const checkedInState = await page.evaluate(id => {
     const reservations = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
     const res = reservations.find(item => item.id === id);
@@ -285,10 +286,14 @@ async function individualReservationFlow(page) {
     return {
       status: res?.status,
       blockClass: block?.className || '',
-      checkoutActionVisible: !!document.querySelector('#unifiedFlowActions button[onclick*="checkout"]')
+      modalClosed: !document.querySelector('#unifiedResModal.active')
     };
   }, stored.id);
-  assert(checkedInState.checkoutActionVisible, 'checkout action did not appear after timeline check-in');
+  assert(checkedInState.modalClosed, 'timeline check-in did not close the reservation modal');
+  await page.evaluate(id => window.openUnifiedResModal(id), stored.id);
+  await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  const checkoutAction = page.locator('#unifiedFlowActions button[onclick*="checkout"]');
+  await checkoutAction.waitFor({ state: 'visible', timeout: 10000 });
   await page.evaluate(id => {
     const list = window.reservations || [];
     const reservation = list.find(item => item.id === id);
@@ -297,7 +302,7 @@ async function individualReservationFlow(page) {
     reservation.outstandingBalance = 0;
     localStorage.setItem('pms_reservations', JSON.stringify(list));
   }, stored.id);
-  await page.locator('#unifiedFlowActions button[onclick*="checkout"]').click();
+  await checkoutAction.click();
   await clickConfirmOk(page);
   await page.waitForFunction(id => {
     const reservations = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
@@ -307,6 +312,9 @@ async function individualReservationFlow(page) {
     const block = Array.from(document.querySelectorAll('.tl-block')).find(item => item.innerText.includes(name));
     return !!block && block.classList.contains('completed');
   }, guestName, { timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector('#unifiedResModal.active'), null, { timeout: 10000 });
+  await page.evaluate(id => window.openUnifiedResModal(id), stored.id);
+  await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
   const completedState = await page.evaluate(id => {
     const reservations = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
     const res = reservations.find(item => item.id === id);
@@ -840,12 +848,13 @@ async function readonlyCheckedInReservationFlow(page) {
   }, lockedReservationId);
   assert(afterCancelStatus === beforeCancelStatus, 'checked-in reservation was cancelled through the shared cancel action');
 
+  const editableReservationId = 'RSV-DEMO-TODAY-1210-CHECKIN';
   await page.evaluate(() => window.closeUnifiedResModal());
-  await page.evaluate(() => window.openUnifiedResModal('RSV-0004'));
+  await page.evaluate(id => window.openUnifiedResModal(id), editableReservationId);
   await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
-  const inferredInHouseState = await page.evaluate(() => {
-    const res = window.reservations.find(item => item.id === 'RSV-0004');
-    const block = Array.from(document.querySelectorAll('.tl-block')).find(item => item.innerText.includes('Martinez Charles'));
+  const inferredInHouseState = await page.evaluate(id => {
+    const res = window.reservations.find(item => item.id === id);
+    const block = Array.from(document.querySelectorAll('.tl-block')).find(item => item.innerText.includes(res?.guestName || res?.guest || ''));
     return {
       rawStatus: res?.status,
       readonly: document.getElementById('unifiedResModal')?.dataset.readonlyReservation,
@@ -853,10 +862,10 @@ async function readonlyCheckedInReservationFlow(page) {
       flowText: document.getElementById('unifiedFlowActions')?.innerText || '',
       blockClass: block?.className || ''
     };
-  });
+  }, editableReservationId);
   assert(inferredInHouseState.rawStatus === 'confirmed', 'confirmed reservation fixture changed unexpectedly');
-  assert(inferredInHouseState.readonly === 'false', 'past confirmed reservation was incorrectly locked by current room inventory');
-  assert(inferredInHouseState.statusValue === 'confirmed', 'past confirmed reservation status was overridden by current room inventory state');
+  assert(inferredInHouseState.readonly === 'false', 'confirmed reservation was incorrectly locked by current room inventory');
+  assert(inferredInHouseState.statusValue === 'confirmed', 'confirmed reservation status was overridden by current room inventory state');
 
   await page.evaluate(() => window.closeUnifiedResModal());
   await page.evaluate(() => window.openUnifiedResModal());

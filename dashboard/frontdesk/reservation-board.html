@@ -1144,11 +1144,12 @@ async function refreshBoardDailyStayCleaning() {
     });
     if (!changedReservations.length) return false;
     localStorage.setItem('pms_rooms', JSON.stringify(rooms));
-    localStorage.setItem('pms_reservations', JSON.stringify(reservations));
     try {
         await Promise.all([
             window.PmsAPI?.saveRooms ? window.PmsAPI.saveRooms(rooms) : Promise.resolve(),
-            window.PmsAPI?.saveReservations ? window.PmsAPI.saveReservations(reservations) : Promise.resolve()
+            window.PmsAPI?.saveReservation
+                ? Promise.all(changedReservations.map(reservation => window.PmsAPI.saveReservation(reservation)))
+                : Promise.resolve()
         ]);
     } catch(e) {
         console.warn('Daily stay cleaning refresh failed', e);
@@ -1345,6 +1346,7 @@ function openBoardRoomBooking(encodedRoomId) {
             roomNo: roomDisplayValue,
             roomLabel: roomDisplayValue,
             type: roomType(room),
+            preserveRoomOnDateChange: true,
             checkin: boardDateInputValue(checkin),
             checkout: boardDateInputValue(checkout),
             checkInDate: boardDateInputValue(checkin),
@@ -1787,10 +1789,35 @@ window.setBoardCleanState = async function(event, button) {
     }
 };
 
-function setBoardPeriod(period) {
+async function loadBoardReservationWindow() {
+    const range = boardRange();
+    const query = {
+        from: boardDateInputValue(range.start),
+        to: boardDateInputValue(range.end),
+        page: 1,
+        pageSize: 500
+    };
+    const loader = window.PmsAPI?.getOperationalReservations || window.PmsAPI?.getReservations;
+    if (!loader) return reservations;
+    const loaded = await loader.call(window.PmsAPI, query);
+    reservations = (loaded || []).map(res => ({
+        ...res,
+        status: normalizeStatus(res.status) === 'inhouse' ? 'checkedin' : res.status
+    }));
+    window.reservations = reservations;
+    boardCountsCache = { signature: '', counts: null };
+    return reservations;
+}
+
+async function setBoardPeriod(period) {
     boardPeriod = ['today', 'tomorrow', 'week'].includes(period) ? period : 'today';
     const select = document.getElementById('boardPeriodSelect');
     if (select && select.value !== boardPeriod) select.value = boardPeriod;
+    try {
+        await loadBoardReservationWindow();
+    } catch(e) {
+        console.warn('Board reservation window load failed', e);
+    }
     renderReservationBoard();
 }
 
@@ -1828,9 +1855,18 @@ window.applyLocalI18n = function applyReservationBoardLocalI18n() {
 window.addEventListener('languagechange', window.applyLocalI18n);
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const initialRange = boardRange();
+    const reservationQuery = {
+        from: boardDateInputValue(initialRange.start),
+        to: boardDateInputValue(initialRange.end),
+        page: 1,
+        pageSize: 500
+    };
     const [roomData, resData, groupData] = await Promise.all([
         window.PmsAPI?.getAllRooms ? window.PmsAPI.getAllRooms().catch(() => []) : [],
-        window.PmsAPI?.getReservations ? window.PmsAPI.getReservations().catch(() => []) : [],
+        window.PmsAPI?.getOperationalReservations
+            ? window.PmsAPI.getOperationalReservations(reservationQuery).catch(() => [])
+            : (window.PmsAPI?.getReservations ? window.PmsAPI.getReservations(reservationQuery).catch(() => []) : []),
         window.PmsAPI?.getGroups ? window.PmsAPI.getGroups().catch(() => []) : []
     ]);
     rooms = roomData || [];

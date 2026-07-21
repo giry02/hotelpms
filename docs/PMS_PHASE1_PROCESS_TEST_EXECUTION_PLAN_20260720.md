@@ -789,3 +789,29 @@
 - 최종 커밋 ID와 배포 확인 시각이 결과표에 기록됐다.
 
 이 조건을 만족하지 않으면 테스트가 오래 수행됐더라도 `전체 테스트 완료` 또는 `오류 없음`으로 보고하지 않는다.
+
+## 12. 사용자 노티 기반 영구 회귀 케이스
+
+개발 완료 후 사용자가 별도로 발견해 전달한 결함은 기존 결과 행의 설명만 수정하지 않는다. 재현 입력, 예상 결과, 자동화 위치를 가진 `REG-*` 케이스로 이 표에 누적하고 이후 예약·날짜 관련 변경 시 전부 재실행한다. 과거 고정 영업일 데이터는 회귀 입력으로 사용하지 않으며 실행 시점의 로컬 영업일을 기준으로 생성한 격리 데이터를 사용한다.
+
+| 회귀 ID | 사용자 노티/위험 | 실행 입력 및 절차 | 예상 결과 | 자동화/연계 케이스 | 현재 결과 |
+|---|---|---|---|---|---|
+| REG-DATE-001 | 화면과 신규 입력의 날짜가 과거 `2026-07-10`으로 고정됨 | 시스템 날짜를 기준으로 예약 현황, 타임라인, 신규 예약, 상단 시계를 차례로 연다 | 모든 기본 날짜와 조회 범위가 실행 당일이며 과거 고정값이 없다 | `reservation-regression.cjs` date boundary, `smoke-inputs.cjs` | PASS-LOCAL |
+| REG-DATE-002 | 월말 다음 날 계산 오류 | 기준일을 `2026-07-31`로 주입하고 예약 현황과 타임라인을 연다 | 다음 날은 `2026-08-01`, 타임라인 범위와 신규 예약 기본 종료일이 동일하다 | `reservation-regression.cjs` `dateBoundaryRegression` | PASS-LOCAL |
+| REG-DATE-003 | 연말 다음 날 계산 오류 | 기준일을 `2026-12-31`로 주입한다 | 다음 날은 `2027-01-01`이며 기간 검색에서 연도가 누락되지 않는다 | `reservation-regression.cjs` `dateBoundaryRegression` | PASS-LOCAL |
+| REG-DATE-004 | 윤년 경계 계산 오류 | 기준일을 `2028-02-29`로 주입한다 | 다음 날은 `2028-03-01`, 화면·검색 요청의 날짜가 일치한다 | `reservation-regression.cjs` `dateBoundaryRegression` | PASS-LOCAL |
+| REG-RES-001 | 예약 현황에서 1203호를 눌렀는데 모달은 다른 객실을 선택함 | 예약 현황의 임의 객실 카드를 눌러 신규 예약을 열고 날짜를 변경한다 | 최초 선택 객실이 유지되고 저장 대상도 동일 객실이다 | `reservation-regression.cjs` board room preservation, P1-RES-NEW-001/002 | PASS-LOCAL |
+| REG-RES-002 | 일반 `신규 예약`에서도 객실을 강제 유지해 충돌 가능 | 객실 카드가 아닌 상단 신규 예약을 열고 날짜를 변경한다 | 선택 기간에 예약 가능한 객실 목록과 기본 객실을 다시 계산한다 | `reservation-regression.cjs` standard new booking recalculation | PASS-LOCAL |
+| REG-RES-003 | 청소 필요 객실 예약 시 경고 없이 저장됨 | 청소 필요 객실을 카드에서 선택하고 저장을 누른 뒤 경고의 취소·계속을 각각 실행한다 | 취소는 0건, 계속은 정확히 1건 저장되며 선택 객실이 유지된다 | P1-RES-NEW-002, `e2e-business-flows.cjs` | PASS-LOCAL |
+| REG-RES-004 | 체크인·체크아웃 성공 후 팝업이 남고 배경만 변경됨 | 정상 예약을 체크인하고 다시 열어 체크아웃한다 | 각 성공 직후 팝업이 닫히며 재진입 시 다음 상태의 버튼만 표시된다 | `e2e-business-flows.cjs`, `reservation-regression.cjs` | PASS-LOCAL |
+| REG-QUERY-001 | 데이터 증가 시 예약 현황이 전체 이력을 모두 로드함 | 선택 영업일의 전후 범위를 벗어난 예약을 함께 준비하고 현황을 조회한다 | 선택 일자와 겹치는 운영 예약만 반환되고 외부 범위 예약은 렌더링되지 않는다 | `reservation-regression.cjs` reservation window query | PASS-LOCAL |
+| REG-QUERY-002 | 타임라인이 전체 이력을 무제한 로드함 | 최초 진입, 다음 주 이동, 오늘 복귀를 순서대로 실행한다 | 각 요청은 화면의 14일 범위만 조회하고 이동·복귀 때 조회 범위가 정확히 갱신된다 | `reservation-regression.cjs` timeline window query | PASS-LOCAL |
+| REG-GROUP-DATE-001 | 월/일 형식 단체 일정이 연말에 잘못된 연도로 합쳐짐 | `12/31~1/1` 단체 행사와 명시적 ISO 일정 데이터를 동기화한다 | 종료일은 다음 연도이며 명시적 ISO 연도는 현재 연도로 덮어쓰지 않는다 | `group-event-regression.cjs`, `api-frontdesk.js` | PASS-LOCAL |
+
+### 12.1 회귀 케이스 운영 규칙
+
+1. 사용자 노티로 확인된 재현 가능한 결함은 수정과 같은 커밋에서 이 표와 자동 테스트에 함께 추가한다.
+2. 자동 테스트는 내부 함수 존재만 확인하지 않고 화면 입력, 상태 저장, 재진입, 범위 요청을 검증한다.
+3. 날짜 회귀는 당일, 월말, 연말, 윤년을 포함하고 고정된 과거 데모 날짜를 성공 근거로 사용하지 않는다.
+4. `PASS-LOCAL`은 배포 완료를 뜻하지 않는다. 원격 배포본에서 핵심 경로를 재확인한 뒤 `PASS-DEPLOYED`로 변경한다.
+5. 이후 동일 영역 개발 완료 시 `npm run test:reservations`, `npm run test:groups`, `npm run e2e`, `npm run smoke:inputs`, 데이터/API 감사를 필수 재실행한다.

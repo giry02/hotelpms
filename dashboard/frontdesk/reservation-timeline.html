@@ -1153,16 +1153,41 @@ function buildMobileViewIfNeeded(force = false) {
     timelineMobileViewDirty = false;
 }
 
-function shiftWeek(dir) {
+function timelineWindowQuery() {
+    const end = new Date(baseDate);
+    end.setDate(end.getDate() + DAYS - 1);
+    const toIso = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return { from: toIso(baseDate), to: toIso(end), page: 1, pageSize: 1000 };
+}
+
+async function loadTimelineReservationWindow() {
+    if (!window.PmsAPI?.getTimelineReservations) return window.reservations || [];
+    const loaded = await window.PmsAPI.getTimelineReservations(timelineWindowQuery());
+    window.reservations = dedupeTimelineReservations(loaded || []);
+    resetTimelineRenderCaches();
+    return window.reservations;
+}
+
+async function shiftWeek(dir) {
     baseDate.setDate(baseDate.getDate() + dir * 7);
     updateDateRangeText();
+    try {
+        await loadTimelineReservationWindow();
+    } catch(e) {
+        console.warn('Timeline reservation window load failed', e);
+    }
     buildTimeline();
     markTimelineMobileViewDirty();
     buildMobileViewIfNeeded();
 }
-function goToday() {
+async function goToday() {
     baseDate = timelineTodayDate();
     updateDateRangeText();
+    try {
+        await loadTimelineReservationWindow();
+    } catch(e) {
+        console.warn('Timeline reservation window load failed', e);
+    }
     buildTimeline();
     markTimelineMobileViewDirty();
     buildMobileViewIfNeeded();
@@ -1329,7 +1354,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const [rmData, resData, groupData] = await Promise.all([
             PmsAPI.getAllRooms(),
-            PmsAPI.getTimelineReservations(),
+            PmsAPI.getTimelineReservations(timelineWindowQuery()),
             PmsAPI.getGroups ? PmsAPI.getGroups().catch(() => []) : []
         ]);
         rooms = timelineSortRooms(rmData);

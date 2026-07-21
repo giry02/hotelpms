@@ -2,10 +2,8 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
 
 (function() {
     window.PmsDate = window.PmsDate || (function() {
-        const DEMO_TODAY_ISO = '2026-07-10';
-
         function todayIsoDate() {
-            return DEMO_TODAY_ISO;
+            return localIso(new Date());
         }
 
         function fromCurrentIso(isoDate) {
@@ -19,10 +17,7 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
             return fromCurrentIso(isoDate || todayIsoDate());
         }
         function now() {
-            const clock = new Date();
-            const date = fromIso(todayIsoDate());
-            date.setHours(clock.getHours(), clock.getMinutes(), clock.getSeconds(), clock.getMilliseconds());
-            return date;
+            return new Date();
         }
         function localIso(date) {
             if (!date) return todayIsoDate();
@@ -34,7 +29,11 @@ document.head.insertAdjacentHTML('beforeend', '<style>.topbar h1 { font-size: 1.
         }
         function nowIso() {
             const clock = new Date();
-            return `${todayIsoDate()}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}+09:00`;
+            const offsetMinutes = -clock.getTimezoneOffset();
+            const offsetSign = offsetMinutes >= 0 ? '+' : '-';
+            const offsetHours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
+            const offsetRemainder = pad(Math.abs(offsetMinutes) % 60);
+            return `${localIso(clock)}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}${offsetSign}${offsetHours}:${offsetRemainder}`;
         }
         return { demoIsoDate: todayIsoDate(), todayIso: todayIsoDate, today: () => fromCurrentIso(todayIsoDate()), now, nowIso, localIso };
     })();

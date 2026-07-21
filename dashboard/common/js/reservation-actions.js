@@ -699,6 +699,8 @@
     let unifiedRoomTypesCache = null;
     let unifiedRateQuoteSeq = 0;
     let unifiedLastRateQuote = null;
+    let unifiedPreserveRoomSelection = false;
+    let unifiedPreferredRoomValue = '';
 
     function unifiedAmountValue(value) {
         if (window.PmsMockApi?.amountValue) return window.PmsMockApi.amountValue(value);
@@ -2092,7 +2094,10 @@
                 });
             });
             const roomInput = document.getElementById('unifiedRoom');
-            if (roomInput) roomInput.addEventListener('change', () => refreshUnifiedRateQuote());
+            if (roomInput) roomInput.addEventListener('change', () => {
+                if (unifiedPreserveRoomSelection) unifiedPreferredRoomValue = roomInput.value || unifiedPreferredRoomValue;
+                refreshUnifiedRateQuote();
+            });
             ['unifiedCheckInTime', 'unifiedCheckOutTime', 'unifiedLateCheckoutTime'].forEach(id => {
                 const input = document.getElementById(id);
                 if (input) input.addEventListener('change', () => {
@@ -2795,20 +2800,24 @@
         const help = document.getElementById('unifiedRoomHelp');
         if (!roomSelect) return;
         const previousValue = roomSelect.value || '';
-        const requestedValue = preferredValue || previousValue;
+        const requestedValue = unifiedPreserveRoomSelection
+            ? (unifiedPreferredRoomValue || preferredValue || previousValue)
+            : (preferredValue || previousValue);
         const id = document.getElementById('unifiedResId')?.value;
         const currentRes = id ? reservationList().find(res => res.id === id) : null;
         const { checkin, checkout, valid } = getUnifiedDateRange({ autoFix: false });
-        roomSelect.innerHTML = '';
 
         if (!valid) {
             roomSelect.disabled = true;
-            roomSelect.innerHTML = `<option value="">${actionText('booking.roomDateFirst')}</option>`;
+            if (!unifiedPreserveRoomSelection || !roomSelect.options.length) {
+                roomSelect.innerHTML = `<option value="">${actionText('booking.roomDateFirst')}</option>`;
+            }
             if (help) help.textContent = actionText('booking.roomDateFirst');
             return;
         }
 
         roomSelect.disabled = false;
+        roomSelect.innerHTML = '';
         const available = [];
         const conflicts = [];
         const unavailable = [];
@@ -2849,6 +2858,7 @@
         const preferred = requestedValue ? matchingEnabledValue(requestedValue) : '';
         const previous = previousValue ? matchingEnabledValue(previousValue) : '';
         roomSelect.value = preferred || previous || enabledValues[0] || '';
+        if (unifiedPreserveRoomSelection && roomSelect.value) unifiedPreferredRoomValue = roomSelect.value;
         if (!enabledValues.length) roomSelect.disabled = true;
         if (help) {
             const countText = `${available.length} ${currentRes ? unifiedModalText('roomMoveAllowed') : unifiedModalText('roomAvailable')}`;
@@ -3233,11 +3243,23 @@
     window.printReservationPlacard = window.openReservationPlacardPreview;
 
     async function persistUnifiedReservation(res) {
-        const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
-        if (allRes) localStorage.setItem('pms_reservations', JSON.stringify(allRes));
+        if (window.PmsAPI?.saveReservation) {
+            await window.PmsAPI.saveReservation(res);
+            return;
+        }
+        let stored = [];
+        try {
+            const parsed = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
+            if (Array.isArray(parsed)) stored = parsed;
+        } catch(e) {}
+        const id = res?.id || res?.reservationId;
+        const index = stored.findIndex(item => String(item?.id || item?.reservationId || '') === String(id || ''));
+        if (index >= 0) stored[index] = { ...stored[index], ...res };
+        else if (res) stored.unshift(res);
+        localStorage.setItem('pms_reservations', JSON.stringify(stored));
         try {
             if (window.PmsMockApi && res?.id) {
-                await window.PmsMockApi.request('PATCH', `/reservations/${encodeURIComponent(res.id)}`, { body: res });
+                await window.PmsMockApi.request(index >= 0 ? 'PATCH' : 'POST', index >= 0 ? `/reservations/${encodeURIComponent(res.id)}` : '/reservations', { body: res });
             }
         } catch(e) {
             console.warn('Mock reservation flow save failed', e);
@@ -3382,7 +3404,7 @@
             window.showToast(actionText(toastKey, { action: label }), 'success');
         }
         refreshUnifiedReservationViews({ action: `flow:${action}`, reservation: res });
-        window.openUnifiedResModal(res.id);
+        closeUnifiedResModal();
     };
     
     window.toggleUnifiedGroupSelect = function() {
@@ -3397,6 +3419,8 @@
         }
         ensureModal();
         unifiedLastRateQuote = null;
+        unifiedPreserveRoomSelection = Boolean(prefill?.preserveRoomOnDateChange);
+        unifiedPreferredRoomValue = '';
         const allRes = window.reservations || (typeof reservations !== 'undefined' ? reservations : null);
         if (!allRes) {
             showReservationAlert('Error: reservations variable not found!', 'error');
@@ -3474,6 +3498,7 @@
             const reservationNote = document.getElementById('unifiedReservationNote');
             if (reservationNote) reservationNote.value = compactValue(prefill?.specialNotes || prefill?.notes || prefill?.note);
             const preferredRoom = prefill?.room || prefill?.fullRoom || prefill?.roomId || prefill?.roomNo || prefill?.roomLabel || '';
+            if (unifiedPreserveRoomSelection) unifiedPreferredRoomValue = preferredRoom;
             window.updateUnifiedStayAndRooms(preferredRoom);
             if (window._editGuestWidget) {
                 window._editGuestWidget.reset();
@@ -4088,14 +4113,7 @@
             if (window.showToast) window.showToast(actionText('booking.updated'), 'success');
         }
         
-        localStorage.setItem('pms_reservations', JSON.stringify(allRes));
-        try {
-            if (window.PmsMockApi && savedRes) {
-                await window.PmsMockApi.request(id ? 'PATCH' : 'POST', id ? `/reservations/${encodeURIComponent(id)}` : '/reservations', { body: savedRes });
-            }
-        } catch(e) {
-            console.warn('Mock reservation save failed', e);
-        }
+        if (savedRes) await persistUnifiedReservation(savedRes);
         if (savedRes?.groupId) await syncUnifiedGroupReservation(savedRes, groupSyncMeta || {});
         if (typeof window.syncGroupData === 'function') window.syncGroupData();
         

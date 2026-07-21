@@ -1,4 +1,78 @@
 // api-frontdesk.js
+function pmsReservationDate(value) {
+    if (!value) return null;
+    const text = String(value).trim();
+    const short = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (short) {
+        const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+        const parsed = new Date(today.getFullYear(), Number(short[1]) - 1, Number(short[2]));
+        parsed.setHours(0, 0, 0, 0);
+        return parsed;
+    }
+    const parsed = new Date(text);
+    if (Number.isNaN(parsed.getTime())) return null;
+    parsed.setHours(0, 0, 0, 0);
+    return parsed;
+}
+
+function pmsReservationIsoDate(value) {
+    const parsed = value instanceof Date ? new Date(value) : pmsReservationDate(value);
+    if (!parsed || Number.isNaN(parsed.getTime())) return '';
+    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+}
+
+function pmsReservationWindowDate(value, anchor, minimum = null) {
+    const text = String(value || '').trim();
+    const md = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (!md) return pmsReservationDate(value);
+    const anchorDate = anchor instanceof Date ? anchor : pmsReservationDate(anchor);
+    if (!anchorDate) return pmsReservationDate(value);
+    const month = Number(md[1]) - 1;
+    const day = Number(md[2]);
+    const candidates = [-1, 0, 1].map(offset => {
+        const date = new Date(anchorDate.getFullYear() + offset, month, day);
+        date.setHours(0, 0, 0, 0);
+        return date;
+    });
+    const eligible = minimum ? candidates.filter(date => date >= minimum) : candidates;
+    const source = eligible.length ? eligible : candidates;
+    return source.sort((left, right) => Math.abs(left - anchorDate) - Math.abs(right - anchorDate))[0];
+}
+
+function pmsReservationOverlapsWindow(reservation, from, to) {
+    if (!from && !to) return true;
+    const windowStart = pmsReservationDate(from || to);
+    const windowEnd = pmsReservationDate(to || from);
+    if (!windowStart || !windowEnd) return true;
+    const start = pmsReservationWindowDate(
+        reservation?.checkInDate || reservation?.checkin || reservation?.cin,
+        windowStart
+    );
+    const end = pmsReservationWindowDate(
+        reservation?.checkOutDate || reservation?.checkout || reservation?.cout,
+        start || windowEnd,
+        start
+    );
+    if (start && end) return start <= windowEnd && end >= windowStart;
+    const onlyDate = start || end;
+    return !!onlyDate && onlyDate >= windowStart && onlyDate <= windowEnd;
+}
+
+function pmsFilterReservations(reservations, query = {}) {
+    let result = Array.isArray(reservations) ? reservations.slice() : [];
+    const from = query.from || query.startDate || '';
+    const to = query.to || query.endDate || '';
+    if (from || to) result = result.filter(item => pmsReservationOverlapsWindow(item, from, to));
+    if (query.status) {
+        const statuses = new Set((Array.isArray(query.status) ? query.status : [query.status])
+            .map(value => String(value || '').replace(/[-_\s]/g, '').toLowerCase()));
+        result = result.filter(item => statuses.has(String(item?.status || '').replace(/[-_\s]/g, '').toLowerCase()));
+    }
+    const page = Math.max(1, Number(query.page || 1));
+    const pageSize = Math.max(1, Number(query.pageSize || query.limit || result.length || 500));
+    return result.slice((page - 1) * pageSize, page * pageSize);
+}
+
 window.PmsAPI = window.PmsAPI || {};
 Object.assign(window.PmsAPI, {
 
@@ -55,11 +129,11 @@ Object.assign(window.PmsAPI, {
         return [];
     },
 
-    getTimelineReservations: async () => {
+    getTimelineReservations: async (query = {}) => {
         // Timeline must reflect the same mutable reservation collection used by
         // the board and list. The dedicated JSON is only a seed fallback; using
         // it first can resurrect stale demo stays after create/update/delete.
-        const currentReservations = await window.PmsAPI.getReservations();
+        const currentReservations = await window.PmsAPI.getReservations(query);
         let storedReservations = [];
         try {
             const parsed = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
@@ -72,24 +146,32 @@ Object.assign(window.PmsAPI, {
             const id = reservation?.id || reservation?.reservationId || `api-${index}`;
             mergedReservations.set(String(id), reservation);
         });
-        storedReservations.forEach((reservation, index) => {
+        pmsFilterReservations(storedReservations, query).forEach((reservation, index) => {
             const id = reservation?.id || reservation?.reservationId || `stored-${index}`;
             mergedReservations.set(String(id), reservation);
         });
         if (mergedReservations.size) {
             const merged = [...mergedReservations.values()];
-            return window.PmsAPI.syncGroupsToReservations
-                ? window.PmsAPI.syncGroupsToReservations(merged)
+            const synced = window.PmsAPI.syncGroupsToReservations
+                ? await window.PmsAPI.syncGroupsToReservations(merged)
                 : merged;
+            return pmsFilterReservations(synced, query);
         }
         try {
             if (window.PmsMockApi) {
-                const env = await window.PmsMockApi.request('GET', '/reservations/timeline');
+                const params = new URLSearchParams();
+                ['from', 'to', 'startDate', 'endDate', 'page', 'pageSize'].forEach(key => {
+                    if (query[key] !== undefined && query[key] !== '') params.set(key, query[key]);
+                });
+                const suffix = params.toString() ? `?${params}` : '';
+                const env = await window.PmsMockApi.request('GET', `/reservations/timeline${suffix}`);
                 const reservations = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyReservation);
                 if (reservations.length) {
-                    return window.PmsAPI.syncGroupsToReservations
-                        ? window.PmsAPI.syncGroupsToReservations(reservations)
-                        : reservations;
+                    const filtered = pmsFilterReservations(reservations, query);
+                    const synced = window.PmsAPI.syncGroupsToReservations
+                        ? await window.PmsAPI.syncGroupsToReservations(filtered)
+                        : filtered;
+                    return pmsFilterReservations(synced, query);
                 }
             }
         } catch(e) {
@@ -98,11 +180,16 @@ Object.assign(window.PmsAPI, {
         return [];
     },
 
-    getReservations: async () => {
+    getReservations: async (query = {}) => {
         let apiReservations = [];
         try {
             if (window.PmsMockApi) {
-                const env = await window.PmsMockApi.request('GET', '/reservations');
+                const params = new URLSearchParams();
+                ['from', 'to', 'startDate', 'endDate', 'page', 'pageSize'].forEach(key => {
+                    if (query[key] !== undefined && query[key] !== '') params.set(key, query[key]);
+                });
+                const suffix = params.toString() ? `?${params}` : '';
+                const env = await window.PmsMockApi.request('GET', `/reservations${suffix}`);
                 apiReservations = window.PmsMockApi.items(env).map(window.PmsMockApi.toLegacyReservation);
             }
         } catch(e) {
@@ -128,7 +215,43 @@ Object.assign(window.PmsAPI, {
             const id = reservation?.id || reservation?.reservationId || `stored-${index}`;
             merged.set(String(id), reservation);
         });
-        return [...merged.values()];
+        return pmsFilterReservations([...merged.values()], query);
+    },
+
+    getOperationalReservations: async (query = {}) => {
+        const today = window.PmsDate?.todayIso
+            ? window.PmsDate.todayIso()
+            : pmsReservationIsoDate(new Date());
+        const from = query.from || query.startDate || query.date || today;
+        const to = query.to || query.endDate || query.date || from;
+        return window.PmsAPI.getReservations({
+            ...query,
+            from: pmsReservationIsoDate(from) || from,
+            to: pmsReservationIsoDate(to) || to,
+            pageSize: query.pageSize || 500
+        });
+    },
+
+    saveReservation: async (reservation) => {
+        if (!reservation || !(reservation.id || reservation.reservationId)) return false;
+        const id = reservation.id || reservation.reservationId;
+        let stored = [];
+        try {
+            const parsed = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
+            if (Array.isArray(parsed)) stored = parsed;
+        } catch(e) {}
+        const index = stored.findIndex(item => String(item?.id || item?.reservationId || '') === String(id));
+        if (index >= 0) stored[index] = { ...stored[index], ...reservation };
+        else stored.unshift(reservation);
+        localStorage.setItem('pms_reservations', JSON.stringify(stored));
+        try {
+            if (window.PmsMockApi) {
+                await window.PmsMockApi.request(index >= 0 ? 'PATCH' : 'POST', index >= 0 ? `/reservations/${encodeURIComponent(id)}` : '/reservations', { body: reservation });
+            }
+        } catch(e) {
+            console.warn('Mock reservation single save fallback', e);
+        }
+        return true;
     },
 
     saveReservations: async (reservations) => {
@@ -173,9 +296,23 @@ Object.assign(window.PmsAPI, {
             const date = new Date(text);
             if (Number.isNaN(date.getTime())) return null;
             date.setHours(0, 0, 0, 0);
-            date.setFullYear(epochYear);
             return date;
         };
+        const toStayRange = (checkin, checkout) => {
+            const cin = toDate(checkin);
+            const cout = toDate(checkout);
+            if (
+                cin && cout && cout <= cin &&
+                String(checkin || '').includes('/') &&
+                String(checkout || '').includes('/')
+            ) {
+                cout.setFullYear(cout.getFullYear() + 1);
+            }
+            return { cin, cout };
+        };
+        const iso = (date) => date
+            ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+            : '';
         const fmt = (date) => `${date.getMonth()+1}/${date.getDate()}`;
         const roomId = (room) => room.id || room.roomId || room.fullRoom || room.display || room.number || '';
         const normalizeRoomValue = (value) => {
@@ -231,15 +368,16 @@ Object.assign(window.PmsAPI, {
                 });
         };
         const hasRoomConflict = (room, group) => {
-            const cin = toDate(group.checkin);
-            const cout = toDate(group.checkout);
+            const { cin, cout } = toStayRange(group.checkin, group.checkout);
             if (!room || !cin || !cout) return false;
             return reservations.some(r => {
                 if (r.groupId === group.id || (r.status || '').toLowerCase() === 'cancelled') return false;
                 if (r.room !== room && r.fullRoom !== room) return false;
                 try {
-                    const rCin = toDate(r.cin);
-                    const rCout = toDate(r.cout);
+                    const { cin: rCin, cout: rCout } = toStayRange(
+                        r.checkInDate || r.checkin || r.cin,
+                        r.checkOutDate || r.checkout || r.cout
+                    );
                     return rCin && rCout && cin < rCout && cout > rCin;
                 } catch(e) {
                     return false;
@@ -275,8 +413,7 @@ Object.assign(window.PmsAPI, {
                 }));
         };
         const buildReservation = (g, allocation, existing) => {
-            const cin = toDate(g.checkin);
-            const cout = toDate(g.checkout);
+            const { cin, cout } = toStayRange(g.checkin, g.checkout);
             const len = cin && cout ? Math.max(1, Math.round((cout - cin) / 86400000)) : (existing?.len || 1);
             const start = cin ? Math.round((cin - epoch) / 86400000) : (existing?.start || 0);
             const base = existing || {};
@@ -369,6 +506,8 @@ Object.assign(window.PmsAPI, {
                 channel: g.agency || base.channel || 'Group',
                 cin: cin ? fmt(cin) : base.cin,
                 cout: cout ? fmt(cout) : base.cout,
+                checkInDate: cin ? iso(cin) : base.checkInDate,
+                checkOutDate: cout ? iso(cout) : base.checkOutDate,
                 amount: Number(allocation.rate || 0) * len,
                 rate: { amount: Number(allocation.rate || 0), currency: allocation.currency || g.currency || 'PHP' },
                 totalAmount: { amount: Number(allocation.rate || 0) * len, currency: allocation.currency || g.currency || 'PHP' },
@@ -433,16 +572,17 @@ Object.assign(window.PmsAPI, {
                         if (existing.some(r => r.room === rm.id)) continue;
                         
                         const epo = epoch;
-                        const cin = toDate(g.checkin);
-                        const cout = toDate(g.checkout);
+                        const { cin, cout } = toStayRange(g.checkin, g.checkout);
                         if (!cin || !cout) continue;
                         
                         // Check if room is already occupied for these dates
                         const hasConflict = reservations.some(r => {
                             if (r.room !== rm.id) return false;
                             try {
-                                const rCin = toDate(r.cin);
-                                const rCout = toDate(r.cout);
+                                const { cin: rCin, cout: rCout } = toStayRange(
+                                    r.checkInDate || r.checkin || r.cin,
+                                    r.checkOutDate || r.checkout || r.cout
+                                );
                                 if (!rCin || !rCout) return false;
                                 return (cin < rCout && cout > rCin);
                             } catch(e) { return false; }
@@ -471,6 +611,8 @@ Object.assign(window.PmsAPI, {
                             channel: g.agency || 'Group',
                             cin: `${cin.getMonth()+1}/${cin.getDate()}`,
                             cout: `${cout.getMonth()+1}/${cout.getDate()}`,
+                            checkInDate: iso(cin),
+                            checkOutDate: iso(cout),
                             amount: a.rate * len,
                             vip: 'Standard',
                             isVip: false,

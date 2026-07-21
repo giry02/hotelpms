@@ -1,11 +1,9 @@
 // api-core.js
-const API_VERSION = 'v2.19';
+const API_VERSION = 'v2.20';
 
 window.PmsDate = window.PmsDate || (function() {
-    const DEMO_TODAY_ISO = '2026-07-10';
-
     function todayIsoDate() {
-        return DEMO_TODAY_ISO;
+        return localIso(new Date());
     }
 
     function fromCurrentIso(isoDate) {
@@ -27,10 +25,7 @@ window.PmsDate = window.PmsDate || (function() {
     }
 
     function now() {
-        const clock = new Date();
-        const date = fromIso(todayIsoDate());
-        date.setHours(clock.getHours(), clock.getMinutes(), clock.getSeconds(), clock.getMilliseconds());
-        return date;
+        return new Date();
     }
 
     function pad(value, size = 2) {
@@ -39,7 +34,11 @@ window.PmsDate = window.PmsDate || (function() {
 
     function nowIso() {
         const clock = new Date();
-        return `${todayIsoDate()}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}+09:00`;
+        const offsetMinutes = -clock.getTimezoneOffset();
+        const offsetSign = offsetMinutes >= 0 ? '+' : '-';
+        const offsetHours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
+        const offsetRemainder = pad(Math.abs(offsetMinutes) % 60);
+        return `${localIso(clock)}T${pad(clock.getHours())}:${pad(clock.getMinutes())}:${pad(clock.getSeconds())}${offsetSign}${offsetHours}:${offsetRemainder}`;
     }
 
     return {
@@ -307,6 +306,33 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         return key.split('.').reduce((acc, part) => acc && acc[part], item);
     }
 
+    function queryDate(value) {
+        if (!value) return null;
+        const text = String(value).trim();
+        const short = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+        if (short) {
+            const today = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+            const parsed = new Date(today.getFullYear(), Number(short[1]) - 1, Number(short[2]));
+            parsed.setHours(0, 0, 0, 0);
+            return parsed;
+        }
+        const parsed = new Date(text);
+        if (Number.isNaN(parsed.getTime())) return null;
+        parsed.setHours(0, 0, 0, 0);
+        return parsed;
+    }
+
+    function overlapsQueryWindow(item, fromValue, toValue) {
+        const from = queryDate(fromValue || toValue);
+        const to = queryDate(toValue || fromValue);
+        if (!from || !to) return true;
+        const start = queryDate(item?.checkInDate || item?.checkin || item?.cin || item?.startDate || item?.date);
+        const end = queryDate(item?.checkOutDate || item?.checkout || item?.cout || item?.endDate || item?.date);
+        if (start && end) return start <= to && end >= from;
+        const onlyDate = start || end;
+        return !!onlyDate && onlyDate >= from && onlyDate <= to;
+    }
+
     function applyQuery(payload, params) {
         if (!isListPayload(payload) || !params || Array.from(params.keys()).length === 0) return payload;
         const next = clone(payload);
@@ -315,6 +341,9 @@ window.PmsMockApi = window.PmsMockApi || (function() {
         if (search) {
             list = list.filter(item => JSON.stringify(item).toLowerCase().includes(search));
         }
+        const from = params.get('from') || params.get('startDate');
+        const to = params.get('to') || params.get('endDate');
+        if (from || to) list = list.filter(item => overlapsQueryWindow(item, from, to));
         params.forEach((value, key) => {
             if (['q', 'search', 'page', 'pageSize', 'limit', 'offset', 'sort', 'from', 'to', 'startDate', 'endDate'].includes(key)) return;
             list = list.filter(item => String(fieldValue(item, key) ?? '') === value);

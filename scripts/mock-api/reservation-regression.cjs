@@ -319,7 +319,14 @@ async function reservationBoardCleaningVisibilityRegression(page, base) {
 async function todayCheckinRoomMasterRegression(page, base) {
   await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?filter=checkin&test=today-checkin-room-master`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-  await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof processUnifiedReservationFlow === 'function', null, { timeout: 15000 });
+  await page.waitForFunction(() => (
+    typeof openUnifiedResModal === 'function' &&
+    typeof processUnifiedReservationFlow === 'function' &&
+    Array.isArray(window.rooms) &&
+    window.rooms.some(item => ['1210', 'FT-1210'].includes(String(item.roomNo || item.number || item.id || item.roomId || item.fullRoom || ''))) &&
+    Array.isArray(window.reservations) &&
+    window.reservations.some(item => ['1210', 'FT-1210'].includes(String(item.roomNo || item.room || item.roomId || item.fullRoom || '')))
+  ), null, { timeout: 15000 });
 
   const result = await page.evaluate(async () => {
     const blockedStatuses = new Set(['oos', 'outofservice', 'outoforder', 'maintenance']);
@@ -338,10 +345,10 @@ async function todayCheckinRoomMasterRegression(page, base) {
       return true;
     };
 
-    const reservation = (window.reservations || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210');
+    const reservation = (window.reservations || []).find(item => ['1210', 'FT-1210'].includes(String(item.roomNo || item.room || item.roomId || item.fullRoom || '')));
     if (!reservation) throw new Error('Room 1210 today check-in reservation was not found.');
-    const beforeRoom = clone((window.rooms || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210'));
-    const liveRoom = (window.rooms || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210');
+    const beforeRoom = clone((window.rooms || []).find(item => ['1210', 'FT-1210'].includes(String(item.roomNo || item.number || item.id || item.roomId || item.fullRoom || ''))));
+    const liveRoom = (window.rooms || []).find(item => ['1210', 'FT-1210'].includes(String(item.roomNo || item.number || item.id || item.roomId || item.fullRoom || '')));
     if (liveRoom) {
       liveRoom.status = 'out-of-service';
       liveRoom.housekeepingStatus = 'maintenance';
@@ -357,7 +364,7 @@ async function todayCheckinRoomMasterRegression(page, base) {
     const afterRoom = (window.rooms || []).find(item => item.roomNo === '1210' || item.roomId === 'FT-1210');
     const auditLogs = window.PmsPrivacyAudit?.list?.() || [];
     const audit = [...auditLogs].reverse().find(item => item.action === 'reservation.checkin' && item.details?.reservationId === reservation.id);
-    return {
+    const result = {
       captured,
       actionText,
       beforeRoom,
@@ -368,6 +375,8 @@ async function todayCheckinRoomMasterRegression(page, base) {
       afterRoom: clone(afterRoom),
       audit: clone(audit)
     };
+    if (liveRoom && beforeRoom) Object.assign(liveRoom, beforeRoom);
+    return result;
   });
 
   assert(result.beforeRoom?.status === 'vacant-clean', 'Room adapter must preserve the canonical vacant-clean status.', result);
@@ -387,10 +396,40 @@ async function reservationBoardFilterColorRegression(page, base) {
   await page.waitForFunction(() => typeof setBoardFilter === 'function' && typeof renderReservationBoard === 'function' && Array.isArray(window.reservations), null, { timeout: 15000 });
 
   const result = await page.evaluate(async () => {
-    const targetCheckout = (window.reservations || []).find(item => item.id === 'RSV-DEMO-0708-1203-CHECKOUT');
-    const activeLate = (window.reservations || []).find(item => item.id === 'RSV-0010');
-    const room = (window.rooms || []).find(item => item.roomNo === '1203' || item.id === '1203' || item.roomId === 'FT-1203');
-    if (!targetCheckout || !activeLate || !room) throw new Error('Room 1203 regression fixtures were not found.');
+    const isoDate = offset => {
+      const date = window.PmsDate?.today ? window.PmsDate.today() : new Date();
+      date.setDate(date.getDate() + offset);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    };
+    let room = (window.rooms || []).find(item => item.roomNo === '1203' || item.id === '1203' || item.roomId === 'FT-1203');
+    if (!room) {
+      room = { id: 'FT-1203', roomId: 'FT-1203', roomNo: '1203', number: '1203', type: 'Deluxe', building: 'Forest Tower' };
+      window.rooms.push(room);
+    }
+    for (let index = window.reservations.length - 1; index >= 0; index -= 1) {
+      const item = window.reservations[index];
+      if (['1203', 'FT-1203'].includes(String(item.roomNo || item.room || item.roomId || item.fullRoom || ''))) {
+        window.reservations.splice(index, 1);
+      }
+    }
+    let targetCheckout = (window.reservations || []).find(item => item.id === 'QA-BOARD-1203-CHECKOUT');
+    if (!targetCheckout) {
+      targetCheckout = {
+        id: 'QA-BOARD-1203-CHECKOUT', reservationId: 'QA-BOARD-1203-CHECKOUT', room: '1203', roomNo: '1203', roomId: 'FT-1203', fullRoom: 'FT-1203',
+        guest: 'Board Checkout Guest', guestName: 'Board Checkout Guest', status: 'completed', settlementStatus: 'settled',
+        checkInDate: isoDate(-2), checkOutDate: isoDate(0), checkin: isoDate(-2), checkout: isoDate(0), amount: 140
+      };
+      window.reservations.push(targetCheckout);
+    }
+    let activeLate = (window.reservations || []).find(item => item.id === 'QA-BOARD-1203-LATE');
+    if (!activeLate) {
+      activeLate = {
+        id: 'QA-BOARD-1203-LATE', reservationId: 'QA-BOARD-1203-LATE', room: '1203', roomNo: '1203', roomId: 'FT-1203', fullRoom: 'FT-1203',
+        guest: 'Stale Late Guest', guestName: 'Stale Late Guest', status: 'confirmed',
+        checkInDate: isoDate(-3), checkOutDate: isoDate(-1), checkin: isoDate(-3), checkout: isoDate(-1), amount: 140
+      };
+      window.reservations.push(activeLate);
+    }
 
     targetCheckout.status = 'completed';
     targetCheckout.settlementStatus = 'settled';
@@ -494,7 +533,12 @@ async function maintenanceRoomBookingGuardRegression(page, base) {
     testRoom.housekeepingStatus = 'maintenance';
     testRoom.maintenanceStatus = 'maintenance';
     if (!(window.rooms || []).includes(testRoom)) window.rooms.push(testRoom);
-    window.reservations = (window.reservations || []).filter(item => String(item.roomNo || item.room || item.roomId || '').replace(/\D/g, '') !== '1215');
+    for (let index = window.reservations.length - 1; index >= 0; index -= 1) {
+      const item = window.reservations[index];
+      if (String(item.roomNo || item.room || item.roomId || '').replace(/\D/g, '') === '1215') {
+        window.reservations.splice(index, 1);
+      }
+    }
     boardFilter = 'all';
 
     let alertMessage = '';
@@ -529,8 +573,8 @@ async function overlappingReservationGuardRegression(page, base) {
   const result = await page.evaluate(async () => {
     const target = (window.reservations || []).find(item => String(item.roomNo || item.room || item.roomId || '').replace(/\D/g, '') === '1210');
     if (!target) return { missingFixture: true };
-    const checkin = target.checkInDate || target.checkin || '2026-07-10';
-    const checkout = target.checkOutDate || target.checkout || '2026-07-11';
+    const checkin = target.checkInDate || target.checkin || window.__qaIsoDate(0);
+    const checkout = target.checkOutDate || target.checkout || window.__qaIsoDate(1);
     const beforeCount = window.reservations.length;
     let alertMessage = '';
     const previousAlert = window.showAlert;
@@ -573,13 +617,16 @@ async function reservationStayValidationRegression(page, base) {
   await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof saveUnifiedRes === 'function', null, { timeout: 15000 });
 
   const result = await page.evaluate(async () => {
+    const today = window.__qaIsoDate(0);
+    const yesterday = window.__qaIsoDate(-1);
+    const tomorrow = window.__qaIsoDate(1);
     const beforeCount = (window.reservations || []).length;
     const alerts = [];
     const previousAlert = window.showAlert;
     if (window.PmsAPI) window.PmsAPI.getAllRoomTypes = async () => [{ id: 'RT-DELUXE', name: 'Deluxe', baseRate: 140 }];
     window.showAlert = message => { alerts.push(String(message || '')); };
     await window.openUnifiedResModal({
-      roomNo: '1402', room: '1402', checkInDate: '2026-07-10', checkOutDate: '2026-07-11',
+      roomNo: '1402', room: '1402', checkInDate: today, checkOutDate: tomorrow,
       guestId: 'G-STAY-VALIDATION', guestName: 'Stay Validation Guest', guest: 'Stay Validation Guest', amount: 140
     });
 
@@ -607,22 +654,22 @@ async function reservationStayValidationRegression(page, base) {
     };
 
     const checkoutBeforeCheckin = await branch({
-      cin: '2026-07-10', cout: '2026-07-09', checkInTime: '14:00', checkOutTime: '12:00',
+      cin: today, cout: yesterday, checkInTime: '14:00', checkOutTime: '12:00',
       lateCheckout: false, lateCheckoutTime: '', errorId: 'unifiedCout'
     });
     const sameDayTimeReversal = await branch({
-      cin: '2026-07-10', cout: '2026-07-10', checkInTime: '14:00', checkOutTime: '12:00',
+      cin: today, cout: today, checkInTime: '14:00', checkOutTime: '12:00',
       lateCheckout: false, lateCheckoutTime: '', errorId: 'unifiedCheckOutTime'
     });
     const lateCheckoutReversal = await branch({
-      cin: '2026-07-10', cout: '2026-07-11', checkInTime: '14:00', checkOutTime: '12:00',
+      cin: today, cout: tomorrow, checkInTime: '14:00', checkOutTime: '12:00',
       lateCheckout: true, lateCheckoutTime: '11:00', errorId: 'unifiedLateCheckoutTime'
     });
     window.showAlert = previousAlert;
-    return { beforeCount, alerts, checkoutBeforeCheckin, sameDayTimeReversal, lateCheckoutReversal };
+    return { beforeCount, alerts, yesterday, checkoutBeforeCheckin, sameDayTimeReversal, lateCheckoutReversal };
   });
 
-  assert(result.checkoutBeforeCheckin.value === '2026-07-09', 'Invalid checkout date must not be silently rewritten.', result);
+  assert(result.checkoutBeforeCheckin.value === result.yesterday, 'Invalid checkout date must not be silently rewritten.', result);
   assert(result.checkoutBeforeCheckin.invalid && result.checkoutBeforeCheckin.error, 'Checkout-before-checkin must show an adjacent checkout-date error.', result);
   assert(result.sameDayTimeReversal.invalid && result.sameDayTimeReversal.error, 'Same-day reversed times must show an adjacent checkout-time error.', result);
   assert(result.lateCheckoutReversal.invalid && result.lateCheckoutReversal.error, 'Reversed late checkout must show an adjacent late-time error.', result);
@@ -640,6 +687,7 @@ async function reservationEditPersistenceRegression(page, base) {
   await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof saveUnifiedRes === 'function', null, { timeout: 15000 });
 
   const result = await page.evaluate(async () => {
+    const today = window.__qaIsoDate(0);
     if (window.PmsAPI) window.PmsAPI.getAllRoomTypes = async () => [
       { id: 'RT-STANDARD', name: 'Standard', baseRate: 140 },
       { id: 'RT-DELUXE', name: 'Deluxe', baseRate: 140 },
@@ -649,7 +697,7 @@ async function reservationEditPersistenceRegression(page, base) {
     const target = (window.reservations || []).find(item => {
       const status = String(item.status || '').toLowerCase().replace(/[^a-z]/g, '');
       const checkin = String(item.checkInDate || item.checkin || '');
-      return ['confirmed', 'reserved'].includes(status) && checkin >= '2026-07-10' && item.room;
+      return ['confirmed', 'reserved'].includes(status) && checkin >= today && item.room;
     });
     if (!target) return { missingFixture: true };
     const id = target.id || target.reservationId;
@@ -689,6 +737,9 @@ async function reservationTimelineShadowRegression(page, base) {
   await page.waitForFunction(() => window.PmsMockApi && typeof buildTimeline === 'function', null, { timeout: 15000 });
 
   const backup = await page.evaluate(async () => {
+    const today = window.__qaIsoDate(0);
+    const yesterday = window.__qaIsoDate(-1);
+    const tomorrow = window.__qaIsoDate(1);
     const overlayKey = 'mockapi:v1:TENANT-GRAND-SAIGON:reservations';
     const storedKey = 'pms_reservations';
     const previousOverlay = localStorage.getItem(overlayKey);
@@ -699,17 +750,17 @@ async function reservationTimelineShadowRegression(page, base) {
       {
         id: 'RSV-TL-NEW-1212', reservationId: 'RSV-TL-NEW-1212', roomId: 'FT-1212', roomNo: '1212',
         guestName: 'Timeline New Guest', guest: 'Timeline New Guest', status: 'confirmed',
-        checkInDate: '2026-07-10', checkOutDate: '2026-07-11', checkInTime: '14:00', checkOutTime: '12:00'
+        checkInDate: today, checkOutDate: tomorrow, checkInTime: '14:00', checkOutTime: '12:00'
       },
       {
         id: 'RSV-TL-STALE-1212', reservationId: 'RSV-TL-STALE-1212', roomId: 'FT-1212', roomNo: '1212',
         guestName: 'Timeline Shadow Guest', guest: 'Timeline Shadow Guest', status: 'checked-in',
-        checkInDate: '2026-07-10', checkOutDate: '2026-07-11', checkInTime: '14:00', checkOutTime: '12:00'
+        checkInDate: today, checkOutDate: tomorrow, checkInTime: '14:00', checkOutTime: '12:00'
       },
       {
         id: 'RSV-TL-COMPLETED-1212', reservationId: 'RSV-TL-COMPLETED-1212', roomId: 'FT-1212', roomNo: '1212',
         guestName: 'Timeline Shadow Guest', guest: 'Timeline Shadow Guest', status: 'completed',
-        checkInDate: '2026-07-09', checkOutDate: '2026-07-10', checkInTime: '14:00', checkOutTime: '12:00'
+        checkInDate: yesterday, checkOutDate: today, checkInTime: '14:00', checkOutTime: '12:00'
       }
     );
     const overlay = { items, page: { page: 1, pageSize: Math.max(items.length, 50), total: items.length, totalPages: 1 } };
@@ -743,6 +794,9 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
   await page.waitForFunction(() => typeof renderReservationBoard === 'function' && document.querySelector('#reservationBoardContainer'), null, { timeout: 15000 });
 
   const result = await page.evaluate(() => {
+    const today = window.__qaIsoDate(0);
+    const yesterday = window.__qaIsoDate(-1);
+    const tomorrow = window.__qaIsoDate(1);
     localStorage.setItem('pms_lang', 'en');
     currentLang = 'en';
     window.currentLang = 'en';
@@ -756,14 +810,14 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
     reservations = [
       {
         id: 'RSV-P1-DYNAMIC-EN-1', room: 'T-EN-1', roomNo: 'T-EN-1', fullRoom: 'T-EN-1', type: 'Standard', status: 'checkedin',
-        guest: 'Dynamic English Guest', guestName: 'Dynamic English Guest', checkInDate: '2026-07-09', checkOutDate: '2026-07-11',
-        checkin: '2026-07-09', checkout: '2026-07-11', cin: '7/9', cout: '7/11', amount: 100, balanceDue: 25,
-        lateCheckout: true, lateCheckoutTime: '14:00', roomChangeHistory: [{ fromRoom: 'T-EN-0', toRoom: 'T-EN-1', changedAt: '2026-07-10T09:00:00+09:00' }]
+        guest: 'Dynamic English Guest', guestName: 'Dynamic English Guest', checkInDate: yesterday, checkOutDate: tomorrow,
+        checkin: yesterday, checkout: tomorrow, cin: window.__qaMonthDay(-1), cout: window.__qaMonthDay(1), amount: 100, balanceDue: 25,
+        lateCheckout: true, lateCheckoutTime: '14:00', roomChangeHistory: [{ fromRoom: 'T-EN-0', toRoom: 'T-EN-1', changedAt: `${today}T09:00:00+09:00` }]
       },
       {
         id: 'RSV-P1-DYNAMIC-EN-2', room: 'T-EN-2', roomNo: 'T-EN-2', fullRoom: 'T-EN-2', type: 'Standard', status: 'checkedin',
         guest: 'Group English Guest', guestName: 'Group English Guest', groupId: 'P1-GROUP-I18N', groupName: 'P1 Test Group', isB2B: true,
-        checkInDate: '2026-07-09', checkOutDate: '2026-07-11', checkin: '2026-07-09', checkout: '2026-07-11', cin: '7/9', cout: '7/11', amount: 100
+        checkInDate: yesterday, checkOutDate: tomorrow, checkin: yesterday, checkout: tomorrow, cin: window.__qaMonthDay(-1), cout: window.__qaMonthDay(1), amount: 100
       }
     ];
     const container = document.querySelector('#reservationBoardContainer');
@@ -780,6 +834,260 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
   assert(result.legendAria === 'Room status color guide', 'Dynamic English legend aria-label must be translated.', result);
   assert(!/[가-힣]/.test(result.text), 'Dynamic English board must not render Korean labels after rerender.', result);
   return result;
+}
+
+async function boardRoomDateChangePreservationRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=board-room-date-preservation`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof updateUnifiedStayAndRooms === 'function', null, { timeout: 15000 });
+
+  const result = await page.evaluate(async () => {
+    const firstRoom = { id: 'T-PRESERVE-1', roomNo: 'T-PRESERVE-1', fullRoom: 'T-PRESERVE-1', type: 'Standard', building: 'Test Tower', status: 'vacant', frontStatus: 'vacant', housekeepingStatus: 'clean' };
+    const secondRoom = { id: 'T-PRESERVE-2', roomNo: 'T-PRESERVE-2', fullRoom: 'T-PRESERVE-2', type: 'Standard', building: 'Test Tower', status: 'vacant', frontStatus: 'vacant', housekeepingStatus: 'clean' };
+    window.rooms = [secondRoom, firstRoom];
+    window.reservations = [];
+    rooms = window.rooms;
+    reservations = window.reservations;
+    const dispatchDate = (id, value) => {
+      const input = document.getElementById(id);
+      input.value = value;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    await openUnifiedResModal({
+      room: firstRoom.id,
+      roomNo: firstRoom.roomNo,
+      checkInDate: window.__qaIsoDate(0),
+      checkOutDate: window.__qaIsoDate(1),
+      preserveRoomOnDateChange: true
+    });
+    const roomSelect = document.getElementById('unifiedRoom');
+    const boardInitial = roomSelect.value;
+    dispatchDate('unifiedCin', window.__qaIsoDate(2));
+    const boardDuringInvalidRange = roomSelect.value;
+    dispatchDate('unifiedCout', window.__qaIsoDate(3));
+    const boardAfterValidRange = roomSelect.value;
+
+    await openUnifiedResModal({
+      room: firstRoom.id,
+      roomNo: firstRoom.roomNo,
+      checkInDate: window.__qaIsoDate(0),
+      checkOutDate: window.__qaIsoDate(1)
+    });
+    const standardSelect = document.getElementById('unifiedRoom');
+    dispatchDate('unifiedCin', window.__qaIsoDate(2));
+    dispatchDate('unifiedCout', window.__qaIsoDate(3));
+    const standardAfterValidRange = standardSelect.value;
+
+    return { boardInitial, boardDuringInvalidRange, boardAfterValidRange, standardAfterValidRange };
+  });
+
+  assert(result.boardInitial === 'T-PRESERVE-1', 'Board card booking must initially select the clicked room.', result);
+  assert(result.boardDuringInvalidRange === 'T-PRESERVE-1', 'Board card booking must retain its room while the date range is temporarily invalid.', result);
+  assert(result.boardAfterValidRange === 'T-PRESERVE-1', 'Board card booking must retain its room after both dates are changed.', result);
+  assert(result.standardAfterValidRange === 'T-PRESERVE-2', 'Standard new booking must continue recalculating the first available room.', result);
+  return result;
+}
+
+async function reservationWindowQueryRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=reservation-window-query`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => window.PmsAPI?.getOperationalReservations && window.PmsAPI?.getTimelineReservations, null, { timeout: 15000 });
+
+  const result = await page.evaluate(async () => {
+    const storageKey = 'pms_reservations';
+    const previous = localStorage.getItem(storageKey);
+    const fixture = [
+      { id: 'QA-WINDOW-TODAY', room: 'QA-1', status: 'confirmed', checkInDate: window.__qaIsoDate(0), checkOutDate: window.__qaIsoDate(1) },
+      { id: 'QA-WINDOW-WEEK', room: 'QA-2', status: 'confirmed', checkInDate: window.__qaIsoDate(10), checkOutDate: window.__qaIsoDate(11) },
+      { id: 'QA-WINDOW-OUTSIDE', room: 'QA-3', status: 'confirmed', checkInDate: window.__qaIsoDate(30), checkOutDate: window.__qaIsoDate(31) }
+    ];
+    localStorage.setItem(storageKey, JSON.stringify(fixture));
+    try {
+      const operational = await window.PmsAPI.getOperationalReservations({ date: window.__qaIsoDate(0), pageSize: 500 });
+      const timeline = await window.PmsAPI.getTimelineReservations({ from: window.__qaIsoDate(0), to: window.__qaIsoDate(13), pageSize: 1000 });
+      return {
+        operationalIds: operational.map(item => item.id),
+        timelineIds: timeline.map(item => item.id)
+      };
+    } finally {
+      if (previous === null) localStorage.removeItem(storageKey);
+      else localStorage.setItem(storageKey, previous);
+    }
+  });
+
+  assert(result.operationalIds.includes('QA-WINDOW-TODAY'), 'Operational board query must include a stay overlapping the selected day.', result);
+  assert(!result.operationalIds.includes('QA-WINDOW-WEEK') && !result.operationalIds.includes('QA-WINDOW-OUTSIDE'), 'Operational board query must exclude reservations outside the selected day.', result);
+  assert(result.timelineIds.includes('QA-WINDOW-TODAY') && result.timelineIds.includes('QA-WINDOW-WEEK'), 'Timeline query must include reservations overlapping its visible range.', result);
+  assert(!result.timelineIds.includes('QA-WINDOW-OUTSIDE'), 'Timeline query must exclude reservations outside its visible range.', result);
+  return result;
+}
+
+async function successfulFlowClosesModalRegression(page, base) {
+  await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?test=successful-flow-closes-modal`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForFunction(() => typeof openUnifiedResModal === 'function' && typeof processUnifiedReservationFlow === 'function', null, { timeout: 15000 });
+
+  const result = await page.evaluate(async () => {
+    const room = { id: 'T-FLOW-CLOSE', roomId: 'T-FLOW-CLOSE', roomNo: 'T-FLOW-CLOSE', fullRoom: 'T-FLOW-CLOSE', type: 'Standard', status: 'vacant-clean', frontStatus: 'vacant', housekeepingStatus: 'clean' };
+    const reservation = {
+      id: 'RSV-FLOW-CLOSE', reservationId: 'RSV-FLOW-CLOSE', room: room.id, roomId: room.id, roomNo: room.roomNo, fullRoom: room.id,
+      guest: 'Flow Close Guest', guestName: 'Flow Close Guest', status: 'confirmed',
+      checkInDate: window.__qaIsoDate(0), checkOutDate: window.__qaIsoDate(1), checkin: window.__qaIsoDate(0), checkout: window.__qaIsoDate(1),
+      checkInTime: '14:00', checkOutTime: '12:00', amount: 140, balanceDue: 0
+    };
+    window.rooms = [room];
+    window.reservations = [reservation];
+    rooms = window.rooms;
+    reservations = window.reservations;
+    const originalConfirm = window.showConfirm;
+    window.showConfirm = async () => true;
+    try {
+      await window.openUnifiedResModal(reservation.id);
+      await window.processUnifiedReservationFlow('checkin');
+    } finally {
+      window.showConfirm = originalConfirm;
+    }
+    const modal = document.getElementById('unifiedResModal');
+    return {
+      status: reservation.status,
+      modalActive: modal?.classList.contains('active') || false,
+      modalDisplay: modal?.style.display || ''
+    };
+  });
+
+  assert(result.status === 'checkedin', 'Successful check-in must update the reservation status.', result);
+  assert(!result.modalActive && result.modalDisplay === 'none', 'Successful check-in must close the reservation modal.', result);
+  return result;
+}
+
+async function dateBoundaryRegression(browser, base) {
+  const scenarios = [
+    '2026-07-21',
+    '2026-07-31',
+    '2026-12-31',
+    '2028-02-29'
+  ];
+  const results = [];
+
+  for (const frozenIso of scenarios) {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await context.addInitScript(({ iso }) => {
+      const NativeDate = Date;
+      const fixedNow = new NativeDate(`${iso}T12:00:00+09:00`).getTime();
+      class FixedDate extends NativeDate {
+        constructor(...args) {
+          super(...(args.length ? args : [fixedNow]));
+        }
+        static now() { return fixedNow; }
+      }
+      FixedDate.parse = NativeDate.parse;
+      FixedDate.UTC = NativeDate.UTC;
+      window.Date = FixedDate;
+      sessionStorage.setItem('pms_logged_in', 'true');
+      sessionStorage.setItem('admin_logged_in', 'true');
+      localStorage.setItem('pms_lang', 'ko');
+    }, { iso: frozenIso });
+    const page = await context.newPage();
+    try {
+      await page.goto(`${base}/dashboard/frontdesk/reservation-board.html?date-boundary=${frozenIso}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => window.PmsDate && Array.isArray(window.reservations) && window.reservations.length > 0, null, { timeout: 15000 });
+      const board = await page.evaluate(async expected => {
+        const iso = value => boardDateKey(value);
+        const range = boardRange();
+        await openUnifiedResModal();
+        const modalDates = {
+          checkin: document.getElementById('unifiedCin')?.value || '',
+          checkout: document.getElementById('unifiedCout')?.value || ''
+        };
+        closeUnifiedResModal();
+        const queried = await window.PmsAPI.getOperationalReservations({ date: expected, page: 1, pageSize: 1000 });
+        const parse = (value, anchor, minimum = null) => {
+          const text = String(value || '').trim();
+          const md = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+          if (!md) return new Date(`${text.slice(0, 10)}T00:00:00`);
+          const candidates = [-1, 0, 1].map(offset => new Date(anchor.getFullYear() + offset, Number(md[1]) - 1, Number(md[2])));
+          const eligible = minimum ? candidates.filter(date => date >= minimum) : candidates;
+          return (eligible.length ? eligible : candidates).sort((left, right) => Math.abs(left - anchor) - Math.abs(right - anchor))[0];
+        };
+        const overlaps = item => {
+          const anchor = new Date(`${expected}T00:00:00`);
+          const start = parse(item.checkInDate || item.checkin || item.cin, anchor);
+          const end = parse(item.checkOutDate || item.checkout || item.cout, start || anchor, start);
+          return start <= anchor && end >= anchor;
+        };
+        return {
+          today: window.PmsDate.todayIso(),
+          range: { start: iso(range.start), end: iso(range.end), mode: range.mode },
+          modalDates,
+          queriedCount: queried.length,
+          outsideIds: queried.filter(item => !overlaps(item)).map(item => item.id)
+        };
+      }, frozenIso);
+
+      await page.goto(`${base}/dashboard/frontdesk/reservation-timeline.html?date-boundary=${frozenIso}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => window.PmsDate && Array.isArray(window.reservations) && window.reservations.length > 0 && document.querySelector('.tl-grid'), null, { timeout: 15000 });
+      const timeline = await page.evaluate(async expected => {
+        const initial = timelineWindowQuery();
+        await shiftWeek(1);
+        const shifted = timelineWindowQuery();
+        await goToday();
+        const reset = timelineWindowQuery();
+        const parse = (value, anchor, minimum = null) => {
+          const text = String(value || '').trim();
+          const md = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+          if (!md) return new Date(`${text.slice(0, 10)}T00:00:00`);
+          const candidates = [-1, 0, 1].map(offset => new Date(anchor.getFullYear() + offset, Number(md[1]) - 1, Number(md[2])));
+          const eligible = minimum ? candidates.filter(date => date >= minimum) : candidates;
+          return (eligible.length ? eligible : candidates).sort((left, right) => Math.abs(left - anchor) - Math.abs(right - anchor))[0];
+        };
+        const overlaps = (item, windowRange) => {
+          const windowStart = new Date(`${windowRange.from}T00:00:00`);
+          const windowEnd = new Date(`${windowRange.to}T00:00:00`);
+          const start = parse(item.checkInDate || item.checkin || item.cin, windowStart);
+          const end = parse(item.checkOutDate || item.checkout || item.cout, start || windowEnd, start);
+          return start <= windowEnd && end >= windowStart;
+        };
+        return {
+          today: window.PmsDate.todayIso(),
+          initial,
+          shifted,
+          reset,
+          outsideIds: (window.reservations || []).filter(item => !overlaps(item, reset)).map(item => ({
+            id: item.id,
+            checkInDate: item.checkInDate,
+            checkOutDate: item.checkOutDate,
+            checkin: item.checkin,
+            checkout: item.checkout,
+            cin: item.cin,
+            cout: item.cout
+          })),
+          expected
+        };
+      }, frozenIso);
+
+      const nextDate = new Date(`${frozenIso}T00:00:00`);
+      nextDate.setDate(nextDate.getDate() + 1);
+      const nextIso = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
+      const plusSeven = new Date(`${frozenIso}T00:00:00`);
+      plusSeven.setDate(plusSeven.getDate() + 7);
+      const plusSevenIso = `${plusSeven.getFullYear()}-${String(plusSeven.getMonth() + 1).padStart(2, '0')}-${String(plusSeven.getDate()).padStart(2, '0')}`;
+
+      assert(board.today === frozenIso, 'Board did not use the frozen business date.', { frozenIso, board });
+      assert(board.range.start === frozenIso && board.range.end === frozenIso, 'Board default range did not stay on the business date.', { frozenIso, board });
+      assert(board.modalDates.checkin === frozenIso && board.modalDates.checkout === nextIso, 'New reservation defaults did not cross the date boundary correctly.', { frozenIso, board, nextIso });
+      assert(board.outsideIds.length === 0, 'Operational reservation query returned records outside its date.', { frozenIso, board });
+      assert(timeline.today === frozenIso && timeline.initial.from === frozenIso, 'Timeline did not start on the business date.', { frozenIso, timeline });
+      assert(timeline.shifted.from === plusSevenIso, 'Timeline week navigation did not cross the date boundary correctly.', { frozenIso, timeline, plusSevenIso });
+      assert(timeline.reset.from === frozenIso, 'Timeline Today did not reset to the business date.', { frozenIso, timeline });
+      assert(timeline.outsideIds.length === 0, 'Timeline query returned records outside the visible range.', { frozenIso, timeline });
+      results.push({ frozenIso, nextIso, plusSevenIso, board, timeline });
+    } finally {
+      await context.close();
+    }
+  }
+
+  return results;
 }
 
 (async () => {
@@ -810,18 +1118,41 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
       sessionStorage.setItem('pms_logged_in', 'true');
       sessionStorage.setItem('admin_logged_in', 'true');
       localStorage.setItem('pms_lang', 'ko');
+      window.__qaIsoDate = (offset = 0) => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + Number(offset || 0));
+        const shifted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return shifted.toISOString().slice(0, 10);
+      };
+      window.__qaMonthDay = (offset = 0) => {
+        const [year, month, day] = window.__qaIsoDate(offset).split('-').map(Number);
+        return `${month}/${day}`;
+      };
     });
 
     const dashboardCountResult = await dashboardCheckinCountRegression(page, base);
     const boardCleaningVisibilityResult = await reservationBoardCleaningVisibilityRegression(page, base);
     const boardDynamicEnglishResult = await reservationBoardDynamicEnglishRegression(page, base);
+    const boardRoomDatePreservationResult = await boardRoomDateChangePreservationRegression(page, base);
+    const reservationWindowQueryResult = await reservationWindowQueryRegression(page, base);
     const todayCheckinRoomMasterResult = await todayCheckinRoomMasterRegression(page, base);
+    const dateBoundaryResult = await dateBoundaryRegression(browser, base);
+    console.log('[reservation-regression] date boundaries passed');
     const boardFilterColorResult = await reservationBoardFilterColorRegression(page, base);
+    console.log('[reservation-regression] board filter colors passed');
     const maintenanceBookingGuardResult = await maintenanceRoomBookingGuardRegression(page, base);
+    console.log('[reservation-regression] maintenance booking guard passed');
     const overlappingReservationGuardResult = await overlappingReservationGuardRegression(page, base);
+    console.log('[reservation-regression] overlapping reservation guard passed');
     const stayValidationResult = await reservationStayValidationRegression(page, base);
+    console.log('[reservation-regression] stay validation passed');
     const editPersistenceResult = await reservationEditPersistenceRegression(page, base);
+    console.log('[reservation-regression] edit persistence passed');
     const timelineShadowResult = await reservationTimelineShadowRegression(page, base);
+    console.log('[reservation-regression] timeline shadow passed');
+    const successfulFlowClosesModalResult = await successfulFlowClosesModalRegression(page, base);
+    console.log('[reservation-regression] modal close passed');
 
     await page.goto(`${base}/dashboard/frontdesk/reservation-list.html`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -962,6 +1293,8 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
     assert(editSearchState.privacyText.includes('Alexander Kim'), 'Edit detail must still show guest detail information below.', editSearchState);
 
     const duplicateRosterState = await page.evaluate(async () => {
+      const today = window.__qaIsoDate(0);
+      const afterTomorrow = window.__qaIsoDate(2);
       window.rooms = [{ id: 'T-902', number: '902', fullRoom: 'T-902', type: 'Standard', building: 'Test Tower', status: 'occupied', housekeepingStatus: 'clean', frontStatus: 'occupied' }];
       window.reservations = [{
         id: 'RSV-DUPLICATE-ROSTER',
@@ -982,12 +1315,12 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
           { guestId: 'G-GRACE-MILLER', id: 'G-GRACE-MILLER', name: 'Grace Miller', role: 'companion' }
         ],
         companions: [{ name: 'Grace Miller', role: 'companion' }],
-        cin: '7/10',
-        cout: '7/12',
-        checkin: '2026-07-10',
-        checkout: '2026-07-12',
-        checkInDate: '2026-07-10',
-        checkOutDate: '2026-07-12',
+        cin: window.__qaMonthDay(0),
+        cout: window.__qaMonthDay(2),
+        checkin: today,
+        checkout: afterTomorrow,
+        checkInDate: today,
+        checkOutDate: afterTomorrow,
         nights: 2,
         len: 2
       }];
@@ -1158,12 +1491,17 @@ async function reservationBoardDynamicEnglishRegression(page, base) {
         'reservation timeline prefers the saved booking over a stale same-guest handoff',
         'representative/companion buttons only show for active guest candidates',
         'group block timeline modal allows guest entry without forcing conversion',
-        'dashboard today check-in KPI matches reservation board after rooms become in-house'
+        'dashboard today check-in KPI matches reservation board after rooms become in-house',
+        'date-sensitive reservation flows cross day, month, year, and leap-day boundaries'
       ],
       dashboardCountResult,
       duplicateRosterState,
       boardCleaningVisibilityResult,
       boardDynamicEnglishResult,
+      boardRoomDatePreservationResult,
+      reservationWindowQueryResult,
+      successfulFlowClosesModalResult,
+      dateBoundaryResult,
       todayCheckinRoomMasterResult,
       boardFilterColorResult,
       maintenanceBookingGuardResult,
