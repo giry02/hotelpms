@@ -812,11 +812,15 @@ function activeReservationForRoom(room) {
     const active = reservations.filter(res => {
         if (effectiveReservationStatus(res, today) !== 'checkedin') return false;
         if (!roomMatchesReservation(room, res)) return false;
-        if (['checkedin', 'inhouse', 'occupied'].includes(normalizeStatus(res.status)) && hasAssignedReservationGuest(res)) return true;
         const start = parseDate(res.checkInDate || res.checkin || res.cin);
         const end = parseDate(res.checkOutDate || res.checkout || res.cout);
-        return start && end && start <= today && today < end;
-    }).sort((a, b) => (parseDate(a.checkOutDate || a.checkout || a.cout)?.getTime() || 0) - (parseDate(b.checkOutDate || b.checkout || b.cout)?.getTime() || 0))[0] || null;
+        if (!start || !end || start > today || today >= end) return false;
+        return hasAssignedReservationGuest(res);
+    }).sort((a, b) => {
+        const aStart = parseDate(a.checkInDate || a.checkin || a.cin)?.getTime() || 0;
+        const bStart = parseDate(b.checkInDate || b.checkin || b.cin)?.getTime() || 0;
+        return bStart - aStart;
+    })[0] || null;
     const fallback = active || (roomHasInHouseStatus(room) ? reservations.filter(res => {
         const status = effectiveReservationStatus(res, today);
         if (['cancelled', 'completed'].includes(status)) return false;

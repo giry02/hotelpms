@@ -334,6 +334,262 @@ async function individualReservationFlow(page) {
   };
 }
 
+async function connectedReservationFinancialCycleFlow(page) {
+  const guestName = `E2E Connected ${runId}`;
+  const expenseItem = `E2E Cycle Supplies ${runId}`;
+  const folioId = `FOL-E2E-CYCLE-${runId}`;
+  const testRoomNo = `99${String(runId).slice(-2)}`;
+  const testRoomId = `FT-${testRoomNo}`;
+  const roomCharge = 420;
+  const expenseAmount = 123;
+
+  await goto(page, '/dashboard/frontdesk/reservation-list.html');
+  await page.evaluate(async ({ id, roomNo }) => {
+    await window.PmsMockApi.request('POST', '/rooms', { body: {
+      id,
+      roomId: id,
+      roomNo,
+      displayName: `Forest Tower ${roomNo}`,
+      buildingId: 'FT',
+      buildingName: 'Forest Tower',
+      floor: 99,
+      roomTypeId: 'DLX',
+      roomTypeName: 'Deluxe',
+      status: 'vacant-clean',
+      housekeepingStatus: 'clean',
+      frontStatus: 'vacant-clean',
+      occupancyStatus: 'vacant',
+      guestFlag: 'none',
+      baseRate: { amount: 420, currency: 'PHP' },
+      active: true
+    }});
+    const toDate = value => {
+      const date = new Date();
+      date.setDate(date.getDate() + value);
+      return date.toISOString().slice(0, 10);
+    };
+    await window.PmsMockApi.request('POST', '/reservations', { body: {
+      id: `RSV-E2E-STALE-${roomNo}`,
+      reservationId: `RSV-E2E-STALE-${roomNo}`,
+      roomId: id,
+      room: roomNo,
+      fullRoom: id,
+      guest: 'Historical Stale Guest',
+      guestName: 'Historical Stale Guest',
+      roomingGuestName: 'Historical Stale Guest',
+      status: 'checkedin',
+      checkInDate: toDate(-6),
+      checkOutDate: toDate(-4),
+      checkin: toDate(-6),
+      checkout: toDate(-4)
+    }});
+  }, { id: testRoomId, roomNo: testRoomNo });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+  await page.locator('button[onclick="openUnifiedResModal()"]' ).click();
+  await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#unifiedResModal.active #nrNewGuestBtnEdit').click();
+  await fillGuestSearchNewForm(page, 'Edit', guestName);
+  await fillIfPresent(page, '#nrPhoneEdit', '+82 10 0000 6677');
+  await fillIfPresent(page, '#nrEmailEdit', `connected-${runId}@example.com`);
+  await fillIfPresent(page, '#nrNationEdit', 'Korea');
+  await setUnifiedStayDates(page, 1);
+  await page.evaluate(preferredRoom => {
+    const select = document.getElementById('unifiedRoom');
+    const preferred = Array.from(select?.options || []).find(item =>
+      !item.disabled && (item.value === preferredRoom.id || item.value === preferredRoom.roomNo || (item.textContent || '').includes(preferredRoom.roomNo))
+    );
+    const option = preferred || Array.from(select?.options || []).find(item => !item.disabled && item.value);
+    if (!select || !option) return;
+    select.value = option.value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }, { id: testRoomId, roomNo: testRoomNo });
+  await page.locator('#unifiedResModal button[onclick="saveUnifiedRes()"]' ).click();
+  await page.waitForTimeout(150);
+  await clickConfirmIfVisible(page);
+  await page.waitForFunction(() => !document.querySelector('#unifiedResModal.active'), null, { timeout: 10000 });
+
+  const reservation = await page.evaluate(name => {
+    const rows = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
+    return rows.find(item => item.guest === name || item.guestName === name || item.roomingGuestName === name) || null;
+  }, guestName);
+  assert(reservation?.id, 'connected cycle reservation was not saved');
+  const reservationId = reservation.id;
+  const roomValue = reservation.roomId || reservation.fullRoom || reservation.room;
+  const roomNo = String(reservation.fullRoom || reservation.room || reservation.roomId || '').replace(/^[A-Z]+-/, '');
+
+  await goto(page, '/dashboard/frontdesk/reservation-list.html?tab=checkin');
+  await page.evaluate(id => window.openUnifiedResModal(id), reservationId);
+  await page.locator('#unifiedResModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  const connectedCheckinButton = page.locator('#unifiedFlowActions button[onclick*="checkin"]');
+  await connectedCheckinButton.waitFor({ state: 'visible', timeout: 10000 });
+  await connectedCheckinButton.click();
+  await clickConfirmOk(page);
+  await page.waitForFunction(id => {
+    const rows = JSON.parse(localStorage.getItem('pms_reservations') || '[]');
+    return rows.find(item => item.id === id)?.status === 'checkedin';
+  }, reservationId, { timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector('#unifiedResModal.active'), null, { timeout: 10000 });
+
+  await goto(page, '/dashboard/operations/ancillary.html');
+  await page.waitForFunction(() => typeof window.openServiceDetailModal === 'function' && typeof serviceOrders !== 'undefined' && Array.isArray(serviceOrders), null, { timeout: 12000 });
+  await page.evaluate(({ roomKey, roomNumber }) => {
+    const room = (typeof rooms !== 'undefined' ? rooms : []).find(item => [item.id, item.roomId, item.room, item.roomNo, item.number]
+      .some(value => String(value || '') === String(roomKey || '') || String(value || '') === String(roomNumber || '')));
+    const key = room?.id || room?.roomId || room?.room || room?.roomNo || roomNumber;
+    window.openServiceDetailModal(key, { showRegistration: true, serviceType: 'pos' });
+  }, { roomKey: roomValue, roomNumber: roomNo });
+  await page.locator('#serviceDetailModal.active').waitFor({ state: 'visible', timeout: 10000 });
+  const ancillaryOrderIdsBefore = await page.evaluate(() => (typeof serviceOrders !== 'undefined' ? serviceOrders : []).map(item => item.id));
+  await page.evaluate(() => {
+    window.selectServiceType('pos');
+    const qty = document.getElementById('serviceQty');
+    if (qty) qty.value = '2';
+    window.renderRegistrationPreview?.();
+  });
+  await page.locator('#serviceDetailModal.active button[onclick="saveServiceOrder()"]' ).click();
+  await page.waitForTimeout(800);
+  const ancillary = await page.evaluate(({ id, previousIds }) => {
+    const rows = JSON.parse(localStorage.getItem('pms_ancillary_room_orders') || '[]');
+    return rows.find(item => !previousIds.includes(item.id)) || rows.find(item => item.reservationId === id) || null;
+  }, { id: reservationId, previousIds: ancillaryOrderIdsBefore });
+  assert(ancillary?.id && Number(ancillary.total) > 0, 'connected ancillary order has no id or amount');
+  assert(ancillary.reservationId === reservationId, `ancillary order lost the connected reservation id: expected ${reservationId}, got ${ancillary.reservationId || '-'}`);
+
+  await page.evaluate(id => {
+    window.updateServiceOrderStatus(id, 'accepted');
+    window.updateServiceOrderStatus(id, 'completed');
+    window.updateServiceOrderStatus(id, 'accepted');
+    window.updateServiceOrderStatus(id, 'completed');
+  }, ancillary.id);
+  const ancillaryLifecycle = await page.evaluate(id => {
+    const rows = JSON.parse(localStorage.getItem('pms_ancillary_room_orders') || '[]');
+    const order = rows.find(item => item.id === id);
+    const logs = JSON.parse(localStorage.getItem('pms_privacy_audit_logs') || '[]');
+    return {
+      status: order?.status || '',
+      reopenAudit: logs.some(item => item.action === 'ancillary.order.reopen' && item.details?.orderId === id)
+    };
+  }, ancillary.id);
+  assert(ancillaryLifecycle.status === 'completed', 'ancillary lifecycle did not finish as completed');
+  assert(ancillaryLifecycle.reopenAudit, 'ancillary reopen was not written to the audit log');
+
+  await goto(page, '/dashboard/operations/expense-purchases.html');
+  await page.locator('button[onclick="openExpenseFormModal()"]' ).click();
+  await page.locator('#expenseFormModal.active').waitFor({ state: 'visible', timeout: 7000 });
+  await fillIfPresent(page, '#expenseItem', expenseItem);
+  await fillIfPresent(page, '#expenseVendor', 'E2E Supply Vendor');
+  await fillIfPresent(page, '#expenseAmount', String(expenseAmount));
+  await selectIfPresent(page, '#expenseMethod', 'cash');
+  await selectIfPresent(page, '#expenseCurrency', 'PHP');
+  await fillIfPresent(page, '#expenseNote', `Connected reservation ${reservationId}`);
+  await page.locator('#expenseFormModal.active button[onclick="saveExpensePurchase()"]' ).click();
+  await page.waitForFunction(item => {
+    const rows = JSON.parse(localStorage.getItem('pms_expense_purchases') || '[]');
+    return rows.some(row => row.item === item);
+  }, expenseItem, { timeout: 7000 });
+  const expenseState = await page.evaluate(item => {
+    const expense = JSON.parse(localStorage.getItem('pms_expense_purchases') || '[]').find(row => row.item === item);
+    const sessions = JSON.parse(localStorage.getItem('pms_night_audit_cash_sessions') || '[]');
+    const withdrawal = sessions.flatMap(session => session.withdrawals || []).find(row => row.expenseId === expense?.id);
+    return { expense, withdrawal };
+  }, expenseItem);
+  assert(expenseState.expense?.settlementAmount === -expenseAmount, 'expense was not reflected as a negative settlement amount');
+  assert(expenseState.withdrawal?.amount === expenseAmount, 'cash expense was not reflected in the cash session');
+
+  const expectedFolioTotal = roomCharge + Number(ancillary.total);
+  await goto(page, '/dashboard/operations/settlement-status.html');
+  await page.evaluate(async ({ id, reservationId: resId, roomNumber, guest, roomAmount, serviceAmount, total }) => {
+    await window.PmsMockApi.request('POST', '/folios', { body: {
+      id,
+      folioId: id,
+      reservationId: resId,
+      roomNo: roomNumber,
+      ownerName: guest,
+      status: 'open',
+      issuedAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString(),
+      charges: [
+        { id: `${id}-ROOM`, type: 'room', desc: 'Room charge', amount: roomAmount, roomNo: roomNumber },
+        { id: `${id}-POS`, type: 'pos', desc: 'Ancillary POS', amount: serviceAmount, roomNo: roomNumber }
+      ],
+      payments: [{ id: `${id}-PAY`, method: 'cash', amount: total }],
+      balance: 0
+    }});
+    await window.loadSettlementData();
+    window.renderSettlementSections();
+  }, {
+    id: folioId,
+    reservationId,
+    roomNumber: roomNo,
+    guest: guestName,
+    roomAmount: roomCharge,
+    serviceAmount: Number(ancillary.total),
+    total: expectedFolioTotal
+  });
+  const folioBefore = await page.evaluate(id => {
+    const row = window.settlementFolioById(id);
+    return row ? { total: row.total, paid: row.paid, balance: row.balance, completed: row.settlementCompleted } : null;
+  }, folioId);
+  assert(folioBefore, 'connected folio was not loaded after creation');
+  assert(folioBefore.total === expectedFolioTotal, `folio total mismatch: expected ${expectedFolioTotal}, got ${folioBefore.total}`);
+  assert(folioBefore.paid === expectedFolioTotal && folioBefore.balance === 0, 'folio payment and balance do not reconcile');
+
+  const completed = await page.evaluate(id => window.completeSettlementStatusFolio(id, { skipConfirm: true, openDetail: false }), folioId);
+  assert(completed, 'connected folio could not be completed');
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => typeof window.settlementFolioById === 'function' && typeof settlementState !== 'undefined' && settlementState.folios.length, null, { timeout: 12000 });
+  const persistedCompletion = await page.evaluate(id => !!window.settlementFolioById(id)?.settlementCompleted, folioId);
+  assert(persistedCompletion, 'settlement completion did not survive reload');
+
+  const reopened = await page.evaluate(async id => {
+    window.showConfirm = async () => true;
+    return window.reopenSettlementStatusFolio(id);
+  }, folioId);
+  assert(reopened, 'connected folio could not be reopened');
+  const reopenState = await page.evaluate(id => {
+    const row = window.settlementFolioById(id);
+    const logs = JSON.parse(localStorage.getItem('pms_privacy_audit_logs') || '[]');
+    return {
+      completed: !!row?.settlementCompleted,
+      audit: logs.some(item => item.action === 'folio.settlement.reopen' && item.details?.folioId === id)
+    };
+  }, folioId);
+  assert(!reopenState.completed, 'reopened folio still appeared completed');
+  assert(reopenState.audit, 'settlement reopen was not written to the audit log');
+  const finalCompletion = await page.evaluate(id => window.completeSettlementStatusFolio(id, { skipConfirm: true, openDetail: false }), folioId);
+  assert(finalCompletion, 'reopened folio could not be completed again');
+
+  await goto(page, '/dashboard/operations/ancillary.html');
+  const persistedOrder = await page.evaluate(id => {
+    const rows = JSON.parse(localStorage.getItem('pms_ancillary_room_orders') || '[]');
+    return rows.find(item => item.id === id) || null;
+  }, ancillary.id);
+  assert(persistedOrder?.status === 'completed', 'ancillary completion did not survive navigation and reload');
+
+  const finalState = await page.evaluate(({ resId, item }) => {
+    const reservation = JSON.parse(localStorage.getItem('pms_reservations') || '[]').find(row => row.id === resId);
+    const expense = JSON.parse(localStorage.getItem('pms_expense_purchases') || '[]').find(row => row.item === item);
+    return { reservationStatus: reservation?.status || '', expenseAmount: expense?.settlementAmount || 0 };
+  }, { resId: reservationId, item: expenseItem });
+  assert(finalState.reservationStatus === 'completed', 'settlement completion did not check out the connected reservation');
+
+  return {
+    reservationId,
+    room: roomNo,
+    ancillaryOrderId: ancillary.id,
+    roomCharge,
+    ancillaryCharge: Number(ancillary.total),
+    folioTotal: expectedFolioTotal,
+    folioPaid: folioBefore.paid,
+    folioBalance: folioBefore.balance,
+    expenseAmount: finalState.expenseAmount,
+    netAfterExpense: expectedFolioTotal + finalState.expenseAmount,
+    ancillaryReopenAudit: ancillaryLifecycle.reopenAudit,
+    settlementReopenAudit: reopenState.audit,
+    finalReservationStatus: finalState.reservationStatus
+  };
+}
+
 async function checkinCheckoutFlow(page) {
   const guestName = `E2E Ops Guest ${runId}`;
   await goto(page, '/dashboard/frontdesk/reservation-list.html?tab=checkin');
@@ -1022,9 +1278,10 @@ async function adminTenantApplicationFlow(page) {
 
 async function main() {
   const browser = await chromium.launch({ headless: true });
-  const flows = [
+  const allFlows = [
     ['group rooming -> timeline', groupRoomingTimelineFlow],
     ['individual reservation -> timeline', individualReservationFlow],
+    ['connected reservation -> ancillary -> settlement -> expense', connectedReservationFinancialCycleFlow],
     ['check-in and check-out', checkinCheckoutFlow],
     ['dashboard check-in KPI -> reservation list count', dashboardCheckinKpiNavigationFlow],
     ['night audit closed handover view', nightAuditClosedHandoverFlow],
@@ -1036,6 +1293,9 @@ async function main() {
     ['housekeeping -> maintenance', housekeepingMaintenanceFlow],
     ['admin tenant application -> list', adminTenantApplicationFlow]
   ];
+  const flowPattern = process.env.PMS_FLOW_MATCH ? new RegExp(process.env.PMS_FLOW_MATCH, 'i') : null;
+  const flows = flowPattern ? allFlows.filter(([name]) => flowPattern.test(name)) : allFlows;
+  assert(flows.length, `no E2E business flow matched ${process.env.PMS_FLOW_MATCH}`);
 
   const results = [];
   try {
