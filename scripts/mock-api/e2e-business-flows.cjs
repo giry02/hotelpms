@@ -1,7 +1,9 @@
 const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
 
 const base = process.env.PMS_BASE_URL || 'http://127.0.0.1:8765';
-const runId = Date.now();
+const runId = process.env.PMS_CYCLE_RUN_ID || Date.now();
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -1052,6 +1054,10 @@ async function main() {
     failed: failed.length,
     results
   };
+  if (process.env.PMS_RESULT_FILE) {
+    fs.mkdirSync(path.dirname(process.env.PMS_RESULT_FILE), { recursive: true });
+    fs.writeFileSync(process.env.PMS_RESULT_FILE, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+  }
   console.log(JSON.stringify(summary, null, 2));
   if (failed.length) process.exitCode = 1;
 }

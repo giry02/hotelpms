@@ -1,0 +1,1733 @@
+{
+  "generatedAt": "2026-07-22T00:15:17.089Z",
+  "base": "https://hotelpms-eight.vercel.app",
+  "runId": "CYCLE-20260722-001-R2",
+  "scope": "deployed production-like static site",
+  "summary": {
+    "total": 82,
+    "passed": 80,
+    "failed": 0,
+    "blocked": 2
+  },
+  "architectureGate": {
+    "id": "CYCLE-ARCH-001",
+    "status": "BLOCKED",
+    "reason": "Admin과 PMS가 각각 브라우저 localStorage를 사용하는 정적 앱 구조이므로 Admin 승인 데이터가 PMS 테넌트로 서버에서 전파되는 단일 백엔드 연동은 현재 검증할 수 없다."
+  },
+  "connectedCycleGate": {
+    "id": "CYCLE-E2E-001",
+    "status": "BLOCKED",
+    "reason": "현재 자동화는 업무 흐름별 격리 브라우저 컨텍스트를 사용한다. CYCLE-000에서 생성한 동일 ID를 CYCLE-140까지 이어 쓰는 단일 컨텍스트 실행은 아직 구현되지 않아 전체 단일 사이클 PASS로 판정할 수 없다."
+  },
+  "suites": [
+    {
+      "id": "BASELINE",
+      "mode": "ISOLATED_BUSINESS_FLOW",
+      "script": "e2e-business-flows.cjs",
+      "startedAt": "2026-07-22T00:12:16.425Z",
+      "finishedAt": "2026-07-22T00:13:30.956Z",
+      "exitCode": 0,
+      "summary": {
+        "total": 12,
+        "passed": 12,
+        "failed": 0,
+        "blocked": 0
+      },
+      "resultFile": "baseline.json",
+      "results": [
+        {
+          "name": "group rooming -> timeline",
+          "ok": true,
+          "ms": 4540,
+          "details": {
+            "guestName": "E2E Group Guest CYCLE-20260722-001-R2",
+            "roomId": "0802",
+            "status": "checked-in"
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "individual reservation -> timeline",
+          "ok": true,
+          "ms": 6107,
+          "details": {
+            "guestName": "E2E Individual CYCLE-20260722-001-R2",
+            "roomId": "1205",
+            "statusAfterTimelineCheckin": "checkedin",
+            "checkinBlockClass": "tl-block checkedin",
+            "statusAfterTimelineCheckout": "completed",
+            "checkoutBlockClass": "tl-block completed"
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "check-in and check-out",
+          "ok": true,
+          "ms": 4615,
+          "details": {
+            "checkedIn": "E2E Ops Guest CYCLE-20260722-001-R2",
+            "checkedOut": "E2E Ops Guest CYCLE-20260722-001-R2"
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "dashboard check-in KPI -> reservation list count",
+          "ok": true,
+          "ms": 3579,
+          "details": {
+            "setup": {
+              "today": "2026-07-22",
+              "targetRooms": [
+                "1210",
+                "1223"
+              ],
+              "before": 3,
+              "beforeDashboardCount": 3,
+              "expectedAfter": 1
+            },
+            "dashboard": {
+              "text": "금일 체크인\n1",
+              "count": 1,
+              "topText": "1 / 11\n오늘 체크인 / 체크아웃"
+            },
+            "list": {
+              "url": "https://hotelpms-eight.vercel.app/dashboard/frontdesk/reservation-board.html?filter=checkin",
+              "active": "오늘 체크인\n1",
+              "tabCount": 1,
+              "pageTotal": 1,
+              "cardCount": 1,
+              "isCheckinActive": true
+            }
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "night audit closed handover view",
+          "ok": true,
+          "ms": 3050,
+          "details": {
+            "setup": {
+              "businessDate": "2026-07-22"
+            },
+            "state": {
+              "bodyClosed": true,
+              "closedVisible": true,
+              "memo": "No special notes. Check 1206 deposit envelope.",
+              "closeTabDisplay": "none",
+              "cashActive": true,
+              "actionDisabled": true,
+              "logHref": "closing-log.html?date=2026-07-22",
+              "session": {
+                "id": "TEST-CLOSED-2026-07-22",
+                "businessDate": "2026-07-22",
+                "opening": {
+                  "PHP": 30000,
+                  "USD": 200,
+                  "KRW": 500000
+                },
+                "openedAt": "2026-07-22T08:00:00+09:00",
+                "openedBy": "Nguyen Kim",
+                "withdrawals": [
+                  {
+                    "id": "WD-TEST",
+                    "currency": "PHP",
+                    "amount": 10000,
+                    "currencyBreakdown": {
+                      "PHP": 10000,
+                      "USD": 150,
+                      "KRW": 100000
+                    },
+                    "phpEquivalent": 10000,
+                    "receiver": "Manager",
+                    "note": "Envelope A-13",
+                    "createdAt": "2026-07-22T18:00:00+09:00",
+                    "operator": "Nguyen Kim"
+                  }
+                ],
+                "closing": {
+                  "PHP": 84200,
+                  "USD": 260,
+                  "KRW": 650000
+                },
+                "closingPhpEquivalent": 84200,
+                "closingNote": "Count complete",
+                "closedAt": "2026-07-22T23:45:00+09:00",
+                "closedBy": "Nguyen Kim",
+                "handoverMemo": "No special notes. Check 1206 deposit envelope.",
+                "nightAuditClosed": true,
+                "nightAuditClosedAt": "2026-07-22T23:50:00+09:00",
+                "nightAuditClosedBy": "Nguyen Kim",
+                "sampleData": true
+              }
+            }
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "ancillary board only shows in-house rooms",
+          "ok": true,
+          "ms": 2041,
+          "details": {
+            "cardCount": 8,
+            "inhouseCardCount": 8,
+            "blockedCardCount": 0,
+            "nonInHouseInventoryRoomNos": [],
+            "kpiInhouse": 8,
+            "boardText": "Forest Tower\n(6개 객실)\n12층\n1203\nDeluxe\n투숙 중\nWong Li\n7.20 ~ 7.22\n 통합 POS\n₱145\n 골프장\n₱900\n 합산\n₱1,045\n \n1209\nDeluxe\n투숙 중\nTanaka Yuki\n7.20 ~ 7.22\n 골프장\n₱520\n 렌터카\n₱320\n 합산\n₱840\n \n1211\nDeluxe\n투숙 중\nMaria Santos\n7.20 ~ 7.22\n 부가서비스 등록 가능\n \n1218\nDeluxe\n투숙 중\nPham David\n7.22 ~ 7.24\nLotte Foods Executive Visit\n 통합 POS\n₱54\n 골프장\n₱900\n 합산\n₱954\n \n1226\nDeluxe\n투숙 중\nLee Hannah\n7.22 ~ 7.24\nNguyen Family Meeting\n 통합 POS\n₱86\n 합산\n₱86\n \n1228\nDeluxe\n투숙 중\nGarcia Miguel\n7.21 ~ 7.22\n 골프장\n₱210\n 렌터카\n₱260\n 합산\n₱470\n \nLakeside Villa\n(1개 객실)\n1층\nV-02\nPool Villa\n투숙 중\nTanaka Yuki\n7.21 ~ 7.22\n 통합 POS\n₱380\n 렌터카\n₱90\n 합산\n₱470\n \nOcean Tower\n(1개 객실)\n14층\n1402\nPremier\n투숙 중\nYamamoto K.\n7.21 ~ 7.22\n 통합 POS\n₱8,500\n 합산\n₱8,500\n "
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "ancillary modal follows selected language",
+          "ok": true,
+          "ms": 2228,
+          "details": {
+            "baseState": {
+              "title": "Ancillary Details",
+              "sectionHeadings": [
+                "Usage History",
+                "Ancillary Registration"
+              ],
+              "tabs": [
+                "Integrated POS",
+                "Golf Course",
+                "Rent-a-car",
+                "Restaurant",
+                "Other"
+              ],
+              "labels": [
+                "Department / Vendor",
+                "Service Item",
+                "Usage Date / Time",
+                "Quantity / Guests",
+                "Base Rate",
+                "Applied Rate",
+                "Estimated Total",
+                "Requests, pickup location, tee-time notes, etc."
+              ],
+              "addText": "Add Registration",
+              "registerText": "Register",
+              "closeText": "Close"
+            },
+            "golfLabels": [
+              "Course",
+              "Tee Time",
+              "Holes"
+            ],
+            "rentacarLabels": [
+              "Vehicle / Class",
+              "Rental Hours",
+              "Pickup Location"
+            ],
+            "vouchers": {
+              "golf": {
+                "title": "Golf Voucher",
+                "fields": [
+                  "Guest Name",
+                  "Room No.",
+                  "Usage Date / Time",
+                  "Service Item",
+                  "Guests",
+                  "Tee Time",
+                  "Course / Vendor"
+                ],
+                "stub": "Usage Confirmation",
+                "modalTitle": "Voucher Print",
+                "closeText": "Close",
+                "printText": "Print",
+                "printLang": "en",
+                "printTitle": "Voucher Print"
+              },
+              "rentacar": {
+                "title": "Rent-a-car Voucher",
+                "fields": [
+                  "Guest Name",
+                  "Room No.",
+                  "Usage Date / Time",
+                  "Pickup Location",
+                  "Vehicle / Class",
+                  "Service Item",
+                  "Amount",
+                  "Vendor Contact",
+                  "Vendor Address"
+                ],
+                "stub": "Vehicle Handover",
+                "modalTitle": "Voucher Print",
+                "closeText": "Close",
+                "printText": "Print",
+                "printLang": "en",
+                "printTitle": "Voucher Print"
+              },
+              "restaurant": {
+                "title": "Restaurant Coupon",
+                "fields": [
+                  "Guest Name",
+                  "Room No.",
+                  "Usage Date / Time",
+                  "Service Item",
+                  "Amount",
+                  "Vendor Contact",
+                  "Location",
+                  "Vendor Address",
+                  "Benefit",
+                  "Terms"
+                ],
+                "stub": "Coupon Redemption",
+                "modalTitle": "Voucher Print",
+                "closeText": "Close",
+                "printText": "Print",
+                "printLang": "en",
+                "printTitle": "Voucher Print"
+              }
+            }
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "ancillary vendor voucher management",
+          "ok": true,
+          "ms": 2384,
+          "details": {
+            "initial": {
+              "tabs": [
+                "통합 POS",
+                "골프장",
+                "렌터카",
+                "음식점",
+                "기타"
+              ],
+              "selectedMeta": "호텔 통합 POS · 항목 4개",
+              "hasInlinePreview": false,
+              "hasVoucherSection": false,
+              "previewModalOpen": false,
+              "itemCount": 4
+            },
+            "golf": {
+              "sectionTitles": [
+                "공통 정보",
+                "골프장 이용권"
+              ],
+              "preview": "HOTEL PMS\n골프장 바우처\n썬밸리 CC · Kim Manager / +63 917 230 4471\n투숙객명\nLee Hannah\n객실번호\n0801\n이용일시\n2026-07-22 14:30\n이용 항목\n18홀 그린피\n인원\n4명\n티오프\n예약 시 입력\n코스/업체명\n썬밸리 CC\n절취용 이용 확인\n티오프 예약 시 입력\n코스 썬밸리 CC\n투숙객 Lee Hannah\n서명 ____________",
+              "hasStub": true,
+              "hasLogoButton": true
+            },
+            "rentacar": {
+              "sectionTitles": [
+                "공통 정보",
+                "렌터카 인수 정보"
+              ],
+              "preview": "HOTEL PMS\n렌터카 바우처\n롯데렌터카 · Park Manager / +63 928 410 9930\n투숙객명\nLee Hannah\n객실번호\n0801\n이용일시\n2026-07-22 14:30\n이용 항목\n세단 기본 대여\n금액\n₱160\n업체 연락처\nPark Manager / +63 928 410 9930\n업체 주소\nNAIA Terminal 3 Arrival Hall, Pasay\n픽업 위치\n호텔 로비\n차량/차종\n세단\n차량 인수 확인\n픽업 호텔 로비\n차량 세단\n투숙객 Lee Hannah\n서명 ____________",
+              "hasStub": true
+            }
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "dashboard partner vendor detail links",
+          "ok": true,
+          "ms": 4601,
+          "details": {
+            "modal": {
+              "title": "투숙객 전용 레스토랑 디너 혜택\n디너 세트, 웰컴 디저트, 패밀리 메뉴 제휴 할인\n적용 기간 2026-07-01 ~ 2026-08-31 · 12 Nguyen Hue St, District 1, Ho Chi Minh City",
+              "text": "투숙객 전용 레스토랑 디너 혜택\n디너 세트, 웰컴 디저트, 패밀리 메뉴 제휴 할인\n적용 기간 2026-07-01 ~ 2026-08-31 · 12 Nguyen Hue St, District 1, Ho Chi Minh City\nRiverside Bistro\n호텔 투숙객 디너 혜택\n\n도심 야경과 함께하는 제휴 메뉴\n\n호텔 제휴 검토용 안내\n프런트에서 바로 안내 가능한 주변 음식점 혜택\n\n투숙객에게 위치, 운영 시간, 메뉴별 가격을 한 번에 안내하고 예약 또는 쿠폰 적용 여부를 확인할 수 있습니다.\n\n위치 안내\n메뉴 금액 표시\n제휴 할인\n대표 메뉴와 금액을 항목별로 관리합니다.\n방문 전 좌석 가능 여부와 적용 조건을 확인합니다.\n단체 식사 요청은 담당자 연락처와 함께 남깁니다.\n계약 문의 연락처\nMinh Nguyen\n+84 90 118 2233\npartners@riversidebistro.vn\n닫기",
+              "links": []
+            },
+            "adminState": {
+              "activeTab": "restaurant",
+              "selectedName": "리버사이드 비스트로",
+              "selectedAction": "selectVendor('REST-RIVERSIDE')",
+              "hasInlinePreview": false,
+              "hasVoucherSection": true,
+              "previewModalOpen": true
+            },
+            "ancillaryState": {
+              "activeFilter": "all",
+              "cardCount": 8,
+              "inhouseCardCount": 8
+            }
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "checked-in reservation readonly modal",
+          "ok": true,
+          "ms": 2956,
+          "details": {
+            "reservationId": "RSV-DEMO-TODAY-1206-OUT",
+            "status": "checkout",
+            "newModalRestored": true
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "housekeeping -> maintenance",
+          "ok": true,
+          "ms": 3919,
+          "details": {
+            "requestId": "MT-175707",
+            "room": "E2E-1-R2",
+            "maintenanceFormState": {
+              "roomOptions": [
+                "Select room",
+                "Room 1201 · Forest Tower · Deluxe",
+                "Room 1202 · Forest Tower · Deluxe",
+                "Room 1203 · Forest Tower · Deluxe",
+                "Room 1205 · Forest Tower · Deluxe",
+                "Room 1206 · Forest Tower · Deluxe",
+                "Room 1207 · Forest Tower · Deluxe",
+                "Room 1208 · Forest Tower · Deluxe",
+                "Room 1209 · Forest Tower · Deluxe",
+                "Room 1210 · Forest Tower · Deluxe",
+                "Room 1211 · Forest Tower · Deluxe",
+                "Room 1212 · Forest Tower · Deluxe",
+                "Room 1213 · Forest Tower · Deluxe",
+                "Room 1215 · Forest Tower · Deluxe",
+                "Room 1216 · Forest Tower · Deluxe",
+                "Room 1217 · Forest Tower · Deluxe",
+                "Room 1218 · Forest Tower · Deluxe",
+                "Room 1219 · Forest Tower · Deluxe",
+                "Room 1220 · Forest Tower · Deluxe",
+                "Room 1221 · Forest Tower · Deluxe",
+                "Room 1222 · Forest Tower · Deluxe",
+                "Room 1223 · Forest Tower · Deluxe",
+                "Room 1224 · Forest Tower · Deluxe",
+                "Room 1225 · Forest Tower · Deluxe",
+                "Room 1226 · Forest Tower · Deluxe",
+                "Room 1227 · Forest Tower · Deluxe",
+                "Room 1228 · Forest Tower · Deluxe",
+                "Room 0801 · Forest Tower · Standard",
+                "Room 0802 · Forest Tower · Standard",
+                "Room 0803 · Forest Tower · Standard",
+                "Room V-01 · Lakeside Villa · Pool Villa",
+                "Room V-02 · Lakeside Villa · Pool Villa",
+                "Room PH01 · Ocean Tower · Penthouse",
+                "Room PH02 · Ocean Tower · Penthouse",
+                "Room 1401 · Ocean Tower · Premier",
+                "Room 1402 · Ocean Tower · Premier",
+                "Room 1403 · Ocean Tower · Premier",
+                "Room 1405 · Ocean Tower · Premier"
+              ],
+              "typeOptions": [
+                "Electrical/Lighting",
+                "Plumbing/Water",
+                "HVAC",
+                "Furniture/Fixtures",
+                "Door/Lock",
+                "Elevator",
+                "Other"
+              ],
+              "roomLabel": "Room *",
+              "typeLabel": "Type *",
+              "detailsLabel": "Details *",
+              "priorityLabel": "Priority",
+              "assigneeLabel": "Assignee",
+              "detailsPlaceholder": "Describe the issue and exact location.",
+              "cancelText": "Cancel"
+            },
+            "persistedType": "에어컨/냉난방",
+            "persistedPriority": "urgent",
+            "requestDate": "2026-07-22",
+            "deleted": true
+          },
+          "dialogs": 0
+        },
+        {
+          "name": "admin tenant application -> list",
+          "ok": true,
+          "ms": 33341,
+          "details": {
+            "hotelName": "E2E Hotel CYCLE-20260722-001-R2"
+          },
+          "dialogs": 1
+        }
+      ]
+    },
+    {
+      "id": "AUTH",
+      "mode": "ISOLATED_FUNCTIONAL",
+      "script": "audit-plan-functional-auth.cjs",
+      "startedAt": "2026-07-22T00:13:30.956Z",
+      "finishedAt": "2026-07-22T00:13:43.088Z",
+      "exitCode": 0,
+      "summary": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "blocked": 0
+      },
+      "resultFile": "auth.json",
+      "results": [
+        {
+          "id": "AUTH-002",
+          "title": "잘못된 비밀번호 차단",
+          "procedure": "오류 안내, 세션 미생성, 로그인 화면 유지",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:13:31.490Z",
+          "finishedAt": "2026-07-22T00:13:34.220Z",
+          "details": {
+            "session": null,
+            "path": "/dashboard/login.html",
+            "error": "이메일 또는 비밀번호가 올바르지 않습니다."
+          }
+        },
+        {
+          "id": "AUTH-008",
+          "title": "사이드바 대메뉴 아코디언과 active 경로",
+          "procedure": "서로 다른 대메뉴를 순서대로 열고 단일 확장 및 현재 하위 메뉴 active 확인",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:13:34.220Z",
+          "finishedAt": "2026-07-22T00:13:35.558Z",
+          "details": {
+            "expanded": [
+              "groups"
+            ],
+            "active": [
+              "../frontdesk/reservation-board.html"
+            ]
+          }
+        },
+        {
+          "id": "AUTH-010",
+          "title": "로그아웃 후 뒤로가기 보호",
+          "procedure": "로그아웃 버튼 클릭 후 세션 삭제, 로그인 이동, 뒤로가기 보호",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:13:35.558Z",
+          "finishedAt": "2026-07-22T00:13:37.948Z",
+          "details": {
+            "afterLogout": null,
+            "backUrl": "about:blank",
+            "path": "/dashboard/login.html",
+            "session": null
+          }
+        },
+        {
+          "id": "AUTH-012",
+          "title": "내 정보 이메일·비밀번호 변경과 재로그인",
+          "procedure": "일반 직원으로 프로필 저장 후 이전 비밀번호 차단, 새 비밀번호 로그인",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:13:37.948Z",
+          "finishedAt": "2026-07-22T00:13:43.005Z",
+          "details": {
+            "email": "qa.profile.new@example.com",
+            "oldPasswordBlocked": true,
+            "newPasswordLogin": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "CRITICAL_UI",
+      "mode": "ISOLATED_FUNCTIONAL",
+      "script": "audit-critical-ui.cjs",
+      "startedAt": "2026-07-22T00:13:43.088Z",
+      "finishedAt": "2026-07-22T00:14:02.183Z",
+      "exitCode": 0,
+      "summary": {
+        "total": 12,
+        "passed": 12,
+        "failed": 0,
+        "blocked": 0
+      },
+      "resultFile": "critical-ui.json",
+      "results": [
+        {
+          "id": "AUTH-003",
+          "title": "leave staff cannot log in",
+          "status": "PASS",
+          "durationMs": 2698,
+          "details": {
+            "status": "leave",
+            "message": "Staff on leave cannot log in.",
+            "blocked": true
+          }
+        },
+        {
+          "id": "AUTH-004",
+          "title": "retired staff cannot log in",
+          "status": "PASS",
+          "durationMs": 2592,
+          "details": {
+            "status": "retired",
+            "message": "Retired staff cannot log in.",
+            "blocked": true
+          }
+        },
+        {
+          "id": "AUTH-005",
+          "title": "Empty and malformed credentials are rejected before login",
+          "status": "PASS",
+          "durationMs": 1377,
+          "details": {
+            "empty": "blocked",
+            "malformed": "blocked",
+            "message": "Enter a valid email address."
+          }
+        },
+        {
+          "id": "STAFF-002",
+          "title": "Staff edit opens once and uses English labels",
+          "status": "PASS",
+          "durationMs": 1811,
+          "details": {
+            "fields": 9,
+            "title": "Edit Staff"
+          }
+        },
+        {
+          "id": "STAFF-004",
+          "title": "Add Staff matches edit form and uses English labels",
+          "status": "PASS",
+          "durationMs": 401,
+          "details": {
+            "fields": 11,
+            "title": "Add Staff"
+          }
+        },
+        {
+          "id": "EXP-003",
+          "title": "Expense currency follows the PHP hotel currency policy",
+          "status": "PASS",
+          "durationMs": 287,
+          "details": {
+            "selected": "PHP",
+            "currencyOptions": [
+              "PHP",
+              "USD",
+              "KRW"
+            ]
+          }
+        },
+        {
+          "id": "EXP-006",
+          "title": "Existing expense values load and persist after edit",
+          "status": "PASS",
+          "durationMs": 538,
+          "details": {
+            "id": "EXP-DEMO-FUEL-VAN-001",
+            "date": "2026-07-22",
+            "item": "VIP Van Fuel",
+            "buyer": "Nguyen Kim",
+            "updatedItem": "VIP Van Fuel QA",
+            "persisted": true
+          }
+        },
+        {
+          "id": "EXP-007",
+          "title": "Expense deletion removes the record after confirmation",
+          "status": "PASS",
+          "durationMs": 1000,
+          "details": {
+            "created": true,
+            "confirmed": true,
+            "removed": true
+          }
+        },
+        {
+          "id": "EXP-009",
+          "title": "Expense custom date range retains both selected dates",
+          "status": "PASS",
+          "durationMs": 20,
+          "details": {
+            "start": "2026-07-01",
+            "end": "2026-07-31",
+            "mode": "custom"
+          }
+        },
+        {
+          "id": "RES-BOARD-002",
+          "title": "Clean vacant room saves the reservation to the clicked room",
+          "status": "PASS",
+          "durationMs": 1093,
+          "details": {
+            "clicked": "PH01",
+            "selected": "PH01",
+            "saved": {
+              "id": "RSV-20260722091357-138",
+              "room": "PH01",
+              "status": "confirmed"
+            }
+          }
+        },
+        {
+          "id": "RES-BOARD-003",
+          "title": "Dirty room cancel blocks save and continue saves the reservation",
+          "status": "PASS",
+          "durationMs": 2282,
+          "details": {
+            "room": "PH01",
+            "selected": "PH01",
+            "warning": "배정 객실 청소가 아직 완료되지 않았습니다. 체크인은 진행할 수 있지만 객실 준비 상태는 하우스키핑 확인 대상으로 남습니다. 청소가 완료되지 않은 객실입니다. 그래도 신규 예약을 등록할까요?",
+            "before": 0,
+            "afterCancel": 0,
+            "afterContinue": 1
+          }
+        },
+        {
+          "id": "RES-BOARD-005",
+          "title": "Room 1203 remains selected and saves as room 1203",
+          "status": "PASS",
+          "durationMs": 2164,
+          "details": {
+            "clicked": "1203",
+            "selected": "1203",
+            "saved": {
+              "id": "RSV-20260722091400-260",
+              "room": "1203",
+              "guest": "Wong Li",
+              "status": "confirmed"
+            },
+            "persisted": {
+              "id": "RSV-20260722091400-260",
+              "room": "1203",
+              "status": "confirmed"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "STAFF_ROLE_GUARDS",
+      "mode": "ISOLATED_FUNCTIONAL",
+      "script": "audit-plan-hotel-direct.cjs",
+      "startedAt": "2026-07-22T00:14:02.184Z",
+      "finishedAt": "2026-07-22T00:14:10.890Z",
+      "exitCode": 0,
+      "summary": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "blocked": 0
+      },
+      "resultFile": "staff-role-guards.json",
+      "results": [
+        {
+          "id": "AUTH-003",
+          "title": "leave staff login is rejected with status guidance",
+          "status": "PASS",
+          "durationMs": 2619,
+          "evidence": {
+            "message": "휴직 직원은 로그인할 수 없습니다.",
+            "session": null,
+            "path": "/dashboard/login.html"
+          }
+        },
+        {
+          "id": "AUTH-004",
+          "title": "retired staff login is rejected with status guidance",
+          "status": "PASS",
+          "durationMs": 2633,
+          "evidence": {
+            "message": "퇴직 직원은 로그인할 수 없습니다.",
+            "session": null,
+            "path": "/dashboard/login.html"
+          }
+        },
+        {
+          "id": "STAFF-014",
+          "title": "Termination date before hire date is rejected",
+          "status": "PASS",
+          "durationMs": 1338,
+          "evidence": {
+            "before": 6,
+            "after": 6
+          }
+        },
+        {
+          "id": "ROLE-010",
+          "title": "Final administrator role cannot be removed",
+          "status": "PASS",
+          "durationMs": 1461,
+          "evidence": {
+            "systemRoleVisible": true,
+            "protected": true,
+            "protectionGuidance": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "FRONTDESK",
+      "mode": "ISOLATED_FUNCTIONAL",
+      "script": "audit-plan-functional-frontdesk.cjs",
+      "startedAt": "2026-07-22T00:14:10.891Z",
+      "finishedAt": "2026-07-22T00:14:26.922Z",
+      "exitCode": 0,
+      "summary": {
+        "total": 7,
+        "passed": 7,
+        "failed": 0,
+        "blocked": 0
+      },
+      "resultFile": "frontdesk.json",
+      "results": [
+        {
+          "id": "DASH-004",
+          "title": "Today check-in list pagination",
+          "procedure": "Render seven arrivals and verify next/previous paging.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:11.438Z",
+          "finishedAt": "2026-07-22T00:14:12.873Z",
+          "details": {
+            "initial": {
+              "visible": 5,
+              "label": "1 / 2",
+              "nextVisible": true
+            },
+            "next": {
+              "visible": 2,
+              "label": "2 / 2"
+            },
+            "previous": "1 / 2"
+          }
+        },
+        {
+          "id": "NOTI-003",
+          "title": "Notification target validation",
+          "procedure": "Open a valid target and reject an invalid target.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:12.873Z",
+          "finishedAt": "2026-07-22T00:14:14.760Z",
+          "details": {
+            "validTarget": true,
+            "invalidMessage": "연결된 대상을 찾을 수 없습니다. 알림을 새로고침하거나 해당 메뉴에서 다시 확인해주세요.",
+            "stayedOnPage": true
+          }
+        },
+        {
+          "id": "RES-BOARD-004",
+          "title": "Maintenance room booking guard",
+          "procedure": "Block maintenance room booking and save a clean room booking to the clicked room.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:14.760Z",
+          "finishedAt": "2026-07-22T00:14:17.945Z",
+          "details": {
+            "blockedMessage": "점검/수리 중인 객실은 예약할 수 없습니다.",
+            "maintenanceSaved": 0,
+            "selectedRoom": "1203",
+            "saved": [
+              "RSV-20260722091417-541"
+            ]
+          }
+        },
+        {
+          "id": "RES-BOARD-008",
+          "title": "Overdue reservation check-in",
+          "procedure": "Check in an overdue confirmed reservation and verify storage and room state.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:17.945Z",
+          "finishedAt": "2026-07-22T00:14:20.131Z",
+          "details": {
+            "message": "Overdue Guest 예약을 체크인 처리하시겠습니까?",
+            "status": "checkedin",
+            "stored": "checkedin",
+            "roomStatus": "occupied"
+          }
+        },
+        {
+          "id": "RES-BOARD-009",
+          "title": "Future reservation early check-in guard",
+          "procedure": "Attempt check-in before the reservation date and verify no state change.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:20.131Z",
+          "finishedAt": "2026-07-22T00:14:21.917Z",
+          "details": {
+            "message": "체크인 예정일 전에는 체크인할 수 없습니다. 예약 취소 또는 예약 수정만 가능합니다.",
+            "status": "confirmed"
+          }
+        },
+        {
+          "id": "RES-BOARD-012",
+          "title": "In-house room move persistence",
+          "procedure": "Move an in-house reservation and verify history and room states.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:21.917Z",
+          "finishedAt": "2026-07-22T00:14:24.882Z",
+          "details": {
+            "room": "1202",
+            "history": [
+              {
+                "id": "RC-1784679263744-uxicw",
+                "reservationId": "QA-MOVE",
+                "changedAt": "2026-07-22T09:14:23+09:00",
+                "changedBy": {
+                  "id": "s1",
+                  "name": "Nguyen Kim",
+                  "role": "sys_admin",
+                  "roleLabel": "Admin"
+                },
+                "fromRoom": "1201",
+                "toRoom": "1202",
+                "fromFullRoom": "1201",
+                "toFullRoom": "FT-1202",
+                "beforeAmount": 280,
+                "afterAmount": 280,
+                "beforePrepaid": 0,
+                "afterPrepaid": 0,
+                "beforeDeposit": 0,
+                "afterDeposit": 0,
+                "balanceDue": 280,
+                "currency": "PHP",
+                "reason": "frontdesk-room-change",
+                "note": "객실 변경으로 정산 확인 필요",
+                "affectsSettlement": true,
+                "settlementStatus": "pending"
+              }
+            ],
+            "oldStatus": "vacant-dirty",
+            "newStatus": "occupied"
+          }
+        },
+        {
+          "id": "RES-BOARD-015",
+          "title": "Cancellation and room release",
+          "procedure": "Cancel a confirmed reservation and verify persistent status and released room.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:24.882Z",
+          "finishedAt": "2026-07-22T00:14:26.838Z",
+          "details": {
+            "message": "[Cancel Guest] 고객의 예약을 취소하시겠습니까?",
+            "status": "cancelled",
+            "stored": "cancelled",
+            "roomStatus": "vacant-clean"
+          }
+        }
+      ]
+    },
+    {
+      "id": "GROUPS_ROOMS",
+      "mode": "ISOLATED_FUNCTIONAL",
+      "script": "audit-plan-functional-groups-rooms.cjs",
+      "startedAt": "2026-07-22T00:14:26.923Z",
+      "finishedAt": "2026-07-22T00:14:45.081Z",
+      "exitCode": 0,
+      "summary": {
+        "total": 15,
+        "passed": 15,
+        "failed": 0,
+        "blocked": 0
+      },
+      "resultFile": "groups-rooms.json",
+      "results": [
+        {
+          "id": "GRP-DETAIL-002",
+          "title": "Group basic information persistence",
+          "procedure": "Edit the event name, dates, headcount and discount; save and verify the stored group.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:27.532Z",
+          "finishedAt": "2026-07-22T00:14:28.591Z",
+          "details": {
+            "name": "Samsung QA Event",
+            "checkin": "2026-07-20",
+            "checkout": "2026-07-23",
+            "pax": 18,
+            "discount": 12,
+            "stored": {
+              "id": "GRP-DEMO-0708-SAMSUNG",
+              "name": "Samsung QA Event",
+              "companyId": "COMP-1001",
+              "companyName": "Samsung Electronics",
+              "type": "기업 행사 / 컨퍼런스",
+              "status": "inhouse",
+              "checkInDate": "2026-07-21",
+              "checkOutDate": "2026-07-23",
+              "blockedRooms": 4,
+              "pickedUpRooms": 2,
+              "pax": 18,
+              "eventDiscountPercent": 12,
+              "currency": "PHP",
+              "routing": "단체 일괄 정산",
+              "salesManagerId": "s3",
+              "salesManagerName": "Sarah Connor",
+              "contact": "+82 10 1234 5678 (Kim Jiwon)",
+              "note": "July 8 demo corporate group with in-house, arrival, rooming, and ancillary scenarios.",
+              "agencyId": "COMP-1001",
+              "agency": "삼성전자",
+              "checkin": "2026-07-20",
+              "checkout": "2026-07-23",
+              "block": 4,
+              "pickup": 2,
+              "sales": "",
+              "roomAllocations": [],
+              "allocations": [],
+              "roomingList": [],
+              "history": [
+                {
+                  "at": "2026. 7. 22. 오전 9:14:28",
+                  "action": "행사 기본 정보 수정",
+                  "note": "Samsung QA Event"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "GRP-COMP-011",
+          "title": "Group date validation",
+          "procedure": "Enter a checkout date before check-in and verify that saving is rejected.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:28.591Z",
+          "finishedAt": "2026-07-22T00:14:29.616Z",
+          "details": {
+            "before": {
+              "checkin": "2026-07-21",
+              "checkout": "2026-07-23"
+            },
+            "after": {
+              "checkin": "2026-07-21",
+              "checkout": "2026-07-23"
+            }
+          }
+        },
+        {
+          "id": "GRP-DETAIL-005",
+          "title": "Room allocation persistence",
+          "procedure": "Add two available rooms, save the allocation, and verify rates and storage.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:29.616Z",
+          "finishedAt": "2026-07-22T00:14:31.160Z",
+          "details": {
+            "allocations": [
+              {
+                "roomId": "1405",
+                "rate": 500
+              },
+              {
+                "roomId": "1215",
+                "rate": 600
+              }
+            ],
+            "stored": 2
+          }
+        },
+        {
+          "id": "GRP-DETAIL-007",
+          "title": "primary rooming guest persistence",
+          "procedure": "Open the rooming guest modal, enter a guest, save, and verify the group rooming list.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:31.160Z",
+          "finishedAt": "2026-07-22T00:14:32.237Z",
+          "details": {
+            "id": "G-20260722091432-500",
+            "guestId": "G-20260722091432-500",
+            "groupId": "GRP-DEMO-0708-SAMSUNG",
+            "name": "QA Primary Guest",
+            "phone": "+84 90 7777 1000",
+            "email": "",
+            "nation": "",
+            "roomId": "PH01",
+            "role": "primary",
+            "docStatus": "pending",
+            "note": "",
+            "specialNotes": ""
+          }
+        },
+        {
+          "id": "GRP-DETAIL-008",
+          "title": "companion rooming guest persistence",
+          "procedure": "Open the rooming guest modal, enter a guest, save, and verify the group rooming list.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:32.237Z",
+          "finishedAt": "2026-07-22T00:14:33.443Z",
+          "details": {
+            "id": "G-20260722091433-422",
+            "guestId": "G-20260722091433-422",
+            "groupId": "GRP-DEMO-0708-SAMSUNG",
+            "name": "QA Companion Guest",
+            "phone": "+84 90 7777 1000",
+            "email": "",
+            "nation": "",
+            "roomId": "PH01",
+            "role": "companion",
+            "docStatus": "pending",
+            "note": "",
+            "specialNotes": ""
+          }
+        },
+        {
+          "id": "GRP-DETAIL-009",
+          "title": "Rooming guest edit and delete",
+          "procedure": "Edit a stored companion and then delete it after confirmation.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:33.443Z",
+          "finishedAt": "2026-07-22T00:14:34.676Z",
+          "details": {
+            "edited": true,
+            "deleted": true
+          }
+        },
+        {
+          "id": "GRP-COMP-005",
+          "title": "Linked company deletion guard",
+          "procedure": "Attempt to delete a company with linked events and verify the company remains.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:34.676Z",
+          "finishedAt": "2026-07-22T00:14:35.670Z",
+          "details": {
+            "linked": "COMP-1001",
+            "guarded": true
+          }
+        },
+        {
+          "id": "ROOM-SETUP-003",
+          "title": "In-use room type deletion guard",
+          "procedure": "Attempt to delete an in-use room type and verify no deletion.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:35.670Z",
+          "finishedAt": "2026-07-22T00:14:36.811Z",
+          "details": {
+            "index": 0,
+            "before": 6,
+            "after": 6
+          }
+        },
+        {
+          "id": "ROOM-SETUP-005",
+          "title": "Duplicate room number validation",
+          "procedure": "Try to register an existing room number and verify no duplicate is created.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:36.811Z",
+          "finishedAt": "2026-07-22T00:14:37.981Z",
+          "details": {
+            "room": "PH01",
+            "before": 1,
+            "after": 1
+          }
+        },
+        {
+          "id": "ROOMS-003",
+          "title": "Room operational status persistence",
+          "procedure": "Change a vacant room to maintenance and back, checking storage and UI.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:37.981Z",
+          "finishedAt": "2026-07-22T00:14:39.625Z",
+          "details": {
+            "room": "PH01",
+            "maintenance": "oos",
+            "restored": "vacant-clean"
+          }
+        },
+        {
+          "id": "RATE-001",
+          "title": "Rate calendar month navigation",
+          "procedure": "Change month and verify the selector, calendar rows and data month stay aligned.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:39.625Z",
+          "finishedAt": "2026-07-22T00:14:40.628Z",
+          "details": {
+            "month": "2026-07",
+            "count": 186,
+            "dates": [
+              "2026-07-01",
+              "2026-07-01",
+              "2026-07-01"
+            ]
+          }
+        },
+        {
+          "id": "RATE-002",
+          "title": "Daily rate persistence",
+          "procedure": "Edit one visible rate, save, reload, and verify local storage.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:40.628Z",
+          "finishedAt": "2026-07-22T00:14:41.636Z",
+          "details": {
+            "meta": {
+              "date": "2026-07-01",
+              "type": "STD"
+            },
+            "saved": 777
+          }
+        },
+        {
+          "id": "RATE-003",
+          "title": "Date-specific rate isolation",
+          "procedure": "Edit one date and confirm the adjacent date remains unchanged.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:41.636Z",
+          "finishedAt": "2026-07-22T00:14:42.653Z",
+          "details": {
+            "data": {
+              "first": {
+                "date": "2026-07-01",
+                "type": "STD"
+              },
+              "adjacent": {
+                "date": "2026-07-02",
+                "type": "STD",
+                "value": "100"
+              }
+            },
+            "after": {
+              "edited": 888,
+              "adjacent": 100
+            }
+          }
+        },
+        {
+          "id": "RATE-004",
+          "title": "Batch rate range application",
+          "procedure": "Apply a rate to a two-day inclusive range and verify both boundary dates.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:42.653Z",
+          "finishedAt": "2026-07-22T00:14:43.693Z",
+          "details": {
+            "meta": {
+              "start": "2026-07-10",
+              "end": "2026-07-11",
+              "type": "STD"
+            },
+            "applied": {
+              "start": 999,
+              "end": 999
+            }
+          }
+        },
+        {
+          "id": "RATE-007",
+          "title": "Rate reset confirmation",
+          "procedure": "Change a rate, reset the current month after confirmation, and verify the room-type base rate.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:43.693Z",
+          "finishedAt": "2026-07-22T00:14:45.003Z",
+          "details": {
+            "value": 100,
+            "base": 100
+          }
+        }
+      ]
+    },
+    {
+      "id": "OPERATIONS",
+      "mode": "ISOLATED_FUNCTIONAL",
+      "script": "audit-plan-functional-operations.cjs",
+      "startedAt": "2026-07-22T00:14:45.082Z",
+      "finishedAt": "2026-07-22T00:15:00.681Z",
+      "exitCode": 0,
+      "summary": {
+        "total": 14,
+        "passed": 14,
+        "failed": 0,
+        "blocked": 0
+      },
+      "resultFile": "operations.json",
+      "results": [
+        {
+          "id": "HK-001",
+          "title": "Create housekeeping task",
+          "procedure": "Create a cleaning task for a room and verify the task is persisted.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:45.626Z",
+          "finishedAt": "2026-07-22T00:14:46.646Z",
+          "details": {
+            "id": "stayover-PH01-1784679286641",
+            "room": "PH01",
+            "stored": true
+          }
+        },
+        {
+          "id": "HK-002",
+          "title": "Start housekeeping task",
+          "procedure": "Move a pending task into inspection and verify persisted state.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:46.646Z",
+          "finishedAt": "2026-07-22T00:14:47.830Z",
+          "details": {
+            "id": "TASK-1002",
+            "status": "inspect",
+            "storedStatus": "inspect"
+          }
+        },
+        {
+          "id": "HK-003",
+          "title": "Complete housekeeping inspection",
+          "procedure": "Complete an inspection through maintenance and verify task and room are clean.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:47.830Z",
+          "finishedAt": "2026-07-22T00:14:48.880Z",
+          "details": {
+            "requestId": "HKI-HK-QA-1784679288855",
+            "taskStatus": "clean",
+            "roomStatus": "vacant-clean"
+          }
+        },
+        {
+          "id": "HK-007",
+          "title": "Housekeeping view parity",
+          "procedure": "Switch between Kanban and table and verify task counts stay equal.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:48.880Z",
+          "finishedAt": "2026-07-22T00:14:49.863Z",
+          "details": {
+            "tasks": 4,
+            "listRows": 4,
+            "view": "grid"
+          }
+        },
+        {
+          "id": "MAINT-001",
+          "title": "Create maintenance request",
+          "procedure": "Register a request and verify all form values in persistent storage.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:49.864Z",
+          "finishedAt": "2026-07-22T00:14:51.072Z",
+          "details": {
+            "id": "MT-1013",
+            "room": "1201",
+            "roomId": "FT-1201",
+            "type": "배관/수도",
+            "desc": "QA maintenance registration",
+            "priority": "high",
+            "assignee": "김철수",
+            "status": "open",
+            "date": "2026-07-22",
+            "issuedAt": "2026-07-22T00:14:51.063Z",
+            "createdAt": "2026-07-22T00:14:51.063Z",
+            "requestedAt": "2026-07-22T00:14:51.063Z",
+            "startedAt": "",
+            "completedAt": "",
+            "previousRoomStatus": "vacant-clean"
+          }
+        },
+        {
+          "id": "MAINT-003",
+          "title": "Maintenance start state",
+          "procedure": "Start a stored maintenance request and verify persisted state.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:51.072Z",
+          "finishedAt": "2026-07-22T00:14:52.055Z",
+          "details": {
+            "id": "MT-1002",
+            "status": "in-progress",
+            "storedStatus": "in-progress",
+            "startedAt": "2026-07-22T00:14:52.050Z"
+          }
+        },
+        {
+          "id": "MAINT-004",
+          "title": "Maintenance completion state",
+          "procedure": "Complete an in-progress request and verify completion timestamp and persistence.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:52.056Z",
+          "finishedAt": "2026-07-22T00:14:53.135Z",
+          "details": {
+            "id": "MT-1001",
+            "status": "done",
+            "storedStatus": "done",
+            "completedAt": "2026-07-22T00:14:53.047Z"
+          }
+        },
+        {
+          "id": "ANC-001",
+          "title": "Ancillary in-house room guard",
+          "procedure": "Verify every displayed room has an assigned in-house guest.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:53.135Z",
+          "finishedAt": "2026-07-22T00:14:54.317Z",
+          "details": {
+            "shown": 8,
+            "invalid": []
+          }
+        },
+        {
+          "id": "ANC-005",
+          "title": "Create ancillary POS order",
+          "procedure": "Register a POS item for an in-house guest and verify persisted order fields.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:54.317Z",
+          "finishedAt": "2026-07-22T00:14:55.361Z",
+          "details": {
+            "id": "SVC-1784679295321-1402-9426",
+            "roomId": "1402",
+            "service": "pos",
+            "qty": 2,
+            "total": 246,
+            "status": "new"
+          }
+        },
+        {
+          "id": "ANC-011",
+          "title": "Ancillary status lifecycle",
+          "procedure": "Move a pending order through accepted and completed states.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:55.361Z",
+          "finishedAt": "2026-07-22T00:14:56.394Z",
+          "details": {
+            "id": "SVC-DEMO-SHOWCASE-1402-pos-1",
+            "accepted": "accepted",
+            "completed": "completed",
+            "stored": "completed"
+          }
+        },
+        {
+          "id": "ANC-012",
+          "title": "Reopen ancillary order",
+          "procedure": "Reopen a completed order and verify accepted state, action and audit log survive storage reload.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:56.394Z",
+          "finishedAt": "2026-07-22T00:14:57.581Z",
+          "details": {
+            "id": "SVC-DEMO-SHOWCASE-1402-pos-1",
+            "status": "accepted",
+            "storedStatus": "accepted",
+            "actionText": "<button type=\"button\" class=\"service-action-btn complete\" onclick=\"updateServiceOrderStatus('SVC-DEMO-SHOWCASE-1402-pos-1','completed')\"><i class=\"fa-solid fa-check-double\"></i><span>완료</span></button>",
+            "audit": {
+              "id": "AUD-1784679297372-xor60i",
+              "action": "ancillary.order.reopen",
+              "createdAt": "2026-07-22T09:14:57+09:00",
+              "actor": {
+                "id": "s1",
+                "name": "Nguyen Kim",
+                "role": "sys_admin",
+                "roleLabel": "관리자"
+              },
+              "page": "/dashboard/operations/ancillary.html",
+              "details": {
+                "screen": "ancillary",
+                "orderId": "SVC-DEMO-SHOWCASE-1402-pos-1",
+                "reservationId": "RSV-0080",
+                "room": "1402",
+                "guestName": "Yamamoto K.",
+                "service": "통합 POS",
+                "item": "룸서비스 세트",
+                "vendor": "호텔 통합 POS",
+                "beforeStatus": "완료",
+                "afterStatus": "미완료",
+                "fields": [
+                  "orderId",
+                  "reservationId",
+                  "room",
+                  "service",
+                  "item",
+                  "status"
+                ],
+                "amount": 8500,
+                "currency": "PHP"
+              }
+            },
+            "reloaded": "accepted"
+          }
+        },
+        {
+          "id": "SETTLE-STATUS-004",
+          "title": "Complete settlement without opening detail",
+          "procedure": "Complete a zero-balance folio from the list path and verify no modal opens.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:57.581Z",
+          "finishedAt": "2026-07-22T00:14:58.588Z",
+          "details": {
+            "id": "FOL-260625-DEMO-WONG-REFUND",
+            "ok": true,
+            "modalOpen": false,
+            "stored": true
+          }
+        },
+        {
+          "id": "SETTLE-STATUS-007",
+          "title": "Reopen settlement with audit",
+          "procedure": "Reopen a completed folio and verify completion removal, reopened state and audit record.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:58.588Z",
+          "finishedAt": "2026-07-22T00:14:59.559Z",
+          "details": {
+            "id": "FOL-260001",
+            "completionExists": false,
+            "reopenExists": true,
+            "audit": {
+              "id": "AUD-1784679299538-g3deda",
+              "action": "folio.settlement.reopen",
+              "createdAt": "2026-07-22T09:14:59+09:00",
+              "actor": {
+                "id": "s1",
+                "name": "Nguyen Kim",
+                "role": "sys_admin",
+                "roleLabel": "관리자"
+              },
+              "page": "/dashboard/operations/settlement-status.html",
+              "details": {
+                "screen": "settlement-status",
+                "folioId": "FOL-260001",
+                "reservationId": "RSV-0001",
+                "groupId": "",
+                "room": "PH01",
+                "guestName": "Nguyen Michael",
+                "beforeStatus": "완료됨",
+                "afterStatus": "미완료",
+                "fields": [
+                  "folioId",
+                  "reservationId",
+                  "room",
+                  "status"
+                ],
+                "totalAmount": 503880,
+                "paid": 503880,
+                "balanceDue": 0,
+                "currency": "PHP"
+              }
+            }
+          }
+        },
+        {
+          "id": "EXP-004",
+          "title": "Cash expense lifecycle",
+          "procedure": "Create, edit and delete a cash expense and verify list and cash-session synchronization.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:14:59.559Z",
+          "finishedAt": "2026-07-22T00:15:00.588Z",
+          "details": {
+            "created": "EXP-1784679300418-80g0h",
+            "editedAmount": 654,
+            "deleted": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "OPERATIONS_EXTENDED",
+      "mode": "ISOLATED_FUNCTIONAL",
+      "script": "audit-plan-functional-operations-extended.cjs",
+      "startedAt": "2026-07-22T00:15:00.681Z",
+      "finishedAt": "2026-07-22T00:15:17.089Z",
+      "exitCode": 0,
+      "summary": {
+        "total": 12,
+        "passed": 12,
+        "failed": 0,
+        "blocked": 0
+      },
+      "resultFile": "operations-extended.json",
+      "results": [
+        {
+          "id": "HK-004",
+          "title": "Reopen completed housekeeping task",
+          "procedure": "Reopen a completed task and verify task/room/audit persistence.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:01.207Z",
+          "finishedAt": "2026-07-22T00:15:02.207Z",
+          "details": {
+            "id": "checkout-PH01-1784679302189",
+            "status": "dirty",
+            "roomStatus": "vacant-dirty",
+            "audit": true
+          }
+        },
+        {
+          "id": "HK-005",
+          "title": "Edit housekeeping task",
+          "procedure": "Open the task editor, change assignee/priority/note, save, and re-read storage.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:02.207Z",
+          "finishedAt": "2026-07-22T00:15:03.291Z",
+          "details": {
+            "id": "stayover-PH01-1784679303180",
+            "room": "PH01",
+            "roomId": "OT-PH01",
+            "roomNo": "PH01",
+            "type": "stayover",
+            "status": "dirty",
+            "priority": true,
+            "note": "QA edited note",
+            "assignee": "QA Housekeeper"
+          }
+        },
+        {
+          "id": "HK-006",
+          "title": "Delete housekeeping task with lifecycle guard",
+          "procedure": "Delete pending task and verify active task deletion is blocked.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:03.291Z",
+          "finishedAt": "2026-07-22T00:15:04.356Z",
+          "details": {
+            "pendingExists": false,
+            "activeExists": true
+          }
+        },
+        {
+          "id": "HK-008",
+          "title": "Housekeeping filters and counts",
+          "procedure": "Apply every status filter and compare rendered rows with task source.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:04.356Z",
+          "finishedAt": "2026-07-22T00:15:05.370Z",
+          "details": [
+            {
+              "status": "all",
+              "expected": 4,
+              "rendered": 4
+            },
+            {
+              "status": "dirty",
+              "expected": 2,
+              "rendered": 2
+            },
+            {
+              "status": "inspect",
+              "expected": 1,
+              "rendered": 1
+            },
+            {
+              "status": "clean",
+              "expected": 1,
+              "rendered": 1
+            }
+          ]
+        },
+        {
+          "id": "HK-009",
+          "title": "Housekeeping priority localization and tablet stability",
+          "procedure": "Open editor in KO/EN at tablet width and verify stable options and dimensions.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:05.370Z",
+          "finishedAt": "2026-07-22T00:15:06.362Z",
+          "details": {
+            "ko": [
+              "일반",
+              "긴급"
+            ],
+            "en": [
+              "Normal",
+              "Urgent"
+            ],
+            "width": 253
+          }
+        },
+        {
+          "id": "MAINT-002",
+          "title": "Maintenance request blocks room sales",
+          "procedure": "Register request and verify selected room becomes out of service.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:06.362Z",
+          "finishedAt": "2026-07-22T00:15:07.932Z",
+          "details": {
+            "requestId": "MT-1013",
+            "roomStatus": "oos"
+          }
+        },
+        {
+          "id": "MAINT-005",
+          "title": "Maintenance completion restores room",
+          "procedure": "Complete request and verify prior room state is restored.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:07.932Z",
+          "finishedAt": "2026-07-22T00:15:09.646Z",
+          "details": {
+            "status": "vacant-clean",
+            "request": {
+              "id": "MT-1013",
+              "room": "1201",
+              "roomId": "FT-1201",
+              "type": "배관/수도",
+              "desc": "QA room restore",
+              "priority": "high",
+              "assignee": "김철수",
+              "status": "done",
+              "date": "2026-07-22",
+              "issuedAt": "2026-07-22T00:15:09.414Z",
+              "createdAt": "2026-07-22T00:15:09.414Z",
+              "requestedAt": "2026-07-22T00:15:09.414Z",
+              "startedAt": "2026-07-22T00:15:09.631Z",
+              "completedAt": "2026-07-22T00:15:09.634Z",
+              "previousRoomStatus": "vacant-clean"
+            }
+          }
+        },
+        {
+          "id": "MAINT-006",
+          "title": "Edit maintenance request",
+          "procedure": "Edit open request through modal and verify fields persist.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:09.646Z",
+          "finishedAt": "2026-07-22T00:15:11.454Z",
+          "details": {
+            "id": "MT-1013",
+            "room": "1201",
+            "roomId": "FT-1201",
+            "type": "배관/수도",
+            "desc": "QA after edit",
+            "priority": "urgent",
+            "assignee": "김철수",
+            "status": "open",
+            "date": "2026-07-22",
+            "issuedAt": "2026-07-22T00:15:10.962Z",
+            "createdAt": "2026-07-22T00:15:10.962Z",
+            "requestedAt": "2026-07-22T00:15:10.962Z",
+            "startedAt": "",
+            "completedAt": "",
+            "previousRoomStatus": "vacant-clean"
+          }
+        },
+        {
+          "id": "MAINT-007",
+          "title": "Delete maintenance request with lifecycle guard",
+          "procedure": "Delete open request; verify active request cannot be deleted.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:11.454Z",
+          "finishedAt": "2026-07-22T00:15:13.490Z",
+          "details": {
+            "removableExists": false,
+            "guardedExists": true
+          }
+        },
+        {
+          "id": "MAINT-008",
+          "title": "Maintenance view parity",
+          "procedure": "Compare Kanban and table rows/counts from same filtered source.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:13.490Z",
+          "finishedAt": "2026-07-22T00:15:14.471Z",
+          "details": {
+            "source": 13,
+            "cards": 13,
+            "rows": 13
+          }
+        },
+        {
+          "id": "MAINT-009",
+          "title": "Maintenance status and priority filters",
+          "procedure": "Apply each status and urgent priority filter and compare source results.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:14.472Z",
+          "finishedAt": "2026-07-22T00:15:15.480Z",
+          "details": [
+            {
+              "status": "all",
+              "expected": 13,
+              "actual": 13
+            },
+            {
+              "status": "open",
+              "expected": 6,
+              "actual": 6
+            },
+            {
+              "status": "in-progress",
+              "expected": 3,
+              "actual": 3
+            },
+            {
+              "status": "done",
+              "expected": 4,
+              "actual": 4
+            }
+          ]
+        },
+        {
+          "id": "MAINT-011",
+          "title": "Non-maintenance room regression",
+          "procedure": "Block one room and verify another normal room remains available.",
+          "status": "PASS",
+          "startedAt": "2026-07-22T00:15:15.480Z",
+          "finishedAt": "2026-07-22T00:15:17.012Z",
+          "details": {
+            "requestId": "MT-1013",
+            "changed": [
+              {
+                "id": "1201",
+                "status": "oos"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
