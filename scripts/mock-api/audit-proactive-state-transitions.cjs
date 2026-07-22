@@ -600,6 +600,171 @@ async function runCases(browser, collector) {
       return result;
     })
   );
+
+  await collector.run('STATE-015', 'Early checkout remains completed', 'Check out an in-house reservation before its planned departure and verify it stays completed, records the actual departure and releases the room as dirty.', () =>
+    withPage(browser, 'dashboard/frontdesk/reservation-board.html?proactive=early-checkout', async state => {
+      const { page } = state;
+      await waitForBoard(page);
+      await seedMoveScenario(page);
+      await page.evaluate(() => {
+        window.showConfirm = async () => true;
+        window.openUnifiedResModal('QA-CHAIN-MOVE');
+      });
+      await page.locator('#unifiedResModal.active').waitFor({ state: 'visible' });
+      await page.evaluate(() => window.processUnifiedReservationFlow('checkout'));
+      await page.locator('#unifiedResModal.active').waitFor({ state: 'hidden' });
+      const result = await page.evaluate(() => {
+        const reservation = JSON.parse(localStorage.getItem('pms_reservations') || '[]').find(item => item.id === 'QA-CHAIN-MOVE');
+        const room = window.rooms.find(item => [item.id, item.roomId, item.fullRoom, item.roomNo, item.number]
+          .filter(Boolean).some(value => String(value).endsWith('1201')));
+        window.renderReservationBoard();
+        const state = window.computeBoardStatusFor(room);
+        return {
+          reservation,
+          room: { status: room?.status, frontStatus: room?.frontStatus, housekeepingStatus: room?.housekeepingStatus, guest: room?.guest },
+          boardStatus: state?.status,
+          modalClosed: !document.querySelector('#unifiedResModal.active')
+        };
+      });
+      assert(result.reservation?.status === 'completed' && result.reservation?.checkoutCompleted === true, 'Early checkout did not persist a completed reservation.', result);
+      assert(result.reservation?.actualCheckOutDate && result.reservation?.actualCheckOutAt, 'Early checkout did not record the actual departure.', result.reservation);
+      assert(result.room.status === 'vacant-dirty' && result.room.frontStatus === 'vacant' && result.room.housekeepingStatus === 'dirty' && !result.room.guest, 'Early checkout did not release the room as vacant-dirty.', result.room);
+      assert(result.boardStatus === 'vacant' && result.modalClosed, 'Early checkout reappeared as an active arrival or left the modal open.', result);
+      cleanRuntimeErrors(state);
+      return result;
+    })
+  );
+
+  await collector.run('STATE-016', 'Checkout cleaning returns every room field to clean', 'Complete a checkout cleaning task and verify status, front status and housekeeping status all persist as vacant-clean after reload.', () =>
+    withPage(browser, 'dashboard/operations/housekeeping.html?proactive=checkout-clean', async state => {
+      const { page } = state;
+      await page.waitForFunction(() => Array.isArray(allRooms) && allRooms.length > 0 && Array.isArray(tasks));
+      const fixture = await page.evaluate(async () => {
+        const room = allRooms.find(item => [item.id, item.roomId, item.fullRoom, item.roomNo, item.number]
+          .filter(Boolean).some(value => String(value).endsWith('1201')));
+        if (!room) throw new Error('Housekeeping fixture room 1201 was not found');
+        Object.assign(room, {
+          status: 'vacant-dirty', frontStatus: 'vacant-dirty', housekeepingStatus: 'dirty', cleaningStatus: 'dirty', guest: ''
+        });
+        const task = {
+          id: 'QA-CHECKOUT-CLEAN', room: room.roomNo || room.number || '1201', roomId: room.id || room.roomId,
+          type: 'checkout', status: 'dirty', guest: 'Early Checkout Guest', priority: 'normal'
+        };
+        tasks = tasks.filter(item => item.id !== task.id);
+        tasks.push(task);
+        await window.PmsAPI.saveRooms(allRooms);
+        await window.PmsAPI.saveTasks(tasks);
+        await completeTask(task.id, 'clean');
+        await new Promise(resolve => setTimeout(resolve, 250));
+        const storedRooms = await window.PmsAPI.getAllRooms();
+        const stored = storedRooms.find(item => String(item.id || item.roomId || item.roomNo || '').endsWith('1201'));
+        return { task, room: stored };
+      });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => Array.isArray(allRooms) && allRooms.length > 0);
+      const reloaded = await page.evaluate(() => {
+        const room = allRooms.find(item => [item.id, item.roomId, item.fullRoom, item.roomNo, item.number]
+          .filter(Boolean).some(value => String(value).endsWith('1201')));
+        const task = tasks.find(item => item.id === 'QA-CHECKOUT-CLEAN');
+        return { room, task };
+      });
+      const clean = value => String(value || '').replace(/[-_\s]/g, '').toLowerCase();
+      assert(clean(fixture.room?.status) === 'vacantclean' && clean(fixture.room?.frontStatus) === 'vacantclean' && clean(fixture.room?.housekeepingStatus) === 'clean', 'Checkout cleaning left inconsistent room status fields before reload.', fixture);
+      assert(clean(reloaded.room?.status) === 'vacantclean' && clean(reloaded.room?.frontStatus) === 'vacantclean' && clean(reloaded.room?.housekeepingStatus) === 'clean', 'Checkout cleaning did not persist a fully clean room after reload.', reloaded);
+      assert(reloaded.task?.status === 'clean', 'Checkout cleaning task did not remain completed after reload.', reloaded.task);
+      cleanRuntimeErrors(state);
+      return { fixture, reloaded };
+    })
+  );
+
+  await collector.run('STATE-017', 'Board-selected room survives date changes', 'Open a new booking from room 1203, change the stay dates twice and verify the selected room never falls back to another room.', () =>
+    withPage(browser, 'dashboard/frontdesk/reservation-board.html?proactive=room-prefill', async state => {
+      const { page } = state;
+      await waitForBoard(page);
+      await seedMoveScenario(page);
+      await page.evaluate(() => {
+        const target = window.rooms.find(item => [item.id, item.roomId, item.fullRoom, item.roomNo, item.number]
+          .filter(Boolean).some(value => String(value).endsWith('1203')));
+        window.openBoardRoomBooking(encodeURIComponent(target.id || target.roomId || target.roomNo || '1203'));
+      });
+      await page.locator('#unifiedResModal.active').waitFor({ state: 'visible' });
+      const result = await page.evaluate(() => {
+        const selected = () => ({ value: document.getElementById('unifiedRoom')?.value || '', text: document.getElementById('unifiedRoom')?.selectedOptions?.[0]?.textContent || '' });
+        const before = selected();
+        const cout = document.getElementById('unifiedCout');
+        const date = new Date(`${cout.value}T00:00:00`);
+        date.setDate(date.getDate() + 2);
+        cout.value = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+        cout.dispatchEvent(new Event('change', { bubbles: true }));
+        const afterCheckout = selected();
+        const cin = document.getElementById('unifiedCin');
+        cin.dispatchEvent(new Event('change', { bubbles: true }));
+        const afterCheckin = selected();
+        return { before, afterCheckout, afterCheckin };
+      });
+      const pointsTo1203 = item => String(item.value).endsWith('1203') || /1203/.test(item.text);
+      assert(pointsTo1203(result.before) && pointsTo1203(result.afterCheckout) && pointsTo1203(result.afterCheckin), 'The board-selected room changed while editing dates.', result);
+      cleanRuntimeErrors(state);
+      return result;
+    })
+  );
+
+  await collector.run('STATE-018', 'Repeated checkout is idempotent', 'Trigger checkout twice concurrently and verify only one completion mutation and one checkout audit are persisted.', () =>
+    withPage(browser, 'dashboard/frontdesk/reservation-board.html?proactive=checkout-idempotency', async state => {
+      const { page } = state;
+      await waitForBoard(page);
+      await seedMoveScenario(page);
+      const result = await page.evaluate(async () => {
+        window.showConfirm = async () => true;
+        window.openUnifiedResModal('QA-CHAIN-MOVE');
+        await Promise.all([
+          window.processUnifiedReservationFlow('checkout'),
+          window.processUnifiedReservationFlow('checkout')
+        ]);
+        const reservation = JSON.parse(localStorage.getItem('pms_reservations') || '[]').find(item => item.id === 'QA-CHAIN-MOVE');
+        const audits = JSON.parse(localStorage.getItem('pms_privacy_audit_logs') || '[]')
+          .filter(item => item.action === 'reservation.checkout' && item.details?.reservationId === 'QA-CHAIN-MOVE');
+        return { reservation, auditCount: audits.length };
+      });
+      assert(result.reservation?.status === 'completed' && result.auditCount === 1, 'Repeated checkout created duplicate state mutations or audits.', result);
+      cleanRuntimeErrors(state);
+      return result;
+    })
+  );
+
+  await collector.run('STATE-019', 'Dirty-room check-in requires confirmation', 'Cancel a dirty-room check-in once, then confirm it and verify only the confirmed attempt changes state and writes one audit.', () =>
+    withPage(browser, 'dashboard/frontdesk/reservation-board.html?proactive=dirty-checkin', async state => {
+      const { page } = state;
+      await waitForBoard(page);
+      await seedMoveScenario(page);
+      const result = await page.evaluate(async () => {
+        const reservation = window.reservations.find(item => item.id === 'QA-CHAIN-MOVE');
+        const room = window.rooms.find(item => [item.id, item.roomId, item.fullRoom, item.roomNo, item.number]
+          .filter(Boolean).some(value => String(value).endsWith('1201')));
+        const today = window.PmsDate?.todayIso?.() || new Date().toISOString().slice(0, 10);
+        reservation.status = 'confirmed';
+        reservation.checkInDate = reservation.checkin = reservation.cin = today;
+        Object.assign(room, { status: 'vacant-dirty', frontStatus: 'vacant', housekeepingStatus: 'dirty', cleaningStatus: 'dirty', guest: '' });
+        localStorage.setItem('pms_reservations', JSON.stringify(window.reservations));
+        localStorage.setItem('pms_rooms', JSON.stringify(window.rooms));
+        window.openUnifiedResModal(reservation.id);
+        window.showConfirm = async () => false;
+        await window.processUnifiedReservationFlow('checkin');
+        const cancelledStatus = reservation.status;
+        window.showConfirm = async () => true;
+        await window.processUnifiedReservationFlow('checkin');
+        const stored = JSON.parse(localStorage.getItem('pms_reservations') || '[]').find(item => item.id === reservation.id);
+        const audits = JSON.parse(localStorage.getItem('pms_privacy_audit_logs') || '[]')
+          .filter(item => item.action === 'reservation.checkin' && item.details?.reservationId === reservation.id);
+        return { cancelledStatus, storedStatus: stored?.status, roomStatus: room.status, housekeepingStatus: room.housekeepingStatus, auditCount: audits.length };
+      });
+      assert(result.cancelledStatus === 'confirmed', 'Cancelling the dirty-room warning still checked the guest in.', result);
+      assert(result.storedStatus === 'checkedin' && result.roomStatus === 'occupied' && result.housekeepingStatus === 'dirty', 'Confirmed dirty-room check-in did not persist the expected occupied-dirty state.', result);
+      assert(result.auditCount === 1, 'Dirty-room check-in wrote an audit for a cancelled attempt or duplicated the confirmed audit.', result);
+      cleanRuntimeErrors(state);
+      return result;
+    })
+  );
 }
 
 async function main() {

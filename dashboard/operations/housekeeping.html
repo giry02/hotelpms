@@ -1143,6 +1143,12 @@ async function completeTask(id, nextStatus) {
                 allRooms[localRoomIndex].status = 'vacant-dirty';
                 allRooms[localRoomIndex].frontStatus = 'vacant-dirty';
             }
+            if (nextStatus === 'clean' && !isStayoverTask) {
+                allRooms[localRoomIndex].status = 'vacant-clean';
+                allRooms[localRoomIndex].frontStatus = 'vacant-clean';
+                allRooms[localRoomIndex].housekeepingStatus = 'clean';
+                allRooms[localRoomIndex].cleaningStatus = 'clean';
+            }
             if (window.PmsAPI?.saveRooms) await window.PmsAPI.saveRooms(allRooms);
         }
         window.PmsPrivacyAudit?.log?.('room.cleaning.status', {
@@ -1169,22 +1175,6 @@ async function completeTask(id, nextStatus) {
             }
         }
 
-        // Sync checkout/deep cleaning back to vacant-clean when completed.
-        if (nextStatus === 'clean' && window.PmsAPI && window.PmsAPI.getAllRooms) {
-            if (!isStayoverTask) {
-                window.PmsAPI.getAllRooms().then(rooms => {
-                    const rIdx = rooms.findIndex(r => matchesRoomKey(r.id, task.room) || matchesRoomKey(r.roomId, task.roomId || task.room) || matchesRoomKey(r.fullRoom, task.roomId || task.room) || matchesRoomKey(r.roomNo, task.room));
-                    if (rIdx > -1) {
-                        rooms[rIdx].status = 'vacant-clean';
-                        if (window.PmsAPI.saveRooms) window.PmsAPI.saveRooms(rooms);
-                    }
-                });
-                // Update local allRooms array instantly to reflect in Grid View without reload
-                const localRIdx = allRooms.findIndex(r => taskMatchesRoom(task, r));
-                if (localRIdx > -1) allRooms[localRIdx].status = 'vacant-clean';
-            }
-        }
-        
         updateKpis();
         renderAllViews();
     }

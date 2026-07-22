@@ -21,7 +21,8 @@ const suites = [
   { id: 'FRONTDESK', mode: 'ISOLATED_FUNCTIONAL', file: 'audit-plan-functional-frontdesk.cjs', result: 'frontdesk.json' },
   { id: 'GROUPS_ROOMS', mode: 'ISOLATED_FUNCTIONAL', file: 'audit-plan-functional-groups-rooms.cjs', result: 'groups-rooms.json' },
   { id: 'OPERATIONS', mode: 'ISOLATED_FUNCTIONAL', file: 'audit-plan-functional-operations.cjs', result: 'operations.json' },
-  { id: 'OPERATIONS_EXTENDED', mode: 'ISOLATED_FUNCTIONAL', file: 'audit-plan-functional-operations-extended.cjs', result: 'operations-extended.json' }
+  { id: 'OPERATIONS_EXTENDED', mode: 'ISOLATED_FUNCTIONAL', file: 'audit-plan-functional-operations-extended.cjs', result: 'operations-extended.json' },
+  { id: 'STATE_TRANSITIONS', mode: 'ISOLATED_STATE_TRANSITION', file: 'audit-proactive-state-transitions.cjs', result: 'state-transitions.json' }
 ];
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -70,18 +71,26 @@ const aggregate = executed.reduce((acc, suite) => {
 const architectureGate = {
   id: 'CYCLE-ARCH-001',
   status: 'BLOCKED',
-  reason: 'Admin과 PMS가 각각 브라우저 localStorage를 사용하는 정적 앱 구조이므로 Admin 승인 데이터가 PMS 테넌트로 서버에서 전파되는 단일 백엔드 연동은 현재 검증할 수 없다.'
+  reason: 'Admin and PMS currently use separate browser localStorage stores. Server-side propagation through one shared backend cannot be verified in this static deployment.'
 };
 aggregate.total += 1;
 aggregate.blocked += 1;
 
+const baselineSuite = executed.find(suite => suite.id === 'BASELINE');
+const connectedResult = baselineSuite?.results.find(result =>
+  String(result.name || '').toLowerCase().includes('connected reservation')
+);
 const connectedCycleGate = {
   id: 'CYCLE-E2E-001',
-  status: 'BLOCKED',
-  reason: '현재 자동화는 업무 흐름별 격리 브라우저 컨텍스트를 사용한다. CYCLE-000에서 생성한 동일 ID를 CYCLE-140까지 이어 쓰는 단일 컨텍스트 실행은 아직 구현되지 않아 전체 단일 사이클 PASS로 판정할 수 없다.'
+  status: connectedResult?.ok === true ? 'PASS' : 'FAIL',
+  reason: connectedResult?.ok === true
+    ? 'One browser context completed reservation, ancillary, settlement, reopen, expense and final settlement with linked identifiers.'
+    : (connectedResult?.error || 'The connected business-cycle result was not produced by the baseline suite.'),
+  result: connectedResult || null
 };
 aggregate.total += 1;
-aggregate.blocked += 1;
+if (connectedCycleGate.status === 'PASS') aggregate.passed += 1;
+else aggregate.failed += 1;
 
 const report = {
   generatedAt: new Date().toISOString(),
