@@ -475,6 +475,131 @@ async function runCases(browser, collector) {
       return result;
     })
   );
+
+  await collector.run('STATE-011', 'Folio reference follows room move', 'Move an in-house reservation and verify the directly linked folio points to the new room while keeping its folio and reservation identities.', () =>
+    withPage(browser, 'dashboard/frontdesk/reservation-board.html?proactive=linked-folio', async state => {
+      const { page } = state;
+      await waitForBoard(page);
+      await seedMoveScenario(page);
+      await page.evaluate(async () => {
+        await window.PmsMockApi.request('POST', '/folios', { body: {
+          id: 'QA-MOVE-FOLIO',
+          folioId: 'QA-MOVE-FOLIO',
+          reservationId: 'QA-CHAIN-MOVE',
+          room: '1201',
+          roomNo: '1201',
+          roomId: '1201',
+          ownerName: 'Chain Move Guest',
+          status: 'open',
+          charges: [],
+          payments: []
+        } });
+      });
+      await moveReservation(page, '1202');
+      const result = await page.evaluate(async () => {
+        const envelope = await window.PmsMockApi.request('GET', '/folios');
+        const folio = window.PmsMockApi.items(envelope).find(item => item.id === 'QA-MOVE-FOLIO' || item.folioId === 'QA-MOVE-FOLIO');
+        return { folio };
+      });
+      assert(result.folio?.reservationId === 'QA-CHAIN-MOVE' && (result.folio?.folioId === 'QA-MOVE-FOLIO' || result.folio?.id === 'QA-MOVE-FOLIO'), 'Room move changed the linked folio identity.', result);
+      assert(String(result.folio?.roomNo || '').endsWith('1202') && String(result.folio?.roomId || '').endsWith('1202'), 'Linked folio remained on the previous room.', result);
+      cleanRuntimeErrors(state);
+      return result;
+    })
+  );
+
+  await collector.run('STATE-012', 'Expense deletion reverses cash withdrawal', 'Create a cash expense, delete it, and verify both the expense and its linked cash withdrawal are removed.', () =>
+    withPage(browser, 'dashboard/operations/expense-purchases.html?proactive=delete-cash', async state => {
+      const { page } = state;
+      await page.waitForFunction(() => typeof openExpenseFormModal === 'function');
+      const result = await page.evaluate(async () => {
+        localStorage.setItem('pms_expense_purchases', '[]');
+        localStorage.setItem('pms_expense_purchases_demo_version', '2026-07-demo-v2');
+        localStorage.setItem('pms_night_audit_cash_sessions', '[]');
+        renderExpenses();
+        openExpenseFormModal();
+        document.getElementById('expenseItem').value = 'QA Delete Cash Expense';
+        document.getElementById('expenseVendor').value = 'QA Vendor';
+        document.getElementById('expenseAmount').value = '333';
+        document.getElementById('expenseMethod').value = 'cash';
+        document.getElementById('expenseCurrency').value = 'PHP';
+        saveExpensePurchase();
+        const created = expenses().find(item => item.item === 'QA Delete Cash Expense');
+        const withdrawalsBefore = readJson(CASH_SESSION_KEY, []).flatMap(item => item.withdrawals || []).filter(item => item.expenseId === created?.id);
+        window.showConfirm = async () => true;
+        await deleteExpensePurchase(created?.id);
+        const withdrawalsAfter = readJson(CASH_SESSION_KEY, []).flatMap(item => item.withdrawals || []).filter(item => item.expenseId === created?.id);
+        return {
+          id: created?.id,
+          rowsAfter: expenses().filter(item => item.id === created?.id).length,
+          withdrawalsBefore,
+          withdrawalsAfter,
+          renderedRows: document.querySelectorAll('#expenseRows tr[data-expense-id]').length
+        };
+      });
+      assert(result.id && result.withdrawalsBefore.length === 1, 'Cash expense did not create exactly one withdrawal before deletion.', result);
+      assert(result.rowsAfter === 0 && result.withdrawalsAfter.length === 0, 'Deleting a cash expense left stale expense or withdrawal data.', result);
+      cleanRuntimeErrors(state);
+      return result;
+    })
+  );
+
+  await collector.run('STATE-013', 'Expense currency edit clears previous bucket', 'Create a PHP expense, edit it to USD, and verify storage and KPI buckets no longer retain the previous PHP amount.', () =>
+    withPage(browser, 'dashboard/operations/expense-purchases.html?proactive=currency-edit', async state => {
+      const { page } = state;
+      await page.waitForFunction(() => typeof openExpenseFormModal === 'function');
+      const result = await page.evaluate(() => {
+        localStorage.setItem('pms_expense_purchases', '[]');
+        localStorage.setItem('pms_expense_purchases_demo_version', '2026-07-demo-v2');
+        localStorage.setItem('pms_night_audit_cash_sessions', '[]');
+        renderExpenses();
+        openExpenseFormModal();
+        document.getElementById('expenseItem').value = 'QA Currency Edit';
+        document.getElementById('expenseVendor').value = 'QA Vendor';
+        document.getElementById('expenseAmount').value = '444';
+        document.getElementById('expenseMethod').value = 'card';
+        document.getElementById('expenseCurrency').value = 'PHP';
+        saveExpensePurchase();
+        const created = expenses().find(item => item.item === 'QA Currency Edit');
+        openExpenseFormModal(created.id);
+        document.getElementById('expenseCurrency').value = 'USD';
+        document.getElementById('expenseAmount').value = '55';
+        saveExpensePurchase();
+        const stored = expenses().find(item => item.id === created.id);
+        const totals = expenses().reduce((map, item) => {
+          const currency = String(item.currency || '').toUpperCase();
+          map[currency] = (map[currency] || 0) + Number(item.amount || 0);
+          return map;
+        }, {});
+        return { stored, totals, kpi: document.getElementById('expenseTotal')?.innerText || '' };
+      });
+      assert(result.stored?.currency === 'USD' && Number(result.stored?.amount) === 55 && Number(result.stored?.settlementAmount) === -55, 'Edited expense did not persist the new currency and amount.', result);
+      assert(!result.totals.PHP && result.totals.USD === 55, 'The previous currency bucket retained the edited amount.', result);
+      assert(/55/.test(result.kpi) && !/444/.test(result.kpi), 'Expense KPI retained the previous currency amount after edit.', result);
+      cleanRuntimeErrors(state);
+      return result;
+    })
+  );
+
+  await collector.run('STATE-014', 'Malformed expense storage recovery', 'Open the expense page with malformed expense and cash-session storage and verify it recovers without runtime errors or destructive writes.', () =>
+    withPage(browser, 'dashboard/operations/expense-purchases.html?proactive=malformed-storage', async state => {
+      const { page } = state;
+      const result = await page.evaluate(() => {
+        localStorage.setItem('pms_expense_purchases', '{broken-json');
+        localStorage.setItem('pms_night_audit_cash_sessions', '[broken-json');
+        renderExpenses();
+        return {
+          rows: document.querySelectorAll('#expenseRows tr[data-expense-id]').length,
+          expenseRaw: localStorage.getItem('pms_expense_purchases'),
+          cashRaw: localStorage.getItem('pms_night_audit_cash_sessions')
+        };
+      });
+      assert(result.rows === 0, 'Malformed expense storage rendered invalid rows.', result);
+      assert(result.expenseRaw === '{broken-json' && result.cashRaw === '[broken-json', 'Read-only recovery silently overwrote malformed source data.', result);
+      cleanRuntimeErrors(state);
+      return result;
+    })
+  );
 }
 
 async function main() {

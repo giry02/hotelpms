@@ -3334,6 +3334,45 @@
         return changed;
     }
 
+    async function syncLinkedFoliosToReservationRoom(res) {
+        const reservationId = compactValue(res?.id || res?.reservationId);
+        if (!reservationId || !window.PmsMockApi) return 0;
+        const room = compactValue(res?.roomNo || res?.roomNumber || res?.roomLabel || res?.room || res?.fullRoom || res?.roomId);
+        const roomId = compactValue(res?.roomId || res?.fullRoom || res?.room || room);
+        if (!room || !roomId) return 0;
+        try {
+            const envelope = await window.PmsMockApi.request('GET', '/folios');
+            const folios = window.PmsMockApi.items(envelope).filter(folio =>
+                compactValue(folio?.reservationId) === reservationId
+            );
+            let changed = 0;
+            for (const folio of folios) {
+                if (sameRoomValue(folio?.roomNo || folio?.room, room) && sameRoomValue(folio?.roomId || folio?.room, roomId)) continue;
+                const id = compactValue(folio?.id || folio?.folioId);
+                if (!id) continue;
+                await window.PmsMockApi.request('PATCH', `/folios/${encodeURIComponent(id)}`, {
+                    body: {
+                        ...folio,
+                        room,
+                        roomNo: room,
+                        roomId,
+                        updatedAt: window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString()
+                    }
+                });
+                changed += 1;
+            }
+            if (changed) {
+                window.dispatchEvent(new CustomEvent('pms:folios-updated', {
+                    detail: { reservationId, room, roomId, changed }
+                }));
+            }
+            return changed;
+        } catch(e) {
+            console.warn('Linked folio room sync failed', e);
+            return 0;
+        }
+    }
+
     function refreshUnifiedReservationViews(context = {}) {
         if (typeof window.syncUnifiedReservationPageState === 'function') {
             try {
@@ -4129,6 +4168,7 @@
                         });
                     }
                     syncLinkedAncillaryOrdersToReservationRoom(res);
+                    await syncLinkedFoliosToReservationRoom(res);
                 }
                 if (isPostCheckinEdit && beforeAmount !== totalAmount) {
                     logReservationAudit('reservation.amount.adjust', {
