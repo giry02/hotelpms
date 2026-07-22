@@ -13,6 +13,7 @@
 |---|---:|---:|---:|---:|
 | 수정 전 운영 서버 | 10 | 9 | 1 | 1 |
 | 수정 후 로컬 | 10 | 10 | 0 | 0 |
+| 수정 배포 후 운영 서버 | 10 | 10 | 0 | 0 |
 
 수정 전 실패는 `STATE-010` 한 건이다. 투숙 예약의 객실을 이동하면 예약, 객실 상태와 이동 이력은 정상 변경됐지만 예약 ID에 연결된 부가서비스 주문은 이전 호실을 계속 참조했다.
 
@@ -37,11 +38,13 @@
 | 단체 회귀 | 17/17 PASS | 검색 실행 시점, 기간 범위, 객실 중복, 통계 합계, 객실·투숙객 탭 |
 | 운영 회귀 | 14/14 PASS | 하우스키핑, 시설 보수, 부가서비스 상태, 정산 상태, 현금 지출 |
 
+수정 커밋 `43f71db`를 `main`에 푸시한 뒤 운영 정적 자산에서 `syncLinkedAncillaryOrdersToReservationRoom` 반영을 확인했다. 같은 운영 URL에서 신규 10개와 예약 회귀 26개를 재실행해 각각 `10/10 PASS`, `26/26 PASS`를 확인했다.
+
 ## 5. 증거
 
 - 수정 전 운영: `outputs/proactive-validation-20260722/state-transitions-before-deploy.json`
 - 수정 후 로컬: `outputs/proactive-validation-20260722/state-transitions-expanded-local.json`
-- 배포 후 운영 결과는 배포 커밋 반영 후 동일 10개 케이스로 추가 기록한다.
+- 수정 배포 후 운영: `outputs/proactive-validation-20260722/state-transitions-after-deploy.json`
 
 ## 6. 잔여 위험
 
