@@ -3296,6 +3296,44 @@
         }
     }
 
+    function syncLinkedAncillaryOrdersToReservationRoom(res) {
+        const reservationId = compactValue(res?.id || res?.reservationId);
+        if (!reservationId) return 0;
+        let orders = [];
+        try {
+            const parsed = JSON.parse(localStorage.getItem('pms_ancillary_room_orders') || '[]');
+            if (Array.isArray(parsed)) orders = parsed;
+        } catch(e) {
+            return 0;
+        }
+        const room = compactValue(res?.roomNo || res?.roomNumber || res?.roomLabel || res?.room || res?.fullRoom || res?.roomId);
+        const roomId = compactValue(res?.roomId || res?.fullRoom || res?.room || room);
+        if (!room || !roomId) return 0;
+        let changed = 0;
+        const updatedAt = window.PmsDate?.nowIso ? window.PmsDate.nowIso() : new Date().toISOString();
+        const next = orders.map(order => {
+            if (compactValue(order?.reservationId) !== reservationId) return order;
+            const alreadyCurrent = sameRoomValue(order?.room, room) && sameRoomValue(order?.roomId, roomId);
+            if (alreadyCurrent) return order;
+            changed += 1;
+            return {
+                ...order,
+                room,
+                roomNo: room,
+                roomId,
+                fullRoom: roomId,
+                updatedAt
+            };
+        });
+        if (changed) {
+            localStorage.setItem('pms_ancillary_room_orders', JSON.stringify(next));
+            window.dispatchEvent(new CustomEvent('pms:ancillary-orders-updated', {
+                detail: { reservationId, room, roomId, changed }
+            }));
+        }
+        return changed;
+    }
+
     function refreshUnifiedReservationViews(context = {}) {
         if (typeof window.syncUnifiedReservationPageState === 'function') {
             try {
@@ -4090,6 +4128,7 @@
                             fields: ['room', 'stayDates']
                         });
                     }
+                    syncLinkedAncillaryOrdersToReservationRoom(res);
                 }
                 if (isPostCheckinEdit && beforeAmount !== totalAmount) {
                     logReservationAudit('reservation.amount.adjust', {
