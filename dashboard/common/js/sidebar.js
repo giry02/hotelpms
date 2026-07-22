@@ -610,7 +610,11 @@
 <div class="sidebar-overlay" onclick="PMS_Sidebar.toggleMenu()"></div>
 <aside class="sidebar">
     <div class="sidebar-logo">
-        <img class="sidebar-brand-image" src="${BASE}common/assets/hpms-logo.png" alt="HPMS - Hotel Property Management System">
+        <div class="logo-icon"><i class="fa-solid fa-hotel"></i></div>
+        <div>
+            <div class="logo-text">HOTEL PMS</div>
+            <div class="logo-sub">Property Management</div>
+        </div>
     </div>
     <nav class="sidebar-nav">${groups}</nav>
     <div class="sidebar-bottom">
