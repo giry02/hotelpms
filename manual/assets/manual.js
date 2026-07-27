@@ -71,8 +71,8 @@
             ko: {
                 subtitle: '호텔관리 사용 매뉴얼',
                 title: 'Hotel PMS 호텔관리 매뉴얼',
-                intro: '호텔 운영자가 사용하는 대시보드, 예약, 객실, 정산, CRM, 설정 화면과 주요 팝업을 업무 흐름별로 정리했습니다.',
-                lead: '좌측 목차에서 호텔 운영 화면을 선택하거나 검색어로 화면/팝업을 찾을 수 있습니다. 어드민 화면은 별도 매뉴얼에서 확인합니다.',
+                intro: '현재 운영 기준의 대시보드, 예약, 단체, 객실, 부가서비스, 정산, CRM, 설정 화면과 주요 팝업을 한글·영문으로 정리했습니다.',
+                lead: '좌측 목차에서 호텔 운영 화면을 선택하거나 검색어로 화면/팝업을 찾을 수 있습니다. 데스크톱·태블릿 기준이며 어드민 연계는 별도 매뉴얼에서 확인합니다.',
                 docType: 'HOTEL MANUAL',
                 popupIndex: '호텔관리 팝업/모달 색인',
                 documentTitle: 'Hotel PMS Hotel Operation Manual'
@@ -80,8 +80,8 @@
             en: {
                 subtitle: 'Hotel Operation Manual',
                 title: 'Hotel PMS Hotel Operation Manual',
-                intro: 'Screens and major popups used by hotel operators are organized by operational workflow.',
-                lead: 'Use the left table of contents or search to find hotel operation screens and popups. Admin screens are documented in a separate manual.',
+                intro: 'Current bilingual workflow guide for dashboards, reservations, groups, rooms, ancillary services, settlements, CRM, settings, and related popups.',
+                lead: 'Use the left table of contents or search to find hotel operation screens and popups. The guide targets desktop and tablet; Admin integration is documented separately.',
                 docType: 'HOTEL MANUAL',
                 popupIndex: 'Hotel Popup / Modal Index',
                 documentTitle: 'Hotel PMS Hotel Operation Manual'
@@ -91,8 +91,8 @@
             ko: {
                 subtitle: '어드민 사용 매뉴얼',
                 title: 'Hotel PMS 어드민 매뉴얼',
-                intro: '플랫폼 운영자가 사용하는 입점 호텔, 광고, 결제, 연동, 고객지원, 공지, 관리자 감사 로그 화면을 별도로 정리했습니다.',
-                lead: '좌측 목차에서 어드민 화면을 선택하거나 검색어로 화면/팝업을 찾을 수 있습니다. 호텔 운영 화면과 분리해 플랫폼 관리 기준으로 확인합니다.',
+                intro: '입점 신청·승인부터 PMS 최초 로그인, 구독/결제, 연동, 고객지원, 공지, 광고, 감사 로그까지 한글·영문으로 정리했습니다.',
+                lead: '좌측 목차에서 어드민 화면을 선택하거나 검색어로 화면/팝업을 찾을 수 있습니다. 동일 신청·호텔·문의·공지·캠페인 ID를 기준으로 PMS 연계 흐름을 확인합니다.',
                 docType: 'ADMIN MANUAL',
                 popupIndex: '어드민 팝업/모달 색인',
                 documentTitle: 'Hotel PMS Admin Manual'
@@ -100,8 +100,8 @@
             en: {
                 subtitle: 'Admin Manual',
                 title: 'Hotel PMS Admin Manual',
-                intro: 'Platform administration screens for tenants, ads, billing, integrations, support, notices, and audit logs are documented separately.',
-                lead: 'Use the left table of contents or search to find admin screens and popups. Hotel operation screens are separated into the hotel manual.',
+                intro: 'Bilingual platform guide from tenant application and approval through first PMS login, billing, integrations, support, notices, advertising, and audit logs.',
+                lead: 'Use the left table of contents or search to find admin screens and popups. Follow PMS integration using the same application, tenant, ticket, notice, and campaign IDs.',
                 docType: 'ADMIN MANUAL',
                 popupIndex: 'Admin Popup / Modal Index',
                 documentTitle: 'Hotel PMS Admin Manual'
